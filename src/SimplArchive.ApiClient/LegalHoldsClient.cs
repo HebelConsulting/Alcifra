@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SimplArchive.Localization;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
 /// The legal-holds + retention area (#443, ops tranche): holds and their items, and the retention
@@ -164,13 +164,13 @@ public sealed class LegalHoldsClient(ApiCore core)
     public async Task DisposeRetentionAsync(RetentionItemInfo item, CancellationToken cancellationToken = default)
     {
         using var response = await _core.SendRelAsync(item.Links, "dispose", cancellationToken: cancellationToken);
-        await SimplArchiveApiClient.ThrowIfProblemAsync(response, "Could not dispose the document.", cancellationToken);
+        await ApiWire.ThrowIfProblemAsync(response, "Could not dispose the document.", cancellationToken);
     }
 
     // Extend a document's retention to a new "retain until" date ("yyyy-MM-dd").
     public async Task ExtendRetentionAsync(RetentionItemInfo item, string until, CancellationToken cancellationToken = default)
     {
         using var response = await _core.SendRelAsync(item.Links, "extend", new { until }, cancellationToken);
-        await SimplArchiveApiClient.ThrowIfProblemAsync(response, "Could not extend retention.", cancellationToken);
+        await ApiWire.ThrowIfProblemAsync(response, "Could not extend retention.", cancellationToken);
     }
 }

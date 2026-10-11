@@ -222,7 +222,7 @@ public sealed partial class ManageAccessViewModel : ObservableObject
     {
         IsNew = true;
         SelectedPrincipal = AvailablePrincipals.FirstOrDefault();
-        Load(ViewerBundle());
+        Load(AclRoles.Viewer);
         Status = string.Empty;
         Editing = true;
     }
@@ -280,13 +280,13 @@ public sealed partial class ManageAccessViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ApplyViewer() => Load(ViewerBundle());
+    private void ApplyViewer() => Load(AclRoles.Viewer);
 
     [RelayCommand]
-    private void ApplyEditor() => Load(EditorBundle());
+    private void ApplyEditor() => Load(AclRoles.Editor);
 
     [RelayCommand]
-    private void ApplyManager() => Load(ManagerBundle());
+    private void ApplyManager() => Load(AclRoles.Manager);
 
     [RelayCommand]
     private async Task Save()
@@ -399,32 +399,15 @@ public sealed partial class ManageAccessViewModel : ObservableObject
     /// less than manager would be the lying-state failure of ADR 0724 — the user reads the label, not the nine
     /// checkboxes it moved. Disabled says "not yours to give"; a reduced grant says nothing at all.
     /// </remarks>
-    public bool MayApplyViewer => Covers(ViewerBundle());
-    public bool MayApplyEditor => Covers(EditorBundle());
-    public bool MayApplyManager => Covers(ManagerBundle());
+    public bool MayApplyViewer => Covers(AclRoles.Viewer);
+    public bool MayApplyEditor => Covers(AclRoles.Editor);
+    public bool MayApplyManager => Covers(AclRoles.Manager);
 
-    // The client half of EffectiveRights.Covers, and the only place it is written here: one predicate the three
-    // presets share, rather than three hand-expanded conditions that could disagree about the same bundle.
+    // The presets and the grant cap are the shared AclRoles (ApiClient), so the phone's form means the same rights.
     private bool Covers(AclRights bundle) =>
-        (!bundle.CanSee || MayGrantSee)
-        && (!bundle.CanReadContent || MayGrantReadContent)
-        && (!bundle.CanEditContent || MayGrantEditContent)
-        && (!bundle.CanEditIndexData || MayGrantEditIndexData)
-        && (!bundle.CanCreateSubItems || MayGrantCreateSubItems)
-        && (!bundle.CanDelete || MayGrantDelete)
-        && (!bundle.CanMove || MayGrantMove)
-        && (!bundle.CanAnnotate || MayGrantAnnotate)
-        && (!bundle.CanManagePermissions || MayGrantManagePermissions);
+        AclRoles.Covers(bundle, Grantable ?? new AclRights(false, false, false, false, false, false, false, false, false));
 
-    private static AclRights ViewerBundle() => new(true, true, false, false, false, false, false, false, false);
-    private static AclRights EditorBundle() => new(true, true, true, true, true, false, true, true, false);
-    private static AclRights ManagerBundle() => new(true, true, true, true, true, true, true, true, true);
-
-    public static string PresetLabelKey(AclRights r) =>
-        r == ViewerBundle() ? "MaRoleViewer"
-        : r == EditorBundle() ? "MaRoleEditor"
-        : r == ManagerBundle() ? "MaRoleManager"
-        : "MaRoleCustom";
+    public static string PresetLabelKey(AclRights r) => AclRoles.LabelKeyOf(r);
 
     // ---- principal helpers ----
 

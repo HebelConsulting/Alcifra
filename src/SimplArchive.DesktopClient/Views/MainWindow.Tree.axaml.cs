@@ -151,7 +151,9 @@ public partial class MainWindow
     internal void OnTreeDelete(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
         if (DataContext is MainWindowViewModel vm && _treeContextNode is { } node
-            && await new ConfirmDialog($"Delete the folder '{node.Name}' and everything inside it? It will be moved to the recycle bin.", "Delete").ShowDialog<bool>(this))
+            && await new ConfirmDialog(
+                string.Format(Strings.Get(SimplArchive.Presentation.DeleteConfirmation.QuestionKey(isReference: false, isFolder: true)), node.Name),
+                Strings.Get(SimplArchive.Presentation.DeleteConfirmation.ButtonKey(isReference: false))).ShowDialog<bool>(this))
         {
             await vm.DeleteFolderAsync(node.Id, node.Href("self"));
         }

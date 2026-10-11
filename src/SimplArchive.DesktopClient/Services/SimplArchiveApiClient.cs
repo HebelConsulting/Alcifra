@@ -137,9 +137,6 @@ public sealed class SimplArchiveApiClient
     public sealed record OcrLanguageOption(string Code, string DisplayName);
 
 
-    // The signed-in principal's ids + display names (ADR "S3-backed inbox") — names drive the local folder
-    // path. IsTenantAdmin gates admin-only actions (e.g. the searchable-PDF backfill).
-    public sealed record WhoAmIInfo(Guid? UserId, Guid? TenantId, string? TenantName, string? UserName, bool IsTenantAdmin, bool CanManageUsers, bool HasPhoto, bool CanViewAuditLog, bool MfaEnabled, bool CanResetMfa, bool CanLegalHold, bool CanManageClassification, bool CanOverrideCheckout = false, bool CanImpersonate = false, string? ImpersonatedBy = null, bool CanExport = false, bool CanImport = false, bool CanManageIntrays = false, bool CanManageServiceAccounts = false, bool CanManageMailRouting = false);
 
 
     /// <summary>The essentials of a document reached by ADDRESS — what a cross-tab open needs in one read.</summary>
@@ -164,31 +161,9 @@ public sealed class SimplArchiveApiClient
     public Task<byte[]> DownloadArchiveEntryAsync(string downloadHref, CancellationToken cancellationToken = default) =>
         _http.GetByteArrayAsync(downloadHref, cancellationToken);
 
-    public async Task<WhoAmIInfo> GetWhoAmIAsync(CancellationToken cancellationToken = default)
-    {
-        var json = await _http.GetFromJsonAsync<JsonElement>(await RootHrefAsync("whoami", cancellationToken), cancellationToken);
-        return new WhoAmIInfo(
-            json.TryGetProperty("userId", out var u) && u.ValueKind == JsonValueKind.String ? u.GetGuid() : null,
-            json.TryGetProperty("tenantId", out var t) && t.ValueKind == JsonValueKind.String ? t.GetGuid() : null,
-            json.TryGetProperty("tenantName", out var tn) ? tn.GetString() : null,
-            json.TryGetProperty("userName", out var un) ? un.GetString() : null,
-            json.TryGetProperty("isTenantAdmin", out var a) && a.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canManageUsers", out var m) && m.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("hasPhoto", out var hp) && hp.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canViewAuditLog", out var av) && av.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("mfaEnabled", out var mfa) && mfa.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canResetMfa", out var crm) && crm.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canLegalHold", out var clh) && clh.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canManageClassification", out var cmc) && cmc.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canOverrideCheckout", out var coc) && coc.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canImpersonate", out var ci) && ci.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("impersonatedBy", out var ib) && ib.ValueKind == JsonValueKind.String ? ib.GetString() : null,
-            json.TryGetProperty("canExport", out var ce) && ce.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canImport", out var cim) && cim.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canManageIntrays", out var cmi) && cmi.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canManageServiceAccounts", out var cmsa) && cmsa.ValueKind == JsonValueKind.True,
-            json.TryGetProperty("canManageMailRouting", out var cmr) && cmr.ValueKind == JsonValueKind.True);
-    }
+    /// <summary>Who the session is and what it may do system-wide (shared with the phone: <see cref="WhoAmIClient"/>).</summary>
+    public Task<WhoAmIInfo> GetWhoAmIAsync(CancellationToken cancellationToken = default) =>
+        new WhoAmIClient(Core).GetAsync(cancellationToken);
 
     // The count of existing "current TIFF" documents with no searchable-PDF successor yet (ADR "Backfill
     // searchable PDFs for existing TIFFs").

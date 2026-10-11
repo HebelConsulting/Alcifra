@@ -5415,4 +5415,19 @@
   <data name="MobTakePhoto" xml:space="preserve">
     <value>Foto aufnehmen</value>
   </data>
+  <data name="DelConfirmReference" xml:space="preserve">
+    <value>Den Verweis auf «{0}» aus diesem Ordner entfernen? Das Element selbst wird nicht gelöscht.</value>
+  </data>
+  <data name="DelConfirmFolder" xml:space="preserve">
+    <value>Den Ordner «{0}» mit allem Inhalt löschen? Er wird in den Papierkorb verschoben.</value>
+  </data>
+  <data name="DelConfirmDocument" xml:space="preserve">
+    <value>«{0}» löschen? Es wird in den Papierkorb verschoben.</value>
+  </data>
+  <data name="RemMyself" xml:space="preserve">
+    <value>Mich selbst</value>
+  </data>
+  <data name="RemWho" xml:space="preserve">
+    <value>Erinnern</value>
+  </data>
 </root>

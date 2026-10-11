@@ -26,7 +26,8 @@ public partial class ReminderDialogViewModel : ObservableObject
 
     public string DocumentName { get; }
 
-    public string[] RecurrenceOptions { get; } = ["Doesn't repeat", "Daily", "Weekly", "Monthly"];
+    // The shared labels (Presentation.ReminderRepeat), indexed by the value the server stores; the phone lists the same.
+    public string[] RecurrenceOptions { get; } = [.. SimplArchive.Presentation.ReminderRepeat.LabelKeys.Select(Strings.Get)];
 
     [ObservableProperty] private DateTime? _reminderDate = DateTime.Now.AddDays(1);
     // Typed, not spun (#1057): the reminder's time is something the user already knows. Seeded from the
@@ -47,7 +48,7 @@ public partial class ReminderDialogViewModel : ObservableObject
     public async Task LoadAsync()
     {
         Targets.Clear();
-        Targets.Add(new UserOptionInfo(Guid.Empty, "Myself"));
+        Targets.Add(new UserOptionInfo(Guid.Empty, Strings.Get("RemMyself")));
         SelectedTarget = Targets[0];
 
         string? targetsHref = null;

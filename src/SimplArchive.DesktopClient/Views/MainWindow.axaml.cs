@@ -509,13 +509,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        var message = (node.IsReference, node.IsFolder) switch
-        {
-            (true, _) => $"Remove the reference to '{node.Name}' from this folder? The item itself is not deleted.",
-            (false, true) => $"Delete the folder '{node.Name}' and everything inside it? It will be moved to the recycle bin.",
-            (false, false) => $"Delete '{node.Name}'? It will be moved to the recycle bin.",
-        };
-        var confirmLabel = node.IsReference ? "Remove" : "Delete";
+        // The shared wording (Presentation.DeleteConfirmation), which the phone asks identically.
+        var message = string.Format(Strings.Get(SimplArchive.Presentation.DeleteConfirmation.QuestionKey(node.IsReference, node.IsFolder)), node.Name);
+        var confirmLabel = Strings.Get(SimplArchive.Presentation.DeleteConfirmation.ButtonKey(node.IsReference));
         if (await new ConfirmDialog(message, confirmLabel).ShowDialog<bool>(this))
         {
             await vm.DeleteNodeAsync(node);

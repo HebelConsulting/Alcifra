@@ -5,7 +5,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SimplArchive.Localization;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
 /// The check-out area's client (#443, tranche 1 — the first area peeled off <c>SimplArchiveApiClient</c>):
@@ -178,7 +178,7 @@ public sealed class CheckoutClient(ApiCore core)
                     i.TryGetProperty("isSigned", out var sg) && sg.ValueKind is JsonValueKind.True or JsonValueKind.False
                         ? sg.GetBoolean()
                         : null,
-                    SimplArchiveApiClient.StrOrNull(i, "downloadUrl")));
+                    ApiWire.StrOrNull(i, "downloadUrl")));
             }
         }
 
@@ -209,7 +209,7 @@ public sealed class CheckoutClient(ApiCore core)
 
     public async Task<byte[]> DownloadStashAsync(string stashDownloadUrl, CancellationToken cancellationToken = default)
     {
-        var (bytes, _) = await SimplArchiveApiClient.DownloadAsync(stashDownloadUrl, cancellationToken);
+        var (bytes, _) = await ApiWire.DownloadAsync(stashDownloadUrl, cancellationToken);
         return bytes;
     }
 

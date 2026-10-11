@@ -5415,4 +5415,19 @@
   <data name="MobTakePhoto" xml:space="preserve">
     <value>Tomar una foto</value>
   </data>
+  <data name="DelConfirmReference" xml:space="preserve">
+    <value>¿Quitar la referencia a «{0}» de esta carpeta? El elemento en sí no se elimina.</value>
+  </data>
+  <data name="DelConfirmFolder" xml:space="preserve">
+    <value>¿Eliminar la carpeta «{0}» y todo su contenido? Se moverá a la papelera.</value>
+  </data>
+  <data name="DelConfirmDocument" xml:space="preserve">
+    <value>¿Eliminar «{0}»? Se moverá a la papelera.</value>
+  </data>
+  <data name="RemMyself" xml:space="preserve">
+    <value>Yo mismo</value>
+  </data>
+  <data name="RemWho" xml:space="preserve">
+    <value>Recordar a</value>
+  </data>
 </root>

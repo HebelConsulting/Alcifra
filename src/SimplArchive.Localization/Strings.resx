@@ -5415,4 +5415,19 @@
   <data name="MobTakePhoto" xml:space="preserve">
     <value>Take a photo</value>
   </data>
+  <data name="DelConfirmReference" xml:space="preserve">
+    <value>Remove the reference to '{0}' from this folder? The item itself is not deleted.</value>
+  </data>
+  <data name="DelConfirmFolder" xml:space="preserve">
+    <value>Delete the folder '{0}' and everything inside it? It will be moved to the recycle bin.</value>
+  </data>
+  <data name="DelConfirmDocument" xml:space="preserve">
+    <value>Delete '{0}'? It will be moved to the recycle bin.</value>
+  </data>
+  <data name="RemMyself" xml:space="preserve">
+    <value>Myself</value>
+  </data>
+  <data name="RemWho" xml:space="preserve">
+    <value>Remind</value>
+  </data>
 </root>
