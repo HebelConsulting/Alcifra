@@ -1,9 +1,9 @@
 using System;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
-/// The deep-link address forms (#761): what "Copy link" produces and what "Go to link…" / the
+/// The deep-link address forms (#761), shared by the desktop and the phone (ADR 0917): what "Copy link" produces and what "Go to link…" / the
 /// <c>simplarchive://</c> scheme handler accept. Pure, so every accepted shape is pinned in a unit test.
 /// </summary>
 /// <remarks>

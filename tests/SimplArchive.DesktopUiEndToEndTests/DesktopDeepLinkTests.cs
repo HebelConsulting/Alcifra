@@ -1,4 +1,5 @@
 using SimplArchive.DesktopClient.Services;
+using SimplArchive.ApiClient;
 
 namespace SimplArchive.UiEndToEndTests;
 

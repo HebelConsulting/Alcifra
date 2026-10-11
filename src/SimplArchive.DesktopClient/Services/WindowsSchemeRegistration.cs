@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.Versioning;
+using SimplArchive.ApiClient;
 
 namespace SimplArchive.DesktopClient.Services;
 

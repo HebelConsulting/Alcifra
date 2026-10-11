@@ -5409,4 +5409,10 @@
   <data name="MobShareSignIn" xml:space="preserve">
     <value>Melden Sie sich an, um das Geteilte abzulegen.</value>
   </data>
+  <data name="MobChooseFile" xml:space="preserve">
+    <value>Datei wählen</value>
+  </data>
+  <data name="MobTakePhoto" xml:space="preserve">
+    <value>Foto aufnehmen</value>
+  </data>
 </root>

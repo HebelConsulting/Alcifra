@@ -7,6 +7,7 @@ using Projektanker.Icons.Avalonia;
 using Projektanker.Icons.Avalonia.MaterialDesign;
 using SimplArchive.DesktopClient.ViewModels;
 using SimplArchive.DesktopClient.Views;
+using SimplArchive.ApiClient;
 
 namespace SimplArchive.DesktopClient;
 
@@ -51,7 +52,7 @@ internal static class Program
 
         // A simplarchive:// launch (#761): the OS hands the link as an argument. Parked on the view-model and
         // consumed once the user is signed in and the workbench is loaded — a deep link cannot skip login.
-        if (args.FirstOrDefault(a => a.StartsWith($"{Services.DeepLinks.Scheme}://", StringComparison.OrdinalIgnoreCase)) is { } schemeLink)
+        if (args.FirstOrDefault(a => a.StartsWith($"{SimplArchive.ApiClient.DeepLinks.Scheme}://", StringComparison.OrdinalIgnoreCase)) is { } schemeLink)
         {
             Services.DesktopLog.Debug("Deep link: launched with {Link}", schemeLink);
             ViewModels.MainWindowViewModel.PendingDeepLink = schemeLink;

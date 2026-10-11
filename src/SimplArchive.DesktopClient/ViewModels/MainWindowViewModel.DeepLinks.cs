@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using SimplArchive.DesktopClient.Services;
 using SimplArchive.Localization;
+using SimplArchive.ApiClient;
 
 namespace SimplArchive.DesktopClient.ViewModels;
 
