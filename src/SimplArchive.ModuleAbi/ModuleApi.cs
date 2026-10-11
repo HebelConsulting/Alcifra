@@ -120,7 +120,23 @@ public sealed record ModuleDocumentRightsAnswer(
 /// see a tenant's rels. The endpoint still authenticates its caller; the link only says where it is, and an
 /// anonymous caller learns that the module is installed.
 /// </param>
-public sealed record ModuleRootLink(string Rel, string Path, string Method, bool InstallationWide = false);
+public sealed record ModuleRootLink(string Rel, string Path, string Method, bool InstallationWide)
+{
+    /// <summary>
+    /// The 1.13 shape, kept as its own constructor: a module compiled against 1.13 calls exactly this signature, and
+    /// an OPTIONAL parameter does not provide it (optional values are filled in where the CALLER is compiled). Without
+    /// it, v0.41.0 refused every module built before ABI 1.14 that declares a root link, with MissingMethodException
+    /// (the Encryption Module and the flight school on the kiosk, 2026-10-11).
+    /// </summary>
+    public ModuleRootLink(string Rel, string Path, string Method)
+        : this(Rel, Path, Method, InstallationWide: false)
+    {
+    }
+
+    /// <summary>The 1.13 deconstruction, kept for the same reason as the 1.13 constructor.</summary>
+    public void Deconstruct(out string Rel, out string Path, out string Method) =>
+        (Rel, Path, Method) = (this.Rel, this.Path, this.Method);
+}
 
 /// <summary>
 /// The shape of a module's upload offer, which <c>saconsole module upload</c> follows (ABI 1.14, core ADR 0918):

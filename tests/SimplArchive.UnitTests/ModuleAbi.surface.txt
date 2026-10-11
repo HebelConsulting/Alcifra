@@ -1,0 +1,1003 @@
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean Equals(SimplArchive.ModuleAbi.BookingAdmissionClaim)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean IsDropped
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean IsHolding
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean IsNewClaim
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean get_IsDropped()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean get_IsHolding()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean get_IsNewClaim()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean op_Equality(SimplArchive.ModuleAbi.BookingAdmissionClaim, SimplArchive.ModuleAbi.BookingAdmissionClaim)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Boolean op_Inequality(SimplArchive.ModuleAbi.BookingAdmissionClaim, SimplArchive.ModuleAbi.BookingAdmissionClaim)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Int32 GetHashCode()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::SimplArchive.ModuleAbi.BookingAdmissionClaim <Clone>$()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.Guid ResourceDocumentId
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.Guid get_ResourceDocumentId()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.Nullable`1[System.Guid] MaskId
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.Nullable`1[System.Guid] RepresentsUserId
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.Nullable`1[System.Guid] get_MaskId()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.Nullable`1[System.Guid] get_RepresentsUserId()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::System.String ToString()
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void .ctor(System.Guid, System.Nullable`1[System.Guid], Boolean, System.Nullable`1[System.Guid], Boolean, Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void Deconstruct(System.Guid ByRef, System.Nullable`1[System.Guid] ByRef, Boolean ByRef, System.Nullable`1[System.Guid] ByRef, Boolean ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void set_IsDropped(Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void set_IsHolding(Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void set_IsNewClaim(Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void set_MaskId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void set_RepresentsUserId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.BookingAdmissionClaim::Void set_ResourceDocumentId(System.Guid)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Boolean Equals(SimplArchive.ModuleAbi.BookingAdmissionContext)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Boolean op_Equality(SimplArchive.ModuleAbi.BookingAdmissionContext, SimplArchive.ModuleAbi.BookingAdmissionContext)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Boolean op_Inequality(SimplArchive.ModuleAbi.BookingAdmissionContext, SimplArchive.ModuleAbi.BookingAdmissionContext)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Int32 GetHashCode()
+SimplArchive.ModuleAbi.BookingAdmissionContext::SimplArchive.ModuleAbi.BookingAdmissionContext <Clone>$()
+SimplArchive.ModuleAbi.BookingAdmissionContext::SimplArchive.ModuleAbi.BookingAdmissionRequest Request
+SimplArchive.ModuleAbi.BookingAdmissionContext::SimplArchive.ModuleAbi.BookingAdmissionRequest get_Request()
+SimplArchive.ModuleAbi.BookingAdmissionContext::SimplArchive.ModuleAbi.IModuleArchiveFacade Archive
+SimplArchive.ModuleAbi.BookingAdmissionContext::SimplArchive.ModuleAbi.IModuleArchiveFacade get_Archive()
+SimplArchive.ModuleAbi.BookingAdmissionContext::System.IServiceProvider Services
+SimplArchive.ModuleAbi.BookingAdmissionContext::System.IServiceProvider get_Services()
+SimplArchive.ModuleAbi.BookingAdmissionContext::System.String ToString()
+SimplArchive.ModuleAbi.BookingAdmissionContext::Void .ctor(SimplArchive.ModuleAbi.BookingAdmissionRequest, SimplArchive.ModuleAbi.IModuleArchiveFacade, System.IServiceProvider)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Void Deconstruct(SimplArchive.ModuleAbi.BookingAdmissionRequest ByRef, SimplArchive.ModuleAbi.IModuleArchiveFacade ByRef, System.IServiceProvider ByRef)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Void set_Archive(SimplArchive.ModuleAbi.IModuleArchiveFacade)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Void set_Request(SimplArchive.ModuleAbi.BookingAdmissionRequest)
+SimplArchive.ModuleAbi.BookingAdmissionContext::Void set_Services(System.IServiceProvider)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean Equals(SimplArchive.ModuleAbi.BookingAdmissionRequest)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean IsNew
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean SlotChanged
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean get_IsNew()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean get_SlotChanged()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean op_Equality(SimplArchive.ModuleAbi.BookingAdmissionRequest, SimplArchive.ModuleAbi.BookingAdmissionRequest)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Boolean op_Inequality(SimplArchive.ModuleAbi.BookingAdmissionRequest, SimplArchive.ModuleAbi.BookingAdmissionRequest)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Int32 GetHashCode()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::SimplArchive.ModuleAbi.BookingAdmissionRequest <Clone>$()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.BookingAdmissionClaim] Claims
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.BookingAdmissionClaim] get_Claims()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.DateTimeOffset EndsAtUtc
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.DateTimeOffset StartsAtUtc
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.DateTimeOffset get_EndsAtUtc()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.DateTimeOffset get_StartsAtUtc()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Guid BookingDocumentId
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Guid get_BookingDocumentId()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Nullable`1[System.Guid] WriterServiceAccountId
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Nullable`1[System.Guid] WriterUserId
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Nullable`1[System.Guid] get_WriterServiceAccountId()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.Nullable`1[System.Guid] get_WriterUserId()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::System.String ToString()
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void .ctor(System.Guid, System.DateTimeOffset, System.DateTimeOffset, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.BookingAdmissionClaim], Boolean, System.Nullable`1[System.Guid], System.Nullable`1[System.Guid], Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void Deconstruct(System.Guid ByRef, System.DateTimeOffset ByRef, System.DateTimeOffset ByRef, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.BookingAdmissionClaim] ByRef, Boolean ByRef, System.Nullable`1[System.Guid] ByRef, System.Nullable`1[System.Guid] ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_BookingDocumentId(System.Guid)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_Claims(System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.BookingAdmissionClaim])
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_EndsAtUtc(System.DateTimeOffset)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_IsNew(Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_SlotChanged(Boolean)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_StartsAtUtc(System.DateTimeOffset)
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_WriterServiceAccountId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.BookingAdmissionRequest::Void set_WriterUserId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.ConditionExplanation::Boolean Equals(SimplArchive.ModuleAbi.ConditionExplanation)
+SimplArchive.ModuleAbi.ConditionExplanation::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ConditionExplanation::Boolean op_Equality(SimplArchive.ModuleAbi.ConditionExplanation, SimplArchive.ModuleAbi.ConditionExplanation)
+SimplArchive.ModuleAbi.ConditionExplanation::Boolean op_Inequality(SimplArchive.ModuleAbi.ConditionExplanation, SimplArchive.ModuleAbi.ConditionExplanation)
+SimplArchive.ModuleAbi.ConditionExplanation::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ConditionExplanation::SimplArchive.ModuleAbi.ConditionExplanation <Clone>$()
+SimplArchive.ModuleAbi.ConditionExplanation::System.String Code
+SimplArchive.ModuleAbi.ConditionExplanation::System.String Text
+SimplArchive.ModuleAbi.ConditionExplanation::System.String ToString()
+SimplArchive.ModuleAbi.ConditionExplanation::System.String Value
+SimplArchive.ModuleAbi.ConditionExplanation::System.String get_Code()
+SimplArchive.ModuleAbi.ConditionExplanation::System.String get_Text()
+SimplArchive.ModuleAbi.ConditionExplanation::System.String get_Value()
+SimplArchive.ModuleAbi.ConditionExplanation::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.ConditionExplanation::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ConditionExplanation::Void set_Code(System.String)
+SimplArchive.ModuleAbi.ConditionExplanation::Void set_Text(System.String)
+SimplArchive.ModuleAbi.ConditionExplanation::Void set_Value(System.String)
+SimplArchive.ModuleAbi.ConditionTest::Int32 value__
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest AtLeast
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest DateNotPast
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest DatePast
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest DateWithinDays
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest Equals
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest NotEquals
+SimplArchive.ModuleAbi.ConditionTest::SimplArchive.ModuleAbi.ConditionTest Present
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Availability
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid BasicEntry
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Blockers
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Booking
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Certificate
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Folder
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Maintenance
+SimplArchive.ModuleAbi.CoreMaskIds::System.Guid Schedule
+SimplArchive.ModuleAbi.DocumentFieldCondition::Boolean Equals(SimplArchive.ModuleAbi.DocumentFieldCondition)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Boolean op_Equality(SimplArchive.ModuleAbi.DocumentFieldCondition, SimplArchive.ModuleAbi.DocumentFieldCondition)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Boolean op_Inequality(SimplArchive.ModuleAbi.DocumentFieldCondition, SimplArchive.ModuleAbi.DocumentFieldCondition)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Int32 GetHashCode()
+SimplArchive.ModuleAbi.DocumentFieldCondition::SimplArchive.ModuleAbi.ConditionTest Test
+SimplArchive.ModuleAbi.DocumentFieldCondition::SimplArchive.ModuleAbi.ConditionTest get_Test()
+SimplArchive.ModuleAbi.DocumentFieldCondition::SimplArchive.ModuleAbi.DocumentFieldCondition <Clone>$()
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.Nullable`1[System.Guid] ChildMaskId
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.Nullable`1[System.Guid] get_ChildMaskId()
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.String FieldName
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.String Operand
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.String ToString()
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.String get_FieldName()
+SimplArchive.ModuleAbi.DocumentFieldCondition::System.String get_Operand()
+SimplArchive.ModuleAbi.DocumentFieldCondition::Void .ctor(System.Nullable`1[System.Guid], System.String, SimplArchive.ModuleAbi.ConditionTest, System.String)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Void Deconstruct(System.Nullable`1[System.Guid] ByRef, System.String ByRef, SimplArchive.ModuleAbi.ConditionTest ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Void set_ChildMaskId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.DocumentFieldCondition::Void set_FieldName(System.String)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Void set_Operand(System.String)
+SimplArchive.ModuleAbi.DocumentFieldCondition::Void set_Test(SimplArchive.ModuleAbi.ConditionTest)
+SimplArchive.ModuleAbi.EscalationNotice::Boolean Equals(SimplArchive.ModuleAbi.EscalationNotice)
+SimplArchive.ModuleAbi.EscalationNotice::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.EscalationNotice::Boolean op_Equality(SimplArchive.ModuleAbi.EscalationNotice, SimplArchive.ModuleAbi.EscalationNotice)
+SimplArchive.ModuleAbi.EscalationNotice::Boolean op_Inequality(SimplArchive.ModuleAbi.EscalationNotice, SimplArchive.ModuleAbi.EscalationNotice)
+SimplArchive.ModuleAbi.EscalationNotice::Int32 GetHashCode()
+SimplArchive.ModuleAbi.EscalationNotice::SimplArchive.ModuleAbi.EscalationNotice <Clone>$()
+SimplArchive.ModuleAbi.EscalationNotice::System.Nullable`1[System.Guid] AttachmentDocumentId
+SimplArchive.ModuleAbi.EscalationNotice::System.Nullable`1[System.Guid] get_AttachmentDocumentId()
+SimplArchive.ModuleAbi.EscalationNotice::System.String Message
+SimplArchive.ModuleAbi.EscalationNotice::System.String RecipientEmail
+SimplArchive.ModuleAbi.EscalationNotice::System.String ReplyTo
+SimplArchive.ModuleAbi.EscalationNotice::System.String Title
+SimplArchive.ModuleAbi.EscalationNotice::System.String ToString()
+SimplArchive.ModuleAbi.EscalationNotice::System.String get_Message()
+SimplArchive.ModuleAbi.EscalationNotice::System.String get_RecipientEmail()
+SimplArchive.ModuleAbi.EscalationNotice::System.String get_ReplyTo()
+SimplArchive.ModuleAbi.EscalationNotice::System.String get_Title()
+SimplArchive.ModuleAbi.EscalationNotice::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.EscalationNotice::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.EscalationNotice::Void set_AttachmentDocumentId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.EscalationNotice::Void set_Message(System.String)
+SimplArchive.ModuleAbi.EscalationNotice::Void set_RecipientEmail(System.String)
+SimplArchive.ModuleAbi.EscalationNotice::Void set_ReplyTo(System.String)
+SimplArchive.ModuleAbi.EscalationNotice::Void set_Title(System.String)
+SimplArchive.ModuleAbi.FactCondition::Boolean Equals(SimplArchive.ModuleAbi.FactCondition)
+SimplArchive.ModuleAbi.FactCondition::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.FactCondition::Boolean op_Equality(SimplArchive.ModuleAbi.FactCondition, SimplArchive.ModuleAbi.FactCondition)
+SimplArchive.ModuleAbi.FactCondition::Boolean op_Inequality(SimplArchive.ModuleAbi.FactCondition, SimplArchive.ModuleAbi.FactCondition)
+SimplArchive.ModuleAbi.FactCondition::Int32 GetHashCode()
+SimplArchive.ModuleAbi.FactCondition::SimplArchive.ModuleAbi.ConditionTest Test
+SimplArchive.ModuleAbi.FactCondition::SimplArchive.ModuleAbi.ConditionTest get_Test()
+SimplArchive.ModuleAbi.FactCondition::SimplArchive.ModuleAbi.FactCondition <Clone>$()
+SimplArchive.ModuleAbi.FactCondition::System.String FactName
+SimplArchive.ModuleAbi.FactCondition::System.String Operand
+SimplArchive.ModuleAbi.FactCondition::System.String ToString()
+SimplArchive.ModuleAbi.FactCondition::System.String get_FactName()
+SimplArchive.ModuleAbi.FactCondition::System.String get_Operand()
+SimplArchive.ModuleAbi.FactCondition::Void .ctor(System.String, SimplArchive.ModuleAbi.ConditionTest, System.String)
+SimplArchive.ModuleAbi.FactCondition::Void Deconstruct(System.String ByRef, SimplArchive.ModuleAbi.ConditionTest ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.FactCondition::Void set_FactName(System.String)
+SimplArchive.ModuleAbi.FactCondition::Void set_Operand(System.String)
+SimplArchive.ModuleAbi.FactCondition::Void set_Test(SimplArchive.ModuleAbi.ConditionTest)
+SimplArchive.ModuleAbi.FactValue::Boolean Equals(SimplArchive.ModuleAbi.FactValue)
+SimplArchive.ModuleAbi.FactValue::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.FactValue::Boolean op_Equality(SimplArchive.ModuleAbi.FactValue, SimplArchive.ModuleAbi.FactValue)
+SimplArchive.ModuleAbi.FactValue::Boolean op_Inequality(SimplArchive.ModuleAbi.FactValue, SimplArchive.ModuleAbi.FactValue)
+SimplArchive.ModuleAbi.FactValue::Int32 GetHashCode()
+SimplArchive.ModuleAbi.FactValue::SimplArchive.ModuleAbi.FactValue <Clone>$()
+SimplArchive.ModuleAbi.FactValue::System.String DisplayText
+SimplArchive.ModuleAbi.FactValue::System.String ToString()
+SimplArchive.ModuleAbi.FactValue::System.String Value
+SimplArchive.ModuleAbi.FactValue::System.String get_DisplayText()
+SimplArchive.ModuleAbi.FactValue::System.String get_Value()
+SimplArchive.ModuleAbi.FactValue::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.FactValue::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.FactValue::Void set_DisplayText(System.String)
+SimplArchive.ModuleAbi.FactValue::Void set_Value(System.String)
+SimplArchive.ModuleAbi.HypermediaResource::System.Collections.Generic.List`1[SimplArchive.ModuleAbi.Link] Links
+SimplArchive.ModuleAbi.HypermediaResource::System.Collections.Generic.List`1[SimplArchive.ModuleAbi.Link] get_Links()
+SimplArchive.ModuleAbi.HypermediaResource::Void set_Links(System.Collections.Generic.List`1[SimplArchive.ModuleAbi.Link])
+SimplArchive.ModuleAbi.IIndustryModule::Boolean SendsExternalNotices
+SimplArchive.ModuleAbi.IIndustryModule::Boolean get_SendsExternalNotices()
+SimplArchive.ModuleAbi.IIndustryModule::Int32 AbiMajorVersion
+SimplArchive.ModuleAbi.IIndustryModule::Int32 AbiMinorVersion
+SimplArchive.ModuleAbi.IIndustryModule::Int32 get_AbiMajorVersion()
+SimplArchive.ModuleAbi.IIndustryModule::Int32 get_AbiMinorVersion()
+SimplArchive.ModuleAbi.IIndustryModule::SimplArchive.ModuleAbi.ModuleManual Manual
+SimplArchive.ModuleAbi.IIndustryModule::SimplArchive.ModuleAbi.ModuleManual get_Manual()
+SimplArchive.ModuleAbi.IIndustryModule::SimplArchive.ModuleAbi.PerUserEnrolment PerUserCertificateEnrolment
+SimplArchive.ModuleAbi.IIndustryModule::SimplArchive.ModuleAbi.PerUserEnrolment get_PerUserCertificateEnrolment()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String]] LocalizedTexts
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String]] get_LocalizedTexts()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleMaskSeed] Masks
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleMaskSeed] get_Masks()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleReadModelSet] ReadModels
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleReadModelSet] get_ReadModels()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleRootLink] RootLinks
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleRootLink] get_RootLinks()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleSetting] Settings
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleSetting] get_Settings()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.Guid] ActionSubjectMasks
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.Guid] ProjectedMasks
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.Guid] get_ActionSubjectMasks()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.Guid] get_ProjectedMasks()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.String] LicenseVerifyKeysPem
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.String] OutboundHosts
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.String] RootRoutePrefixes
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.String] get_LicenseVerifyKeysPem()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.String] get_OutboundHosts()
+SimplArchive.ModuleAbi.IIndustryModule::System.Collections.Generic.IReadOnlyList`1[System.String] get_RootRoutePrefixes()
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.BookingAdmissionContext,System.Threading.Tasks.Task] ReviewBooking
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.BookingAdmissionContext,System.Threading.Tasks.Task] get_ReviewBooking()
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ModuleDocumentActionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleDocumentAction]]] DocumentActions
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ModuleDocumentActionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleDocumentAction]]] get_DocumentActions()
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ProjectedDocumentContext,System.Threading.Tasks.Task] DocumentProjected
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ProjectedDocumentContext,System.Threading.Tasks.Task] get_DocumentProjected()
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ReaderCertificateContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ReaderCertificate]]] ReaderCertificates
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ReaderCertificateContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ReaderCertificate]]] get_ReaderCertificates()
+SimplArchive.ModuleAbi.IIndustryModule::System.String DisplayName
+SimplArchive.ModuleAbi.IIndustryModule::System.String LicenseVerifyKeyPem
+SimplArchive.ModuleAbi.IIndustryModule::System.String ModuleId
+SimplArchive.ModuleAbi.IIndustryModule::System.String get_DisplayName()
+SimplArchive.ModuleAbi.IIndustryModule::System.String get_LicenseVerifyKeyPem()
+SimplArchive.ModuleAbi.IIndustryModule::System.String get_ModuleId()
+SimplArchive.ModuleAbi.IIndustryModule::Void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+SimplArchive.ModuleAbi.IIndustryModule::Void DefineStateMachines(SimplArchive.ModuleAbi.IStateMachineDefinitions)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task CreateReferenceAsync(System.Guid, System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task DiscardUploadAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task InTransactionAsync(System.Func`1[System.Threading.Tasks.Task], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task RenameDocumentAsync(System.Guid, System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task ReplaceContentAsync(System.Guid, Byte[], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task SetFieldListAsync(System.Guid, System.String, System.Collections.Generic.IReadOnlyList`1[System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task SetFieldsAsync(System.Guid, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleDocument] GetDocumentAsync(System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleUpload] BeginUploadAsync(Int64, System.Nullable`1[System.TimeSpan], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Boolean] IsFreeAsync(System.Guid, System.DateTimeOffset, System.DateTimeOffset, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Boolean] IsOfferedAsync(System.Guid, System.DateTimeOffset, System.DateTimeOffset, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Byte[]] GetDocumentContentAsync(System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleDocument]] GetByMaskAsync(System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleDocument]] GetChildrenAsync(System.Guid, System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Guid] CreateContentDocumentAsync(System.Guid, System.Guid, System.String, Byte[], System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Nullable`1[System.Guid], System.Nullable`1[System.DateOnly], System.Nullable`1[System.TimeOnly], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Guid] CreateDocumentAsync(System.Guid, System.Guid, System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Guid] FileUploadAsync(System.String, System.Guid, System.Guid, System.String, System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Nullable`1[System.Guid], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Guid] StageContentAsync(System.Guid, System.Guid, System.String, Byte[], System.String, System.DateTimeOffset, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Nullable`1[System.Guid], System.Nullable`1[System.DateOnly], System.Nullable`1[System.TimeOnly], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.IO.Stream] OpenUploadAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.String] GetSettingAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Uri] GetDocumentContentUrlAsync(System.Guid, System.TimeSpan, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleAudit::System.Threading.Tasks.Task RecordAsync(System.String, System.Nullable`1[System.Guid], System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Guid TenantId
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Guid get_TenantId()
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Nullable`1[System.Guid] ServiceAccountId
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Nullable`1[System.Guid] UserId
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Nullable`1[System.Guid] get_ServiceAccountId()
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Nullable`1[System.Guid] get_UserId()
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleCallerIdentity] GetIdentityAsync(System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Threading.Tasks.Task`1[System.Boolean] CanAdministerModulesAsync(System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleCallerContext::System.Threading.Tasks.Task`1[System.Boolean] IsTenantAdminAsync(System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::SimplArchive.ModuleAbi.ModuleChallenge Challenge
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::SimplArchive.ModuleAbi.ModuleChallenge get_Challenge()
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Collections.Generic.IReadOnlyList`1[System.String] ApiKeyHeaders
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Collections.Generic.IReadOnlyList`1[System.String] PathCredentialPrefixes
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Collections.Generic.IReadOnlyList`1[System.String] RoutePrefixes
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Collections.Generic.IReadOnlyList`1[System.String] get_ApiKeyHeaders()
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Collections.Generic.IReadOnlyList`1[System.String] get_PathCredentialPrefixes()
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Collections.Generic.IReadOnlyList`1[System.String] get_RoutePrefixes()
+SimplArchive.ModuleAbi.IModuleCredentialAuthenticator::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleCredentialIdentity] AuthenticateAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleCredentialContext::SimplArchive.ModuleAbi.ModuleCredentialIdentity Identity
+SimplArchive.ModuleAbi.IModuleCredentialContext::SimplArchive.ModuleAbi.ModuleCredentialIdentity get_Identity()
+SimplArchive.ModuleAbi.IModuleDocumentRights::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer] GetAsync(System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleFactProvider::System.Collections.Generic.IReadOnlyList`1[System.String] FactNames
+SimplArchive.ModuleAbi.IModuleFactProvider::System.Collections.Generic.IReadOnlyList`1[System.String] get_FactNames()
+SimplArchive.ModuleAbi.IModuleFactProvider::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.FactValue] GetAsync(System.String, System.Guid, System.DateTimeOffset, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] GetAsync(System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] GetAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] HeadAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] PostFormAsync(System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task`1[System.Boolean] QueueAsync(SimplArchive.ModuleAbi.ModuleNotice, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleProjectionRebuilder::System.Collections.Generic.IReadOnlyList`1[System.String] ProjectionNames
+SimplArchive.ModuleAbi.IModuleProjectionRebuilder::System.Collections.Generic.IReadOnlyList`1[System.String] get_ProjectionNames()
+SimplArchive.ModuleAbi.IModuleProjectionRebuilder::System.Threading.Tasks.Task RebuildAsync(System.String, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder AutoRefreshOnOpen(System.String, System.String, System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task])
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder AutoRefreshOnOpen(System.String, System.String, System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task], SimplArchive.ModuleAbi.ProtocolReadRefresh)
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder AutoRefreshOnOpen(System.String, System.String, System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task], SimplArchive.ModuleAbi.ProtocolReadRefresh, System.TimeSpan)
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder Escalates(System.String, System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.EscalationNotice]]])
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder Escalates(System.String, System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.EscalationNotice]]], Boolean)
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder Proposal(System.String, System.String, System.String, System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ProposalItem]]])
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder Status(System.String, SimplArchive.ModuleAbi.StateCondition[])
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder Transition(System.String, System.String, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.StateCondition], System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task])
+SimplArchive.ModuleAbi.IStateMachineBuilder::SimplArchive.ModuleAbi.IStateMachineBuilder Transition(System.String, System.String, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.StateCondition], System.Func`2[SimplArchive.ModuleAbi.TransitionContext,System.Threading.Tasks.Task], System.Collections.Generic.IReadOnlyList`1[System.String])
+SimplArchive.ModuleAbi.IStateMachineDefinitions::SimplArchive.ModuleAbi.IStateMachineBuilder Machine(System.String, System.Guid)
+SimplArchive.ModuleAbi.Link::System.String Href
+SimplArchive.ModuleAbi.Link::System.String Label
+SimplArchive.ModuleAbi.Link::System.String Method
+SimplArchive.ModuleAbi.Link::System.String Rel
+SimplArchive.ModuleAbi.Link::System.String get_Href()
+SimplArchive.ModuleAbi.Link::System.String get_Label()
+SimplArchive.ModuleAbi.Link::System.String get_Method()
+SimplArchive.ModuleAbi.Link::System.String get_Rel()
+SimplArchive.ModuleAbi.Link::Void .ctor()
+SimplArchive.ModuleAbi.Link::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.Link::Void .ctor(System.String, System.String, System.String, System.String)
+SimplArchive.ModuleAbi.Link::Void set_Href(System.String)
+SimplArchive.ModuleAbi.Link::Void set_Label(System.String)
+SimplArchive.ModuleAbi.Link::Void set_Method(System.String)
+SimplArchive.ModuleAbi.Link::Void set_Rel(System.String)
+SimplArchive.ModuleAbi.ModuleAbiVersion::Int32 Major
+SimplArchive.ModuleAbi.ModuleAbiVersion::Int32 Minor
+SimplArchive.ModuleAbi.ModuleActionResult::Boolean Equals(SimplArchive.ModuleAbi.ModuleActionResult)
+SimplArchive.ModuleAbi.ModuleActionResult::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleActionResult::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleActionResult, SimplArchive.ModuleAbi.ModuleActionResult)
+SimplArchive.ModuleAbi.ModuleActionResult::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleActionResult, SimplArchive.ModuleAbi.ModuleActionResult)
+SimplArchive.ModuleAbi.ModuleActionResult::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleActionResult::SimplArchive.ModuleAbi.ModuleActionResult <Clone>$()
+SimplArchive.ModuleAbi.ModuleActionResult::SimplArchive.ModuleAbi.RevealedValue RevealOnce
+SimplArchive.ModuleAbi.ModuleActionResult::SimplArchive.ModuleAbi.RevealedValue get_RevealOnce()
+SimplArchive.ModuleAbi.ModuleActionResult::System.String Message
+SimplArchive.ModuleAbi.ModuleActionResult::System.String ToString()
+SimplArchive.ModuleAbi.ModuleActionResult::System.String get_Message()
+SimplArchive.ModuleAbi.ModuleActionResult::Void .ctor(System.String)
+SimplArchive.ModuleAbi.ModuleActionResult::Void Deconstruct(System.String ByRef)
+SimplArchive.ModuleAbi.ModuleActionResult::Void set_Message(System.String)
+SimplArchive.ModuleAbi.ModuleActionResult::Void set_RevealOnce(SimplArchive.ModuleAbi.RevealedValue)
+SimplArchive.ModuleAbi.ModuleApiException::Int32 StatusCode
+SimplArchive.ModuleAbi.ModuleApiException::Int32 get_StatusCode()
+SimplArchive.ModuleAbi.ModuleApiException::System.Collections.Generic.IReadOnlyList`1[System.String] Args
+SimplArchive.ModuleAbi.ModuleApiException::System.Collections.Generic.IReadOnlyList`1[System.String] get_Args()
+SimplArchive.ModuleAbi.ModuleApiException::System.String ErrorCode
+SimplArchive.ModuleAbi.ModuleApiException::System.String get_ErrorCode()
+SimplArchive.ModuleAbi.ModuleApiException::Void .ctor(System.String, Int32, System.String)
+SimplArchive.ModuleAbi.ModuleApiException::Void .ctor(System.String, Int32, System.String, System.Collections.Generic.IReadOnlyList`1[System.String])
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Boolean Equals(SimplArchive.ModuleAbi.ModuleCallerIdentity)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleCallerIdentity, SimplArchive.ModuleAbi.ModuleCallerIdentity)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleCallerIdentity, SimplArchive.ModuleAbi.ModuleCallerIdentity)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleCallerIdentity::SimplArchive.ModuleAbi.ModuleCallerIdentity <Clone>$()
+SimplArchive.ModuleAbi.ModuleCallerIdentity::System.String DisplayName
+SimplArchive.ModuleAbi.ModuleCallerIdentity::System.String Email
+SimplArchive.ModuleAbi.ModuleCallerIdentity::System.String ToString()
+SimplArchive.ModuleAbi.ModuleCallerIdentity::System.String get_DisplayName()
+SimplArchive.ModuleAbi.ModuleCallerIdentity::System.String get_Email()
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Void set_DisplayName(System.String)
+SimplArchive.ModuleAbi.ModuleCallerIdentity::Void set_Email(System.String)
+SimplArchive.ModuleAbi.ModuleChallenge::Boolean Equals(SimplArchive.ModuleAbi.ModuleChallenge)
+SimplArchive.ModuleAbi.ModuleChallenge::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleChallenge::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleChallenge, SimplArchive.ModuleAbi.ModuleChallenge)
+SimplArchive.ModuleAbi.ModuleChallenge::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleChallenge, SimplArchive.ModuleAbi.ModuleChallenge)
+SimplArchive.ModuleAbi.ModuleChallenge::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleChallenge::SimplArchive.ModuleAbi.ModuleChallenge <Clone>$()
+SimplArchive.ModuleAbi.ModuleChallenge::System.String Realm
+SimplArchive.ModuleAbi.ModuleChallenge::System.String Scheme
+SimplArchive.ModuleAbi.ModuleChallenge::System.String ToString()
+SimplArchive.ModuleAbi.ModuleChallenge::System.String get_Realm()
+SimplArchive.ModuleAbi.ModuleChallenge::System.String get_Scheme()
+SimplArchive.ModuleAbi.ModuleChallenge::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.ModuleChallenge::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleChallenge::Void set_Realm(System.String)
+SimplArchive.ModuleAbi.ModuleChallenge::Void set_Scheme(System.String)
+SimplArchive.ModuleAbi.ModuleCredentialFormat::Boolean TryParse(System.String, System.Guid ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleCredentialFormat::System.String Compose(System.Guid, System.String)
+SimplArchive.ModuleAbi.ModuleCredentialFormat::System.String Prefix
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Boolean Equals(SimplArchive.ModuleAbi.ModuleCredentialIdentity)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleCredentialIdentity, SimplArchive.ModuleAbi.ModuleCredentialIdentity)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleCredentialIdentity, SimplArchive.ModuleAbi.ModuleCredentialIdentity)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::SimplArchive.ModuleAbi.ModuleCredentialIdentity <Clone>$()
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::System.String PrincipalLabel
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::System.String Subject
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::System.String ToString()
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::System.String get_PrincipalLabel()
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::System.String get_Subject()
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Void set_PrincipalLabel(System.String)
+SimplArchive.ModuleAbi.ModuleCredentialIdentity::Void set_Subject(System.String)
+SimplArchive.ModuleAbi.ModuleDavCollection::Boolean Equals(SimplArchive.ModuleAbi.ModuleDavCollection)
+SimplArchive.ModuleAbi.ModuleDavCollection::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleDavCollection::Boolean ReadOnly
+SimplArchive.ModuleAbi.ModuleDavCollection::Boolean get_ReadOnly()
+SimplArchive.ModuleAbi.ModuleDavCollection::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleDavCollection, SimplArchive.ModuleAbi.ModuleDavCollection)
+SimplArchive.ModuleAbi.ModuleDavCollection::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleDavCollection, SimplArchive.ModuleAbi.ModuleDavCollection)
+SimplArchive.ModuleAbi.ModuleDavCollection::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleDavCollection::SimplArchive.ModuleAbi.ModuleDavCollection <Clone>$()
+SimplArchive.ModuleAbi.ModuleDavCollection::System.Guid ItemMaskId
+SimplArchive.ModuleAbi.ModuleDavCollection::System.Guid get_ItemMaskId()
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String EndFieldName
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String Extension
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String StartFieldName
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String ToString()
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String UidFieldName
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String get_EndFieldName()
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String get_Extension()
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String get_StartFieldName()
+SimplArchive.ModuleAbi.ModuleDavCollection::System.String get_UidFieldName()
+SimplArchive.ModuleAbi.ModuleDavCollection::Void .ctor(System.String, System.Guid, System.String, Boolean)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void Deconstruct(System.String ByRef, System.Guid ByRef, System.String ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void set_EndFieldName(System.String)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void set_Extension(System.String)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void set_ItemMaskId(System.Guid)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void set_ReadOnly(Boolean)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void set_StartFieldName(System.String)
+SimplArchive.ModuleAbi.ModuleDavCollection::Void set_UidFieldName(System.String)
+SimplArchive.ModuleAbi.ModuleDocument::Boolean Equals(SimplArchive.ModuleAbi.ModuleDocument)
+SimplArchive.ModuleAbi.ModuleDocument::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleDocument::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleDocument, SimplArchive.ModuleAbi.ModuleDocument)
+SimplArchive.ModuleAbi.ModuleDocument::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleDocument, SimplArchive.ModuleAbi.ModuleDocument)
+SimplArchive.ModuleAbi.ModuleDocument::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleDocument::SimplArchive.ModuleAbi.ModuleDocument <Clone>$()
+SimplArchive.ModuleAbi.ModuleDocument::System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Collections.Generic.IReadOnlyList`1[System.String]] FieldLists
+SimplArchive.ModuleAbi.ModuleDocument::System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Collections.Generic.IReadOnlyList`1[System.String]] get_FieldLists()
+SimplArchive.ModuleAbi.ModuleDocument::System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String] Fields
+SimplArchive.ModuleAbi.ModuleDocument::System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String] get_Fields()
+SimplArchive.ModuleAbi.ModuleDocument::System.Guid Id
+SimplArchive.ModuleAbi.ModuleDocument::System.Guid get_Id()
+SimplArchive.ModuleAbi.ModuleDocument::System.Nullable`1[System.Guid] MaskId
+SimplArchive.ModuleAbi.ModuleDocument::System.Nullable`1[System.Guid] ParentId
+SimplArchive.ModuleAbi.ModuleDocument::System.Nullable`1[System.Guid] RepresentsUserId
+SimplArchive.ModuleAbi.ModuleDocument::System.Nullable`1[System.Guid] get_MaskId()
+SimplArchive.ModuleAbi.ModuleDocument::System.Nullable`1[System.Guid] get_ParentId()
+SimplArchive.ModuleAbi.ModuleDocument::System.Nullable`1[System.Guid] get_RepresentsUserId()
+SimplArchive.ModuleAbi.ModuleDocument::System.String Name
+SimplArchive.ModuleAbi.ModuleDocument::System.String ToString()
+SimplArchive.ModuleAbi.ModuleDocument::System.String get_Name()
+SimplArchive.ModuleAbi.ModuleDocument::Void .ctor(System.Guid, System.Nullable`1[System.Guid], System.String, System.Nullable`1[System.Guid], System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String])
+SimplArchive.ModuleAbi.ModuleDocument::Void Deconstruct(System.Guid ByRef, System.Nullable`1[System.Guid] ByRef, System.String ByRef, System.Nullable`1[System.Guid] ByRef, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String] ByRef)
+SimplArchive.ModuleAbi.ModuleDocument::Void set_FieldLists(System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.Collections.Generic.IReadOnlyList`1[System.String]])
+SimplArchive.ModuleAbi.ModuleDocument::Void set_Fields(System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String])
+SimplArchive.ModuleAbi.ModuleDocument::Void set_Id(System.Guid)
+SimplArchive.ModuleAbi.ModuleDocument::Void set_MaskId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleDocument::Void set_Name(System.String)
+SimplArchive.ModuleAbi.ModuleDocument::Void set_ParentId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleDocument::Void set_RepresentsUserId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleDocumentAction::Boolean Equals(SimplArchive.ModuleAbi.ModuleDocumentAction)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleDocumentAction, SimplArchive.ModuleAbi.ModuleDocumentAction)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleDocumentAction, SimplArchive.ModuleAbi.ModuleDocumentAction)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleDocumentAction::SimplArchive.ModuleAbi.ModuleDocumentAction <Clone>$()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String CommitPath
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String Label
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String OptionsPath
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String Prompt
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String Rel
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String ToString()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String ValueField
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String get_CommitPath()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String get_Label()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String get_OptionsPath()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String get_Prompt()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String get_Rel()
+SimplArchive.ModuleAbi.ModuleDocumentAction::System.String get_ValueField()
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void .ctor(System.String, System.String, System.String, System.String, System.String, System.String)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef, System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void set_CommitPath(System.String)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void set_Label(System.String)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void set_OptionsPath(System.String)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void set_Prompt(System.String)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void set_Rel(System.String)
+SimplArchive.ModuleAbi.ModuleDocumentAction::Void set_ValueField(System.String)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Boolean Equals(SimplArchive.ModuleAbi.ModuleDocumentActionContext)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleDocumentActionContext, SimplArchive.ModuleAbi.ModuleDocumentActionContext)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleDocumentActionContext, SimplArchive.ModuleAbi.ModuleDocumentActionContext)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::SimplArchive.ModuleAbi.IModuleArchiveFacade Archive
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::SimplArchive.ModuleAbi.IModuleArchiveFacade get_Archive()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::SimplArchive.ModuleAbi.ModuleDocumentActionContext <Clone>$()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.Guid DocumentId
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.Guid get_DocumentId()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.IServiceProvider Services
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.IServiceProvider get_Services()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.Nullable`1[System.Guid] MaskId
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.Nullable`1[System.Guid] get_MaskId()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::System.String ToString()
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Void .ctor(System.Guid, System.Nullable`1[System.Guid], SimplArchive.ModuleAbi.IModuleArchiveFacade, System.IServiceProvider)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Void Deconstruct(System.Guid ByRef, System.Nullable`1[System.Guid] ByRef, SimplArchive.ModuleAbi.IModuleArchiveFacade ByRef, System.IServiceProvider ByRef)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Void set_Archive(SimplArchive.ModuleAbi.IModuleArchiveFacade)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Void set_DocumentId(System.Guid)
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Void set_MaskId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleDocumentActionContext::Void set_Services(System.IServiceProvider)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanAnnotate
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanCreateSubItems
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanDelete
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanEditContent
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanEditIndexData
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanManagePermissions
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanMove
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanReadContent
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean CanSee
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean Equals(SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanAnnotate()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanCreateSubItems()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanDelete()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanEditContent()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanEditIndexData()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanManagePermissions()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanMove()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanReadContent()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean get_CanSee()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer, SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer, SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer <Clone>$()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::System.String ToString()
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void .ctor(Boolean, Boolean, Boolean, Boolean, Boolean, Boolean, Boolean, Boolean, Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void Deconstruct(Boolean ByRef, Boolean ByRef, Boolean ByRef, Boolean ByRef, Boolean ByRef, Boolean ByRef, Boolean ByRef, Boolean ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanAnnotate(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanCreateSubItems(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanDelete(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanEditContent(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanEditIndexData(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanManagePermissions(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanMove(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanReadContent(Boolean)
+SimplArchive.ModuleAbi.ModuleDocumentRightsAnswer::Void set_CanSee(Boolean)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean Equals(SimplArchive.ModuleAbi.ModuleFieldSeed)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean IsList
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean IsRequired
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean get_IsList()
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean get_IsRequired()
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleFieldSeed, SimplArchive.ModuleAbi.ModuleFieldSeed)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleFieldSeed, SimplArchive.ModuleAbi.ModuleFieldSeed)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleFieldSeed::SimplArchive.ModuleAbi.ModuleFieldSeed <Clone>$()
+SimplArchive.ModuleAbi.ModuleFieldSeed::System.String DataType
+SimplArchive.ModuleAbi.ModuleFieldSeed::System.String Name
+SimplArchive.ModuleAbi.ModuleFieldSeed::System.String ToString()
+SimplArchive.ModuleAbi.ModuleFieldSeed::System.String get_DataType()
+SimplArchive.ModuleAbi.ModuleFieldSeed::System.String get_Name()
+SimplArchive.ModuleAbi.ModuleFieldSeed::Void .ctor(System.String, System.String, Boolean, Boolean)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Void Deconstruct(System.String ByRef, System.String ByRef, Boolean ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Void set_DataType(System.String)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Void set_IsList(Boolean)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Void set_IsRequired(Boolean)
+SimplArchive.ModuleAbi.ModuleFieldSeed::Void set_Name(System.String)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Boolean Equals(SimplArchive.ModuleAbi.ModuleHttpResponse)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Boolean IsSuccess
+SimplArchive.ModuleAbi.ModuleHttpResponse::Boolean get_IsSuccess()
+SimplArchive.ModuleAbi.ModuleHttpResponse::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleHttpResponse, SimplArchive.ModuleAbi.ModuleHttpResponse)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleHttpResponse, SimplArchive.ModuleAbi.ModuleHttpResponse)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Byte[] Content
+SimplArchive.ModuleAbi.ModuleHttpResponse::Byte[] get_Content()
+SimplArchive.ModuleAbi.ModuleHttpResponse::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleHttpResponse::Int32 StatusCode
+SimplArchive.ModuleAbi.ModuleHttpResponse::Int32 get_StatusCode()
+SimplArchive.ModuleAbi.ModuleHttpResponse::SimplArchive.ModuleAbi.ModuleHttpResponse <Clone>$()
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.Nullable`1[System.Int64] ContentLength
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.Nullable`1[System.Int64] get_ContentLength()
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.String ContentType
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.String ETag
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.String ToString()
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.String get_ContentType()
+SimplArchive.ModuleAbi.ModuleHttpResponse::System.String get_ETag()
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void .ctor(Int32, Boolean, System.String, System.Nullable`1[System.Int64], System.String, Byte[])
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void Deconstruct(Int32 ByRef, Boolean ByRef, System.String ByRef, System.Nullable`1[System.Int64] ByRef, System.String ByRef, Byte[] ByRef)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_Content(Byte[])
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_ContentLength(System.Nullable`1[System.Int64])
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_ContentType(System.String)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_ETag(System.String)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_IsSuccess(Boolean)
+SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_StatusCode(Int32)
+SimplArchive.ModuleAbi.ModuleManual::Boolean Equals(SimplArchive.ModuleAbi.ModuleManual)
+SimplArchive.ModuleAbi.ModuleManual::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleManual::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleManual, SimplArchive.ModuleAbi.ModuleManual)
+SimplArchive.ModuleAbi.ModuleManual::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleManual, SimplArchive.ModuleAbi.ModuleManual)
+SimplArchive.ModuleAbi.ModuleManual::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleManual::SimplArchive.ModuleAbi.ModuleManual <Clone>$()
+SimplArchive.ModuleAbi.ModuleManual::System.Func`1[System.IO.Stream] Open
+SimplArchive.ModuleAbi.ModuleManual::System.Func`1[System.IO.Stream] get_Open()
+SimplArchive.ModuleAbi.ModuleManual::System.String ContentType
+SimplArchive.ModuleAbi.ModuleManual::System.String FileName
+SimplArchive.ModuleAbi.ModuleManual::System.String ToString()
+SimplArchive.ModuleAbi.ModuleManual::System.String get_ContentType()
+SimplArchive.ModuleAbi.ModuleManual::System.String get_FileName()
+SimplArchive.ModuleAbi.ModuleManual::Void .ctor(System.String, System.Func`1[System.IO.Stream])
+SimplArchive.ModuleAbi.ModuleManual::Void Deconstruct(System.String ByRef, System.Func`1[System.IO.Stream] ByRef)
+SimplArchive.ModuleAbi.ModuleManual::Void set_ContentType(System.String)
+SimplArchive.ModuleAbi.ModuleManual::Void set_FileName(System.String)
+SimplArchive.ModuleAbi.ModuleManual::Void set_Open(System.Func`1[System.IO.Stream])
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean AdmitsOnlyDeclaredChildren
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean Equals(SimplArchive.ModuleAbi.ModuleMaskSeed)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean IsBookable
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean IsFolderMask
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean NameVocabularyIsMultiple
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_AdmitsOnlyDeclaredChildren()
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_IsBookable()
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_IsFolderMask()
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_NameVocabularyIsMultiple()
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleMaskSeed, SimplArchive.ModuleAbi.ModuleMaskSeed)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleMaskSeed, SimplArchive.ModuleAbi.ModuleMaskSeed)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleMaskSeed::SimplArchive.ModuleAbi.ModuleDavCollection DavCollection
+SimplArchive.ModuleAbi.ModuleMaskSeed::SimplArchive.ModuleAbi.ModuleDavCollection get_DavCollection()
+SimplArchive.ModuleAbi.ModuleMaskSeed::SimplArchive.ModuleAbi.ModuleMaskSeed <Clone>$()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleFieldSeed] Fields
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleFieldSeed] get_Fields()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Collections.Generic.IReadOnlyList`1[System.Guid] AdmittedChildren
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Collections.Generic.IReadOnlyList`1[System.Guid] AllowedParents
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Collections.Generic.IReadOnlyList`1[System.Guid] get_AdmittedChildren()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Collections.Generic.IReadOnlyList`1[System.Guid] get_AllowedParents()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Guid MaskId
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.Guid get_MaskId()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String Name
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String NameVocabularyRel
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String RepresentsPrincipalField
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String ToString()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String get_Name()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String get_NameVocabularyRel()
+SimplArchive.ModuleAbi.ModuleMaskSeed::System.String get_RepresentsPrincipalField()
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void .ctor(System.Guid, System.String, Boolean, Boolean, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleFieldSeed], Boolean, System.Collections.Generic.IReadOnlyList`1[System.Guid], System.Collections.Generic.IReadOnlyList`1[System.Guid], System.String)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void Deconstruct(System.Guid ByRef, System.String ByRef, Boolean ByRef, Boolean ByRef, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleFieldSeed] ByRef, Boolean ByRef, System.Collections.Generic.IReadOnlyList`1[System.Guid] ByRef, System.Collections.Generic.IReadOnlyList`1[System.Guid] ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_AdmitsOnlyDeclaredChildren(Boolean)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_AdmittedChildren(System.Collections.Generic.IReadOnlyList`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_AllowedParents(System.Collections.Generic.IReadOnlyList`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_DavCollection(SimplArchive.ModuleAbi.ModuleDavCollection)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_Fields(System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleFieldSeed])
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_IsBookable(Boolean)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_IsFolderMask(Boolean)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_MaskId(System.Guid)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_Name(System.String)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_NameVocabularyIsMultiple(Boolean)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_NameVocabularyRel(System.String)
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_RepresentsPrincipalField(System.String)
+SimplArchive.ModuleAbi.ModuleNotice::Boolean Equals(SimplArchive.ModuleAbi.ModuleNotice)
+SimplArchive.ModuleAbi.ModuleNotice::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleNotice::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleNotice, SimplArchive.ModuleAbi.ModuleNotice)
+SimplArchive.ModuleAbi.ModuleNotice::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleNotice, SimplArchive.ModuleAbi.ModuleNotice)
+SimplArchive.ModuleAbi.ModuleNotice::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleNotice::SimplArchive.ModuleAbi.ModuleNotice <Clone>$()
+SimplArchive.ModuleAbi.ModuleNotice::System.Nullable`1[System.Guid] AttachmentDocumentId
+SimplArchive.ModuleAbi.ModuleNotice::System.Nullable`1[System.Guid] get_AttachmentDocumentId()
+SimplArchive.ModuleAbi.ModuleNotice::System.String Message
+SimplArchive.ModuleAbi.ModuleNotice::System.String RecipientEmail
+SimplArchive.ModuleAbi.ModuleNotice::System.String ReplyTo
+SimplArchive.ModuleAbi.ModuleNotice::System.String Subject
+SimplArchive.ModuleAbi.ModuleNotice::System.String ToString()
+SimplArchive.ModuleAbi.ModuleNotice::System.String get_Message()
+SimplArchive.ModuleAbi.ModuleNotice::System.String get_RecipientEmail()
+SimplArchive.ModuleAbi.ModuleNotice::System.String get_ReplyTo()
+SimplArchive.ModuleAbi.ModuleNotice::System.String get_Subject()
+SimplArchive.ModuleAbi.ModuleNotice::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.ModuleNotice::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleNotice::Void set_AttachmentDocumentId(System.Nullable`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleNotice::Void set_Message(System.String)
+SimplArchive.ModuleAbi.ModuleNotice::Void set_RecipientEmail(System.String)
+SimplArchive.ModuleAbi.ModuleNotice::Void set_ReplyTo(System.String)
+SimplArchive.ModuleAbi.ModuleNotice::Void set_Subject(System.String)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Boolean Equals(SimplArchive.ModuleAbi.ModuleReadModelSet)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleReadModelSet, SimplArchive.ModuleAbi.ModuleReadModelSet)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleReadModelSet, SimplArchive.ModuleAbi.ModuleReadModelSet)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleReadModelSet::SimplArchive.ModuleAbi.ModuleReadModelSet <Clone>$()
+SimplArchive.ModuleAbi.ModuleReadModelSet::System.String ToString()
+SimplArchive.ModuleAbi.ModuleReadModelSet::System.Type ContextType
+SimplArchive.ModuleAbi.ModuleReadModelSet::System.Type get_ContextType()
+SimplArchive.ModuleAbi.ModuleReadModelSet::Void .ctor(System.Type)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Void Deconstruct(System.Type ByRef)
+SimplArchive.ModuleAbi.ModuleReadModelSet::Void set_ContextType(System.Type)
+SimplArchive.ModuleAbi.ModuleRootLink::Boolean Equals(SimplArchive.ModuleAbi.ModuleRootLink)
+SimplArchive.ModuleAbi.ModuleRootLink::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleRootLink::Boolean InstallationWide
+SimplArchive.ModuleAbi.ModuleRootLink::Boolean get_InstallationWide()
+SimplArchive.ModuleAbi.ModuleRootLink::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleRootLink, SimplArchive.ModuleAbi.ModuleRootLink)
+SimplArchive.ModuleAbi.ModuleRootLink::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleRootLink, SimplArchive.ModuleAbi.ModuleRootLink)
+SimplArchive.ModuleAbi.ModuleRootLink::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleRootLink::SimplArchive.ModuleAbi.ModuleRootLink <Clone>$()
+SimplArchive.ModuleAbi.ModuleRootLink::System.String Method
+SimplArchive.ModuleAbi.ModuleRootLink::System.String Path
+SimplArchive.ModuleAbi.ModuleRootLink::System.String Rel
+SimplArchive.ModuleAbi.ModuleRootLink::System.String ToString()
+SimplArchive.ModuleAbi.ModuleRootLink::System.String get_Method()
+SimplArchive.ModuleAbi.ModuleRootLink::System.String get_Path()
+SimplArchive.ModuleAbi.ModuleRootLink::System.String get_Rel()
+SimplArchive.ModuleAbi.ModuleRootLink::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.ModuleRootLink::Void .ctor(System.String, System.String, System.String, Boolean)
+SimplArchive.ModuleAbi.ModuleRootLink::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleRootLink::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.ModuleRootLink::Void set_InstallationWide(Boolean)
+SimplArchive.ModuleAbi.ModuleRootLink::Void set_Method(System.String)
+SimplArchive.ModuleAbi.ModuleRootLink::Void set_Path(System.String)
+SimplArchive.ModuleAbi.ModuleRootLink::Void set_Rel(System.String)
+SimplArchive.ModuleAbi.ModuleSetting::Boolean Equals(SimplArchive.ModuleAbi.ModuleSetting)
+SimplArchive.ModuleAbi.ModuleSetting::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleSetting::Boolean IsSecret
+SimplArchive.ModuleAbi.ModuleSetting::Boolean get_IsSecret()
+SimplArchive.ModuleAbi.ModuleSetting::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleSetting, SimplArchive.ModuleAbi.ModuleSetting)
+SimplArchive.ModuleAbi.ModuleSetting::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleSetting, SimplArchive.ModuleAbi.ModuleSetting)
+SimplArchive.ModuleAbi.ModuleSetting::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleSetting::SimplArchive.ModuleAbi.ModuleSetting <Clone>$()
+SimplArchive.ModuleAbi.ModuleSetting::SimplArchive.ModuleAbi.ModuleSettingKind Kind
+SimplArchive.ModuleAbi.ModuleSetting::SimplArchive.ModuleAbi.ModuleSettingKind get_Kind()
+SimplArchive.ModuleAbi.ModuleSetting::System.Collections.Generic.IReadOnlyList`1[System.String] Choices
+SimplArchive.ModuleAbi.ModuleSetting::System.Collections.Generic.IReadOnlyList`1[System.String] get_Choices()
+SimplArchive.ModuleAbi.ModuleSetting::System.String Description
+SimplArchive.ModuleAbi.ModuleSetting::System.String Key
+SimplArchive.ModuleAbi.ModuleSetting::System.String Label
+SimplArchive.ModuleAbi.ModuleSetting::System.String ToString()
+SimplArchive.ModuleAbi.ModuleSetting::System.String get_Description()
+SimplArchive.ModuleAbi.ModuleSetting::System.String get_Key()
+SimplArchive.ModuleAbi.ModuleSetting::System.String get_Label()
+SimplArchive.ModuleAbi.ModuleSetting::Void .ctor(System.String, System.String, Boolean, System.String)
+SimplArchive.ModuleAbi.ModuleSetting::Void Deconstruct(System.String ByRef, System.String ByRef, Boolean ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleSetting::Void set_Choices(System.Collections.Generic.IReadOnlyList`1[System.String])
+SimplArchive.ModuleAbi.ModuleSetting::Void set_Description(System.String)
+SimplArchive.ModuleAbi.ModuleSetting::Void set_IsSecret(Boolean)
+SimplArchive.ModuleAbi.ModuleSetting::Void set_Key(System.String)
+SimplArchive.ModuleAbi.ModuleSetting::Void set_Kind(SimplArchive.ModuleAbi.ModuleSettingKind)
+SimplArchive.ModuleAbi.ModuleSetting::Void set_Label(System.String)
+SimplArchive.ModuleAbi.ModuleSettingKind::Int32 value__
+SimplArchive.ModuleAbi.ModuleSettingKind::SimplArchive.ModuleAbi.ModuleSettingKind Boolean
+SimplArchive.ModuleAbi.ModuleSettingKind::SimplArchive.ModuleAbi.ModuleSettingKind Choice
+SimplArchive.ModuleAbi.ModuleSettingKind::SimplArchive.ModuleAbi.ModuleSettingKind Text
+SimplArchive.ModuleAbi.ModuleUpload::Boolean Equals(SimplArchive.ModuleAbi.ModuleUpload)
+SimplArchive.ModuleAbi.ModuleUpload::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleUpload::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleUpload, SimplArchive.ModuleAbi.ModuleUpload)
+SimplArchive.ModuleAbi.ModuleUpload::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleUpload, SimplArchive.ModuleAbi.ModuleUpload)
+SimplArchive.ModuleAbi.ModuleUpload::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleUpload::Int64 MaxBytes
+SimplArchive.ModuleAbi.ModuleUpload::Int64 get_MaxBytes()
+SimplArchive.ModuleAbi.ModuleUpload::SimplArchive.ModuleAbi.ModuleUpload <Clone>$()
+SimplArchive.ModuleAbi.ModuleUpload::System.DateTimeOffset ExpiresAt
+SimplArchive.ModuleAbi.ModuleUpload::System.DateTimeOffset get_ExpiresAt()
+SimplArchive.ModuleAbi.ModuleUpload::System.String ToString()
+SimplArchive.ModuleAbi.ModuleUpload::System.String UploadId
+SimplArchive.ModuleAbi.ModuleUpload::System.String get_UploadId()
+SimplArchive.ModuleAbi.ModuleUpload::System.Uri Url
+SimplArchive.ModuleAbi.ModuleUpload::System.Uri get_Url()
+SimplArchive.ModuleAbi.ModuleUpload::Void .ctor(System.String, System.Uri, System.DateTimeOffset, Int64)
+SimplArchive.ModuleAbi.ModuleUpload::Void Deconstruct(System.String ByRef, System.Uri ByRef, System.DateTimeOffset ByRef, Int64 ByRef)
+SimplArchive.ModuleAbi.ModuleUpload::Void set_ExpiresAt(System.DateTimeOffset)
+SimplArchive.ModuleAbi.ModuleUpload::Void set_MaxBytes(Int64)
+SimplArchive.ModuleAbi.ModuleUpload::Void set_UploadId(System.String)
+SimplArchive.ModuleAbi.ModuleUpload::Void set_Url(System.Uri)
+SimplArchive.ModuleAbi.ModuleUploadMissingException::Void .ctor(System.String)
+SimplArchive.ModuleAbi.ModuleUploadProtocol::System.String CommitRel
+SimplArchive.ModuleAbi.ModuleUploadProtocol::System.String UrlField
+SimplArchive.ModuleAbi.ModuleUploadTooLargeException::Void .ctor(Int64, Int64)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Boolean Equals(SimplArchive.ModuleAbi.ModuleVocabularyItem)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleVocabularyItem, SimplArchive.ModuleAbi.ModuleVocabularyItem)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleVocabularyItem, SimplArchive.ModuleAbi.ModuleVocabularyItem)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleVocabularyItem::SimplArchive.ModuleAbi.ModuleVocabularyItem <Clone>$()
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String Description
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String Label
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String ToString()
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String Value
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String get_Description()
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String get_Label()
+SimplArchive.ModuleAbi.ModuleVocabularyItem::System.String get_Value()
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Void set_Description(System.String)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Void set_Label(System.String)
+SimplArchive.ModuleAbi.ModuleVocabularyItem::Void set_Value(System.String)
+SimplArchive.ModuleAbi.ModuleVocabularyResource::Int32 Count
+SimplArchive.ModuleAbi.ModuleVocabularyResource::Int32 get_Count()
+SimplArchive.ModuleAbi.ModuleVocabularyResource::System.Collections.Generic.List`1[SimplArchive.ModuleAbi.ModuleVocabularyItem] Items
+SimplArchive.ModuleAbi.ModuleVocabularyResource::System.Collections.Generic.List`1[SimplArchive.ModuleAbi.ModuleVocabularyItem] get_Items()
+SimplArchive.ModuleAbi.ModuleVocabularyResource::System.String Query
+SimplArchive.ModuleAbi.ModuleVocabularyResource::System.String get_Query()
+SimplArchive.ModuleAbi.ModuleVocabularyResource::Void .ctor()
+SimplArchive.ModuleAbi.ModuleVocabularyResource::Void set_Count(Int32)
+SimplArchive.ModuleAbi.ModuleVocabularyResource::Void set_Items(System.Collections.Generic.List`1[SimplArchive.ModuleAbi.ModuleVocabularyItem])
+SimplArchive.ModuleAbi.ModuleVocabularyResource::Void set_Query(System.String)
+SimplArchive.ModuleAbi.PerUserEnrolment::Boolean Equals(SimplArchive.ModuleAbi.PerUserEnrolment)
+SimplArchive.ModuleAbi.PerUserEnrolment::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.PerUserEnrolment::Boolean op_Equality(SimplArchive.ModuleAbi.PerUserEnrolment, SimplArchive.ModuleAbi.PerUserEnrolment)
+SimplArchive.ModuleAbi.PerUserEnrolment::Boolean op_Inequality(SimplArchive.ModuleAbi.PerUserEnrolment, SimplArchive.ModuleAbi.PerUserEnrolment)
+SimplArchive.ModuleAbi.PerUserEnrolment::Int32 GetHashCode()
+SimplArchive.ModuleAbi.PerUserEnrolment::SimplArchive.ModuleAbi.PerUserEnrolment <Clone>$()
+SimplArchive.ModuleAbi.PerUserEnrolment::SimplArchive.ModuleAbi.PerUserEnrolmentInput Input
+SimplArchive.ModuleAbi.PerUserEnrolment::SimplArchive.ModuleAbi.PerUserEnrolmentInput get_Input()
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String Field
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String GateSetting
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String LabelField
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String Route
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String TitleKey
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String ToString()
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String get_Field()
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String get_GateSetting()
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String get_LabelField()
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String get_Route()
+SimplArchive.ModuleAbi.PerUserEnrolment::System.String get_TitleKey()
+SimplArchive.ModuleAbi.PerUserEnrolment::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void set_Field(System.String)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void set_GateSetting(System.String)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void set_Input(SimplArchive.ModuleAbi.PerUserEnrolmentInput)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void set_LabelField(System.String)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void set_Route(System.String)
+SimplArchive.ModuleAbi.PerUserEnrolment::Void set_TitleKey(System.String)
+SimplArchive.ModuleAbi.PerUserEnrolmentInput::Int32 value__
+SimplArchive.ModuleAbi.PerUserEnrolmentInput::SimplArchive.ModuleAbi.PerUserEnrolmentInput Certificate
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Boolean Equals(SimplArchive.ModuleAbi.ProjectedDocumentContext)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Boolean Removed
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Boolean get_Removed()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Boolean op_Equality(SimplArchive.ModuleAbi.ProjectedDocumentContext, SimplArchive.ModuleAbi.ProjectedDocumentContext)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Boolean op_Inequality(SimplArchive.ModuleAbi.ProjectedDocumentContext, SimplArchive.ModuleAbi.ProjectedDocumentContext)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::SimplArchive.ModuleAbi.IModuleArchiveFacade Archive
+SimplArchive.ModuleAbi.ProjectedDocumentContext::SimplArchive.ModuleAbi.IModuleArchiveFacade get_Archive()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::SimplArchive.ModuleAbi.ProjectedDocumentContext <Clone>$()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.Guid DocumentId
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.Guid MaskId
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.Guid TenantId
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.Guid get_DocumentId()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.Guid get_MaskId()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.Guid get_TenantId()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.IServiceProvider Services
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.IServiceProvider get_Services()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::System.String ToString()
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void .ctor(System.Guid, System.Guid, System.Guid, Boolean, SimplArchive.ModuleAbi.IModuleArchiveFacade, System.IServiceProvider)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void Deconstruct(System.Guid ByRef, System.Guid ByRef, System.Guid ByRef, Boolean ByRef, SimplArchive.ModuleAbi.IModuleArchiveFacade ByRef, System.IServiceProvider ByRef)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void set_Archive(SimplArchive.ModuleAbi.IModuleArchiveFacade)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void set_DocumentId(System.Guid)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void set_MaskId(System.Guid)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void set_Removed(Boolean)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void set_Services(System.IServiceProvider)
+SimplArchive.ModuleAbi.ProjectedDocumentContext::Void set_TenantId(System.Guid)
+SimplArchive.ModuleAbi.ProposalItem::Boolean Equals(SimplArchive.ModuleAbi.ProposalItem)
+SimplArchive.ModuleAbi.ProposalItem::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ProposalItem::Boolean op_Equality(SimplArchive.ModuleAbi.ProposalItem, SimplArchive.ModuleAbi.ProposalItem)
+SimplArchive.ModuleAbi.ProposalItem::Boolean op_Inequality(SimplArchive.ModuleAbi.ProposalItem, SimplArchive.ModuleAbi.ProposalItem)
+SimplArchive.ModuleAbi.ProposalItem::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ProposalItem::SimplArchive.ModuleAbi.ProposalItem <Clone>$()
+SimplArchive.ModuleAbi.ProposalItem::System.String Detail
+SimplArchive.ModuleAbi.ProposalItem::System.String Label
+SimplArchive.ModuleAbi.ProposalItem::System.String ToString()
+SimplArchive.ModuleAbi.ProposalItem::System.String Value
+SimplArchive.ModuleAbi.ProposalItem::System.String get_Detail()
+SimplArchive.ModuleAbi.ProposalItem::System.String get_Label()
+SimplArchive.ModuleAbi.ProposalItem::System.String get_Value()
+SimplArchive.ModuleAbi.ProposalItem::Void .ctor(System.String, System.String, System.String)
+SimplArchive.ModuleAbi.ProposalItem::Void Deconstruct(System.String ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ProposalItem::Void set_Detail(System.String)
+SimplArchive.ModuleAbi.ProposalItem::Void set_Label(System.String)
+SimplArchive.ModuleAbi.ProposalItem::Void set_Value(System.String)
+SimplArchive.ModuleAbi.ProtocolReadRefresh::Int32 value__
+SimplArchive.ModuleAbi.ProtocolReadRefresh::SimplArchive.ModuleAbi.ProtocolReadRefresh Never
+SimplArchive.ModuleAbi.ProtocolReadRefresh::SimplArchive.ModuleAbi.ProtocolReadRefresh WhenTenantEnables
+SimplArchive.ModuleAbi.ProtocolReadRefreshSetting::System.String Key
+SimplArchive.ModuleAbi.ReaderCertificate::Boolean Equals(SimplArchive.ModuleAbi.ReaderCertificate)
+SimplArchive.ModuleAbi.ReaderCertificate::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ReaderCertificate::Boolean op_Equality(SimplArchive.ModuleAbi.ReaderCertificate, SimplArchive.ModuleAbi.ReaderCertificate)
+SimplArchive.ModuleAbi.ReaderCertificate::Boolean op_Inequality(SimplArchive.ModuleAbi.ReaderCertificate, SimplArchive.ModuleAbi.ReaderCertificate)
+SimplArchive.ModuleAbi.ReaderCertificate::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ReaderCertificate::SimplArchive.ModuleAbi.ReaderCertificate <Clone>$()
+SimplArchive.ModuleAbi.ReaderCertificate::System.DateTimeOffset NotAfter
+SimplArchive.ModuleAbi.ReaderCertificate::System.DateTimeOffset get_NotAfter()
+SimplArchive.ModuleAbi.ReaderCertificate::System.String CertificatePem
+SimplArchive.ModuleAbi.ReaderCertificate::System.String Label
+SimplArchive.ModuleAbi.ReaderCertificate::System.String ToString()
+SimplArchive.ModuleAbi.ReaderCertificate::System.String get_CertificatePem()
+SimplArchive.ModuleAbi.ReaderCertificate::System.String get_Label()
+SimplArchive.ModuleAbi.ReaderCertificate::Void .ctor(System.String, System.String, System.DateTimeOffset)
+SimplArchive.ModuleAbi.ReaderCertificate::Void Deconstruct(System.String ByRef, System.String ByRef, System.DateTimeOffset ByRef)
+SimplArchive.ModuleAbi.ReaderCertificate::Void set_CertificatePem(System.String)
+SimplArchive.ModuleAbi.ReaderCertificate::Void set_Label(System.String)
+SimplArchive.ModuleAbi.ReaderCertificate::Void set_NotAfter(System.DateTimeOffset)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Boolean Equals(SimplArchive.ModuleAbi.ReaderCertificateContext)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Boolean op_Equality(SimplArchive.ModuleAbi.ReaderCertificateContext, SimplArchive.ModuleAbi.ReaderCertificateContext)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Boolean op_Inequality(SimplArchive.ModuleAbi.ReaderCertificateContext, SimplArchive.ModuleAbi.ReaderCertificateContext)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ReaderCertificateContext::SimplArchive.ModuleAbi.IModuleArchiveFacade Archive
+SimplArchive.ModuleAbi.ReaderCertificateContext::SimplArchive.ModuleAbi.IModuleArchiveFacade get_Archive()
+SimplArchive.ModuleAbi.ReaderCertificateContext::SimplArchive.ModuleAbi.ReaderCertificateContext <Clone>$()
+SimplArchive.ModuleAbi.ReaderCertificateContext::System.Guid UserId
+SimplArchive.ModuleAbi.ReaderCertificateContext::System.Guid get_UserId()
+SimplArchive.ModuleAbi.ReaderCertificateContext::System.IServiceProvider Services
+SimplArchive.ModuleAbi.ReaderCertificateContext::System.IServiceProvider get_Services()
+SimplArchive.ModuleAbi.ReaderCertificateContext::System.String ToString()
+SimplArchive.ModuleAbi.ReaderCertificateContext::Void .ctor(System.Guid, SimplArchive.ModuleAbi.IModuleArchiveFacade, System.IServiceProvider)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Void Deconstruct(System.Guid ByRef, SimplArchive.ModuleAbi.IModuleArchiveFacade ByRef, System.IServiceProvider ByRef)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Void set_Archive(SimplArchive.ModuleAbi.IModuleArchiveFacade)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Void set_Services(System.IServiceProvider)
+SimplArchive.ModuleAbi.ReaderCertificateContext::Void set_UserId(System.Guid)
+SimplArchive.ModuleAbi.RevealedValue::Boolean Equals(SimplArchive.ModuleAbi.RevealedValue)
+SimplArchive.ModuleAbi.RevealedValue::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.RevealedValue::Boolean op_Equality(SimplArchive.ModuleAbi.RevealedValue, SimplArchive.ModuleAbi.RevealedValue)
+SimplArchive.ModuleAbi.RevealedValue::Boolean op_Inequality(SimplArchive.ModuleAbi.RevealedValue, SimplArchive.ModuleAbi.RevealedValue)
+SimplArchive.ModuleAbi.RevealedValue::Int32 GetHashCode()
+SimplArchive.ModuleAbi.RevealedValue::SimplArchive.ModuleAbi.RevealedValue <Clone>$()
+SimplArchive.ModuleAbi.RevealedValue::System.String Label
+SimplArchive.ModuleAbi.RevealedValue::System.String ScanAddress
+SimplArchive.ModuleAbi.RevealedValue::System.String ToString()
+SimplArchive.ModuleAbi.RevealedValue::System.String Value
+SimplArchive.ModuleAbi.RevealedValue::System.String get_Label()
+SimplArchive.ModuleAbi.RevealedValue::System.String get_ScanAddress()
+SimplArchive.ModuleAbi.RevealedValue::System.String get_Value()
+SimplArchive.ModuleAbi.RevealedValue::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.RevealedValue::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.RevealedValue::Void set_Label(System.String)
+SimplArchive.ModuleAbi.RevealedValue::Void set_ScanAddress(System.String)
+SimplArchive.ModuleAbi.RevealedValue::Void set_Value(System.String)
+SimplArchive.ModuleAbi.StateCondition::Boolean Equals(SimplArchive.ModuleAbi.StateCondition)
+SimplArchive.ModuleAbi.StateCondition::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.StateCondition::Boolean op_Equality(SimplArchive.ModuleAbi.StateCondition, SimplArchive.ModuleAbi.StateCondition)
+SimplArchive.ModuleAbi.StateCondition::Boolean op_Inequality(SimplArchive.ModuleAbi.StateCondition, SimplArchive.ModuleAbi.StateCondition)
+SimplArchive.ModuleAbi.StateCondition::Int32 GetHashCode()
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.DocumentFieldCondition Field
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.DocumentFieldCondition get_Field()
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.FactCondition Fact
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.FactCondition get_Fact()
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.StateCondition <Clone>$()
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.StateCondition ChildField(System.Guid, System.String, SimplArchive.ModuleAbi.ConditionTest, System.String, System.String, System.String)
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.StateCondition FactAtLeast(System.String, Int64, System.String, System.String)
+SimplArchive.ModuleAbi.StateCondition::SimplArchive.ModuleAbi.StateCondition SubjectField(System.String, SimplArchive.ModuleAbi.ConditionTest, System.String, System.String, System.String)
+SimplArchive.ModuleAbi.StateCondition::System.String FailCode
+SimplArchive.ModuleAbi.StateCondition::System.String FailText
+SimplArchive.ModuleAbi.StateCondition::System.String ToString()
+SimplArchive.ModuleAbi.StateCondition::System.String get_FailCode()
+SimplArchive.ModuleAbi.StateCondition::System.String get_FailText()
+SimplArchive.ModuleAbi.StateCondition::Void .ctor(System.String, System.String)
+SimplArchive.ModuleAbi.StateCondition::Void Deconstruct(System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.StateCondition::Void set_Fact(SimplArchive.ModuleAbi.FactCondition)
+SimplArchive.ModuleAbi.StateCondition::Void set_FailCode(System.String)
+SimplArchive.ModuleAbi.StateCondition::Void set_FailText(System.String)
+SimplArchive.ModuleAbi.StateCondition::Void set_Field(SimplArchive.ModuleAbi.DocumentFieldCondition)
+SimplArchive.ModuleAbi.StatusResult::Boolean Equals(SimplArchive.ModuleAbi.StatusResult)
+SimplArchive.ModuleAbi.StatusResult::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.StatusResult::Boolean Satisfied
+SimplArchive.ModuleAbi.StatusResult::Boolean get_Satisfied()
+SimplArchive.ModuleAbi.StatusResult::Boolean op_Equality(SimplArchive.ModuleAbi.StatusResult, SimplArchive.ModuleAbi.StatusResult)
+SimplArchive.ModuleAbi.StatusResult::Boolean op_Inequality(SimplArchive.ModuleAbi.StatusResult, SimplArchive.ModuleAbi.StatusResult)
+SimplArchive.ModuleAbi.StatusResult::Int32 GetHashCode()
+SimplArchive.ModuleAbi.StatusResult::SimplArchive.ModuleAbi.StatusResult <Clone>$()
+SimplArchive.ModuleAbi.StatusResult::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ConditionExplanation] Failed
+SimplArchive.ModuleAbi.StatusResult::System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ConditionExplanation] get_Failed()
+SimplArchive.ModuleAbi.StatusResult::System.String ToString()
+SimplArchive.ModuleAbi.StatusResult::Void .ctor(Boolean, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ConditionExplanation])
+SimplArchive.ModuleAbi.StatusResult::Void Deconstruct(Boolean ByRef, System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ConditionExplanation] ByRef)
+SimplArchive.ModuleAbi.StatusResult::Void set_Failed(System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ConditionExplanation])
+SimplArchive.ModuleAbi.StatusResult::Void set_Satisfied(Boolean)
+SimplArchive.ModuleAbi.TenantLicense::Boolean Entitles(System.String)
+SimplArchive.ModuleAbi.TenantLicense::Boolean Equals(SimplArchive.ModuleAbi.TenantLicense)
+SimplArchive.ModuleAbi.TenantLicense::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.TenantLicense::Boolean VerifiedBy(System.Security.Cryptography.ECDsa)
+SimplArchive.ModuleAbi.TenantLicense::Boolean op_Equality(SimplArchive.ModuleAbi.TenantLicense, SimplArchive.ModuleAbi.TenantLicense)
+SimplArchive.ModuleAbi.TenantLicense::Boolean op_Inequality(SimplArchive.ModuleAbi.TenantLicense, SimplArchive.ModuleAbi.TenantLicense)
+SimplArchive.ModuleAbi.TenantLicense::Int32 AbiMajorVersion
+SimplArchive.ModuleAbi.TenantLicense::Int32 GetHashCode()
+SimplArchive.ModuleAbi.TenantLicense::Int32 get_AbiMajorVersion()
+SimplArchive.ModuleAbi.TenantLicense::SimplArchive.ModuleAbi.TenantLicense <Clone>$()
+SimplArchive.ModuleAbi.TenantLicense::SimplArchive.ModuleAbi.TenantLicense Sign(System.Security.Cryptography.ECDsa)
+SimplArchive.ModuleAbi.TenantLicense::System.Collections.Generic.IReadOnlyList`1[System.String] ModuleIds
+SimplArchive.ModuleAbi.TenantLicense::System.Collections.Generic.IReadOnlyList`1[System.String] get_ModuleIds()
+SimplArchive.ModuleAbi.TenantLicense::System.DateOnly SupportContractEnd
+SimplArchive.ModuleAbi.TenantLicense::System.DateOnly get_SupportContractEnd()
+SimplArchive.ModuleAbi.TenantLicense::System.Guid TenantId
+SimplArchive.ModuleAbi.TenantLicense::System.Guid get_TenantId()
+SimplArchive.ModuleAbi.TenantLicense::System.String Signature
+SimplArchive.ModuleAbi.TenantLicense::System.String SignedPayload()
+SimplArchive.ModuleAbi.TenantLicense::System.String ToString()
+SimplArchive.ModuleAbi.TenantLicense::System.String get_Signature()
+SimplArchive.ModuleAbi.TenantLicense::Void .ctor(System.Collections.Generic.IReadOnlyList`1[System.String], System.Guid, System.DateOnly, Int32, System.String)
+SimplArchive.ModuleAbi.TenantLicense::Void Deconstruct(System.Collections.Generic.IReadOnlyList`1[System.String] ByRef, System.Guid ByRef, System.DateOnly ByRef, Int32 ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.TenantLicense::Void set_AbiMajorVersion(Int32)
+SimplArchive.ModuleAbi.TenantLicense::Void set_ModuleIds(System.Collections.Generic.IReadOnlyList`1[System.String])
+SimplArchive.ModuleAbi.TenantLicense::Void set_Signature(System.String)
+SimplArchive.ModuleAbi.TenantLicense::Void set_SupportContractEnd(System.DateOnly)
+SimplArchive.ModuleAbi.TenantLicense::Void set_TenantId(System.Guid)
+SimplArchive.ModuleAbi.TransitionContext::Boolean Equals(SimplArchive.ModuleAbi.TransitionContext)
+SimplArchive.ModuleAbi.TransitionContext::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.TransitionContext::Boolean op_Equality(SimplArchive.ModuleAbi.TransitionContext, SimplArchive.ModuleAbi.TransitionContext)
+SimplArchive.ModuleAbi.TransitionContext::Boolean op_Inequality(SimplArchive.ModuleAbi.TransitionContext, SimplArchive.ModuleAbi.TransitionContext)
+SimplArchive.ModuleAbi.TransitionContext::Int32 GetHashCode()
+SimplArchive.ModuleAbi.TransitionContext::SimplArchive.ModuleAbi.IModuleArchiveFacade Archive
+SimplArchive.ModuleAbi.TransitionContext::SimplArchive.ModuleAbi.IModuleArchiveFacade get_Archive()
+SimplArchive.ModuleAbi.TransitionContext::SimplArchive.ModuleAbi.TransitionContext <Clone>$()
+SimplArchive.ModuleAbi.TransitionContext::System.Guid SubjectDocumentId
+SimplArchive.ModuleAbi.TransitionContext::System.Guid get_SubjectDocumentId()
+SimplArchive.ModuleAbi.TransitionContext::System.IServiceProvider Services
+SimplArchive.ModuleAbi.TransitionContext::System.IServiceProvider get_Services()
+SimplArchive.ModuleAbi.TransitionContext::System.String ToString()
+SimplArchive.ModuleAbi.TransitionContext::Void .ctor(System.Guid, SimplArchive.ModuleAbi.IModuleArchiveFacade, System.IServiceProvider)
+SimplArchive.ModuleAbi.TransitionContext::Void Deconstruct(System.Guid ByRef, SimplArchive.ModuleAbi.IModuleArchiveFacade ByRef, System.IServiceProvider ByRef)
+SimplArchive.ModuleAbi.TransitionContext::Void set_Archive(SimplArchive.ModuleAbi.IModuleArchiveFacade)
+SimplArchive.ModuleAbi.TransitionContext::Void set_Services(System.IServiceProvider)
+SimplArchive.ModuleAbi.TransitionContext::Void set_SubjectDocumentId(System.Guid)

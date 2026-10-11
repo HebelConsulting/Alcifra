@@ -55,11 +55,14 @@ public partial class ModuleAbiVersionTests
         var version = PackageVersion().Match(File.ReadAllText(csprojPath));
         Assert.True(version.Success, $"No <Version> element in {csprojPath} — the packaging shape changed.");
 
+        // Major and minor come from the newest slice ADR; the PATCH is free. A published package cannot be replaced,
+        // so a fix to an ABI already published (1.14.0 removed a constructor from the binary, v0.41.0) ships as the
+        // next patch of the same minor, 1.14.1, which this guard used to refuse.
         var newest = slices.Max();
-        var expected = $"{newest.Major}.{newest.Minor}.0";
-        Assert.True(version.Groups["version"].Value == expected,
+        var expected = $"{newest.Major}.{newest.Minor}.";
+        Assert.True(version.Groups["version"].Value.StartsWith(expected, StringComparison.Ordinal),
             $"SimplArchive.ModuleAbi is packaged as {version.Groups["version"].Value} but the newest ABI slice ADR "
-            + $"declares {expected}.\nBump <Version> in SimplArchive.ModuleAbi.csproj — `abi-publish.yml` pushes "
+            + $"declares {newest.Major}.{newest.Minor}.\nBump <Version> in SimplArchive.ModuleAbi.csproj — `abi-publish.yml` pushes "
             + "with --skip-duplicate, so an unbumped version publishes NOTHING and reports success.");
     }
 }
