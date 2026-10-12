@@ -1,3 +1,4 @@
+using SimplArchive.Presentation;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SimplArchive.DesktopClient.Services;
@@ -78,14 +79,16 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
     /// the classifier-owned guard refuses anything else (ADR 0744-era pane fix).</summary>
     private IReadOnlyList<string> _originalValues = [];
 
+    /// <summary>Which editor this field gets: the one shared rule (<see cref="IndexFieldEdit"/>), which the web and the
+    /// phone ask too.</summary>
+    public IndexFieldEditor Editor => IndexFieldEdit.EditorFor(DataType, IsList, Locked);
+
+    // The field's TYPE, kept as it was: a list of dates is still a Date field, whose editor is nonetheless the list.
     public bool IsDate => DataType == "Date" && !Locked;
-    // A moment, not a day (#660): its editor is a date picker AND a time picker. Locked fields fall to the
-    // read-only text rendering below regardless of type.
     public bool IsDateTime => DataType == "DateTime" && !Locked;
     public bool IsBoolean => DataType == "Boolean" && !Locked;
-    // Either the field says it is a list, or its type already means it (MultiSelect, grandfathered) — #703.
-    public bool IsMultiLine => !Locked && (IsList || DataType == "MultiSelect");
-    public bool IsSingleLine => Locked || (!IsDate && !IsDateTime && !IsBoolean && !IsMultiLine);
+    public bool IsMultiLine => Editor == IndexFieldEditor.Lines;
+    public bool IsSingleLine => Editor is IndexFieldEditor.ReadOnly or IndexFieldEditor.Text;
     public string Label => IsRequired ? $"{Name} *" : Name;
 
     /// <summary>What a person reads beside the editor — a well-known field name translated (ADR 0891). <see cref="Label"/>
@@ -130,62 +133,15 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
             DataType = definition.DataType,
             IsRequired = definition.IsRequired,
             IsList = definition.IsList,
-            // Read-only either for THIS caller (mail routing, #703) or for EVERY caller (the classifier
-            // owns the value — Start/End/UIDs, ADRs 0743/0744; the real write path is the content editor).
-            Locked = (definition.RequiresMailRouting && !mayRouteMail) || definition.ClassifierOwned,
+            Locked = IndexFieldEdit.IsLocked(definition.RequiresMailRouting, mayRouteMail, definition.ClassifierOwned),
             ValuesHref = definition.ValuesHref,
         };
         field._originalValues = [.. values];
-
-        if (field.Locked)
-        {
-            // Readable, not raw: a DateTime shows its local wall clock instead of the ISO wire string.
-            field.TextValue = string.Join(", ", values.Select(v =>
-                definition.DataType == "DateTime" ? SimplArchive.Presentation.IndexInstant.Display(v, SessionTimeZone.Current) : v));
-            return field;
-        }
-
-        // Multiplicity is decided BEFORE the type: a list of dates is a list first, so it gets the list editor
-        // rather than a date picker that could only ever hold one of them.
-        if (field.IsMultiLine)
-        {
-            field.TextValue = string.Join("\n", values);
-            return field;
-        }
-
-        switch (definition.DataType)
-        {
-            case "Date":
-                field.DateValue = values.Count > 0 && System.DateTime.TryParse(values[0], out var d)
-                    ? d.Date : null;
-                break;
-            case "DateTime":
-                var (day, time) = SimplArchive.Presentation.IndexInstant.Split(values.Count > 0 ? values[0] : null, SessionTimeZone.Current);
-                field.DateValue = day;
-                field.TimeValue = time;
-                break;
-            case "Boolean":
-                field.BoolValue = values.Count > 0 && values[0].Equals("true", System.StringComparison.OrdinalIgnoreCase);
-                break;
-            default:
-                field.TextValue = values.Count > 0 ? values[0] : "";
-                break;
-        }
-
+        var loaded = IndexFieldEdit.Load(field.Editor, definition.DataType, values, SessionTimeZone.Current);
+        (field.TextValue, field.DateValue, field.TimeValue, field.BoolValue) = (loaded.Text, loaded.Date, loaded.Time, loaded.Flag);
         return field;
     }
 
-    public IReadOnlyList<string> ToValues() => Locked
-        // Echo the wire values verbatim: the PUT is a full replacement, and the server's classifier-owned
-        // guard (rightly) reads any deviation — including a formatted rendering — as an attempted edit.
-        ? _originalValues
-        : IsMultiLine
-            ? TextValue.Split('\n').Select(v => v.Trim()).Where(v => v.Length > 0).ToList()
-            : DataType switch
-            {
-                "Date" => DateValue is { } d ? [d.ToString("yyyy-MM-dd")] : [],
-                "DateTime" => SimplArchive.Presentation.IndexInstant.Compose(DateValue?.Date, TimeValue, SessionTimeZone.Current) is { } instant ? [instant] : [],
-                "Boolean" => [BoolValue ? "true" : "false"],
-                _ => string.IsNullOrWhiteSpace(TextValue) ? [] : [TextValue.Trim()],
-            };
+    public IReadOnlyList<string> ToValues() =>
+        IndexFieldEdit.Store(Editor, new IndexFieldValue(TextValue, DateValue, TimeValue, BoolValue), _originalValues, SessionTimeZone.Current);
 }

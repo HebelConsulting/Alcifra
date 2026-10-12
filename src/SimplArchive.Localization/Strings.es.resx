@@ -5463,4 +5463,7 @@
   <data name="MobSwitchProfile" xml:space="preserve">
     <value>Cambiar perfil</value>
   </data>
+  <data name="PhoneTabContents" xml:space="preserve">
+    <value>Contenido</value>
+  </data>
 </root>
