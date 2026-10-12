@@ -117,6 +117,9 @@ public class RootController : ControllerBase
                 // them large, to render a digit. Paying that is how a codebase talks itself back into string
                 // paths. It is its own addressable resource, not an action on the collection.
                 new Link("notificationsUnreadCount", "/api/notifications/unread-count", "GET"),
+                // The caller's phones registered for push (SimplArchiveMobile #20): GET lists them with what a phone
+                // needs to set up (the public Web Push key, the push server), POST registers this one.
+                new Link("pushRegistrations", "/api/push-registrations", "GET"),
                 new Link("legalHolds", "/api/legal-holds", "GET"),
                 new Link("recycleBin", "/api/recycle-bin", "GET"),
                 new Link("checkouts", "/api/checkouts", "GET"),

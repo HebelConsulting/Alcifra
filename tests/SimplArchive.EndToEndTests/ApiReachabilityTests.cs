@@ -384,6 +384,9 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         await TestJson.Post(user, "/api/saved-searches", new { name = "Reach", queryString = "q=reach", shareScope = 0 });
         var personal = (await TestJson.Post(user, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
         await TestJson.Post(user, "/api/me/imap-access", new { });
+        // A phone registered for push (SimplArchiveMobile #20), so the crawl meets a registration row and its self.
+        await TestJson.Post(user, "/api/push-registrations",
+            new { app = "dev.simplarchive.mobile", deviceLabel = "Reach phone", endpoint = $"https://push.example.test/up/{Guid.NewGuid():N}", p256dh = DeviceKeys.P256dh, auth = DeviceKeys.Auth });
         var spaces = (await TestJson.Get(user, $"/api/documents/{personal}/children")).GetProperty("children").EnumerateArray()
             .ToDictionary(c => c.GetProperty("name").GetString()!, c => c.GetProperty("id").GetGuid());
         var notebook = (await TestJson.Post(user, $"/api/documents/{spaces["My Mailbox"]}/children", new { name = "Notebook", folderMask = "notes" })).GetProperty("id").GetGuid();

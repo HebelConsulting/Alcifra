@@ -69,6 +69,9 @@ public class NotificationsController : ControllerBase
         public int Type { get; set; }
         public string TypeName { get; set; } = string.Empty;
         public bool EmailEnabled { get; set; }
+
+        /// <summary>Whether this type is also pushed to the user's phones (SimplArchiveMobile #20).</summary>
+        public bool PhoneEnabled { get; set; }
     }
 
     public class PreferencesResource : HypermediaResource
@@ -85,6 +88,13 @@ public class NotificationsController : ControllerBase
     {
         public int Type { get; set; }
         public bool EmailEnabled { get; set; }
+
+        /// <summary>
+        /// The phone channel. Optional: a client from before the phone switch does not send it, and its save must
+        /// leave the stored choice (default on) alone rather than switch every type off for the phone.
+        /// </summary>
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public bool? PhoneEnabled { get; set; }
     }
 
     [HttpGet]
@@ -211,7 +221,8 @@ public class NotificationsController : ControllerBase
     }
 
     // ---- Email preferences (ADR "Notification preferences") ---------------------------------------------
-    // In-app notifications are always delivered; these govern only whether a type is also emailed. Only the
+    // In-app notifications are always delivered; these govern only whether a type is also emailed, and (#20)
+    // pushed to the user's phones. Only the
     // mutable types (NotificationTypePolicy) are listed/settable — the deadline/compliance escalations are
     // always emailed. Absence of a row means the default (enabled), so this returns true for any unset type.
 
@@ -258,6 +269,7 @@ public class NotificationsController : ControllerBase
                 UserId = userId,
                 Type = (NotificationType)item.Type,
                 EmailEnabled = item.EmailEnabled,
+                PhoneEnabled = item.PhoneEnabled ?? existing.FirstOrDefault(p => p.Type == (NotificationType)item.Type)?.PhoneEnabled ?? true,
             });
         }
 
@@ -269,7 +281,7 @@ public class NotificationsController : ControllerBase
     {
         var stored = await _dbContext.UserNotificationPreferences
             .Where(p => p.UserId == userId)
-            .ToDictionaryAsync(p => p.Type, p => p.EmailEnabled, cancellationToken);
+            .ToDictionaryAsync(p => p.Type, p => (Email: p.EmailEnabled, Phone: p.PhoneEnabled), cancellationToken);
 
         return new PreferencesResource
         {
@@ -277,7 +289,8 @@ public class NotificationsController : ControllerBase
             {
                 Type = (int)type,
                 TypeName = type.ToString(),
-                EmailEnabled = stored.GetValueOrDefault(type, true),
+                EmailEnabled = stored.GetValueOrDefault(type, (Email: true, Phone: true)).Email,
+                PhoneEnabled = stored.GetValueOrDefault(type, (Email: true, Phone: true)).Phone,
             }).ToList(),
             Links = [new Link("self", Url.Action(nameof(GetPreferences))!, "GET")],
         };

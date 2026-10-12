@@ -47,4 +47,7 @@ public sealed class EtagMismatchException : ConcurrencyException
 
     public static EtagMismatchException ForTag() =>
         new("The tag has been modified since it was last read.");
+
+    public static EtagMismatchException ForPushRegistration() =>
+        new("The phone's push registration has been modified since it was last read.");
 }

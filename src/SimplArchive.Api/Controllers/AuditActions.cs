@@ -321,4 +321,10 @@ public static class AuditActions
     public const string DeviceGrantRefused = "Auth.DeviceGrantRefused";
     // Impersonation token issued (ADR "User impersonation") — actor = the impersonating admin, target = the user.
     public const string ImpersonationStarted = "Auth.ImpersonationStarted";
+    // A phone registered for push, re-keyed, or removed (SimplArchiveMobile #20). Recorded because a registered
+    // device receives the user's notification titles from then on: who added a device, and when one went, is what
+    // a reader of the trail asks after a lost phone. A device registering again unchanged records nothing.
+    public const string PushDeviceRegistered = "Auth.PushDeviceRegistered";
+    public const string PushDeviceUpdated = "Auth.PushDeviceUpdated";
+    public const string PushDeviceRemoved = "Auth.PushDeviceRemoved";
 }

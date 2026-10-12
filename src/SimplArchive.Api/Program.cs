@@ -185,6 +185,8 @@ builder.Services.AddSingleton<SimplArchive.Api.Security.ISignInThrottle, SimplAr
 
 builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, SimplArchive.Api.Realtime.SubjectUserIdProvider>();
 builder.Services.AddSingleton<SimplArchive.Application.Abstractions.IRealtimeNotifier, SimplArchive.Api.Realtime.SignalRRealtimeNotifier>();
+// New notifications to the recipients' phones (SimplArchiveMobile #20): best effort, after the save, off the request.
+builder.Services.AddSingleton<SimplArchive.Application.Abstractions.IPhonePushNotifier, SimplArchive.Api.Notifications.PhonePushSender>();
 
 // The IMAP endpoint (ADR "IMAP endpoint (read-only, first slice)", #562) — a raw TCP hosted service, off
 // unless Imap:Enabled. Registered as a singleton FIRST so tests (and the dialog surface) can read the bound
@@ -239,8 +241,15 @@ builder.Services.AddScoped<SimplArchive.Api.Documents.ICallerTimeZone, SimplArch
 // WebDAV-Push (#564 slice 3, ADR 0622): the VAPID configuration is a singleton because in Development it
 // GENERATES an ephemeral key pair — one per process, not one per request, or every client's registration
 // would be signed by a different key.
+// The Web Push signing keys, one server identity for the calendar push and the phone push (SimplArchiveMobile #20,
+// owner decision): read from the general "WebPush" section, and from the original "DavPush" one where an existing
+// installation still names it.
 builder.Services.Configure<SimplArchive.Api.CalDav.DavPushOptions>(
-    builder.Configuration.GetSection(SimplArchive.Api.CalDav.DavPushOptions.SectionName));
+    builder.Configuration.GetSection("WebPush").Exists()
+        ? builder.Configuration.GetSection("WebPush")
+        : builder.Configuration.GetSection(SimplArchive.Api.CalDav.DavPushOptions.SectionName));
+builder.Services.Configure<SimplArchive.Api.Controllers.PhonePushOptions>(
+    builder.Configuration.GetSection(SimplArchive.Api.Controllers.PhonePushOptions.SectionName));
 builder.Services.AddSingleton<SimplArchive.Api.CalDav.DavPushConfiguration>();
 builder.Services.AddHttpClient<SimplArchive.Api.CalDav.DavPushNotifier>()
     .ConfigurePrimaryHttpMessageHandler(provider =>
@@ -286,6 +295,7 @@ builder.Services.AddScoped<SimplArchive.Api.Documents.DocumentVersionResourceBui
 builder.Services.AddScoped<SimplArchive.Api.Documents.StrictEnvelopeDelivery>();
 builder.Services.AddScoped<SimplArchive.Api.Concurrency.GroupVerbs>();
 builder.Services.AddScoped<SimplArchive.Api.Concurrency.TagDefinitionVerbs>();
+builder.Services.AddScoped<SimplArchive.Api.Concurrency.PhonePushRegistrationVerbs>();
 builder.Services.AddScoped<SimplArchive.Api.Documents.DocumentResourceLinks>();
 builder.Services.AddScoped<SimplArchive.Api.Modules.TransitionInvocationRule>();
 builder.Services.AddScoped<SimplArchive.Api.Documents.MachineStatusEvaluator>();

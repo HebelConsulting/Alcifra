@@ -63,6 +63,9 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
     // like the three above, so the design-time factory and the DI-less tests keep working.
     private readonly IModuleProjectionDispatcher? _moduleProjections;
 
+    // The phone push (SimplArchiveMobile #20): optional like the notifiers above.
+    private readonly IPhonePushNotifier? _phonePush;
+
     public SimplArchiveDbContext(
         DbContextOptions<SimplArchiveDbContext> options,
         ICurrentTenantAccessor currentTenantAccessor,
@@ -70,9 +73,11 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
         IMaskContainmentProvider? containmentProvider = null,
         IDavChangeNotifier? davChangeNotifier = null,
         IDavCollectionKindRegistry? davCollectionKinds = null,
-        IModuleProjectionDispatcher? moduleProjections = null)
+        IModuleProjectionDispatcher? moduleProjections = null,
+        IPhonePushNotifier? phonePush = null)
         : base(options)
     {
+        _phonePush = phonePush;
         _currentTenantAccessor = currentTenantAccessor;
         _realtimeNotifier = realtimeNotifier;
         _containmentProvider = containmentProvider ?? new MaskContainmentProvider();
@@ -140,6 +145,7 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
     public DbSet<SimplArchive.Domain.Notifications.Notification> Notifications => Set<SimplArchive.Domain.Notifications.Notification>();
 
     public DbSet<SimplArchive.Domain.Notifications.UserNotificationPreference> UserNotificationPreferences => Set<SimplArchive.Domain.Notifications.UserNotificationPreference>();
+    public DbSet<SimplArchive.Domain.Notifications.PhonePushRegistration> PhonePushRegistrations => Set<SimplArchive.Domain.Notifications.PhonePushRegistration>();
 
     public DbSet<SimplArchive.Domain.Search.SavedSearch> SavedSearches => Set<SimplArchive.Domain.Search.SavedSearch>();
 
@@ -381,12 +387,25 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
         // live AFTER the commit — a single choke point covering every write path (ADR "Real-time notifications").
         var pushes = RealtimeChangePusher.Collect(_realtimeNotifier, ChangeTracker);
 
+        // The same notifications for the recipients' phones, but only the NEW ones: a coalesced row's bump refreshes
+        // a live bell, while a phone would buzz again for something it already showed.
+        var phonePushes = _phonePush is null
+            ? []
+            : ChangeTracker.Entries<Domain.Notifications.Notification>()
+                .Where(e => e.State == EntityState.Added)
+                .Select(e => new PhonePushItem(e.Entity.TenantId, e.Entity.RecipientUserId, e.Entity.Id, (int)e.Entity.Type))
+                .ToList();
+
         // Saves, and re-derives any module read model over the documents this save touched, in ONE transaction
         // (ABI 1.1, ADR 0848). A plain base.SaveChangesAsync when no module projects anything, which is most.
         var saved = await ModuleProjectionSave.SaveAsync(
             this, base.SaveChangesAsync, _moduleProjections, cancellationToken);
 
         await RealtimeChangePusher.PushAsync(_realtimeNotifier, pushes, cancellationToken);
+        if (phonePushes.Count > 0)
+        {
+            _phonePush!.Notify(phonePushes);
+        }
         await DavChangeRecorder.NotifyAsync(_davChangeNotifier, davChanges, cancellationToken);
         return saved;
     }

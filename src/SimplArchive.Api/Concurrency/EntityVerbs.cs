@@ -2,6 +2,7 @@ using SimplArchive.Api.Errors.Exceptions.Concurrency;
 using SimplArchive.Domain.Acl;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Groups;
+using SimplArchive.Domain.Notifications;
 using SimplArchive.Domain.ServiceAccounts;
 using SimplArchive.Domain.Tenants;
 using SimplArchive.Domain.Users;
@@ -51,3 +52,7 @@ public sealed class GroupVerbs(SimplArchiveDbContext dbContext)
 /// <summary>The verb contract for <see cref="TagDefinition"/> — the catalog's name and colour (#1220).</summary>
 public sealed class TagDefinitionVerbs(SimplArchiveDbContext dbContext)
     : EntityVerbContract<TagDefinition>(dbContext, EtagMismatchException.ForTag);
+
+/// <summary>The verb contract for <see cref="PhonePushRegistration"/>: one user, several clients (SimplArchiveMobile #20).</summary>
+public sealed class PhonePushRegistrationVerbs(SimplArchiveDbContext dbContext)
+    : EntityVerbContract<PhonePushRegistration>(dbContext, EtagMismatchException.ForPushRegistration);
