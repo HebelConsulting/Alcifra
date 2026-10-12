@@ -459,7 +459,7 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBox Text="{Binding NewComment}" Watermark="{loc:Tr CommentPlaceholder}" AcceptsReturn="True" MinHeight="46" />
+                            <TextBox x:Name="CommentBox" Text="{Binding NewComment}" Watermark="{loc:Tr CommentPlaceholder}" AcceptsReturn="True" MinHeight="46" />
                             <Button Command="{Binding PostCommentCommand}" HorizontalAlignment="Right" ToolTip.Tip="{loc:Tr MwPostComment}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <i:Icon Value="mdi-send" FontSize="16" />
