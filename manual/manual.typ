@@ -1158,9 +1158,11 @@ also need the Module, which is where your certificates are enrolled:
 / Strict: Content is served *only* as an envelope. This is the level @encryptedreads describes, and the one
   where a missing certificate means no content at all.
 
-*Chats are never encrypted*#idx("chat, not encrypted"). At every level, Strict included, a document's chat is
-stored and shown as plain text: the levels protect a document's *content*, its files, and not the conversation
-beside it. Whatever must stay protected belongs in the document, not in its chat.
+*Chats are never sealed*#idx("chat, not sealed"). At every level, Strict included, a document's chat is neither
+encrypted at rest nor encrypted for its reader: the levels protect a document's *content*, its files, and not the
+conversation beside it. Like everything the clients exchange with the server, a chat still travels encrypted over
+the network (TLS); what it lacks is the per-reader encryption. Whatever must stay protected belongs in the
+document, not in its chat.
 
 Everything else these products do, including what their protection does and does not claim, is described in
 *their own manuals*: they are separate products with their own releases, and documenting them twice is how the
