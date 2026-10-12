@@ -61,19 +61,9 @@ public sealed partial class MainWindowViewModel
         _mentionableUsersHref = thread.MentionableUsersHref;
         MentionCandidates.Clear();
         HasMentionCandidates = false;
-        var byId = comments.ToDictionary(
-            c => c.Id,
-            c => new ChatMessageViewModel { Id = c.Id, AuthorName = c.AuthorName, Body = c.Body, CreatedAt = c.CreatedAt, AuthorCardHref = c.AuthorCardHref, Kind = c.Kind, VersionNumber = c.VersionNumber, VersionComment = c.VersionComment, VersionCommentKind = c.VersionCommentKind, CanReply = c.ParentMessageId is null, Mentions = c.Mentions });
-
         Comments.Clear();
-        foreach (var comment in comments.Where(c => c.ParentMessageId is null))
+        foreach (var vm in ChatMessageViewModel.Threaded(comments, c => new ChatMessageViewModel { Id = c.Id, AuthorName = c.AuthorName, Body = c.Body, CreatedAt = c.CreatedAt, AuthorCardHref = c.AuthorCardHref, Kind = c.Kind, VersionNumber = c.VersionNumber, VersionComment = c.VersionComment, VersionCommentKind = c.VersionCommentKind, CanReply = c.ParentMessageId is null, Mentions = c.Mentions }))
         {
-            var vm = byId[comment.Id];
-            foreach (var reply in comments.Where(c => c.ParentMessageId == comment.Id))
-            {
-                vm.Replies.Add(byId[reply.Id]);
-            }
-
             Comments.Add(vm);
         }
     }

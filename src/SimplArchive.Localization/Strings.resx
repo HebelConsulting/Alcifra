@@ -5433,4 +5433,34 @@
   <data name="ApiErrPlaintextContentRefused" xml:space="preserve">
     <value>This archive never hands document content out in readable form, and this action would. Open the documents one by one instead; they arrive encrypted to your certificate.</value>
   </data>
+  <data name="MobProfile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="MobManageProfiles" xml:space="preserve">
+    <value>Manage profiles</value>
+  </data>
+  <data name="MobProfileName" xml:space="preserve">
+    <value>Profile name</value>
+  </data>
+  <data name="MobNewProfile" xml:space="preserve">
+    <value>New profile</value>
+  </data>
+  <data name="MobProfileNameRequired" xml:space="preserve">
+    <value>Enter a name for the profile.</value>
+  </data>
+  <data name="MobProfileNameTaken" xml:space="preserve">
+    <value>A profile with this name already exists.</value>
+  </data>
+  <data name="MobProfileCopyName" xml:space="preserve">
+    <value>{0} (copy)</value>
+  </data>
+  <data name="MobProfileDeleteQuestion" xml:space="preserve">
+    <value>Delete the profile “{0}”? Its session on this phone ends.</value>
+  </data>
+  <data name="MobProfileNoServer" xml:space="preserve">
+    <value>Choose a server for the profile.</value>
+  </data>
+  <data name="MobSwitchProfile" xml:space="preserve">
+    <value>Switch profile</value>
+  </data>
 </root>

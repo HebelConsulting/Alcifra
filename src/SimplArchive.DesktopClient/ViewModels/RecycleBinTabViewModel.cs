@@ -175,19 +175,9 @@ public sealed partial class RecycleBinTabViewModel : ObservableObject
     private async Task LoadCommentsAsync(string chatHref)
     {
         var comments = await _api!.Documents.GetCommentsAsync(chatHref);
-        var byId = comments.ToDictionary(
-            c => c.Id,
-            c => new ChatMessageViewModel { Id = c.Id, AuthorName = c.AuthorName, Body = c.Body, CreatedAt = c.CreatedAt, AuthorCardHref = c.AuthorCardHref, Kind = c.Kind, VersionNumber = c.VersionNumber, VersionComment = c.VersionComment, VersionCommentKind = c.VersionCommentKind });
-
         Comments.Clear();
-        foreach (var comment in comments.Where(c => c.ParentMessageId is null))
+        foreach (var vm in ChatMessageViewModel.Threaded(comments, c => new ChatMessageViewModel { Id = c.Id, AuthorName = c.AuthorName, Body = c.Body, CreatedAt = c.CreatedAt, AuthorCardHref = c.AuthorCardHref, Kind = c.Kind, VersionNumber = c.VersionNumber, VersionComment = c.VersionComment, VersionCommentKind = c.VersionCommentKind }))
         {
-            var vm = byId[comment.Id];
-            foreach (var reply in comments.Where(c => c.ParentMessageId == comment.Id))
-            {
-                vm.Replies.Add(byId[reply.Id]);
-            }
-
             Comments.Add(vm);
         }
     }

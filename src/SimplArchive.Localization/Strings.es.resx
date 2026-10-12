@@ -5433,4 +5433,34 @@
   <data name="ApiErrPlaintextContentRefused" xml:space="preserve">
     <value>Este archivo nunca entrega el contenido de los documentos en forma legible, y esta acción lo haría. Abra los documentos uno a uno; llegan cifrados para su certificado.</value>
   </data>
+  <data name="MobProfile" xml:space="preserve">
+    <value>Perfil</value>
+  </data>
+  <data name="MobManageProfiles" xml:space="preserve">
+    <value>Gestionar perfiles</value>
+  </data>
+  <data name="MobProfileName" xml:space="preserve">
+    <value>Nombre del perfil</value>
+  </data>
+  <data name="MobNewProfile" xml:space="preserve">
+    <value>Nuevo perfil</value>
+  </data>
+  <data name="MobProfileNameRequired" xml:space="preserve">
+    <value>Introduzca un nombre para el perfil.</value>
+  </data>
+  <data name="MobProfileNameTaken" xml:space="preserve">
+    <value>Ya existe un perfil con este nombre.</value>
+  </data>
+  <data name="MobProfileCopyName" xml:space="preserve">
+    <value>{0} (copia)</value>
+  </data>
+  <data name="MobProfileDeleteQuestion" xml:space="preserve">
+    <value>¿Eliminar el perfil «{0}»? Su sesión en este teléfono termina.</value>
+  </data>
+  <data name="MobProfileNoServer" xml:space="preserve">
+    <value>Elija un servidor para el perfil.</value>
+  </data>
+  <data name="MobSwitchProfile" xml:space="preserve">
+    <value>Cambiar perfil</value>
+  </data>
 </root>
