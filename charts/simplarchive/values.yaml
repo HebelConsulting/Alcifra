@@ -294,6 +294,29 @@ postfix:
     existingSecret: ""
   resources: {}
 
+# The push server phones subscribe to (ADR 0920): ntfy, limited to UnifiedPush topics. OFF by default — without it
+# the phone app still works and shows notifications when opened; with it, each notification wakes the phone. It must
+# be reachable from the internet at `publicUrl`, through the ingress below or one of your own, because the phone's
+# distributor app connects to it directly. The VAPID key pair that signs the pushes comes from OpenBao
+# (secret/simplarchive/webpush: publicKey, privateKey); without it the app sends nothing.
+#
+# The message cache is an emptyDir: it holds a day of id-only messages for phones that were offline, and losing it
+# in a restart costs those phones a wake-up, never a notification.
+push:
+  enabled: false
+  image: binwiederhier/ntfy:v2.30.0
+  # The address phones reach it at, e.g. https://push.example.com. Required when enabled.
+  publicUrl: ""
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    host: push.example.com
+    tlsSecretName: ""
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
 ingress:
   enabled: false
   className: ""

@@ -64,6 +64,12 @@ public sealed class OpenBaoSecretsReader
             data["OpenIddict:EncryptionKeyPem"] = encryptionKey;
         }
 
+        // The VAPID key pair that signs Web Push requests (RFC 8292): phones and calendar clients (ADRs 0622, 0919).
+        // Optional — without it push is simply off outside Development, which is what DavPushConfiguration does.
+        var webPush = await ReadKvAsync(token, "simplarchive/webpush", cancellationToken, optional: true);
+        if (webPush.TryGetValue("publicKey", out var vapidPublic)) data["WebPush:VapidPublicKey"] = vapidPublic;
+        if (webPush.TryGetValue("privateKey", out var vapidPrivate)) data["WebPush:VapidPrivateKey"] = vapidPrivate;
+
         // Dynamic Postgres credential — OpenBao mints a short-lived role; compose the connection string from the
         // non-secret template + the issued username/password.
         if (!string.IsNullOrWhiteSpace(_options.DatabaseConnectionTemplate))

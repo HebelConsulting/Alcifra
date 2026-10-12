@@ -187,6 +187,12 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, Simp
 builder.Services.AddSingleton<SimplArchive.Application.Abstractions.IRealtimeNotifier, SimplArchive.Api.Realtime.SignalRRealtimeNotifier>();
 // New notifications to the recipients' phones (SimplArchiveMobile #20): best effort, after the save, off the request.
 builder.Services.AddSingleton<SimplArchive.Application.Abstractions.IPhonePushNotifier, SimplArchive.Api.Notifications.PhonePushSender>();
+// The phone's push address is whatever the device registered, so it goes through the same outbound guard as the
+// calendar push: without it, a registration naming an internal host would make the server post to it (SSRF).
+builder.Services.AddHttpClient(nameof(SimplArchive.Api.Notifications.PhonePushSender))
+    .ConfigurePrimaryHttpMessageHandler(provider =>
+        SimplArchive.Infrastructure.Http.GuardedOutboundHandler.Create(
+            provider.GetRequiredService<SimplArchive.Application.Abstractions.IOutboundAddressPolicy>()));
 
 // The IMAP endpoint (ADR "IMAP endpoint (read-only, first slice)", #562) — a raw TCP hosted service, off
 // unless Imap:Enabled. Registered as a singleton FIRST so tests (and the dialog surface) can read the bound

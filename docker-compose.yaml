@@ -196,6 +196,8 @@ x-api-env: &api-env
   # SignalR Valkey backplane (ADR "SignalR Valkey backplane"): when set, real-time notification pushes fan out
   # across API replicas. Unset ⇒ in-process only. Reached over the compose network.
   ConnectionStrings__Valkey: "valkey:6379"
+  # The push server the phone app is told to use (ADR 0920). The Api posts to whatever address the phone registered.
+  PhonePush__ServerUrl: "${PUSH_PUBLIC_URL:-http://localhost:8090}"
 
   # LMTP delivery (ADR 0628). BindAddress is widened to 0.0.0.0 because the MTA is in its own container and
   # cannot reach this one's loopback — the Api logs a Warning when it is not loopback, since the listener
@@ -405,6 +407,30 @@ services:
     restart: unless-stopped
     ports:
       - "8025:8025"  # web inbox
+
+  # The push server phones subscribe to (ADR 0920): a UnifiedPush distributor app keeps one connection open to
+  # it, and the Api posts each notification's id there (ADR 0919). For a phone on the LAN set PUSH_PUBLIC_URL to an
+  # address it can reach; the Api hands that address to the app, and ntfy builds the topics' URLs from it.
+  push:
+    image: binwiederhier/ntfy:${NTFY_TAG:-v2.30.0}
+    restart: unless-stopped
+    command: ["serve"]
+    environment:
+      NTFY_BASE_URL: "${PUSH_PUBLIC_URL:-http://localhost:8090}"
+      NTFY_BEHIND_PROXY: "true"
+      # Nobody may read or write anything, except a UnifiedPush topic: `up` plus random characters, which only the
+      # phone that made it up and the server it registered with know. No accounts, no web app.
+      NTFY_AUTH_FILE: "/var/lib/ntfy/user.db"
+      NTFY_AUTH_DEFAULT_ACCESS: "deny-all"
+      NTFY_AUTH_ACCESS: "*:up*:rw"
+      NTFY_WEB_ROOT: "disable"
+      # A phone that was offline collects what it missed for a day, matching the TTL the app sends.
+      NTFY_CACHE_FILE: "/var/lib/ntfy/cache.db"
+      NTFY_CACHE_DURATION: "24h"
+    volumes:
+      - push-data:/var/lib/ntfy
+    ports:
+      - "8090:80"
 
   # Valkey (the maintained Redis-compatible open fork) — the SignalR backplane so real-time notifications fan out
   # across API replicas (ADR "SignalR Valkey backplane"). Single-pod dev doesn't strictly need it, but wiring it
@@ -722,6 +748,7 @@ volumes:
   opensearch-data:
   openbao-data:
   caddy-data:
+  push-data:
   caddy-config:
   # What modules-init unpacks, and the api mounts read-only (ADR 0799).
   modules-data:

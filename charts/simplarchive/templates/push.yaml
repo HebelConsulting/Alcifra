@@ -1,0 +1,119 @@
+{{- if .Values.push.enabled }}
+{{- if not .Values.push.publicUrl }}
+{{- fail "push.publicUrl is required: it is the address the phone app is told to use, and ntfy builds every topic's URL from it." }}
+{{- end }}
+# The push server phones subscribe to (ADR 0920). ONE replica: ntfy keeps its subscribers in memory, so a second
+# replica would accept a publish that the phone, connected to the first, never sees.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "simplarchive.fullname" . }}-push
+  labels:
+    {{- include "simplarchive.labels" . | nindent 4 }}
+    app.kubernetes.io/component: push
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "simplarchive.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: push
+  template:
+    metadata:
+      labels:
+        {{- include "simplarchive.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: push
+    spec:
+      containers:
+        - name: push
+          image: {{ .Values.push.image | quote }}
+          imagePullPolicy: IfNotPresent
+          args: ["serve"]
+          env:
+            - name: NTFY_BASE_URL
+              value: {{ .Values.push.publicUrl | quote }}
+            - name: NTFY_BEHIND_PROXY
+              value: "true"
+            # Nobody may read or write anything except a UnifiedPush topic; no accounts, no web app.
+            - name: NTFY_AUTH_FILE
+              value: /var/lib/ntfy/user.db
+            - name: NTFY_AUTH_DEFAULT_ACCESS
+              value: deny-all
+            - name: NTFY_AUTH_ACCESS
+              value: "*:up*:rw"
+            - name: NTFY_WEB_ROOT
+              value: disable
+            - name: NTFY_CACHE_FILE
+              value: /var/lib/ntfy/cache.db
+            - name: NTFY_CACHE_DURATION
+              value: 24h
+          ports:
+            - name: http
+              containerPort: 80
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/ntfy
+          resources:
+            {{- toYaml .Values.push.resources | nindent 12 }}
+          readinessProbe:
+            httpGet: { path: /v1/health, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /v1/health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "simplarchive.fullname" . }}-push
+  labels:
+    {{- include "simplarchive.labels" . | nindent 4 }}
+    app.kubernetes.io/component: push
+spec:
+  selector:
+    {{- include "simplarchive.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: push
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- if .Values.push.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "simplarchive.fullname" . }}-push
+  labels:
+    {{- include "simplarchive.labels" . | nindent 4 }}
+    app.kubernetes.io/component: push
+  {{- with .Values.push.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.push.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.push.ingress.tlsSecretName }}
+  tls:
+    - hosts: [{{ .Values.push.ingress.host | quote }}]
+      secretName: {{ .Values.push.ingress.tlsSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.push.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "simplarchive.fullname" . }}-push
+                port:
+                  name: http
+{{- end }}
+{{- end }}

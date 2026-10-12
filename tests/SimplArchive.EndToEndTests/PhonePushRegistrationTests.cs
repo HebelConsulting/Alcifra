@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -195,6 +196,17 @@ public class PhonePushRegistrationTests
         var repository = (await TestJson.Post(anna, "/api/repositories", new { name = $"repo-{Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
         var document = (await TestJson.Post(anna, $"/api/documents/{repository}/children", new { name = "Contract" })).GetProperty("id").GetGuid();
         return (anna, tom, tomId, document);
+    }
+
+    [Fact]
+    public async Task The_push_client_refuses_an_internal_address()
+    {
+        // A registration names any https address, so the client that posts to it must be the guarded one: a private
+        // address is refused before a connection is made (the factory allows loopback only, for the fake push server).
+        var http = _factory.Services.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(nameof(SimplArchive.Api.Notifications.PhonePushSender));
+        var refused = await Assert.ThrowsAsync<HttpRequestException>(() => http.PostAsync("https://10.1.2.3/upTopic", new ByteArrayContent([1])));
+        Assert.IsType<SimplArchive.Infrastructure.Http.OutboundAddressRefusedException>(refused.InnerException);
     }
 
     [Fact]

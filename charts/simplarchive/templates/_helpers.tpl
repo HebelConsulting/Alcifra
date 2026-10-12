@@ -206,6 +206,10 @@ rolls the Deployment automatically (the pod template changes). Secrets come from
   value: {{ .Values.config.smtp.fromAddress | quote }}
 - name: Smtp__FromName
   value: {{ .Values.config.smtp.fromName | quote }}
+{{- if .Values.push.enabled }}
+- name: PhonePush__ServerUrl
+  value: {{ .Values.push.publicUrl | quote }}
+{{- end }}
 - name: OpenBao__Address
   value: {{ include "simplarchive.openBaoAddress" . | quote }}
 - name: OpenBao__RoleId

@@ -20,6 +20,7 @@ public class OpenBaoSecretsReaderTests
         public string? SentSecretId { get; private set; }
         public string? SentToken { get; private set; }
         public bool IncludeOwner { get; init; } = true;
+        public bool IncludeWebPush { get; init; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -57,6 +58,10 @@ public class OpenBaoSecretsReaderTests
             else if (IncludeOwner && path.EndsWith("/v1/database/static-creds/simplarchive-owner"))
             {
                 body = """{"data":{"username":"simplarchive","password":"owner-pass","rotation_period":86400,"ttl":80000}}""";
+            }
+            else if (IncludeWebPush && path.EndsWith("/v1/secret/data/simplarchive/webpush"))
+            {
+                body = """{"data":{"data":{"publicKey":"BPub","privateKey":"priv"}}}""";
             }
             else if (path.EndsWith("/v1/secret/data/simplarchive/openiddict"))
             {
@@ -108,6 +113,23 @@ public class OpenBaoSecretsReaderTests
         // The migration-owner credential — the OpenBao-rotated static-role password — composed into a separate
         // connection string (ADRs "Dedicated migration owner role" + "OpenBao static-role rotation").
         Assert.Equal("Host=db;Port=5432;Database=simplarchive;Username=simplarchive;Password=owner-pass", data["ConnectionStrings:Migration"]);
+    }
+
+    [Fact]
+    public async Task Reads_the_vapid_key_pair_when_provisioned_and_leaves_push_off_when_not()
+    {
+        var options = new OpenBaoOptions { Address = "http://openbao.test:8200", RoleId = "r", SecretId = "s" };
+
+        using var withKeys = new HttpClient(new FakeOpenBaoHandler { IncludeWebPush = true }) { BaseAddress = new Uri("http://openbao.test:8200/") };
+        var data = await new OpenBaoSecretsReader(withKeys, options).ReadAsync();
+        Assert.Equal("BPub", data["WebPush:VapidPublicKey"]);
+        Assert.Equal("priv", data["WebPush:VapidPrivateKey"]);
+
+        // Not provisioned (404): optional, so the stack still starts, with push off.
+        using var without = new HttpClient(new FakeOpenBaoHandler()) { BaseAddress = new Uri("http://openbao.test:8200/") };
+        var none = await new OpenBaoSecretsReader(without, options).ReadAsync();
+        Assert.False(none.ContainsKey("WebPush:VapidPublicKey"));
+        Assert.False(none.ContainsKey("WebPush:VapidPrivateKey"));
     }
 
     [Fact]
