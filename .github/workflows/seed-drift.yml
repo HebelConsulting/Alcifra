@@ -35,8 +35,9 @@ jobs:
           if [ -z "$TOKEN" ]; then
             echo "::error::SEED_DRIFT_TOKEN is not set. This job reads CLAUDE.md from the seeded sibling"
             echo "::error::repositories, which the job's own GITHUB_TOKEN cannot see. Add a fine-grained PAT"
-            echo "::error::with READ-ONLY Contents access to SimplArchiveEncryption,"
-            echo "::error::SimplArchiveEncryptionService and SimplArchiveFlightSchool as the repository secret"
+            echo "::error::with READ-ONLY Contents access to every repository in the script's SEEDED list"
+            echo "::error::(SimplArchiveEncryption, SimplArchiveEncryptionService, SimplArchiveFlightSchool,"
+            echo "::error::SimplArchiveLicensing, SimplArchiveMobile) as the repository secret"
             echo "::error::SEED_DRIFT_TOKEN. It needs no write scope anywhere — do not reuse PUBLISH_PAT,"
             echo "::error::which can write to the public mirror."
             exit 1
