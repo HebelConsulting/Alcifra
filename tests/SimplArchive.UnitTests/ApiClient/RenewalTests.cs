@@ -106,6 +106,65 @@ public sealed class RenewalTests : ApiClientSettingsTest
     }
 
     [Fact]
+    public async Task A_handler_with_its_own_store_renews_into_it_and_leaves_the_hosts_alone()
+    {
+        // A phone's push for a profile that is not the one on screen (mobile #20): the rotated refresh token belongs in
+        // THAT profile's slot. Written into the host's store it would land in the on-screen profile's slot instead.
+        var own = new InMemoryTokenSessionStore();
+        _store.Set(Root, new TokenSession("foreground", "foreground-refresh", DateTimeOffset.MaxValue));
+        var handler = new FakeHandler(r => r.RequestUri!.AbsolutePath == "/connect/token" ? Tokens("access-2", "refresh-2") : new HttpResponseMessage(HttpStatusCode.OK));
+        var client = new HttpMessageInvoker(new RenewingAuthHandler(
+            Root, new TokenSession.Holder(new TokenSession("access-1", "refresh-1", DateTimeOffset.UtcNow)), handler, own, announce: false));
+
+        await client.SendAsync(Get(), default);
+
+        Assert.Equal("refresh-2", own.For(Root)?.RefreshToken);
+        Assert.Equal("foreground-refresh", _store.For(Root)?.RefreshToken);
+    }
+
+    [Fact]
+    public async Task A_quiet_handler_ends_its_own_session_without_raising_the_hosts_prompt()
+    {
+        var own = new InMemoryTokenSessionStore();
+        own.Set(Root, new TokenSession("access-1", null, DateTimeOffset.MaxValue));
+        _store.Set(Root, new TokenSession("foreground", null, DateTimeOffset.MaxValue));
+        var raised = false;
+        void OnEnded(string _) => raised = true;
+        RenewingAuthHandler.SessionEnded += OnEnded;
+        try
+        {
+            var client = new HttpMessageInvoker(new RenewingAuthHandler(
+                Root, new TokenSession.Holder(own.For(Root)!), new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)), own, announce: false));
+
+            await Assert.ThrowsAsync<SessionEndedException>(() => client.SendAsync(Get(), default));
+
+            Assert.False(raised);
+            Assert.Null(own.For(Root));
+            Assert.NotNull(_store.For(Root));
+        }
+        finally
+        {
+            RenewingAuthHandler.SessionEnded -= OnEnded;
+        }
+    }
+
+    [Fact]
+    public void A_bound_client_needs_a_stored_session_and_does_not_take_over_the_hosts_content_client()
+    {
+        var own = new InMemoryTokenSessionStore();
+        Assert.Null(ApiCore.Bound(Root, own));
+
+        var before = ApiCore.Authenticated;
+        own.Set(Root, new TokenSession("access-1", "refresh-1", DateTimeOffset.UtcNow.AddMinutes(15)));
+        var bound = ApiCore.Bound(Root, own);
+
+        Assert.NotNull(bound);
+        Assert.Equal("access-1", bound.AccessToken);
+        Assert.Equal(new Uri($"{Root}/"), bound.Http.BaseAddress);
+        Assert.Same(before, ApiCore.Authenticated);
+    }
+
+    [Fact]
     public void A_session_says_when_it_needs_renewing_and_whether_it_can()
     {
         Assert.True(new TokenSession("a", "r", DateTimeOffset.UtcNow.AddSeconds(30)).NeedsRenewal);   // inside the minute ahead

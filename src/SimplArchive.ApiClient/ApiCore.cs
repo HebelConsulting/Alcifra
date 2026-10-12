@@ -170,6 +170,30 @@ public sealed class ApiCore
 
     private readonly string _apiRootUrl;
     private readonly TokenSession.Holder _session;
+    private readonly ITokenSessionStore? _store;
+
+    /// <summary>
+    /// A client bound to ONE installation and ONE session store, touching none of the host's globals: it does not
+    /// publish itself as <see cref="Authenticated"/>, reads no <see cref="ApiClientSettings.ApiRootUrl"/>, records
+    /// renewals in <paramref name="sessions"/> rather than <see cref="ApiClientSettings.Sessions"/>, and an ended
+    /// session raises no <see cref="RenewingAuthHandler.SessionEnded"/>. For work beside the foreground session, such
+    /// as a phone fetching what a push announced for a profile that may not be the one on screen (mobile #20).
+    /// </summary>
+    /// <returns>Null when <paramref name="sessions"/> holds no session for the installation.</returns>
+    public static ApiCore? Bound(string apiRootUrl, ITokenSessionStore sessions) =>
+        sessions.For(apiRootUrl) is { AccessToken.Length: > 0 } session ? new ApiCore(apiRootUrl, session, sessions) : null;
+
+    private ApiCore(string apiRootUrl, TokenSession session, ITokenSessionStore sessions)
+    {
+        _apiRootUrl = apiRootUrl;
+        _store = sessions;
+        _session = new TokenSession.Holder(session);
+        Http = new HttpClient(new RenewingAuthHandler(_apiRootUrl, _session, new HttpClientHandler(), sessions, announce: false))
+        {
+            BaseAddress = new Uri(_apiRootUrl),
+        };
+        AddClientHeaders(Http);
+    }
 
     public ApiCore(string accessToken)
     {
@@ -210,10 +234,15 @@ public sealed class ApiCore
         // The content funnel is static and this is an instance, so the session publishes itself for it. Last
         // one wins, which is correct: a second ApiCore means a new session, and content reads belong to it.
         Authenticated = Http;
+        AddClientHeaders(Http);
+    }
+
+    private static void AddClientHeaders(HttpClient http)
+    {
         // The APP language, chosen at the logon window and applied before this client exists (ADR 0767):
         // module-localized texts are composed server-side from Accept-Language, and the sentence next to a
         // German UI must be German even on an English OS.
-        Http.DefaultRequestHeaders.AcceptLanguage.ParseAdd(
+        http.DefaultRequestHeaders.AcceptLanguage.ParseAdd(
             System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
         // Which zone this MACHINE is in (#1254), so a search for "the 6th" means the caller's calendar day
         // rather than the server's. Set once here rather than per request, for the same reason as the language:
@@ -223,7 +252,7 @@ public sealed class ApiCore
         // The MACHINE zone, deliberately, and never the stored preference: this header answers "where am I",
         // and the server prefers a preference the user has set over whatever it says. Always an IANA id
         // (TimeZoneInfo.Local is a Windows id on Windows, which the server cannot resolve).
-        Http.DefaultRequestHeaders.Add("X-Time-Zone", SimplArchive.Presentation.DisplayZone.IanaId(TimeZoneInfo.Local));
+        http.DefaultRequestHeaders.Add("X-Time-Zone", SimplArchive.Presentation.DisplayZone.IanaId(TimeZoneInfo.Local));
     }
 
     /// <summary>
@@ -263,7 +292,7 @@ public sealed class ApiCore
     public async Task RevokeSessionAsync()
     {
         var session = _session.Value;
-        ApiClientSettings.Sessions.Clear(_apiRootUrl);
+        (_store ?? ApiClientSettings.Sessions).Clear(_apiRootUrl);
         if (session is null)
         {
             return;

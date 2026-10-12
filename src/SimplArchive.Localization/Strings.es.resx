@@ -5466,4 +5466,46 @@
   <data name="PhoneTabContents" xml:space="preserve">
     <value>Contenido</value>
   </data>
+  <data name="MobPushNew" xml:space="preserve">
+    <value>Nueva notificación</value>
+  </data>
+  <data name="MobPushSignInAgain" xml:space="preserve">
+    <value>Inicia sesión de nuevo para verla</value>
+  </data>
+  <data name="MobPushOn" xml:space="preserve">
+    <value>Push activo: este teléfono se despierta a través de {0}.</value>
+  </data>
+  <data name="MobPushWaiting" xml:space="preserve">
+    <value>Push: esperando a la aplicación distribuidora…</value>
+  </data>
+  <data name="MobPushNoDistributor" xml:space="preserve">
+    <value>Push desactivado: instala una aplicación distribuidora para recibir avisos con esta aplicación cerrada (consulta el manual).</value>
+  </data>
+  <data name="MobPushNotOffered" xml:space="preserve">
+    <value>Esta instalación no ofrece push; los avisos aparecen mientras la aplicación está abierta.</value>
+  </data>
+  <data name="MobPushMismatch" xml:space="preserve">
+    <value>Push desactivado para este perfil: la aplicación distribuidora usa {0}, pero el servidor push de esta instalación es {1}. Configura la aplicación distribuidora con {1}.</value>
+  </data>
+  <data name="MobPushFailed" xml:space="preserve">
+    <value>No se pudo configurar el push: {0}</value>
+  </data>
+  <data name="MobPushSignedOut" xml:space="preserve">
+    <value>Push en pausa: inicia sesión de nuevo.</value>
+  </data>
+  <data name="MobOfflineKeep" xml:space="preserve">
+    <value>Guardar una copia sin conexión, sellada con tu llave</value>
+  </data>
+  <data name="MobOfflineKept" xml:space="preserve">
+    <value>Copia sin conexión sellada para {0} llave(s), guardada {1}</value>
+  </data>
+  <data name="MobOfflineKeptNew" xml:space="preserve">
+    <value>Copia sin conexión sellada para {0} llave(s)</value>
+  </data>
+  <data name="MobOfflineOpen" xml:space="preserve">
+    <value>Abrir la copia sin conexión con tu llave</value>
+  </data>
+  <data name="MobOfflineShown" xml:space="preserve">
+    <value>Copia sin conexión del {0}</value>
+  </data>
 </root>

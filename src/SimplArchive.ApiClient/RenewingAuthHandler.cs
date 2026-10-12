@@ -30,13 +30,39 @@ public sealed class RenewingAuthHandler : DelegatingHandler
 {
     private readonly string _apiRootUrl;
     private readonly TokenSession.Holder _session;
+    private readonly ITokenSessionStore? _store;
+    private readonly bool _announce;
     private readonly SemaphoreSlim _renewGate = new(1, 1);
 
     public RenewingAuthHandler(string apiRootUrl, TokenSession.Holder session, HttpMessageHandler inner)
+        : this(apiRootUrl, session, inner, store: null, announce: true)
+    {
+    }
+
+    /// <param name="store">Where a renewed or ended session is recorded; null means the host's
+    /// <see cref="ApiClientSettings.Sessions"/>.</param>
+    /// <param name="announce">Whether an ended session raises <see cref="SessionEnded"/>. A client working in the
+    /// background (a phone's push, for a profile that may not be the one on screen) must not put up the foreground's
+    /// sign-in prompt.</param>
+    public RenewingAuthHandler(string apiRootUrl, TokenSession.Holder session, HttpMessageHandler inner, ITokenSessionStore? store, bool announce)
         : base(inner)
     {
         _apiRootUrl = apiRootUrl;
         _session = session;
+        _store = store;
+        _announce = announce;
+    }
+
+    private ITokenSessionStore Store => _store ?? ApiClientSettings.Sessions;
+
+    private void End()
+    {
+        _session.Value = null;
+        Store.Clear(_apiRootUrl);
+        if (_announce)
+        {
+            SessionEnded?.Invoke(_apiRootUrl);
+        }
     }
 
     /// <summary>
@@ -71,9 +97,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         var current = _session.Value;
         if (current is not { CanRenew: true })
         {
-            _session.Value = null;
-            ApiClientSettings.Sessions.Clear(_apiRootUrl);
-            SessionEnded?.Invoke(_apiRootUrl);
+            End();
 
             // THROW rather than hand the 401 back (#1251). Returning it made one ordinary expiry produce two
             // racing outcomes: the session-ended modal this event raises, and an HttpRequestException from the
@@ -88,9 +112,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         {
             // Renewal was possible in principle and still failed — the same ended session, reached one step
             // later. It must not return a 401 either, for exactly the reason above.
-            _session.Value = null;
-            ApiClientSettings.Sessions.Clear(_apiRootUrl);
-            SessionEnded?.Invoke(_apiRootUrl);
+            End();
 
             response.Dispose();
             throw new SessionEndedException(_apiRootUrl);
@@ -153,9 +175,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
                 // The server has refused this refresh token — expired, revoked, rotated away, or the account
                 // deactivated. It will not start working, so the session is over and the stored token goes with
                 // it (see TokenSessions.Clear: a token kept here would fail every future launch first).
-                _session.Value = null;
-                ApiClientSettings.Sessions.Clear(_apiRootUrl);
-                SessionEnded?.Invoke(_apiRootUrl);
+                End();
                 return null;
             }
 
@@ -163,9 +183,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
             var accessToken = tokens.TryGetProperty("access_token", out var access) ? access.GetString() : null;
             if (string.IsNullOrEmpty(accessToken))
             {
-                _session.Value = null;
-                ApiClientSettings.Sessions.Clear(_apiRootUrl);
-                SessionEnded?.Invoke(_apiRootUrl);
+                End();
                 return null;
             }
 
@@ -180,7 +198,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
             _session.Value = next;
 
             // The rotated refresh token is also persisted for the SERVER, so the next launch starts signed in.
-            ApiClientSettings.Sessions.Set(_apiRootUrl, next);
+            Store.Set(_apiRootUrl, next);
             return next;
         }
         catch (HttpRequestException)

@@ -5466,4 +5466,46 @@
   <data name="PhoneTabContents" xml:space="preserve">
     <value>Contents</value>
   </data>
+  <data name="MobPushNew" xml:space="preserve">
+    <value>New notification</value>
+  </data>
+  <data name="MobPushSignInAgain" xml:space="preserve">
+    <value>Sign in again to see it</value>
+  </data>
+  <data name="MobPushOn" xml:space="preserve">
+    <value>Push is on: this phone is woken through {0}.</value>
+  </data>
+  <data name="MobPushWaiting" xml:space="preserve">
+    <value>Push: waiting for the distributor app…</value>
+  </data>
+  <data name="MobPushNoDistributor" xml:space="preserve">
+    <value>Push is off: install a distributor app to be told about notifications while this app is closed (see the manual).</value>
+  </data>
+  <data name="MobPushNotOffered" xml:space="preserve">
+    <value>This installation offers no push; notifications show while the app is open.</value>
+  </data>
+  <data name="MobPushMismatch" xml:space="preserve">
+    <value>Push is off for this profile: the distributor app uses {0}, but this installation's push server is {1}. Set the distributor app to {1}.</value>
+  </data>
+  <data name="MobPushFailed" xml:space="preserve">
+    <value>Push could not be set up: {0}</value>
+  </data>
+  <data name="MobPushSignedOut" xml:space="preserve">
+    <value>Push is paused: sign in again.</value>
+  </data>
+  <data name="MobOfflineKeep" xml:space="preserve">
+    <value>Keep an offline copy, sealed to your key</value>
+  </data>
+  <data name="MobOfflineKept" xml:space="preserve">
+    <value>Offline copy sealed to {0} key(s), saved {1}</value>
+  </data>
+  <data name="MobOfflineKeptNew" xml:space="preserve">
+    <value>Offline copy sealed to {0} key(s)</value>
+  </data>
+  <data name="MobOfflineOpen" xml:space="preserve">
+    <value>Open the offline copy with your key</value>
+  </data>
+  <data name="MobOfflineShown" xml:space="preserve">
+    <value>Offline copy from {0}</value>
+  </data>
 </root>

@@ -5466,4 +5466,46 @@
   <data name="PhoneTabContents" xml:space="preserve">
     <value>Contenuto</value>
   </data>
+  <data name="MobPushNew" xml:space="preserve">
+    <value>Nuova notifica</value>
+  </data>
+  <data name="MobPushSignInAgain" xml:space="preserve">
+    <value>Accedi di nuovo per vederla</value>
+  </data>
+  <data name="MobPushOn" xml:space="preserve">
+    <value>Push attivo: questo telefono viene svegliato tramite {0}.</value>
+  </data>
+  <data name="MobPushWaiting" xml:space="preserve">
+    <value>Push: in attesa dell'app di distribuzione…</value>
+  </data>
+  <data name="MobPushNoDistributor" xml:space="preserve">
+    <value>Push disattivato: installa un'app di distribuzione per ricevere le notifiche anche ad app chiusa (vedi il manuale).</value>
+  </data>
+  <data name="MobPushNotOffered" xml:space="preserve">
+    <value>Questa installazione non offre push; le notifiche compaiono mentre l'app è aperta.</value>
+  </data>
+  <data name="MobPushMismatch" xml:space="preserve">
+    <value>Push disattivato per questo profilo: l'app di distribuzione usa {0}, ma il server push di questa installazione è {1}. Imposta l'app di distribuzione su {1}.</value>
+  </data>
+  <data name="MobPushFailed" xml:space="preserve">
+    <value>Impossibile configurare il push: {0}</value>
+  </data>
+  <data name="MobPushSignedOut" xml:space="preserve">
+    <value>Push in pausa: accedi di nuovo.</value>
+  </data>
+  <data name="MobOfflineKeep" xml:space="preserve">
+    <value>Conserva una copia offline, sigillata con la tua chiave</value>
+  </data>
+  <data name="MobOfflineKept" xml:space="preserve">
+    <value>Copia offline sigillata per {0} chiave/i, salvata {1}</value>
+  </data>
+  <data name="MobOfflineKeptNew" xml:space="preserve">
+    <value>Copia offline sigillata per {0} chiave/i</value>
+  </data>
+  <data name="MobOfflineOpen" xml:space="preserve">
+    <value>Apri la copia offline con la tua chiave</value>
+  </data>
+  <data name="MobOfflineShown" xml:space="preserve">
+    <value>Copia offline del {0}</value>
+  </data>
 </root>

@@ -5466,4 +5466,46 @@
   <data name="PhoneTabContents" xml:space="preserve">
     <value>Inhalt</value>
   </data>
+  <data name="MobPushNew" xml:space="preserve">
+    <value>Neue Benachrichtigung</value>
+  </data>
+  <data name="MobPushSignInAgain" xml:space="preserve">
+    <value>Erneut anmelden, um sie zu sehen</value>
+  </data>
+  <data name="MobPushOn" xml:space="preserve">
+    <value>Push ist aktiv: Dieses Telefon wird über {0} geweckt.</value>
+  </data>
+  <data name="MobPushWaiting" xml:space="preserve">
+    <value>Push: Warte auf die Verteiler-App…</value>
+  </data>
+  <data name="MobPushNoDistributor" xml:space="preserve">
+    <value>Push ist aus: Installieren Sie eine Verteiler-App, um auch bei geschlossener App benachrichtigt zu werden (siehe Handbuch).</value>
+  </data>
+  <data name="MobPushNotOffered" xml:space="preserve">
+    <value>Diese Installation bietet kein Push an; Benachrichtigungen erscheinen, solange die App offen ist.</value>
+  </data>
+  <data name="MobPushMismatch" xml:space="preserve">
+    <value>Push ist für dieses Profil aus: Die Verteiler-App verwendet {0}, der Push-Server dieser Installation ist aber {1}. Stellen Sie die Verteiler-App auf {1} um.</value>
+  </data>
+  <data name="MobPushFailed" xml:space="preserve">
+    <value>Push konnte nicht eingerichtet werden: {0}</value>
+  </data>
+  <data name="MobPushSignedOut" xml:space="preserve">
+    <value>Push pausiert: Bitte erneut anmelden.</value>
+  </data>
+  <data name="MobOfflineKeep" xml:space="preserve">
+    <value>Offline-Kopie behalten, versiegelt für Ihren Schlüssel</value>
+  </data>
+  <data name="MobOfflineKept" xml:space="preserve">
+    <value>Offline-Kopie für {0} Schlüssel versiegelt, gespeichert {1}</value>
+  </data>
+  <data name="MobOfflineKeptNew" xml:space="preserve">
+    <value>Offline-Kopie für {0} Schlüssel versiegelt</value>
+  </data>
+  <data name="MobOfflineOpen" xml:space="preserve">
+    <value>Offline-Kopie mit Ihrem Schlüssel öffnen</value>
+  </data>
+  <data name="MobOfflineShown" xml:space="preserve">
+    <value>Offline-Kopie vom {0}</value>
+  </data>
 </root>
