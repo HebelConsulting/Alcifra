@@ -23,7 +23,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: storage-init
-          image: amazon/aws-cli:2.37.9
+          image: amazon/aws-cli:2.37.12
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:

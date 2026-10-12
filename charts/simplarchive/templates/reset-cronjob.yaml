@@ -79,7 +79,7 @@ spec:
                   echo "db wiped"
             {{- if .Values.deps.seaweedfs.enabled }}
             - name: wipe-storage
-              image: amazon/aws-cli:2.37.9
+              image: amazon/aws-cli:2.37.12
               env:
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
@@ -104,7 +104,7 @@ spec:
             {{- end }}
             {{- if .Values.deps.opensearch.enabled }}
             - name: wipe-search
-              image: curlimages/curl:8.11.1
+              image: curlimages/curl:8.22.0
               command: ["/bin/sh", "-c"]
               args:
                 - curl -s -X DELETE "http://{{ include "simplarchive.fullname" . }}-opensearch:9200/documents*" || true; echo "search wiped"
