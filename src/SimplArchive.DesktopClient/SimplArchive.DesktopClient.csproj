@@ -71,8 +71,6 @@
          SkiaSharp dependency (avoids a conflict with Avalonia's SkiaSharp 2.88). See ADR "Desktop workbench UI". -->
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <!-- MimeKit arrives through SimplArchive.ApiClient (SmimeEnvelope), at the version Infrastructure uses. -->
-    <!-- Real-time notifications hub client (ADR "Real-time notifications (SignalR)"). -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>

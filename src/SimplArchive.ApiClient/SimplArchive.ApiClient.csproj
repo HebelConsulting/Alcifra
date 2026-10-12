@@ -24,6 +24,8 @@
          Same version Infrastructure builds those envelopes with, deliberately: two versions of one format is how
          a producer and a consumer come to disagree about it. -->
     <PackageReference Include="MimeKit" Version="4.17.0" />
+    <!-- The live notification hub (ADR "Real-time notifications (SignalR)"), for the desktop and the phone (mobile #20). -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>

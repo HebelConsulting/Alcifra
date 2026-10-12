@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 // The desktop SignalR client for real-time notifications (ADR "Real-time notifications (SignalR)"). Connects to
 // the Api's /hubs/notifications with the caller's access token (passed as ?access_token=, since the token is a
