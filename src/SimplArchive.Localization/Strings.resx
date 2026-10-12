@@ -5430,4 +5430,7 @@
   <data name="RemWho" xml:space="preserve">
     <value>Remind</value>
   </data>
+  <data name="ApiErrPlaintextContentRefused" xml:space="preserve">
+    <value>This archive never hands document content out in readable form, and this action would. Open the documents one by one instead; they arrive encrypted to your certificate.</value>
+  </data>
 </root>

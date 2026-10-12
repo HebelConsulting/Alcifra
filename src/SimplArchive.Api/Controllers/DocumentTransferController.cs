@@ -39,6 +39,9 @@ public class DocumentTransferController : ControllerBase
     // a private copy on one of them is how they came to answer it differently.
     private readonly Documents.ICallerTimeZone _callerTimeZone;
 
+    // The strict tier's door posture: an export carries every blob in readable form.
+    private readonly Documents.StrictEnvelopeDelivery _strictEnvelopes;
+
     public DocumentTransferController(
         IAuditRecorder audit,
         ICurrentUserAccessor currentUserAccessor,
@@ -46,7 +49,8 @@ public class DocumentTransferController : ControllerBase
         Documents.DocumentAccessService access,
         Documents.RepositoryExporter exporter,
         Documents.RepositoryImporter importer,
-        Documents.ICallerTimeZone callerTimeZone)
+        Documents.ICallerTimeZone callerTimeZone,
+        Documents.StrictEnvelopeDelivery strictEnvelopes)
     {
         _audit = audit;
         _currentUserAccessor = currentUserAccessor;
@@ -55,6 +59,7 @@ public class DocumentTransferController : ControllerBase
         _exporter = exporter;
         _importer = importer;
         _callerTimeZone = callerTimeZone;
+        _strictEnvelopes = strictEnvelopes;
     }
 
     // Exports this document (a repository root or any sub-folder) + its subtree to a downloadable .zip an import
@@ -79,6 +84,11 @@ public class DocumentTransferController : ControllerBase
         {
             return Forbid();
         }
+
+        // BEFORE the first byte. The storage seam refuses each blob too, but by then the 200 and the zip's
+        // headers are on the wire, so the refusal can only cut the connection — every client reported a broken
+        // stream instead of this tier's reason.
+        await _strictEnvelopes.RefuseIfStrictAsync("a repository export", cancellationToken);
 
         var root = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken);
         if (root is null)
@@ -117,6 +127,8 @@ public class DocumentTransferController : ControllerBase
         {
             return Forbid();
         }
+
+        await _strictEnvelopes.RefuseIfStrictAsync("a repository export", cancellationToken);
 
         return await _dbContext.Documents.AnyAsync(d => d.Id == documentId, cancellationToken) ? NoContent() : NotFound();
     }

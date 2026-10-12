@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using SimplArchive.Localization;
 
 namespace SimplArchive.ApiClient;
 
@@ -32,7 +33,11 @@ public sealed class RepositoryArchiveClient(ApiCore core)
         if (!string.IsNullOrWhiteSpace(options.CreatedBy)) query.Add($"createdBy={Uri.EscapeDataString(options.CreatedBy.Trim())}");
         if (options.IncludePermissions) query.Add("includePermissions=true");
 
-        return await _core.Http.GetByteArrayAsync(exportHref + "?" + string.Join("&", query), cancellationToken);
+        // Not GetByteArrayAsync: it discards a refusal's problem body, and the strict tier's 409 (ADR 0829) is a
+        // reason the user must read, not "the server rejected the action".
+        using var response = await _core.Http.GetAsync(exportHref + "?" + string.Join("&", query), cancellationToken);
+        await ApiCore.ThrowIfProblemAsync(response, Strings.Get("ApiErrGeneric"), cancellationToken);
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
     // Imports an export archive (ADR "Repository import"). targetFolderId == null → a new repository; otherwise

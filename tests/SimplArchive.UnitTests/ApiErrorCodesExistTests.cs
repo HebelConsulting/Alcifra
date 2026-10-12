@@ -33,7 +33,12 @@ public partial class ApiErrorCodesExistTests
     // dangerous kind: it fires on correct code and names the wrong culprit, so the obvious fix is to change the
     // exception rather than the scanner. The newer exceptions in this codebase are overwhelmingly the second
     // shape, so the blind spot was growing.
-    [GeneratedRegex(@"(?:base|:\s*\w*Exception)\(\s*""(?<code>[A-Z_0-9]+)""")]
+    //
+    // And a third, outside the Api: an exception an INNER layer throws carries its code as a property
+    // (`public string ErrorCode => "SOME_CODE";`) and the Api's handler renders it — Application and
+    // Infrastructure cannot derive from ApiException. Scanning only the Api project made the strict tier's
+    // PLAINTEXT_CONTENT_REFUSED look like a code "the API never emits".
+    [GeneratedRegex(@"(?:(?:base|:\s*\w*Exception)\(\s*|ErrorCode\s*=>\s*)""(?<code>[A-Z_0-9]+)""")]
     private static partial Regex EmittedCode();
 
     [Fact]
@@ -44,8 +49,9 @@ public partial class ApiErrorCodesExistTests
         var mapped = MappedCode().Matches(mapText).Select(m => m.Groups["code"].Value).ToList();
 
         var emitted = new HashSet<string>(StringComparer.Ordinal);
-        var apiDir = Path.Combine(root, "src", "SimplArchive.Api");
-        foreach (var file in Directory.EnumerateFiles(apiDir, "*.cs", SearchOption.AllDirectories))
+        var serverDirs = new[] { "SimplArchive.Api", "SimplArchive.Application", "SimplArchive.Infrastructure" }
+            .Select(project => Path.Combine(root, "src", project));
+        foreach (var file in serverDirs.SelectMany(dir => Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories)))
         {
             if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                 || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))

@@ -100,6 +100,8 @@ public static class ApiErrorText
         "MODULE_NOT_INSTALLED" => Strings.Get("ApiErrModuleNotInstalled"),
         "UNPARSABLE_ITEM_SOURCE" => Strings.Get("ApiErrUnparsableItemSource"),
         "ITEM_SOURCE_UID_CHANGED" => Strings.Get("ApiErrItemSourceUidChanged"),
+        // The strict tier (ADR 0829): a door that would hand out readable bytes — an export, a comparison.
+        "PLAINTEXT_CONTENT_REFUSED" => Strings.Get("ApiErrPlaintextContentRefused"),
         _ => Strings.Get("ApiErrGeneric"),
     };
 }

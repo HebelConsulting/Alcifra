@@ -231,6 +231,26 @@ public class StrictEnvelopedReadTests
     }
 
     [Fact]
+    public async Task An_export_is_REFUSED_before_its_first_byte_on_a_strict_tenant()
+    {
+        // An export is every blob of the subtree in readable form. The storage seam refused each blob already,
+        // but only once the 200 and the zip's headers were on the wire — so the refusal cut the connection and
+        // every client reported a broken stream instead of this tier's reason. The STATUS is the assertion: a
+        // 409 problem can only exist if nothing was streamed first.
+        var reader = await StrictReaderAsync(withCertificate: true);
+        var (api, documentId) = (reader.Api, reader.DocumentId);
+
+        using var response = await api.GetAsync($"/api/documents/{documentId}/export?versions=all");
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("PLAINTEXT_CONTENT_REFUSED",
+            JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement
+                .GetProperty("errorCode").GetString());
+
+        using var head = await api.SendAsync(new HttpRequestMessage(HttpMethod.Head, $"/api/documents/{documentId}/export"));
+        Assert.Equal(HttpStatusCode.Conflict, head.StatusCode);
+    }
+
+    [Fact]
     public async Task The_HEAD_companion_refuses_where_the_GET_refuses()
     {
         // A HEAD answering 204 while the GET answers 409 would tell a client the comparison is there to be
@@ -340,7 +360,7 @@ public class StrictEnvelopedReadTests
     {
         var tenantId = await _factory.SeedTenantNamedAsync(tenantName);
         var email = $"reader-{Guid.NewGuid():N}@e2e.local";
-        await _factory.SeedUserAsync(tenantId, email, "rd-1234", "Reader", canManageRepositories: true);
+        await _factory.SeedUserAsync(tenantId, email, "rd-1234", "Reader", canExport: true, canManageRepositories: true);
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "rd-1234"));
 
         byte[]? pkcs12 = null;

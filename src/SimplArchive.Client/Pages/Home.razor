@@ -1320,7 +1320,7 @@
             Snackbar.Add(Strings.Get("StPreparingExport"), Severity.Info);
             // The tree row advertises browsing, not exporting, so the resource is fetched once and its own
             // `export` rel followed; the options append as a QUERY, which is following, not composing (ADR 0557).
-            var bytes = await Http.GetByteArrayAsync(await Browse.FetchRelAsync(root.Id, "export") + "?" + string.Join("&", query));
+            var bytes = await Http.GetBytesOrRefusalAsync(await Browse.FetchRelAsync(root.Id, "export") + "?" + string.Join("&", query));
             using var stream = new MemoryStream(bytes);
             using var streamRef = new DotNetStreamReference(stream);
             await JS.InvokeVoidAsync("downloadFileFromStream", $"{root.Name}-export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip", streamRef);
