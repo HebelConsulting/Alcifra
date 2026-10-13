@@ -5589,4 +5589,28 @@
   <data name="MobOfflineBanner" xml:space="preserve">
     <value>Offline: Ihre Kopie vom {0}</value>
   </data>
+  <data name="MobOfflineFoldersTitle" xml:space="preserve">
+    <value>Offline behaltene Ordner</value>
+  </data>
+  <data name="MobOfflineChooseFolders" xml:space="preserve">
+    <value>Ordner wählen ({0} gewählt)</value>
+  </data>
+  <data name="MobOfflineMobileData" xml:space="preserve">
+    <value>Auch über mobile Daten laden</value>
+  </data>
+  <data name="MobOfflineSizeLimit" xml:space="preserve">
+    <value>Größenbegrenzung</value>
+  </data>
+  <data name="MobOfflineNoLimit" xml:space="preserve">
+    <value>Keine Begrenzung</value>
+  </data>
+  <data name="MobOfflineUpdateNow" xml:space="preserve">
+    <value>Offline-Kopie jetzt aktualisieren</value>
+  </data>
+  <data name="MobOfflineUpdated" xml:space="preserve">
+    <value>{0} hinzugefügt, {1} aktualisiert, {2} entfernt</value>
+  </data>
+  <data name="MobOfflineNoChangesFeed" xml:space="preserve">
+    <value>Diese Installation meldet noch keine Änderungen: die Kopie behält, was Sie öffnen.</value>
+  </data>
 </root>

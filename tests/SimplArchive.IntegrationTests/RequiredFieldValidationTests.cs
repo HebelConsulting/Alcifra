@@ -181,7 +181,7 @@ public class RequiredFieldValidationTests
 
         var affected = await context.SaveChangesAsync();
 
-        Assert.Equal(1, affected);
+        Assert.Equal(2, affected);   // the value and the document's change stamp (ADR 0925)
     }
 
     [Fact]

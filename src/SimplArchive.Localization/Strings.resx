@@ -5589,4 +5589,28 @@
   <data name="MobOfflineBanner" xml:space="preserve">
     <value>Offline: your copy as of {0}</value>
   </data>
+  <data name="MobOfflineFoldersTitle" xml:space="preserve">
+    <value>Folders to keep offline</value>
+  </data>
+  <data name="MobOfflineChooseFolders" xml:space="preserve">
+    <value>Choose folders ({0} chosen)</value>
+  </data>
+  <data name="MobOfflineMobileData" xml:space="preserve">
+    <value>Also download on mobile data</value>
+  </data>
+  <data name="MobOfflineSizeLimit" xml:space="preserve">
+    <value>Size limit</value>
+  </data>
+  <data name="MobOfflineNoLimit" xml:space="preserve">
+    <value>No limit</value>
+  </data>
+  <data name="MobOfflineUpdateNow" xml:space="preserve">
+    <value>Update the offline copy now</value>
+  </data>
+  <data name="MobOfflineUpdated" xml:space="preserve">
+    <value>{0} added, {1} updated, {2} removed</value>
+  </data>
+  <data name="MobOfflineNoChangesFeed" xml:space="preserve">
+    <value>This installation does not report changes yet: the copy keeps what you open.</value>
+  </data>
 </root>

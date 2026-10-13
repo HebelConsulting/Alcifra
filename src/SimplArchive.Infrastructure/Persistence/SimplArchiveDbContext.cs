@@ -347,6 +347,7 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
         PrepareMaskVersionsAsync(CancellationToken.None).GetAwaiter().GetResult();
         DavChangeRecorder.RecordAsync(this, DavKinds, CancellationToken.None).GetAwaiter().GetResult();
         EmailOutboxEnqueuer.Enqueue(this, ChangeTracker);
+        DocumentChangeStamper.StampAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         RegenerateConcurrencyTokens();
         return base.SaveChanges();
     }
@@ -380,6 +381,9 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
         // enqueue sends no mail, silently — see EmailOutboxEnqueuer for why that argument does not apply to the
         // two outboxes that ARE enqueued by their callers.
         EmailOutboxEnqueuer.Enqueue(this, ChangeTracker);
+
+        // What a reader sees of a document changed: stamped for "changes since" (ADR 0925).
+        await DocumentChangeStamper.StampAsync(this, cancellationToken);
 
         RegenerateConcurrencyTokens();
 
@@ -417,7 +421,8 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
     {
         foreach (var entry in ChangeTracker.Entries<IConcurrencyTracked>())
         {
-            if (entry.State is EntityState.Added or EntityState.Modified)
+            // A document touched only by the change stamp keeps its ETag (ADR 0925): nothing an editor edits moved.
+            if (entry.State is EntityState.Added or EntityState.Modified && !DocumentChangeStamper.IsStampOnly(entry))
             {
                 entry.Entity.ConcurrencyToken = Guid.NewGuid();
             }

@@ -64,7 +64,8 @@ internal static class ModuleProjectionCollector
 
         foreach (var entry in tracker.Entries<Document>())
         {
-            if (entry.State is EntityState.Added or EntityState.Modified)
+            // A change stamp alone (ADR 0925) is no change a read model projects: it was Unchanged before stamping.
+            if (entry.State is EntityState.Added or EntityState.Modified && !DocumentChangeStamper.IsStampOnly(entry))
             {
                 candidates.Add(entry.Entity.Id);
                 documents[entry.Entity.Id] = entry.Entity;

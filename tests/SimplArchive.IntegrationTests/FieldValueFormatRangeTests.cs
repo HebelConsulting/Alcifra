@@ -189,7 +189,7 @@ public class FieldValueFormatRangeTests
 
         var affected = await context.SaveChangesAsync();
 
-        Assert.Equal(2, affected);
+        Assert.Equal(3, affected);   // the two values and the document's change stamp (ADR 0925)
     }
 
     [Theory]
@@ -251,6 +251,6 @@ public class FieldValueFormatRangeTests
         using var context = CreateContext(connection, tenantId);
         context.FieldValues.Add(new FieldValue { Id = Guid.NewGuid(), TenantId = tenantId, DocumentId = documentId, FieldDefinitionId = fieldId, Value = "https://www.skybriefing.com" });
 
-        Assert.Equal(1, await context.SaveChangesAsync());
+        Assert.Equal(2, await context.SaveChangesAsync());   // the value and the document's change stamp (ADR 0925)
     }
 }

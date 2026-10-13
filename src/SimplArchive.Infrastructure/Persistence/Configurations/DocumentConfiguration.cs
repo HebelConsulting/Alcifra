@@ -93,6 +93,9 @@ public class DocumentConfiguration : IEntityTypeConfiguration<Document>
         // Backs the "my check-outs" tab query (documents this user currently holds).
         builder.HasIndex(d => new { d.TenantId, d.CheckedOutByUserId });
 
+        // "Changes since" pages by (ChangedAt, Id) within a tenant (ADR 0925).
+        builder.HasIndex(d => new { d.TenantId, d.ChangedAt, d.Id });
+
         // Import provenance (ADR "Idempotent re-import"): one imported copy per (origin tenant, origin document)
         // per target tenant — the partial unique index also serves as the re-import match lookup. NULL !=  NULL,
         // so natively-created rows (OriginDocumentId IS NULL) are exempt (the same reasoning as AclEntry's

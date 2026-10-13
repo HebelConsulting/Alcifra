@@ -110,6 +110,8 @@ public class RootController : ControllerBase
                 new Link("reminders", "/api/reminders", "GET"),
                 new Link("subscriptions", "/api/subscriptions", "GET"),
                 new Link("notifications", "/api/notifications", "GET"),
+                // What changed since a cursor (ADR 0925): an offline copy refreshes only that. A collection root.
+                new Link("changes", "/api/changes", "GET"),
                 // The bell badge's count (issue #416). A deliberate, narrow exception to the "collection roots
                 // only" rule below: every client needs this number BEFORE it has any reason to fetch the
                 // collection, and it polls it. Reaching it through the collection's own `unread-count` rel would

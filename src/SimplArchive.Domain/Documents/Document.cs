@@ -70,6 +70,12 @@ public class Document : ITenantScoped, IConcurrencyTracked, ISoftDeletable
     // Manual purge (hard delete) is still deferred.
     public DateTimeOffset? DeletedAt { get; set; }
 
+    // When anything a reader sees of this document last changed (ADR 0925): the row itself (name, parent, mask,
+    // deletion, the pinned version) or its versions, index data or chat. Stamped centrally by SaveChanges
+    // (DocumentChangeStamper), never by hand; "changes since" pages by it, so an offline copy refreshes only what
+    // changed. A stamp alone does not change the ETag.
+    public DateTimeOffset ChangedAt { get; set; }
+
     // When this document arrived in an ephemeral staging folder (#640) — set on delivery and on any move
     // BETWEEN staging folders, cleared when it is filed out into the archive. Null = not staged, which is
     // every archive document and every row that predates this column.

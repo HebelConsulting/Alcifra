@@ -839,6 +839,9 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.Property<bool>("BreaksInheritance")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset?>("CheckedOutAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -945,6 +948,8 @@ namespace SimplArchive.Infrastructure.Migrations
 
                     b.HasIndex("TenantId", "PersonalRootOwnerId")
                         .HasFilter("\"PersonalRootOwnerId\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "ChangedAt", "Id");
 
                     b.HasIndex("TenantId", "OriginTenantId", "OriginDocumentId")
                         .IsUnique()
