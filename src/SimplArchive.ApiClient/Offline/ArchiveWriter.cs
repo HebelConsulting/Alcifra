@@ -91,6 +91,13 @@ public sealed class ArchiveWriter
     /// <summary>Keeps a folder (or a repository) so the tree above a kept document stays intact.</summary>
     public void PutFolder(CachedDocument folder)
     {
+        // A folder met through a document's folder chain arrives without its type; the type kept from a listing
+        // (or the personal space's "User folder") stays rather than being erased by it.
+        if (folder.DocumentType.Length == 0 && _documents.TryGetValue(folder.Id, out var known) && known.DocumentType.Length > 0)
+        {
+            folder = folder with { DocumentType = known.DocumentType };
+        }
+
         _documents[folder.Id] = folder;
         _versions.Remove(folder.Id);
     }
@@ -196,7 +203,8 @@ public sealed class ArchiveWriter
         }
 
         Write("principals/principals.json", JsonSerializer.SerializeToUtf8Bytes(new { users = people.Select(p => new { id = p.Key, displayName = p.Value }) }, Web));
-        Write("manifest.json", JsonSerializer.SerializeToUtf8Bytes(new { formatVersion = 2, kind = "cache", name = _name, exportedAt = DateTimeOffset.UtcNow }, Web));
+        Write("manifest.json", JsonSerializer.SerializeToUtf8Bytes(
+            new { formatVersion = 2, kind = "cache", name = _name, exportedAt = DateTimeOffset.UtcNow, personalRepositoryId = PersonalRoot }, Web));
     }
 
     /// <summary>Deletes the blobs no kept version names any more; returns the bytes freed.</summary>
@@ -242,8 +250,12 @@ public sealed class ArchiveWriter
         File.Move(temporary, target, overwrite: true);
     }
 
+    /// <summary>Which root is the user's personal space, so the cache shows it first as the tree does.</summary>
+    public Guid? PersonalRoot { get; set; }
+
     private void Load(OfflineArchive archive)
     {
+        PersonalRoot = archive.PersonalRoot;
         foreach (var d in archive.AllDocuments())
         {
             var versions = archive.Versions(d.Id);

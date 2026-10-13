@@ -88,6 +88,39 @@ public sealed class ArchiveWriterTests : IDisposable
         Assert.Equal(DealContent, await reader.GetByteArrayAsync(download.TrimStart('/')));
     }
 
+    // Owner's test 2026-10-13: the cache did not show the user's own folder first. The server tells the personal
+    // space apart (its own rel, left out of the repositories); the cache now records which root it is and answers alike.
+    [Fact]
+    public async Task The_personal_space_is_answered_as_such_and_not_among_the_repositories()
+    {
+        var writer = await WriterAsync();
+        KeepTheDeal(writer);
+        var mine = Guid.NewGuid();
+        writer.PutFolder(new CachedDocument(mine, null, "Anna Meyer", string.Empty, "Anna", DateTimeOffset.UtcNow));
+        writer.PersonalRoot = mine;
+        writer.Flush();
+
+        var reader = await ReaderAsync();
+        var repositories = await reader.GetFromJsonAsync<JsonElement>("offline/repositories");
+        Assert.DoesNotContain("Anna Meyer", repositories.GetProperty("repositories").EnumerateArray().Select(r => r.GetProperty("name").GetString()));
+
+        // POST, as the server's link says (get-or-create there; only get here).
+        using var personal = await reader.PostAsync("offline/personal", null);
+        Assert.Equal(mine, (await personal.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
+        Assert.Equal(System.Net.HttpStatusCode.MethodNotAllowed, (await reader.PostAsync("offline/repositories", null)).StatusCode);
+
+        // Its type survives the folder chain of a document kept later, which carries none.
+        writer.PutFolder(new CachedDocument(mine, null, "Anna Meyer", "User folder", "Anna", DateTimeOffset.UtcNow));
+        writer.PutFolder(new CachedDocument(mine, null, "Anna Meyer", string.Empty, string.Empty, default));
+        writer.Flush();
+        using var again = await (await ReaderAsync()).PostAsync("offline/personal", null);
+        Assert.Equal("User folder", (await again.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("documentType").GetString());
+
+        var reopened = await WriterAsync();   // a later run keeps knowing it
+        reopened.Flush();
+        Assert.Equal(mine, (await OfflineArchive.OpenAsync(new DirectoryArchiveStorage(_directory, Open))).PersonalRoot);
+    }
+
     [Fact]
     public async Task Kept_notifications_read_through_the_shared_client_and_point_at_a_kept_document()
     {

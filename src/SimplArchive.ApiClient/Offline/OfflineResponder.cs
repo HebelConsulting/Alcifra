@@ -30,12 +30,16 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head)
+        var segments = request.RequestUri!.AbsolutePath.Trim('/').Split('/');
+
+        // Read-only by design. The one POST answered is the personal space's: on the server it is get-or-create, and
+        // here it only gets.
+        if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head
+            && !(request.Method == HttpMethod.Post && segments is ["offline", "personal"]))
         {
-            return new HttpResponseMessage(HttpStatusCode.MethodNotAllowed);   // read-only by design
+            return new HttpResponseMessage(HttpStatusCode.MethodNotAllowed);
         }
 
-        var segments = request.RequestUri!.AbsolutePath.Trim('/').Split('/');
         if (segments is ["offline", "blobs", var name])
         {
             return await BlobAsync(name, request.Method == HttpMethod.Head, cancellationToken);
@@ -65,7 +69,10 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
             }),
             ["offline", "me"] => Json(new { links = new[] { Link("self", "/offline/me"), Link("personalRepository", "/offline/personal") } }),
             ["offline", "archive"] => Json(new { name = archive.Name, exportedAt = archive.ExportedAt, links = new[] { Link("self", "/offline/archive") } }),
-            ["offline", "repositories"] => Json(new { repositories = archive.Roots().Select(Row), links = new[] { Link("self", "/offline/repositories") } }),
+            ["offline", "repositories"] => Json(new { repositories = archive.Roots().Where(r => r.Id != archive.PersonalRoot).Select(Row), links = new[] { Link("self", "/offline/repositories") } }),
+            ["offline", "personal"] => archive.PersonalRoot is { } personal && archive.Document(personal) is { } space
+                ? Json(Row(space))
+                : new HttpResponseMessage(HttpStatusCode.NotFound),
             ["offline", "documents", var id] => Guid.TryParse(id, out var d) && archive.Document(d) is { } document ? Json(Detail(document)) : NotFound(),
             ["offline", "documents", var id, "children"] => Guid.TryParse(id, out var f) && archive.Document(f) is not null
                 ? Json(new

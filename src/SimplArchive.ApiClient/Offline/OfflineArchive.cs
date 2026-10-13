@@ -49,6 +49,7 @@ public sealed class OfflineArchive
             ?? (manifest.TryGetProperty("name", out var cacheName) ? cacheName.GetString() : null) ?? string.Empty;
         RootId = hasRoot ? root.GetProperty("documentId").GetGuid() : null;
         ExportedAt = manifest.TryGetProperty("exportedAt", out var at) && at.TryGetDateTimeOffset(out var when) ? when : null;
+        PersonalRoot = manifest.TryGetProperty("personalRepositoryId", out var personal) && personal.ValueKind == JsonValueKind.String ? personal.GetGuid() : null;
 
         var people = People(Json("principals/principals.json"));
         string Who(JsonElement row) =>
@@ -141,6 +142,13 @@ public sealed class OfflineArchive
     /// What the archive lists as its repositories: an export's root, or for a cache every document whose folder is not
     /// in it (the repositories its documents were kept from).
     /// </summary>
+    /// <summary>
+    /// The user's personal space among the roots, when the archive knows it (a phone's cache records it): answered
+    /// at <c>personalRepository</c> and left out of the repositories, as the server does (core ADR 0689), so the tree
+    /// shows it first.
+    /// </summary>
+    public Guid? PersonalRoot { get; }
+
     public IEnumerable<ArchivedDocument> Roots() =>
         RootId is { } root
             ? _documents.TryGetValue(root, out var exported) ? [exported] : []
