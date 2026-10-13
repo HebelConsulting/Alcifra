@@ -5508,4 +5508,7 @@
   <data name="MobOfflineShown" xml:space="preserve">
     <value>Copia sin conexión del {0}</value>
   </data>
+  <data name="MobTools" xml:space="preserve">
+    <value>Herramientas</value>
+  </data>
 </root>
