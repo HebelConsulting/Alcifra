@@ -5568,6 +5568,9 @@
   <data name="MobOfflineNoKeys" xml:space="preserve">
     <value>Für Sie ist kein Schlüssel registriert, also kann nichts für ihn versiegelt werden. Registrieren Sie einen Schlüssel oder fragen Sie Ihre Administration.</value>
   </data>
+  <data name="MobOfflineNeedsNewerInstallation" xml:space="preserve">
+    <value>Diese Installation kann noch keine Offline-Kopie versiegeln: sie braucht eine neuere Version. An Ihren Schlüsseln liegt es nicht.</value>
+  </data>
   <data name="MobOfflineKeysUnavailable" xml:space="preserve">
     <value>Ihre Schlüssel sind gerade nicht lesbar ({0}). Fragen Sie Ihre Administration.</value>
   </data>

@@ -5568,6 +5568,9 @@
   <data name="MobOfflineNoKeys" xml:space="preserve">
     <value>No key is enrolled for you, so nothing can be sealed to it. Enrol a key, or ask your administrator.</value>
   </data>
+  <data name="MobOfflineNeedsNewerInstallation" xml:space="preserve">
+    <value>This installation cannot seal an offline copy yet: it needs a newer version. Your keys are not the problem.</value>
+  </data>
   <data name="MobOfflineKeysUnavailable" xml:space="preserve">
     <value>Your keys cannot be read right now ({0}). Ask your administrator.</value>
   </data>

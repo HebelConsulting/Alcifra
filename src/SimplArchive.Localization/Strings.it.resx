@@ -5568,6 +5568,9 @@
   <data name="MobOfflineNoKeys" xml:space="preserve">
     <value>Nessuna chiave è registrata per te, quindi non si può sigillare nulla. Registra una chiave o chiedi all'amministratore.</value>
   </data>
+  <data name="MobOfflineNeedsNewerInstallation" xml:space="preserve">
+    <value>Questa installazione non può ancora sigillare una copia offline: serve una versione più recente. Le sue chiavi non c'entrano.</value>
+  </data>
   <data name="MobOfflineKeysUnavailable" xml:space="preserve">
     <value>Le tue chiavi non sono leggibili al momento ({0}). Chiedi all'amministratore.</value>
   </data>

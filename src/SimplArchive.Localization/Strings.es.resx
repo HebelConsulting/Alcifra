@@ -5568,6 +5568,9 @@
   <data name="MobOfflineNoKeys" xml:space="preserve">
     <value>No hay ninguna llave registrada para ti, así que no se puede sellar nada. Registra una llave o pregunta a tu administrador.</value>
   </data>
+  <data name="MobOfflineNeedsNewerInstallation" xml:space="preserve">
+    <value>Esta instalación aún no puede sellar una copia sin conexión: necesita una versión más reciente. Sus claves no son el problema.</value>
+  </data>
   <data name="MobOfflineKeysUnavailable" xml:space="preserve">
     <value>Tus llaves no se pueden leer ahora ({0}). Pregunta a tu administrador.</value>
   </data>
