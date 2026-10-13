@@ -183,6 +183,22 @@ public sealed class ApiCore
     public static ApiCore? Bound(string apiRootUrl, ITokenSessionStore sessions) =>
         sessions.For(apiRootUrl) is { AccessToken.Length: > 0 } session ? new ApiCore(apiRootUrl, session, sessions) : null;
 
+    /// <summary>
+    /// A client over an archive instead of a server (#1697): every request goes to <paramref name="responder"/>, in
+    /// process, which answers the same links the server would. It IS the session while the device is offline, so it
+    /// publishes itself as <see cref="Authenticated"/> for the content funnel, which then reads blobs from the archive.
+    /// </summary>
+    public static ApiCore FromArchive(SimplArchive.ApiClient.Offline.OfflineResponder responder) => new(responder);
+
+    private ApiCore(SimplArchive.ApiClient.Offline.OfflineResponder responder)
+    {
+        _apiRootUrl = SimplArchive.ApiClient.Offline.OfflineAddress.Root;
+        _session = new TokenSession.Holder(new TokenSession(string.Empty, null, DateTimeOffset.MaxValue));
+        Http = new HttpClient(responder) { BaseAddress = new Uri(_apiRootUrl) };
+        Authenticated = Http;
+        AddClientHeaders(Http);
+    }
+
     private ApiCore(string apiRootUrl, TokenSession session, ITokenSessionStore sessions)
     {
         _apiRootUrl = apiRootUrl;

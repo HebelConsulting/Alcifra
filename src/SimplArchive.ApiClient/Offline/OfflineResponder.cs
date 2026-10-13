@@ -1,0 +1,182 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+namespace SimplArchive.ApiClient.Offline;
+
+/// <summary>
+/// The API's own links, answered in process from an archive (#1697; owner decisions 2026-10-06 and 2026-10-13): no
+/// port, no socket, no file URL. A client keeps following the links it is handed (ADR 0543), so it browses the
+/// archive exactly as it browses the server, and its affordances follow from which links exist.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Read-only, and only what the archive carries:</b> the root, the repository (the exported root), folder contents,
+/// a document's detail, its versions, its index data, its chat, and the content of each version. No write link, no
+/// search, no sensitivity or workflow: a client reads their absence as "not available here, now" and hides them.
+/// </para>
+/// <para>
+/// <b>Every blob is checked against its SHA-256 before it is served</b>; a mismatch is a named refusal
+/// (<c>OFFLINE_BLOB_CORRUPT</c>), never content. The responder's own addresses live under <c>offline/</c>: they are
+/// the links it advertises, not a copy of the server's routes, and a client never composes them.
+/// </para>
+/// </remarks>
+public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandler
+{
+    private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
+
+    public OfflineArchive Archive => archive;
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.MethodNotAllowed));   // read-only by design
+        }
+
+        var segments = request.RequestUri!.AbsolutePath.Trim('/').Split('/');
+        return Task.FromResult(segments switch
+        {
+            ["api"] => Json(new { links = new[] { Link("repositories", "/offline/repositories"), Link("me", "/offline/me"), Link("offline", "/offline/archive") } }),
+            ["offline", "me"] => Json(new { links = new[] { Link("self", "/offline/me"), Link("personalRepository", "/offline/personal") } }),
+            ["offline", "archive"] => Json(new { name = archive.Name, exportedAt = archive.ExportedAt, links = new[] { Link("self", "/offline/archive") } }),
+            ["offline", "repositories"] => archive.Document(archive.RootId) is { } root
+                ? Json(new { repositories = new[] { Row(root) }, links = new[] { Link("self", "/offline/repositories") } })
+                : NotFound(),
+            ["offline", "documents", var id] => Guid.TryParse(id, out var d) && archive.Document(d) is { } document ? Json(Detail(document)) : NotFound(),
+            ["offline", "documents", var id, "children"] => Guid.TryParse(id, out var f) && archive.Document(f) is not null
+                ? Json(new
+                {
+                    children = archive.Children(f).OrderByDescending(c => archive.IsFolder(c.Id)).ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase).Select(Row),
+                    contentsSortOrder = 1,
+                    links = new[] { Link("self", $"/offline/documents/{f}/children") },
+                })
+                : NotFound(),
+            ["offline", "documents", var id, "versions"] => Guid.TryParse(id, out var v) && archive.Document(v) is not null
+                ? Json(new { versions = archive.Versions(v).Select(Version), links = new[] { Link("self", $"/offline/documents/{v}/versions") } })
+                : NotFound(),
+            ["offline", "documents", var id, "index-data"] => Guid.TryParse(id, out var x) && archive.Document(x) is not null
+                ? Json(new { fields = archive.Fields(x).Select(field => new { fieldName = field.Name, values = field.Values, dataType = field.DataType }) })
+                : NotFound(),
+            ["offline", "documents", var id, "chat"] => Guid.TryParse(id, out var c) && archive.Document(c) is not null
+                ? Json(new
+                {
+                    messages = archive.Chat(c).Select(m => new
+                    {
+                        id = m.Id,
+                        parentMessageId = m.ParentMessageId,
+                        body = m.Body,
+                        authorName = m.Author,
+                        createdAt = m.CreatedAt,
+                        mentions = m.Mentions.Select(x => new { userId = x.UserId, displayName = x.DisplayName }),
+                    }),
+                    links = new[] { Link("self", $"/offline/documents/{c}/chat") },
+                })
+                : NotFound(),
+            ["offline", "blobs", var name] => Blob(name, request.Method == HttpMethod.Head),
+            _ => NotFound(),
+        });
+    }
+
+    private object Row(OfflineArchive.ArchivedDocument d)
+    {
+        var folder = archive.IsFolder(d.Id);
+        var current = archive.Versions(d.Id).FirstOrDefault();
+        return new
+        {
+            id = d.Id,
+            name = d.Name,
+            isFolder = folder,
+            hasChildren = archive.Children(d.Id).Any(),
+            hasSubfolders = archive.Children(d.Id).Any(c => archive.IsFolder(c.Id)),
+            hasVersions = !folder,
+            versionCount = archive.Versions(d.Id).Count,
+            documentType = archive.MaskName(d),
+            documentDate = current?.DocumentDate,
+            createdBy = d.CreatedBy,
+            versionCreatedAt = current?.FiledAt,
+            links = Links(d, folder),
+        };
+    }
+
+    private object Detail(OfflineArchive.ArchivedDocument d) => new
+    {
+        id = d.Id,
+        name = d.Name,
+        contentsSortOrder = 1,
+        links = Links(d, archive.IsFolder(d.Id)),
+    };
+
+    private object Version(OfflineArchive.ArchivedVersion v)
+    {
+        var blob = $"/offline/blobs/{v.Sha256}{v.FileExtension}";
+        return new
+        {
+            id = v.Id,
+            versionNumber = v.Number,
+            status = "Confirmed",
+            documentDate = v.DocumentDate,
+            createdAt = v.FiledAt,
+            createdBy = v.CreatedBy,
+            fileExtension = v.FileExtension,
+            objectKey = $"content{v.FileExtension}",
+            previewConverted = false,
+            links = new[] { Link("download", blob), Link("preview", blob) },
+        };
+    }
+
+    private static object[] Links(OfflineArchive.ArchivedDocument d, bool folder)
+    {
+        var self = $"/offline/documents/{d.Id}";
+        var links = new List<object> { Link("self", self), Link("chat", $"{self}/chat") };
+        if (folder)
+        {
+            links.Add(Link("children", $"{self}/children"));
+        }
+        else
+        {
+            links.Add(Link("versions", $"{self}/versions"));
+        }
+
+        links.Add(Link("index-data", $"{self}/index-data"));
+        return [.. links];
+    }
+
+    private HttpResponseMessage Blob(string name, bool head)
+    {
+        var sha = Path.GetFileNameWithoutExtension(name);
+        if (sha.Length != 64 || !sha.All(Uri.IsHexDigit) || archive.Storage.Read($"blobs/{sha}") is not { } bytes)
+        {
+            return NotFound();
+        }
+
+        if (!string.Equals(Convert.ToHexStringLower(SHA256.HashData(bytes)), sha, StringComparison.OrdinalIgnoreCase))
+        {
+            // Never content: a blob that is not what its name says is refused by name (#1697).
+            var refusal = new HttpResponseMessage(HttpStatusCode.UnprocessableEntity)
+            {
+                Content = JsonContent.Create(new { title = "The archive's copy of this content is damaged.", errorCode = "OFFLINE_BLOB_CORRUPT" }),
+            };
+            refusal.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/problem+json");
+            return refusal;
+        }
+
+        var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(head ? [] : bytes) };
+        response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(DocumentsClient.GuessContentType(name));
+        return response;
+    }
+
+    private static object Link(string rel, string href) => new { rel, href, method = "GET" };
+
+    private static HttpResponseMessage Json(object body) =>
+        new(HttpStatusCode.OK) { Content = JsonContent.Create(body, options: Web) };
+
+    private static HttpResponseMessage NotFound() => new(HttpStatusCode.NotFound);
+}
+
+/// <summary>The address an offline client is based at. Nothing listens there: the responder answers every request.</summary>
+public static class OfflineAddress
+{
+    public const string Root = "http://offline.simplarchive.invalid/";
+}
