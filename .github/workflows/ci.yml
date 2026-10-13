@@ -156,15 +156,7 @@ jobs:
       # Security gate (ADR "Security and dependency scanning"): fail the build on any known-CVE dependency
       # (direct or transitive). Queries the NuGet advisory database.
       - name: Vulnerable dependency scan
-        run: |
-          dotnet list package --vulnerable --include-transitive --format json > vuln.json
-          count=$(jq '[.projects[].frameworks[]? | ((.topLevelPackages // []) + (.transitivePackages // []))[] | select((.vulnerabilities // []) | length > 0)] | length' vuln.json)
-          if [ "$count" -gt 0 ]; then
-            echo "::error::Found $count vulnerable package reference(s) — pin to a fixed version:"
-            jq -r '.projects[] | .path as $p | (.frameworks[]? | ((.topLevelPackages // []) + (.transitivePackages // []))[] | select((.vulnerabilities // []) | length > 0) | "\($p | split("/") | last)  \(.id) \(.resolvedVersion)  \(.vulnerabilities[].severity)  \(.vulnerabilities[].advisoryurl)")' vuln.json | sort -u
-            exit 1
-          fi
-          echo "No vulnerable dependencies."
+        run: scripts/vulnerability-scan.sh
       # Advisory only (don't block): deprecated packages are worth surfacing but aren't a security failure.
       - name: Deprecated dependency check (advisory)
         continue-on-error: true
