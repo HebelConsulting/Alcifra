@@ -10,14 +10,17 @@ namespace SimplArchive.ApiClient.Offline;
 /// </summary>
 public interface IArchiveStorage
 {
-    /// <summary>The entry's bytes, or null when the archive has no such entry.</summary>
-    byte[]? Read(string path);
+    /// <summary>The entry's bytes, or null when the archive has no such entry. Asynchronous because opening one can wait
+    /// for the user (a cached document sealed to their card asks for it).</summary>
+    Task<byte[]?> ReadAsync(string path, CancellationToken cancellationToken = default);
 }
 
 /// <summary>An archive read from a zip (an exported <c>.simplarchive</c>, or the server's export download).</summary>
 public sealed class ZipArchiveStorage(byte[] zip) : IArchiveStorage
 {
-    public byte[]? Read(string path)
+    public Task<byte[]?> ReadAsync(string path, CancellationToken cancellationToken = default) => Task.FromResult(Read(path));
+
+    private byte[]? Read(string path)
     {
         using var archive = new ZipArchive(new MemoryStream(zip), ZipArchiveMode.Read);
         if (archive.GetEntry(path) is not { } entry)
@@ -34,11 +37,18 @@ public sealed class ZipArchiveStorage(byte[] zip) : IArchiveStorage
 
 /// <summary>
 /// An archive read from a directory, each file passed through <paramref name="open"/> on the way out: the phone's
-/// cache keeps every file encrypted on its own (SimplArchiveMobile #5), and decrypts here. Null for plain files.
+/// cache keeps every file encrypted on its own (SimplArchiveMobile #5), and decrypts here, asking for the user's card
+/// where a file is sealed to it. Null for plain files.
 /// </summary>
-public sealed class DirectoryArchiveStorage(string directory, Func<string, byte[], byte[]>? open = null) : IArchiveStorage
+public sealed class DirectoryArchiveStorage(string directory, Func<string, byte[], CancellationToken, Task<byte[]>>? open = null) : IArchiveStorage
 {
-    public byte[]? Read(string path)
+    /// <summary>A directory whose files open without waiting for anybody.</summary>
+    public DirectoryArchiveStorage(string directory, Func<string, byte[], byte[]> open)
+        : this(directory, (path, bytes, _) => Task.FromResult(open(path, bytes)))
+    {
+    }
+
+    public async Task<byte[]?> ReadAsync(string path, CancellationToken cancellationToken = default)
     {
         var full = Path.GetFullPath(Path.Combine(directory, path));
         // An entry path never leaves the archive's directory, whatever a link says.
@@ -47,7 +57,7 @@ public sealed class DirectoryArchiveStorage(string directory, Func<string, byte[
             return null;
         }
 
-        var bytes = File.ReadAllBytes(full);
-        return open is null ? bytes : open(path, bytes);
+        var bytes = await File.ReadAllBytesAsync(full, cancellationToken);
+        return open is null ? bytes : await open(path, bytes, cancellationToken);
     }
 }

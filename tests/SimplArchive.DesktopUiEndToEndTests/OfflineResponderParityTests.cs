@@ -39,7 +39,7 @@ public class OfflineResponderParityTests
         var zip = await api.RepositoryArchive.ExportRepositoryAsync(
             await api.Documents.RelViaSelfAsync(repo.Href("document"), "export"),
             new RepositoryArchiveClient.RepositoryExportOptions(ActiveOnly: false, null, null, null, null, null));
-        var responder = new OfflineResponder(OfflineArchive.Open(new ZipArchiveStorage(zip)));
+        var responder = new OfflineResponder(await OfflineArchive.OpenAsync(new ZipArchiveStorage(zip)));
         var offline = new DocumentsClient(ApiCore.FromArchive(responder), () => throw new InvalidOperationException("no reminders offline"));
         try
         {

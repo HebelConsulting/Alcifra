@@ -5493,9 +5493,6 @@
   <data name="MobPushSignedOut" xml:space="preserve">
     <value>Push in pausa: accedi di nuovo.</value>
   </data>
-  <data name="MobOfflineKeep" xml:space="preserve">
-    <value>Conserva una copia offline, sigillata con la tua chiave</value>
-  </data>
   <data name="MobOfflineKept" xml:space="preserve">
     <value>Copia offline sigillata per {0} chiave/i, salvata {1}</value>
   </data>
@@ -5555,5 +5552,41 @@
   </data>
   <data name="TenantOcMaxMinutes" xml:space="preserve">
     <value>Massimo sbloccata in background (minuti)</value>
+  </data>
+  <data name="MobSettings" xml:space="preserve">
+    <value>Impostazioni</value>
+  </data>
+  <data name="MobOfflineCopyOn" xml:space="preserve">
+    <value>Conserva una copia offline su questo telefono</value>
+  </data>
+  <data name="MobOfflineCopyInfo" xml:space="preserve">
+    <value>Ciò che conservi è sigillato con le tue chiavi registrate: leggerlo offline richiede la chiave e il suo PIN.</value>
+  </data>
+  <data name="MobOfflineNotAllowed" xml:space="preserve">
+    <value>La tua organizzazione non consente una copia offline.</value>
+  </data>
+  <data name="MobOfflineNoKeys" xml:space="preserve">
+    <value>Nessuna chiave è registrata per te, quindi non si può sigillare nulla. Registra una chiave o chiedi all'amministratore.</value>
+  </data>
+  <data name="MobOfflineKeysUnavailable" xml:space="preserve">
+    <value>Le tue chiavi non sono leggibili al momento ({0}). Chiedi all'amministratore.</value>
+  </data>
+  <data name="MobOfflineSetByOrganisation" xml:space="preserve">
+    <value>Impostato dalla tua organizzazione</value>
+  </data>
+  <data name="MobOfflineLockAfter" xml:space="preserve">
+    <value>Blocca dopo (minuti in background)</value>
+  </data>
+  <data name="MobOfflineSize" xml:space="preserve">
+    <value>La copia offline occupa {0}.</value>
+  </data>
+  <data name="MobOfflineDelete" xml:space="preserve">
+    <value>Elimina la copia offline</value>
+  </data>
+  <data name="MobOfflineLock" xml:space="preserve">
+    <value>Blocca la copia offline</value>
+  </data>
+  <data name="MobOfflineBanner" xml:space="preserve">
+    <value>Offline: la tua copia del {0}</value>
   </data>
 </root>

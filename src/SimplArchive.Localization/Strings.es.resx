@@ -5493,9 +5493,6 @@
   <data name="MobPushSignedOut" xml:space="preserve">
     <value>Push en pausa: inicia sesión de nuevo.</value>
   </data>
-  <data name="MobOfflineKeep" xml:space="preserve">
-    <value>Guardar una copia sin conexión, sellada con tu llave</value>
-  </data>
   <data name="MobOfflineKept" xml:space="preserve">
     <value>Copia sin conexión sellada para {0} llave(s), guardada {1}</value>
   </data>
@@ -5555,5 +5552,41 @@
   </data>
   <data name="TenantOcMaxMinutes" xml:space="preserve">
     <value>Máximo desbloqueada en segundo plano (minutos)</value>
+  </data>
+  <data name="MobSettings" xml:space="preserve">
+    <value>Ajustes</value>
+  </data>
+  <data name="MobOfflineCopyOn" xml:space="preserve">
+    <value>Guardar una copia sin conexión en este teléfono</value>
+  </data>
+  <data name="MobOfflineCopyInfo" xml:space="preserve">
+    <value>Lo que guardas se sella con tus llaves registradas: leerlo sin conexión requiere tu llave y su PIN.</value>
+  </data>
+  <data name="MobOfflineNotAllowed" xml:space="preserve">
+    <value>Tu organización no permite una copia sin conexión.</value>
+  </data>
+  <data name="MobOfflineNoKeys" xml:space="preserve">
+    <value>No hay ninguna llave registrada para ti, así que no se puede sellar nada. Registra una llave o pregunta a tu administrador.</value>
+  </data>
+  <data name="MobOfflineKeysUnavailable" xml:space="preserve">
+    <value>Tus llaves no se pueden leer ahora ({0}). Pregunta a tu administrador.</value>
+  </data>
+  <data name="MobOfflineSetByOrganisation" xml:space="preserve">
+    <value>Fijado por tu organización</value>
+  </data>
+  <data name="MobOfflineLockAfter" xml:space="preserve">
+    <value>Bloquear tras (minutos en segundo plano)</value>
+  </data>
+  <data name="MobOfflineSize" xml:space="preserve">
+    <value>La copia sin conexión ocupa {0}.</value>
+  </data>
+  <data name="MobOfflineDelete" xml:space="preserve">
+    <value>Eliminar la copia sin conexión</value>
+  </data>
+  <data name="MobOfflineLock" xml:space="preserve">
+    <value>Bloquear la copia sin conexión</value>
+  </data>
+  <data name="MobOfflineBanner" xml:space="preserve">
+    <value>Sin conexión: tu copia del {0}</value>
   </data>
 </root>

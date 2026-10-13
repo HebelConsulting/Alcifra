@@ -47,8 +47,8 @@ public sealed class OfflineResponderTests
         return buffer.ToArray();
     }
 
-    private static HttpClient Client(byte[] zip) =>
-        new(new OfflineResponder(OfflineArchive.Open(new ZipArchiveStorage(zip)))) { BaseAddress = new Uri(OfflineAddress.Root) };
+    private static async Task<HttpClient> ClientAsync(byte[] zip) =>
+        new(new OfflineResponder(await OfflineArchive.OpenAsync(new ZipArchiveStorage(zip)))) { BaseAddress = new Uri(OfflineAddress.Root) };
 
     private static string BlobOf(byte[] content) => $"offline/blobs/{Convert.ToHexStringLower(SHA256.HashData(content))}.txt";
 
@@ -57,7 +57,7 @@ public sealed class OfflineResponderTests
     {
         var content = Encoding.UTF8.GetBytes("the report");
 
-        using var response = await Client(Archive(content)).GetAsync(BlobOf(content));
+        using var response = await (await ClientAsync(Archive(content))).GetAsync(BlobOf(content));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(content, await response.Content.ReadAsByteArrayAsync());
@@ -68,10 +68,18 @@ public sealed class OfflineResponderTests
     {
         var content = Encoding.UTF8.GetBytes("the report");
 
-        using var response = await Client(Archive(content, storedAs: Encoding.UTF8.GetBytes("tampered"))).GetAsync(BlobOf(content));
+        using var response = await (await ClientAsync(Archive(content, storedAs: Encoding.UTF8.GetBytes("tampered")))).GetAsync(BlobOf(content));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Contains("OFFLINE_BLOB_CORRUPT", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_export_keeps_no_notifications_and_offers_no_bell()
+    {
+        var root = await (await ClientAsync(Archive([1]))).GetFromJsonAsync<JsonElement>("api");
+
+        Assert.DoesNotContain("notifications", root.GetProperty("links").EnumerateArray().Select(l => l.GetProperty("rel").GetString()));
     }
 
     [Theory]
@@ -80,7 +88,7 @@ public sealed class OfflineResponderTests
     [InlineData("DELETE")]
     public async Task It_answers_reads_only(string method)
     {
-        using var response = await Client(Archive([1])).SendAsync(new HttpRequestMessage(new HttpMethod(method), $"offline/documents/{Document}"));
+        using var response = await (await ClientAsync(Archive([1]))).SendAsync(new HttpRequestMessage(new HttpMethod(method), $"offline/documents/{Document}"));
 
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
@@ -126,7 +134,7 @@ public sealed class OfflineResponderTests
             }));
         }
 
-        var client = Client(buffer.ToArray());
+        var client = await ClientAsync(buffer.ToArray());
         var fields = await client.GetFromJsonAsync<JsonElement>($"offline/documents/{Document}/index-data");
         Assert.Equal(
             [("Amount", "Number", "120.50"), ("Tags", "MultiSelect", "paid|urgent")],
@@ -145,7 +153,7 @@ public sealed class OfflineResponderTests
         Assert.Equal(Enum.GetNames<FieldDataType>(), OfflineArchiveFieldTypes.Names);
 
     [Fact]
-    public void A_directory_archive_reads_nothing_outside_its_directory()
+    public async Task A_directory_archive_reads_nothing_outside_its_directory()
     {
         var directory = Directory.CreateTempSubdirectory("offline-archive-").FullName;
         var outside = Path.Combine(Path.GetDirectoryName(directory)!, $"secret-{Guid.NewGuid():N}");
@@ -153,7 +161,7 @@ public sealed class OfflineResponderTests
         try
         {
             var storage = new DirectoryArchiveStorage(directory);
-            Assert.Null(storage.Read($"../{Path.GetFileName(outside)}"));
+            Assert.Null(await storage.ReadAsync($"../{Path.GetFileName(outside)}"));
         }
         finally
         {

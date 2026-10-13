@@ -28,22 +28,44 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
 
     public OfflineArchive Archive => archive;
 
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         if (request.Method != HttpMethod.Get && request.Method != HttpMethod.Head)
         {
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.MethodNotAllowed));   // read-only by design
+            return new HttpResponseMessage(HttpStatusCode.MethodNotAllowed);   // read-only by design
         }
 
         var segments = request.RequestUri!.AbsolutePath.Trim('/').Split('/');
-        return Task.FromResult(segments switch
+        if (segments is ["offline", "blobs", var name])
         {
-            ["api"] => Json(new { links = new[] { Link("repositories", "/offline/repositories"), Link("me", "/offline/me"), Link("offline", "/offline/archive") } }),
+            return await BlobAsync(name, request.Method == HttpMethod.Head, cancellationToken);
+        }
+
+        return segments switch
+        {
+            ["api"] => Json(new { links = Root() }),
+            ["offline", "notifications"] when archive.Notifications is { } kept => Json(new
+            {
+                notifications = kept.Select(n => new
+                {
+                    id = n.Id,
+                    type = n.Type,
+                    title = n.Title,
+                    body = n.Body,
+                    documentId = n.DocumentId,
+                    createdAt = n.CreatedAt,
+                    isRead = n.IsRead,
+                    // What it is about, where the cache kept that too; a "read" link is not offered: nothing is written offline.
+                    links = n.DocumentId is { } about && archive.Document(about) is not null
+                        ? new[] { Link("document", $"/offline/documents/{about}") }
+                        : [],
+                }),
+                unreadCount = kept.Count(n => !n.IsRead),
+                links = new[] { Link("self", "/offline/notifications") },
+            }),
             ["offline", "me"] => Json(new { links = new[] { Link("self", "/offline/me"), Link("personalRepository", "/offline/personal") } }),
             ["offline", "archive"] => Json(new { name = archive.Name, exportedAt = archive.ExportedAt, links = new[] { Link("self", "/offline/archive") } }),
-            ["offline", "repositories"] => archive.Document(archive.RootId) is { } root
-                ? Json(new { repositories = new[] { Row(root) }, links = new[] { Link("self", "/offline/repositories") } })
-                : NotFound(),
+            ["offline", "repositories"] => Json(new { repositories = archive.Roots().Select(Row), links = new[] { Link("self", "/offline/repositories") } }),
             ["offline", "documents", var id] => Guid.TryParse(id, out var d) && archive.Document(d) is { } document ? Json(Detail(document)) : NotFound(),
             ["offline", "documents", var id, "children"] => Guid.TryParse(id, out var f) && archive.Document(f) is not null
                 ? Json(new
@@ -74,9 +96,20 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
                     links = new[] { Link("self", $"/offline/documents/{c}/chat") },
                 })
                 : NotFound(),
-            ["offline", "blobs", var name] => Blob(name, request.Method == HttpMethod.Head),
             _ => NotFound(),
-        });
+        };
+    }
+
+    // The root's links: the notifications only where the archive keeps them (a cache), so an export offers no bell.
+    private object[] Root()
+    {
+        var links = new List<object> { Link("repositories", "/offline/repositories"), Link("me", "/offline/me"), Link("offline", "/offline/archive") };
+        if (archive.Notifications is not null)
+        {
+            links.Add(Link("notifications", "/offline/notifications"));
+        }
+
+        return [.. links];
     }
 
     private object Row(OfflineArchive.ArchivedDocument d)
@@ -143,10 +176,10 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
         return [.. links];
     }
 
-    private HttpResponseMessage Blob(string name, bool head)
+    private async Task<HttpResponseMessage> BlobAsync(string name, bool head, CancellationToken cancellationToken)
     {
         var sha = Path.GetFileNameWithoutExtension(name);
-        if (sha.Length != 64 || !sha.All(Uri.IsHexDigit) || archive.Storage.Read($"blobs/{sha}") is not { } bytes)
+        if (sha.Length != 64 || !sha.All(Uri.IsHexDigit) || await archive.Storage.ReadAsync($"blobs/{sha}", cancellationToken) is not { } bytes)
         {
             return NotFound();
         }
@@ -163,7 +196,10 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
         }
 
         var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(head ? [] : bytes) };
-        response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(DocumentsClient.GuessContentType(name));
+        // As it was served where the cache recorded it: a strict tenant's envelope stays an envelope, and the client's
+        // content funnel opens it with the card, offline as online (ADR 0830).
+        response.Content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(
+            archive.ContentTypeOf(sha) ?? DocumentsClient.GuessContentType(name));
         return response;
     }
 

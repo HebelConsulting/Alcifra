@@ -5493,9 +5493,6 @@
   <data name="MobPushSignedOut" xml:space="preserve">
     <value>Push is paused: sign in again.</value>
   </data>
-  <data name="MobOfflineKeep" xml:space="preserve">
-    <value>Keep an offline copy, sealed to your key</value>
-  </data>
   <data name="MobOfflineKept" xml:space="preserve">
     <value>Offline copy sealed to {0} key(s), saved {1}</value>
   </data>
@@ -5555,5 +5552,41 @@
   </data>
   <data name="TenantOcMaxMinutes" xml:space="preserve">
     <value>Longest unlocked in the background (minutes)</value>
+  </data>
+  <data name="MobSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="MobOfflineCopyOn" xml:space="preserve">
+    <value>Keep an offline copy on this phone</value>
+  </data>
+  <data name="MobOfflineCopyInfo" xml:space="preserve">
+    <value>What you keep is sealed to your enrolled keys: reading it offline needs your key and its PIN.</value>
+  </data>
+  <data name="MobOfflineNotAllowed" xml:space="preserve">
+    <value>Your organisation does not allow an offline copy.</value>
+  </data>
+  <data name="MobOfflineNoKeys" xml:space="preserve">
+    <value>No key is enrolled for you, so nothing can be sealed to it. Enrol a key, or ask your administrator.</value>
+  </data>
+  <data name="MobOfflineKeysUnavailable" xml:space="preserve">
+    <value>Your keys cannot be read right now ({0}). Ask your administrator.</value>
+  </data>
+  <data name="MobOfflineSetByOrganisation" xml:space="preserve">
+    <value>Set by your organisation</value>
+  </data>
+  <data name="MobOfflineLockAfter" xml:space="preserve">
+    <value>Lock after (minutes in the background)</value>
+  </data>
+  <data name="MobOfflineSize" xml:space="preserve">
+    <value>The offline copy uses {0}.</value>
+  </data>
+  <data name="MobOfflineDelete" xml:space="preserve">
+    <value>Delete the offline copy</value>
+  </data>
+  <data name="MobOfflineLock" xml:space="preserve">
+    <value>Lock the offline copy</value>
+  </data>
+  <data name="MobOfflineBanner" xml:space="preserve">
+    <value>Offline: your copy as of {0}</value>
   </data>
 </root>
