@@ -52,7 +52,13 @@ public class DesktopSmimeCertificateTests
         Assert.True(afterUpload.Enabled);
         Assert.Contains("desktop-upload@e2e.local", afterUpload.Subject);
 
+        // The shared client reads the set envelopes are addressed to (#1741): here the user's own column.
+        var set = await api.Profile.GetReaderCertificatesAsync();
+        Assert.Equal("own", set!.Source);
+        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(uploaded.RawData)), Assert.Single(set.Certificates).ThumbprintSha256);
+
         await api.Profile.DeleteSmimeCertificateAsync(afterUpload);
         Assert.False((await api.Profile.GetSmimeAsync()).Enabled);
+        Assert.Equal(("none", "noneEnrolled"), ((await api.Profile.GetReaderCertificatesAsync())!.Source, (await api.Profile.GetReaderCertificatesAsync())!.Reason));
     }
 }

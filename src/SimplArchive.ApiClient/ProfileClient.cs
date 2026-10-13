@@ -313,6 +313,35 @@ public sealed class ProfileClient(ApiCore core)
         ApiWire.StrOrNull(json, "password"),
         ApiCore.ParseLinks(json));
 
+    // ---- The certificate set envelopes are addressed to (#1741, ADR 0922) ---------------------------
+
+    /// <summary>One of the caller's certificates: what a client seals to its own user (the phone's offline cache).</summary>
+    public sealed record ReaderCertificate(string Pem, string Label, DateTimeOffset NotAfter, string ThumbprintSha256);
+
+    /// <summary>The caller's set, where it came from (<c>module</c>, <c>own</c>, <c>none</c>) and, when empty, why
+    /// (<c>noneEnrolled</c>, <c>licenceLapsed</c>, <c>moduleFailed</c>).</summary>
+    public sealed record ReaderCertificateSet(string Source, string? Reason, IReadOnlyList<ReaderCertificate> Certificates);
+
+    /// <summary>The caller's certificate set, or null where the installation does not advertise it (older than v0.43).</summary>
+    public async Task<ReaderCertificateSet?> GetReaderCertificatesAsync(CancellationToken cancellationToken = default)
+    {
+        await MeHrefAsync("self", cancellationToken);   // populates the cache
+        if (_meLinks is null || !_meLinks.Has("readerCertificates"))
+        {
+            return null;
+        }
+
+        var json = await _core.Http.GetFromJsonAsync<JsonElement>(await MeHrefAsync("readerCertificates", cancellationToken), cancellationToken);
+        var certificates = json.TryGetProperty("certificates", out var list)
+            ? list.EnumerateArray().Select(c => new ReaderCertificate(
+                c.GetProperty("pem").GetString() ?? string.Empty,
+                ApiWire.StrOrNull(c, "label") ?? string.Empty,
+                c.GetProperty("notAfter").GetDateTimeOffset(),
+                ApiWire.StrOrNull(c, "thumbprintSha256") ?? string.Empty)).ToList()
+            : [];
+        return new ReaderCertificateSet(ApiWire.StrOrNull(json, "source") ?? "none", ApiWire.StrOrNull(json, "reason"), certificates);
+    }
+
     // ---- Self-service S/MIME certificate (#1332, ADR 0816) ------------------------------------------
 
     // One rel, the method says which action (ADR 0719): GET reads, PUT uploads, POST generates, DELETE
