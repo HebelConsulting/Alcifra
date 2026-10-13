@@ -22,8 +22,8 @@
     <PackageReference Include="NetVips.Native.osx-arm64" Version="8.18.4" />
     <PackageReference Include="NetVips.Native.osx-x64" Version="8.18.4" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.13" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.0.0" />
     <!-- Security-driven transitive pin (ADR 0379 "Security and dependency scanning"): Testcontainers pulls

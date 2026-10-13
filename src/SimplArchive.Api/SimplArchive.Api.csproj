@@ -64,21 +64,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Pinned above what other packages bring (10.0.0/10.0.9): CVE-2026-84008 and CVE-2026-70162, fixed in 10.0.13. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="Asp.Versioning.Mvc" Version="10.0.0" />
     <PackageReference Include="Fido2" Version="4.0.1" />
     <PackageReference Include="Fido2.AspNet" Version="4.0.1" />
     <PackageReference Include="FolkerKinzel.VCards" Version="8.2.0" />
     <PackageReference Include="Ical.Net" Version="5.2.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.13" />
     <!-- OpenAPI (ADR "OpenAPI definition endpoint"): Microsoft.AspNetCore.OpenApi generates /openapi/v1.json;
          Scalar renders the browsable UI. Both MIT. Microsoft.OpenApi is pinned to 2.0.1 (a transitive of
          Microsoft.AspNetCore.OpenApi, which floors it at the vulnerable 2.0.0) to 2.7.5 — the first patched
          release in the 2.x line (advisory GHSA-v5pm-xwqc-g5wc / NU1903, vulnerable ≤ 2.7.4) — to keep the CVE
          gate green, same transitive-security-pin pattern as System.Security.Cryptography.Xml. -->
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
-    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -91,7 +93,7 @@
     <!-- SignalR Valkey/Redis backplane (ADR "SignalR Valkey backplane") so real-time notifications fan out across
          API replicas. Microsoft.AspNetCore.SignalR.StackExchangeRedis + StackExchange.Redis are both MIT and speak
          the Redis protocol, so Valkey works unchanged. Only active when ConnectionStrings:Valkey is configured. -->
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.13" />
     <!-- Two-factor auth (ADR "MFA (interactive login, TOTP)"): Otp.NET generates/verifies TOTP codes, QRCoder
          renders the enrollment QR. Both MIT. -->
     <PackageReference Include="Otp.NET" Version="1.4.0" />

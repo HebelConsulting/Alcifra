@@ -21,7 +21,7 @@
     <!-- CMS EnvelopedData, for the encryption-service stub's decrypt-and-envelope leg (core ADR 0862).
          Referenced here rather than reached through the product: this stub stands in for a separate
          product, and borrowing the core's own enveloper would make the two agree by construction. -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.0.0" />
     <!-- Boot-time readiness only: the engine waits for the seed's search-index backlog to drain before it hands
          the app over, and the outbox table is the one place that says so (#660). Same version the two UI test
@@ -35,7 +35,7 @@
     <PackageReference Include="SSH.NET" Version="2026.0.0" />
     <!-- The engine's progress lines go through an ILogger the caller supplies (ADR 0906); the abstractions only,
          since which console (if any) shows them is the caller's choice. -->
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>
