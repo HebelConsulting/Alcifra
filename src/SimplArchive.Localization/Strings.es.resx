@@ -5511,4 +5511,49 @@
   <data name="MobTools" xml:space="preserve">
     <value>Herramientas</value>
   </data>
+  <data name="TenantGroupOfflineCache" xml:space="preserve">
+    <value>Caché sin conexión (aplicación móvil)</value>
+  </data>
+  <data name="TenantOcAllowed" xml:space="preserve">
+    <value>Los teléfonos pueden guardar una caché sin conexión</value>
+  </data>
+  <data name="TenantOcAllowedInfo" xml:space="preserve">
+    <value>La aplicación móvil guarda sin conexión lo que el usuario elige, sellado con sus propias llaves. Esta política obliga a la aplicación, que la respeta; un teléfono no se puede forzar, así que no protege frente a un cliente modificado.</value>
+  </data>
+  <data name="TenantOcKeeps" xml:space="preserve">
+    <value>Puede guardar</value>
+  </data>
+  <data name="TenantOcNotifications" xml:space="preserve">
+    <value>Notificaciones</value>
+  </data>
+  <data name="TenantOcOpenedDocuments" xml:space="preserve">
+    <value>Documentos abiertos en el teléfono</value>
+  </data>
+  <data name="TenantOcChosenFolders" xml:space="preserve">
+    <value>Carpetas que elige el usuario</value>
+  </data>
+  <data name="TenantOcUnlock" xml:space="preserve">
+    <value>Desbloqueo</value>
+  </data>
+  <data name="TenantOcUserChooses" xml:space="preserve">
+    <value>Elige el usuario</value>
+  </data>
+  <data name="TenantOcUnlockSession" xml:space="preserve">
+    <value>Llave una vez por sesión</value>
+  </data>
+  <data name="TenantOcUnlockDocument" xml:space="preserve">
+    <value>Llave para cada documento</value>
+  </data>
+  <data name="TenantOcRefresh" xml:space="preserve">
+    <value>Actualización</value>
+  </data>
+  <data name="TenantOcRefreshKeep" xml:space="preserve">
+    <value>Mantener actualizado con conexión</value>
+  </data>
+  <data name="TenantOcRefreshRemove" xml:space="preserve">
+    <value>Eliminar una copia cuando exista una versión más reciente</value>
+  </data>
+  <data name="TenantOcMaxMinutes" xml:space="preserve">
+    <value>Máximo desbloqueada en segundo plano (minutos)</value>
+  </data>
 </root>

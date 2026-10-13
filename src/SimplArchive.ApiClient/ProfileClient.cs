@@ -342,6 +342,71 @@ public sealed class ProfileClient(ApiCore core)
         return new ReaderCertificateSet(ApiWire.StrOrNull(json, "source") ?? "none", ApiWire.StrOrNull(json, "reason"), certificates);
     }
 
+    // ---- What the tenant allows the phone's offline cache (#1742, ADR 0923) --------------------------
+
+    /// <summary>The tenant's offline-cache policy as read, with the tag a save must present and the address it goes to.</summary>
+    /// <param name="UnlockMode"><c>UserChooses</c>, <c>Session</c> or <c>Document</c>.</param>
+    /// <param name="RefreshMode"><c>UserChooses</c>, <c>KeepUpdated</c> or <c>RemoveWhenNewer</c>.</param>
+    /// <param name="CanEdit">Whether the caller may save it (a tenant administrator).</param>
+    public sealed record OfflineCachePolicy(
+        bool Allowed, bool Notifications, bool OpenedDocuments, bool ChosenFolders,
+        string UnlockMode, string RefreshMode, int MaxUnlockedMinutes, bool CanEdit, string Href, string? ETag);
+
+    /// <summary>The tenant's offline-cache policy, or null where the installation does not advertise it.</summary>
+    public async Task<OfflineCachePolicy?> GetOfflineCachePolicyAsync(CancellationToken cancellationToken = default)
+    {
+        await MeHrefAsync("self", cancellationToken);   // populates the cache
+        if (_meLinks is null || !_meLinks.Has("offlineCachePolicy"))
+        {
+            return null;
+        }
+
+        using var response = await _core.Http.GetAsync(await MeHrefAsync("offlineCachePolicy", cancellationToken), cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return ParseOfflineCachePolicy(await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken), response.Headers.ETag?.Tag);
+    }
+
+    /// <summary>
+    /// Saves the whole policy with the tag of the read that filled the form (ADR 0794): a change made meanwhile is
+    /// refused (412) rather than overwritten.
+    /// </summary>
+    public async Task<OfflineCachePolicy> SaveOfflineCachePolicyAsync(OfflineCachePolicy policy, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, policy.Href)
+        {
+            Content = System.Net.Http.Json.JsonContent.Create(new
+            {
+                allowed = policy.Allowed,
+                notifications = policy.Notifications,
+                openedDocuments = policy.OpenedDocuments,
+                chosenFolders = policy.ChosenFolders,
+                unlockMode = policy.UnlockMode,
+                refreshMode = policy.RefreshMode,
+                maxUnlockedMinutes = policy.MaxUnlockedMinutes,
+            }),
+        };
+        if (policy.ETag is { } tag)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", tag);
+        }
+
+        using var response = await _core.Http.SendAsync(request, cancellationToken);
+        await ApiCore.ThrowIfProblemAsync(response, "The offline-cache policy could not be saved.", cancellationToken);
+        return ParseOfflineCachePolicy(await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken), response.Headers.ETag?.Tag);
+    }
+
+    private static OfflineCachePolicy ParseOfflineCachePolicy(JsonElement json, string? etag) => new(
+        json.GetProperty("allowed").GetBoolean(),
+        json.GetProperty("notifications").GetBoolean(),
+        json.GetProperty("openedDocuments").GetBoolean(),
+        json.GetProperty("chosenFolders").GetBoolean(),
+        ApiWire.StrOrNull(json, "unlockMode") ?? "UserChooses",
+        ApiWire.StrOrNull(json, "refreshMode") ?? "UserChooses",
+        json.GetProperty("maxUnlockedMinutes").GetInt32(),
+        json.TryGetProperty("canEdit", out var canEdit) && canEdit.ValueKind == JsonValueKind.True,
+        ApiCore.FindLink(json, "self") ?? throw new InvalidOperationException("The offline-cache policy advertised no 'self' rel (ADR 0543)."),
+        etag);
+
     // ---- Self-service S/MIME certificate (#1332, ADR 0816) ------------------------------------------
 
     // One rel, the method says which action (ADR 0719): GET reads, PUT uploads, POST generates, DELETE

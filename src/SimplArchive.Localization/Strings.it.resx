@@ -5511,4 +5511,49 @@
   <data name="MobTools" xml:space="preserve">
     <value>Strumenti</value>
   </data>
+  <data name="TenantGroupOfflineCache" xml:space="preserve">
+    <value>Cache offline (app per telefono)</value>
+  </data>
+  <data name="TenantOcAllowed" xml:space="preserve">
+    <value>I telefoni possono tenere una cache offline</value>
+  </data>
+  <data name="TenantOcAllowedInfo" xml:space="preserve">
+    <value>L'app per telefono conserva offline ciò che l'utente sceglie, sigillato con le sue chiavi. Questa regola vincola l'app, che la rispetta; un telefono non si può costringere, quindi non protegge da un client modificato.</value>
+  </data>
+  <data name="TenantOcKeeps" xml:space="preserve">
+    <value>Può conservare</value>
+  </data>
+  <data name="TenantOcNotifications" xml:space="preserve">
+    <value>Notifiche</value>
+  </data>
+  <data name="TenantOcOpenedDocuments" xml:space="preserve">
+    <value>Documenti aperti sul telefono</value>
+  </data>
+  <data name="TenantOcChosenFolders" xml:space="preserve">
+    <value>Cartelle scelte dall'utente</value>
+  </data>
+  <data name="TenantOcUnlock" xml:space="preserve">
+    <value>Sblocco</value>
+  </data>
+  <data name="TenantOcUserChooses" xml:space="preserve">
+    <value>Sceglie l'utente</value>
+  </data>
+  <data name="TenantOcUnlockSession" xml:space="preserve">
+    <value>Chiave una volta per sessione</value>
+  </data>
+  <data name="TenantOcUnlockDocument" xml:space="preserve">
+    <value>Chiave per ogni documento</value>
+  </data>
+  <data name="TenantOcRefresh" xml:space="preserve">
+    <value>Aggiornamento</value>
+  </data>
+  <data name="TenantOcRefreshKeep" xml:space="preserve">
+    <value>Mantieni aggiornato quando online</value>
+  </data>
+  <data name="TenantOcRefreshRemove" xml:space="preserve">
+    <value>Rimuovi una copia quando esiste una versione più recente</value>
+  </data>
+  <data name="TenantOcMaxMinutes" xml:space="preserve">
+    <value>Massimo sbloccata in background (minuti)</value>
+  </data>
 </root>

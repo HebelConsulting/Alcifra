@@ -239,6 +239,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanEditTenantImapDefault)); // computed from BOTH inputs (#996; the wrong-hook trap)
         OnPropertyChanged(nameof(IsEditingTenantExternalLinks));
         OnPropertyChanged(nameof(IsEditingTenantAuditStreaming));
+        OnPropertyChanged(nameof(IsEditingTenantOfflineCache));
         OnPropertyChanged(nameof(NoTenantGroupEditing));
     }
 
@@ -272,6 +273,12 @@ public sealed partial class MainWindowViewModel
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private async Task SaveTenantGroupEdit(string group)
     {
+        if (group == "offline-cache")
+        {
+            await SaveOfflineCachePolicyGroupAsync();   // its own resource (ADR 0923), not a settings-<group> rel
+            return;
+        }
+
         if (_api is null || LastTenantSettings is not { } settings)
         {
             return;
@@ -321,6 +328,7 @@ public sealed partial class MainWindowViewModel
         try
         {
             ApplyTenantSettings(await _api.Admin.SaveTenantSettingsGroupAsync(settings, group, body));
+            await LoadOfflineCachePolicyAsync();   // the save moved the shared concurrency token (ADR 0923)
             TenantEditingGroup = null;
             Status = Strings.Get("StTenantSaved");
         }

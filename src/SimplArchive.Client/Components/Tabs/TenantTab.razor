@@ -284,6 +284,10 @@
             </div>
         }
 
+        @* ---- Offline cache (phone app), #1742 / ADR 0923: its own resource and component ----------- *@
+        <OfflineCachePolicySection @ref="_offlineCache" Editing="@Editing("offline-cache")"
+                                   Header="@GroupHeader("offline-cache", Strings.Get("TenantGroupOfflineCache"))" />
+
         @* ---- Audit streaming (SIEM) --------------------------------------------------------------- *@
         @GroupHeader("audit-streaming", Strings.Get("TenantGroupAuditStreaming"))
         <div class="wb-setting-row mb-2">
@@ -479,11 +483,18 @@
         _editingGroup = group;
     }
 
-    private void CancelGroupEdit()
+    private async Task CancelGroupEdit()
     {
         SyncTenantEditFromTenant();
+        if (_editingGroup == "offline-cache" && _offlineCache is not null)
+        {
+            await _offlineCache.ReloadAsync();
+        }
+
         _editingGroup = null;
     }
+
+    private OfflineCachePolicySection? _offlineCache;
 
     private async Task LoadTenantSettingsAsync()
     {
@@ -535,6 +546,19 @@
     // One save per group (#530 tranche 10): PUT exactly the group's fields to the rel the server advertised.
     private async Task SaveGroupAsync(string group)
     {
+        if (group == "offline-cache")
+        {
+            // Its own resource (ADR 0923): saved whole with If-Match by the section, then re-read with the rest.
+            if (_offlineCache is not null && await _offlineCache.SaveAsync())
+            {
+                await LoadTenantSettingsAsync();
+                await _offlineCache.ReloadAsync();
+                Snackbar.Add(Strings.Get("StTenantSaved"), Severity.Success);
+            }
+
+            return;
+        }
+
         if (_tenantLinks?.GetValueOrDefault($"settings-{group}") is not { } href) { return; }
 
         object body = group switch
@@ -601,6 +625,11 @@
         _tenantLinks = Links.RelMap(_tenant?.Links);
         SyncTenantEditFromTenant();
         _editingGroup = null;
+        if (_offlineCache is not null)
+        {
+            await _offlineCache.ReloadAsync();   // the save moved the shared concurrency token (ADR 0923)
+        }
+
         Snackbar.Add(Strings.Get("StTenantSaved"), Severity.Success);
     }
 

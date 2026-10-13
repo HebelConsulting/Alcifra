@@ -5511,4 +5511,49 @@
   <data name="MobTools" xml:space="preserve">
     <value>Tools</value>
   </data>
+  <data name="TenantGroupOfflineCache" xml:space="preserve">
+    <value>Offline cache (phone app)</value>
+  </data>
+  <data name="TenantOcAllowed" xml:space="preserve">
+    <value>Phones may keep an offline cache</value>
+  </data>
+  <data name="TenantOcAllowedInfo" xml:space="preserve">
+    <value>The phone app keeps what the user chooses offline, sealed to the user's own keys. This policy binds the app, which honours it; a phone cannot be forced, so it is no protection against a modified client.</value>
+  </data>
+  <data name="TenantOcKeeps" xml:space="preserve">
+    <value>May keep</value>
+  </data>
+  <data name="TenantOcNotifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="TenantOcOpenedDocuments" xml:space="preserve">
+    <value>Documents opened on the phone</value>
+  </data>
+  <data name="TenantOcChosenFolders" xml:space="preserve">
+    <value>Folders the user chooses</value>
+  </data>
+  <data name="TenantOcUnlock" xml:space="preserve">
+    <value>Unlocking</value>
+  </data>
+  <data name="TenantOcUserChooses" xml:space="preserve">
+    <value>The user chooses</value>
+  </data>
+  <data name="TenantOcUnlockSession" xml:space="preserve">
+    <value>Key once per session</value>
+  </data>
+  <data name="TenantOcUnlockDocument" xml:space="preserve">
+    <value>Key for every document</value>
+  </data>
+  <data name="TenantOcRefresh" xml:space="preserve">
+    <value>Updating</value>
+  </data>
+  <data name="TenantOcRefreshKeep" xml:space="preserve">
+    <value>Keep updated when online</value>
+  </data>
+  <data name="TenantOcRefreshRemove" xml:space="preserve">
+    <value>Remove a copy when a newer version exists</value>
+  </data>
+  <data name="TenantOcMaxMinutes" xml:space="preserve">
+    <value>Longest unlocked in the background (minutes)</value>
+  </data>
 </root>

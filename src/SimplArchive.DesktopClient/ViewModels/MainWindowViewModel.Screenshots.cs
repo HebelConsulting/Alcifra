@@ -755,6 +755,10 @@ public partial class MainWindowViewModel
         TenantStatus = "Active";
         TenantCreated = ScreenshotClock.AddMonths(-8).LocalDateTime.ToString("yyyy-MM-dd HH:mm");
         TenantSettingsLoaded = true;
+        // The offline-cache group (#1742): narrowed from the defaults, so the figure shows every control in use.
+        ApplyOfflineCachePolicy(new SimplArchive.ApiClient.ProfileClient.OfflineCachePolicy(
+            Allowed: true, Notifications: true, OpenedDocuments: true, ChosenFolders: false,
+            UnlockMode: "Session", RefreshMode: "UserChooses", MaxUnlockedMinutes: 15, CanEdit: true, Href: "screenshot:offline-cache-policy", ETag: null));   // never requested: a figure, not a session
         // The Modules section (ADRs 0740/0743) — synthetic rows covering the three states the ladder can
         // show (active / in grace / not activated), so the render is verifiable headlessly; the demo host
         // stages no module assemblies, so live data cannot show them.

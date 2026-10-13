@@ -5511,4 +5511,49 @@
   <data name="MobTools" xml:space="preserve">
     <value>Werkzeuge</value>
   </data>
+  <data name="TenantGroupOfflineCache" xml:space="preserve">
+    <value>Offline-Cache (Telefon-App)</value>
+  </data>
+  <data name="TenantOcAllowed" xml:space="preserve">
+    <value>Telefone dürfen einen Offline-Cache führen</value>
+  </data>
+  <data name="TenantOcAllowedInfo" xml:space="preserve">
+    <value>Die Telefon-App hält offline, was der Benutzer wählt, versiegelt für seine eigenen Schlüssel. Diese Richtlinie bindet die App, die sie befolgt; ein Telefon lässt sich nicht zwingen, sie schützt also nicht vor einem veränderten Client.</value>
+  </data>
+  <data name="TenantOcKeeps" xml:space="preserve">
+    <value>Darf behalten</value>
+  </data>
+  <data name="TenantOcNotifications" xml:space="preserve">
+    <value>Benachrichtigungen</value>
+  </data>
+  <data name="TenantOcOpenedDocuments" xml:space="preserve">
+    <value>Auf dem Telefon geöffnete Dokumente</value>
+  </data>
+  <data name="TenantOcChosenFolders" xml:space="preserve">
+    <value>Vom Benutzer gewählte Ordner</value>
+  </data>
+  <data name="TenantOcUnlock" xml:space="preserve">
+    <value>Entsperren</value>
+  </data>
+  <data name="TenantOcUserChooses" xml:space="preserve">
+    <value>Der Benutzer wählt</value>
+  </data>
+  <data name="TenantOcUnlockSession" xml:space="preserve">
+    <value>Schlüssel einmal pro Sitzung</value>
+  </data>
+  <data name="TenantOcUnlockDocument" xml:space="preserve">
+    <value>Schlüssel für jedes Dokument</value>
+  </data>
+  <data name="TenantOcRefresh" xml:space="preserve">
+    <value>Aktualisierung</value>
+  </data>
+  <data name="TenantOcRefreshKeep" xml:space="preserve">
+    <value>Online aktuell halten</value>
+  </data>
+  <data name="TenantOcRefreshRemove" xml:space="preserve">
+    <value>Kopie entfernen, sobald eine neuere Version existiert</value>
+  </data>
+  <data name="TenantOcMaxMinutes" xml:space="preserve">
+    <value>Höchstens entsperrt im Hintergrund (Minuten)</value>
+  </data>
 </root>

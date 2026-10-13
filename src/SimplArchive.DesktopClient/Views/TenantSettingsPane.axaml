@@ -265,6 +265,37 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- ==== Offline cache (phone app), #1742 / ADR 0923 ========================== -->
+                    <!-- Its own resource (from /me), shown where the installation offers it to an administrator. The
+                         info text says the limit plainly: the policy binds the app, it cannot force a phone. -->
+                    <StackPanel Spacing="6" IsVisible="{Binding HasTenantOfflineCachePolicy}">
+                        <v:TenantGroupHeader Title="{loc:Tr TenantGroupOfflineCache}" Group="offline-cache"
+                                             IsEditing="{Binding IsEditingTenantOfflineCache}" />
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <CheckBox IsChecked="{Binding TenantOcAllowed}" IsEnabled="{Binding IsEditingTenantOfflineCache}" Content="{loc:Tr TenantOcAllowed}" />
+                            <i:Icon Value="mdi-information-outline" FontSize="14" Foreground="{DynamicResource WbFaint}" VerticalAlignment="Center" Cursor="Help"
+                                    ToolTip.Tip="{loc:Tr TenantOcAllowedInfo}" />
+                        </StackPanel>
+                        <!-- The rest means nothing while the cache is off, so it appears with it. -->
+                        <StackPanel Margin="24,0,0,0" Spacing="6" IsVisible="{Binding TenantOcAllowed}">
+                            <TextBlock Text="{loc:Tr TenantOcKeeps}" Foreground="{DynamicResource WbMuted}" />
+                            <CheckBox IsChecked="{Binding TenantOcNotifications}" IsEnabled="{Binding IsEditingTenantOfflineCache}" Content="{loc:Tr TenantOcNotifications}" />
+                            <CheckBox IsChecked="{Binding TenantOcOpenedDocuments}" IsEnabled="{Binding IsEditingTenantOfflineCache}" Content="{loc:Tr TenantOcOpenedDocuments}" />
+                            <CheckBox IsChecked="{Binding TenantOcChosenFolders}" IsEnabled="{Binding IsEditingTenantOfflineCache}" Content="{loc:Tr TenantOcChosenFolders}" />
+                            <!-- Labels above their fields, as the Storage and Check-out groups do: a fixed label column
+                                 cut "Longest unlocked in the background (minutes)" off in the first render. -->
+                            <TextBlock Text="{loc:Tr TenantOcUnlock}" Foreground="{DynamicResource WbMuted}" Margin="0,4,0,0" />
+                            <ComboBox ItemsSource="{Binding TenantOcUnlockChoices}" SelectedIndex="{Binding TenantOcUnlockModeIndex}"
+                                      IsEnabled="{Binding IsEditingTenantOfflineCache}" Width="260" />
+                            <TextBlock Text="{loc:Tr TenantOcRefresh}" Foreground="{DynamicResource WbMuted}" Margin="0,4,0,0" />
+                            <ComboBox ItemsSource="{Binding TenantOcRefreshChoices}" SelectedIndex="{Binding TenantOcRefreshModeIndex}"
+                                      IsEnabled="{Binding IsEditingTenantOfflineCache}" Width="260" />
+                            <TextBlock Text="{loc:Tr TenantOcMaxMinutes}" Foreground="{DynamicResource WbMuted}" Margin="0,4,0,0" />
+                            <NumericUpDown Value="{Binding TenantOcMaxMinutes}" IsEnabled="{Binding IsEditingTenantOfflineCache}"
+                                           Minimum="1" Maximum="1440" Increment="1" FormatString="0" Width="160" HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </StackPanel>
+
                     <!-- ==== Audit streaming (SIEM) =============================================== -->
                     <v:TenantGroupHeader Title="{loc:Tr TenantGroupAuditStreaming}" Group="audit-streaming"
                                          IsEditing="{Binding IsEditingTenantAuditStreaming}" />
