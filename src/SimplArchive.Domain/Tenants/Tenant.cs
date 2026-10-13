@@ -172,6 +172,24 @@ public class Tenant : IConcurrencyTracked
 
     public long? StorageQuotaBytes { get; set; }
 
+    // The phone's offline cache (#1742, owner decisions 2026-10-13; SimplArchiveMobile #5): what this tenant allows.
+    // Everything is allowed until an administrator narrows it. It binds our apps, which honour what the server
+    // advertises; the server cannot enforce what a phone stores.
+    public bool OfflineCacheAllowed { get; set; } = true;
+
+    public bool OfflineCacheNotifications { get; set; } = true;
+
+    public bool OfflineCacheOpenedDocuments { get; set; } = true;
+
+    public bool OfflineCacheChosenFolders { get; set; } = true;
+
+    public OfflineCacheUnlockMode OfflineCacheUnlockMode { get; set; } = OfflineCacheUnlockMode.UserChooses;
+
+    public OfflineCacheRefreshMode OfflineCacheRefreshMode { get; set; } = OfflineCacheRefreshMode.UserChooses;
+
+    /// <summary>The longest an unlocked cache stays open in the background; the user may choose shorter.</summary>
+    public int OfflineCacheMaxUnlockedMinutes { get; set; } = 15;
+
     // Maintained per-tenant used-storage counter (ADR "Per-tenant storage quota"): the sum of this tenant's
     // confirmed DocumentVersion blob sizes. Incremented when a version is confirmed (by DocumentVersion.SizeBytes),
     // decremented when a version's blob is purged. Only reflects blobs written since the feature landed — existing

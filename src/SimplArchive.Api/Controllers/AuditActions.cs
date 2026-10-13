@@ -154,6 +154,7 @@ public static class AuditActions
     public const string TenantSettingsCaptureUpdated = "Tenant.SettingsCaptureUpdated";
     public const string TenantSettingsStandardRepositoryUpdated = "Tenant.SettingsStandardRepositoryUpdated";
     public const string TenantSettingsSecurityUpdated = "Tenant.SettingsSecurityUpdated";
+    public const string TenantOfflineCachePolicyUpdated = "Tenant.OfflineCachePolicyUpdated";
     public const string TenantSettingsRecordsUpdated = "Tenant.SettingsRecordsUpdated";
     public const string TenantSettingsCheckoutUpdated = "Tenant.SettingsCheckoutUpdated";
     public const string TenantSettingsStorageUpdated = "Tenant.SettingsStorageUpdated";

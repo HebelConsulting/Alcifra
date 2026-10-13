@@ -197,7 +197,7 @@ public static class SaConsoleApp
 
             config.AddBranch("tenant", tenant =>
             {
-                tenant.SetDescription("Tenant administration: provisioning (platform administrator) and the tenant's standard repository (tenant administrator).");
+                tenant.SetDescription("Tenant administration: provisioning (platform administrator), the tenant's standard repository and its offline-cache policy (tenant administrator).");
                 tenant.AddCommand<TenantCreateCommand>("create")
                     .WithDescription("Provision a tenant with its first administrator and repository.");
                 tenant.AddBranch("standard-repository", standard =>
@@ -207,6 +207,14 @@ public static class SaConsoleApp
                         .WithDescription("Show the tenant's standard repository.");
                     standard.AddCommand<StandardRepositorySetCommand>("set")
                         .WithDescription("Make another repository the standard one; the manuals folder moves with it.");
+                });
+                tenant.AddBranch("offline-cache", cache =>
+                {
+                    cache.SetDescription("What the tenant allows a phone's offline cache (#1742); it binds the apps, which honour it.");
+                    cache.AddCommand<OfflineCacheShowCommand>("show")
+                        .WithDescription("Show the offline-cache policy.");
+                    cache.AddCommand<OfflineCacheSetCommand>("set")
+                        .WithDescription("Change it (tenant administrator); options left out keep their value.");
                 });
             });
         });

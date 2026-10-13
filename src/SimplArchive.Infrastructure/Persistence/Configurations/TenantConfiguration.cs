@@ -76,5 +76,22 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_Tenants_Status_DeactivatedAt",
             "(\"Status\" = 0 AND \"DeactivatedAt\" IS NULL) OR (\"Status\" = 1 AND \"DeactivatedAt\" IS NOT NULL)"));
+
+        // The phone's offline-cache policy (#1742). HasDefaultValue so existing tenants get "everything allowed" (the
+        // owner's default), not the CLR default false. The CHECKs keep the two exclusive modes to their three values and
+        // the background unlock within a day: the database refuses what no client can do anything sensible with.
+        builder.Property(t => t.OfflineCacheAllowed).HasDefaultValue(true);
+        builder.Property(t => t.OfflineCacheNotifications).HasDefaultValue(true);
+        builder.Property(t => t.OfflineCacheOpenedDocuments).HasDefaultValue(true);
+        builder.Property(t => t.OfflineCacheChosenFolders).HasDefaultValue(true);
+        builder.Property(t => t.OfflineCacheUnlockMode).HasDefaultValue(SimplArchive.Domain.Tenants.OfflineCacheUnlockMode.UserChooses);
+        builder.Property(t => t.OfflineCacheRefreshMode).HasDefaultValue(SimplArchive.Domain.Tenants.OfflineCacheRefreshMode.UserChooses);
+        builder.Property(t => t.OfflineCacheMaxUnlockedMinutes).HasDefaultValue(15);
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Tenants_OfflineCacheUnlockMode", "\"OfflineCacheUnlockMode\" IN (0, 1, 2)");
+            t.HasCheckConstraint("CK_Tenants_OfflineCacheRefreshMode", "\"OfflineCacheRefreshMode\" IN (0, 1, 2)");
+            t.HasCheckConstraint("CK_Tenants_OfflineCacheMaxUnlockedMinutes", "\"OfflineCacheMaxUnlockedMinutes\" BETWEEN 1 AND 1440");
+        });
     }
 }

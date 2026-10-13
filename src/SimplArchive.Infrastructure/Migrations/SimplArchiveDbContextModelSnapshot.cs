@@ -2550,6 +2550,41 @@ namespace SimplArchive.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<bool>("OfflineCacheAllowed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("OfflineCacheChosenFolders")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("OfflineCacheMaxUnlockedMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(15);
+
+                    b.Property<bool>("OfflineCacheNotifications")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("OfflineCacheOpenedDocuments")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("OfflineCacheRefreshMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("OfflineCacheUnlockMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<bool>("RequireDispositionReview")
                         .HasColumnType("boolean");
 
@@ -2613,6 +2648,12 @@ namespace SimplArchive.Infrastructure.Migrations
 
                     b.ToTable("Tenants", t =>
                         {
+                            t.HasCheckConstraint("CK_Tenants_OfflineCacheMaxUnlockedMinutes", "\"OfflineCacheMaxUnlockedMinutes\" BETWEEN 1 AND 1440");
+
+                            t.HasCheckConstraint("CK_Tenants_OfflineCacheRefreshMode", "\"OfflineCacheRefreshMode\" IN (0, 1, 2)");
+
+                            t.HasCheckConstraint("CK_Tenants_OfflineCacheUnlockMode", "\"OfflineCacheUnlockMode\" IN (0, 1, 2)");
+
                             t.HasCheckConstraint("CK_Tenants_Status_DeactivatedAt", "(\"Status\" = 0 AND \"DeactivatedAt\" IS NULL) OR (\"Status\" = 1 AND \"DeactivatedAt\" IS NOT NULL)");
                         });
                 });

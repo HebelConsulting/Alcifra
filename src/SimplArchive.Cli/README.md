@@ -30,14 +30,21 @@ configured from a terminal or a script:
 |---|---|
 | `login`, `whoami` | Sign in (interactively, or as a service account) and show who you are acting as |
 | `tenant create`, `tenant standard-repository` | Provision a tenant with its first administrator; choose where SimplArchive files what it brings |
+| `tenant offline-cache show`, `set` | What the tenant allows the phone app's offline cache: the cache at all, what it may keep, how it unlocks and refreshes, how long it may stay unlocked. It binds the apps, which honour it; a phone cannot be forced |
 | `module list`, `module activate`, `module settings`, `module rebuild` | Activate industry modules with a vendor-signed licence, configure them, rebuild their read models |
 | `module action` | Invoke a module's action on a document; a value it reveals once (a credential) is written to a mode-600 file |
+| `module upload` | Upload a file through a module's upload link, such as a package or an app for its feed, found on the installation's root |
 | `repository create` | Create a repository, or find the one of that name; prints its id |
 | `certificates list`, `enrol`, `revoke`, `import` | Manage the reader certificates encrypted content is addressed to, including bulk import from a CA |
 | `acl set`, `grant`, `revoke` | Decide who may do what to a document |
 | `me certificate`, `intray previous` | A user's own certificate, and recovering intray content |
 
-Every command has `--help`.
+Every command has `--help`. For example, to fix how phones unlock their offline cache and keep the rest:
+
+```sh
+saconsole tenant offline-cache set --unlock-mode Session --max-unlocked-minutes 10
+saconsole tenant offline-cache show
+```
 
 ## Install and sign in
 

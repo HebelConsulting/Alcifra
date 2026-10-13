@@ -158,6 +158,8 @@ public class MeController : ControllerBase
                 new Link("smimeCertificate", "/api/me/smime-certificate", "GET"),
                 // The certificate SET envelopes are addressed to, read-only (#1741): what a client seals to its own user.
                 new Link("readerCertificates", "/api/me/reader-certificates", "GET"),
+                // What the tenant allows a phone's offline cache (#1742): every user reads it; an administrator PUTs it.
+                new Link("offlineCachePolicy", "/api/offline-cache-policy", "GET"),
                 new Link("personalRepository", "/api/me/personal-repository", "POST"),
                 // The display-zone preference (#1254). Advertised so a client can FOLLOW it rather than
                 // compose the address — an endpoint no resource links to is unreachable by a conforming
