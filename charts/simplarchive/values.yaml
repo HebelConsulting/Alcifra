@@ -461,8 +461,8 @@ modules:
       sha512: "ekHTOUci6S2i4/g9QbWo7zMVl8M+uAUBzvEH6tBjsBWeb+lZiEtiOZ9troPewb7/74aQ/1KmElhktb1VyKtDvw=="
     ENCRYPTION:
       package: SimplArchive.Encryption
-      version: 0.3.0
-      sha512: "WWRZEotZtY5tU5JiH/PdyDuikNmTHSTwQQdSEygGD2jH1xaO9WpK7VeWYTePjriLOPddFvQDhBC3CZPOqnVybw=="
+      version: 0.4.0
+      sha512: "ny7EOsON8uttHWix+OeDYF2aGcMbb7dn3nkpSsUhZWykf+MTp0JfpQdaVd+6fNhuA74ufSb+K8BciQFNNpuXaA=="
     LICENSING:
       package: SimplArchive.Licensing
       version: 0.5.1
