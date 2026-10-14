@@ -121,8 +121,9 @@ public static class CryptoDemoSeeder
         await AddModuleSetupAsync(services, dbContext, configuration, provisioned, admin.Id, now);
 
         // A couple of documents so IMAP serves content immediately — through the same finalizer path an
-        // interactive upload takes (ADR 0545), reusing demo resources (content is irrelevant to the
-        // encryption proof; that the bytes arrive as application/pkcs7-mime is the point).
+        // interactive upload takes (ADR 0545). That the bytes arrive as application/pkcs7-mime is the point; their
+        // own content says what their names promise (crypto-*.typ), since the Acme invoice and offer they once
+        // borrowed read as a mistake to anyone who opened them.
         var storage = services.GetRequiredService<IObjectStorageClient>();
         var finalizer = services.GetRequiredService<Documents.DocumentFinalizer>();
         var assembly = typeof(DemoDataSeeder).Assembly;
@@ -139,10 +140,10 @@ public static class CryptoDemoSeeder
 
         await DemoDataSeeder.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
             sampleData.Id, "Board minutes 2026-03", admin.Id, now, basicEntryVersion.Id,
-            "DemoInvoice.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 3), finalizer);
+            "CryptoBoardMinutes.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 3), finalizer);
         await DemoDataSeeder.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
             sampleData.Id, "Salary review 2026", admin.Id, now, basicEntryVersion.Id,
-            "DemoOfferV1.pdf", ".pdf", "application/pdf", new DateOnly(2026, 1, 14), finalizer);
+            "CryptoSalaryReview.pdf", ".pdf", "application/pdf", new DateOnly(2026, 1, 14), finalizer);
     }
 
     // The unattended setup principal (ADR 0870): the nightly reset wipes every enrolment (certificates are
