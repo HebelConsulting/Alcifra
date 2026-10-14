@@ -124,7 +124,7 @@ public static class ModuleReadModelWiring
         var builder = (DbContextOptionsBuilder)Activator.CreateInstance(
             typeof(DbContextOptionsBuilder<>).MakeGenericType(contextType))!;
 
-        builder.UseNpgsql(ownerConnectionString, npgsql => npgsql
+        builder.UseNpgsql(Persistence.NpgsqlGssEncryption.Off(ownerConnectionString), npgsql => npgsql
             .MigrationsHistoryTable(HistoryTable(moduleId))
             .MigrationsAssembly(contextType.Assembly));
 

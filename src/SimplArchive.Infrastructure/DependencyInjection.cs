@@ -34,8 +34,9 @@ public static class DependencyInjection
         // operator's own value, and one OpenBaoSecretsReader rebuilds at runtime from a template plus a dynamic
         // credential. This is the single point both pass through. See DatabasePoolCeiling for why an uncapped
         // pool takes the whole deployment down rather than merely being untidy (#750).
+        // And no GSS (Kerberos) negotiation on any connection: its native call crashed the kiosk (#1752).
         var (connectionString, maxPoolSize, poolSource) = DatabasePoolCeiling.Apply(
-            configuredConnectionString, configuration.GetValue<int?>("Database:MaxPoolSize"));
+            NpgsqlGssEncryption.Off(configuredConnectionString), configuration.GetValue<int?>("Database:MaxPoolSize"));
 
         // The app-wide clock is the real system clock for EVERYONE — including OpenIddict/auth, which must track
         // real time: a frozen past instant makes issued tokens/cookies look already-expired to a real-time browser

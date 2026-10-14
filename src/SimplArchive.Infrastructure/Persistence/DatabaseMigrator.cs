@@ -11,7 +11,7 @@ public static class DatabaseMigrator
     public static async Task MigrateAsync(string connectionString, CancellationToken cancellationToken = default)
     {
         var options = new DbContextOptionsBuilder<SimplArchiveDbContext>()
-            .UseNpgsql(connectionString)
+            .UseNpgsql(NpgsqlGssEncryption.Off(connectionString))   // no Kerberos negotiation (#1752)
             .Options;
         await using var context = new SimplArchiveDbContext(options, new CurrentTenantAccessor());
         await context.Database.MigrateAsync(cancellationToken);
