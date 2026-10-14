@@ -18,7 +18,7 @@ namespace SimplArchive.IntegrationTests;
 // Verifies RepositoryExporter (ADR "Repository export"): the .zip carries the subtree, versions + deduped blobs,
 // index values, mask definitions, principals, comments; the filters (active-only version selection, document
 // date) apply; and ancestor folders of an included document are kept while empty branches are pruned.
-public class RepositoryExporterTests
+public partial class RepositoryExporterTests
 {
     private sealed class FakeStorage : IObjectStorageClient
     {

@@ -35,6 +35,8 @@
   <ItemGroup>
     <ProjectReference Include="..\SimplArchive.SelfHosting\SimplArchive.SelfHosting.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.Api\SimplArchive.Api.csproj" />
+    <!-- The offline copy's merger, tested against the real exporter (ADR 0927, #1759). -->
+    <ProjectReference Include="..\..\src\SimplArchive.ApiClient\SimplArchive.ApiClient.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.Infrastructure\SimplArchive.Infrastructure.csproj" />
     <ProjectReference Include="..\SimplArchive.TestModule\SimplArchive.TestModule.csproj" />
   </ItemGroup>
