@@ -87,6 +87,8 @@ public static class AuditActions
     public const string DocumentFiled = "Document.Filed";
     // Import of an archive's root (ADR "Repository import").
     public const string DocumentImported = "Document.Imported";
+    // An offline export (ADR 0927): what one caller may read, onto their device for the offline copy.
+    public const string DocumentOfflineExported = "Document.OfflineExported";
     // Auto-disposed by the retention sweep (ADR "Retention policies (auto-disposition)"). Also used as a literal
     // in Infrastructure's RetentionService, which can't reference this Api-layer class.
     public const string DocumentRetentionDisposed = "Document.RetentionDisposed";

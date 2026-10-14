@@ -103,6 +103,10 @@ public sealed class DocumentResourceLinks
             // hottest read in the app. The conditional rels here are the ones a client CANNOT work out for
             // itself (is this a folder, a zip, a root, does the tenant allow external links).
             new("export", url.Action(nameof(DocumentTransferController.Export), "DocumentTransfer", new { documentId })!, "GET"),
+            // What the caller may read of this subtree, for the phone's offline copy (ADR 0927). Unconditional for the
+            // export's reason above: the gate is the tenant's offline policy, which the phone already reads; the
+            // endpoint refuses with the reason when the policy forbids it or the tenant refuses plaintext doors.
+            new("offlineExport", url.Action(nameof(DocumentOfflineExportController.OfflineExport), "DocumentOfflineExport", new { documentId })!, "GET"),
             new("set-primary-location", url.Action(nameof(DocumentsController.SetPrimaryLocation), "Documents", new { documentId })!, "PUT"),
             // The caller's PERSONAL colour for this collection (#564 slice 2, ADR 0620). Unconditional for the
             // same reason as tags/reminders below: anyone who may see a folder may choose how they see it, and

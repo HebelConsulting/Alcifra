@@ -37,10 +37,29 @@ public sealed class RepositoryExporter
 
     // Writes the export archive to the supplied stream. The root must be an existing, active document of the
     // caller's tenant (validated by the caller). The stream is written but not disposed/closed by this method.
-    public async Task ExportAsync(Guid rootId, RepositoryExportFilters filters, bool includePermissions, Stream output, CancellationToken cancellationToken)
+    public Task ExportAsync(Guid rootId, RepositoryExportFilters filters, bool includePermissions, Stream output, CancellationToken cancellationToken) =>
+        ExportAsync(rootId, filters, includePermissions, output, audience: null, cancellationToken);
+
+    /// <param name="audience">An offline export's caller (ADR 0927): the archive holds only what they may read, at the
+    /// version they may read, with the visible folder chain above the anchor. Null for the regular export.</param>
+    public async Task ExportAsync(Guid rootId, RepositoryExportFilters filters, bool includePermissions, Stream output,
+        OfflineExportAudience? audience, CancellationToken cancellationToken)
     {
         // 1. Collect the active subtree (tenant + soft-delete filters apply automatically).
         var documents = await CollectSubtreeAsync(rootId, cancellationToken);
+
+        // An offline export: the folders above the anchor (metadata only), and only what the caller may see.
+        var chain = audience is null ? [] : await CollectAncestorsAsync(documents[0], cancellationToken);
+        IReadOnlyDictionary<Guid, EffectiveRights> rights = new Dictionary<Guid, EffectiveRights>();
+        if (audience is not null)
+        {
+            rights = await audience.RightsForMany([.. documents.Concat(chain).Select(d => d.Id)], cancellationToken);
+            bool Sees(Document d) => rights.TryGetValue(d.Id, out var r) && r.CanSee;
+            var seen = new HashSet<Guid>();
+            documents = [.. documents.Where(d => (d.Id == rootId || seen.Contains(d.ParentId ?? Guid.Empty)) && Sees(d) && seen.Add(d.Id))];
+            chain = [.. chain.TakeWhile(Sees)];
+        }
+
         var docIds = documents.Select(d => d.Id).ToHashSet();
 
         // 2. Confirmed versions of those documents + their workflow-gating state (for ActiveOnly resolution).
@@ -48,11 +67,12 @@ public sealed class RepositoryExporter
             .Where(v => docIds.Contains(v.DocumentId) && v.Status == DocumentVersionStatus.Confirmed)
             .ToListAsync(cancellationToken);
         var versionIds = versions.Select(v => v.Id).ToList();
-        var gatedVersionIds = await _dbContext.WorkflowStates
+        var gatedStates = await _dbContext.WorkflowStates
             .Where(w => versionIds.Contains(w.DocumentVersionId) && w.Status != WorkflowStatus.Released)
-            .Select(w => w.DocumentVersionId)
+            .Select(w => new { w.DocumentVersionId, w.AssignedToUserId })
             .ToListAsync(cancellationToken);
-        var gated = gatedVersionIds.ToHashSet();
+        var gated = gatedStates.Select(w => w.DocumentVersionId).ToHashSet();
+        var reviewing = audience?.UserId is { } reviewer ? gatedStates.Where(w => w.AssignedToUserId == reviewer).Select(w => w.DocumentVersionId).ToHashSet() : [];
 
         // 3. Principal name lookups (for the CreatedBy filter + the principals manifest). Tenant-bounded.
         var userById = await _dbContext.Users
@@ -73,7 +93,19 @@ public sealed class RepositoryExporter
             }
 
             IEnumerable<DocumentVersion> candidates = docVersions;
-            if (filters.Versions == ExportVersionSelection.ActiveOnly)
+            if (filters.Versions == ExportVersionSelection.CurrentForCaller)
+            {
+                // The version the caller would see online (ADR 0927): the current one (pinned, else the newest
+                // confirmed, ADR 0503) when they may read it; else the newest one they may read (ADR 0300: a gated
+                // version is for editors and its assigned reviewer); none without CanReadContent.
+                var r = rights.GetValueOrDefault(document.Id);
+                bool Readable(DocumentVersion v) => r is { CanReadContent: true } && (r.CanEditContent || !gated.Contains(v.Id) || reviewing.Contains(v.Id));
+                var current = docVersions.FirstOrDefault(v => v.Id == document.CurrentVersionId)
+                    ?? docVersions.OrderByDescending(v => v.VersionNumber ?? 0).First();
+                var chosen = Readable(current) ? current : docVersions.Where(Readable).OrderByDescending(v => v.VersionNumber ?? 0).FirstOrDefault();
+                candidates = chosen is null ? [] : [chosen];
+            }
+            else if (filters.Versions == ExportVersionSelection.ActiveOnly)
             {
                 // The version an end user sees as current: the highest-numbered confirmed version that isn't
                 // gated in a workflow (ADR "Workflow status-gating"). May not be the newest version.
@@ -98,7 +130,13 @@ public sealed class RepositoryExporter
             }
         }
 
-        var includedDocuments = documents.Where(d => included.Contains(d.Id)).ToList();
+        // The folder chain above an offline export's anchor: metadata only, so the copy places the anchor in its tree.
+        var includedDocuments = chain.AsEnumerable().Reverse().Concat(documents.Where(d => included.Contains(d.Id))).ToList();
+        foreach (var folder in chain)
+        {
+            included.Add(folder.Id);
+        }
+
         exportedVersions = exportedVersions.Where(v => included.Contains(v.DocumentId)).ToList();
         var exportedVersionDocIds = exportedVersions.Select(v => v.DocumentId).ToHashSet();
 
@@ -361,6 +399,9 @@ public sealed class RepositoryExporter
             formatVersion = FormatVersion,
             exportedAt = DateTimeOffset.UtcNow,
             includesPermissions = includePermissions,
+            // An offline export (ADR 0927): what one caller may read, the current version as they may read it, and the
+            // visible folder chain above the root. A merger keeps it apart from a regular export by this flag.
+            offline = audience is not null,
             source = new { tenantId = tenant.Id, tenantName = tenant.Name },
             root = new { documentId = root.Id, name = root.Name },
             filters = new
@@ -373,7 +414,7 @@ public sealed class RepositoryExporter
                 documentDateTimeZone = filters.TimeZoneId,
                 filedFrom = filters.FiledFrom,
                 filedTo = filters.FiledTo,
-                versions = filters.Versions == ExportVersionSelection.ActiveOnly ? "active" : "all",
+                versions = filters.Versions switch { ExportVersionSelection.ActiveOnly => "active", ExportVersionSelection.CurrentForCaller => "current", _ => "all" },
                 createdBy = filters.CreatedBy,
             },
             counts = new
@@ -390,6 +431,25 @@ public sealed class RepositoryExporter
                 labels = labelsById.Count,
             },
         }, cancellationToken);
+    }
+
+    // The anchor's ancestors, nearest first, up to its repository.
+    private async Task<List<Document>> CollectAncestorsAsync(Document anchor, CancellationToken cancellationToken)
+    {
+        var chain = new List<Document>();
+        for (var parentId = anchor.ParentId; parentId is { } id;)
+        {
+            var parent = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == id, cancellationToken);
+            if (parent is null || chain.Count > 256)
+            {
+                break;
+            }
+
+            chain.Add(parent);
+            parentId = parent.ParentId;
+        }
+
+        return chain;
     }
 
     private async Task<List<Document>> CollectSubtreeAsync(Guid rootId, CancellationToken cancellationToken)

@@ -7,6 +7,9 @@ public enum ExportVersionSelection
 {
     All,
     ActiveOnly,
+
+    // An offline export's (ADR 0927): the current version (ADR 0503) as the caller may read it.
+    CurrentForCaller,
 }
 
 // The filters an export applies while walking the subtree (ADR "Repository export"). All optional; a null
