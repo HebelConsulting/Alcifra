@@ -101,5 +101,10 @@ public static class ModuleAbiVersion
     /// refuses plaintext doors, and whether their index data and chat are sealed (core ADR 0928). A default member and new
     /// types only, so a 1.14 module is unaffected.
     /// </para>
-    public const int Minor = 15;
+    /// <para>
+    /// 1.16 adds <see cref="OfflineExportPolicy.ContentOncePerSession"/>: whether a device may open an offline export's
+    /// content once and keep it sealed to its copy's key (core ADR 0929). An init property only, so a 1.15 module is
+    /// unaffected.
+    /// </para>
+    public const int Minor = 16;
 }

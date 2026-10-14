@@ -194,3 +194,80 @@ public sealed class SealedExportTests
         }
     }
 }
+
+// ADR 0929: where the manifest allows it, the device opens an export's content envelopes once and keeps the content
+// itself; the opened export names the content's own hash and type, so the copy serves it like any plain export.
+public sealed class OpenedContentTests
+{
+    private static byte[] Export(Guid anchor, byte[] envelope, bool resealable)
+    {
+        var envelopeSha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(envelope));
+        using var zip = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            void Put(string path, byte[] bytes)
+            {
+                using var stream = archive.CreateEntry(path).Open();
+                stream.Write(bytes);
+            }
+
+            void Text(string path, string text) => Put(path, System.Text.Encoding.UTF8.GetBytes(text));
+            Text("manifest.json", System.Text.Json.JsonSerializer.Serialize(new { formatVersion = 2, offline = true, contentResealableOnDevice = resealable, root = new { documentId = anchor, name = "Deal" } }));
+            Text("tree/documents.jsonl", System.Text.Json.JsonSerializer.Serialize(new { id = anchor, name = "Deal" }));
+            Text("tree/versions.jsonl", System.Text.Json.JsonSerializer.Serialize(new
+            {
+                id = Guid.NewGuid(),
+                documentId = anchor,
+                versionNumber = 1,
+                filedAt = DateTimeOffset.UtcNow,
+                sha256 = "plaintext-hash-as-the-server-knows-it",
+                fileExtension = ".pdf",
+                blobRef = envelopeSha,
+                contentType = OpenedContent.EnvelopeType,
+            }));
+            Put($"blobs/{envelopeSha}", envelope);
+        }
+
+        return zip.ToArray();
+    }
+
+    [Fact]
+    public async Task The_manifest_says_whether_the_device_may_open_the_content_once()
+    {
+        var anchor = Guid.NewGuid();
+        Assert.True(await OfflineExportManifest.ContentResealableOnDeviceAsync(new ZipArchiveStorage(Export(anchor, [1, 2], resealable: true))));
+        Assert.False(await OfflineExportManifest.ContentResealableOnDeviceAsync(new ZipArchiveStorage(Export(anchor, [1, 2], resealable: false))));
+    }
+
+    [Fact]
+    public async Task Opened_envelopes_merge_as_the_content_itself_and_the_envelope_is_not_kept()
+    {
+        var anchor = Guid.NewGuid();
+        var envelope = "ENVELOPE: only the user's key opens this"u8.ToArray();
+        var plain = "%PDF-1.7 the content itself"u8.ToArray();
+        var export = new ZipArchiveStorage(Export(anchor, envelope, resealable: true));
+
+        var envelopes = await OpenedContent.EnvelopesAsync(export);
+        var (blobRef, handedOut) = Assert.Single(envelopes);
+        Assert.Equal(envelope, handedOut);
+        var opened = await OpenedContent.WithOpenedAsync(export, new Dictionary<string, (byte[], string)> { [blobRef] = (plain, "application/pdf") });
+
+        var directory = Directory.CreateTempSubdirectory("opened-copy-").FullName;
+        try
+        {
+            var copy = await ArchiveMerger.OpenAsync(directory, "Offline copies", (_, bytes) => bytes, (_, bytes, _) => Task.FromResult(bytes));
+            await copy.MergeAsync(opened);
+            copy.Flush();
+            var kept = new DirectoryArchiveStorage(directory);
+            var plainSha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(plain));
+            Assert.Equal(plain, await kept.ReadAsync($"blobs/{plainSha}"));
+            Assert.Null(await kept.ReadAsync($"blobs/{blobRef}"));   // the envelope itself is not kept
+            var archive = await OfflineArchive.OpenAsync(kept);
+            Assert.Equal("application/pdf", archive.ContentTypeOf(plainSha));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+}

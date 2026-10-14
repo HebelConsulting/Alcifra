@@ -5613,6 +5613,9 @@
   <data name="MobOfflineUpdated" xml:space="preserve">
     <value>{0} added, {1} updated, {2} removed</value>
   </data>
+  <data name="MobOfflineDocumentsAskKey" xml:space="preserve">
+    <value>On this server each document still asks for your key when you open it, even while the copy is unlocked.</value>
+  </data>
   <data name="MobOfflineNoChangesFeed" xml:space="preserve">
     <value>This installation does not report changes yet: the copy keeps what you open.</value>
   </data>

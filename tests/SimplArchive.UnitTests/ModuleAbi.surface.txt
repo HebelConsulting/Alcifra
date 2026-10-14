@@ -225,6 +225,8 @@ SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.Boo
 SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.BookingAdmissionContext,System.Threading.Tasks.Task] get_ReviewBooking()
 SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ModuleDocumentActionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleDocumentAction]]] DocumentActions
 SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ModuleDocumentActionContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ModuleDocumentAction]]] get_DocumentActions()
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.OfflineExportPolicyContext,System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.OfflineExportPolicy]] OfflineExportPolicy
+SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.OfflineExportPolicyContext,System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.OfflineExportPolicy]] get_OfflineExportPolicy()
 SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ProjectedDocumentContext,System.Threading.Tasks.Task] DocumentProjected
 SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ProjectedDocumentContext,System.Threading.Tasks.Task] get_DocumentProjected()
 SimplArchive.ModuleAbi.IIndustryModule::System.Func`2[SimplArchive.ModuleAbi.ReaderCertificateContext,System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[SimplArchive.ModuleAbi.ReaderCertificate]]] ReaderCertificates
@@ -784,6 +786,36 @@ SimplArchive.ModuleAbi.ModuleVocabularyResource::Void .ctor()
 SimplArchive.ModuleAbi.ModuleVocabularyResource::Void set_Count(Int32)
 SimplArchive.ModuleAbi.ModuleVocabularyResource::Void set_Items(System.Collections.Generic.List`1[SimplArchive.ModuleAbi.ModuleVocabularyItem])
 SimplArchive.ModuleAbi.ModuleVocabularyResource::Void set_Query(System.String)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean Allowed
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean ContentOncePerSession
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean Equals(SimplArchive.ModuleAbi.OfflineExportPolicy)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean SealIndexDataAndChat
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean get_Allowed()
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean get_ContentOncePerSession()
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean get_SealIndexDataAndChat()
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean op_Equality(SimplArchive.ModuleAbi.OfflineExportPolicy, SimplArchive.ModuleAbi.OfflineExportPolicy)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Boolean op_Inequality(SimplArchive.ModuleAbi.OfflineExportPolicy, SimplArchive.ModuleAbi.OfflineExportPolicy)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Int32 GetHashCode()
+SimplArchive.ModuleAbi.OfflineExportPolicy::SimplArchive.ModuleAbi.OfflineExportPolicy <Clone>$()
+SimplArchive.ModuleAbi.OfflineExportPolicy::System.String ToString()
+SimplArchive.ModuleAbi.OfflineExportPolicy::Void .ctor(Boolean, Boolean)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Void Deconstruct(Boolean ByRef, Boolean ByRef)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Void set_Allowed(Boolean)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Void set_ContentOncePerSession(Boolean)
+SimplArchive.ModuleAbi.OfflineExportPolicy::Void set_SealIndexDataAndChat(Boolean)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Boolean Equals(SimplArchive.ModuleAbi.OfflineExportPolicyContext)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Boolean op_Equality(SimplArchive.ModuleAbi.OfflineExportPolicyContext, SimplArchive.ModuleAbi.OfflineExportPolicyContext)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Boolean op_Inequality(SimplArchive.ModuleAbi.OfflineExportPolicyContext, SimplArchive.ModuleAbi.OfflineExportPolicyContext)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Int32 GetHashCode()
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::SimplArchive.ModuleAbi.OfflineExportPolicyContext <Clone>$()
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::System.IServiceProvider Services
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::System.IServiceProvider get_Services()
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::System.String ToString()
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Void .ctor(System.IServiceProvider)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Void Deconstruct(System.IServiceProvider ByRef)
+SimplArchive.ModuleAbi.OfflineExportPolicyContext::Void set_Services(System.IServiceProvider)
 SimplArchive.ModuleAbi.PerUserEnrolment::Boolean Equals(SimplArchive.ModuleAbi.PerUserEnrolment)
 SimplArchive.ModuleAbi.PerUserEnrolment::Boolean Equals(System.Object)
 SimplArchive.ModuleAbi.PerUserEnrolment::Boolean op_Equality(SimplArchive.ModuleAbi.PerUserEnrolment, SimplArchive.ModuleAbi.PerUserEnrolment)

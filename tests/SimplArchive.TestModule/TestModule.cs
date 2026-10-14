@@ -387,13 +387,15 @@ public sealed class TestModule : IIndustryModule
     /// </remarks>
     /// <summary>
     /// The offline export policy (ABI 1.15, core ADR 0928), from SIMPLARCHIVE_TESTMODULE_OFFLINE: "allow", "seal"
-    /// (allow, and seal index data and chat), anything else refuses, as an unconfigured module would.
+    /// (allow, and seal index data and chat), "session" (seal, and content once per session, ABI 1.16, ADR 0929),
+    /// anything else refuses, as an unconfigured module would.
     /// </summary>
     public Func<OfflineExportPolicyContext, Task<OfflineExportPolicy>>? OfflineExportPolicy =>
         _ => Task.FromResult(Environment.GetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_OFFLINE") switch
         {
             "allow" => new OfflineExportPolicy(Allowed: true, SealIndexDataAndChat: false),
             "seal" => new OfflineExportPolicy(Allowed: true, SealIndexDataAndChat: true),
+            "session" => new OfflineExportPolicy(Allowed: true, SealIndexDataAndChat: true) { ContentOncePerSession = true },
             _ => new OfflineExportPolicy(Allowed: false, SealIndexDataAndChat: false),
         });
 

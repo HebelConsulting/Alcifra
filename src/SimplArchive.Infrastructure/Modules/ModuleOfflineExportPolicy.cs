@@ -6,7 +6,8 @@ namespace SimplArchive.Infrastructure.Modules;
 
 /// <summary>
 /// Asks the active module whether the phone's offline export may run on a tenant that refuses plaintext doors, and
-/// whether its index data and chat travel sealed (ABI 1.15, ADR 0928).
+/// whether its index data and chat travel sealed (ABI 1.15, ADR 0928), and whether a device may open its content once
+/// per session (ABI 1.16, ADR 0929).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -50,8 +51,8 @@ public sealed class ModuleOfflineExportPolicy(
             try
             {
                 var answer = await loaded.Module.OfflineExportPolicy!(new OfflineExportPolicyContext(services));
-                logger.LogDebug("Module {ModuleId} answered the offline export policy: allowed {Allowed}, sealed {Sealed}.",
-                    loaded.Module.ModuleId, answer.Allowed, answer.SealIndexDataAndChat);
+                logger.LogDebug("Module {ModuleId} answered the offline export policy: allowed {Allowed}, sealed {Sealed}, content once per session {OncePerSession}.",
+                    loaded.Module.ModuleId, answer.Allowed, answer.SealIndexDataAndChat, answer.ContentOncePerSession);
                 return answer;
             }
             catch (Exception exception) when (exception is not OperationCanceledException)

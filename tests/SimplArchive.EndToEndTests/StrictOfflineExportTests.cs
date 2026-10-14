@@ -12,7 +12,8 @@ namespace SimplArchive.EndToEndTests;
 
 // The offline export on a tenant that refuses plaintext doors (ADR 0928; #1759 slice 4): only where the Encryption
 // Module allows it (the TestModule's hook, set per test), content as the envelope the reader's own key opens, and,
-// when the module says so, index data and chat sealed to the reader as well.
+// when the module says so, index data and chat sealed to the reader as well, and the device allowed to open the
+// envelopes once per session (ADR 0929, #1769).
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-1")]
 public class StrictOfflineExportTests
@@ -166,5 +167,22 @@ public class StrictOfflineExportTests
         Assert.Contains(Marker, files["tree/chat.jsonl"], StringComparison.Ordinal);
         Assert.True(files.ContainsKey("tree/index-data.jsonl"));
         Assert.True(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.GetProperty("sealedIndexDataAndChat").GetBoolean());
+        Assert.False(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.GetProperty("contentResealableOnDevice").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Where_the_module_says_once_per_session_the_manifest_lets_the_device_reseal_the_envelopes()
+    {
+        var reader = await ReaderWithADocumentAsync();
+
+        using var response = await ExportAsync(reader, "session");
+        response.EnsureSuccessStatusCode();
+        using var zip = new ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync()), ZipArchiveMode.Read);
+
+        Assert.True(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.GetProperty("contentResealableOnDevice").GetBoolean());
+        // The content still leaves the server only as the envelope (ADR 0929 changes what the DEVICE keeps).
+        var version = JsonDocument.Parse(Text(zip, "tree/versions.jsonl").Split('\n', StringSplitOptions.RemoveEmptyEntries).Single()).RootElement;
+        Assert.Equal("application/pkcs7-mime", version.GetProperty("contentType").GetString());
+        Assert.DoesNotContain(Marker, Encoding.ASCII.GetString(Bytes(zip, $"blobs/{version.GetProperty("blobRef").GetString()}")), StringComparison.Ordinal);
     }
 }

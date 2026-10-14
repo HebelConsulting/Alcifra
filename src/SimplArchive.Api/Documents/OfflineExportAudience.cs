@@ -15,8 +15,12 @@ namespace SimplArchive.Api.Documents;
 /// addressed to the caller's certificates, written in place of the content. Null elsewhere.</param>
 /// <param name="Seal">With the module's "seal index data and chat": those two files, sealed to the caller's
 /// certificates as one S/MIME artefact. Null when they travel as they are.</param>
+/// <param name="ContentResealableOnDevice">With the module's "open documents once per session" (ADR 0929): the device
+/// may open each envelope once and keep the content sealed to its copy's key. Said in the manifest; the content
+/// itself still travels as the envelope.</param>
 public sealed record OfflineExportAudience(
     Guid? UserId,
     Func<IReadOnlyCollection<Guid>, CancellationToken, Task<IReadOnlyDictionary<Guid, EffectiveRights>>> RightsForMany,
     Func<Domain.Documents.DocumentVersion, CancellationToken, Task<byte[]>>? Envelope = null,
-    Func<byte[], byte[]>? Seal = null);
+    Func<byte[], byte[]>? Seal = null,
+    bool ContentResealableOnDevice = false);

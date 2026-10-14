@@ -5613,6 +5613,9 @@
   <data name="MobOfflineUpdated" xml:space="preserve">
     <value>{0} hinzugefügt, {1} aktualisiert, {2} entfernt</value>
   </data>
+  <data name="MobOfflineDocumentsAskKey" xml:space="preserve">
+    <value>Auf diesem Server fragt jedes Dokument beim Öffnen weiterhin nach Ihrem Schlüssel, auch wenn die Kopie entsperrt ist.</value>
+  </data>
   <data name="MobOfflineNoChangesFeed" xml:space="preserve">
     <value>Diese Installation meldet noch keine Änderungen: die Kopie behält, was Sie öffnen.</value>
   </data>
