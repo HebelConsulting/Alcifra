@@ -21,8 +21,9 @@ namespace SimplArchive.Api.Controllers;
 /// may read it, the visible folder chain above the anchor, no permissions.
 /// </para>
 /// <para>
-/// <b>Refused on a tenant that refuses plaintext doors</b>, as the regular export is, until the strict tier's
-/// envelopes in the export arrive (#1759, slice 4). <b>Every export is recorded</b> in the audit trail (owner decision
+/// <b>On a tenant that refuses plaintext doors</b> the export runs only where the Encryption Module allows it, with
+/// content as envelopes to the caller's certificates and, when the module says so, index data and chat sealed too
+/// (ADR 0928). <b>Every export is recorded</b> in the audit trail (owner decision
 /// 2026-10-14): data leaving onto a device is worth a line.
 /// </para>
 /// </remarks>
@@ -37,7 +38,9 @@ public class DocumentOfflineExportController(
     StrictEnvelopeDelivery strictEnvelopes,
     ICurrentUserAccessor currentUser,
     ICurrentTenantAccessor currentTenant,
-    IAuditRecorder audit) : ControllerBase
+    IAuditRecorder audit,
+    Infrastructure.Modules.ModuleOfflineExportPolicy modulePolicy,
+    Infrastructure.Encryption.SmimeMessageEnveloper enveloper) : ControllerBase
 {
     [HttpGet("offline-export")]
     public async Task<IActionResult> OfflineExport(Guid documentId, CancellationToken cancellationToken)
@@ -46,6 +49,21 @@ public class DocumentOfflineExportController(
         if (anchor is null)
         {
             return NotFound();
+        }
+
+        // A tenant that refuses plaintext doors (ADR 0928): content as envelopes to the caller, index data and chat
+        // sealed too when the module says so. The module allowed it in the gate; the caller's certificates are required.
+        Func<Domain.Documents.DocumentVersion, CancellationToken, Task<byte[]>>? envelope = null;
+        Func<byte[], byte[]>? seal = null;
+        if (await strictEnvelopes.RefusesPlaintextDoorsAsync(cancellationToken))
+        {
+            var certificates = await strictEnvelopes.RequireReaderCertificatesAsync(cancellationToken);
+            envelope = (version, ct) => strictEnvelopes.EnvelopeAsync(version.ObjectKey, $"{version.Id:N}{Path.GetExtension(version.ObjectKey)}", certificates, ct);
+            if ((await modulePolicy.ForTenantAsync(cancellationToken)).SealIndexDataAndChat)
+            {
+                seal = bytes => enveloper.TryEnvelopeDocument(bytes, "application/json", "sealed.json", null, certificates)
+                    ?? throw new Errors.Exceptions.Encryption.ContentCannotBeEnvelopedException();
+            }
         }
 
         Response.ContentType = "application/zip";
@@ -61,7 +79,7 @@ public class DocumentOfflineExportController(
             new RepositoryExportFilters(null, null, null, null, ExportVersionSelection.CurrentForCaller, null),
             includePermissions: false,
             Response.Body,
-            new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync),
+            new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync, envelope, seal),
             cancellationToken);
         await audit.RecordAsync(AuditActions.DocumentOfflineExported, "Document", anchor.Value.Id, anchor.Value.Name, "Offline export", cancellationToken: cancellationToken);
         return new EmptyResult();
@@ -80,7 +98,12 @@ public class DocumentOfflineExportController(
             throw new OfflineExportNotAllowedException();
         }
 
-        await strictEnvelopes.RefuseIfStrictAsync("an offline export", cancellationToken);
+        // A tenant that refuses plaintext doors offers the export only where its module allows it (ADR 0928).
+        if (await strictEnvelopes.RefusesPlaintextDoorsAsync(cancellationToken) && !(await modulePolicy.ForTenantAsync(cancellationToken)).Allowed)
+        {
+            throw new OfflineExportNotAllowedOnThisTenantException();
+        }
+
         var anchor = await dbContext.Documents.Where(d => d.Id == documentId).Select(d => new { d.Id, d.Name }).SingleOrDefaultAsync(cancellationToken);
         return anchor is not null && (await access.GetCallerRightsAsync(documentId, cancellationToken)).CanSee ? (anchor.Id, anchor.Name) : null;
     }

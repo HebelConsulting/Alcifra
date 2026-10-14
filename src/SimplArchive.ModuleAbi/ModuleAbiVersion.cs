@@ -96,5 +96,10 @@ public static class ModuleAbiVersion
     /// loaded) and <see cref="ModuleUploadProtocol"/> (the upload offer a generic client follows), core ADR 0918.
     /// An optional parameter and a new type only, so a 1.13 module is unaffected.
     /// </para>
-    public const int Minor = 14;
+    /// <para>
+    /// 1.15 adds <see cref="IIndustryModule.OfflineExportPolicy"/>: whether offline exports may run on a tenant that
+    /// refuses plaintext doors, and whether their index data and chat are sealed (core ADR 0928). A default member and new
+    /// types only, so a 1.14 module is unaffected.
+    /// </para>
+    public const int Minor = 15;
 }

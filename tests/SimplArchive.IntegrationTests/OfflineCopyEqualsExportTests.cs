@@ -147,3 +147,50 @@ public partial class RepositoryExporterTests
         }
     }
 }
+
+// ADR 0928: an export whose index data and chat were sealed merges exactly like a plain one once its sealed part is
+// opened (here by a stand-in for the user's key), so the copy holds the same rows either way.
+public sealed class SealedExportTests
+{
+    [Fact]
+    public async Task An_opened_sealed_part_reads_as_the_plain_files_and_merges_the_same()
+    {
+        var anchor = Guid.NewGuid();
+        var index = """{"documentId":"%ID%","fieldDefinitionId":"%ID%","value":"ACME","ordinal":0}""".Replace("%ID%", anchor.ToString(), StringComparison.Ordinal) + "\n";
+        var chat = """{"id":"%M%","documentId":"%ID%","body":"see","createdAt":"2026-10-14T00:00:00Z"}""".Replace("%ID%", anchor.ToString(), StringComparison.Ordinal).Replace("%M%", Guid.NewGuid().ToString(), StringComparison.Ordinal) + "\n";
+        using var zip = new MemoryStream();
+        using (var archive = new System.IO.Compression.ZipArchive(zip, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            void Put(string path, string text)
+            {
+                using var stream = archive.CreateEntry(path).Open();
+                stream.Write(System.Text.Encoding.UTF8.GetBytes(text));
+            }
+
+            Put("manifest.json", System.Text.Json.JsonSerializer.Serialize(new { formatVersion = 2, root = new { documentId = anchor, name = "Deal" } }));
+            Put("tree/documents.jsonl", System.Text.Json.JsonSerializer.Serialize(new { id = anchor, name = "Deal" }));
+            Put(SealedExport.Path, "sealed: only the user's key opens this");
+        }
+
+        var export = new ZipArchiveStorage(zip.ToArray());
+        Assert.NotNull(await SealedExport.SealedPartAsync(export));
+        var opened = SealedExport.WithOpened(export, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(
+            new Dictionary<string, string> { ["tree/index-data.jsonl"] = index, ["tree/chat.jsonl"] = chat }));
+
+        var directory = Directory.CreateTempSubdirectory("sealed-copy-").FullName;
+        try
+        {
+            var copy = await ArchiveMerger.OpenAsync(directory, "Offline copies", (_, bytes) => bytes, (_, bytes, _) => Task.FromResult(bytes));
+            await copy.MergeAsync(opened);
+            copy.Flush();
+            var kept = new DirectoryArchiveStorage(directory);
+            Assert.Contains("ACME", System.Text.Encoding.UTF8.GetString((await kept.ReadAsync("tree/index-data.jsonl"))!), StringComparison.Ordinal);
+            Assert.Contains("see", System.Text.Encoding.UTF8.GetString((await kept.ReadAsync("tree/chat.jsonl"))!), StringComparison.Ordinal);
+            Assert.Null(await kept.ReadAsync(SealedExport.Path));   // the sealed part itself is never kept
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+}

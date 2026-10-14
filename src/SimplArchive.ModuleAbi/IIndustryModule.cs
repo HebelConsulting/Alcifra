@@ -267,6 +267,17 @@ public interface IIndustryModule
     Func<ReaderCertificateContext, Task<IReadOnlyList<ReaderCertificate>>>? ReaderCertificates => null;
 
     /// <summary>
+    /// Whether the phone's offline export may run on a tenant that refuses plaintext doors, and whether its index data
+    /// and chat travel sealed too (ABI 1.15, core ADR 0928). Null (the default): no module speaks, and such a tenant
+    /// refuses the offline export, as it refuses every plaintext door.
+    /// </summary>
+    /// <remarks>
+    /// Asked once per offline export, only while the module is ACTIVE for the tenant, and run as the module, like
+    /// <see cref="ReaderCertificates"/>: a lapsed licence stops the answer and the export is refused.
+    /// </remarks>
+    Func<OfflineExportPolicyContext, Task<OfflineExportPolicy>>? OfflineExportPolicy => null;
+
+    /// <summary>
     /// The masks whose documents this module PROJECTS into a read model (ABI 1.1, ADR 0848) — declared so the
     /// host can tell it when one changes by a route the module cannot see.
     /// </summary>

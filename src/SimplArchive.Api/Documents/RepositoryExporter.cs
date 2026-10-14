@@ -288,6 +288,18 @@ public sealed class RepositoryExporter
             breaksInheritance = d.BreaksInheritance,
         }), cancellationToken);
 
+        // On a tenant that refuses plaintext doors (ADR 0928): each version's content as the envelope addressed to the
+        // caller, named by its own hash; the version's sha256 stays the document's.
+        var envelopes = new Dictionary<Guid, (byte[] Bytes, string Sha)>();
+        if (audience?.Envelope is { } envelope)
+        {
+            foreach (var version in exportedVersions)
+            {
+                var bytes = await envelope(version, cancellationToken);
+                envelopes[version.Id] = (bytes, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes)));
+            }
+        }
+
         await WriteJsonLinesAsync(archive, "tree/versions.jsonl", exportedVersions.Select(v => (object)new
         {
             id = v.Id,
@@ -302,16 +314,17 @@ public sealed class RepositoryExporter
             fileExtension = Path.GetExtension(v.ObjectKey),
             ocrLanguages = v.OcrLanguages,
             comment = v.Comment,
-            blobRef = v.Sha256Hash,
+            blobRef = envelopes.TryGetValue(v.Id, out var enveloped) ? enveloped.Sha : v.Sha256Hash,
+            contentType = envelopes.ContainsKey(v.Id) ? "application/pkcs7-mime" : null,
         }), cancellationToken);
 
-        await WriteJsonLinesAsync(archive, "tree/index-data.jsonl", fieldValues.Select(f => (object)new
+        var indexRows = fieldValues.Select(f => (object)new
         {
             documentId = f.DocumentId,
             fieldDefinitionId = f.FieldDefinitionId,
             value = f.Value,
             ordinal = f.Ordinal,
-        }), cancellationToken);
+        }).ToList();
 
         // The chat thread (issue #382) — "tree/comments.jsonl" with a "parentCommentId" field before FormatVersion 2.
         //
@@ -319,7 +332,7 @@ public sealed class RepositoryExporter
         // mentions existed has none to lose, so bumping would only make every archive to date unimportable. The
         // ids are the archive's own user ids, which the import remaps like every other principal reference — the
         // body's "@[id]" tokens are remapped in step.
-        await WriteJsonLinesAsync(archive, "tree/chat.jsonl", comments.Select(c => (object)new
+        var chatRows = comments.Select(c => (object)new
         {
             id = c.Id,
             documentId = c.DocumentId,
@@ -329,7 +342,26 @@ public sealed class RepositoryExporter
             createdByUserId = c.CreatedByUserId,
             createdByServiceAccountId = c.CreatedByServiceAccountId,
             createdAt = c.CreatedAt,
-        }), cancellationToken);
+        }).ToList();
+
+        // With the module's "seal index data and chat" (ADR 0928) both files travel inside one artefact sealed to the
+        // caller; a merger opens it with the caller's key and reads the two files from it as they would be here.
+        if (audience?.Seal is { } seal)
+        {
+            var sealedPart = JsonSerializer.SerializeToUtf8Bytes(new Dictionary<string, string>
+            {
+                ["tree/index-data.jsonl"] = Lines(indexRows),
+                ["tree/chat.jsonl"] = Lines(chatRows),
+            }, Json);
+            var entry = archive.CreateEntry("tree/sealed.p7m", CompressionLevel.NoCompression);
+            await using var stream = entry.Open();
+            await stream.WriteAsync(seal(sealedPart), cancellationToken);
+        }
+        else
+        {
+            await WriteJsonLinesAsync(archive, "tree/index-data.jsonl", indexRows, cancellationToken);
+            await WriteJsonLinesAsync(archive, "tree/chat.jsonl", chatRows, cancellationToken);
+        }
 
         await WriteJsonLinesAsync(archive, "tree/annotations.jsonl", annotations.Select(a => (object)new
         {
@@ -383,6 +415,18 @@ public sealed class RepositoryExporter
         var writtenBlobs = new HashSet<string>(StringComparer.Ordinal);
         foreach (var version in exportedVersions)
         {
+            if (envelopes.TryGetValue(version.Id, out var enveloped))
+            {
+                if (writtenBlobs.Add(enveloped.Sha))
+                {
+                    var envelopeEntry = archive.CreateEntry($"blobs/{enveloped.Sha}", CompressionLevel.NoCompression);
+                    await using var envelopeStream = envelopeEntry.Open();
+                    await envelopeStream.WriteAsync(enveloped.Bytes, cancellationToken);
+                }
+
+                continue;
+            }
+
             if (version.Sha256Hash is not { } hash || !writtenBlobs.Add(hash))
             {
                 continue;
@@ -402,6 +446,8 @@ public sealed class RepositoryExporter
             // An offline export (ADR 0927): what one caller may read, the current version as they may read it, and the
             // visible folder chain above the root. A merger keeps it apart from a regular export by this flag.
             offline = audience is not null,
+            envelopes = envelopes.Count > 0,
+            sealedIndexDataAndChat = audience?.Seal is not null,
             source = new { tenantId = tenant.Id, tenantName = tenant.Name },
             root = new { documentId = root.Id, name = root.Name },
             filters = new
@@ -602,6 +648,8 @@ public sealed class RepositoryExporter
         await using var stream = entry.Open();
         await JsonSerializer.SerializeAsync(stream, payload, Json, cancellationToken);
     }
+
+    private static string Lines(IEnumerable<object> rows) => string.Concat(rows.Select(r => JsonSerializer.Serialize(r, Json) + "\n"));
 
     private static async Task WriteJsonLinesAsync(ZipArchive archive, string name, IEnumerable<object> rows, CancellationToken cancellationToken)
     {

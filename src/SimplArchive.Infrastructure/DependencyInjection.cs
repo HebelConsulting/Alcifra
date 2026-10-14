@@ -156,6 +156,7 @@ public static class DependencyInjection
         // module vets bookings — which is every tenant without one, and every test.
         services.AddScoped<Application.Abstractions.IBookingAdmissionReviewer, Modules.ModuleBookingAdmissionReviewer>();
         services.AddScoped<Modules.ModuleReaderCertificates>();
+        services.AddScoped<Modules.ModuleOfflineExportPolicy>();   // ABI 1.15, ADR 0928
         services.AddScoped<Modules.ModuleMaskSeeder>();
         services.AddScoped<Modules.StateMachineEngine>();
         services.AddScoped<Modules.ModuleActivationService>();

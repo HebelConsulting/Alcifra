@@ -11,6 +11,12 @@ namespace SimplArchive.Api.Documents;
 /// <param name="UserId">The caller as a user, for "the assigned reviewer reads a gated version"; null for a service account.</param>
 /// <param name="RightsForMany">The caller's rights on a batch of documents (DocumentAccessService), passed in so the
 /// exporter itself never asks who is calling.</param>
+/// <param name="Envelope">On a tenant that refuses plaintext doors (ADR 0928): a version's content as the envelope
+/// addressed to the caller's certificates, written in place of the content. Null elsewhere.</param>
+/// <param name="Seal">With the module's "seal index data and chat": those two files, sealed to the caller's
+/// certificates as one S/MIME artefact. Null when they travel as they are.</param>
 public sealed record OfflineExportAudience(
     Guid? UserId,
-    Func<IReadOnlyCollection<Guid>, CancellationToken, Task<IReadOnlyDictionary<Guid, EffectiveRights>>> RightsForMany);
+    Func<IReadOnlyCollection<Guid>, CancellationToken, Task<IReadOnlyDictionary<Guid, EffectiveRights>>> RightsForMany,
+    Func<Domain.Documents.DocumentVersion, CancellationToken, Task<byte[]>>? Envelope = null,
+    Func<byte[], byte[]>? Seal = null);

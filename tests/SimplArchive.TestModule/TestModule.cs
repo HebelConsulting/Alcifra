@@ -385,6 +385,18 @@ public sealed class TestModule : IIndustryModule
     /// self-service certificate (ADR 0890's narrowing of ADR 0859).
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// The offline export policy (ABI 1.15, core ADR 0928), from SIMPLARCHIVE_TESTMODULE_OFFLINE: "allow", "seal"
+    /// (allow, and seal index data and chat), anything else refuses, as an unconfigured module would.
+    /// </summary>
+    public Func<OfflineExportPolicyContext, Task<OfflineExportPolicy>>? OfflineExportPolicy =>
+        _ => Task.FromResult(Environment.GetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_OFFLINE") switch
+        {
+            "allow" => new OfflineExportPolicy(Allowed: true, SealIndexDataAndChat: false),
+            "seal" => new OfflineExportPolicy(Allowed: true, SealIndexDataAndChat: true),
+            _ => new OfflineExportPolicy(Allowed: false, SealIndexDataAndChat: false),
+        });
+
     public Func<ReaderCertificateContext, Task<IReadOnlyList<ReaderCertificate>>>? ReaderCertificates =>
         async context =>
         {
