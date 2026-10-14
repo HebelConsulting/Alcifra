@@ -104,6 +104,28 @@ public class AuthorizationController : ControllerBase
             return Forbid(CookieAuthenticationDefaults.AuthenticationScheme);
         }
 
+        // A login_hint naming SOMEONE ELSE than the browser's logged-in user (#1774): the client asked for that
+        // user, so the cookie's session is not the answer. On the phone, signing a second profile in silently took
+        // the first profile's browser session, and admin's profile then listed crypt's repositories. The browser
+        // session is ended and the login page shown, pre-filled with the hint; prompt=none gets login_required.
+        if (!string.IsNullOrWhiteSpace(request.LoginHint)
+            && !string.Equals(request.LoginHint.Trim(), user.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (request.HasPromptValue(OpenIddictConstants.PromptValues.None))
+            {
+                return Forbid(
+                    new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.LoginRequired,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The logged-in user is not the one asked for.",
+                    }),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+
+            return LocalRedirect($"/Account/Login?ReturnUrl={Uri.EscapeDataString(ReturnUrlWithoutPrompt())}");
+        }
+
         var identity = new ClaimsIdentity(
             authenticationType: "openiddict",
             nameType: OpenIddictConstants.Claims.Name,

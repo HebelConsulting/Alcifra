@@ -40,7 +40,30 @@ public class ForcedReloginTests
         Assert.Contains("/Account/Login", forced);
     }
 
-    private static string Authorize(string? prompt)
+    [Fact]
+    public async Task A_login_hint_naming_another_user_is_not_answered_with_the_browsers_session()
+    {
+        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
+        var first = $"first-{Guid.NewGuid():N}@e2e.local";
+        var second = $"second-{Guid.NewGuid():N}@e2e.local";
+        await _factory.SeedUserAsync(tenantId, first, "relog-1234", "First User");
+        await _factory.SeedUserAsync(tenantId, second, "relog-1234", "Second User");
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, HandleCookies = true });
+        await LogInAsync(client, first, "relog-1234");
+
+        // The same user as the browser's session (any case): single sign-on as before.
+        var same = (await client.GetAsync(Authorize(prompt: null, loginHint: first.ToUpperInvariant()))).Headers.Location!.ToString();
+        Assert.Contains("code=", same);
+
+        // Another user: never the browser's session, but the login page, pre-filled for the one asked for (#1774).
+        var other = (await client.GetAsync(Authorize(prompt: null, loginHint: second))).Headers.Location!.ToString();
+        Assert.Contains("/Account/Login", other);
+        Assert.DoesNotContain("code=", other);
+        Assert.Contains(second, await client.GetStringAsync(other), StringComparison.Ordinal);
+    }
+
+    private static string Authorize(string? prompt, string? loginHint = null)
     {
         var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
         var challenge = Base64Url(SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(verifier)));
@@ -51,6 +74,7 @@ public class ForcedReloginTests
             "scope=openid", $"code_challenge={challenge}", "code_challenge_method=S256", "state=x",
         };
         if (prompt is not null) parts.Add($"prompt={prompt}");
+        if (loginHint is not null) parts.Add($"login_hint={Uri.EscapeDataString(loginHint)}");
         return "/connect/authorize?" + string.Join('&', parts);
     }
 
