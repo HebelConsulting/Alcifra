@@ -266,44 +266,42 @@ public sealed partial class AppointmentEditViewModel : StructuredEditFormViewMod
 
     public bool HasAttendees => Attendees.Count > 0;
 
-    public static AppointmentEditViewModel From(JsonElement body)
+    public static AppointmentEditViewModel From(JsonElement body) => From(AppointmentCard.From(body));
+
+    /// <summary>The form from the shared card (core ADR 0917: the mapping lives in <see cref="AppointmentCard"/>).</summary>
+    public static AppointmentEditViewModel From(AppointmentCard card)
     {
         var model = new AppointmentEditViewModel
         {
-            Summary = Text(body, "summary"),
-            Location = Text(body, "location"),
-            Description = Text(body, "description"),
-            IsAllDay = body.TryGetProperty("isAllDay", out var allDay) && allDay.ValueKind == JsonValueKind.True,
-            // The per-endpoint zones, falling back to the single one a server predating them would send.
-            StartTimeZoneId = First(Text(body, "startTimeZoneId"), Text(body, "timeZoneId")),
-            EndTimeZoneId = First(Text(body, "endTimeZoneId"), Text(body, "startTimeZoneId"), Text(body, "timeZoneId")),
-            Url = Text(body, "url"),
-            RecurrenceRule = Text(body, "recurrenceRule") is { Length: > 0 } rule ? rule : null,
-            ReminderCount = body.TryGetProperty("reminderCount", out var count) && count.TryGetInt32(out var n) ? n : 0,
+            Summary = card.Summary,
+            Location = card.Location,
+            Description = card.Description,
+            IsAllDay = card.IsAllDay,
+            StartTimeZoneId = card.StartTimeZoneId,
+            EndTimeZoneId = card.EndTimeZoneId,
+            Url = card.Url,
+            RecurrenceRule = card.RecurrenceRule,
+            ReminderCount = card.ReminderCount,
         };
 
         // The picker's two values, read from the rule that arrived (#1133).
         model.ReadRepeatFromRule();
 
-        if (Parse(Text(body, "start")) is { } start)
+        if (card.Start is { } start)
         {
             model.StartDate = start.Date;
             model.StartTime = start.TimeOfDay;
         }
 
-        if (Parse(Text(body, "end")) is { } end)
+        if (card.End is { } end)
         {
             model.EndDate = end.Date;
             model.EndTime = end.TimeOfDay;
         }
 
-        if (body.TryGetProperty("attendees", out var attendees) && attendees.ValueKind == JsonValueKind.Array)
+        foreach (var attendee in card.Attendees)
         {
-            foreach (var attendee in attendees.EnumerateArray())
-            {
-                model.Attendees.Add(new AttendeeRowViewModel(
-                    Text(attendee, "name"), Text(attendee, "address"), Text(attendee, "status")));
-            }
+            model.Attendees.Add(new AttendeeRowViewModel(attendee.Name, attendee.Address, attendee.Status));
         }
 
         return model;
@@ -347,50 +345,22 @@ public sealed partial class AppointmentEditViewModel : StructuredEditFormViewMod
         return Payload();
     }
 
-    private object Payload() => new
-    {
-        scope = Scope,
-        recurrenceId = RecurrenceId,
-        summary = Null(Summary),
-        start = Combine(StartDate, StartTime),
-        end = Combine(EndDate, EndTime),
-        isAllDay = IsAllDay,
-        startTimeZoneId = Null(StartTimeZoneId),
-        endTimeZoneId = Null(EndTimeZoneId),
-        location = Null(Location),
-        description = Null(Description),
-        url = Null(Url),
+    private object Payload() => ToCard().ToPayload(Scope, RecurrenceId);
 
-        // Sent back unchanged. The field is not editable here, and the merge clears a rule handed to it as
-        // null — so omitting it would silently un-repeat every recurring appointment anyone opened.
-        recurrenceRule = RecurrenceRule,
-    };
+    /// <summary>The form as the shared card.</summary>
+    public AppointmentCard ToCard() => new(
+        Summary, Location, Description, IsAllDay, Wall(StartDate, StartTime), Wall(EndDate, EndTime), StartTimeZoneId, EndTimeZoneId, Url,
+        RecurrenceRule, ReminderCount, [.. Attendees.Select(a => new AppointmentCard.Attendee(a.Name, a.Address, a.Status))]);
 
     /// <summary>
     /// The wall clock the form holds, serialized WITHOUT an offset. An offset would assert a zone, and the
     /// zone travels separately in timeZoneId — attaching one here is how a floating time stops floating.
     /// </summary>
-    private static string? Combine(DateTimeOffset? date, TimeSpan? time) =>
-        date is not { } d
-            ? null
-            : (d.Date + (IsAllDayLike(time) ? TimeSpan.Zero : time!.Value))
-                .ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture);
+    private static DateTime? Wall(DateTimeOffset? date, TimeSpan? time) =>
+        date is not { } d ? null : d.Date + (IsAllDayLike(time) ? TimeSpan.Zero : time!.Value);
 
     private static bool IsAllDayLike(TimeSpan? time) => time is null;
 
-    /// <summary>The first non-empty of the candidates — how a newer field falls back to the one it supersedes.</summary>
-    private static string First(params string[] candidates) =>
-        Array.Find(candidates, c => !string.IsNullOrEmpty(c)) ?? string.Empty;
-
-    private static DateTime? Parse(string value) =>
-        DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed) ? parsed : null;
-
-    private static string? Null(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string Text(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString() ?? ""
-            : "";
 
     /// <summary>
     /// Plain wording for the common rules, and the rule itself for anything else. Deliberately not a full
