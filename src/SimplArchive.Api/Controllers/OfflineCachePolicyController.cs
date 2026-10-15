@@ -29,7 +29,8 @@ public class OfflineCachePolicyController(
     ICurrentUserAccessor currentUser,
     IUserSystemRightsResolver systemRights,
     Concurrency.TenantVerbs tenants,
-    IAuditRecorder audit) : ControllerBase
+    IAuditRecorder audit,
+    Infrastructure.Modules.ModuleOfflineExportPolicy modulePolicy) : ControllerBase
 {
     public class OfflineCachePolicyResource : HypermediaResource
     {
@@ -48,6 +49,13 @@ public class OfflineCachePolicyController(
         public string RefreshMode { get; set; } = string.Empty;
 
         public int MaxUnlockedMinutes { get; set; }
+
+        /// <summary>
+        /// Whether a phone may hold the PIN of the user's hardware key for a session (ADR 0931): the Encryption Module's
+        /// per-tenant answer, false where no module answers. Every sealed object is still decrypted by the key; this only
+        /// spares retyping the PIN. It caps <see cref="UnlockMode"/>: false means a PIN for every decryption.
+        /// </summary>
+        public bool PinOncePerSession { get; set; }
 
         /// <summary>Whether the caller may change it (a tenant administrator).</summary>
         public bool CanEdit { get; set; }
@@ -79,7 +87,7 @@ public class OfflineCachePolicyController(
         }
 
         Concurrency.ConcurrencyHeaders.EmitETag(Response, tenant);
-        return Ok(ToResource(tenant, await IsTenantAdminAsync(cancellationToken)));
+        return Ok(ToResource(tenant, await IsTenantAdminAsync(cancellationToken), await PinOncePerSessionAsync(cancellationToken)));
     }
 
     [HttpHead]
@@ -131,7 +139,7 @@ public class OfflineCachePolicyController(
         }
 
         Concurrency.ConcurrencyHeaders.EmitETag(Response, tenant);
-        return Ok(ToResource(tenant, canEdit: true));
+        return Ok(ToResource(tenant, canEdit: true, await PinOncePerSessionAsync(cancellationToken)));
     }
 
     private Task<Tenant?> TenantAsync(CancellationToken cancellationToken) =>
@@ -146,8 +154,13 @@ public class OfflineCachePolicyController(
         + $"folders={t.OfflineCacheChosenFolders}, unlock={t.OfflineCacheUnlockMode}, refresh={t.OfflineCacheRefreshMode}, "
         + $"maxUnlockedMinutes={t.OfflineCacheMaxUnlockedMinutes}";
 
-    private static OfflineCachePolicyResource ToResource(Tenant t, bool canEdit) => new()
+    // The module's answer (ABI 1.16's ContentOncePerSession, its meaning per ADR 0931); no module answers "no".
+    private async Task<bool> PinOncePerSessionAsync(CancellationToken cancellationToken) =>
+        (await modulePolicy.ForTenantAsync(cancellationToken)).ContentOncePerSession;
+
+    private static OfflineCachePolicyResource ToResource(Tenant t, bool canEdit, bool pinOncePerSession) => new()
     {
+        PinOncePerSession = pinOncePerSession,
         Allowed = t.OfflineCacheAllowed,
         Notifications = t.OfflineCacheNotifications,
         OpenedDocuments = t.OfflineCacheOpenedDocuments,

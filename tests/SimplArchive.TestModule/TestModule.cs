@@ -387,7 +387,8 @@ public sealed class TestModule : IIndustryModule
     /// </remarks>
     /// <summary>
     /// The offline export policy (ABI 1.15, core ADR 0928), from SIMPLARCHIVE_TESTMODULE_OFFLINE: "allow", "seal"
-    /// (allow, and seal index data and chat), "session" (seal, and content once per session, ABI 1.16, ADR 0929),
+    /// (allow, and seal index data and chat), "session" (seal, and the phone may hold the PIN for a session, ABI 1.16,
+    /// ADR 0931),
     /// anything else refuses, as an unconfigured module would.
     /// </summary>
     public Func<OfflineExportPolicyContext, Task<OfflineExportPolicy>>? OfflineExportPolicy =>

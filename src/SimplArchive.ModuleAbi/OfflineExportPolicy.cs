@@ -10,11 +10,11 @@ namespace SimplArchive.ModuleAbi;
 public sealed record OfflineExportPolicy(bool Allowed, bool SealIndexDataAndChat)
 {
     /// <summary>
-    /// The device may open each document's envelope once, when it updates its copy, and keep the content sealed to the
-    /// copy's own key, so a copy unlocked for the session opens documents without asking again (ABI 1.16, core ADR
-    /// 0929). False: content stays the envelope the server sent and every read asks for the caller's key. Content
-    /// leaves the server as an envelope either way. An init property, so the two-value constructor a 1.15 module calls
-    /// is unchanged.
+    /// A phone may hold the PIN of the user's hardware key for a session (core ADR 0931, which changed the meaning this
+    /// member had under ADR 0929): every sealed object is still decrypted by the key, in memory, and nothing is ever
+    /// re-sealed on the device. False: the PIN is asked for every decryption. Asked on every tenant, online and offline,
+    /// not only for offline exports. An init property (ABI 1.16), so the two-value constructor a 1.15 module calls is
+    /// unchanged.
     /// </summary>
     public bool ContentOncePerSession { get; init; }
 }

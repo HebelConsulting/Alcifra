@@ -12,8 +12,8 @@ namespace SimplArchive.EndToEndTests;
 
 // The offline export on a tenant that refuses plaintext doors (ADR 0928; #1759 slice 4): only where the Encryption
 // Module allows it (the TestModule's hook, set per test), content as the envelope the reader's own key opens, and,
-// when the module says so, index data and chat sealed to the reader as well, and the device allowed to open the
-// envelopes once per session (ADR 0929, #1769).
+// when the module says so, index data and chat sealed to the reader as well. Whether a phone may hold the PIN for a
+// session is the module's answer on the offline policy (ADR 0931, #1780); nothing is ever re-sealed on the device.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-1")]
 public class StrictOfflineExportTests
@@ -167,22 +167,35 @@ public class StrictOfflineExportTests
         Assert.Contains(Marker, files["tree/chat.jsonl"], StringComparison.Ordinal);
         Assert.True(files.ContainsKey("tree/index-data.jsonl"));
         Assert.True(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.GetProperty("sealedIndexDataAndChat").GetBoolean());
-        Assert.False(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.GetProperty("contentResealableOnDevice").GetBoolean());
     }
 
     [Fact]
-    public async Task Where_the_module_says_once_per_session_the_manifest_lets_the_device_reseal_the_envelopes()
+    public async Task The_phone_learns_from_the_offline_policy_whether_it_may_hold_the_PIN_for_a_session()
     {
+        // ADR 0931: the module's answer travels on the policy every phone reads, online too; nothing in the export
+        // invites the device to re-seal anything any more.
         var reader = await ReaderWithADocumentAsync();
+        Assert.False(await PinOncePerSessionAsync(reader, policy: null));     // no answer: a PIN for every decryption
+        Assert.True(await PinOncePerSessionAsync(reader, policy: "session"));
 
         using var response = await ExportAsync(reader, "session");
         response.EnsureSuccessStatusCode();
         using var zip = new ZipArchive(new MemoryStream(await response.Content.ReadAsByteArrayAsync()), ZipArchiveMode.Read);
+        Assert.False(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.TryGetProperty("contentResealableOnDevice", out _));
+    }
 
-        Assert.True(JsonDocument.Parse(Text(zip, "manifest.json")).RootElement.GetProperty("contentResealableOnDevice").GetBoolean());
-        // The content still leaves the server only as the envelope (ADR 0929 changes what the DEVICE keeps).
-        var version = JsonDocument.Parse(Text(zip, "tree/versions.jsonl").Split('\n', StringSplitOptions.RemoveEmptyEntries).Single()).RootElement;
-        Assert.Equal("application/pkcs7-mime", version.GetProperty("contentType").GetString());
-        Assert.DoesNotContain(Marker, Encoding.ASCII.GetString(Bytes(zip, $"blobs/{version.GetProperty("blobRef").GetString()}")), StringComparison.Ordinal);
+    private static async Task<bool> PinOncePerSessionAsync(Reader reader, string? policy)
+    {
+        Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_OFFLINE", policy);
+        try
+        {
+            var href = (await TestJson.Get(reader.Api, "/api/me")).GetProperty("links").EnumerateArray()
+                .Single(l => l.GetProperty("rel").GetString() == "offlineCachePolicy").GetProperty("href").GetString()!;
+            return (await TestJson.Get(reader.Api, href)).GetProperty("pinOncePerSession").GetBoolean();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_OFFLINE", null);
+        }
     }
 }

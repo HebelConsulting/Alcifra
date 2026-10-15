@@ -55,13 +55,11 @@ public class DocumentOfflineExportController(
         // sealed too when the module says so. The module allowed it in the gate; the caller's certificates are required.
         Func<Domain.Documents.DocumentVersion, CancellationToken, Task<byte[]>>? envelope = null;
         Func<byte[], byte[]>? seal = null;
-        var oncePerSession = false;
         if (await strictEnvelopes.RefusesPlaintextDoorsAsync(cancellationToken))
         {
             var certificates = await strictEnvelopes.RequireReaderCertificatesAsync(cancellationToken);
             envelope = (version, ct) => strictEnvelopes.EnvelopeAsync(version.ObjectKey, $"{version.Id:N}{Path.GetExtension(version.ObjectKey)}", certificates, ct);
             var policy = await modulePolicy.ForTenantAsync(cancellationToken);
-            oncePerSession = policy.ContentOncePerSession;   // ADR 0929: said in the manifest, the device acts on it
             if (policy.SealIndexDataAndChat)
             {
                 seal = bytes => enveloper.TryEnvelopeDocument(bytes, "application/json", "sealed.json", null, certificates)
@@ -82,7 +80,7 @@ public class DocumentOfflineExportController(
             new RepositoryExportFilters(null, null, null, null, ExportVersionSelection.CurrentForCaller, null),
             includePermissions: false,
             Response.Body,
-            new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync, envelope, seal, oncePerSession),
+            new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync, envelope, seal),
             cancellationToken);
         await audit.RecordAsync(AuditActions.DocumentOfflineExported, "Document", anchor.Value.Id, anchor.Value.Name, "Offline export", cancellationToken: cancellationToken);
         return new EmptyResult();

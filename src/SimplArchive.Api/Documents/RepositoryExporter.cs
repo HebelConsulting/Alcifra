@@ -448,8 +448,6 @@ public sealed class RepositoryExporter
             offline = audience is not null,
             envelopes = envelopes.Count > 0,
             sealedIndexDataAndChat = audience?.Seal is not null,
-            // ADR 0929: the device may open the envelopes once and keep the content sealed to its copy's key.
-            contentResealableOnDevice = audience is { Envelope: not null, ContentResealableOnDevice: true },
             source = new { tenantId = tenant.Id, tenantName = tenant.Name },
             root = new { documentId = root.Id, name = root.Name },
             filters = new

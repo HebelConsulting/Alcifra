@@ -350,7 +350,12 @@ public sealed class ProfileClient(ApiCore core)
     /// <param name="CanEdit">Whether the caller may save it (a tenant administrator).</param>
     public sealed record OfflineCachePolicy(
         bool Allowed, bool Notifications, bool OpenedDocuments, bool ChosenFolders,
-        string UnlockMode, string RefreshMode, int MaxUnlockedMinutes, bool CanEdit, string Href, string? ETag);
+        string UnlockMode, string RefreshMode, int MaxUnlockedMinutes, bool CanEdit, string Href, string? ETag)
+    {
+        /// <summary>Whether the phone may hold the key's PIN for a session (core ADR 0931); false when the server does
+        /// not say, so an older installation means a PIN for every decryption.</summary>
+        public bool PinOncePerSession { get; init; }
+    }
 
     /// <summary>The tenant's offline-cache policy, or null where the installation does not advertise it.</summary>
     public async Task<OfflineCachePolicy?> GetOfflineCachePolicyAsync(CancellationToken cancellationToken = default)
@@ -405,7 +410,10 @@ public sealed class ProfileClient(ApiCore core)
         json.GetProperty("maxUnlockedMinutes").GetInt32(),
         json.TryGetProperty("canEdit", out var canEdit) && canEdit.ValueKind == JsonValueKind.True,
         ApiCore.FindLink(json, "self") ?? throw new InvalidOperationException("The offline-cache policy advertised no 'self' rel (ADR 0543)."),
-        etag);
+        etag)
+    {
+        PinOncePerSession = json.TryGetProperty("pinOncePerSession", out var pin) && pin.ValueKind == JsonValueKind.True,
+    };
 
     // ---- Self-service S/MIME certificate (#1332, ADR 0816) ------------------------------------------
 
