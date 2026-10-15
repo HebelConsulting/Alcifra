@@ -1,13 +1,14 @@
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
 /// Where the find-in-document word boxes come from: the server's text layout, or — when it will not answer —
-/// the PDF bytes this client already holds (#1402).
+/// the PDF bytes this client already holds (#1402). Shared by the desktop's preview and the phone's (SimplArchiveMobile
+/// #14; moved, not copied, core ADR 0917).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Its own class rather than three methods on <c>PreviewViewModel</c>, because it is a POLICY with two sources
-/// and a precedence, and because the view-model had reached the 1000-line limit CLAUDE.md sets. Extracting it
+/// Its own class rather than three methods on the desktop's <c>PreviewViewModel</c>, because it is a POLICY with two
+/// sources and a precedence, and because the view-model had reached the 1000-line limit CLAUDE.md sets. Extracting it
 /// also makes the precedence testable without standing up a preview.
 /// </para>
 /// <para>
@@ -28,17 +29,20 @@ namespace SimplArchive.DesktopClient.Services;
 /// find affordance off rather than offering a search that silently matches nothing.
 /// </para>
 /// </remarks>
-internal static class PreviewWordSource
+public static class WordLayoutSource
 {
     /// <summary>One list of boxes per page, in page order; empty when no source could produce any.</summary>
+    /// <param name="versions">The client to ask the server with; null (as <paramref name="textLayoutUrl"/>) skips it.</param>
+    /// <param name="textLayoutUrl">The version's <c>text-layout</c> rel, null where the server withholds it.</param>
+    /// <param name="pdfBytes">The PDF this client already holds in the clear, for the local fallback.</param>
     public static async Task<IReadOnlyList<IReadOnlyList<VersionsClient.TextLayoutBox>>> LoadAsync(
-        SimplArchiveApiClient? api, string? textLayoutUrl, byte[]? pdfBytes)
+        VersionsClient? versions, string? textLayoutUrl, byte[]? pdfBytes, CancellationToken cancellationToken = default)
     {
-        if (api is not null && textLayoutUrl is not null)
+        if (versions is not null && textLayoutUrl is not null)
         {
             try
             {
-                if (await api.Versions.GetTextLayoutAsync(textLayoutUrl) is { Pages.Count: > 0 } layout)
+                if (await versions.GetTextLayoutAsync(textLayoutUrl, cancellationToken) is { Pages.Count: > 0 } layout)
                 {
                     return layout.Pages.Select(p => p.Words).ToList();
                 }
@@ -58,7 +62,7 @@ internal static class PreviewWordSource
 
         try
         {
-            var local = await Task.Run(() => SimplArchive.TextLayout.PdfWordBoxes.Read(pdfBytes));
+            var local = await Task.Run(() => SimplArchive.TextLayout.PdfWordBoxes.Read(pdfBytes), cancellationToken);
             return local.Pages
                 .Select(page => (IReadOnlyList<VersionsClient.TextLayoutBox>)page.Words
                     .Select(w => new VersionsClient.TextLayoutBox(w.Text, w.X, w.Y, w.Width, w.Height))

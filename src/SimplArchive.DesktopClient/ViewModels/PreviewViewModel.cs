@@ -287,7 +287,7 @@ public sealed partial class PreviewViewModel : ObservableObject
 
     private void ApplyFindToPages()
     {
-        var terms = FindQuery.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var terms = SimplArchive.Presentation.WordFind.Terms(FindQuery);
         _findMatches.Clear();
         foreach (var page in PreviewPages)
         {
@@ -424,8 +424,8 @@ public sealed partial class PreviewViewModel : ObservableObject
     // the current find query (search-seeded or typed). No overlay if the format is unsupported / nothing was
     // recognized. See ADR "Search hit overlay".
     // Where the words come from is a POLICY with two sources and a precedence, so it lives in its own class
-    // (PreviewWordSource) — which is also what keeps this view-model under the 1000-line limit, and what makes
-    // that precedence testable without standing up a preview.
+    // (WordLayoutSource, shared with the phone) — which is also what keeps this view-model under the 1000-line limit,
+    // and what makes that precedence testable without standing up a preview.
     private async Task LoadHitOverlayAsync(string? textLayoutUrl, byte[]? pdfBytes = null)
     {
         CanFindInDocument = false;
@@ -434,7 +434,7 @@ public sealed partial class PreviewViewModel : ObservableObject
             return;
         }
 
-        var pages = await PreviewWordSource.LoadAsync(Api, textLayoutUrl, pdfBytes);
+        var pages = await WordLayoutSource.LoadAsync(Api?.Versions, textLayoutUrl, pdfBytes);
         if (pages.Count == 0 || pages.All(p => p.Count == 0))
         {
             return; // nothing to find — leave the affordance off rather than offering an empty search

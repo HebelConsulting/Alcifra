@@ -1,5 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- Published for the mobile app (ADR 0917, SimplArchiveMobile #14): the ApiClient package's word source reads PDF
+       bytes with it on the phone too. Conditional for the Docker restore layer, as in Presentation. -->
+  <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
+  <PropertyGroup>
+    <Description>PDF bytes to per-page word boxes, once, for every SimplArchive surface (#1402, ADR 0830).</Description>
+  </PropertyGroup>
+
   <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker
        restore layer copies only the .csproj files, not Directory.Build.props — every project does the same. -->
   <PropertyGroup>

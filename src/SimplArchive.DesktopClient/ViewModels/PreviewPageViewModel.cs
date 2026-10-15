@@ -88,8 +88,8 @@ public sealed partial class PreviewPageViewModel : ObservableObject
         AllWords = words.Select(w => new HighlightBox(w.Text, w.X, w.Y, w.Width, w.Height)).ToList();
     }
 
-    // Highlights every word whose text contains any of the query terms (case-insensitive), so e.g. "invoice"
-    // also lights up "Invoices". Empty/blank query clears the overlay.
+    // Highlights every word the shared rule matches (WordFind: any term, ignoring case, so "invoice" also lights up
+    // "Invoices"). Empty/blank query clears the overlay.
     public void ApplyQuery(IReadOnlyList<string> terms)
     {
         if (terms.Count == 0 || _words.Count == 0)
@@ -99,7 +99,7 @@ public sealed partial class PreviewPageViewModel : ObservableObject
         }
 
         Highlights = _words
-            .Where(w => terms.Any(t => w.Text.Contains(t, StringComparison.OrdinalIgnoreCase)))
+            .Where(w => SimplArchive.Presentation.WordFind.Matches(w.Text, terms))
             .Select(w => new HighlightBox(w.Text, w.X, w.Y, w.Width, w.Height))
             .ToList();
     }

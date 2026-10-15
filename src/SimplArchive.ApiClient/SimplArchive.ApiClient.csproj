@@ -33,6 +33,8 @@
   <ItemGroup>
     <ProjectReference Include="..\SimplArchive.Localization\SimplArchive.Localization.csproj" />
     <ProjectReference Include="..\SimplArchive.Presentation\SimplArchive.Presentation.csproj" />
+    <!-- The find-in-document word source's local half (WordLayoutSource): PDF bytes to word boxes, pure managed. -->
+    <ProjectReference Include="..\SimplArchive.TextLayout\SimplArchive.TextLayout.csproj" />
   </ItemGroup>
 
 </Project>
