@@ -4,12 +4,12 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SimplArchive.Localization;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
 /// The search area's client (#443, tranche 3): free-text/filtered/faceted search, the field catalog, and the
 /// saved searches with their sharing, over the shared authenticated <see cref="ApiCore"/>. Reached as
-/// <c>api.Search</c>. Hit rows carry their own advertised addresses (ADR 0555), so nothing here composes.
+/// <c>api.Search</c> on the desktop. Shared with the phone (moved here from the desktop, core ADR 0917: moved, not copied). Hit rows carry their own advertised addresses (ADR 0555), so nothing here composes.
 /// </summary>
 public sealed class SearchClient(ApiCore core)
 {
