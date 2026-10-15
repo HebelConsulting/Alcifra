@@ -5376,6 +5376,24 @@
   <data name="MobBackgroundClosed" xml:space="preserve">
     <value>Die App war nicht mehr im Vordergrund, darum wurde das versiegelte Dokument geschlossen. Öffnen Sie es mit dem Schlüssel erneut, um es zu lesen.</value>
   </data>
+  <data name="SearchNoMatches" xml:space="preserve">
+    <value>Keine Treffer.</value>
+  </data>
+  <data name="SearchResultCount" xml:space="preserve">
+    <value>{0} Treffer.</value>
+  </data>
+  <data name="ImStatusEnabled" xml:space="preserve">
+    <value>E-Mail-Zugriff ist eingerichtet. Erzeugen Sie ein neues Passwort oder widerrufen Sie den Zugriff.</value>
+  </data>
+  <data name="MobWebDavBody" xml:space="preserve">
+    <value>Verwenden Sie diese Angaben in einer App, die WebDAV spricht, etwa einem Dateimanager, um das Archiv als Ordner zu sehen.</value>
+  </data>
+  <data name="MobImapAddAccount" xml:space="preserve">
+    <value>E-Mail-Konto hinzufügen…</value>
+  </data>
+  <data name="ImStatusNotSetUp" xml:space="preserve">
+    <value>E-Mail-Zugriff ist noch nicht eingerichtet.</value>
+  </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Mit Ihrem Schlüssel öffnen</value>
   </data>

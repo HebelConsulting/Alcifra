@@ -325,7 +325,7 @@ public partial class SearchTabViewModel : ObservableObject
                 FieldFacets.Add(new FieldFacetGroupViewModel(field.Name, buckets, ToggleFieldFacet));
             }
 
-            SearchStatus = SearchResults.Count == 0 ? "No matches." : $"{SearchResults.Count} result(s).";
+            SearchStatus = SearchResults.Count == 0 ? Strings.Get("SearchNoMatches") : string.Format(Strings.Get("SearchResultCount"), SearchResults.Count);
         }
         catch (Exception e)
         {
@@ -606,7 +606,7 @@ public partial class SearchTabViewModel : ObservableObject
         SearchResults.Add(new SearchResultViewModel { Id = Guid.Empty, Name = "Zeta Invoice.pdf", IsFolder = false, ParentId = Guid.Empty, Path = "Repositories / Demo Repository / Invoices", Highlight = "…total amount due of CHF 1'240 for <em>invoice</em> number 2026-03, payable within 30 days…" });
         SearchResults.Add(new SearchResultViewModel { Id = Guid.Empty, Name = "Invoices", IsFolder = true, ParentId = Guid.Empty, Path = "Repositories / Demo Repository" });
         SearchResults.Add(new SearchResultViewModel { Id = Guid.Empty, Name = "March invoice run.xlsx", IsFolder = false, ParentId = Guid.Empty, Path = "Repositories / Demo Repository / 2026", Highlight = "Keywords: <em>invoice</em>, finance, 2026" });
-        SearchStatus = "3 result(s).";
+        SearchStatus = string.Format(Strings.Get("SearchResultCount"), 3);
 
         // Show the refinement panel (ADR "Search-refinement UI", phase 2) populated, for the screenshot.
         SearchRepositories.Add(new SearchRepoOption(null, "All repositories"));

@@ -5376,6 +5376,24 @@
   <data name="MobBackgroundClosed" xml:space="preserve">
     <value>The app left the screen, so the sealed document was closed. Open it again with the key to read it.</value>
   </data>
+  <data name="SearchNoMatches" xml:space="preserve">
+    <value>No matches.</value>
+  </data>
+  <data name="SearchResultCount" xml:space="preserve">
+    <value>{0} result(s).</value>
+  </data>
+  <data name="ImStatusEnabled" xml:space="preserve">
+    <value>Email access is enabled. Regenerate to get a new password, or revoke to disable it.</value>
+  </data>
+  <data name="MobWebDavBody" xml:space="preserve">
+    <value>Use these values in an app that speaks WebDAV, such as a file manager, to see the archive as a folder.</value>
+  </data>
+  <data name="MobImapAddAccount" xml:space="preserve">
+    <value>Add a mail account…</value>
+  </data>
+  <data name="ImStatusNotSetUp" xml:space="preserve">
+    <value>Email access is not set up yet.</value>
+  </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Open with your key</value>
   </data>

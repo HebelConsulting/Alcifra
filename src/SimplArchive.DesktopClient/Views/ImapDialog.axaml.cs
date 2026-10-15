@@ -50,7 +50,7 @@ public partial class ImapDialog : Window
         RevokeButton.IsVisible = status.Enabled;
         GenerateButton.Content = Strings.Get(status.Enabled ? "WdRegenerate" : "WdGenerate");
         StatusText.Text = Strings.Get(status.Available
-            ? status.Enabled ? "WdStatusEnabled" : "WdStatusNotSetUp"
+            ? status.Enabled ? "ImStatusEnabled" : "ImStatusNotSetUp"
             : "ImUnavailable");
         GenerateButton.IsEnabled = status.Available;
         ShowAllBox.IsEnabled = status.Available;
