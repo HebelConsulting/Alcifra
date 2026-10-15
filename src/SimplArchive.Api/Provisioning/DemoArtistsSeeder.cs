@@ -370,7 +370,7 @@ internal static class DemoArtistsSeeder
     /// Paints the calendar with its own colour — the collection's default, which every user sees until they set
     /// a personal override (ADR 0620).
     /// </summary>
-    private static async Task SetColourAsync(
+    internal static async Task SetColourAsync(
         SimplArchiveDbContext dbContext, Guid tenantId, Document folder, Guid? maskVersionId, string colour)
     {
         if (maskVersionId is not { } maskVersion)
@@ -401,7 +401,7 @@ internal static class DemoArtistsSeeder
     }
 
     /// <summary>The mailbox's address claim, written only when absent (#574's rule, like every step here).</summary>
-    private static async Task ClaimAsync(SimplArchiveDbContext dbContext, Guid tenantId, Guid mailboxId, string address)
+    internal static async Task ClaimAsync(SimplArchiveDbContext dbContext, Guid tenantId, Guid mailboxId, string address)
     {
         var fieldId = await dbContext.MaskVersions
             .Where(v => v.MaskId == WellKnownMaskIds.Mailbox && v.IsCurrent)
@@ -426,7 +426,7 @@ internal static class DemoArtistsSeeder
     }
 
     /// <summary>Get-or-create, so a restart against an existing volume neither duplicates nor throws.</summary>
-    private static async Task<Document> FolderAsync(
+    internal static async Task<Document> FolderAsync(
         SimplArchiveDbContext dbContext, Guid tenantId, Guid parentId, string name, Guid adminId,
         DateTimeOffset at, Guid? maskVersionId)
     {
@@ -456,7 +456,7 @@ internal static class DemoArtistsSeeder
     /// Contact and an <c>.ics</c> as an Appointment once the bytes are there, and it is also what extracts the
     /// UID the DAV correlation depends on. Stamping a mask here would guess at what classification decides.
     /// </summary>
-    private static async Task<Document?> ItemAsync(
+    internal static async Task<Document?> ItemAsync(
         SimplArchiveDbContext dbContext, IObjectStorageClient storage, Guid tenantId, Guid parentId, string name,
         Guid adminId, DateTimeOffset at, DocumentFinalizer finalizer, string text, string extension, string contentType)
     {

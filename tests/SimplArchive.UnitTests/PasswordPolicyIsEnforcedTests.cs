@@ -30,6 +30,9 @@ public class PasswordPolicyIsEnforcedTests
         ["DemoDataSeeder.cs"] = (1,
             "same as the crypto demo seeder: a configured demo credential, checked by a test rather than at "
             + "boot"),
+
+        ["ManualDemoSeeder.cs"] = (1,
+            "same as the crypto demo seeder: the Manual tenant's configured credential (#1787)"),
     };
 
     [Fact]

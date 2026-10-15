@@ -304,7 +304,8 @@ public static class DemoDataSeeder
 
         await SeedPersonalContactsAsync(services, dbContext, objectStorage, assembly, tenantId, adminId, now, finalizer);
 
-        await SeedExternalLinkAsync(dbContext, tenantId, telekomAgreement.Id, adminId, now);
+        await SeedExternalLinkAsync(dbContext, tenantId, telekomAgreement.Id, adminId, now,
+            "external-link/telekom-agreement", "simplarchive-demo-telekom-service-agreement-v1");
     }
 
     // A live external link on the Telekom service agreement (ADR 0546, issue #405), so the feature is something a
@@ -319,15 +320,16 @@ public static class DemoDataSeeder
     //
     // UNLIMITED ACCESSES. The tenant default is 5, which five curious visitors would exhaust — the same
     // dead-demo problem in a different disguise, and one the reset would only fix the next day.
-    private static async Task SeedExternalLinkAsync(
-        SimplArchiveDbContext dbContext, Guid tenantId, Guid documentId, Guid adminId, DateTimeOffset now)
+    internal static async Task SeedExternalLinkAsync(
+        SimplArchiveDbContext dbContext, Guid tenantId, Guid documentId, Guid adminId, DateTimeOffset now,
+        string slug, string tokenSeed)
     {
         dbContext.ExternalLinks.Add(new ExternalLink
         {
-            Id = DemoId.For(tenantId, "external-link/telekom-agreement"),
+            Id = DemoId.For(tenantId, slug),
             TenantId = tenantId,
             DocumentId = documentId,
-            Token = ExternalLinkToken.DeriveForDemoSeed("simplarchive-demo-telekom-service-agreement-v1"),
+            Token = ExternalLinkToken.DeriveForDemoSeed(tokenSeed),
             ExpiresAt = now.AddDays(90),
             // null = unlimited, NOT the tenant's ExternalLinkDefaultAccesses.
             MaxAccesses = null,
@@ -696,7 +698,7 @@ public static class DemoDataSeeder
         return version;
     }
 
-    private static void AddAnnotation(
+    internal static void AddAnnotation(
         SimplArchiveDbContext dbContext, Guid tenantId, Guid documentId, Guid versionId, Guid adminId, DateTimeOffset at,
         AnnotationKind kind, double x, double y, double width, double height, string text, string color)
     {
@@ -720,7 +722,7 @@ public static class DemoDataSeeder
         });
     }
 
-    private static async Task AddInReviewWorkflowAsync(
+    internal static async Task AddInReviewWorkflowAsync(
         SimplArchiveDbContext dbContext, Guid tenantId, Guid versionId, Guid adminId, DateTimeOffset now)
     {
         var workflowState = new WorkflowState
@@ -751,7 +753,7 @@ public static class DemoDataSeeder
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task AddReferenceAsync(
+    internal static async Task AddReferenceAsync(
         SimplArchiveDbContext dbContext, Guid tenantId, Guid parentFolderId, Guid targetDocumentId, Guid adminId, DateTimeOffset at)
     {
         dbContext.DocumentReferences.Add(new DocumentReference

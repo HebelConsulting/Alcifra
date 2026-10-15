@@ -24,6 +24,31 @@
     <EmbeddedResource Include="DemoData/maintenance-agreement.pdf" LogicalName="DemoMaintenanceAgreement.pdf" />
     <EmbeddedResource Include="DemoData/crypto-board-minutes.pdf" LogicalName="CryptoBoardMinutes.pdf" />
     <EmbeddedResource Include="DemoData/crypto-salary-review.pdf" LogicalName="CryptoSalaryReview.pdf" />
+    <!-- The Manual tenant's samples (ManualDemoSeeder, #1787), each built from its text source by DemoData/manual/build.sh. -->
+    <EmbeddedResource Include="DemoData/manual/alpenglas-invoice.pdf" LogicalName="ManualAlpenglasInvoice.pdf" />
+    <EmbeddedResource Include="DemoData/manual/alpenglas-maintenance.pdf" LogicalName="ManualAlpenglasMaintenance.pdf" />
+    <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v1.pdf" LogicalName="ManualAlpenglasOfferV1.pdf" />
+    <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v2.pdf" LogicalName="ManualAlpenglasOfferV2.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-contract.pdf" LogicalName="ManualSeewelleContract.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-invoice-1.pdf" LogicalName="ManualSeewelleInvoice1.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-invoice-2.pdf" LogicalName="ManualSeewelleInvoice2.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-invoice-3.pdf" LogicalName="ManualSeewelleInvoice3.pdf" />
+    <EmbeddedResource Include="DemoData/manual/catering-invoice-v1.pdf" LogicalName="ManualCateringInvoiceV1.pdf" />
+    <EmbeddedResource Include="DemoData/manual/catering-invoice-v2.pdf" LogicalName="ManualCateringInvoiceV2.pdf" />
+    <EmbeddedResource Include="DemoData/manual/delivery-note.pdf" LogicalName="ManualDeliveryNote.pdf" />
+    <EmbeddedResource Include="DemoData/manual/press-release-draft.pdf" LogicalName="ManualPressReleaseDraft.pdf" />
+    <EmbeddedResource Include="DemoData/manual/price-list-2025.pdf" LogicalName="ManualPriceList2025.pdf" />
+    <EmbeddedResource Include="DemoData/manual/train-ticket.eml" LogicalName="ManualTrainTicket.eml" />
+    <EmbeddedResource Include="DemoData/manual/bergkraft-forecast.xlsx" LogicalName="ManualBergkraftForecast.xlsx" />
+    <EmbeddedResource Include="DemoData/manual/lease-letter.docx" LogicalName="ManualLeaseLetter.docx" />
+    <EmbeddedResource Include="DemoData/manual/letterhead.odt" LogicalName="ManualLetterhead.odt" />
+    <EmbeddedResource Include="DemoData/manual/invoice-template.ods" LogicalName="ManualInvoiceTemplate.ods" />
+    <EmbeddedResource Include="DemoData/manual/site-plan.png" LogicalName="ManualSitePlan.png" />
+    <EmbeddedResource Include="DemoData/manual/contact-rigiblick.vcf" LogicalName="ManualContactRigiblick.vcf" />
+    <EmbeddedResource Include="DemoData/manual/contact-weber.vcf" LogicalName="ManualContactWeber.vcf" />
+    <EmbeddedResource Include="DemoData/manual/contact-seecafe.vcf" LogicalName="ManualContactSeecafe.vcf" />
+    <EmbeddedResource Include="DemoData/manual/personal-gerber.vcf" LogicalName="ManualPersonalGerber.vcf" />
+    <EmbeddedResource Include="DemoData/manual/personal-treuhand.vcf" LogicalName="ManualPersonalTreuhand.vcf" />
     <!-- The same batch as a SCAN (#492): seven 200-dpi bilevel G4 pages rasterised from the documents above,
          separators at 2 and 6, page 4 fed in upside-down, page 5 the blank duplex back, page 7 crooked by 3.5
          degrees. G4 because that is what a document scanner emits — and it is 78 KB against 906 KB grayscale.

@@ -1,0 +1,12 @@
+BEGIN:VCARD
+VERSION:3.0
+UID:manual-contact-rigiblick
+FN:Andrea Huber
+N:Huber;Andrea;;;
+ORG:Hotel Rigiblick
+TITLE:Direktorin / Director
+TEL;TYPE=WORK:+41 41 555 01 10
+EMAIL;TYPE=WORK:andrea.huber@rigiblick.example
+ADR;TYPE=WORK:;;;Weggis;;;CH
+NOTE:Fiktiver Demo-Kontakt / A fictional SimplArchive demo contact.
+END:VCARD

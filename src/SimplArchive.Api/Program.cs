@@ -733,6 +733,10 @@ using (var scope = app.Services.CreateScope())
     // public demo. No-op unless the CryptoDemo:* config is present and the tenant doesn't already exist.
     await CryptoDemoSeeder.SeedIfConfiguredAsync(services, app.Configuration);
 
+    // The MANUAL tenant (#1787): Kristall Holding AG, the archive the manual's automated screenshots are taken
+    // against. No-op unless ManualDemo:* is configured and the tenant doesn't already exist.
+    await ManualDemoSeeder.SeedIfConfiguredAsync(services, app.Configuration);
+
     // Manuals for every tenant, last so the seeders' new tenants are included (ManualStartupFiling, ADR 0891).
     await SimplArchive.Api.Manuals.ManualStartupFiling.FileEverywhereAsync(app.Services);
 }

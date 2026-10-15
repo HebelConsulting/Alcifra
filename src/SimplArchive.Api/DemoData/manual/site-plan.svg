@@ -1,0 +1,17 @@
+<!-- "Site plan Seestrasse 4" (General): an image sample; build.sh renders it to PNG. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" font-family="sans-serif">
+  <rect width="1200" height="800" fill="#f5f3f8"/>
+  <rect x="0" y="620" width="1200" height="180" fill="#9ec5e0"/>
+  <text x="600" y="730" font-size="32" fill="#2b5876" text-anchor="middle">Vierwaldstättersee / Lake Lucerne</text>
+  <rect x="80" y="560" width="1040" height="50" fill="#d6d3dc"/>
+  <text x="600" y="593" font-size="22" fill="#555" text-anchor="middle">Seestrasse</text>
+  <rect x="360" y="160" width="480" height="360" fill="#5b2a86" rx="6"/>
+  <text x="600" y="330" font-size="40" fill="white" text-anchor="middle" font-weight="bold">Kristall Holding AG</text>
+  <text x="600" y="380" font-size="26" fill="white" text-anchor="middle">Seestrasse 4</text>
+  <rect x="560" y="500" width="80" height="20" fill="#1f6f8b"/>
+  <text x="600" y="545" font-size="18" fill="#1f6f8b" text-anchor="middle">Eingang / Entrance</text>
+  <rect x="900" y="200" width="180" height="300" fill="#c9c4d3" rx="4"/>
+  <text x="990" y="355" font-size="22" fill="#444" text-anchor="middle">Parking</text>
+  <text x="60" y="80" font-size="34" fill="#333" font-weight="bold">Situationsplan / Site plan</text>
+  <text x="60" y="118" font-size="18" fill="#777">Fiktives Demo-Dokument von SimplArchive. / A fictional SimplArchive demo document.</text>
+</svg>

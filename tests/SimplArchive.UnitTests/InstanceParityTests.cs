@@ -94,9 +94,10 @@ public class InstanceParityTests
 
         // The seed keys must appear exactly once each — under the one instance that merges the anchor. A second
         // occurrence means both instances seed, which is the race the config gate exists to prevent.
+        // Matched as a whole key (" Demo__…:"), since ManualDemo__Tenant__Name contains this one as a substring.
         foreach (var key in new[] { "Demo__Tenant__Name", "Demo__Administrator__Password" })
         {
-            Assert.Equal(1, Count(text, key));
+            Assert.Equal(1, Count(text, $" {key}:"));
         }
 
         // …and the shared anchor must NOT carry them, or both instances would seed through the anchor itself.
@@ -104,6 +105,7 @@ public class InstanceParityTests
         // swallowed the seed block it was meant to exclude, so the assertion could never fail.
         var anchorBody = Between(text, $"x-{envAnchor}: &{envAnchor}", "\nservices:");
         Assert.DoesNotContain("Demo__Tenant__Name", anchorBody, StringComparison.Ordinal);
+        Assert.DoesNotContain("ManualDemo__", anchorBody, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -436,7 +438,8 @@ public class InstanceParityTests
         || key.StartsWith("Demo__", StringComparison.Ordinal)
         || key.StartsWith("Interop__", StringComparison.Ordinal)
         || key.StartsWith("FlightSchoolDemo__", StringComparison.Ordinal)
-        || key.StartsWith("LicensingDemo__", StringComparison.Ordinal);
+        || key.StartsWith("LicensingDemo__", StringComparison.Ordinal)
+        || key.StartsWith("ManualDemo__", StringComparison.Ordinal);
 
     private static string ServiceBlock(string text, string name)
     {
