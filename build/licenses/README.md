@@ -41,3 +41,10 @@ file without a test project actually using it — so an exception cannot outlive
 
 See also the standing principle in `CLAUDE.md` ("a workaround dependency is DEBT, and carries the trigger that
 retires it") and ADR 0576.
+
+## `reviewed-owners.json` — who published it (ADR 0933)
+
+Every package not under a verified nuget.org prefix, with the owners a person checked against the project it claims
+to be (`Id`, `Owners`, `ProjectUrl`, `Reviewed`). The daily scan (`scripts/provenance-scan.sh`) fails on an
+unverified package missing here, and on one whose owners no longer match: add an entry only after checking that the
+owners are the project's own maintainers.

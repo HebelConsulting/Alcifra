@@ -1,0 +1,261 @@
+[
+  {
+    "Id": "DiffPlex",
+    "Owners": [
+      "mmanela"
+    ],
+    "ProjectUrl": "https://github.com/mmanela/diffplex/",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Docker.DotNet",
+    "Owners": [
+      "Docker.DotNet",
+      "dotnetfoundation"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Docker.DotNet.X509",
+    "Owners": [
+      "Docker.DotNet",
+      "dotnetfoundation"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Docnet.Core",
+    "Owners": [
+      "modestas"
+    ],
+    "ProjectUrl": "https://github.com/GowenGit/docnet",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Fido2",
+    "Owners": [
+      "abergs"
+    ],
+    "ProjectUrl": "https://github.com/passwordless-lib/fido2-net-lib",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Fido2.AspNet",
+    "Owners": [
+      "abergs"
+    ],
+    "ProjectUrl": "https://github.com/passwordless-lib/fido2-net-lib",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Fido2.Models",
+    "Owners": [
+      "abergs"
+    ],
+    "ProjectUrl": "https://github.com/passwordless-lib/fido2-net-lib",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "HebelConsulting.CAManagement.Pkcs11",
+    "Owners": [
+      "HebelConsulting"
+    ],
+    "ProjectUrl": "https://github.com/HebelConsulting/CAManagement",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Ical.Net",
+    "Owners": [
+      "ical-org"
+    ],
+    "ProjectUrl": "https://github.com/ical-org/ical.net",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "libsodium",
+    "Owners": [
+      "jedisct1"
+    ],
+    "ProjectUrl": "https://libsodium.org/",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "MessagePack",
+    "Owners": [
+      "aarnott",
+      "neuecc"
+    ],
+    "ProjectUrl": "https://github.com/MessagePack-CSharp/MessagePack-CSharp",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "MessagePack.Annotations",
+    "Owners": [
+      "aarnott",
+      "neuecc"
+    ],
+    "ProjectUrl": "https://github.com/MessagePack-CSharp/MessagePack-CSharp",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "MicroCom.Runtime",
+    "Owners": [
+      "kekekeks"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Mono.Cecil",
+    "Owners": [
+      "jbevain"
+    ],
+    "ProjectUrl": "http://github.com/jbevain/cecil/",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Mono.TextTemplating",
+    "Owners": [
+      "kzu",
+      "mhutch"
+    ],
+    "ProjectUrl": "https://github.com/mono/t4",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "MsgReader",
+    "Owners": [
+      "Sicos1977"
+    ],
+    "ProjectUrl": "https://github.com/Sicos1977/MSGReader",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "NetArchTest.Rules",
+    "Owners": [
+      "BenMorris"
+    ],
+    "ProjectUrl": "https://www.ben-morris.com/writing-archunit-style-tests-for-net-and-c-for-self-testing-architectures/",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "NSec.Cryptography",
+    "Owners": [
+      "nsec"
+    ],
+    "ProjectUrl": "https://nsec.rocks/",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "OpenMcdf",
+    "Owners": [
+      "ironfede",
+      "jeremy-visionaid"
+    ],
+    "ProjectUrl": "https://openmcdf.github.io/openmcdf/",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Otp.NET",
+    "Owners": [
+      "xxkylexx"
+    ],
+    "ProjectUrl": "https://github.com/kspearrin/Otp.NET",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "PdfPig",
+    "Owners": [
+      "BobLd",
+      "EliotJones",
+      "PdfPig"
+    ],
+    "ProjectUrl": "https://github.com/UglyToad/PdfPig",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Pipelines.Sockets.Unofficial",
+    "Owners": [
+      "marc.gravell"
+    ],
+    "ProjectUrl": "https://github.com/mgravell/Pipelines.Sockets.Unofficial",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Projektanker.Icons.Avalonia",
+    "Owners": [
+      "Projektanker"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Projektanker.Icons.Avalonia.MaterialDesign",
+    "Owners": [
+      "Projektanker"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "QRCoder",
+    "Owners": [
+      "Shane32"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "RtfPipe",
+    "Owners": [
+      "erdomke"
+    ],
+    "ProjectUrl": "https://github.com/erdomke/RtfPipe",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "SharpZipLib",
+    "Owners": [
+      "SharpDevelop"
+    ],
+    "ProjectUrl": "https://github.com/icsharpcode/SharpZipLib",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "SSH.NET",
+    "Owners": [
+      "SSH.NET",
+      "drieseng",
+      "olegkap",
+      "wojtpl2"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Tmds.DBus.Protocol",
+    "Owners": [
+      "tmds"
+    ],
+    "ProjectUrl": "",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "UTF.Unknown",
+    "Owners": [
+      "304NotModified"
+    ],
+    "ProjectUrl": "https://github.com/CharsetDetector/UTF-unknown",
+    "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "WebPush",
+    "Owners": [
+      "coryjthompson"
+    ],
+    "ProjectUrl": "https://github.com/web-push-libs/web-push-csharp/",
+    "Reviewed": "2026-10-15"
+  }
+]
