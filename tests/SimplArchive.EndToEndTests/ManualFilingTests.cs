@@ -141,6 +141,44 @@ public class ManualFilingTests
         Assert.Equal("simplarchive-core", await FieldAsync(rig.TenantId, manual.Id, "Article number"));
     }
 
+    [Fact]
+    public async Task A_client_manual_from_the_directory_is_filed_named_after_its_file_and_versioned_when_it_changes()
+    {
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        var directory = Directory.CreateTempSubdirectory("client-manuals-").FullName;
+        var pdf = Path.Combine(directory, "SimplArchive-Mobile-Manual.pdf");
+        try
+        {
+            await File.WriteAllTextAsync(pdf, "%PDF-1.4 the phone manual, edition 1");
+            await File.WriteAllTextAsync($"{pdf}.version", "0.21.2\n");
+
+            await ManualStartupFiling.FileClientManualsAsync(_factory.Services, rig.TenantId, [pdf], NullLogger.Instance);
+            await ManualStartupFiling.FileClientManualsAsync(_factory.Services, rig.TenantId, [pdf], NullLogger.Instance);
+
+            var folder = await ManualsFolderAsync(rig.TenantId);
+            Guid documentId;
+            await using (var scope = await TenantScopeAsync(rig.TenantId))
+            {
+                var manual = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id && d.Name == "SimplArchive Mobile Manual");
+                documentId = manual.Id;
+            }
+
+            Assert.Equal("client:simplarchive-mobile-manual", await FieldAsync(rig.TenantId, documentId, "Article number"));
+            Assert.Equal("0.21.2", await FieldAsync(rig.TenantId, documentId, "Product version"));
+            Assert.Single((await DocumentAsync(rig.TenantId, documentId)).Versions);   // filed once, unchanged the second time
+
+            await File.WriteAllTextAsync(pdf, "%PDF-1.4 the phone manual, edition 2");
+            await ManualStartupFiling.FileClientManualsAsync(_factory.Services, rig.TenantId, [pdf], NullLogger.Instance);
+
+            Assert.Equal(2, (await DocumentAsync(rig.TenantId, documentId)).Versions.Count);   // a new version, same document
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private async Task<ManualFilingOutcome> CoreAsync(Guid tenantId)
     {
         await using var scope = await TenantScopeAsync(tenantId);

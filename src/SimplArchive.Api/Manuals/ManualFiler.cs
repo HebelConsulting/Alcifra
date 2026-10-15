@@ -107,7 +107,35 @@ public sealed class ManualFiler(
             file.CreateReadStream, "SimplArchive", CoreArticleNumber, ServerBuildInfo.Version);
 
         return FileAsync(source,
-            findExisting: () => CoreManualDocumentIdAsync(cancellationToken),
+            findExisting: () => ManualDocumentIdAsync(CoreArticleNumber, cancellationToken),
+            remember: _ => Task.CompletedTask,
+            author: AuthorOfStandardRepositoryAsync,
+            auditActor: _ => (AuditActorType.System, Guid.Empty, "SimplArchive"),
+            cancellationToken);
+    }
+
+    /// <summary>The Article number prefix of a client manual: <c>client:</c> and the file's name without extension.</summary>
+    public const string ClientArticlePrefix = "client:";
+
+    /// <summary>
+    /// Files a CLIENT's manual in the current tenant (ADR 0934): a PDF an installation lays in
+    /// <c>Manuals:ClientDirectory</c>, such as the phone app's, named after its file
+    /// (<c>SimplArchive-Mobile-Manual.pdf</c> is "SimplArchive Mobile Manual"). Found again by its Article number,
+    /// <c>client:</c> and the file's name, like the core's own; versioned when the bytes change. An optional
+    /// <c>&lt;file&gt;.version</c> beside it gives the Manual's version.
+    /// </summary>
+    public Task<ManualFilingOutcome> FileClientManualAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var stem = Path.GetFileNameWithoutExtension(path);
+        var name = stem.Replace('-', ' ');
+        var product = name.EndsWith(" Manual", StringComparison.OrdinalIgnoreCase) ? name[..^" Manual".Length] : name;
+        var versionFile = $"{path}.version";
+        var version = File.Exists(versionFile) ? File.ReadAllText(versionFile).Trim() : string.Empty;
+        var article = $"{ClientArticlePrefix}{stem.ToLowerInvariant()}";
+        var source = new ManualSource(name, Path.GetFileName(path), "application/pdf", () => File.OpenRead(path), product, article, version);
+
+        return FileAsync(source,
+            findExisting: () => ManualDocumentIdAsync(article, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
             auditActor: _ => (AuditActorType.System, Guid.Empty, "SimplArchive"),
@@ -246,11 +274,12 @@ public sealed class ManualFiler(
         return outcome;
     }
 
-    private async Task<Guid?> CoreManualDocumentIdAsync(CancellationToken cancellationToken)
+    // A manual the core files itself (its own, a client's) is found again by its Article number, which needs no column.
+    private async Task<Guid?> ManualDocumentIdAsync(string articleNumberValue, CancellationToken cancellationToken)
     {
         var articleNumber = WellKnownMaskIds.ManualFields.ArticleNumber;
         return await dbContext.FieldValues
-            .Where(v => v.Value == CoreArticleNumber
+            .Where(v => v.Value == articleNumberValue
                 && dbContext.FieldDefinitions.Any(f => f.Id == v.FieldDefinitionId && f.Name == articleNumber
                     && dbContext.MaskVersions.Any(mv => mv.Id == f.MaskVersionId && mv.MaskId == WellKnownMaskIds.Manual))
                 && dbContext.Documents.Any(d => d.Id == v.DocumentId))
