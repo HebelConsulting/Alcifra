@@ -59,21 +59,68 @@ public sealed class StartupSeedLock : IAsyncDisposable
         _logger = logger;
     }
 
+    /// <summary>How long an instance waits for a sibling's seeding before it gives up (owner decision, #1773).</summary>
+    public static readonly TimeSpan DefaultDeadline = TimeSpan.FromMinutes(10);
+
+    private static readonly TimeSpan DefaultPollEvery = TimeSpan.FromSeconds(2);
+
     /// <summary>
     /// Takes the lock, waiting for any other instance that is already seeding. A no-op on a provider without
     /// advisory locks (SQLite in tests), where there is only ever one process anyway.
     /// </summary>
-    public static async Task<StartupSeedLock> AcquireAsync(SimplArchiveDbContext dbContext, ILogger logger)
+    /// <remarks>
+    /// <b>It polls rather than blocks</b> (#1773). A blocking <c>pg_advisory_lock</c> is one statement that lasts as long
+    /// as the sibling seeds, so the command timeout (30 s) ended it while it was waiting correctly: the waiting instance
+    /// died with exit 134 at the nightly reset and came back only through the restart policy. Each
+    /// <c>pg_try_advisory_lock</c> returns at once, the wait is said in the log, and a sibling that never finishes ends
+    /// in a named error after <paramref name="deadline"/> rather than a silent hang.
+    /// </remarks>
+    /// <exception cref="StartupSeedLockTimeoutException">The sibling held the lock for longer than the deadline.</exception>
+    public static async Task<StartupSeedLock> AcquireAsync(SimplArchiveDbContext dbContext, ILogger logger,
+        TimeSpan? deadline = null, TimeSpan? pollEvery = null)
     {
         if (!dbContext.Database.IsNpgsql())
         {
             return new StartupSeedLock(null, logger);
         }
 
-        await dbContext.Database.GetDbConnection().OpenAsync();
-        await dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_lock({0})", Key);
+        var limit = deadline ?? DefaultDeadline;
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        var connection = dbContext.Database.GetDbConnection();
+        await connection.OpenAsync();
+        var waiting = false;
+        while (!await TryTakeAsync(connection))
+        {
+            if (!waiting)
+            {
+                waiting = true;
+                logger.LogInformation("Another instance is seeding the database; waiting for it to finish (up to {Deadline})", limit);
+            }
+
+            if (started.Elapsed >= limit)
+            {
+                await connection.CloseAsync();
+                throw new StartupSeedLockTimeoutException(limit);
+            }
+
+            await Task.Delay(pollEvery ?? DefaultPollEvery);
+        }
+
+        if (waiting)
+        {
+            logger.LogInformation("The other instance finished seeding after {Waited}; seeding here", started.Elapsed);
+        }
+
         logger.LogDebug("Startup seeding lock acquired; any sibling instance waits here until seeding completes.");
         return new StartupSeedLock(dbContext, logger);
+    }
+
+    // One immediate attempt on the held connection: true when this session now holds the lock.
+    private static async Task<bool> TryTakeAsync(System.Data.Common.DbConnection connection)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"SELECT pg_try_advisory_lock({Key})";
+        return await command.ExecuteScalarAsync() is true;
     }
 
     public async ValueTask DisposeAsync()

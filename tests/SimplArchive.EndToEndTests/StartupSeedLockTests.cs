@@ -40,7 +40,7 @@ public class StartupSeedLockTests
         var finishedEarly = await Task.WhenAny(blocked, Task.Delay(TimeSpan.FromSeconds(2)));
         Assert.NotSame(blocked, finishedEarly);
 
-        // …and it must get in once the first is done, rather than waiting for a timeout or deadlocking. The
+        // …and it must get in once the first is done (it polls, #1773), rather than waiting for a timeout or deadlocking. The
         // release path matters as much as the block: a lock that is never released turns every subsequent boot
         // into a hang, which is a worse failure than the crash it replaced.
         await held.DisposeAsync();
@@ -70,6 +70,32 @@ public class StartupSeedLockTests
         var again = StartupSeedLock.AcquireAsync(other, NullLogger.Instance);
         var completed = await Task.WhenAny(again, Task.Delay(TimeSpan.FromSeconds(10)));
         Assert.Same(again, completed);
+        await (await again).DisposeAsync();
+    }
+
+    [Fact]
+    public async Task A_sibling_that_holds_the_lock_past_the_deadline_ends_in_a_named_error_not_a_hang()
+    {
+        // #1773: the wait is bounded and says why it ended. (Waiting past the 30 s command timeout without dying is
+        // the other half; polling makes it hold by construction, since no single statement waits.)
+        await using var first = NewContext();
+        await using var second = NewContext();
+        var held = await StartupSeedLock.AcquireAsync(first, NullLogger.Instance);
+        try
+        {
+            var error = await Assert.ThrowsAsync<StartupSeedLockTimeoutException>(() =>
+                StartupSeedLock.AcquireAsync(second, NullLogger.Instance, deadline: TimeSpan.FromSeconds(3), pollEvery: TimeSpan.FromMilliseconds(200)));
+            Assert.Equal(TimeSpan.FromSeconds(3), error.Deadline);
+        }
+        finally
+        {
+            await held.DisposeAsync();
+        }
+
+        // The refused instance left nothing behind: the lock is free for the next one at once.
+        await using var third = NewContext();
+        var again = StartupSeedLock.AcquireAsync(third, NullLogger.Instance, deadline: TimeSpan.FromSeconds(5));
+        Assert.Same(again, await Task.WhenAny(again, Task.Delay(TimeSpan.FromSeconds(10))));
         await (await again).DisposeAsync();
     }
 
