@@ -35,31 +35,6 @@
     "License": "MIT"
   },
   {
-    "Id": "UglyToad.PdfPig",
-    "Version": "1.7.0-custom-5",
-    "License": "Apache-2.0"
-  },
-  {
-    "Id": "UglyToad.PdfPig.Core",
-    "Version": "1.7.0-custom-5",
-    "License": "Apache-2.0"
-  },
-  {
-    "Id": "UglyToad.PdfPig.Fonts",
-    "Version": "1.7.0-custom-5",
-    "License": "Apache-2.0"
-  },
-  {
-    "Id": "UglyToad.PdfPig.Tokenization",
-    "Version": "1.7.0-custom-5",
-    "License": "Apache-2.0"
-  },
-  {
-    "Id": "UglyToad.PdfPig.Tokens",
-    "Version": "1.7.0-custom-5",
-    "License": "Apache-2.0"
-  },
-  {
     "Id": "WebPush",
     "Version": "1.0.13",
     "License": "MPL-2.0"

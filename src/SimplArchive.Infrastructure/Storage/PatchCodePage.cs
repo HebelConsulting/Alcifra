@@ -79,8 +79,8 @@ public static class PatchCodePage
             var bottom = downward ? y - barHeight : y;
             page.DrawRectangle(
                 new PdfPoint(left, bottom),
-                (decimal)BarLength,
-                (decimal)barHeight,
+                BarLength,
+                barHeight,
                 lineWidth: 0,
                 fill: true);
 

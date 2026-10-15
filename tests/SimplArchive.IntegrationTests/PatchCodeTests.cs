@@ -97,7 +97,7 @@ public class PatchCodeTests
     {
         using var sheet = PdfDocument.Open(PatchCodePage.CreatePdf());
 
-        return sheet.GetPage(1).ExperimentalAccess.Paths
+        return sheet.GetPage(1).Paths
             .Where(path => path.IsFilled)
             .Select(path => path.GetBoundingRectangle())
             .Where(box => box.HasValue)
