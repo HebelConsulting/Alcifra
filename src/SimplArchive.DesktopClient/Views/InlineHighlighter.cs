@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -8,8 +6,8 @@ using Avalonia.Media;
 namespace SimplArchive.DesktopClient.Views;
 
 // Renders a search-highlight snippet (ADR "Search result highlighting") into a TextBlock's Inlines: the
-// server sends the fragment with matched terms wrapped in <em>…</em> and everything else HTML-escaped, so we
-// split on the tags, HTML-decode each run, and make the emphasized runs bold. Avalonia's TextBlock can't bind
+// server sends the fragment with matched terms wrapped in <em>…</em> and everything else HTML-escaped; the shared
+// SearchSnippet splits and decodes it (the phone renders the same runs), and the emphasized runs are made bold here. Avalonia's TextBlock can't bind
 // Inlines directly, hence this attached property.
 public static partial class InlineHighlighter
 {
@@ -19,9 +17,6 @@ public static partial class InlineHighlighter
     public static void SetHtml(TextBlock element, string? value) => element.SetValue(HtmlProperty, value);
 
     public static string? GetHtml(TextBlock element) => element.GetValue(HtmlProperty);
-
-    [GeneratedRegex("<em>(.*?)</em>", RegexOptions.Singleline)]
-    private static partial Regex EmTag();
 
     static InlineHighlighter()
     {
@@ -34,21 +29,9 @@ public static partial class InlineHighlighter
                 return;
             }
 
-            var last = 0;
-            foreach (Match match in EmTag().Matches(html))
+            foreach (var (text, isHit) in SimplArchive.Presentation.SearchSnippet.Parts(html))
             {
-                if (match.Index > last)
-                {
-                    textBlock.Inlines?.Add(new Run(WebUtility.HtmlDecode(html[last..match.Index])));
-                }
-
-                textBlock.Inlines?.Add(new Run(WebUtility.HtmlDecode(match.Groups[1].Value)) { FontWeight = FontWeight.Bold });
-                last = match.Index + match.Length;
-            }
-
-            if (last < html.Length)
-            {
-                textBlock.Inlines?.Add(new Run(WebUtility.HtmlDecode(html[last..])));
+                textBlock.Inlines?.Add(isHit ? new Run(text) { FontWeight = FontWeight.Bold } : new Run(text));
             }
         });
     }
