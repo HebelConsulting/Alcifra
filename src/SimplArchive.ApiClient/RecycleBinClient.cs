@@ -3,12 +3,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using SimplArchive.Localization;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
 /// The recycle-bin tab's area (#443, ops tranche): the tenant-wide soft-deleted listing and its bulk
 /// restore/purge, addressed from the rows and the collection's own links (ADR 0543/0555/0557).
-/// Rides the shared authenticated <see cref="ApiCore"/>.
+/// Rides the shared authenticated <see cref="ApiCore"/>. Shared with the phone's Recycle bin tile (moved here from the
+/// desktop, core ADR 0917: moved, not copied).
 /// </summary>
 public sealed class RecycleBinClient(ApiCore core)
 {

@@ -357,7 +357,7 @@ public sealed partial class RecycleBinRowViewModel : ObservableObject
 {
     // The row the server sent — restore / purge follow the addresses it advertised (ADR 0543/0555). Null only
     // for the designer-preview rows, which reach no server.
-    public SimplArchive.DesktopClient.Services.RecycleBinClient.RecycleBinEntry? Entry { get; init; }
+    public SimplArchive.ApiClient.RecycleBinClient.RecycleBinEntry? Entry { get; init; }
 
     public required Guid Id { get; init; }
     public required string Name { get; init; }
