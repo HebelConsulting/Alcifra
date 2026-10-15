@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>One addressbook or calendar the caller can see (#564), as the Contacts/Calendar tabs need it.</summary>
 /// <param name="Id">The typed folder.</param>
@@ -42,7 +42,8 @@ public sealed record DavCollection(
 /// <summary>
 /// Reads the caller's addressbooks and calendars from the `davCollections` rel on the me resource (#564).
 /// The CalDAV/CardDAV home set answers the same question for EXTERNAL clients; ours speaks JSON and follows
-/// rels, so it uses this rather than parsing a multistatus to draw a tab.
+/// rels, so it uses this rather than parsing a multistatus to draw a tab. Shared with the phone's Address book and
+/// Calendar tiles (moved here from the desktop, core ADR 0917: moved, not copied).
 /// </summary>
 public sealed class DavCollectionsClient
 {

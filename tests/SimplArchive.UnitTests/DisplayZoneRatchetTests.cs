@@ -50,7 +50,7 @@ public partial class DisplayZoneRatchetTests
         ["DesktopClient/ViewModels/CalendarTabViewModel.cs"] = "appointments — ADR 0690",
         ["DesktopClient/ViewModels/BookingDialogViewModel.cs"] = "appointments — ADR 0690",
         ["DesktopClient/ViewModels/ReminderDialogViewModel.cs"] = "appointments — ADR 0690",
-        ["DesktopClient/Services/DavCollectionsClient.cs"] = "appointments — ADR 0690",
+        ["ApiClient/DavCollectionsClient.cs"] = "appointments — ADR 0690",
         ["Presentation/AppointmentCoverage.cs"] = "appointments — ADR 0690",
         ["Presentation/OfferedHours.cs"] = "appointments — ADR 0690",
 

@@ -75,90 +75,55 @@ public sealed partial class ContactEditViewModel : StructuredEditFormViewModel
     [RelayCommand]
     public void RemoveAddress(ContactAddressRowViewModel row) => Addresses.Remove(row);
 
-    /// <summary>Reads the API's contact-card resource into the form.</summary>
-    public static ContactEditViewModel From(JsonElement body)
+    /// <summary>Reads the API's contact-card resource into the form (the mapping is the shared <see cref="ContactCard"/>).</summary>
+    public static ContactEditViewModel From(JsonElement body) => From(ContactCard.From(body));
+
+    public static ContactEditViewModel From(ContactCard card)
     {
         var model = new ContactEditViewModel
         {
-            GivenName = Text(body, "givenName"),
-            FamilyName = Text(body, "familyName"),
-            Organization = Text(body, "organization"),
-            Title = Text(body, "title"),
-            Birthday = Text(body, "birthday"),
-            Url = Text(body, "url"),
-            Note = Text(body, "note"),
-            StoredFormattedName = Text(body, "formattedName") is { Length: > 0 } fn ? fn : null,
+            GivenName = card.GivenName,
+            FamilyName = card.FamilyName,
+            Organization = card.Organization,
+            Title = card.Title,
+            Birthday = card.Birthday,
+            Url = card.Url,
+            Note = card.Note,
+            StoredFormattedName = card.StoredFormattedName,
         };
-
-        foreach (var row in Array(body, "emails"))
+        foreach (var e in card.Emails)
         {
-            model.Emails.Add(new ContactFieldRowViewModel { Value = Text(row, "value"), Type = Text(row, "type") is { Length: > 0 } t ? t : "work" });
+            model.Emails.Add(new ContactFieldRowViewModel { Value = e.Value, Type = e.Type });
         }
 
-        foreach (var row in Array(body, "phones"))
+        foreach (var p in card.Phones)
         {
-            model.Phones.Add(new ContactFieldRowViewModel { Value = Text(row, "value"), Type = Text(row, "type") is { Length: > 0 } t ? t : "mobile" });
+            model.Phones.Add(new ContactFieldRowViewModel { Value = p.Value, Type = p.Type });
         }
 
-        foreach (var row in Array(body, "addresses"))
+        foreach (var a in card.Addresses)
         {
             model.Addresses.Add(new ContactAddressRowViewModel
             {
-                Type = Text(row, "type") is { Length: > 0 } t ? t : "home",
-                Street = Text(row, "street"),
-                City = Text(row, "city"),
-                Region = Text(row, "region"),
-                PostalCode = Text(row, "postalCode"),
-                Country = Text(row, "country"),
+                Type = a.Type,
+                Street = a.Street,
+                City = a.City,
+                Region = a.Region,
+                PostalCode = a.PostalCode,
+                Country = a.Country,
             });
         }
 
         return model;
     }
 
+    /// <summary>The form as the shared card.</summary>
+    public ContactCard ToCard() => new(GivenName, FamilyName, Organization, Title, Birthday, Url, Note, StoredFormattedName,
+        [.. Emails.Select(e => new ContactCard.Field(e.Value, e.Type))],
+        [.. Phones.Select(p => new ContactCard.Field(p.Value, p.Type))],
+        [.. Addresses.Select(a => new ContactCard.Address(a.Type, a.Street, a.City, a.Region, a.PostalCode, a.Country))]);
+
     /// <summary>The body a PUT sends back. Empty rows are dropped rather than saved as blank properties.</summary>
-    public object ToPayload() => new
-    {
-        formattedName = StoredFormattedName,
-        givenName = Null(GivenName),
-        familyName = Null(FamilyName),
-        organization = Null(Organization),
-        title = Null(Title),
-        emails = Emails.Where(e => !string.IsNullOrWhiteSpace(e.Value))
-            .Select(e => new { value = e.Value.Trim(), type = e.Type }).ToArray(),
-        phones = Phones.Where(p => !string.IsNullOrWhiteSpace(p.Value))
-            .Select(p => new { value = p.Value.Trim(), type = p.Type }).ToArray(),
-        addresses = Addresses.Where(a => !a.IsEmpty())
-            .Select(a => new
-            {
-                type = a.Type,
-                street = Null(a.Street),
-                city = Null(a.City),
-                region = Null(a.Region),
-                postalCode = Null(a.PostalCode),
-                country = Null(a.Country),
-            }).ToArray(),
-        birthday = Null(Birthday),
-        url = Null(Url),
-        note = Null(Note),
-    };
-
-    private static string? Null(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string Text(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
-            ? value.GetString() ?? ""
-            : "";
-
-    private static IEnumerable<JsonElement> Array(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Array
-            ? value.EnumerateArray()
-            : [];
+    public object ToPayload() => ToCard().ToPayload();
 }
 
-internal static class ContactAddressRowExtensions
-{
-    public static bool IsEmpty(this ContactAddressRowViewModel a) =>
-        string.IsNullOrWhiteSpace(a.Street) && string.IsNullOrWhiteSpace(a.City) && string.IsNullOrWhiteSpace(a.Region)
-        && string.IsNullOrWhiteSpace(a.PostalCode) && string.IsNullOrWhiteSpace(a.Country);
-}
