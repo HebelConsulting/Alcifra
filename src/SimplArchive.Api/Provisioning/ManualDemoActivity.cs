@@ -35,8 +35,12 @@ internal static class ManualDemoActivity
         await seed.NextVersionAsync(offer, "ManualAlpenglasOfferV2.pdf", new DateOnly(2026, 2, 20),
             seed.Now.AddDays(-2), "Revised: six panes instead of four, disposal added.");
 
-        await seed.DocAsync(tree.Alpenglas.Id, "Maintenance agreement WV-2026-07", "ManualAlpenglasMaintenance.pdf",
+        // Checked out by the administrator, so the Check-out lists (the desktop's tab, the phone's tile) show one.
+        var agreement = await seed.DocAsync(tree.Alpenglas.Id, "Maintenance agreement WV-2026-07", "ManualAlpenglasMaintenance.pdf",
             new DateOnly(2026, 3, 25));
+        agreement.CheckedOutByUserId = seed.AdminId;
+        agreement.CheckedOutAt = seed.Now.AddHours(-2);
+        await seed.Db.SaveChangesAsync();
 
         var invoice = await seed.DocAsync(tree.Alpenglas.Id, "Invoice AG-2026-031", "ManualAlpenglasInvoice.pdf",
             new DateOnly(2026, 3, 12), at: seed.Now.AddDays(-1));

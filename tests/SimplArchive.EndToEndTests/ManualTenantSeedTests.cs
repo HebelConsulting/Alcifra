@@ -74,6 +74,8 @@ public class ManualTenantSeedTests(E2EApiFactory factory)
                 .Select(w => w.Status).SingleAsync());
             Assert.True(await db.DocumentReferences.AnyAsync(r => r.TargetDocumentId == invoice.Id));
 
+            Assert.True(await db.Documents.AnyAsync(d => d.Name == "Maintenance agreement WV-2026-07" && d.CheckedOutByUserId != null));
+
             var offer = await db.Documents.SingleAsync(d => d.Name == "Offer 2026-022");
             Assert.Equal(2, await db.DocumentVersions.CountAsync(v => v.DocumentId == offer.Id));
 
