@@ -738,6 +738,10 @@ using (var scope = app.Services.CreateScope())
     await ManualDemoSeeder.SeedIfConfiguredAsync(services, app.Configuration);
 
     // Manuals for every tenant, last so the seeders' new tenants are included (ManualStartupFiling, ADR 0891).
+    // The core's certificate registry (#1790, ADR 0935), rebuilt from the Certificate documents while a module
+    // encrypts to users: idempotent, and how enrolments filed before it existed reach it.
+    await SimplArchive.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildEverywhereAsync(app.Services);
+
     await SimplArchive.Api.Manuals.ManualStartupFiling.FileEverywhereAsync(app.Services);
 }
 

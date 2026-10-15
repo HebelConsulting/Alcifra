@@ -267,6 +267,16 @@ public interface IIndustryModule
     Func<ReaderCertificateContext, Task<IReadOnlyList<ReaderCertificate>>>? ReaderCertificates => null;
 
     /// <summary>
+    /// Whether this module LICENSES certificate enrolment (ABI 1.17, core ADR 0935, #1790): while it is active for a
+    /// tenant, the core answers which certificates a reader is addressed by from its own registry, the certificates
+    /// enrolled as documents of the core <c>Certificate</c> mask, revoked and expired ones left out. The Encryption
+    /// Module and the Messenger both declare it, so a user enrols once and either licence switches the answer on.
+    /// A module that declares it needs no <see cref="ReaderCertificates"/> of its own; one that has both is answered
+    /// by the core.
+    /// </summary>
+    bool LicensesCertificateEnrolment => false;
+
+    /// <summary>
     /// Whether the phone's offline export may run on a tenant that refuses plaintext doors, and whether its index data
     /// and chat travel sealed too (ABI 1.15, core ADR 0928). Null (the default): no module speaks, and such a tenant
     /// refuses the offline export, as it refuses every plaintext door.

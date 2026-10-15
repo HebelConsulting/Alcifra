@@ -937,4 +937,8 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
             groups.ToDictionary(g => g.Key, g => string.Join("+", g.Select(r => r.Value)), StringComparer.Ordinal),
             groups.ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(r => r.Value).ToList(), StringComparer.Ordinal));
     }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<ReaderCertificate>> GetUserCertificatesAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Certificates.CertificateRegistry.ForReaderAsync(_dbContext, userId, DateTimeOffset.UtcNow, cancellationToken);
 }

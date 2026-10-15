@@ -190,6 +190,9 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
 
     public DbSet<ResourcePrincipal> ResourcePrincipals => Set<ResourcePrincipal>();
 
+    // The core's certificate registry (#1790, ADR 0935): derived from Certificate documents, machine-owned.
+    public DbSet<SimplArchive.Domain.Certificates.EnrolledCertificate> EnrolledCertificates => Set<SimplArchive.Domain.Certificates.EnrolledCertificate>();
+
     public DbSet<ResourceBlock> ResourceBlocks => Set<ResourceBlock>();
 
     public DbSet<ResourceAvailability> ResourceAvailability => Set<ResourceAvailability>();

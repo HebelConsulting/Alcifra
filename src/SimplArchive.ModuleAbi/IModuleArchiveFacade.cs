@@ -279,6 +279,17 @@ public interface IModuleArchiveFacade
     /// <param name="cancellationToken">Cancellation.</param>
     Task<bool> IsFreeAsync(
         Guid resourceDocumentId, DateTimeOffset startsAt, DateTimeOffset endsAt, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A user's usable certificates from the core's registry (ABI 1.17, core ADR 0935): every enrolled, unrevoked
+    /// certificate within its validity window, the SET a module encrypts to (ADR 0842's rule: address them all, no
+    /// precedence). For a module that encrypts to users itself, such as the Messenger wrapping a conversation key to
+    /// every member. Public certificates, never a private key; empty for a user with none, or not of this tenant.
+    /// </summary>
+    /// <remarks>A default member, so a facade implemented before 1.17 (a test double) still compiles and answers
+    /// none.</remarks>
+    Task<IReadOnlyList<ReaderCertificate>> GetUserCertificatesAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ReaderCertificate>>([]);
 }
 
 /// <summary>A document as the facade shows it: identity, mask, and its index fields by name.</summary>

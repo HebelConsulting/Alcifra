@@ -45,7 +45,9 @@ public sealed class ModuleReaderCertificates(
     {
         var modules = (services.GetService(typeof(IReadOnlyList<ModuleLoader.LoadedModule>))
             as IReadOnlyList<ModuleLoader.LoadedModule> ?? [])
-            .Where(m => m.Module.ReaderCertificates is not null)
+            // ABI 1.17: a module that licenses enrolment is answered by the core's registry (ADR 0935); before it,
+            // a module answered with its own ReaderCertificates.
+            .Where(m => m.Module.ReaderCertificates is not null || m.Module.LicensesCertificateEnrolment)
             .ToList();
 
         if (modules.Count == 0)
@@ -79,8 +81,11 @@ public sealed class ModuleReaderCertificates(
 
             try
             {
-                var answer = await loaded.Module.ReaderCertificates!(
-                    new ReaderCertificateContext(userId, archive, services));
+                // One registry, owned by the core (#1790): a module that licenses enrolment switches the answer on,
+                // and the answer is the core's, so a user enrols once for every module that encrypts to them.
+                var answer = loaded.Module.LicensesCertificateEnrolment
+                    ? await Certificates.CertificateRegistry.ForReaderAsync(dbContext, userId, now, cancellationToken)
+                    : await loaded.Module.ReaderCertificates!(new ReaderCertificateContext(userId, archive, services));
 
                 // WHICH MODULE ANSWERED, AND WITH HOW MANY. A module that answers is the ONLY source
                 // (ADR 0842), so this one number decides whether a strict tenant can serve the reader

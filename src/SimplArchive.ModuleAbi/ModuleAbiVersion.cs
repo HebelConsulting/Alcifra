@@ -106,5 +106,10 @@ public static class ModuleAbiVersion
     /// content once and keep it sealed to its copy's key (core ADR 0929). An init property only, so a 1.15 module is
     /// unaffected.
     /// </para>
-    public const int Minor = 16;
+    /// <para>
+    /// 1.17 adds <see cref="IIndustryModule.LicensesCertificateEnrolment"/>: the module licenses certificate enrolment,
+    /// so while it is active the core answers which certificates a reader is addressed by from its own registry
+    /// (core ADR 0935, #1790). A default member only, so a 1.16 module is unaffected.
+    /// </para>
+    public const int Minor = 17;
 }
