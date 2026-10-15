@@ -288,6 +288,10 @@
         <OfflineCachePolicySection @ref="_offlineCache" Editing="@Editing("offline-cache")"
                                    Header="@GroupHeader("offline-cache", Strings.Get("TenantGroupOfflineCache"))" />
 
+        @* ---- Reader certificates, ADR 0936: its own resource and component -------------------------- *@
+        <CertificateSettingsSection @ref="_certificates" Editing="@Editing("certificates")"
+                                    Header="@GroupHeader("certificates", Strings.Get("TenantGroupCertificates"))" />
+
         @* ---- Audit streaming (SIEM) --------------------------------------------------------------- *@
         @GroupHeader("audit-streaming", Strings.Get("TenantGroupAuditStreaming"))
         <div class="wb-setting-row mb-2">
@@ -491,10 +495,16 @@
             await _offlineCache.ReloadAsync();
         }
 
+        if (_editingGroup == "certificates" && _certificates is not null)
+        {
+            await _certificates.ReloadAsync();
+        }
+
         _editingGroup = null;
     }
 
     private OfflineCachePolicySection? _offlineCache;
+    private CertificateSettingsSection? _certificates;
 
     private async Task LoadTenantSettingsAsync()
     {
@@ -553,6 +563,19 @@
             {
                 await LoadTenantSettingsAsync();
                 await _offlineCache.ReloadAsync();
+                Snackbar.Add(Strings.Get("StTenantSaved"), Severity.Success);
+            }
+
+            return;
+        }
+
+        if (group == "certificates")
+        {
+            // Its own resource (ADR 0936): saved whole with If-Match by the section, then re-read with the rest.
+            if (_certificates is not null && await _certificates.SaveAsync())
+            {
+                await LoadTenantSettingsAsync();
+                await _certificates.ReloadAsync();
                 Snackbar.Add(Strings.Get("StTenantSaved"), Severity.Success);
             }
 
@@ -628,6 +651,11 @@
         if (_offlineCache is not null)
         {
             await _offlineCache.ReloadAsync();   // the save moved the shared concurrency token (ADR 0923)
+        }
+
+        if (_certificates is not null)
+        {
+            await _certificates.ReloadAsync();   // likewise the tenant's tag (ADR 0936)
         }
 
         Snackbar.Add(Strings.Get("StTenantSaved"), Severity.Success);

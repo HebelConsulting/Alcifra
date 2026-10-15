@@ -5646,4 +5646,28 @@
   <data name="CertReaderCertificate" xml:space="preserve">
     <value>Certificato di lettura</value>
   </data>
+  <data name="TenantGroupCertificates" xml:space="preserve">
+    <value>Certificati di lettura</value>
+  </data>
+  <data name="TenantCertSelfService" xml:space="preserve">
+    <value>Consenti di registrare il proprio certificato di lettura</value>
+  </data>
+  <data name="TenantCertSelfServiceInfo" xml:space="preserve">
+    <value>Disattivato per impostazione predefinita. In tal caso solo un amministratore registra i certificati, la soluzione più sicura: la registrazione decide a quale chiave è indirizzato un documento sigillato.</value>
+  </data>
+  <data name="TenantCertParent" xml:space="preserve">
+    <value>Dove vengono archiviati i certificati di lettura</value>
+  </data>
+  <data name="TenantCertParentInfo" xml:space="preserve">
+    <value>Il repository o la cartella in cui viene creata la cartella «Certificati di lettura». I suoi diritti decidono chi vede il certificato di chi: sceglietene una controllata dagli amministratori.</value>
+  </data>
+  <data name="TenantCertParentNone" xml:space="preserve">
+    <value>Non scelto</value>
+  </data>
+  <data name="TenantCertChoose" xml:space="preserve">
+    <value>Scegli…</value>
+  </data>
+  <data name="TenantCertClear" xml:space="preserve">
+    <value>Rimuovi</value>
+  </data>
 </root>

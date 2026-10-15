@@ -5646,4 +5646,28 @@
   <data name="CertReaderCertificate" xml:space="preserve">
     <value>Lesezertifikat</value>
   </data>
+  <data name="TenantGroupCertificates" xml:space="preserve">
+    <value>Lesezertifikate</value>
+  </data>
+  <data name="TenantCertSelfService" xml:space="preserve">
+    <value>Eigenes Lesezertifikat selbst registrieren lassen</value>
+  </data>
+  <data name="TenantCertSelfServiceInfo" xml:space="preserve">
+    <value>Standardmäßig aus. Dann registriert nur ein Administrator Zertifikate, was sicherer ist: Eine Registrierung entscheidet, an wessen Schlüssel ein versiegeltes Dokument adressiert wird.</value>
+  </data>
+  <data name="TenantCertParent" xml:space="preserve">
+    <value>Ablageort der Lesezertifikate</value>
+  </data>
+  <data name="TenantCertParentInfo" xml:space="preserve">
+    <value>Das Repository oder der Ordner, in dem der Ordner «Lesezertifikate» angelegt wird. Seine Rechte bestimmen, wer wessen Zertifikat sieht; wählen Sie einen, den Administratoren kontrollieren.</value>
+  </data>
+  <data name="TenantCertParentNone" xml:space="preserve">
+    <value>Nicht gewählt</value>
+  </data>
+  <data name="TenantCertChoose" xml:space="preserve">
+    <value>Wählen…</value>
+  </data>
+  <data name="TenantCertClear" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
 </root>

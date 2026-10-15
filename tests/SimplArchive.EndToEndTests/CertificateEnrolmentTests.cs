@@ -136,6 +136,7 @@ public class CertificateEnrolmentTests
             var read = await TestJson.Get(rig.Admin, "/api/certificate-settings");
             Assert.True(read.GetProperty("selfServiceEnabled").GetBoolean());
             Assert.Equal(rig.RepoId, read.GetProperty("parentFolderId").GetGuid());
+            Assert.StartsWith("Certificates ", read.GetProperty("parentFolderName").GetString());   // what a form shows
 
             using var refused = await rig.Member.GetAsync("/api/certificate-settings");
             Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);

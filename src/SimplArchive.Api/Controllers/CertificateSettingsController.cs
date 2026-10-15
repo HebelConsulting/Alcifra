@@ -43,6 +43,9 @@ public class CertificateSettingsController(
     {
         public bool SelfServiceEnabled { get; set; }
         public Guid? ParentFolderId { get; set; }
+
+        // Its name, so a settings form shows the folder rather than an id; null when none is set or it is gone.
+        public string? ParentFolderName { get; set; }
     }
 
     public class UpdateCertificateSettingsRequest
@@ -56,7 +59,7 @@ public class CertificateSettingsController(
     {
         var tenant = await AuthorizedTenantAsync(cancellationToken);
         Concurrency.ConcurrencyHeaders.EmitETag(Response, tenant);
-        return Ok(Resource(tenant));
+        return Ok(await ResourceAsync(tenant, cancellationToken));
     }
 
     // Standing convention: every GET action gets a companion HEAD action of its own.
@@ -94,7 +97,7 @@ public class CertificateSettingsController(
             cancellationToken: cancellationToken);
 
         Concurrency.ConcurrencyHeaders.EmitETag(Response, tenant);
-        return Ok(Resource(tenant));
+        return Ok(await ResourceAsync(tenant, cancellationToken));
     }
 
     private async Task<Domain.Tenants.Tenant> AuthorizedTenantAsync(CancellationToken cancellationToken)
@@ -110,10 +113,13 @@ public class CertificateSettingsController(
 
     private static string OnOff(bool on) => on ? "on" : "off";
 
-    private static CertificateSettingsResource Resource(Domain.Tenants.Tenant tenant) => new()
+    private async Task<CertificateSettingsResource> ResourceAsync(Domain.Tenants.Tenant tenant, CancellationToken cancellationToken) => new()
     {
         SelfServiceEnabled = tenant.CertificateSelfServiceEnabled,
         ParentFolderId = tenant.CertificateParentFolderId,
+        ParentFolderName = tenant.CertificateParentFolderId is { } id
+            ? await dbContext.Documents.Where(d => d.Id == id).Select(d => d.Name).FirstOrDefaultAsync(cancellationToken)
+            : null,
         Links = [new Link("self", "/api/certificate-settings", "GET")],
     };
 }

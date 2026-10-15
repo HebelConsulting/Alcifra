@@ -296,6 +296,31 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- ==== Reader certificates, ADR 0936 ========================================= -->
+                    <!-- Its own resource (from the root), shown while a module licensing enrolment is active and the
+                         caller administers modules. -->
+                    <StackPanel Spacing="6" IsVisible="{Binding HasTenantCertificateSettings}">
+                        <v:TenantGroupHeader Title="{loc:Tr TenantGroupCertificates}" Group="certificates"
+                                             IsEditing="{Binding IsEditingTenantCertificates}" />
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <CheckBox IsChecked="{Binding TenantCertSelfService}" IsEnabled="{Binding IsEditingTenantCertificates}" Content="{loc:Tr TenantCertSelfService}" />
+                            <i:Icon Value="mdi-information-outline" FontSize="14" Foreground="{DynamicResource WbFaint}" VerticalAlignment="Center" Cursor="Help"
+                                    ToolTip.Tip="{loc:Tr TenantCertSelfServiceInfo}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{loc:Tr TenantCertParent}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                            <i:Icon Value="mdi-information-outline" FontSize="14" Foreground="{DynamicResource WbFaint}" VerticalAlignment="Center" Cursor="Help"
+                                    ToolTip.Tip="{loc:Tr TenantCertParentInfo}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SelectableTextBlock Text="{Binding TenantCertParentName}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                            <Button Content="{loc:Tr TenantCertChoose}" Command="{Binding ChooseCertificateParentCommand}"
+                                    IsVisible="{Binding IsEditingTenantCertificates}" />
+                            <Button Content="{loc:Tr TenantCertClear}" Command="{Binding ClearCertificateParentCommand}"
+                                    IsVisible="{Binding IsEditingTenantCertificates}" />
+                        </StackPanel>
+                    </StackPanel>
+
                     <!-- ==== Audit streaming (SIEM) =============================================== -->
                     <v:TenantGroupHeader Title="{loc:Tr TenantGroupAuditStreaming}" Group="audit-streaming"
                                          IsEditing="{Binding IsEditingTenantAuditStreaming}" />

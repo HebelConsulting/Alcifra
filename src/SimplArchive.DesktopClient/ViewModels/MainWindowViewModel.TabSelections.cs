@@ -240,6 +240,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsEditingTenantExternalLinks));
         OnPropertyChanged(nameof(IsEditingTenantAuditStreaming));
         OnPropertyChanged(nameof(IsEditingTenantOfflineCache));
+        OnPropertyChanged(nameof(IsEditingTenantCertificates));
         OnPropertyChanged(nameof(NoTenantGroupEditing));
     }
 
@@ -276,6 +277,12 @@ public sealed partial class MainWindowViewModel
         if (group == "offline-cache")
         {
             await SaveOfflineCachePolicyGroupAsync();   // its own resource (ADR 0923), not a settings-<group> rel
+            return;
+        }
+
+        if (group == "certificates")
+        {
+            await SaveCertificateSettingsGroupAsync();   // its own resource (ADR 0936)
             return;
         }
 
@@ -329,6 +336,7 @@ public sealed partial class MainWindowViewModel
         {
             ApplyTenantSettings(await _api.Admin.SaveTenantSettingsGroupAsync(settings, group, body));
             await LoadOfflineCachePolicyAsync();   // the save moved the shared concurrency token (ADR 0923)
+            await LoadCertificateSettingsAsync();  // likewise the tenant's tag (ADR 0936)
             TenantEditingGroup = null;
             Status = Strings.Get("StTenantSaved");
         }

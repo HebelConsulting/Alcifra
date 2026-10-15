@@ -5646,4 +5646,28 @@
   <data name="CertReaderCertificate" xml:space="preserve">
     <value>Reader certificate</value>
   </data>
+  <data name="TenantGroupCertificates" xml:space="preserve">
+    <value>Reader certificates</value>
+  </data>
+  <data name="TenantCertSelfService" xml:space="preserve">
+    <value>Let people enrol their own reader certificate</value>
+  </data>
+  <data name="TenantCertSelfServiceInfo" xml:space="preserve">
+    <value>Off by default. When off, only an administrator enrols a certificate, which is the safer arrangement: enrolling one decides whose key a sealed document is addressed to.</value>
+  </data>
+  <data name="TenantCertParent" xml:space="preserve">
+    <value>Where reader certificates are filed</value>
+  </data>
+  <data name="TenantCertParentInfo" xml:space="preserve">
+    <value>The repository or folder the "Reader certificates" folder is created in. Its rights decide who can see whose certificate, so choose one administrators control.</value>
+  </data>
+  <data name="TenantCertParentNone" xml:space="preserve">
+    <value>Not chosen</value>
+  </data>
+  <data name="TenantCertChoose" xml:space="preserve">
+    <value>Choose…</value>
+  </data>
+  <data name="TenantCertClear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
 </root>

@@ -142,6 +142,7 @@ public sealed partial class MainWindowViewModel
             TenantSettingsLoaded = true;
             await LoadTenantModulesAsync(); // the Modules section rides the settings resource's rel (ADR 0543)
             await LoadOfflineCachePolicyAsync(); // its own resource, from /me (ADR 0923)
+            await LoadCertificateSettingsAsync(); // its own resource, from the root (ADR 0936)
             await (_ocrLanguages?.EnsureLoadedAsync() ?? Task.CompletedTask);
         }
         catch (Exception)
