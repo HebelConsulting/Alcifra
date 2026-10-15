@@ -23,9 +23,7 @@ jobs:
   drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-
-      # The job's own GITHUB_TOKEN is scoped to THIS repository and cannot read the private siblings — it
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # would 404 on every one and report "no drift", which is the worst available answer. So the token is
       # required, and its absence fails rather than degrading into a green tick.
       - name: Check the token is present

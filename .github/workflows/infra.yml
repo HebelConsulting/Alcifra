@@ -42,8 +42,8 @@ jobs:
       run:
         working-directory: tools/${{ matrix.root }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: opentofu/setup-opentofu@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
           tofu_version: 1.10.6
       - name: tofu fmt
@@ -52,7 +52,7 @@ jobs:
         run: |
           tofu init -backend=false -input=false
           tofu validate
-      - uses: terraform-linters/setup-tflint@v6
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
       - name: tflint
         # tflint --init downloads its AWS ruleset (and that release's attestations) from the GitHub API.
         # Unauthenticated, it shares the runner IP's anonymous quota with every other job on that host, so
@@ -66,7 +66,7 @@ jobs:
 
       # What install.sh GENERATES is Kubernetes, and nothing else type-checks it: a renamed chart value
       # would otherwise fail at 3 a.m. on a customer's install rather than here (ADR 0695).
-      - uses: azure/setup-helm@v5
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
       - name: Install kubeconform
         run: |
           curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz \

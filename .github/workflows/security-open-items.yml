@@ -25,9 +25,7 @@ jobs:
     if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-
-      # Judged by EXIT CODE: 1 = a cited issue is closed (the manual is stale), 2 = could not tell. Both fail the
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # job; the log says which.
       - name: Every line of §20.4 cites an issue that is still open
         env:
