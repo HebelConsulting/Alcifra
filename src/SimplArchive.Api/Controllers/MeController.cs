@@ -170,7 +170,7 @@ public class MeController : ControllerBase
                 // installation whose modules declare no such surface would otherwise hand every client an
                 // address that can only ever answer an empty list. The gate inside is evaluated per tenant,
                 // which is why this cannot live on the admin-only modules listing — see the controller.
-                .. _modules.Any(m => m.Module.PerUserCertificateEnrolment is not null)
+                .. _modules.Any(m => m.Module.PerUserCertificateEnrolment is not null || m.Module.LicensesCertificateEnrolment)
                     ? new[] { new Link("selfEnrolments", "/api/me/self-enrolments", "GET") }
                     : [],
             // The caller's addressbooks and calendars, for the Calendar/Contacts tabs (#564). The DAV home set

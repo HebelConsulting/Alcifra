@@ -39,6 +39,15 @@ public sealed class TestModule : IIndustryModule
 
     public string ModuleId => "test-module";
 
+    /// <summary>
+    /// Licenses the core's certificate enrolment (ABI 1.17, ADR 0936) only while a test asks for it: switched on for every
+    /// test, the core would answer this module's reader certificates from its registry, and the strict-tier tests rely on
+    /// <see cref="ReaderCertificates"/> answering instead. An environment variable, because the host's copy of this
+    /// module has its own statics.
+    /// </summary>
+    public bool LicensesCertificateEnrolment =>
+        Environment.GetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_LICENSES_ENROLMENT") == "1";
+
     public string DisplayName => "Test Module";
 
     public int AbiMajorVersion => ModuleAbiVersion.Major;

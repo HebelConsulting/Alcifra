@@ -64,6 +64,15 @@ public class ApiReachabilityTests(E2EApiFactory factory)
     /// </remarks>
     private static readonly Dictionary<string, string> Unreached = new(StringComparer.Ordinal)
     {
+        ["GET api/certificate-policy"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["GET api/certificate-settings"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["GET api/certificates"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["HEAD api/certificate-policy"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["HEAD api/certificate-settings"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["HEAD api/certificates"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["POST api/certificates"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["PUT api/certificate-policy"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["PUT api/certificate-settings"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["GET api/documents/{documentId:guid}/archive-entries"] = "needs a zip document; the seed files none",
         ["GET api/documents/{documentId:guid}/archive-entries/content"] = "needs a zip document; the seed files none",
         ["GET api/documents/{documentId:guid}/checkout/preview"] = "needs a checked-out document with a renderable working copy; the seed checks out plain text",

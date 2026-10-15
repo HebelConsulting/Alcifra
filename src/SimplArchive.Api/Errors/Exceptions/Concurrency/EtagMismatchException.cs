@@ -25,6 +25,9 @@ public sealed class EtagMismatchException : ConcurrencyException
 
     // The entities tracked by #1083. Each names its own resource, because "it changed" is only actionable if
     // the reader knows WHAT changed — a settings page and a permission dialog need different next steps.
+    public static EtagMismatchException ForCertificatePolicy() =>
+        new("The certificate policy has been changed since it was last read.");
+
     public static EtagMismatchException ForTenant() =>
         new("The tenant's settings have been modified since they were last read.");
 

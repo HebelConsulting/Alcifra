@@ -36,6 +36,8 @@ public partial class ExemptControllerShapeTests
     // came from counting, and the test recounts rather than trusting them.
     private static readonly Dictionary<string, int> ShapeWhenJudged = new(StringComparer.Ordinal)
     {
+        // One PUT (ADR 0936): two Tenant columns through TenantVerbs; its Document use only checks the parent exists.
+        ["CertificateSettingsController.cs"] = 1,
         // Six added with #1270: the detector now sees a controller by its DbSet USE rather than by the
         // entity name appearing anywhere in the file, so these carry a verdict for the first time and
         // need their shape pinned like every other judged controller.

@@ -335,9 +335,12 @@ public class MasksController : ControllerBase
         {
             mask.IsFolderMask = folderMasks.Contains(mask.Id);
             mask.FileExtensions = [.. extensions.Where(e => e.MaskId == mask.Id).Select(e => e.Extension).Order()];
+            // A mask no person may create is not one a picker offers either: the certificate policy is filed only by
+            // enrolment (ADR 0936). Every other member of that set is already excluded above.
             mask.IsFreelyAssignable = !mask.IsFolderMask
                 && mask.FileExtensions.Count == 0
-                && !WellKnownMaskIds.AdmittingFolders.ContainsKey(mask.Id);
+                && !WellKnownMaskIds.AdmittingFolders.ContainsKey(mask.Id)
+                && !WellKnownMaskIds.NotUserCreatable.Contains(mask.Id);
             mask.Links = [new Link("self", $"/api/masks/{mask.Id}", "GET")];
 
             // NO create rel here, deliberately. Creating a typed folder needs a PARENT, which this resource does

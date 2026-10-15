@@ -12,7 +12,7 @@ title = "SimplArchive gitleaks config"
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Known dev-only credentials — throwaway values, not real secrets."
 
 # Files whose whole purpose is the local dev/demo stack's fixed credentials.
@@ -57,3 +57,14 @@ regexes = [
   # detecting that header.
   '''MIIE\.\.\.''',
 ]
+
+# NOT A SECRET: a test helper's tuple signature, `(string Pem, RSA Key, X509Certificate2 Certificate)`, which the
+# generic-api-key rule reads as a key assignment (its "secret" is the type name after `Key,`). It came into the core
+# with the certificate tests moved from the Encryption Module (ADR 0936); the element is named Signer now, but the
+# first spelling lives on in the branch history. Matched against the whole LINE and only for that rule, so the rule
+# stays live for everything else, this file included.
+[[allowlists]]
+description = "A tuple signature in CertificateChainTests, not a credential"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = ['''\(string Pem, RSA Key(, X509Certificate2 Certificate)?\)''']

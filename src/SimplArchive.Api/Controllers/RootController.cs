@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Hypermedia;
 using SimplArchive.Application.Abstractions;
+using SimplArchive.Infrastructure.Certificates;
 using SimplArchive.Infrastructure.Modules;
 using SimplArchive.Infrastructure.Persistence;
 
@@ -216,6 +217,24 @@ public class RootController : ControllerBase
                             .Where(l => !l.InstallationWide)
                             .Select(l => new Link(l.Rel, l.Path, l.Method)));
                     }
+                }
+            }
+        }
+
+        // Certificate enrolment, owned by the core (ADR 0936): advertised only while an active module licenses it, so a
+        // missing rel keeps meaning "not available to you here". The Encryption Module's old rel names ride along as
+        // aliases of the same core addresses until the release after next, unless an older module still serves them.
+        if (tenantAccessor.TenantId is not null
+            && await CertificateEnrolmentLicence.IsOfferedAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken))
+        {
+            resource.Links.Add(new Link("certificates", "/api/certificates", "GET"));
+            resource.Links.Add(new Link("certificatePolicy", "/api/certificate-policy", "GET"));
+            resource.Links.Add(new Link("certificateSettings", "/api/certificate-settings", "GET"));
+            foreach (var (alias, path) in new[] { ("encryption:certificates", "/api/certificates"), ("encryption:certificate-policy", "/api/certificate-policy") })
+            {
+                if (resource.Links.All(l => l.Rel != alias))
+                {
+                    resource.Links.Add(new Link(alias, path, "GET"));
                 }
             }
         }

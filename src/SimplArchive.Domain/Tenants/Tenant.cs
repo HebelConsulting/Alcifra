@@ -67,6 +67,16 @@ public class Tenant : IConcurrencyTracked
     // stay informational (ADRs 0399/0426/0428) until an admin turns this on.
     public bool EnforceClearance { get; set; }
 
+    // Certificate enrolment's self-service switch (ADR 0936): when true, a user may enrol their own reader certificate;
+    // otherwise only an administrator enrols one. Default false, the safer arrangement, because enrolling a certificate
+    // decides whose key a sealed document is addressed to. Was the Encryption Module's "certificates.selfServiceEnabled".
+    public bool CertificateSelfServiceEnabled { get; set; }
+
+    // The repository or folder the "Reader certificates" folder is created under (ADR 0936); its rights decide who sees
+    // whose certificate. A plain column, not a foreign key, like the module setting it replaces: a deleted parent is
+    // answered by enrolment's "nowhere to file" refusal rather than by a cascade. Null = not configured.
+    public Guid? CertificateParentFolderId { get; set; }
+
     // The tamper-evidence hash chain's retained-window start (ADR "Audit trail retention and purge"): purge
     // deletes the oldest contiguous prefix, so verification walks from here instead of Sequence 0 — a purge
     // therefore isn't flagged as tampering, but an edit/deletion within retained events still is.

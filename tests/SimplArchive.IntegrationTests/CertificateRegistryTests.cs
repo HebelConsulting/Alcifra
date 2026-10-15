@@ -63,9 +63,38 @@ public class CertificateRegistryTests
     private static string Valid(string subject) =>
         SelfSigned(subject, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
 
-    // A live Certificate document held by the seeded user, its content the given PEM.
-    private static async Task<Guid> FileAsync(Seed seed, SimplArchiveDbContext db, string pem, bool withHolder = true)
+    // The tenant's "Reader certificates" folder (ADR 0936), created on first use under a plain root.
+    private static async Task<Guid> ReaderFolderAsync(Seed seed, SimplArchiveDbContext db)
     {
+        var existing = await db.Documents
+            .Where(d => db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.ReaderCertificates))
+            .Select(d => (Guid?)d.Id)
+            .FirstOrDefaultAsync();
+        if (existing is { } id)
+        {
+            return id;
+        }
+
+        var root = new Document { Id = Guid.NewGuid(), TenantId = seed.TenantId, Name = "Root", CreatedByUserId = seed.UserId, CreatedAt = DateTimeOffset.UtcNow };
+        var folder = new Document
+        {
+            Id = Guid.NewGuid(),
+            TenantId = seed.TenantId,
+            ParentId = root.Id,
+            Name = "Reader certificates",
+            MaskVersionId = await MaskVersionAsync(db, WellKnownMaskIds.ReaderCertificates),
+            CreatedByUserId = seed.UserId,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        db.Documents.AddRange(root, folder);
+        await db.SaveChangesAsync();
+        return folder.Id;
+    }
+
+    // A live Certificate document held by the seeded user, its content the given PEM, in the reader folder by default.
+    private static async Task<Guid> FileAsync(Seed seed, SimplArchiveDbContext db, string pem, bool withHolder = true, bool inReaderFolder = true)
+    {
+        var parentId = inReaderFolder ? await ReaderFolderAsync(seed, db) : (Guid?)null;
         var documentId = Guid.NewGuid();
         var objectKey = $"k/{documentId}.pem";
         seed.Storage.Objects[objectKey] = Encoding.UTF8.GetBytes(pem);
@@ -73,6 +102,7 @@ public class CertificateRegistryTests
         {
             Id = documentId,
             TenantId = seed.TenantId,
+            ParentId = parentId,
             Name = $"{documentId}.pem",
             MaskVersionId = await MaskVersionAsync(db, WellKnownMaskIds.Certificate),
             CreatedByUserId = seed.UserId,
@@ -145,6 +175,37 @@ public class CertificateRegistryTests
         Assert.Equal((documentId, seed.UserId, "Card"), (row.DocumentId, row.UserId, row.Label));
         var answered = Assert.Single(await CertificateRegistry.ForReaderAsync(db, seed.UserId, DateTimeOffset.UtcNow));
         Assert.Equal(pem.Trim(), answered.CertificatePem.Trim());
+    }
+
+    [Fact]
+    public async Task A_certificate_OUTSIDE_the_reader_folder_addresses_nobody()
+    {
+        // ADR 0936: the Certificate mask is shared. A signing module's certificate, or a CA's kept for reference, has
+        // a holder too, and registering it would wrap content keys to a key nobody decrypts with, silently.
+        var seed = await SeedAsync();
+        await using var db = Context(seed.Connection, seed.TenantId);
+        var documentId = await FileAsync(seed, db, Valid("signing"), inReaderFolder: false);
+
+        await ProjectAsync(db, seed, documentId);
+
+        Assert.Empty(await db.EnrolledCertificates.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Moving_a_certificate_out_of_the_reader_folder_removes_its_row()
+    {
+        var seed = await SeedAsync();
+        await using var db = Context(seed.Connection, seed.TenantId);
+        var documentId = await FileAsync(seed, db, Valid("alice"));
+        await ProjectAsync(db, seed, documentId);
+        Assert.Single(await db.EnrolledCertificates.ToListAsync());
+
+        var document = await db.Documents.SingleAsync(d => d.Id == documentId);
+        document.ParentId = null;
+        await db.SaveChangesAsync();
+        await ProjectAsync(db, seed, documentId);
+
+        Assert.Empty(await db.EnrolledCertificates.ToListAsync());
     }
 
     [Fact]

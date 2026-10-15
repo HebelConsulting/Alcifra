@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Hypermedia;
+using SimplArchive.Infrastructure.Certificates;
 using SimplArchive.Infrastructure.Modules;
 using SimplArchive.Infrastructure.Persistence;
 
@@ -41,8 +42,12 @@ namespace SimplArchive.Api.Controllers;
 [Authorize]
 public class SelfEnrolmentsController(
     SimplArchiveDbContext dbContext,
-    IReadOnlyList<ModuleLoader.LoadedModule> modules) : ControllerBase
+    IReadOnlyList<ModuleLoader.LoadedModule> modules,
+    SimplArchive.Application.Abstractions.ICurrentTenantAccessor tenant) : ControllerBase
 {
+    /// <summary>The <c>moduleId</c> the core's own entry carries, so a client keying on it tells it from a module's.</summary>
+    public const string CoreEnrolmentId = "core";
+
     public class SelfEnrolmentsResource : HypermediaResource
     {
         public List<SelfEnrolmentResource> Items { get; set; } = [];
@@ -124,6 +129,26 @@ public class SelfEnrolmentsController(
                 : [];
 
             items.Add(item);
+        }
+
+        // The core's own reader-certificate enrolment (ADR 0936), present while an active module licenses it; its gate is
+        // the tenant's self-service switch rather than a module setting.
+        if (await CertificateEnrolmentLicence.IsOfferedAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken))
+        {
+            var enabled = await dbContext.Tenants
+                .Where(t => t.Id == tenant.TenantId)
+                .Select(t => t.CertificateSelfServiceEnabled)
+                .SingleOrDefaultAsync(cancellationToken);
+            items.Add(new SelfEnrolmentResource
+            {
+                ModuleId = CoreEnrolmentId,
+                Title = SimplArchive.Localization.Strings.Get("CertReaderCertificate", culture),
+                Input = nameof(ModuleAbi.PerUserEnrolmentInput.Certificate),
+                Enabled = enabled,
+                Field = "certificatePem",
+                LabelField = "label",
+                Links = enabled ? [new Link("enrol", "/api/certificates", "POST")] : [],
+            });
         }
 
         return Ok(new SelfEnrolmentsResource

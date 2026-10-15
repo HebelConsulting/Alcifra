@@ -259,6 +259,25 @@ public static class WellKnownMaskIds
     }
 
     /// <summary>
+    /// The "Reader certificates" folder (ADR 0936): the one folder per tenant whose <see cref="Certificate"/>
+    /// documents are READER certificates, the ones a sealed document is addressed to.
+    /// </summary>
+    /// <remarks>
+    /// <b>It is the discriminator, not a filing convenience.</b> The Certificate mask is shared and user-creatable
+    /// (ADR 0844): a signing module, or a person keeping a CA's certificate for reference, files Certificates too,
+    /// and one of those becoming an envelope recipient fails silently. Only a Certificate in this folder is
+    /// registered. The id is the Encryption Module's, which created these folders before the core owned
+    /// enrolment, so existing folders are adopted as they are.
+    /// </remarks>
+    public static readonly Guid ReaderCertificates = Guid.Parse("E7C21000-E100-E100-E100-E7C21000E7C2");
+
+    /// <summary>
+    /// The tenant's certificate policy (ADR 0936): one JSON document in the <see cref="ReaderCertificates"/> folder,
+    /// the rules a certificate must meet before it is enrolled. The id is the Encryption Module's, adopted as is.
+    /// </summary>
+    public static readonly Guid CertificatePolicy = Guid.Parse("E7C21001-E100-E100-E100-E7C21001E7C2");
+
+    /// <summary>
     /// The masks only the CORE assigns (ADR 0891): not offered by any picker, refused by SaveChanges when a document
     /// gains one outside the core's own filing path, refused when one is changed or removed, at most one live per tenant.
     /// </summary>
@@ -374,7 +393,7 @@ public static class WellKnownMaskIds
     /// </para>
     /// </remarks>
     public static readonly IReadOnlySet<Guid> FolderMasks =
-        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation };
+        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates };
 
     /// <summary>
     /// The file extensions that make a well-known mask the automatic choice for an upload (#671).
@@ -493,7 +512,7 @@ public static class WellKnownMaskIds
         // certificate filed by hand — a CA's own certificate, kept for reference — is a legitimate document.
         // What the module projects is what the module ENROLLED, so a hand-filed one is simply not addressed to
         // anybody, rather than being a hole.
-        new HashSet<Guid> { Repository, UserFolder, MyDocuments, ImapSpecial, Notebook, Booking, Schedule, Blockers, Block, Availability, AvailabilityWindow, Documentation };
+        new HashSet<Guid> { Repository, UserFolder, MyDocuments, ImapSpecial, Notebook, Booking, Schedule, Blockers, Block, Availability, AvailabilityWindow, Documentation, ReaderCertificates, CertificatePolicy };
 
     /// <summary>
     /// Masks whose documents take exactly ONE version, for their whole life (ADR 0848).
@@ -557,7 +576,7 @@ public static class WellKnownMaskIds
         new HashSet<Guid>
         {
             BasicEntry, EMail, Note, Contact, Appointment, Booking, License, Block, AvailabilityWindow,
-            Certificate, Manual,
+            Certificate, Manual, CertificatePolicy,
         };
 
     /// <summary>
@@ -642,6 +661,10 @@ public static class WellKnownMaskIds
     public static readonly IReadOnlyList<TypedFolderRule> OneWayExclusiveFolders =
     [
         new(Documentation, "SimplArchive Documentation", [(Manual, "Manual")]),
+
+        // The reader-certificate folder holds certificates and the tenant's policy, nothing else (ADR 0936); a
+        // Certificate may still live anywhere, where it simply addresses nobody.
+        new(ReaderCertificates, "Reader certificates", [(Certificate, "Certificate"), (CertificatePolicy, "Certificate policy")]),
     ];
 
     /// <summary>Every exclusive folder's rule, both tables — what "does this folder take a plain subfolder" asks.</summary>

@@ -2553,6 +2553,12 @@ namespace SimplArchive.Infrastructure.Migrations
                         .HasColumnType("bigint")
                         .HasDefaultValue(-1L);
 
+                    b.Property<Guid?>("CertificateParentFolderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CertificateSelfServiceEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("CheckoutTtlDays")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

@@ -74,6 +74,11 @@ public partial class ServiceWriteScopeTests
         // Files manuals at provisioning, activation and startup (ADR 0891): a heal that converges on the shipped
         // bytes, serialised by a lock on the tenant row rather than by any caller's ETag.
         ["ManualFiler.cs"] = Provisioning,
+        // Certificate enrolment (ADR 0936). Enrolling CREATES a document (no prior state to precondition); replacing
+        // the policy is compared against the If-Match the policy controller requires, under a lock on the tenant row.
+        // The folder is created inside either of those transactions.
+        ["CertificateEnrolment.cs"] = CalleeOfAContract,
+        ["ReaderCertificateFolder.cs"] = CalleeOfAContract,
         ["ManualsFolder.cs"] = Provisioning,
 
         ["EphemeralMailSweepWorker.cs"] = Background,

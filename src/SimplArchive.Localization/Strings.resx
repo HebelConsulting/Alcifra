@@ -5643,4 +5643,7 @@
   <data name="MobOfflineNoChangesFeed" xml:space="preserve">
     <value>This installation does not report changes yet: the copy keeps what you open.</value>
   </data>
+  <data name="CertReaderCertificate" xml:space="preserve">
+    <value>Reader certificate</value>
+  </data>
 </root>

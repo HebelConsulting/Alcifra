@@ -3,7 +3,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.Cli.Commands;
 
 /// <summary>
-/// Where the Encryption Module's certificate surface lives — resolved by following a rel, once.
+/// Where certificate enrolment lives (the core's since ADR 0936) — resolved by following a rel, once.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -11,26 +11,35 @@ namespace SimplArchive.Cli.Commands;
 /// places for the rel name to drift from the module's declaration.
 /// </para>
 /// <para>
-/// <b>A missing rel is a real answer here</b> (ADR 0543): the API root emits a module's rels only for a
-/// tenant whose activation is live, so absence means the Encryption Module is not active — which is a
+/// <b>A missing rel is a real answer here</b> (ADR 0543): the API root emits these rels only for a
+/// tenant where a module licensing enrolment is active, so absence means no such module is — which is a
 /// different problem from anything in the certificate the caller is holding, and the refusal says so.
 /// </para>
 /// </remarks>
 internal static class CertificateSurface
 {
-    internal const string Rel = "encryption:certificates";
+    // The core's rel since enrolment moved into the core (ADR 0936); the Encryption Module's own name is followed when an
+    // installation still runs a release that only advertises that, until the release after next.
+    internal const string Rel = "certificates";
+
+    internal const string LegacyRel = "encryption:certificates";
 
     internal static async Task<string> AddressAsync(Hypermedia hypermedia, CancellationToken cancellationToken)
     {
-        try
+        foreach (var rel in new[] { Rel, LegacyRel })
         {
-            return await hypermedia.RootHrefAsync(Rel, cancellationToken);
+            try
+            {
+                return await hypermedia.RootHrefAsync(rel, cancellationToken);
+            }
+            catch (CliException)
+            {
+                // not advertised under this name; try the next
+            }
         }
-        catch (CliException)
-        {
-            throw new CliException(
-                "This installation does not advertise the Encryption Module's certificate surface, so the "
-                + "module is not active for this tenant. File its licence first: saconsole module activate.");
-        }
+
+        throw new CliException(
+            "This installation does not offer certificate enrolment for this tenant: no active module licenses it. "
+            + "File the Encryption Module's licence first: saconsole module activate.");
     }
 }

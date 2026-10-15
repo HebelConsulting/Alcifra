@@ -22,6 +22,7 @@ public partial class PlaintextDoorRatchetTests
     // the bytes GO, not about what the method is called.
     private static readonly Dictionary<string, string> InternalReaders = new(StringComparer.Ordinal)
     {
+        ["Certificates/CertificateEnrolment.cs"] = "Reads the tenant's certificate policy (a JSON document) to parse it; the rules are answered as fields of the policy resource, never as the stored bytes (ADR 0936).",
         ["Documents/DocumentFinalizer.cs"] = "Hashes and classifies what was just uploaded; the bytes are compared and discarded.",
         ["Documents/CalendarContactClassifier.cs"] = "Reads an .ics/.vcf to decide what the document IS. Index fields, not content.",
         ["Documents/StrictEnvelopeDelivery.cs"] = "THE envelope path — it reads plaintext precisely so the reader never does (ADR 0828). And only for an object that is NOT wrapped at rest: where one is, the encryption service decrypts and envelopes it, so this reads nothing (ADR 0862).",

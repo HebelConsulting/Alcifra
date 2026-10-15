@@ -156,6 +156,7 @@ public static class AuditActions
     public const string TenantSettingsCaptureUpdated = "Tenant.SettingsCaptureUpdated";
     public const string TenantSettingsStandardRepositoryUpdated = "Tenant.SettingsStandardRepositoryUpdated";
     public const string TenantSettingsSecurityUpdated = "Tenant.SettingsSecurityUpdated";
+    public const string TenantSettingsCertificatesUpdated = "Tenant.SettingsCertificatesUpdated";
     public const string TenantOfflineCachePolicyUpdated = "Tenant.OfflineCachePolicyUpdated";
     public const string TenantSettingsRecordsUpdated = "Tenant.SettingsRecordsUpdated";
     public const string TenantSettingsCheckoutUpdated = "Tenant.SettingsCheckoutUpdated";
@@ -205,6 +206,11 @@ public static class AuditActions
     // The core filed (or re-versioned) a manual — SimplArchive's own or the one a module ships in its package (ABI 1.5,
     // ADR 0891). Actor: the module's own principal for a module's manual, System for the core's.
     public const string ManualFiled = "Manual.Filed";
+
+    // Certificate enrolment, owned by the core (ADR 0936): a certificate filed into the reader-certificate folder, and
+    // the tenant's certificate policy replaced. Details carry the holder and thumbprint, never the certificate.
+    public const string CertificateEnrolled = "Certificate.Enrolled";
+    public const string CertificatePolicyChanged = "Certificate.PolicyChanged";
 
     // Booking (ADRs 0735/0744/0774, issue #1092). Recorded on every entrance, which is the whole point of
     // adding these: a booking made over CalDAV was already recorded as a DOCUMENT write ("Filed over CalDAV")

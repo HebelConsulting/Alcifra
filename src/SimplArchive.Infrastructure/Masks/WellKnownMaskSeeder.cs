@@ -311,6 +311,9 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
         // person may also use for a third-party product's manual, so every field is optional; for SimplArchive's
         // own manuals the core fills the first four.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.Documentation, "SimplArchive Documentation", [], cancellationToken);
+        // Certificate enrolment's folder and policy (ADR 0936), under the ids the Encryption Module seeded them with.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.ReaderCertificates, "Reader certificates", [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.CertificatePolicy, "Certificate policy", [], cancellationToken);
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.Manual, "Manual",
         [
             new FieldSpec(WellKnownMaskIds.ManualFields.Brand, FieldDataType.Text, IsRequired: false),

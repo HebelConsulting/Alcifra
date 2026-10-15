@@ -127,6 +127,14 @@ public static class SaConsoleApp
                     .WithDescription("Enrol one certificate, for a named holder or the caller.");
                 certificates.AddCommand<CertificateRevokeCommand>("revoke")
                     .WithDescription("Revoke one, by serial or thumbprint.");
+                certificates.AddBranch("settings", certificateSettings =>
+                {
+                    certificateSettings.SetDescription("Whether users enrol their own, and where the \"Reader certificates\" folder is created (ADR 0936).");
+                    certificateSettings.AddCommand<CertificateSettingsShowCommand>("show")
+                        .WithDescription("Show the enrolment settings.");
+                    certificateSettings.AddCommand<CertificateSettingsSetCommand>("set")
+                        .WithDescription("Change them; what is not named keeps its value.");
+                });
                 certificates.AddCommand<CertificateImportCommand>("import")
                     .WithDescription("Enrol and revoke in bulk from a CA manifest. Safe to re-run.");
             });

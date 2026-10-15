@@ -56,17 +56,7 @@ public sealed class CertificateImportCommand(ILogger<CertificateImportCommand> l
         // "Even in saconsole always follow the rels"). Its absence is a real answer: the root emits a module's
         // rels only for a tenant whose activation is live, so "not advertised" means the Encryption Module is
         // not active here, which is a different problem from anything in the manifest.
-        string certificates;
-        try
-        {
-            certificates = await hypermedia.RootHrefAsync("encryption:certificates", cancellationToken);
-        }
-        catch (CliException)
-        {
-            throw new CliException(
-                "This installation does not advertise the Encryption Module's certificate surface, so the "
-                + "module is not active for this tenant. File its licence first: saconsole module activate.");
-        }
+        var certificates = await CertificateSurface.AddressAsync(hypermedia, cancellationToken);
 
         if (settings.DryRun)
         {

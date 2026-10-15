@@ -139,7 +139,7 @@ public class WellKnownMaskFieldHealTests
             // "Certificate" mask per vendor. Core seeds it and does not yet write to it.
             // 25 → 27 with SimplArchive Documentation + Manual (ADR 0891) — the manuals folder and what it holds.
             var maskCount = await db.Masks.IgnoreQueryFilters().CountAsync(m => m.TenantId == _tenantId);
-            Assert.Equal(27, maskCount); // + SimplArchive Documentation, Manual (ADR 0891)
+            Assert.Equal(29, maskCount); // + SimplArchive Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
             Assert.Equal(maskCount, await db.MaskVersions.IgnoreQueryFilters().CountAsync(v => v.TenantId == _tenantId));
         }
     }

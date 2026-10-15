@@ -32,6 +32,8 @@ public static class ModuleApiServices
 
         // Files SimplArchive's own manual and the manual a module ships in its package (ABI 1.5, ADR 0891).
         services.AddScoped<SimplArchive.Api.Manuals.ManualFiler>();
+        // Certificate enrolment, owned by the core and offered while a module licenses it (ADR 0936).
+        services.AddScoped<SimplArchive.Api.Certificates.CertificateEnrolment>();
         return services;
     }
 }

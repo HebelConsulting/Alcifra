@@ -156,6 +156,9 @@ public partial class ConcurrencyContractRatchetTests
     // claim is removed rather than left standing unverifiable.
     private static readonly Dictionary<string, string> ReadsOnly = new(StringComparer.Ordinal)
     {
+        ["CertificateSettingsController.cs:Document"] =
+            "Reads only: the PUT checks that the chosen parent folder exists (ADR 0936). What it writes is two Tenant "
+            + "columns, through TenantVerbs.",
         // ---- Surfaced by the #1270 detector change -------------------------------------------------------
         // These fourteen were never watched before: the old detector needed the ENTITY'S NAME as a whole word
         // somewhere in the file, and in each of these the DbSet is used without the bare word appearing. Every

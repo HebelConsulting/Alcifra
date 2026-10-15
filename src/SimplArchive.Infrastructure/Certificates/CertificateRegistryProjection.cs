@@ -80,10 +80,27 @@ public static class CertificateRegistryProjection
     {
         var document = await db.Documents
             .Where(d => d.Id == documentId)
-            .Select(d => new { d.Id, d.CurrentVersionId, MaskId = db.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => v.MaskId).FirstOrDefault() })
+            .Select(d => new
+            {
+                d.Id,
+                d.CurrentVersionId,
+                MaskId = db.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => v.MaskId).FirstOrDefault(),
+                ParentMaskId = db.Documents.Where(p => p.Id == d.ParentId)
+                    .Select(p => db.MaskVersions.Where(v => v.Id == p.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault())
+                    .FirstOrDefault(),
+            })
             .SingleOrDefaultAsync(cancellationToken);   // soft-deleted documents are filtered out: no row for them
         if (document is null || document.MaskId != WellKnownMaskIds.Certificate)
         {
+            return null;
+        }
+
+        // A READER certificate only (ADR 0936): the Certificate mask is shared, and a signing module's certificate or
+        // a CA's kept for reference must never become an envelope recipient. Only the reader-certificate folder's
+        // children are registered; a certificate moved out of it loses its row on the same save.
+        if (document.ParentMaskId != WellKnownMaskIds.ReaderCertificates)
+        {
+            logger.LogDebug("Certificate document {DocumentId} is not in a reader-certificate folder; not registered", documentId);
             return null;
         }
 

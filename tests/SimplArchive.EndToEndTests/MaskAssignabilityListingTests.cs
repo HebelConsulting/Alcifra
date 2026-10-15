@@ -90,7 +90,7 @@ public class MaskAssignabilityListingTests
         // And the ones that must never be offered, named individually so a regression says which.
         // Meeting room types a folder; the Booking mask is placement-constrained to rooms AND created by the
         // booking flow, never a picker (ADR 0735) — both would be over-offering, the bug this test exists for.
-        foreach (var refused in new[] { "Addressbook", "Calendar", "Notebook", "Section", "Mailbox", "Contact", "Appointment", "eMail", "Note", "Folder", "Meeting room", "Booking", "SimplArchive Documentation" })
+        foreach (var refused in new[] { "Addressbook", "Calendar", "Notebook", "Section", "Mailbox", "Contact", "Appointment", "eMail", "Note", "Folder", "Meeting room", "Booking", "SimplArchive Documentation", "Reader certificates", "Certificate policy" })
         {
             Assert.False(
                 masks[refused].GetProperty("isFreelyAssignable").GetBoolean(),

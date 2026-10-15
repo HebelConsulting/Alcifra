@@ -740,6 +740,8 @@ using (var scope = app.Services.CreateScope())
     // Manuals for every tenant, last so the seeders' new tenants are included (ManualStartupFiling, ADR 0891).
     // The core's certificate registry (#1790, ADR 0935), rebuilt from the Certificate documents while a module
     // encrypts to users: idempotent, and how enrolments filed before it existed reach it.
+    // Certificate enrolment moved into the core (ADR 0936): the Encryption Module's two settings become tenant columns, once.
+    await SimplArchive.Infrastructure.Certificates.EnrolmentSettingsAdoption.AdoptEverywhereAsync(app.Services);
     await SimplArchive.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildEverywhereAsync(app.Services);
 
     await SimplArchive.Api.Manuals.ManualStartupFiling.FileEverywhereAsync(app.Services);
