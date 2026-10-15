@@ -5370,6 +5370,12 @@
   <data name="MobOpenWith" xml:space="preserve">
     <value>Apri con…</value>
   </data>
+  <data name="MobKeyRemovedClosed" xml:space="preserve">
+    <value>La chiave è stata rimossa, quindi il documento sigillato è stato chiuso. Riaprilo con la chiave per leggerlo.</value>
+  </data>
+  <data name="MobBackgroundClosed" xml:space="preserve">
+    <value>L'app non era più in primo piano, quindi il documento sigillato è stato chiuso. Riaprilo con la chiave per leggerlo.</value>
+  </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Apri con la tua chiave</value>
   </data>

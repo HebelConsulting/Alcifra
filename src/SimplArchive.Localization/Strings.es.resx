@@ -5370,6 +5370,12 @@
   <data name="MobOpenWith" xml:space="preserve">
     <value>Abrir con…</value>
   </data>
+  <data name="MobKeyRemovedClosed" xml:space="preserve">
+    <value>Se retiró la llave, así que el documento sellado se cerró. Ábrelo de nuevo con la llave para leerlo.</value>
+  </data>
+  <data name="MobBackgroundClosed" xml:space="preserve">
+    <value>La app dejó de estar en primer plano, así que el documento sellado se cerró. Ábrelo de nuevo con la llave para leerlo.</value>
+  </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Abrir con su llave</value>
   </data>

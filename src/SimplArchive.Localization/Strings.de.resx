@@ -5370,6 +5370,12 @@
   <data name="MobOpenWith" xml:space="preserve">
     <value>Öffnen mit…</value>
   </data>
+  <data name="MobKeyRemovedClosed" xml:space="preserve">
+    <value>Der Schlüssel wurde entfernt, darum wurde das versiegelte Dokument geschlossen. Öffnen Sie es mit dem Schlüssel erneut, um es zu lesen.</value>
+  </data>
+  <data name="MobBackgroundClosed" xml:space="preserve">
+    <value>Die App war nicht mehr im Vordergrund, darum wurde das versiegelte Dokument geschlossen. Öffnen Sie es mit dem Schlüssel erneut, um es zu lesen.</value>
+  </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Mit Ihrem Schlüssel öffnen</value>
   </data>
