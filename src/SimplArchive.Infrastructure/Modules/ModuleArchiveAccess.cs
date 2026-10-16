@@ -125,6 +125,26 @@ internal sealed class ModuleArchiveAccess(
         return users;
     }
 
+    public async Task<Guid?> PersonalSpaceFolderAsync(Guid userId, Guid folderMaskId, CancellationToken cancellationToken)
+    {
+        // Only a mask of the calling module's own that it asked the core to provision: the answer is "which folder is
+        // the module's in this person's space", never a way to look around in it.
+        if (moduleId() is not { } id
+            || (services?.GetService(typeof(IReadOnlyList<ModuleLoader.LoadedModule>)) as IReadOnlyList<ModuleLoader.LoadedModule>)
+                ?.FirstOrDefault(m => m.Module.ModuleId == id) is not { } loaded
+            || loaded.Module.Masks.FirstOrDefault(m => m.MaskId == folderMaskId) is not { PersonalSpaceFolderName.Length: > 0 })
+        {
+            throw new InvalidOperationException(
+                $"Module '{moduleId()}' may ask only for a folder of its own mask that it asked the core to provision in personal spaces.");
+        }
+
+        return await dbContext.Documents
+            .Where(d => dbContext.Documents.Any(r => r.Id == d.ParentId && r.ParentId == null && r.PersonalOfUserId == userId)
+                && dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == folderMaskId))
+            .Select(d => (Guid?)d.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     // The document, provided it wears one of the calling module's masks; refused otherwise.
     private async Task<Domain.Documents.Document> OwnDocumentAsync(Guid documentId, CancellationToken cancellationToken)
     {

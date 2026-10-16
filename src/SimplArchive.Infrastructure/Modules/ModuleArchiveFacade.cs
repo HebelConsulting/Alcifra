@@ -893,6 +893,9 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
     public Task<IReadOnlyList<ModuleUser>> SearchUsersAsync(string term, int limit = 20, CancellationToken cancellationToken = default) =>
         Access.SearchUsersAsync(term, limit, cancellationToken);
 
+    public Task<Guid?> GetPersonalSpaceFolderAsync(Guid userId, Guid folderMaskId, CancellationToken cancellationToken = default) =>
+        Access.PersonalSpaceFolderAsync(userId, folderMaskId, cancellationToken);
+
     private (Guid? UserId, Guid? ServiceAccountId) CallerIdentity()
     {
         if (_currentUser.UserId is { } userId)

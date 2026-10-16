@@ -117,5 +117,9 @@ public static class ModuleAbiVersion
     /// and the facade's access, purge, reference removal and user search. Init properties and default members only, so a
     /// 1.17 module is unaffected.
     /// </para>
-    public const int Minor = 18;
+    /// <para>
+    /// 1.19 adds <see cref="IModuleArchiveFacade.GetPersonalSpaceFolderAsync"/>: which folder of the module's own mask the
+    /// core provisioned in a user's personal space (core ADR 0939). A default member only, so a 1.18 module is unaffected.
+    /// </para>
+    public const int Minor = 19;
 }

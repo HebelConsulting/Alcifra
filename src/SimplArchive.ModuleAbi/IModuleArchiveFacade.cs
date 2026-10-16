@@ -325,6 +325,15 @@ public interface IModuleArchiveFacade
     /// </summary>
     Task<IReadOnlyList<ModuleUser>> SearchUsersAsync(string term, int limit = 20, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<ModuleUser>>([]);
+
+    /// <summary>
+    /// The folder of <paramref name="folderMaskId"/> the core provisioned in <paramref name="userId"/>'s personal space
+    /// (ABI 1.19, ADR 0939): "My Messages" for the Messenger. Only for a mask of the calling module's own that declares
+    /// <see cref="ModuleMaskSeed.PersonalSpaceFolderName"/>; null when the user has no personal space yet, or the folder
+    /// has not been provisioned. It answers which folder is theirs, nothing else about the personal space.
+    /// </summary>
+    Task<Guid?> GetPersonalSpaceFolderAsync(Guid userId, Guid folderMaskId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<Guid?>(null);
 }
 
 /// <summary>What a user may do with a document the module grants them access to (ABI 1.18).</summary>

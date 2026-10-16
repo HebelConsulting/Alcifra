@@ -251,6 +251,30 @@ public class MessengerAbiTests
     }
 
     [Fact]
+    public async Task The_module_finds_each_users_own_provisioned_folder_and_nothing_else()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var rig = await RigAsync(connection);
+        using (var db = new SimplArchiveDbContext(
+            new DbContextOptionsBuilder<SimplArchiveDbContext>().UseSqlite(connection).Options,
+            new CurrentTenantAccessor { TenantId = rig.TenantId }, moduleMasks: rig.Declarations))
+        {
+            var folders = new ModulePersonalFolders(db, rig.Declarations);
+            await new PersonalRepositoryProvisioner(db, new NoOpAudit(), folders).EnsureAsync(rig.OwnerId, rig.TenantId, default);
+        }
+
+        var annas = await rig.Facade.GetPersonalSpaceFolderAsync(rig.OwnerId, MessagesMask);
+        var toms = await rig.Facade.GetPersonalSpaceFolderAsync(rig.OtherId, MessagesMask);
+
+        using var check = Ctx(connection, rig.TenantId);
+        Assert.Equal("My Messages", (await check.Documents.SingleAsync(d => d.Id == annas)).Name);
+        Assert.Null(toms);   // Tom has no personal space yet
+        // A mask that is not provisioned in personal spaces is no way to look around in one.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Facade.GetPersonalSpaceFolderAsync(rig.OwnerId, GroupMask));
+    }
+
+    [Fact]
     public void A_content_segment_that_could_mix_with_the_cores_areas_stops_the_start()
     {
         foreach (var segment in new[] { "2026", "users", "Messenger", "a" })
