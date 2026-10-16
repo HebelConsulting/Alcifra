@@ -143,7 +143,7 @@ public sealed class CertificateEnrolment(
         var owned = dbContext.Database.CurrentTransaction is null ? await dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
         await using (owned)
         {
-            var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, userId, cancellationToken)
+            var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, access.GetCallerIdentity(), cancellationToken)
                 ?? throw new CertificateFolderNotConfiguredException();
             document = await FileAsync(folder.Id, WellKnownMaskIds.Certificate, $"{fields["Label"]} ({thumbprint[..16]})",
                 Encoding.UTF8.GetBytes(certificatePem), ".pem", "application/x-pem-file", cancellationToken);
@@ -224,7 +224,7 @@ public sealed class CertificateEnrolment(
             }
             else
             {
-                var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, access.GetCallerIdentity().UserId, cancellationToken)
+                var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, access.GetCallerIdentity(), cancellationToken)
                     ?? throw new CertificateFolderNotConfiguredException();
                 document = await FileAsync(folder.Id, WellKnownMaskIds.CertificatePolicy, "Certificate policy", bytes, ".json", "application/json", cancellationToken);
             }

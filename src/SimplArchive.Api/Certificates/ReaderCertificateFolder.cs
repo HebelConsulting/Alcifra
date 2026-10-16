@@ -28,7 +28,7 @@ public static class ReaderCertificateFolder
 
     /// <summary>The folder, created under the configured parent when it does not exist yet; null when no parent is set.</summary>
     public static async Task<Document?> FindOrCreateAsync(
-        SimplArchiveDbContext dbContext, Guid tenantId, Guid? createdByUserId, CancellationToken cancellationToken)
+        SimplArchiveDbContext dbContext, Guid tenantId, (Guid? UserId, Guid? ServiceAccountId) creator, CancellationToken cancellationToken)
     {
         if (await FindAsync(dbContext, cancellationToken) is { } existing)
         {
@@ -54,7 +54,10 @@ public static class ReaderCertificateFolder
                 .Where(v => v.MaskId == WellKnownMaskIds.ReaderCertificates && v.IsCurrent)
                 .Select(v => v.Id)
                 .SingleAsync(cancellationToken),
-            CreatedByUserId = createdByUserId,
+            // Exactly one creator (CK_Documents_ExactlyOneCreator): the user, else the service account — an unattended
+            // setup account enrols too, and the first enrolment creates this folder.
+            CreatedByUserId = creator.UserId,
+            CreatedByServiceAccountId = creator.UserId is null ? creator.ServiceAccountId : null,
             CreatedAt = DateTimeOffset.UtcNow,
         };
         dbContext.Documents.Add(folder);

@@ -95,10 +95,16 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
         _ => "[green]usable[/]",
     };
 
-    private static IEnumerable<Enrolment> Rows(JsonElement listing)
+    internal static IEnumerable<Enrolment> Rows(JsonElement listing)
     {
-        if (!listing.TryGetProperty("certificates", out var rows)
-            && !listing.TryGetProperty("enrolled", out rows))
+        // The core answers a bare array (ADR 0936). The wrapped shapes are what the Encryption Module answered before
+        // enrolment moved into the core; read either, so an older installation still lists.
+        JsonElement rows;
+        if (listing.ValueKind == JsonValueKind.Array)
+        {
+            rows = listing;
+        }
+        else if (!listing.TryGetProperty("certificates", out rows) && !listing.TryGetProperty("enrolled", out rows))
         {
             yield break;
         }
@@ -126,7 +132,7 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
                 ? parsed
                 : null;
 
-    private sealed record Enrolment(
+    internal sealed record Enrolment(
         string Label,
         string Serial,
         DateTimeOffset? NotAfter,

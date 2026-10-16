@@ -23,7 +23,10 @@ public class CertificateEnrolmentTests
 
     public CertificateEnrolmentTests(E2EApiFactory factory) => _factory = factory;
 
-    private sealed record Rig(HttpClient Owner, HttpClient Admin, HttpClient Member, Guid TenantId, Guid RepoId);
+    private sealed record Rig(HttpClient Owner, HttpClient Admin, HttpClient Member, Guid TenantId, Guid RepoId)
+    {
+        public string MemberEmail { get; init; } = string.Empty;
+    }
 
     [Fact]
     public async Task A_member_enrols_their_own_certificate_and_is_addressed_by_it()
@@ -149,6 +152,37 @@ public class CertificateEnrolmentTests
     }
 
     [Fact]
+    public async Task An_unattended_SETUP_ACCOUNT_enrols_a_certificate_for_a_named_member()
+    {
+        // The first enrolment creates the "Reader certificates" folder, and the setup account is its creator: a service
+        // account, not a user. Found live (Messenger demo, 2026-10-16): the folder was written with NO creator, the
+        // CK_Documents_ExactlyOneCreator check refused it, and every unattended enrolment answered 500.
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            var created = await TestJson.Post(rig.Admin, "/api/service-accounts", new { name = $"setup-{Guid.NewGuid():N}", canManageModules = true });
+            using var setup = _factory.CreateAuthedClient(await _factory.GetTokenAsync(
+                created.GetProperty("clientId").GetString()!, created.GetProperty("clientSecret").GetString()!));
+            await SetCertificateSettingsAsync(setup, selfService: false, parent: rig.RepoId);
+
+            var enrolled = await TestJson.Post(setup, "/api/certificates", new { certificatePem = SelfSigned("member"), label = "Card", holder = rig.MemberEmail });
+            Assert.Equal("Card", enrolled.GetProperty("label").GetString());
+
+            // The member is addressed by it, and the listing for the holder shows it.
+            Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
+            Assert.Single((await TestJson.Get(setup, $"/api/certificates?holder={Uri.EscapeDataString(rig.MemberEmail)}")).EnumerateArray().ToList());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    [Fact]
     public async Task Without_a_licensing_module_enrolment_does_not_exist()
     {
         var email = $"noenrol-core-{Guid.NewGuid():N}@e2e.local";
@@ -227,6 +261,6 @@ public class CertificateEnrolmentTests
 
         await TestJson.Put(owner, $"/api/documents/{docId}/versions/{created.GetProperty("id").GetGuid()}", new { });
         await TestJson.Put(admin, "/api/modules/test-module/license", new { licenseDocumentId = docId });
-        return new Rig(owner, admin, member, tenantId, repoId);
+        return new Rig(owner, admin, member, tenantId, repoId) { MemberEmail = memberEmail };
     }
 }
