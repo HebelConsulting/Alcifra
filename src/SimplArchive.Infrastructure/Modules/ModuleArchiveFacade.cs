@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Masks;
+using SimplArchive.Infrastructure.Encryption;
 using SimplArchive.Infrastructure.Persistence;
 using SimplArchive.ModuleAbi;
 
@@ -549,7 +550,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
         WriteContentAsync(
             parentFolderId, maskId, name,
             keyFor: (tenantId, storageFolderId, versionId) => ObjectKeyBuilder.ModuleStagedContentKey(tenantId, storageFolderId, versionId, extension),
-            store: (key, ct) => PutBytesAsync(key, content, extension, ct),
+            store: (key, ct) => PutBytesAsync(key, content, extension, ct), peek: ModuleSealedContent.Of(content),
             expiresAt, fields, replaceDocumentId, documentDate, documentTime, cancellationToken);
 
     /// <summary>The bytes a module passed in, stored at <paramref name="key"/>: the store step of the byte-content writes.</summary>
@@ -583,6 +584,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
             parentFolderId, maskId, name,
             keyFor: (tenantId, storageFolderId, versionId) => ObjectKeyBuilder.Build(tenantId, DateTimeOffset.UtcNow, storageFolderId, versionId, extension),
             store: (key, ct) => uploads.MoveAsync(uploadId, key, ct),
+            peek: ct => uploads.PeekAsync(uploadId, CmsEnvelopeShape.HeadLength, ct),
             expiresAt: null, fields, replaceDocumentId, documentDate: null, documentTime: null, cancellationToken);
 
         // Audited as CreateContentDocumentAsync is: it is permanent archive content (ADR 0900).
@@ -601,7 +603,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
         var id = await WriteContentAsync(
             parentFolderId, maskId, name,
             keyFor: (tenantId, storageFolderId, versionId) => ObjectKeyBuilder.Build(tenantId, DateTimeOffset.UtcNow, storageFolderId, versionId, extension),
-            store: (key, ct) => PutBytesAsync(key, content, extension, ct),
+            store: (key, ct) => PutBytesAsync(key, content, extension, ct), peek: ModuleSealedContent.Of(content),
             expiresAt: null, fields, replaceDocumentId, documentDate, documentTime, cancellationToken);
 
         // Audited, unlike the ephemeral staging above: permanent content is part of the archive (ADR 0900).
@@ -674,6 +676,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
 
         var document = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken)
             ?? throw new ArgumentException($"Document {documentId} does not exist.", nameof(documentId));
+        await ModuleSealedContent.RefuseUnsealedAsync(_dbContext, _services, documentId, Guid.Empty, ModuleSealedContent.Of(content), cancellationToken);
 
         // The extension comes from the document's CURRENT object key, not from the caller: a replace keeps the
         // document's kind, and letting a module hand in a different one would let it change what a document IS
@@ -739,6 +742,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
         string name,
         Func<Guid, Guid, Guid, string> keyFor,
         Func<string, CancellationToken, Task<(string Sha256, long Size)>> store,
+        Func<CancellationToken, Task<(byte[] Head, long Length)>> peek,
         DateTimeOffset? expiresAt,
         IReadOnlyDictionary<string, string>? fields,
         Guid? replaceDocumentId,
@@ -752,6 +756,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
                 "Content writes need an object-storage client; the host wires one — a test facade that stages content must supply it.");
         }
 
+        await ModuleSealedContent.RefuseUnsealedAsync(_dbContext, _services, replaceDocumentId, maskId, peek, cancellationToken);
         var (userId, serviceAccountId) = CallerIdentity();
         var now = DateTimeOffset.UtcNow;
 

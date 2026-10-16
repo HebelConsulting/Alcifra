@@ -120,6 +120,16 @@ public sealed record ModuleMaskSeed(
     /// granted rights on that folder only, never on the rest of the personal space. Null provisions nothing.
     /// </summary>
     public string? PersonalSpaceFolderName { get; init; }
+
+    /// <summary>
+    /// Whether the content of documents wearing this mask is already SEALED to its readers — a CMS enveloped message the
+    /// core cannot open (ABI 1.20, ADR 0940). The core then checks, at filing, that the bytes are shaped as one and refuses
+    /// anything else with <see cref="ModuleContentNotSealedException"/>; and because sealed bytes are no plaintext, a tenant
+    /// that refuses plaintext doors (the strict tier) still hands them out — after checking the stored bytes once more.
+    /// Requires a <see cref="ContentSegment"/> of its own, which no unsealed mask may share: the storage door knows an
+    /// object only by its key.
+    /// </summary>
+    public bool ContentIsSealed { get; init; }
 }
 
 /// <summary>What the core leaves a module's documents out of (ABI 1.18, ADR 0937).</summary>

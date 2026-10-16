@@ -385,6 +385,7 @@ SimplArchive.ModuleAbi.ModuleChallenge::Void .ctor(System.String, System.String)
 SimplArchive.ModuleAbi.ModuleChallenge::Void Deconstruct(System.String ByRef, System.String ByRef)
 SimplArchive.ModuleAbi.ModuleChallenge::Void set_Realm(System.String)
 SimplArchive.ModuleAbi.ModuleChallenge::Void set_Scheme(System.String)
+SimplArchive.ModuleAbi.ModuleContentNotSealedException::Void .ctor()
 SimplArchive.ModuleAbi.ModuleCredentialFormat::Boolean TryParse(System.String, System.Guid ByRef, System.String ByRef)
 SimplArchive.ModuleAbi.ModuleCredentialFormat::System.String Compose(System.Guid, System.String)
 SimplArchive.ModuleAbi.ModuleCredentialFormat::System.String Prefix
@@ -618,12 +619,14 @@ SimplArchive.ModuleAbi.ModuleMaskExemptions::SimplArchive.ModuleAbi.ModuleMaskEx
 SimplArchive.ModuleAbi.ModuleMaskExemptions::SimplArchive.ModuleAbi.ModuleMaskExemptions Retention
 SimplArchive.ModuleAbi.ModuleMaskExemptions::SimplArchive.ModuleAbi.ModuleMaskExemptions Search
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean AdmitsOnlyDeclaredChildren
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean ContentIsSealed
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean Equals(SimplArchive.ModuleAbi.ModuleMaskSeed)
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean Equals(System.Object)
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean IsBookable
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean IsFolderMask
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean NameVocabularyIsMultiple
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_AdmitsOnlyDeclaredChildren()
+SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_ContentIsSealed()
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_IsBookable()
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_IsFolderMask()
 SimplArchive.ModuleAbi.ModuleMaskSeed::Boolean get_NameVocabularyIsMultiple()
@@ -659,6 +662,7 @@ SimplArchive.ModuleAbi.ModuleMaskSeed::Void Deconstruct(System.Guid ByRef, Syste
 SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_AdmitsOnlyDeclaredChildren(Boolean)
 SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_AdmittedChildren(System.Collections.Generic.IReadOnlyList`1[System.Guid])
 SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_AllowedParents(System.Collections.Generic.IReadOnlyList`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_ContentIsSealed(Boolean)
 SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_ContentSegment(System.String)
 SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_DavCollection(SimplArchive.ModuleAbi.ModuleDavCollection)
 SimplArchive.ModuleAbi.ModuleMaskSeed::Void set_Exemptions(SimplArchive.ModuleAbi.ModuleMaskExemptions)

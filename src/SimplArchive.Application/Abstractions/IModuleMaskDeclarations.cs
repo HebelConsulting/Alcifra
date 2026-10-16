@@ -30,6 +30,13 @@ public interface IModuleMaskDeclarations
     /// object only, can ask.</summary>
     bool IsUnrenderedContent(string objectKey);
 
+    /// <summary>Masks whose content arrives sealed to its readers (ABI 1.20, ADR 0940): checked at filing.</summary>
+    IReadOnlySet<Guid> SealedContent { get; }
+
+    /// <summary>Whether an object key lies in a content segment whose masks declare their content sealed: what the storage
+    /// door, keyed by object only, can ask before it lets bytes past the strict tier.</summary>
+    bool IsSealedContent(string objectKey);
+
     /// <summary>The folder masks provisioned in every user's personal space, with the module that declared each.</summary>
     IReadOnlyList<ProvisionedFolder> ProvisionedInPersonalSpace { get; }
 }

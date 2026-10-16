@@ -397,7 +397,8 @@ public static class DependencyInjection
                 provider.GetRequiredService<S3ObjectStorageClient>(),
                 provider.GetRequiredService<AtRestKeyService>(),
                 provider.GetService<IEncryptedContentUrlIssuer>(),
-                provider.GetRequiredService<ILogger<EncryptingObjectStorageClient>>()));
+                provider.GetRequiredService<ILogger<EncryptingObjectStorageClient>>(),
+                provider.GetService<IModuleMaskDeclarations>()));
         }
         else
         {

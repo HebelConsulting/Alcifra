@@ -25,6 +25,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
 
     private readonly Dictionary<Guid, string> _segments = [];
     private readonly HashSet<string> _unrenderedSegments = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _sealedSegments = new(StringComparer.Ordinal);
 
     public ModuleMaskDeclarations(IReadOnlyList<ModuleLoader.LoadedModule> modules)
     {
@@ -33,6 +34,8 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
         var notHeld = new HashSet<Guid>();
         var notRendered = new HashSet<Guid>();
         var provisioned = new List<ProvisionedFolder>();
+        var sealedMasks = new HashSet<Guid>();
+        var unsealedSegments = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var loaded in modules)
         {
@@ -53,6 +56,20 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
                     {
                         _unrenderedSegments.Add(segment);
                     }
+
+                    (mask.ContentIsSealed ? _sealedSegments : unsealedSegments).Add(segment);
+                }
+
+                if (mask.ContentIsSealed)
+                {
+                    if (mask.ContentSegment is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Module '{loaded.Module.ModuleId}' declares the content of mask '{mask.Name}' sealed without a content "
+                            + "segment of its own; the storage door knows an object only by its key.");
+                    }
+
+                    sealedMasks.Add(mask.MaskId);
                 }
 
                 Add(mask, ModuleMaskExemptions.Search, notSearched);
@@ -73,8 +90,17 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
             }
         }
 
-        (NotSearched, NotRetained, NotHeld, NotRendered, ProvisionedInPersonalSpace) =
-            (notSearched, notRetained, notHeld, notRendered, provisioned);
+        // A segment is sealed only if EVERY mask storing there is: the door lets a sealed segment's bytes past the strict
+        // tier, so one unsealed mask sharing it would put its plaintext behind a door that only checks the shape.
+        if (_sealedSegments.Intersect(unsealedSegments).FirstOrDefault() is { } shared)
+        {
+            throw new InvalidOperationException(
+                $"The content segment '{shared}' is declared by a mask whose content is sealed and by one whose content is not; "
+                + "a sealed mask needs a segment of its own.");
+        }
+
+        (NotSearched, NotRetained, NotHeld, NotRendered, SealedContent, ProvisionedInPersonalSpace) =
+            (notSearched, notRetained, notHeld, notRendered, sealedMasks, provisioned);
     }
 
     public IReadOnlySet<Guid> NotSearched { get; }
@@ -85,16 +111,22 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
 
     public IReadOnlySet<Guid> NotRendered { get; }
 
+    public IReadOnlySet<Guid> SealedContent { get; }
+
     public IReadOnlyList<ProvisionedFolder> ProvisionedInPersonalSpace { get; }
 
     public string? ContentSegmentFor(Guid? maskId) =>
         maskId is { } id && _segments.TryGetValue(id, out var segment) ? segment : null;
 
-    public bool IsUnrenderedContent(string objectKey)
+    public bool IsUnrenderedContent(string objectKey) => InSegment(objectKey, _unrenderedSegments);
+
+    public bool IsSealedContent(string objectKey) => InSegment(objectKey, _sealedSegments);
+
+    private static bool InSegment(string objectKey, HashSet<string> segments)
     {
         // tenants/{tenantId}/{segment}/…: the third segment is the one a module declared.
         var parts = objectKey.Split('/', 4);
-        return parts.Length == 4 && parts[0] == "tenants" && _unrenderedSegments.Contains(parts[2]);
+        return parts.Length == 4 && parts[0] == "tenants" && segments.Contains(parts[2]);
     }
 
     private static void Add(ModuleMaskSeed mask, ModuleMaskExemptions flag, HashSet<Guid> into)

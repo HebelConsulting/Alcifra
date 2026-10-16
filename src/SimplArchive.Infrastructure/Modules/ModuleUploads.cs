@@ -41,6 +41,21 @@ public sealed class ModuleUploads(IObjectStorageClient storage, ICurrentTenantAc
         return new ModuleUpload(uploadId, url, DateTimeOffset.UtcNow.Add(valid), maxBytes);
     }
 
+    /// <summary>The upload's first <paramref name="count"/> bytes and its whole size, read without spooling it: what the
+    /// sealed-content check at filing needs (ABI 1.20, ADR 0940).</summary>
+    public async Task<(byte[] Head, long Length)> PeekAsync(string uploadId, int count, CancellationToken cancellationToken)
+    {
+        var key = await CheckedKeyAsync(uploadId, cancellationToken);
+        var size = await storage.GetObjectSizeAsync(key, cancellationToken);
+        var head = new byte[(int)Math.Min(count, size)];
+        await using (var range = await storage.GetObjectRangeAsync(key, 0, Math.Max(0, head.Length - 1), cancellationToken))
+        {
+            await range.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, cancellationToken);
+        }
+
+        return (head, size);
+    }
+
     /// <summary>The upload spooled to a temporary file deleted on dispose: seekable, and never held in memory.</summary>
     public async Task<Stream> OpenAsync(string uploadId, CancellationToken cancellationToken)
     {

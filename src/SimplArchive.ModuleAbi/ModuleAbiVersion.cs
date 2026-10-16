@@ -121,5 +121,10 @@ public static class ModuleAbiVersion
     /// 1.19 adds <see cref="IModuleArchiveFacade.GetPersonalSpaceFolderAsync"/>: which folder of the module's own mask the
     /// core provisioned in a user's personal space (core ADR 0939). A default member only, so a 1.18 module is unaffected.
     /// </para>
-    public const int Minor = 19;
+    /// <para>
+    /// 1.20 adds <see cref="ModuleMaskSeed.ContentIsSealed"/> and <see cref="ModuleContentNotSealedException"/>: a mask whose
+    /// content arrives sealed is checked at filing and handed out on the strict tier too (core ADR 0940). An init property
+    /// and a new type only, so a 1.19 module is unaffected.
+    /// </para>
+    public const int Minor = 20;
 }

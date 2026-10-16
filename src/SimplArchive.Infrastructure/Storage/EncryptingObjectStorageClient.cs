@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Tenants;
+using SimplArchive.Infrastructure.Encryption;
 
 namespace SimplArchive.Infrastructure.Storage;
 
@@ -16,7 +17,8 @@ public sealed class EncryptingObjectStorageClient(
     S3ObjectStorageClient inner,
     AtRestKeyService keys,
     IEncryptedContentUrlIssuer? urlIssuer,
-    ILogger<EncryptingObjectStorageClient> logger) : IObjectStorageClient
+    ILogger<EncryptingObjectStorageClient> logger,
+    IModuleMaskDeclarations? declarations = null) : IObjectStorageClient
 {
     /// <summary>Object-metadata keys — the wrapped DEK and its KEK generation (ADR 0818).</summary>
     public const string WrappedDekKey = "sa-wrapped-dek";
@@ -112,19 +114,35 @@ public sealed class EncryptingObjectStorageClient(
     /// </remarks>
     public async Task<Stream> GetObjectForClientAsync(string objectKey, string door, CancellationToken cancellationToken = default)
     {
-        if (await keys.StrictAsync(objectKey, cancellationToken))
+        if (!await keys.StrictAsync(objectKey, cancellationToken))
         {
-            throw new PlaintextContentRefusedException(door);
+            return await GetObjectAsync(objectKey, cancellationToken);
         }
 
-        return await GetObjectAsync(objectKey, cancellationToken);
+        // Sealed module content is no plaintext (ADR 0940): read once, check the bytes being served, hand them on.
+        if (declarations?.IsSealedContent(objectKey) == true)
+        {
+            var buffer = new MemoryStream();
+            await using (var content = await GetObjectAsync(objectKey, cancellationToken))
+            {
+                await content.CopyToAsync(buffer, cancellationToken);
+            }
+
+            if (Shaped(objectKey, buffer.GetBuffer().AsSpan(0, (int)Math.Min(buffer.Length, CmsEnvelopeShape.HeadLength)), buffer.Length))
+            {
+                buffer.Position = 0;
+                return buffer;
+            }
+        }
+
+        throw new PlaintextContentRefusedException(door);
     }
 
     /// <summary>The range form of the same refusal — a seeking client is still a client.</summary>
     public async Task<Stream> GetObjectRangeForClientAsync(
         string objectKey, long from, long to, string door, CancellationToken cancellationToken = default)
     {
-        if (await keys.StrictAsync(objectKey, cancellationToken))
+        if (await keys.StrictAsync(objectKey, cancellationToken) && !await SealedAndShapedAsync(objectKey, cancellationToken))
         {
             throw new PlaintextContentRefusedException(door);
         }
@@ -248,9 +266,48 @@ public sealed class EncryptingObjectStorageClient(
     /// READS only. An upload presign stays available: the client encrypts before it sends, so the bytes
     /// crossing that URL are already ciphertext (see GetPresignedUploadUrlAsync's own note).
     /// </para>
+    /// <para>
+    /// <b>Sealed module content passes</b> (ABI 1.20, ADR 0940): an object in a segment whose masks declare their content
+    /// sealed, whose stored bytes are shaped as a CMS envelope, is no plaintext — the door serves what the readers' keys
+    /// alone open. The bytes are checked here, at the door, not only at filing: the declaration names a segment, and only
+    /// the object itself says what was stored there.
+    /// </para>
     /// </remarks>
-    private Task<bool> RefusedByStrictTierAsync(string objectKey, CancellationToken cancellationToken) =>
-        keys.StrictAsync(objectKey, cancellationToken);
+    private async Task<bool> RefusedByStrictTierAsync(string objectKey, CancellationToken cancellationToken) =>
+        await keys.StrictAsync(objectKey, cancellationToken) && !await SealedAndShapedAsync(objectKey, cancellationToken);
+
+    /// <summary>Whether the object lies in a sealed content segment AND its stored bytes are shaped as an envelope.</summary>
+    private async Task<bool> SealedAndShapedAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        if (declarations?.IsSealedContent(objectKey) != true)
+        {
+            return false;
+        }
+
+        var size = await GetObjectSizeAsync(objectKey, cancellationToken);
+        var head = new byte[CmsEnvelopeShape.HeadLength];
+        int read;
+        await using (var range = await GetObjectRangeAsync(objectKey, 0, head.Length - 1, cancellationToken))
+        {
+            read = await range.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, cancellationToken);
+        }
+
+        return Shaped(objectKey, head.AsSpan(0, read), size);
+    }
+
+    private bool Shaped(string objectKey, ReadOnlySpan<byte> head, long size)
+    {
+        if (CmsEnvelopeShape.IsEnvelope(head, size))
+        {
+            return true;
+        }
+
+        // A fall-through the reader cannot see the reason for (ADR 0626): name it.
+        logger.LogWarning(
+            "Object {ObjectKey} lies in a sealed content segment but is not shaped as a CMS envelope; the strict tier refuses it as plaintext.",
+            objectKey);
+        return false;
+    }
 
     /// <summary>
     /// The token door for an object that carries a wrapped DEK, whatever its tenant's mode is TODAY.

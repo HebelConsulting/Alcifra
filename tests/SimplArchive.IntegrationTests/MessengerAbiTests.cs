@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +46,7 @@ public class MessengerAbiTests
             {
                 ContentSegment = "messenger",
                 Exemptions = ModuleMaskExemptions.All,
+                ContentIsSealed = true,
             },
         ];
 
@@ -125,7 +129,7 @@ public class MessengerAbiTests
         var rig = await RigAsync(connection);
         var group = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Team");
 
-        var file = await rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "photo.p7m", Encoding.UTF8.GetBytes("sealed"), ".p7m");
+        var file = await rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "photo.p7m", Sealed(), ".p7m");
 
         using var check = Ctx(connection, rig.TenantId);
         var key = await check.DocumentVersions.Where(v => v.DocumentId == file).Select(v => v.ObjectKey).SingleAsync();
@@ -167,7 +171,7 @@ public class MessengerAbiTests
         await connection.OpenAsync();
         var rig = await RigAsync(connection);
         var group = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Team");
-        var file = await rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "a.p7m", [1, 2, 3], ".p7m");
+        var file = await rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "a.p7m", Sealed(), ".p7m");
 
         await rig.Facade.DeleteDocumentAsync(file);
 
@@ -183,7 +187,7 @@ public class MessengerAbiTests
         var rig = await RigAsync(connection);
         var shared = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Direct");
         var mine = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Mine");
-        var file = await rig.Facade.CreateContentDocumentAsync(shared, ObjectMask, "a.p7m", [1], ".p7m");
+        var file = await rig.Facade.CreateContentDocumentAsync(shared, ObjectMask, "a.p7m", Sealed(), ".p7m");
         await rig.Facade.CreateReferenceAsync(file, mine);
 
         Assert.True(await rig.Facade.DeleteReferenceAsync(file, mine));
@@ -272,6 +276,69 @@ public class MessengerAbiTests
         Assert.Null(toms);   // Tom has no personal space yet
         // A mask that is not provisioned in personal spaces is no way to look around in one.
         await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Facade.GetPersonalSpaceFolderAsync(rig.OwnerId, GroupMask));
+    }
+
+    [Fact]
+    public async Task Content_declared_sealed_is_filed_only_as_an_envelope_and_a_refusal_leaves_nothing()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var rig = await RigAsync(connection);
+        var group = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Team");
+        var file = await rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "a.p7m", Sealed(), ".p7m");
+        var stored = rig.Storage.Objects.Count;
+
+        await Assert.ThrowsAsync<ModuleContentNotSealedException>(() =>
+            rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "b.p7m", Encoding.UTF8.GetBytes("plain words"), ".p7m"));
+        await Assert.ThrowsAsync<ModuleContentNotSealedException>(() =>   // a new version is checked against the document's mask
+            rig.Facade.CreateContentDocumentAsync(group, GroupMask, "a.p7m", [0x30, 0x03, 0x06, 0x01, 0x00], ".p7m", replaceDocumentId: file));
+        await Assert.ThrowsAsync<ModuleContentNotSealedException>(() =>   // an envelope with plaintext riding behind it
+            rig.Facade.CreateContentDocumentAsync(group, ObjectMask, "c.p7m", [.. Sealed(), .. Encoding.UTF8.GetBytes("tail")], ".p7m"));
+
+        Assert.Equal(stored, rig.Storage.Objects.Count);
+        using var check = Ctx(connection, rig.TenantId);
+        Assert.Equal(1, await check.DocumentVersions.CountAsync(v => v.DocumentId == file));
+        Assert.False(await check.Documents.AnyAsync(d => d.Name == "b.p7m" || d.Name == "c.p7m"));
+        // An unsealed mask files anything, as before.
+        await rig.Facade.CreateContentDocumentAsync(group, GroupMask, "notes", Encoding.UTF8.GetBytes("plain words"), ".txt");
+    }
+
+    [Fact]
+    public void Sealed_content_needs_a_segment_of_its_own()
+    {
+        Assert.Throws<InvalidOperationException>(() => Declare(new ModuleMaskSeed(Guid.NewGuid(), "X", false, false, []) { ContentIsSealed = true }));
+        Assert.Throws<InvalidOperationException>(() => Declare(
+            new ModuleMaskSeed(Guid.NewGuid(), "X", false, false, []) { ContentSegment = "shared", ContentIsSealed = true },
+            new ModuleMaskSeed(Guid.NewGuid(), "Y", false, false, []) { ContentSegment = "shared" }));
+
+        var declarations = Declare(new ModuleMaskSeed(ObjectMask, "X", false, false, []) { ContentSegment = "sealed", ContentIsSealed = true });
+        Assert.Contains(ObjectMask, declarations.SealedContent);
+        Assert.True(declarations.IsSealedContent($"tenants/{Guid.NewGuid()}/sealed/{Guid.NewGuid()}/content.p7m"));
+        Assert.False(declarations.IsSealedContent($"tenants/{Guid.NewGuid()}/2026/{Guid.NewGuid()}/content.p7m"));
+    }
+
+    private static ModuleMaskDeclarations Declare(params ModuleMaskSeed[] masks) =>
+        new([new ModuleLoader.LoadedModule(new DeclaringModule(masks), "test://declare")]);
+
+    private sealed class DeclaringModule(IReadOnlyList<ModuleMaskSeed> masks) : IIndustryModule
+    {
+        public string ModuleId => "declare";
+        public string DisplayName => "Declare";
+        public int AbiMajorVersion => ModuleAbiVersion.Major;
+        public int AbiMinorVersion => ModuleAbiVersion.Minor;
+        public string LicenseVerifyKeyPem => string.Empty;
+        public IReadOnlyList<ModuleMaskSeed> Masks => masks;
+        public void ConfigureServices(IServiceCollection services) { }
+    }
+
+    private static byte[] Sealed()
+    {
+        using var rsa = RSA.Create(2048);
+        using var certificate = new CertificateRequest("CN=reader", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+            .CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        var envelope = new EnvelopedCms(new ContentInfo(Encoding.UTF8.GetBytes("for the readers only")));
+        envelope.Encrypt(new CmsRecipient(certificate));
+        return envelope.Encode();
     }
 
     [Fact]

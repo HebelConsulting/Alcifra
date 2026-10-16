@@ -18,3 +18,10 @@ public sealed class ModuleUploadMissingException(string uploadId)
 /// <summary>The upload is larger than the module allowed when it began it. It is discarded.</summary>
 public sealed class ModuleUploadTooLargeException(long size, long maxBytes)
     : ModuleApiException("MODULE_UPLOAD_TOO_LARGE", 413, $"The upload is {size} bytes; at most {maxBytes} are accepted.");
+
+/// <summary>
+/// The mask declares its content sealed (<see cref="ModuleMaskSeed.ContentIsSealed"/>, ABI 1.20) and the bytes are not a CMS
+/// enveloped message. Nothing is stored. A module's client answer is a 422: seal it first.
+/// </summary>
+public sealed class ModuleContentNotSealedException()
+    : ModuleApiException("MODULE_CONTENT_NOT_SEALED", 422, "This content must be sealed to its readers before it is filed.");
