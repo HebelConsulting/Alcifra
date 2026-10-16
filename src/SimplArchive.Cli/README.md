@@ -49,7 +49,10 @@ saconsole tenant offline-cache show
 ## Install and sign in
 
 ```sh
-dotnet tool install --global HebelConsulting.SimplArchive.Cli
+dotnet tool install --global SimplArchive.Cli
+
+# before 0.47.0 the package was HebelConsulting.SimplArchive.Cli; replace it once:
+#   dotnet tool uninstall --global HebelConsulting.SimplArchive.Cli
 
 # interactive: approve the sign-in in your browser, then the session is set for this shell
 eval "$(saconsole login --url https://archive.example.com)"

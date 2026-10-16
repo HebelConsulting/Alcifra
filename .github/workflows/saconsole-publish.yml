@@ -20,6 +20,9 @@
 #     exchange fails — and that environment has to exist in the PUBLIC repo, which is where this runs;
 #   * renaming this file breaks the policy match SILENTLY. Update the policy on nuget.org in the same change.
 #
+# The package id is `SimplArchive.Cli` since 0.47.0 (ADR 0941); `HebelConsulting.SimplArchive.Cli` stays on
+# nuget.org deprecated in its favour, and nothing publishes it any more.
+#
 # This file must NOT join publish/publish-public.sh's withheld set: it is useless in the private repo and is
 # the whole point in the mirror.
 name: Publish saconsole
@@ -91,4 +94,4 @@ jobs:
       - name: Report
         run: |
           echo "::notice::saconsole ${{ steps.version.outputs.value }} pushed to GitHub Packages and nuget.org."
-          echo "::notice::Install with: dotnet tool install --global HebelConsulting.SimplArchive.Cli"
+          echo "::notice::Install with: dotnet tool install --global SimplArchive.Cli"
