@@ -125,6 +125,14 @@ internal sealed class ModuleArchiveAccess(
         return users;
     }
 
+    public async Task<ModuleUser?> UserAsync(Guid userId, CancellationToken cancellationToken) =>
+        moduleId() is null
+            ? null
+            : await dbContext.Users.AsNoTracking()
+                .Where(u => u.Id == userId && u.IsActive)
+                .Select(u => new ModuleUser(u.Id, u.DisplayName, u.Email))
+                .FirstOrDefaultAsync(cancellationToken);
+
     public async Task<Guid?> PersonalSpaceFolderAsync(Guid userId, Guid folderMaskId, CancellationToken cancellationToken)
     {
         // Only a mask of the calling module's own that it asked the core to provision: the answer is "which folder is

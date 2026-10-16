@@ -66,6 +66,10 @@ public static class NotificationTypePolicy
             NotificationType.BookingSuspended => false,
             NotificationType.BookingRevived => false,
             NotificationType.BookingParticipantsChanged => false,
+
+            // Not offered as a preference because it is never mailed at all (EmailOutboxEnqueuer skips it): there is
+            // no email channel to mute, and listing it would offer a switch that does nothing.
+            NotificationType.ModuleSignal => false,
         };
 #pragma warning restore CS8524
 

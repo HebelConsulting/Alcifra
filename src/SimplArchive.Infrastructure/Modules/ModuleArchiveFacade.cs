@@ -901,6 +901,9 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
     public Task<Guid?> GetPersonalSpaceFolderAsync(Guid userId, Guid folderMaskId, CancellationToken cancellationToken = default) =>
         Access.PersonalSpaceFolderAsync(userId, folderMaskId, cancellationToken);
 
+    public Task<ModuleUser?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Access.UserAsync(userId, cancellationToken);
+
     private (Guid? UserId, Guid? ServiceAccountId) CallerIdentity()
     {
         if (_currentUser.UserId is { } userId)

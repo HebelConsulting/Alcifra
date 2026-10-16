@@ -253,6 +253,7 @@ SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task SetFiel
 SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task SetFieldsAsync(System.Guid, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleDocument] GetDocumentAsync(System.Guid, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleUpload] BeginUploadAsync(Int64, System.Nullable`1[System.TimeSpan], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleUser] GetUserAsync(System.Guid, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Boolean] DeleteReferenceAsync(System.Guid, System.Guid, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Boolean] IsFreeAsync(System.Guid, System.DateTimeOffset, System.DateTimeOffset, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleArchiveFacade::System.Threading.Tasks.Task`1[System.Boolean] IsOfferedAsync(System.Guid, System.DateTimeOffset, System.DateTimeOffset, System.Threading.CancellationToken)
@@ -298,6 +299,8 @@ SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArc
 SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] GetAsync(System.String, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] HeadAsync(System.String, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] PostFormAsync(System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task ClearSignalsAsync(System.Guid, System.Guid, System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task SignalAsync(SimplArchive.ModuleAbi.ModuleSignal, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task`1[System.Boolean] QueueAsync(SimplArchive.ModuleAbi.ModuleNotice, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleProjectionRebuilder::System.Collections.Generic.IReadOnlyList`1[System.String] ProjectionNames
 SimplArchive.ModuleAbi.IModuleProjectionRebuilder::System.Collections.Generic.IReadOnlyList`1[System.String] get_ProjectionNames()
@@ -765,6 +768,27 @@ SimplArchive.ModuleAbi.ModuleSettingKind::Int32 value__
 SimplArchive.ModuleAbi.ModuleSettingKind::SimplArchive.ModuleAbi.ModuleSettingKind Boolean
 SimplArchive.ModuleAbi.ModuleSettingKind::SimplArchive.ModuleAbi.ModuleSettingKind Choice
 SimplArchive.ModuleAbi.ModuleSettingKind::SimplArchive.ModuleAbi.ModuleSettingKind Text
+SimplArchive.ModuleAbi.ModuleSignal::Boolean Equals(SimplArchive.ModuleAbi.ModuleSignal)
+SimplArchive.ModuleAbi.ModuleSignal::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleSignal::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleSignal, SimplArchive.ModuleAbi.ModuleSignal)
+SimplArchive.ModuleAbi.ModuleSignal::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleSignal, SimplArchive.ModuleAbi.ModuleSignal)
+SimplArchive.ModuleAbi.ModuleSignal::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleSignal::SimplArchive.ModuleAbi.ModuleSignal <Clone>$()
+SimplArchive.ModuleAbi.ModuleSignal::System.Guid DocumentId
+SimplArchive.ModuleAbi.ModuleSignal::System.Guid RecipientUserId
+SimplArchive.ModuleAbi.ModuleSignal::System.Guid get_DocumentId()
+SimplArchive.ModuleAbi.ModuleSignal::System.Guid get_RecipientUserId()
+SimplArchive.ModuleAbi.ModuleSignal::System.String Body
+SimplArchive.ModuleAbi.ModuleSignal::System.String Title
+SimplArchive.ModuleAbi.ModuleSignal::System.String ToString()
+SimplArchive.ModuleAbi.ModuleSignal::System.String get_Body()
+SimplArchive.ModuleAbi.ModuleSignal::System.String get_Title()
+SimplArchive.ModuleAbi.ModuleSignal::Void .ctor(System.Guid, System.Guid, System.String, System.String)
+SimplArchive.ModuleAbi.ModuleSignal::Void Deconstruct(System.Guid ByRef, System.Guid ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleSignal::Void set_Body(System.String)
+SimplArchive.ModuleAbi.ModuleSignal::Void set_DocumentId(System.Guid)
+SimplArchive.ModuleAbi.ModuleSignal::Void set_RecipientUserId(System.Guid)
+SimplArchive.ModuleAbi.ModuleSignal::Void set_Title(System.String)
 SimplArchive.ModuleAbi.ModuleUpload::Boolean Equals(SimplArchive.ModuleAbi.ModuleUpload)
 SimplArchive.ModuleAbi.ModuleUpload::Boolean Equals(System.Object)
 SimplArchive.ModuleAbi.ModuleUpload::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleUpload, SimplArchive.ModuleAbi.ModuleUpload)

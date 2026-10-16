@@ -126,5 +126,14 @@ public static class ModuleAbiVersion
     /// content arrives sealed is checked at filing and handed out on the strict tier too (core ADR 0940). An init property
     /// and a new type only, so a 1.19 module is unaffected.
     /// </para>
-    public const int Minor = 20;
+    /// <para>
+    /// 1.21 adds <see cref="IModuleArchiveFacade.GetUserAsync"/>: an active user of the tenant by id (core ADR 0942). A
+    /// default member only, so a 1.20 module is unaffected.
+    /// </para>
+    /// <para>
+    /// 1.22 adds <see cref="IModuleNotices.SignalAsync"/> and <see cref="IModuleNotices.ClearSignalsAsync"/>: a coalesced,
+    /// never-mailed "something new here" for a user, pushed to the phone once while unread (core ADR 0943). Default members
+    /// and a new type only, so a 1.21 module is unaffected.
+    /// </para>
+    public const int Minor = 22;
 }

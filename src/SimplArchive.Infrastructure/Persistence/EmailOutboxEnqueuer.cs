@@ -53,6 +53,10 @@ public static class EmailOutboxEnqueuer
             // fixture that carries historical notifications would otherwise email every one of them on the next
             // sweep. Cheap, and the failure it prevents is one nobody could undo.
             .Where(n => n.EmailedAt is null && n.EmailFailedAt is null)
+            // The one type never mailed (ADR 0943): a module's signal says only "something new here", one per
+            // conversation per message burst — mail per chat message is what it exists to avoid. A TYPE, not a
+            // preference, so it is decided here rather than at drain.
+            .Where(n => n.Type != NotificationType.ModuleSignal)
             .ToList();
 
         if (added.Count == 0)

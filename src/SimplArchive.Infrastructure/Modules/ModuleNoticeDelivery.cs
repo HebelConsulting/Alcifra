@@ -94,14 +94,60 @@ public sealed class ModuleNoticeDelivery(
 /// <see cref="IIndustryModule.SendsExternalNotices"/>.
 /// </summary>
 public sealed class ModuleNotices(
-    ModuleNoticeDelivery delivery, ModuleIdentityAccessor identity, IReadOnlyList<ModuleLoader.LoadedModule> modules) : IModuleNotices
+    ModuleNoticeDelivery delivery, ModuleIdentityAccessor identity, IReadOnlyList<ModuleLoader.LoadedModule> modules,
+    SimplArchiveDbContext dbContext, INotificationService notifications) : IModuleNotices
 {
     public Task<bool> QueueAsync(ModuleNotice notice, CancellationToken cancellationToken = default)
     {
-        var moduleId = identity.ModuleId
-            ?? throw new InvalidOperationException("A module notice was queued with no module acting; the host sets the identity before module code runs.");
+        var moduleId = ModuleId();
         var external = modules.FirstOrDefault(m => m.Module.ModuleId == moduleId)?.Module.SendsExternalNotices ?? false;
         return delivery.DeliverAsync(moduleId, notice.RecipientEmail, notice.Subject, notice.Message, notice.ReplyTo,
             notice.AttachmentDocumentId, aboutDocumentId: null, external, cancellationToken);
     }
+
+    /// <summary>ABI 1.22 (ADR 0943): a never-mailed, coalesced notification; the notification service skips the acting
+    /// user and folds a repeat into the unread one, and the save pushes the phone only for a new row.</summary>
+    public async Task SignalAsync(ModuleSignal signal, CancellationToken cancellationToken = default)
+    {
+        await RequireOwnDocumentAsync(signal.DocumentId, cancellationToken);
+        await notifications.NotifyAsync(signal.RecipientUserId, NotificationType.ModuleSignal,
+            Truncate(signal.Title, 200), Truncate(signal.Body, 1000), signal.DocumentId, cancellationToken);
+    }
+
+    public async Task ClearSignalsAsync(Guid recipientUserId, Guid documentId, CancellationToken cancellationToken = default)
+    {
+        await RequireOwnDocumentAsync(documentId, cancellationToken);
+        var unread = await dbContext.Notifications
+            .Where(n => n.RecipientUserId == recipientUserId && n.DocumentId == documentId
+                && n.Type == NotificationType.ModuleSignal && n.ReadAt == null)
+            .ToListAsync(cancellationToken);
+        if (unread.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        unread.ForEach(n => n.ReadAt = now);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private string ModuleId() => identity.ModuleId
+        ?? throw new InvalidOperationException("A module notice was queued with no module acting; the host sets the identity before module code runs.");
+
+    // A module signals only about its own kinds of document, so it cannot point a user's phone at anything else.
+    private async Task RequireOwnDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        var moduleId = ModuleId();
+        var own = modules.FirstOrDefault(m => m.Module.ModuleId == moduleId)?.Module.Masks.Select(m => m.MaskId).ToHashSet() ?? [];
+        var maskId = await dbContext.Documents.Where(d => d.Id == documentId)
+            .Select(d => dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault())
+            .FirstOrDefaultAsync(cancellationToken);
+        if (maskId is not { } mask || !own.Contains(mask))
+        {
+            throw new InvalidOperationException(
+                $"Module '{moduleId}' may signal only about documents wearing one of its own masks; {documentId} does not.");
+        }
+    }
+
+    private static string Truncate(string text, int length) => text.Length <= length ? text : text[..length];
 }

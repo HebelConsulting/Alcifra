@@ -89,7 +89,7 @@ public sealed class NotificationService : INotificationService
     private static readonly TimeSpan CoalesceWindow = TimeSpan.FromHours(6);
 
     private static bool IsCoalescable(NotificationType type) =>
-        type is NotificationType.SubscribedActivity or NotificationType.ChatMessagePosted;
+        type is NotificationType.SubscribedActivity or NotificationType.ChatMessagePosted or NotificationType.ModuleSignal;
 
     // Adds a new notification, or — for a coalescable type on a document — merges the event into the recipient's
     // existing UNREAD notification for that same document within the coalesce window (incrementing EventCount and

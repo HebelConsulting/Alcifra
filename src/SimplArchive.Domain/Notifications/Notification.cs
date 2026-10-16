@@ -85,6 +85,10 @@ public enum NotificationType
     // filed — into "this source has been dead since 14:05", which is the only version an administrator can
     // act on.
     ModuleContentFailing = 20,
+    // A module's "something new here" for one user (ABI 1.22, ADR 0943): the Messenger's new messages in a
+    // conversation. NEVER mailed (a chat would mail per message), and coalesced while unread like ChatMessagePosted,
+    // so the phone buzzes once until the user catches up — when the module clears it, the next one buzzes again.
+    ModuleSignal = 21,
 }
 
 // A per-User in-app notification (ADR "Notifications (in-app, first slice)"). Written by INotificationService

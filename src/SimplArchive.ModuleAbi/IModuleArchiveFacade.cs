@@ -335,6 +335,14 @@ public interface IModuleArchiveFacade
     /// </summary>
     Task<Guid?> GetPersonalSpaceFolderAsync(Guid userId, Guid folderMaskId, CancellationToken cancellationToken = default) =>
         Task.FromResult<Guid?>(null);
+
+    /// <summary>
+    /// The active user of this tenant with <paramref name="userId"/>, by name and e-mail, or null (ABI 1.21, ADR 0942): how
+    /// a module that keeps people by id shows them, or matches them to an e-mail it stored. Unlike
+    /// <see cref="SearchUsersAsync"/> it needs no enrolled key — a member whose certificate expired is still that person.
+    /// </summary>
+    Task<ModuleUser?> GetUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<ModuleUser?>(null);
 }
 
 /// <summary>What a user may do with a document the module grants them access to (ABI 1.18).</summary>

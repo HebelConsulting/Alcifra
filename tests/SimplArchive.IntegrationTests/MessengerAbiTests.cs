@@ -11,9 +11,11 @@ using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Certificates;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Modules;
+using SimplArchive.Domain.Notifications;
 using SimplArchive.Domain.Tenants;
 using SimplArchive.Domain.Users;
 using SimplArchive.Infrastructure.Masks;
+using SimplArchive.Infrastructure.Notifications;
 using SimplArchive.Infrastructure.Modules;
 using SimplArchive.Infrastructure.Persistence;
 using SimplArchive.ModuleAbi;
@@ -229,6 +231,34 @@ public class MessengerAbiTests
     }
 
     [Fact]
+    public async Task A_user_is_found_by_id_with_or_without_a_key_but_only_while_active_and_only_in_this_tenant()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var rig = await RigAsync(connection);
+        var stranger = Guid.NewGuid();
+        using (var other = Ctx(connection))
+        {
+            var otherTenant = Guid.NewGuid();
+            other.Tenants.Add(new Tenant { Id = otherTenant, Name = "Other", CreatedAt = DateTimeOffset.UtcNow });
+            other.Users.Add(new User { Id = stranger, TenantId = otherTenant, Email = "eve@y.io", DisplayName = "Eve", CreatedAt = DateTimeOffset.UtcNow });
+            await other.SaveChangesAsync();
+        }
+
+        var anna = await rig.Facade.GetUserAsync(rig.OwnerId);
+        Assert.Equal(("Anna", "anna@x.io"), (anna!.DisplayName, anna.Email));   // no enrolled key, still herself
+        Assert.Null(await rig.Facade.GetUserAsync(stranger));                    // another tenant's user does not exist here
+
+        using (var db = Ctx(connection, rig.TenantId))
+        {
+            (await db.Users.SingleAsync(u => u.Id == rig.OtherId)).IsActive = false;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Null(await rig.Facade.GetUserAsync(rig.OtherId));
+    }
+
+    [Fact]
     public async Task My_Messages_is_provisioned_once_per_personal_space_with_rights_on_that_folder_only()
     {
         using var connection = new SqliteConnection("Filename=:memory:");
@@ -301,6 +331,36 @@ public class MessengerAbiTests
         Assert.False(await check.Documents.AnyAsync(d => d.Name == "b.p7m" || d.Name == "c.p7m"));
         // An unsealed mask files anything, as before.
         await rig.Facade.CreateContentDocumentAsync(group, GroupMask, "notes", Encoding.UTF8.GetBytes("plain words"), ".txt");
+    }
+
+    [Fact]
+    public async Task A_signal_coalesces_while_unread_is_never_mailed_skips_the_sender_and_starts_again_once_cleared()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var rig = await RigAsync(connection);
+        var group = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Team");
+        var tenant = new CurrentTenantAccessor { TenantId = rig.TenantId };
+        using var db = new SimplArchiveDbContext(new DbContextOptionsBuilder<SimplArchiveDbContext>().UseSqlite(connection).Options, tenant);
+        var notices = new ModuleNotices(null!, new ModuleIdentityAccessor { ModuleId = ModuleId },
+            [new ModuleLoader.LoadedModule(new MessengerModule(), "test://msgr")], db,
+            new NotificationService(db, tenant, new TestUserAccessor { UserId = rig.OwnerId }, NullLogger<NotificationService>.Instance));
+
+        await notices.SignalAsync(new ModuleSignal(rig.OtherId, group, "New messages", "Messenger"));
+        await notices.SignalAsync(new ModuleSignal(rig.OtherId, group, "New messages", "Messenger"));
+        await notices.SignalAsync(new ModuleSignal(rig.OwnerId, group, "New messages", "Messenger"));   // the sender herself
+
+        var signal = Assert.Single(await db.Notifications.ToListAsync());
+        Assert.Equal((rig.OtherId, NotificationType.ModuleSignal, 2), (signal.RecipientUserId, signal.Type, signal.EventCount));
+        Assert.Empty(await db.Set<EmailOutbox>().ToListAsync());   // a chat must not mail per message
+
+        await notices.ClearSignalsAsync(rig.OtherId, group);
+        Assert.NotNull((await db.Notifications.SingleAsync()).ReadAt);
+        await notices.SignalAsync(new ModuleSignal(rig.OtherId, group, "New messages", "Messenger"));
+        Assert.Equal(2, await db.Notifications.CountAsync());   // a new row, which is what pushes the phone again
+
+        // Only about the module's own kinds of document: the repository root wears none of its masks.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => notices.SignalAsync(new ModuleSignal(rig.OtherId, rig.RootId, "x", "y")));
     }
 
     [Fact]
