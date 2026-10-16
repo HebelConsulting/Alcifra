@@ -13,6 +13,10 @@ public class ModuleWriteAuditTests
         Assert.Equal(AuditActions.DocumentCreated, ModuleWriteAudit.Created);
         Assert.Equal(AuditActions.DocumentIndexDataUpdated, ModuleWriteAudit.IndexDataUpdated);
         Assert.Equal(AuditActions.DocumentRenamed, ModuleWriteAudit.Renamed);
+        Assert.Equal(AuditActions.AclGranted, ModuleWriteAudit.AclGranted);
+        Assert.Equal(AuditActions.AclRevoked, ModuleWriteAudit.AclRevoked);
+        Assert.Equal(AuditActions.DocumentPurged, ModuleWriteAudit.Purged);
+        Assert.Equal(AuditActions.ReferenceRemoved, ModuleWriteAudit.ReferenceRemoved);
         Assert.Equal(AuditActions.DocumentVersionAdded, ModuleWriteAudit.VersionAdded);
         Assert.Equal(AuditActions.ReferenceAdded, ModuleWriteAudit.ReferenceAdded);
     }

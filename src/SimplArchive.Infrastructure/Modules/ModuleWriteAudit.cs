@@ -13,4 +13,10 @@ public static class ModuleWriteAudit
     public const string Renamed = "Document.Renamed";
     public const string VersionAdded = "Document.VersionAdded";
     public const string ReferenceAdded = "Reference.Added";
+
+    // ABI 1.18 (ADR 0937): a module granting and revoking access on its own documents, purging one, and removing a reference.
+    public const string AclGranted = "Acl.Granted";
+    public const string AclRevoked = "Acl.Revoked";
+    public const string Purged = "Document.Purged";
+    public const string ReferenceRemoved = "Reference.Removed";
 }

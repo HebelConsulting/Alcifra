@@ -62,8 +62,12 @@ public sealed class PersonalRepositoryProvisioner
     private readonly SimplArchiveDbContext _dbContext;
     private readonly IAuditRecorder _audit;
 
-    public PersonalRepositoryProvisioner(SimplArchiveDbContext dbContext, IAuditRecorder audit)
+    // The folders active modules ask for in a personal space (ABI 1.18); null where no host wires it (a test).
+    private readonly ModulePersonalFolders? _moduleFolders;
+
+    public PersonalRepositoryProvisioner(SimplArchiveDbContext dbContext, IAuditRecorder audit, ModulePersonalFolders? moduleFolders = null)
     {
+        _moduleFolders = moduleFolders;
         _dbContext = dbContext;
         _audit = audit;
     }
@@ -96,6 +100,11 @@ public sealed class PersonalRepositoryProvisioner
         await EnsureTypedFolderAsync(root, tenantId, userId, MyDocumentsFolderName, WellKnownMaskIds.MyDocuments, cancellationToken, at.AddMilliseconds(1), restampFromMaskId: WellKnownMaskIds.Folder, id: idFor?.Invoke("my-documents"));
         await EnsureTypedFolderAsync(root, tenantId, userId, MyCalendarFolderName, WellKnownMaskIds.Calendar, cancellationToken, at.AddMilliseconds(2), id: idFor?.Invoke("my-calendar"));
         await EnsureTypedFolderAsync(root, tenantId, userId, MyAddressbookFolderName, WellKnownMaskIds.Addressbook, cancellationToken, at.AddMilliseconds(3), LegacyMyContactsFolderName, id: idFor?.Invoke("my-addressbook"));
+        if (_moduleFolders is not null)
+        {
+            await _moduleFolders.EnsureAsync(root, tenantId, cancellationToken);
+        }
+
         return root;
     }
 

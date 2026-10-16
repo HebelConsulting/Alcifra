@@ -689,7 +689,9 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
         var now = DateTimeOffset.UtcNow;
         var extension = Path.GetExtension(currentKey);
         var versionId = Guid.NewGuid();
-        var objectKey = ObjectKeyBuilder.Build(document.TenantId, now, document.StorageFolderId, versionId, extension);
+        var objectKey = await ModuleContentKeys.InSegmentAsync(_dbContext, _services,
+            ObjectKeyBuilder.Build(document.TenantId, now, document.StorageFolderId, versionId, extension),
+            document.MaskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
 
         _ = await PutBytesAsync(objectKey, content, extension, cancellationToken);   // the finalizer hashes and sizes it
 
@@ -790,7 +792,9 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
         }
 
         var versionId = Guid.NewGuid();
-        var objectKey = keyFor(document.TenantId, document.StorageFolderId, versionId);
+        var objectKey = await ModuleContentKeys.InSegmentAsync(_dbContext, _services,
+            keyFor(document.TenantId, document.StorageFolderId, versionId),
+            maskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
         var (sha256, size) = await store(objectKey, cancellationToken);
 
         var nextVersionNumber = 1 + (await _dbContext.DocumentVersions
@@ -867,6 +871,27 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
             "png" => "image/png",
             _ => "application/octet-stream",
         };
+
+    // ABI 1.18's access, deletion and user search, in their own class: this one is at its size limit.
+    private ModuleArchiveAccess Access => _access ??= new ModuleArchiveAccess(
+        _dbContext, () => _identity?.ModuleId, AuditWriteAsync, _services, _logger);
+
+    private ModuleArchiveAccess? _access;
+
+    public Task GrantAccessAsync(Guid documentId, Guid userId, ModuleAccess access, CancellationToken cancellationToken = default) =>
+        Access.GrantAsync(documentId, userId, access, cancellationToken);
+
+    public Task RevokeAccessAsync(Guid documentId, Guid userId, CancellationToken cancellationToken = default) =>
+        Access.RevokeAsync(documentId, userId, cancellationToken);
+
+    public Task DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default) =>
+        Access.DeleteAsync(documentId, cancellationToken);
+
+    public Task<bool> DeleteReferenceAsync(Guid targetDocumentId, Guid folderId, CancellationToken cancellationToken = default) =>
+        Access.DeleteReferenceAsync(targetDocumentId, folderId, cancellationToken);
+
+    public Task<IReadOnlyList<ModuleUser>> SearchUsersAsync(string term, int limit = 20, CancellationToken cancellationToken = default) =>
+        Access.SearchUsersAsync(term, limit, cancellationToken);
 
     private (Guid? UserId, Guid? ServiceAccountId) CallerIdentity()
     {

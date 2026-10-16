@@ -91,6 +91,14 @@ public static class ObjectKeyPrefixes
     /// <summary>One module's uploads, so a module can open and file only what it began.</summary>
     public static string ModuleUploads(Guid tenantId, string moduleId) => $"{ModuleUploads(tenantId)}{moduleId}/";
 
+    /// <summary>
+    /// A module's own content area, <c>tenants/{tenantId}/{segment}/</c> (ABI 1.18, ADR 0937): where documents wearing a
+    /// mask that declares a content segment keep their bytes, apart from the archive's year folders, so the module's
+    /// content is readable as such, deletable by prefix and backed up on its own terms. The caller appends
+    /// <c>{storageFolderId}/{versionId}{ext}</c>, the archive's tail shape, so derived artefacts group the same way.
+    /// </summary>
+    public static string ModuleContent(Guid tenantId, string segment) => $"{Tenant(tenantId)}{segment}/";
+
     /// <summary>The staged-content segment, exposed so <c>ObjectKeyBuilder.IsModuleStagedContentKey</c> can
     /// recognise a key without rebuilding the tenant-qualified prefix.</summary>
     public const string ModuleStagedSegment = "fs/special";

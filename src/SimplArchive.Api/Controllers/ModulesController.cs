@@ -237,7 +237,7 @@ public class ModulesController : ControllerBase
     [HttpPut("{moduleId}/license")]
     public async Task<IActionResult> PutLicense(
         string moduleId, [FromBody] ActivateModuleRequest request, [FromServices] SimplArchive.Api.Manuals.ManualFiler manuals,
-        CancellationToken cancellationToken)
+        [FromServices] SimplArchive.Api.Documents.ModulePersonalFolders personalFolders, CancellationToken cancellationToken)
     {
         if (!await CanAdministerModulesAsync(cancellationToken))
         {
@@ -289,6 +289,9 @@ public class ModulesController : ControllerBase
         // The manual the module ships (ABI 1.5, ADR 0891) — after the activation is committed and recorded; a refusal
         // is logged and never fails the activation.
         await manuals.FileModuleManualAsync(module, cancellationToken);
+
+        // The folders the module asks for in every personal space (ABI 1.18, ADR 0937), for everyone already here.
+        await personalFolders.EnsureForTenantAsync(_currentTenantAccessor.TenantId!.Value, cancellationToken);
 
         return Ok(ToResource(module.ModuleId, module.DisplayName, module.AbiMajorVersion, installed: true, activation,
             hasSettings: DeclaredSettings(module.ModuleId).Count > 0, build: loaded?.Build,

@@ -290,7 +290,55 @@ public interface IModuleArchiveFacade
     /// none.</remarks>
     Task<IReadOnlyList<ReaderCertificate>> GetUserCertificatesAsync(Guid userId, CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<ReaderCertificate>>([]);
+
+    /// <summary>
+    /// Gives <paramref name="userId"/> access to a document wearing one of THIS module's masks (ABI 1.18, ADR 0937):
+    /// for a group conversation, membership is the folder's access list. Refused for any other document.
+    /// </summary>
+    /// <remarks>Default members from here on, so a facade implemented before 1.18 (a test double) still compiles.</remarks>
+    Task GrantAccessAsync(Guid documentId, Guid userId, ModuleAccess access, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This facade predates ABI 1.18.");
+
+    /// <summary>Takes <paramref name="userId"/>'s access to a document wearing one of this module's masks away again.</summary>
+    Task RevokeAccessAsync(Guid documentId, Guid userId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This facade predates ABI 1.18.");
+
+    /// <summary>
+    /// Deletes a document wearing one of this module's masks and everything below it, PURGED AT ONCE with its stored
+    /// objects (ABI 1.18, ADR 0937): no recycle bin, because the module owns the lifetime of what it files. Every
+    /// reference to it goes with it. Audited as the module's act. A WORM-locked object still refuses.
+    /// </summary>
+    Task DeleteDocumentAsync(Guid documentId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This facade predates ABI 1.18.");
+
+    /// <summary>
+    /// Removes the reference to <paramref name="targetDocumentId"/> placed in <paramref name="folderId"/>, leaving the
+    /// document itself (ABI 1.18): "delete for me" of a file shared in a conversation. False when there was none.
+    /// </summary>
+    Task<bool> DeleteReferenceAsync(Guid targetDocumentId, Guid folderId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This facade predates ABI 1.18.");
+
+    /// <summary>
+    /// Active users of this tenant who have at least one usable enrolled certificate, whose name or e-mail contains
+    /// <paramref name="term"/> (ABI 1.18, ADR 0937): the people a sealed conversation can include. At most
+    /// <paramref name="limit"/>, ordered by name. Nobody without a key is offered, because they could not be added.
+    /// </summary>
+    Task<IReadOnlyList<ModuleUser>> SearchUsersAsync(string term, int limit = 20, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<ModuleUser>>([]);
 }
+
+/// <summary>What a user may do with a document the module grants them access to (ABI 1.18).</summary>
+public enum ModuleAccess
+{
+    /// <summary>See it and read its content.</summary>
+    Read,
+
+    /// <summary>Read, and add documents below it.</summary>
+    Contribute,
+}
+
+/// <summary>A user as the facade's user search shows them (ABI 1.18).</summary>
+public sealed record ModuleUser(Guid Id, string DisplayName, string Email);
 
 /// <summary>A document as the facade shows it: identity, mask, and its index fields by name.</summary>
 public sealed record ModuleDocument(

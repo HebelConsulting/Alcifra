@@ -23,6 +23,17 @@ public static class ObjectKeyBuilder
         return $"{ObjectKeyPrefixes.DocumentContentFolder(tenantId, filingDate.Year, storageFolderId)}{versionId}{suffix}";
     }
 
+    // The content object of a version whose mask declares a module content segment (ABI 1.18, ADR 0937):
+    // tenants/{tenantId}/{segment}/{storageFolderId}/{versionId}{ext}, the archive key's tail, so DerivedKey still groups.
+    public static string ModuleContentKey(Guid tenantId, string segment, Guid storageFolderId, Guid versionId, string? extension = null)
+    {
+        var suffix = string.IsNullOrWhiteSpace(extension)
+            ? string.Empty
+            : extension.StartsWith('.') ? extension : $".{extension}";
+
+        return $"{ObjectKeyPrefixes.ModuleContent(tenantId, segment)}{storageFolderId}/{versionId}{suffix}";
+    }
+
     // The EPHEMERAL key of a delivered message, under the per-user mail prefix rather than the archive's
     // year buckets: tenants/{tenantId}/users/{userId}/mail/{storageFolderId}/{versionId}{ext} (ADR 0628, #633).
     //

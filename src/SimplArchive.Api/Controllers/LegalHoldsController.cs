@@ -33,14 +33,19 @@ public class LegalHoldsController : ControllerBase
     private readonly IUserSystemRightsResolver _userSystemRights;
     private readonly IAuditRecorder _audit;
 
+    // Masks a module declares outside legal hold (ABI 1.18, ADR 0937).
+    private readonly IModuleMaskDeclarations _declarations;
+
     public LegalHoldsController(
         SimplArchiveDbContext dbContext,
         ICurrentTenantAccessor currentTenantAccessor,
         ICurrentUserAccessor currentUserAccessor,
         IUserSystemRightsResolver userSystemRights,
         IAuditRecorder audit,
-        IWormLockService wormLock)
+        IWormLockService wormLock,
+        IModuleMaskDeclarations declarations)
     {
+        _declarations = declarations;
         _dbContext = dbContext;
         _currentTenantAccessor = currentTenantAccessor;
         _currentUserAccessor = currentUserAccessor;
@@ -208,6 +213,13 @@ public class LegalHoldsController : ControllerBase
         if (document is null)
         {
             throw DocumentNotFoundException.NotFound();
+        }
+
+        if (_declarations.NotHeld.Count > 0
+            && await _dbContext.MaskVersions.Where(v => v.Id == document.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefaultAsync(cancellationToken) is { } maskId
+            && _declarations.NotHeld.Contains(maskId))
+        {
+            throw new LegalHoldNotApplicableException();
         }
 
         if (await _dbContext.LegalHoldItems.AnyAsync(i => i.LegalHoldId == holdId && i.DocumentId == request.DocumentId, cancellationToken))

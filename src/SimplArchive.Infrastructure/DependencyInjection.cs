@@ -42,6 +42,8 @@ public static class DependencyInjection
         // real time: a frozen past instant makes issued tokens/cookies look already-expired to a real-time browser
         // and breaks interactive login. TryAdd so a test host can still substitute its own wall clock.
         services.TryAddSingleton(TimeProvider.System);
+        // What modules declare on their masks (ABI 1.18); the Api replaces this with the loaded modules' declarations.
+        services.TryAddSingleton<IModuleMaskDeclarations>(Modules.ModuleMaskDeclarations.None);
 
         // A SEPARATE, keyed clock used ONLY for demo-seed data + audit-event timestamps (the demo seed and
         // AuditRecorder resolve it by the "demo-clock" key). It is a FIXED instant when Demo:Clock is a parseable

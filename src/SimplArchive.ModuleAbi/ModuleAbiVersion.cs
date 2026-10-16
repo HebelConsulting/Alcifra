@@ -111,5 +111,11 @@ public static class ModuleAbiVersion
     /// so while it is active the core answers which certificates a reader is addressed by from its own registry
     /// (core ADR 0935, #1790). A default member only, so a 1.16 module is unaffected.
     /// </para>
-    public const int Minor = 17;
+    /// <para>
+    /// 1.18 adds what the Messenger needs (core ADR 0937, #1816): <see cref="ModuleMaskSeed.ContentSegment"/>,
+    /// <see cref="ModuleMaskSeed.Exemptions"/> and <see cref="ModuleMaskSeed.PersonalSpaceFolderName"/> on a module's masks,
+    /// and the facade's access, purge, reference removal and user search. Init properties and default members only, so a
+    /// 1.17 module is unaffected.
+    /// </para>
+    public const int Minor = 18;
 }

@@ -37,6 +37,9 @@ public class RetentionController : ControllerBase
     private readonly IDocumentIndexQueue _indexQueue;
     private readonly IAuditRecorder _audit;
 
+    // Masks a module declares outside retention (ABI 1.18, ADR 0937): never on the schedule, never disposed of here.
+    private readonly List<Guid> _notRetained;
+
     public RetentionController(
         SimplArchiveDbContext dbContext,
         ICurrentUserAccessor currentUserAccessor,
@@ -45,8 +48,10 @@ public class RetentionController : ControllerBase
         ILegalHoldService legalHold,
         IDocumentIndexQueue indexQueue,
         IAuditRecorder audit,
-        Concurrency.DocumentVerbs documents)
+        Concurrency.DocumentVerbs documents,
+        IModuleMaskDeclarations declarations)
     {
+        _notRetained = [.. declarations.NotRetained];
         _dbContext = dbContext;
         _documents = documents;
         _currentUserAccessor = currentUserAccessor;
@@ -104,7 +109,7 @@ public class RetentionController : ControllerBase
             from d in _dbContext.Documents
             where !_dbContext.Documents.Any(c => c.ParentId == d.Id)
             join mv in _dbContext.MaskVersions on d.MaskVersionId equals mv.Id
-            where mv.RetentionYears != null
+            where mv.RetentionYears != null && !_notRetained.Contains(mv.MaskId)
             select new { d.Id, d.Name, d.CreatedAt, d.RetentionOverrideUntil, d.CurrentVersionId, RetentionYears = mv.RetentionYears!.Value })
             .Take(MaxItems + 1)
             .ToListAsync(cancellationToken);
@@ -266,7 +271,7 @@ public class RetentionController : ControllerBase
             return false; // not a leaf
         }
 
-        var retentionYears = await _dbContext.MaskVersions.Where(mv => mv.Id == maskVersionId).Select(mv => mv.RetentionYears).FirstOrDefaultAsync(cancellationToken);
+        var retentionYears = await _dbContext.MaskVersions.Where(mv => mv.Id == maskVersionId && !_notRetained.Contains(mv.MaskId)).Select(mv => mv.RetentionYears).FirstOrDefaultAsync(cancellationToken);
         if (retentionYears is not { } years)
         {
             return false;

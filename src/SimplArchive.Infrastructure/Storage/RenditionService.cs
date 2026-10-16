@@ -93,6 +93,9 @@ public class RenditionService : IDocumentPreviewService
     private readonly IStructuredItemRenderer _structuredItems;
     private readonly ILogger<RenditionService> _logger;
 
+    // What modules declare on their masks (ABI 1.18): a module's sealed content gets no preview at all.
+    private readonly IModuleMaskDeclarations _declarations;
+
     public RenditionService(
         IObjectStorageClient objectStorageClient,
         IOfficeConverter officeConverter,
@@ -100,8 +103,10 @@ public class RenditionService : IDocumentPreviewService
         IMarkdownConverter markdownConverter,
         IHtmlConverter htmlConverter,
         IStructuredItemRenderer structuredItems,
-        ILogger<RenditionService> logger)
+        ILogger<RenditionService> logger,
+        IModuleMaskDeclarations? declarations = null)
     {
+        _declarations = declarations ?? Modules.ModuleMaskDeclarations.None;
         _objectStorageClient = objectStorageClient;
         _officeConverter = officeConverter;
         _emailConverter = emailConverter;
@@ -113,6 +118,13 @@ public class RenditionService : IDocumentPreviewService
 
     public async Task<DocumentPreview?> GetPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, CancellationToken cancellationToken = default, bool sourceMayHaveChanged = false)
     {
+        // A module's sealed content (ABI 1.18, ADR 0937): ciphertext previewed is noise, and a rendition would be a
+        // second copy of it. Null is this service's "no preview available".
+        if (_declarations.IsUnrenderedContent(objectKey))
+        {
+            return null;
+        }
+
         var extension = ExtensionFor(objectKey, fileName);
         var kind = KindFor(extension);
         if (kind == RenditionKind.None)
@@ -185,6 +197,11 @@ public class RenditionService : IDocumentPreviewService
     // (it uses the ordinary single ".preview.png").
     public async Task<PreviewPages?> GetPreviewPagesAsync(string objectKey, TimeSpan expiry, string? fileName = null, CancellationToken cancellationToken = default)
     {
+        if (_declarations.IsUnrenderedContent(objectKey))
+        {
+            return null;   // a module's sealed content (ABI 1.18), as above
+        }
+
         if (KindFor(ExtensionFor(objectKey, null)) != RenditionKind.ImageToPng)
         {
             return null;

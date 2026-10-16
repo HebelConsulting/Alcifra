@@ -99,6 +99,50 @@ public sealed record ModuleMaskSeed(
     /// </para>
     /// </remarks>
     public ModuleDavCollection? DavCollection { get; init; }
+
+    /// <summary>
+    /// Where the content of documents wearing this mask is stored (ABI 1.18, ADR 0937): a path segment of its own,
+    /// <c>tenants/{tenant}/{segment}/…</c>, rather than the archive's year folders. For readability, deleting by
+    /// prefix and a separate backup or lifecycle. Lowercase letters, digits and hyphens; null keeps the archive layout.
+    /// </summary>
+    public string? ContentSegment { get; init; }
+
+    /// <summary>
+    /// What the core leaves documents wearing this mask out of (ABI 1.18, ADR 0937). Content sealed to its readers
+    /// cannot be searched, previewed or recognised by the core, and content whose lifetime the module owns is not the
+    /// archive's to retain or hold.
+    /// </summary>
+    public ModuleMaskExemptions Exemptions { get; init; }
+
+    /// <summary>
+    /// For a folder mask: the name of the folder the core provisions under it in EACH user's personal space while the
+    /// module is active (ABI 1.18, ADR 0937), "My Messages" for the Messenger's "Messages" mask. The module's principal is
+    /// granted rights on that folder only, never on the rest of the personal space. Null provisions nothing.
+    /// </summary>
+    public string? PersonalSpaceFolderName { get; init; }
+}
+
+/// <summary>What the core leaves a module's documents out of (ABI 1.18, ADR 0937).</summary>
+[Flags]
+public enum ModuleMaskExemptions
+{
+    /// <summary>Treated like every other document.</summary>
+    None = 0,
+
+    /// <summary>Not in full-text search; its name and dates are not indexed either.</summary>
+    Search = 1,
+
+    /// <summary>No preview renditions and no text recognition.</summary>
+    Renditions = 2,
+
+    /// <summary>Outside retention schedules and disposition review.</summary>
+    Retention = 4,
+
+    /// <summary>Cannot be placed under legal hold, and a hold on a folder above it does not freeze it.</summary>
+    LegalHold = 8,
+
+    /// <summary>All of the above: content sealed to its readers, whose lifetime the module owns.</summary>
+    All = Search | Renditions | Retention | LegalHold,
 }
 
 /// <summary>

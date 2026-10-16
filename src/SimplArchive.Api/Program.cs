@@ -585,6 +585,8 @@ using (var scope = app.Services.CreateScope())
             [.. services.GetRequiredService<IReadOnlyList<SimplArchive.Infrastructure.Modules.ModuleLoader.LoadedModule>>().Select(m => m.Module)],
             services.GetRequiredService<ILoggerFactory>().CreateLogger("SimplArchive.Infrastructure.Modules.ModuleMaskBackfill"));
 
+        await SimplArchive.Api.Documents.ModulePersonalFolders.EnsureEverywhereAsync(services);   // ABI 1.18, ADR 0937
+
     }
 
     var applicationManager = services.GetRequiredService<IOpenIddictApplicationManager>();

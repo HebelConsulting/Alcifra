@@ -24,6 +24,9 @@ public sealed class SearchablePdfWorker : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SearchablePdfWorker> _logger;
 
+    // What modules declare on their masks (ABI 1.18): sealed content gets no text recognition. Read per drain.
+    private IModuleMaskDeclarations _declarations = Modules.ModuleMaskDeclarations.None;
+
     public SearchablePdfWorker(IServiceScopeFactory scopeFactory, ILogger<SearchablePdfWorker> logger)
     {
         _scopeFactory = scopeFactory;
@@ -63,6 +66,7 @@ public sealed class SearchablePdfWorker : BackgroundService
         var converter = scope.ServiceProvider.GetRequiredService<ISearchablePdfConverter>();
         var indexQueue = scope.ServiceProvider.GetRequiredService<IDocumentIndexQueue>();
         var storageQuota = scope.ServiceProvider.GetRequiredService<IStorageQuotaService>();
+        _declarations = scope.ServiceProvider.GetService<IModuleMaskDeclarations>() ?? Modules.ModuleMaskDeclarations.None;
 
         var batch = await dbContext.SearchablePdfOutbox
             .OrderBy(o => o.CreatedAt)
@@ -102,6 +106,14 @@ public sealed class SearchablePdfWorker : BackgroundService
 
         // A TIFF always converts; a PDF converts only if it's a scanned image-only document (ADR "Scanned
         // image-only PDF detection") — a born-digital / already-OCR'd / signed / encrypted PDF is dropped.
+        // A module's sealed content (ABI 1.18, ADR 0937): the core cannot read it, so there is nothing to recognise.
+        if (_declarations.IsUnrenderedContent(source.ObjectKey))
+        {
+            dbContext.SearchablePdfOutbox.Remove(row);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
         var extension = Path.GetExtension(source.ObjectKey).ToLowerInvariant();
         var kind = extension is ".tif" or ".tiff" ? SearchablePdfSourceKind.Tiff
             : extension == ".pdf" ? SearchablePdfSourceKind.Pdf

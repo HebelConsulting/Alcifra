@@ -33,12 +33,16 @@ public sealed class OpenSearchIndexRebuilder
     private readonly IEffectiveRightsCalculator _rightsCalculator;
     private readonly ILogger<OpenSearchIndexRebuilder> _logger;
 
+    private readonly IModuleMaskDeclarations _declarations;
+
     public OpenSearchIndexRebuilder(
         HttpClient http, SimplArchiveDbContext dbContext, CurrentTenantAccessor tenantAccessor,
         StrictTenantSearchPolicy searchPolicy,
         IObjectStorageClient storage, ITextExtractor extractor, IArchiveReader archiveReader,
-        IEffectiveRightsCalculator rightsCalculator, ILogger<OpenSearchIndexRebuilder> logger)
+        IEffectiveRightsCalculator rightsCalculator, ILogger<OpenSearchIndexRebuilder> logger,
+        IModuleMaskDeclarations? declarations = null)
     {
+        _declarations = declarations ?? Modules.ModuleMaskDeclarations.None;
         _http = http;
         _dbContext = dbContext;
         _tenantAccessor = tenantAccessor;
@@ -146,6 +150,17 @@ public sealed class OpenSearchIndexRebuilder
             }
 
             _tenantAccessor.TenantId = document.TenantId;
+
+            // A mask a module declares unsearchable (ABI 1.18, ADR 0937) stays out of the new index too.
+            if (_declarations.NotSearched.Count > 0
+                && await _dbContext.Documents.Where(d => d.Id == document.Id)
+                    .Select(d => _dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault())
+                    .FirstOrDefaultAsync(cancellationToken) is { } maskId
+                && _declarations.NotSearched.Contains(maskId))
+            {
+                continue;
+            }
+
             var body = await BuildBodyAsync(document.Id, cancellationToken);
             if (body is null)
             {

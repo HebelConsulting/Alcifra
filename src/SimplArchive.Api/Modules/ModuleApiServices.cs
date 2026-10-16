@@ -32,6 +32,13 @@ public static class ModuleApiServices
 
         // Files SimplArchive's own manual and the manual a module ships in its package (ABI 1.5, ADR 0891).
         services.AddScoped<SimplArchive.Api.Manuals.ManualFiler>();
+        // ABI 1.18 (ADR 0937): what loaded modules declare on their masks (content segment, exemptions, personal-space
+        // folders), the facade's purge-at-once through the recycle bin's purger, and the personal-space folders. The
+        // declarations are first resolved by the startup provisioning, so a bad one stops the start.
+        services.AddSingleton<IModuleMaskDeclarations>(sp => new SimplArchive.Infrastructure.Modules.ModuleMaskDeclarations(
+            sp.GetRequiredService<IReadOnlyList<SimplArchive.Infrastructure.Modules.ModuleLoader.LoadedModule>>()));
+        services.AddScoped<IModuleDocumentPurger, SimplArchive.Api.Documents.ModuleDocumentPurger>();
+        services.AddScoped<SimplArchive.Api.Documents.ModulePersonalFolders>();
         // Certificate enrolment, owned by the core and offered while a module licenses it (ADR 0936).
         services.AddScoped<SimplArchive.Api.Certificates.CertificateEnrolment>();
         return services;

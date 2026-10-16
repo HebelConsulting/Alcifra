@@ -31,12 +31,15 @@ public sealed class OpenSearchDocumentIndexer : IDocumentIndexer
     private readonly IEffectiveRightsCalculator _rightsCalculator;
     private readonly StrictTenantSearchPolicy _searchPolicy;
     private readonly ILogger<OpenSearchDocumentIndexer> _logger;
+    private readonly IModuleMaskDeclarations _declarations;
 
     public OpenSearchDocumentIndexer(
         HttpClient http, SimplArchiveDbContext dbContext, IObjectStorageClient storage,
         ITextExtractor extractor, IArchiveReader archiveReader, IEffectiveRightsCalculator rightsCalculator,
-        StrictTenantSearchPolicy searchPolicy, ILogger<OpenSearchDocumentIndexer> logger)
+        StrictTenantSearchPolicy searchPolicy, ILogger<OpenSearchDocumentIndexer> logger,
+        IModuleMaskDeclarations? declarations = null)
     {
+        _declarations = declarations ?? Modules.ModuleMaskDeclarations.None;
         _http = http;
         _dbContext = dbContext;
         _storage = storage;
@@ -74,6 +77,16 @@ public sealed class OpenSearchDocumentIndexer : IDocumentIndexer
             // document touched after the switch evicts itself, and a full reindex — which excludes strict
             // tenants by construction — purges the remainder.
             if (await _searchPolicy.ExcludesAsync(doc.TenantId, cancellationToken))
+            {
+                await RemoveAsync(documentId, cancellationToken);
+                return true;
+            }
+
+            // A mask a module declares unsearchable (ABI 1.18, ADR 0937): its content is sealed to its readers, so not
+            // even its name belongs in the index. Removed rather than skipped, for the reason above.
+            if (_declarations.NotSearched.Count > 0 && doc.MaskVersionId is { } declaredVersion
+                && await _dbContext.MaskVersions.Where(mv => mv.Id == declaredVersion).Select(mv => (Guid?)mv.MaskId).FirstOrDefaultAsync(cancellationToken) is { } declaredMask
+                && _declarations.NotSearched.Contains(declaredMask))
             {
                 await RemoveAsync(documentId, cancellationToken);
                 return true;

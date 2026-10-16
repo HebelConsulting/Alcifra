@@ -30,13 +30,18 @@ public sealed class RetentionService : IRetentionService
     private readonly IDocumentIndexQueue _indexQueue;
     private readonly IAuditRecorder _audit;
 
+    // Masks a module declares outside retention (ABI 1.18, ADR 0937): the module owns their documents' lifetime.
+    private readonly List<Guid> _notRetained;
+
     public RetentionService(
         SimplArchiveDbContext dbContext,
         CurrentTenantAccessor tenantAccessor,
         ILegalHoldService legalHold,
         IDocumentIndexQueue indexQueue,
-        IAuditRecorder audit)
+        IAuditRecorder audit,
+        IModuleMaskDeclarations? declarations = null)
     {
+        _notRetained = [.. (declarations ?? Modules.ModuleMaskDeclarations.None).NotRetained];
         _dbContext = dbContext;
         _tenantAccessor = tenantAccessor;
         _legalHold = legalHold;
@@ -83,7 +88,7 @@ public sealed class RetentionService : IRetentionService
             from d in _dbContext.Documents
             where !_dbContext.Documents.Any(c => c.ParentId == d.Id)
             join mv in _dbContext.MaskVersions on d.MaskVersionId equals mv.Id
-            where mv.RetentionYears != null
+            where mv.RetentionYears != null && !_notRetained.Contains(mv.MaskId)
             orderby d.Id
             select new { d.Id, d.Name, d.CreatedAt, d.RetentionOverrideUntil, d.CurrentVersionId, RetentionYears = mv.RetentionYears!.Value };
 

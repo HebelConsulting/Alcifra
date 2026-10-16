@@ -74,6 +74,10 @@ public partial class ServiceWriteScopeTests
         // Files manuals at provisioning, activation and startup (ADR 0891): a heal that converges on the shipped
         // bytes, serialised by a lock on the tenant row rather than by any caller's ETag.
         ["ManualFiler.cs"] = Provisioning,
+        // ABI 1.18 (ADR 0937). The personal-space folders are a heal run at provisioning, activation and startup. The
+        // module's access and purge are the MODULE's acts through the facade, like every other facade write.
+        ["ModulePersonalFolders.cs"] = Provisioning,
+        ["ModuleArchiveAccess.cs"] = "UNVERIFIED — see #1223. " + CalleeOfAContract,
         // Certificate enrolment (ADR 0936). Enrolling CREATES a document (no prior state to precondition); replacing
         // the policy is compared against the If-Match the policy controller requires, under a lock on the tenant row.
         // The folder is created inside either of those transactions.

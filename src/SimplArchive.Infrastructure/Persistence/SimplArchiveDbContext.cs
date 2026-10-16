@@ -66,6 +66,9 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
     // The phone push (SimplArchiveMobile #20): optional like the notifiers above.
     private readonly IPhonePushNotifier? _phonePush;
 
+    // What loaded modules declare on their masks (ABI 1.18): the folders they provision at a personal space's first level.
+    private readonly IModuleMaskDeclarations? _moduleMasks;
+
     public SimplArchiveDbContext(
         DbContextOptions<SimplArchiveDbContext> options,
         ICurrentTenantAccessor currentTenantAccessor,
@@ -74,9 +77,11 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
         IDavChangeNotifier? davChangeNotifier = null,
         IDavCollectionKindRegistry? davCollectionKinds = null,
         IModuleProjectionDispatcher? moduleProjections = null,
-        IPhonePushNotifier? phonePush = null)
+        IPhonePushNotifier? phonePush = null,
+        IModuleMaskDeclarations? moduleMasks = null)
         : base(options)
     {
+        _moduleMasks = moduleMasks;
         _phonePush = phonePush;
         _currentTenantAccessor = currentTenantAccessor;
         _realtimeNotifier = realtimeNotifier;
@@ -546,11 +551,16 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
         //
         // The consequence is that an unclassified upload is admitted here too, so "no loose files in the
         // personal space" is NOT yet enforced (#596 leaves that question open).
+        // The folders modules ask the core to provision there (ABI 1.18, ADR 0937), such as "My Messages", are
+        // provisioned folders too, so the first level admits their masks beside the core's own.
         var maskVersionId = document.MaskVersionId;
+        Guid[] firstLevel = _moduleMasks is { ProvisionedInPersonalSpace.Count: > 0 } declared
+            ? [.. PersonalFolders.FirstLevelMasks, .. declared.ProvisionedInPersonalSpace.Select(f => f.MaskId)]
+            : PersonalFolders.FirstLevelMasks;
         var admitted = maskVersionId == Guid.Empty
             || await MaskVersions.IgnoreQueryFilters(["TenantFilter"])
                 .AnyAsync(
-                    v => v.Id == maskVersionId && PersonalFolders.FirstLevelMasks.Contains(v.MaskId),
+                    v => v.Id == maskVersionId && firstLevel.Contains(v.MaskId),
                     cancellationToken);
 
         if (!admitted)
