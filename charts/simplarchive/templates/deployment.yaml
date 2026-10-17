@@ -82,11 +82,19 @@ spec:
               value: /init/modules.env
             - name: TARGET
               value: /modules
+            {{- /* The pull credential is needed for a module from the vendor feed; one whose pin says nuget.org
+                   comes anonymously (ADR 0948), so an installation of open-source modules alone needs no secret. */}}
+            {{- $fromFeed := false }}
+            {{- range .Values.modules.install }}
+            {{- if not (dig . "source" "" $.Values.modules.pins) }}{{- $fromFeed = true }}{{- end }}
+            {{- end }}
+            {{- if or $fromFeed .Values.modules.existingSecret }}
             - name: SA_MODULE_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ required "modules.existingSecret is required when modules.install is set — GitHub Packages needs a read:packages token even for a public package, and every module repository is private." .Values.modules.existingSecret }}
+                  name: {{ required "modules.existingSecret is required when modules.install names a module from the vendor feed — the feed serves nothing anonymously (a module pinned to nuget.org needs none)." .Values.modules.existingSecret }}
                   key: {{ .Values.modules.tokenSecretKey }}
+            {{- end }}
           volumeMounts:
             - name: modules-init
               mountPath: /init

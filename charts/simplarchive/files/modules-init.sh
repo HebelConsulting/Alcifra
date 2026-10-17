@@ -44,8 +44,11 @@ if [ -z "$SA_MODULES" ]; then
 fi
 
 [ -f "$MODULES_ENV" ] || die "$MODULES_ENV not found, but SA_MODULES asks for: $SA_MODULES"
-[ -n "${SA_MODULE_TOKEN:-}" ] || die "SA_MODULE_TOKEN is unset. The module feed serves nothing anonymously: set it to
-  this installation's pull credential from the vendor (or, against GitHub Packages, a read:packages token)."
+# WHERE a module comes from is its pin's: the vendor feed by default, or nuget.org for an OPEN-SOURCE module that
+# needs no licence (the Messenger, core ADR 0948) — `<KEY>_SOURCE=nuget.org`. nuget.org serves anonymously, so no
+# token is sent there; the pinned digest is checked exactly the same, so the source changes where the bytes come
+# from and never whether they are the bytes named.
+NUGET_ORG="https://api.nuget.org/v3-flatcontainer"
 
 # Read one pinned value. Deliberately parsed rather than sourced: modules.env is plain KEY=VALUE and sourcing it
 # would execute whatever it contains.
@@ -57,6 +60,7 @@ for key in $SA_MODULES; do
     package="$(pin "${key}_PACKAGE")"
     version="$(pin "${key}_VERSION")"
     digest="$(pin "${key}_SHA512")"
+    source="$(pin "${key}_SOURCE")"
 
     [ -n "$package" ] || die "$key has no ${key}_PACKAGE in $MODULES_ENV."
     [ -n "$version" ] || die "$key has no ${key}_VERSION in $MODULES_ENV."
@@ -68,10 +72,23 @@ for key in $SA_MODULES; do
   bytes nobody has checked, which is the thing ADR 0799 exists to end."
 
     lower="$(echo "$package" | tr 'A-Z' 'a-z')"
-    url="$FEED/download/$lower/$version/$lower.$version.nupkg"
+    case "$source" in
+        nuget.org)
+            url="$NUGET_ORG/$lower/$version/$lower.$version.nupkg"
+            from="nuget.org"
+            auth="" ;;
+        "")
+            [ -n "${SA_MODULE_TOKEN:-}" ] || die "SA_MODULE_TOKEN is unset, and $package comes from the vendor feed, which
+  serves nothing anonymously: set it to this installation's pull credential from the vendor (or, against GitHub
+  Packages, a read:packages token)."
+            url="$FEED/download/$lower/$version/$lower.$version.nupkg"
+            from="$FEED"
+            auth="Authorization: Bearer $SA_MODULE_TOKEN" ;;
+        *) die "${key}_SOURCE is '$source' in $MODULES_ENV; the only other source is nuget.org (empty means the vendor feed)." ;;
+    esac
     nupkg="/tmp/$lower.$version.nupkg"
 
-    echo "modules-init: fetching $package $version"
+    echo "modules-init: fetching $package $version from $from"
     # curl, NOT busybox wget, and this was found by the FIRST real download (#1246): GitHub Packages answers
     # with a redirect to a PRESIGNED blob URL, busybox wget forwards the Authorization header across that
     # cross-host redirect, and the blob store rejects the request with a 403 that reads as a signature
@@ -81,8 +98,8 @@ for key in $SA_MODULES; do
     command -v curl >/dev/null 2>&1 || apk add --no-cache curl >/dev/null \
         || die "curl is unavailable and could not be installed — the feed's presigned-blob redirect cannot
   be followed with busybox wget (it forwards the Authorization header, which the blob store refuses)."
-    curl -fsSL -H "Authorization: Bearer $SA_MODULE_TOKEN" -o "$nupkg" "$url" \
-        || die "could not download $package $version from $FEED.
+    curl -fsSL ${auth:+-H "$auth"} -o "$nupkg" "$url" \
+        || die "could not download $package $version from $from.
   curl's own line above says which of the two this is, and they need different fixes: a 404 means the version
   is not published (or the token cannot see it), a refused connection means the feed is unreachable."
 

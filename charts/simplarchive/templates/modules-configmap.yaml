@@ -25,5 +25,8 @@ data:
     {{ $key }}_PACKAGE={{ $pin.package }}
     {{ $key }}_VERSION={{ $pin.version }}
     {{ $key }}_SHA512={{ $pin.sha512 }}
+    {{- with $pin.source }}
+    {{ $key }}_SOURCE={{ . }}
+    {{- end }}
     {{- end }}
 {{- end }}

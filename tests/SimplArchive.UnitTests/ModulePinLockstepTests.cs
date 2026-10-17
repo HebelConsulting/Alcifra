@@ -50,6 +50,44 @@ public partial class ModulePinLockstepTests
             + "asked for, and a chart that pins a different digest refuses to install at all.");
     }
 
+    [GeneratedRegex(@"^([A-Z0-9_]+)_SOURCE=(.*)$", RegexOptions.Multiline)]
+    private static partial Regex EnvSource();
+
+    // Where a module comes from (ADR 0948): the vendor feed unless its pin says nuget.org. The chart must say the
+    // same — a chart that forgets `source` sends an open-source module to the vendor feed, which does not carry it,
+    // and the installation refuses to start.
+    [Fact]
+    public void The_chart_names_the_same_module_source_as_modules_env()
+    {
+        if (PrivateRepositoryGate.RepoRoot() is not { } root)
+        {
+            return;
+        }
+
+        var env = File.ReadAllText(Path.Combine(root, "modules.env"));
+        var chart = File.ReadAllText(Path.Combine(root, "charts", "simplarchive", "values.yaml"));
+        var sources = Pins(env).Keys.ToDictionary(k => k, _ => string.Empty);
+        foreach (Match m in EnvSource().Matches(env))
+        {
+            sources[m.Groups[1].Value] = m.Groups[2].Value.Trim();
+        }
+
+        Assert.All(sources.Values, s => Assert.True(s is "" or "nuget.org", $"'{s}' is no module source: the vendor feed (empty) or nuget.org."));
+        var drifted = sources
+            .Where(p => ChartSource(chart, p.Key) != p.Value)
+            .Select(p => $"  {p.Key}: modules.env says source='{p.Value}', the chart says '{ChartSource(chart, p.Key)}'")
+            .ToList();
+        Assert.True(drifted.Count == 0, "charts/simplarchive/values.yaml disagrees with modules.env on where a module comes from:\n" + string.Join("\n", drifted));
+    }
+
+    private static string ChartSource(string chart, string key)
+    {
+        // The block is the lines indented DEEPER than the key: a bare `\s+` would run on into the next module's block.
+        var block = Regex.Match(chart, $@"^(?<indent>[ ]+){Regex.Escape(key)}:[ ]*$(?<body>(\n\k<indent>[ ]+\S.*)+)", RegexOptions.Multiline);
+        var source = block.Success ? Regex.Match(block.Groups["body"].Value, @"^\s+source:\s*""?(?<v>[^""\s]+)""?\s*$", RegexOptions.Multiline) : Match.Empty;
+        return source.Success ? source.Groups["v"].Value : string.Empty;
+    }
+
     [Fact]
     public void A_pinned_version_carries_a_digest()
     {
@@ -168,7 +206,9 @@ public partial class ModulePinLockstepTests
     // package, version and digest — not that the file happens to contain the strings somewhere.
     private static bool ChartDeclares(string chart, string key, (string Package, string Version, string Sha512) pin)
     {
-        var block = Regex.Match(chart, $@"^\s+{Regex.Escape(key)}:\s*$(?<body>(\n\s+\S.*)+)", RegexOptions.Multiline);
+        // Bounded by indentation: the earlier `\s+` ran on into the following modules' blocks, so a version or digest
+        // found in ANOTHER module's block could pass for this one's (found adding the Messenger, ADR 0948).
+        var block = Regex.Match(chart, $@"^(?<indent>[ ]+){Regex.Escape(key)}:[ ]*$(?<body>(\n\k<indent>[ ]+\S.*)+)", RegexOptions.Multiline);
         if (!block.Success)
         {
             return false;
