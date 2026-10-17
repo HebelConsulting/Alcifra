@@ -224,6 +224,22 @@
     "Reviewed": "2026-10-15"
   },
   {
+    "Id": "SimplArchive.Keys",
+    "Owners": [
+      "HebelConsulting"
+    ],
+    "ProjectUrl": "https://github.com/HebelConsulting/SimplArchiveMessenger",
+    "Reviewed": "2026-10-17"
+  },
+  {
+    "Id": "SimplArchive.Messenger.Client",
+    "Owners": [
+      "HebelConsulting"
+    ],
+    "ProjectUrl": "https://github.com/HebelConsulting/SimplArchiveMessenger",
+    "Reviewed": "2026-10-17"
+  },
+  {
     "Id": "SSH.NET",
     "Owners": [
       "SSH.NET",

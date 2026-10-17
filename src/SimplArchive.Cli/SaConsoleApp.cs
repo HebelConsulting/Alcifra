@@ -184,6 +184,14 @@ public static class SaConsoleApp
                     .WithDescription("Upload a file to a module's upload rel with a module credential (e.g. an app to the app repository).");
             });
 
+            config.AddBranch("messenger", messenger =>
+            {
+                messenger.SetDescription("The Messenger: back up your conversations, restore them here (core #1813).");
+                messenger.AddCommand<MessengerBackupCommand>("backup")
+                    .WithDescription("Write your conversations to one sealed file; nothing is decrypted.");
+                messenger.AddCommand<MessengerRestoreCommand>("restore")
+                    .WithDescription("Restore your backup here as read-only history; restoring twice changes nothing.");
+            });
             config.AddBranch("repository", repository =>
             {
                 repository.SetDescription("Repositories: the root documents everything is filed under (ADR 0200).");

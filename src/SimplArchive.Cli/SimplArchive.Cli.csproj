@@ -38,6 +38,8 @@
 
     <ItemGroup>
         <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
+        <!-- The Messenger's open-source client (nuget.org): the backup format lives there once, shared with the phone (ADR 0945). -->
+        <PackageReference Include="SimplArchive.Messenger.Client" Version="0.5.0" />
         <!-- Output through a logger to stderr (ADR 0906, #1661); commands get their logger by constructor. -->
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
     </ItemGroup>
