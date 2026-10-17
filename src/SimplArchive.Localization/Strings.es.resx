@@ -5682,4 +5682,58 @@
   <data name="TenantCertClear" xml:space="preserve">
     <value>Quitar</value>
   </data>
+  <data name="MobBackupTitle" xml:space="preserve">
+    <value>Copia de seguridad de los mensajes</value>
+  </data>
+  <data name="MobBackupIntro" xml:space="preserve">
+    <value>Una copia de seguridad contiene sus conversaciones selladas, tal como se entregaron: solo su propia llave la abre. Al restaurarlas, vuelven como historial para leer.</value>
+  </data>
+  <data name="MobBackupFolder" xml:space="preserve">
+    <value>Carpeta</value>
+  </data>
+  <data name="MobBackupChooseFolder" xml:space="preserve">
+    <value>Elegir una carpeta…</value>
+  </data>
+  <data name="MobBackupNoFolder" xml:space="preserve">
+    <value>Ninguna carpeta elegida</value>
+  </data>
+  <data name="MobBackupRepeat" xml:space="preserve">
+    <value>Repetir</value>
+  </data>
+  <data name="MobBackupOff" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="MobBackupDaily" xml:space="preserve">
+    <value>A diario</value>
+  </data>
+  <data name="MobBackupWeekly" xml:space="preserve">
+    <value>Cada semana</value>
+  </data>
+  <data name="MobBackupRepeatHint" xml:space="preserve">
+    <value>Mientras se carga, en una red sin tarifa por consumo (no con datos móviles). Se conservan las tres últimas; una copia que haga usted nunca se elimina.</value>
+  </data>
+  <data name="MobBackupNow" xml:space="preserve">
+    <value>Hacer copia ahora</value>
+  </data>
+  <data name="MobBackupRestore" xml:space="preserve">
+    <value>Restaurar desde un archivo…</value>
+  </data>
+  <data name="MobBackupLast" xml:space="preserve">
+    <value>Última copia: {0}</value>
+  </data>
+  <data name="MobBackupNever" xml:space="preserve">
+    <value>Todavía no hay copia</value>
+  </data>
+  <data name="MobBackupDone" xml:space="preserve">
+    <value>Copia de {0} conversaciones ({1} mensajes, {2} archivos).</value>
+  </data>
+  <data name="MobBackupRestored" xml:space="preserve">
+    <value>{0} conversaciones restauradas: {1} mensajes añadidos, {2} ya estaban.</value>
+  </data>
+  <data name="MobBackupFailed" xml:space="preserve">
+    <value>La copia ha fallado: {0}</value>
+  </data>
+  <data name="MobBackupSignIn" xml:space="preserve">
+    <value>Inicie sesión para seguir haciendo copias de sus mensajes.</value>
+  </data>
 </root>

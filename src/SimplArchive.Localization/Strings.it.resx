@@ -5682,4 +5682,58 @@
   <data name="TenantCertClear" xml:space="preserve">
     <value>Rimuovi</value>
   </data>
+  <data name="MobBackupTitle" xml:space="preserve">
+    <value>Backup dei messaggi</value>
+  </data>
+  <data name="MobBackupIntro" xml:space="preserve">
+    <value>Un backup contiene le tue conversazioni sigillate, esattamente come sono state consegnate: solo la tua chiave lo apre. Ripristinate, tornano come cronologia da leggere.</value>
+  </data>
+  <data name="MobBackupFolder" xml:space="preserve">
+    <value>Cartella</value>
+  </data>
+  <data name="MobBackupChooseFolder" xml:space="preserve">
+    <value>Scegli una cartella…</value>
+  </data>
+  <data name="MobBackupNoFolder" xml:space="preserve">
+    <value>Nessuna cartella scelta</value>
+  </data>
+  <data name="MobBackupRepeat" xml:space="preserve">
+    <value>Ripeti</value>
+  </data>
+  <data name="MobBackupOff" xml:space="preserve">
+    <value>Disattivato</value>
+  </data>
+  <data name="MobBackupDaily" xml:space="preserve">
+    <value>Ogni giorno</value>
+  </data>
+  <data name="MobBackupWeekly" xml:space="preserve">
+    <value>Ogni settimana</value>
+  </data>
+  <data name="MobBackupRepeatHint" xml:space="preserve">
+    <value>Durante la ricarica, su una rete non a consumo (non con i dati mobili). Si conservano gli ultimi tre; un backup fatto da te non viene mai eliminato.</value>
+  </data>
+  <data name="MobBackupNow" xml:space="preserve">
+    <value>Esegui ora il backup</value>
+  </data>
+  <data name="MobBackupRestore" xml:space="preserve">
+    <value>Ripristina da un file…</value>
+  </data>
+  <data name="MobBackupLast" xml:space="preserve">
+    <value>Ultimo backup: {0}</value>
+  </data>
+  <data name="MobBackupNever" xml:space="preserve">
+    <value>Ancora nessun backup</value>
+  </data>
+  <data name="MobBackupDone" xml:space="preserve">
+    <value>Backup di {0} conversazioni ({1} messaggi, {2} file).</value>
+  </data>
+  <data name="MobBackupRestored" xml:space="preserve">
+    <value>Ripristinate {0} conversazioni: {1} messaggi aggiunti, {2} già presenti.</value>
+  </data>
+  <data name="MobBackupFailed" xml:space="preserve">
+    <value>Il backup non è riuscito: {0}</value>
+  </data>
+  <data name="MobBackupSignIn" xml:space="preserve">
+    <value>Accedi per continuare il backup dei messaggi.</value>
+  </data>
 </root>

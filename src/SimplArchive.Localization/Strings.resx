@@ -5682,4 +5682,58 @@
   <data name="TenantCertClear" xml:space="preserve">
     <value>Clear</value>
   </data>
+  <data name="MobBackupTitle" xml:space="preserve">
+    <value>Messages backup</value>
+  </data>
+  <data name="MobBackupIntro" xml:space="preserve">
+    <value>A backup holds your conversations sealed, exactly as they were delivered: only your own key opens it. Restoring brings them back as history to read.</value>
+  </data>
+  <data name="MobBackupFolder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="MobBackupChooseFolder" xml:space="preserve">
+    <value>Choose a folder…</value>
+  </data>
+  <data name="MobBackupNoFolder" xml:space="preserve">
+    <value>No folder chosen</value>
+  </data>
+  <data name="MobBackupRepeat" xml:space="preserve">
+    <value>Repeat</value>
+  </data>
+  <data name="MobBackupOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="MobBackupDaily" xml:space="preserve">
+    <value>Daily</value>
+  </data>
+  <data name="MobBackupWeekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+  <data name="MobBackupRepeatHint" xml:space="preserve">
+    <value>While charging, on a network not billed by volume (not mobile data). The last three are kept; a backup you make yourself is never deleted.</value>
+  </data>
+  <data name="MobBackupNow" xml:space="preserve">
+    <value>Back up now</value>
+  </data>
+  <data name="MobBackupRestore" xml:space="preserve">
+    <value>Restore from a file…</value>
+  </data>
+  <data name="MobBackupLast" xml:space="preserve">
+    <value>Last backup: {0}</value>
+  </data>
+  <data name="MobBackupNever" xml:space="preserve">
+    <value>No backup yet</value>
+  </data>
+  <data name="MobBackupDone" xml:space="preserve">
+    <value>Backed up {0} conversations ({1} messages, {2} files).</value>
+  </data>
+  <data name="MobBackupRestored" xml:space="preserve">
+    <value>Restored {0} conversations: {1} messages added, {2} already here.</value>
+  </data>
+  <data name="MobBackupFailed" xml:space="preserve">
+    <value>The backup failed: {0}</value>
+  </data>
+  <data name="MobBackupSignIn" xml:space="preserve">
+    <value>Sign in to keep backing up your messages.</value>
+  </data>
 </root>

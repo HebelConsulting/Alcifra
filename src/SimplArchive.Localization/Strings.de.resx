@@ -5682,4 +5682,58 @@
   <data name="TenantCertClear" xml:space="preserve">
     <value>Entfernen</value>
   </data>
+  <data name="MobBackupTitle" xml:space="preserve">
+    <value>Nachrichten-Sicherung</value>
+  </data>
+  <data name="MobBackupIntro" xml:space="preserve">
+    <value>Eine Sicherung enthält Ihre Unterhaltungen versiegelt, genau wie sie zugestellt wurden: nur Ihr eigener Schlüssel öffnet sie. Wiederhergestellt kommen sie als Verlauf zum Lesen zurück.</value>
+  </data>
+  <data name="MobBackupFolder" xml:space="preserve">
+    <value>Ordner</value>
+  </data>
+  <data name="MobBackupChooseFolder" xml:space="preserve">
+    <value>Ordner wählen…</value>
+  </data>
+  <data name="MobBackupNoFolder" xml:space="preserve">
+    <value>Kein Ordner gewählt</value>
+  </data>
+  <data name="MobBackupRepeat" xml:space="preserve">
+    <value>Wiederholen</value>
+  </data>
+  <data name="MobBackupOff" xml:space="preserve">
+    <value>Aus</value>
+  </data>
+  <data name="MobBackupDaily" xml:space="preserve">
+    <value>Täglich</value>
+  </data>
+  <data name="MobBackupWeekly" xml:space="preserve">
+    <value>Wöchentlich</value>
+  </data>
+  <data name="MobBackupRepeatHint" xml:space="preserve">
+    <value>Beim Laden, in einem Netz ohne Volumentarif (nicht über mobile Daten). Die letzten drei bleiben erhalten; eine selbst erstellte Sicherung wird nie gelöscht.</value>
+  </data>
+  <data name="MobBackupNow" xml:space="preserve">
+    <value>Jetzt sichern</value>
+  </data>
+  <data name="MobBackupRestore" xml:space="preserve">
+    <value>Aus einer Datei wiederherstellen…</value>
+  </data>
+  <data name="MobBackupLast" xml:space="preserve">
+    <value>Letzte Sicherung: {0}</value>
+  </data>
+  <data name="MobBackupNever" xml:space="preserve">
+    <value>Noch keine Sicherung</value>
+  </data>
+  <data name="MobBackupDone" xml:space="preserve">
+    <value>{0} Unterhaltungen gesichert ({1} Nachrichten, {2} Dateien).</value>
+  </data>
+  <data name="MobBackupRestored" xml:space="preserve">
+    <value>{0} Unterhaltungen wiederhergestellt: {1} Nachrichten hinzugefügt, {2} schon vorhanden.</value>
+  </data>
+  <data name="MobBackupFailed" xml:space="preserve">
+    <value>Die Sicherung ist fehlgeschlagen: {0}</value>
+  </data>
+  <data name="MobBackupSignIn" xml:space="preserve">
+    <value>Melden Sie sich an, damit Ihre Nachrichten weiter gesichert werden.</value>
+  </data>
 </root>
