@@ -744,6 +744,7 @@ using (var scope = app.Services.CreateScope())
     // encrypts to users: idempotent, and how enrolments filed before it existed reach it.
     // Certificate enrolment moved into the core (ADR 0936): the Encryption Module's two settings become tenant columns, once.
     await SimplArchive.Infrastructure.Certificates.EnrolmentSettingsAdoption.AdoptEverywhereAsync(app.Services);
+    await SimplArchive.Api.Certificates.OwnCertificateAdoption.AdoptEverywhereAsync(app.Services);   // users' own certificates, once (#1839)
     await SimplArchive.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildEverywhereAsync(app.Services);
 
     await SimplArchive.Api.Manuals.ManualStartupFiling.FileEverywhereAsync(app.Services);

@@ -34,6 +34,7 @@ public class ConsoleOutputRatchetTests
         ["src/SimplArchive.Cli/Commands/RepositoryCreateCommand.cs"] = 1,   // data output only (ADR 0906)
         ["src/SimplArchive.Cli/Commands/StandardRepositoryCommands.cs"] = 1,   // data output: the id (#1661; was an uncounted console.WriteLine)
         ["src/SimplArchive.Cli/Commands/TenantCreateCommand.cs"] = 1,   // data output only (ADR 0906)
+        ["src/SimplArchive.Cli/Commands/UserCreateCommand.cs"] = 1,   // data output only (ADR 0906): the user's id
         // The one direct write left in the desktop client: DesktopLog's own fallback when logging cannot start.
         ["src/SimplArchive.DesktopClient/Services/DesktopLog.cs"] = 1,
     };

@@ -192,6 +192,12 @@ public static class SaConsoleApp
                 messenger.AddCommand<MessengerRestoreCommand>("restore")
                     .WithDescription("Restore your backup here as read-only history; restoring twice changes nothing.");
             });
+            config.AddBranch("user", user =>
+            {
+                user.SetDescription("Users of the signed-in tenant (needs the right to manage users).");
+                user.AddCommand<UserCreateCommand>("create")
+                    .WithDescription("Create a user, or find the one with that e-mail; prints the id. The password comes from stdin only.");
+            });
             config.AddBranch("repository", repository =>
             {
                 repository.SetDescription("Repositories: the root documents everything is filed under (ADR 0200).");

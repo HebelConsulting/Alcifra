@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -214,6 +216,83 @@ public class CertificateEnrolmentTests
         using var write = await PutWithTagAsync(client, href,
             new { selfServiceEnabled = selfService, parentFolderId = parent }, read.Headers.ETag!.Tag);
         await TestJson.Read(write);
+    }
+
+    // #1839: a user's OWN certificate (the self-service column) is carried into the registry once, so a module that
+    // licenses enrolment does not silently stop addressing them; a signing-only one is not, and nothing is carried twice.
+    [Fact]
+    public async Task A_users_own_certificate_is_carried_into_the_registry_once_and_a_signing_one_is_not()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: false, parent: rig.RepoId);
+            var own = SelfSigned("member's own");
+            var signerEmail = $"signer-{Guid.NewGuid():N}@e2e.local";
+            await _factory.SeedUserAsync(rig.TenantId, signerEmail, "Passw0rd!Passw0rd!", "Signer");
+            await SetOwnCertificateAsync(rig.TenantId, rig.MemberEmail, own);
+            await SetOwnCertificateAsync(rig.TenantId, signerEmail, SigningOnly("signer"));
+
+            Assert.Equal(1, await AdoptAsync(rig.TenantId));   // the member's; the signing-only certificate is refused
+
+            var me = Links(await TestJson.Get(rig.Member, "/api/me"));
+            var readers = await TestJson.Get(rig.Member, me["readerCertificates"]);
+            Assert.Equal(own.Trim(), Assert.Single(readers.GetProperty("certificates").EnumerateArray().ToList()).GetProperty("pem").GetString()!.Trim());
+
+            Assert.Equal(0, await AdoptAsync(rig.TenantId));   // once: the next start carries nothing again
+
+            // Deleted by an administrator: the next start does not bring it back from the column.
+            var enrolled = Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
+            var address = $"/api/documents/{enrolled.GetProperty("documentId").GetGuid()}";
+            using (var read = await rig.Admin.GetAsync(address))
+            using (var delete = new HttpRequestMessage(HttpMethod.Delete, address))
+            {
+                delete.Headers.TryAddWithoutValidation("If-Match", read.Headers.ETag!.Tag);
+                using var deleted = await rig.Admin.SendAsync(delete);
+                Assert.True(deleted.IsSuccessStatusCode, $"delete answered {(int)deleted.StatusCode}");
+            }
+
+            Assert.Equal(0, await AdoptAsync(rig.TenantId));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    private async Task<int> AdoptAsync(Guid tenantId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<SimplArchive.Infrastructure.Persistence.CurrentTenantAccessor>().TenantId = tenantId;
+        await SimplArchive.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildTenantAsync(
+            _factory.Services, tenantId, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        var adopted = await scope.ServiceProvider.GetRequiredService<SimplArchive.Api.Certificates.CertificateEnrolment>().AdoptOwnCertificatesAsync(CancellationToken.None);
+        await SimplArchive.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildTenantAsync(
+            _factory.Services, tenantId, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        return adopted;
+    }
+
+    private async Task SetOwnCertificateAsync(Guid tenantId, string email, string pem)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SimplArchive.Infrastructure.Persistence.SimplArchiveDbContext>();
+        var normalized = email.ToUpperInvariant();
+        var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.TenantId == tenantId && u.NormalizedEmail == normalized);
+        user.SmimeCertificatePem = pem;
+        await db.SaveChangesAsync();
+    }
+
+    private static string SigningOnly(string subject)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest($"CN={subject}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        return certificate.ExportCertificatePem();
     }
 
     private static string SelfSigned(string subject)

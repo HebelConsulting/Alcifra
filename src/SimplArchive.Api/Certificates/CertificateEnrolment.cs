@@ -125,6 +125,19 @@ public sealed class CertificateEnrolment(
                     + "readers; if that is genuinely the intent, the existing enrolment has to be revoked first.");
         }
 
+        return await FileEnrolmentAsync(certificatePem, leaf, thumbprint, label, holderAddress, access.GetCallerIdentity(),
+            $"Holder {holderAddress}, thumbprint {thumbprint}", cancellationToken);
+    }
+
+    /// <summary>
+    /// Files a checked certificate as a Certificate document in the "Reader certificates" folder, as
+    /// <paramref name="creator"/>, and records it: what an enrolment and the carry-over of a user's own certificate
+    /// (#1839) both do, so the filing exists once.
+    /// </summary>
+    private async Task<Listed> FileEnrolmentAsync(
+        string certificatePem, X509Certificate2 leaf, string thumbprint, string? label, string holderAddress,
+        (Guid? UserId, Guid? ServiceAccountId) creator, string auditDetail, CancellationToken cancellationToken)
+    {
         var notBefore = new DateTimeOffset(leaf.NotBefore.ToUniversalTime(), TimeSpan.Zero);
         var notAfter = new DateTimeOffset(leaf.NotAfter.ToUniversalTime(), TimeSpan.Zero);
         var fields = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -143,10 +156,10 @@ public sealed class CertificateEnrolment(
         var owned = dbContext.Database.CurrentTransaction is null ? await dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
         await using (owned)
         {
-            var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, access.GetCallerIdentity(), cancellationToken)
+            var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, creator, cancellationToken)
                 ?? throw new CertificateFolderNotConfiguredException();
             document = await FileAsync(folder.Id, WellKnownMaskIds.Certificate, $"{fields["Label"]} ({thumbprint[..16]})",
-                Encoding.UTF8.GetBytes(certificatePem), ".pem", "application/x-pem-file", cancellationToken);
+                Encoding.UTF8.GetBytes(certificatePem), ".pem", "application/x-pem-file", creator, cancellationToken);
             await SetFieldsAsync(document, fields, cancellationToken);
             if (owned is not null)
             {
@@ -156,10 +169,80 @@ public sealed class CertificateEnrolment(
 
         // After the commit: an event announcing an enrolment that then rolled back would be a lie.
         await audit.RecordAsync(AuditActions.CertificateEnrolled, "Document", document.Id, document.Name,
-            $"Holder {holderAddress}, thumbprint {thumbprint}", cancellationToken: cancellationToken);
+            auditDetail, cancellationToken: cancellationToken);
         logger.LogInformation("Enrolled certificate {Thumbprint} as document {DocumentId}", thumbprint, document.Id);
         return new Listed(document.Id, fields["Label"], thumbprint, fields["Serial"], notAfter, null, true, null);
     }
+
+    /// <summary>
+    /// Carries each active user's OWN certificate (the self-service column, <c>User.SmimeCertificatePem</c>) into the
+    /// registry, once (#1839): while a module licenses enrolment, the registry is the only answer to "which certificates
+    /// does this reader have", and a certificate left in the column would silently stop addressing them. Applies
+    /// enrolment's own checks; never carries a certificate that was filed before — revoked or deleted included, so an
+    /// administrator's act is not undone at the next start. What cannot be carried is said, by user and reason.
+    /// </summary>
+    public async Task<int> AdoptOwnCertificatesAsync(CancellationToken cancellationToken)
+    {
+        var waiting = await dbContext.Users
+            .Where(u => u.IsActive && u.SmimeCertificatePem != null && u.SmimeCertificatePem != string.Empty)
+            .Select(u => new { u.Id, u.Email, Pem = u.SmimeCertificatePem! })
+            .ToListAsync(cancellationToken);
+        if (waiting.Count == 0)
+        {
+            return 0;
+        }
+
+        var policy = await CurrentPolicyAsync(cancellationToken);
+        var adopted = 0;
+        foreach (var user in waiting)
+        {
+            var checkedPem = EnrolmentPolicy.Check(user.Pem);
+            if (!checkedPem.Ok)
+            {
+                logger.LogWarning(
+                    "The own certificate of user {Email} is not carried into the certificate registry: {Reason} While a module "
+                    + "licenses enrolment, nothing sealed reaches them until they enrol one that can receive encrypted content (#1839).",
+                    user.Email, checkedPem.Refusal);
+                continue;
+            }
+
+            using var leaf = checkedPem.Leaf!;
+            var thumbprint = Convert.ToHexString(SHA256.HashData(leaf.RawData));
+            if (await EverFiledAsync(thumbprint, cancellationToken))
+            {
+                continue;
+            }
+
+            if (PolicyEnforcement.Refusal(policy, leaf, user.Email, user.Pem) is { } refusal)
+            {
+                logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant's "
+                    + "certificate policy refuses it ({Reason}) (#1839).", user.Email, refusal);
+                continue;
+            }
+
+            try
+            {
+                await FileEnrolmentAsync(user.Pem, leaf, thumbprint, label: null, user.Email, (user.Id, null),
+                    $"Holder {user.Email}, thumbprint {thumbprint}; carried over from the user's own certificate (#1839)", cancellationToken);
+                adopted++;
+            }
+            catch (CertificateFolderNotConfiguredException)
+            {
+                logger.LogWarning("{Count} users' own certificates wait to be carried into the certificate registry: this tenant has "
+                    + "no folder for reader certificates chosen yet (#1839). Choose one; the next start carries them.", waiting.Count - adopted);
+                break;
+            }
+        }
+
+        return adopted;
+    }
+
+    // Filed before, by thumbprint: in the registry, or as any Certificate document's Thumbprint field — a deleted one too,
+    // whose field values stay with it.
+    private async Task<bool> EverFiledAsync(string thumbprint, CancellationToken cancellationToken) =>
+        await dbContext.EnrolledCertificates.AnyAsync(c => c.Thumbprint == thumbprint, cancellationToken)
+        || await dbContext.FieldValues.AnyAsync(v => v.Value == thumbprint
+            && dbContext.FieldDefinitions.Any(f => f.Id == v.FieldDefinitionId && f.Name == "Thumbprint"), cancellationToken);
 
     /// <summary>The tenant's certificate policy; the unset policy when none was saved.</summary>
     public async Task<CertificatePolicy> CurrentPolicyAsync(CancellationToken cancellationToken) =>
@@ -220,13 +303,14 @@ public sealed class CertificateEnrolment(
             if (await PolicyDocumentAsync(cancellationToken) is { } existing)
             {
                 document = existing;
-                await AddVersionAsync(document, bytes, ".json", "application/json", cancellationToken);
+                await AddVersionAsync(document, bytes, ".json", "application/json", access.GetCallerIdentity(), cancellationToken);
             }
             else
             {
                 var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, access.GetCallerIdentity(), cancellationToken)
                     ?? throw new CertificateFolderNotConfiguredException();
-                document = await FileAsync(folder.Id, WellKnownMaskIds.CertificatePolicy, "Certificate policy", bytes, ".json", "application/json", cancellationToken);
+                document = await FileAsync(folder.Id, WellKnownMaskIds.CertificatePolicy, "Certificate policy", bytes, ".json", "application/json",
+                    access.GetCallerIdentity(), cancellationToken);
             }
 
             if (owned is not null)
@@ -246,9 +330,10 @@ public sealed class CertificateEnrolment(
             .FirstOrDefaultAsync(cancellationToken);
 
     private async Task<Document> FileAsync(
-        Guid folderId, Guid maskId, string name, byte[] bytes, string extension, string contentType, CancellationToken cancellationToken)
+        Guid folderId, Guid maskId, string name, byte[] bytes, string extension, string contentType,
+        (Guid? UserId, Guid? ServiceAccountId) creator, CancellationToken cancellationToken)
     {
-        var (userId, serviceAccountId) = access.GetCallerIdentity();
+        var (userId, serviceAccountId) = creator;
         var document = new Document
         {
             Id = Guid.NewGuid(),
@@ -262,13 +347,15 @@ public sealed class CertificateEnrolment(
         };
         dbContext.Documents.Add(document);
         await dbContext.SaveChangesAsync(cancellationToken);
-        await AddVersionAsync(document, bytes, extension, contentType, cancellationToken);
+        await AddVersionAsync(document, bytes, extension, contentType, creator, cancellationToken);
         return document;
     }
 
-    private async Task AddVersionAsync(Document document, byte[] bytes, string extension, string contentType, CancellationToken cancellationToken)
+    private async Task AddVersionAsync(
+        Document document, byte[] bytes, string extension, string contentType, (Guid? UserId, Guid? ServiceAccountId) creator,
+        CancellationToken cancellationToken)
     {
-        var (userId, serviceAccountId) = access.GetCallerIdentity();
+        var (userId, serviceAccountId) = creator;
         var versionId = Guid.NewGuid();
         var objectKey = ObjectKeyBuilder.Build(document.TenantId, document.CreatedAt, document.StorageFolderId, versionId, extension);
 
