@@ -5725,15 +5725,18 @@
     <value>No backup yet</value>
   </data>
   <data name="MobBackupDone" xml:space="preserve">
-    <value>Backed up {0} conversations ({1} messages, {2} files).</value>
+    <value>Backup written. Conversations: {0}, messages: {1}, files: {2}.</value>
   </data>
   <data name="MobBackupRestored" xml:space="preserve">
-    <value>Restored {0} conversations: {1} messages added, {2} already here.</value>
+    <value>Restore finished. Conversations restored: {0}; messages added: {1}, already here: {2}.</value>
   </data>
   <data name="MobBackupFailed" xml:space="preserve">
     <value>The backup failed: {0}</value>
   </data>
   <data name="MobBackupSignIn" xml:space="preserve">
     <value>Sign in to keep backing up your messages.</value>
+  </data>
+  <data name="MobBackupStillHere" xml:space="preserve">
+    <value>Still on this installation, left as they are: {0}.</value>
   </data>
 </root>

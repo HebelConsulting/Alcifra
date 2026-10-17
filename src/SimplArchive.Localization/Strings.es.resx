@@ -5725,15 +5725,18 @@
     <value>Todavía no hay copia</value>
   </data>
   <data name="MobBackupDone" xml:space="preserve">
-    <value>Copia de {0} conversaciones ({1} mensajes, {2} archivos).</value>
+    <value>Copia guardada. Conversaciones: {0}, mensajes: {1}, archivos: {2}.</value>
   </data>
   <data name="MobBackupRestored" xml:space="preserve">
-    <value>{0} conversaciones restauradas: {1} mensajes añadidos, {2} ya estaban.</value>
+    <value>Restauración terminada. Conversaciones restauradas: {0}; mensajes añadidos: {1}, ya presentes: {2}.</value>
   </data>
   <data name="MobBackupFailed" xml:space="preserve">
     <value>La copia ha fallado: {0}</value>
   </data>
   <data name="MobBackupSignIn" xml:space="preserve">
     <value>Inicie sesión para seguir haciendo copias de sus mensajes.</value>
+  </data>
+  <data name="MobBackupStillHere" xml:space="preserve">
+    <value>Todavía en esta instalación, sin cambios: {0}.</value>
   </data>
 </root>

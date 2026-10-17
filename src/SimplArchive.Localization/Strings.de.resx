@@ -5725,15 +5725,18 @@
     <value>Noch keine Sicherung</value>
   </data>
   <data name="MobBackupDone" xml:space="preserve">
-    <value>{0} Unterhaltungen gesichert ({1} Nachrichten, {2} Dateien).</value>
+    <value>Sicherung geschrieben. Unterhaltungen: {0}, Nachrichten: {1}, Dateien: {2}.</value>
   </data>
   <data name="MobBackupRestored" xml:space="preserve">
-    <value>{0} Unterhaltungen wiederhergestellt: {1} Nachrichten hinzugefügt, {2} schon vorhanden.</value>
+    <value>Wiederherstellung beendet. Unterhaltungen wiederhergestellt: {0}; Nachrichten hinzugefügt: {1}, schon vorhanden: {2}.</value>
   </data>
   <data name="MobBackupFailed" xml:space="preserve">
     <value>Die Sicherung ist fehlgeschlagen: {0}</value>
   </data>
   <data name="MobBackupSignIn" xml:space="preserve">
     <value>Melden Sie sich an, damit Ihre Nachrichten weiter gesichert werden.</value>
+  </data>
+  <data name="MobBackupStillHere" xml:space="preserve">
+    <value>Noch auf dieser Installation, unverändert gelassen: {0}.</value>
   </data>
 </root>
