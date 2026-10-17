@@ -5748,4 +5748,16 @@
   <data name="MsgReadOnlyHere" xml:space="preserve">
     <value>Leggi qui; scrivi e rispondi sul telefono.</value>
   </data>
+  <data name="MobBackupTarget" xml:space="preserve">
+    <value>Backup in</value>
+  </data>
+  <data name="MobBackupTargetFolder" xml:space="preserve">
+    <value>Una cartella su questo telefono</value>
+  </data>
+  <data name="MobBackupTargetIntray" xml:space="preserve">
+    <value>Il mio vassoio d'ingresso</value>
+  </data>
+  <data name="MobBackupIntrayHint" xml:space="preserve">
+    <value>Il backup viene archiviato nel tuo vassoio d'ingresso dell'archivio: sempre sigillato per le tue chiavi, e al sicuro se perdi il telefono.</value>
+  </data>
 </root>

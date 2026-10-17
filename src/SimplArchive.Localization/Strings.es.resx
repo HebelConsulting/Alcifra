@@ -5748,4 +5748,16 @@
   <data name="MsgReadOnlyHere" xml:space="preserve">
     <value>Lea aquí; escriba y responda en el teléfono.</value>
   </data>
+  <data name="MobBackupTarget" xml:space="preserve">
+    <value>Copia en</value>
+  </data>
+  <data name="MobBackupTargetFolder" xml:space="preserve">
+    <value>Una carpeta de este teléfono</value>
+  </data>
+  <data name="MobBackupTargetIntray" xml:space="preserve">
+    <value>Mi entrada</value>
+  </data>
+  <data name="MobBackupIntrayHint" xml:space="preserve">
+    <value>La copia se guarda en su entrada del archivo: sigue sellada para sus llaves y a salvo si pierde el teléfono.</value>
+  </data>
 </root>

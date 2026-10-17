@@ -9,7 +9,15 @@ using Spectre.Console.Cli;
 
 namespace SimplArchive.Cli.Commands;
 
-public sealed class MessengerBackupSettings : TenantSessionSettings
+/// <summary>What both Messenger commands take: the session, and optionally the user they act as.</summary>
+public abstract class MessengerSettings : TenantSessionSettings
+{
+    [CommandOption("--as <EMAIL>")]
+    [Description("Act as this user (impersonation, which you must be allowed): how an administrator moves a user's conversations. The backup stays sealed to THEIR keys.")]
+    public string? As { get; init; }
+}
+
+public sealed class MessengerBackupSettings : MessengerSettings
 {
     [CommandOption("--out <FILE>")]
     [Description("Where to write the backup. An existing file is never overwritten.")]
@@ -23,7 +31,7 @@ public sealed class MessengerBackupSettings : TenantSessionSettings
     };
 }
 
-public sealed class MessengerRestoreSettings : TenantSessionSettings
+public sealed class MessengerRestoreSettings : MessengerSettings
 {
     [CommandOption("--file <FILE>")]
     [Description("The backup to restore: one written by `saconsole messenger backup` or the phone.")]
@@ -45,7 +53,7 @@ public sealed class MessengerBackupCommand(ILogger<MessengerBackupCommand> logge
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, MessengerBackupSettings settings, CancellationToken cancellationToken)
     {
-        var (http, storage, api) = await MessengerSession.OpenAsync(settings, cancellationToken);
+        var (http, storage, api) = await MessengerSession.OpenAsync(settings, logger, cancellationToken);
         using (http)
         using (storage)
         {
@@ -80,7 +88,7 @@ public sealed class MessengerRestoreCommand(ILogger<MessengerRestoreCommand> log
             throw new CliException($"No such backup: {settings.File}");
         }
 
-        var (http, storage, api) = await MessengerSession.OpenAsync(settings, cancellationToken);
+        var (http, storage, api) = await MessengerSession.OpenAsync(settings, logger, cancellationToken);
         using (http)
         using (storage)
         {
@@ -102,10 +110,18 @@ public sealed class MessengerRestoreCommand(ILogger<MessengerRestoreCommand> log
 // (ADR 0543), so nothing here composes a Messenger path; presigned file transfers go through a client with no token.
 internal static class MessengerSession
 {
-    public static async Task<(HttpClient Http, HttpClient Storage, MessengerApi Api)> OpenAsync(TenantSessionSettings settings, CancellationToken cancellationToken)
+    public static async Task<(HttpClient Http, HttpClient Storage, MessengerApi Api)> OpenAsync(
+        MessengerSettings settings, ILogger logger, CancellationToken cancellationToken)
     {
+        // As another user, by their own token from the exchange: everything below is done on their behalf, and recorded so.
+        var token = settings.As is { Length: > 0 } email ? await Impersonation.TokenForAsync(settings, email, cancellationToken) : settings.ResolvedToken;
+        if (settings.As is { Length: > 0 } actingAs)
+        {
+            logger.LogInformation("Acting as {User}", actingAs);
+        }
+
         var http = new HttpClient { BaseAddress = new Uri(settings.ResolvedUrl.TrimEnd('/') + "/") };
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.ResolvedToken);
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var storage = new HttpClient();
         var api = new MessengerApi(http, storage);
         if (!await RunAsync(() => api.DiscoverAsync(cancellationToken)))

@@ -5748,4 +5748,16 @@
   <data name="MsgReadOnlyHere" xml:space="preserve">
     <value>Read here; write and reply on the phone.</value>
   </data>
+  <data name="MobBackupTarget" xml:space="preserve">
+    <value>Back up to</value>
+  </data>
+  <data name="MobBackupTargetFolder" xml:space="preserve">
+    <value>A folder on this phone</value>
+  </data>
+  <data name="MobBackupTargetIntray" xml:space="preserve">
+    <value>My intray</value>
+  </data>
+  <data name="MobBackupIntrayHint" xml:space="preserve">
+    <value>The backup is filed in your intray in the archive: still sealed to your keys, and safe if the phone is lost.</value>
+  </data>
 </root>

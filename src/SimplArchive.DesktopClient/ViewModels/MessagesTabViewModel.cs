@@ -19,7 +19,8 @@ public sealed class MessagesConversationViewModel
 
     public string Title => ThreadRows.Title(Conversation);
 
-    public string Detail => Conversation.Restored ? ViewText.Get("RestoredMark")
+    public string Detail => Conversation.Left ? ViewText.Get("LeftMark")
+        : Conversation.Restored ? ViewText.Get("RestoredMark")
         : Conversation.Unread > 0 ? Conversation.Unread.ToString(CultureInfo.CurrentCulture) : string.Empty;
 }
 
@@ -187,8 +188,9 @@ public sealed partial class MessagesTabViewModel : ObservableObject
             Bubbles.Add(new MessageBubbleViewModel(row));
         }
 
-        ThreadNote = conversation.IsReadOnly
-            ? ViewText.Get("RestoredReadOnly", conversation.RestoredFrom ?? string.Empty)
+        // History says which: one the user left, or one restored from a backup; a live one, that replies are on the phone.
+        ThreadNote = conversation.Left ? ViewText.Get("LeftReadOnly")
+            : conversation.IsReadOnly ? ViewText.Get("RestoredReadOnly", conversation.RestoredFrom ?? string.Empty)
             : Strings.Get("MsgReadOnlyHere");
         if (messages.Count > 0)
         {

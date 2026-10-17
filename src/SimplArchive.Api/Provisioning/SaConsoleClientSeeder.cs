@@ -14,11 +14,31 @@ public static class SaConsoleClientSeeder
 {
     public const string ClientId = "saconsole";
 
-    /// <summary>Idempotent: creates the client when it is absent, and leaves an existing one alone.</summary>
+    /// <summary>
+    /// The RFC 8693 token exchange, for acting as another user (ADR "User impersonation"): how an administrator moves a
+    /// user's Messenger conversations with <c>saconsole messenger … --as</c> (core #1813, ADR 0947). The grant alone
+    /// allows nothing — the token endpoint still requires the caller's CanImpersonate right, refuses an administrator
+    /// as the target, and records every act as done on behalf.
+    /// </summary>
+    public const string TokenExchange =
+        OpenIddictConstants.Permissions.Prefixes.GrantType + SimplArchive.Auth.ImpersonationConstants.TokenExchangeGrantType;
+
+    /// <summary>
+    /// Idempotent: creates the client when it is absent, and HEALS an existing one by adding a permission it lacks —
+    /// a create-if-absent seed gives a new permission only to installations that never had the client, and an existing
+    /// one then answers <c>unauthorized_client</c>, which reads as a bug rather than a stale registration (#579).
+    /// </summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is not null)
+        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is { } existing)
         {
+            var current = new OpenIddictApplicationDescriptor();
+            await applications.PopulateAsync(current, existing, cancellationToken);
+            if (current.Permissions.Add(TokenExchange))
+            {
+                await applications.UpdateAsync(existing, current, cancellationToken);
+            }
+
             return;
         }
 
@@ -52,6 +72,7 @@ public static class SaConsoleClientSeeder
                 // because the email claim does not ride on that scope: the verification page puts it on the
                 // access and identity tokens unconditionally, exactly as AuthorizationController does.
                 OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.OpenId,
+                TokenExchange,
             },
         }, cancellationToken);
     }
