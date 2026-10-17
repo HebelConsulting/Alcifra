@@ -70,7 +70,7 @@ public partial class KioskConfigKeysAgainstReleasedImageTests
 
         var unknown = keys
             .Select(key => (Key: key, Section: SectionOf(key)))
-            .Where(x => x.Section is not null && !ReleasedCodeMentions(root, tag!, $"\"{x.Section}"))
+            .Where(x => x.Section is not null && !ReleasedCodeUnderstands(root, tag!, x.Section))
             .Select(x => $"  {x.Key}  (section '{x.Section}')")
             .ToList();
 
@@ -92,6 +92,20 @@ public partial class KioskConfigKeysAgainstReleasedImageTests
     {
         var segments = doubleUnderscoreKey.Split("__");
         return segments.Length < 2 ? null : string.Join(':', segments[..^1]);
+    }
+
+    /// <summary>
+    /// Whether the released tree reads this section: spelled as one string literal, or — the one composition the
+    /// guard knows — a seeded service account, whose section <c>{prefix}:ServiceAccount</c> is built by
+    /// <c>SeededServiceAccount</c> from the prefix its caller passes, so the whole name is never a literal. The
+    /// kiosk's <c>Demo__Setup__ServiceAccount__*</c> (ADR 0949) was flagged at v0.47.0 although the image read it.
+    /// </summary>
+    private static bool ReleasedCodeUnderstands(string root, string tag, string section)
+    {
+        const string ComposedLeaf = ":ServiceAccount";
+        return ReleasedCodeMentions(root, tag, $"\"{section}")
+            || (section.EndsWith(ComposedLeaf, StringComparison.Ordinal)
+                && ReleasedCodeMentions(root, tag, $"configuration, \"{section[..^ComposedLeaf.Length]}\""));
     }
 
     /// <summary>Whether the released tree spells this section as a string literal anywhere under <c>src/</c>.</summary>
