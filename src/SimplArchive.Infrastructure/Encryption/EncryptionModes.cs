@@ -382,7 +382,10 @@ public sealed class EncryptionModes(IConfiguration configuration)
         // The question is about a LOADED module, which is why this no longer rides in
         // ThrowIfMisconfigured: whether an installation is licensed for these tiers is answered by what it
         // carries, and configuration alone cannot tell.
-        if (modules.Any(module => module.ReaderCertificates is not null))
+        // Either form of the capability: a module answering the certificates itself (before ABI 1.17), or one that
+        // LICENSES the core's enrolment, whose registry then answers (ABI 1.17, ADR 0935). Encryption Module 0.6.0 is
+        // the second form only, and v0.47.0 refused to start Strict tenants with it (the kiosk, 2026-10-17).
+        if (modules.Any(module => module.ReaderCertificates is not null || module.LicensesCertificateEnrolment))
         {
             return;
         }

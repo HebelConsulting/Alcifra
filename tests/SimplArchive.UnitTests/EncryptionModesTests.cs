@@ -320,6 +320,22 @@ public class EncryptionModesTests
     // The half that matters now that a module exists: the gate must OPEN. Until this test, the refusal was
     // unconditional and told an installation the module "is not available yet" after it was mounted, loaded
     // and answering — a refusal nothing could satisfy.
+    // The Encryption Module from 0.6.0 on answers no certificates itself: it LICENSES the core's enrolment, and the
+    // core's registry answers. v0.47.0's gate knew only the first form and refused to start the kiosk's Strict
+    // tenant with exactly this module.
+    [Theory]
+    [InlineData(EncryptionMode.Strict)]
+    [InlineData(EncryptionMode.StrictRehearsal)]
+    [InlineData(EncryptionMode.SealedDeliveryPermissive)]
+    [InlineData(EncryptionMode.SealedDeliveryStrict)]
+    public void An_enveloping_mode_is_permitted_once_a_module_licenses_the_cores_enrolment(EncryptionMode mode)
+    {
+        var configuration = Config((EncryptionModes.Section + ":T", mode.ToString()));
+
+        // does not throw
+        EncryptionModes.ThrowIfEnvelopingModeHasNoModule(configuration, [new LicensingModule()]);
+    }
+
     [Theory]
     [InlineData(EncryptionMode.Strict)]
     [InlineData(EncryptionMode.StrictRehearsal)]
@@ -365,6 +381,19 @@ public class EncryptionModesTests
 
     /// <summary>A module that either answers the reader-certificate capability or does not.</summary>
     private static SimplArchive.ModuleAbi.IIndustryModule Module(bool answers) => new CapabilityModule(answers);
+
+    // The ABI 1.17 form: no certificates of its own, the core's enrolment licensed instead (Encryption Module 0.6.0).
+    private sealed class LicensingModule : SimplArchive.ModuleAbi.IIndustryModule
+    {
+        public bool LicensesCertificateEnrolment => true;
+        public string ModuleId => "licenses";
+        public string DisplayName => ModuleId;
+        public int AbiMajorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Major;
+        public int AbiMinorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Minor;
+        public string LicenseVerifyKeyPem => string.Empty;
+        public IReadOnlyList<SimplArchive.ModuleAbi.ModuleMaskSeed> Masks => [];
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
 
     private sealed class CapabilityModule(bool answers) : SimplArchive.ModuleAbi.IIndustryModule
     {
