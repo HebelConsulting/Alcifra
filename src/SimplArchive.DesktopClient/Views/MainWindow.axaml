@@ -583,6 +583,13 @@
                 <v:CalendarTab DataContext="{Binding CalendarTab}" />
             </TabItem>
 
+            <!-- Messages (core #1813): read-only conversations, appended last so no tab is re-indexed, and shown
+                 only while the archive offers the Messenger to this user. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabMessages}" IsVisible="{Binding MessagesTab.IsOffered}">
+                <TabItem.Header><i:Icon Value="mdi-message-text-outline" FontSize="20" /></TabItem.Header>
+                <v:MessagesTab DataContext="{Binding MessagesTab}" />
+            </TabItem>
+
         </TabControl>
     </DockPanel>
 </Window>

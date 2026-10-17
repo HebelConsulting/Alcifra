@@ -238,6 +238,12 @@ internal static class ScreenshotRenderer
                 viewModel.CalendarTab.PopulateDemoForScreenshot();
                 viewModel.SelectedTab = 14; // Calendar tab
             }
+            else if (Environment.GetCommandLineArgs().Contains("--messages"))
+            {
+                viewModel.IsLoggedIn = true;
+                viewModel.MessagesTab.PopulateDemoForScreenshot();
+                viewModel.SelectedTab = MainWindowViewModel.MessagesTabIndex;
+            }
             else if (Environment.GetCommandLineArgs().Contains("--checkout"))
             {
                 viewModel.IsLoggedIn = true;

@@ -1002,7 +1002,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
             // most sessions never open either tab.
             13 => ContactsTab.LoadAsync(),
             14 => CalendarTab.LoadAsync(),
-            _ => Task.CompletedTask,
+            _ => ActivateLaterTabAsync(value),
         });
     }
 

@@ -635,6 +635,21 @@ industry module that owns the thing rather than by the archive: booking an instr
 hours as their consent, while booking a meeting room needs nothing of the sort. The archive stores the offer
 and answers the question; what the answer *obliges* is the module's rule.
 
+== Messages on the desktop <desktopmessages>
+
+Where the archive offers the *Messenger*#idx("Messenger"), the workbench shows a *Messages* tab: your conversations
+on the left, the selected one on the right, drawn exactly as on the phone — your own messages on the right, a reply
+quoting what it answers, who has read your latest message. The desktop *reads*: writing and replying stay on the
+phone for now. A message opens with your own key — a key on this computer if you have one, otherwise your card,
+which asks for its PIN once. A photo or file opens in its own application.
+
+#shot("screenshots/desktop-messages.png",
+  [The Messages tab: conversations on the left; a thread with a reply, a file and a read receipt.])
+
+*Back up* writes all your conversations to a file you choose, sealed exactly as they were delivered — nothing is
+decrypted to make it, so only your own key opens it again. *Restore* brings such a backup back as history to read;
+once everyone from a restored conversation is on this installation, the phone offers to *continue* it.
+
 == On a phone or a tablet
 
 The same address, in the same browser, gives you a layout built for the screen you are holding. There is no

@@ -74,6 +74,9 @@ public static class Screens
             + "freezes the SERVER's, so this figure would change on the first of every month — and the "
             + "harness's determinism check cannot see it, because two captures seconds apart agree. "
             + "Live again once the client's today is reachable by the capture."),
+        new("messages", ["--messages"], WhyFixture:
+            "The test installation runs no Messenger module, and a message opens only with its reader's key: the figure "
+            + "is the demo thread, drawn by the same display rules as a real one (core #1813)."),
         // The structured contact editor with the "Advanced: the stored item" disclosure OPEN. Its own window,
         // because neither of the two tabs above can show it — and the disclosure is the part of this feature a
         // reader is least likely to guess at, since its whole point is the properties the form does not show.

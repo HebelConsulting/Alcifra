@@ -5739,4 +5739,13 @@
   <data name="MobBackupStillHere" xml:space="preserve">
     <value>Ancora su questa installazione, lasciate come sono: {0}.</value>
   </data>
+  <data name="TabMessages" xml:space="preserve">
+    <value>Messaggi</value>
+  </data>
+  <data name="MsgBackUpToFile" xml:space="preserve">
+    <value>Backup in un file…</value>
+  </data>
+  <data name="MsgReadOnlyHere" xml:space="preserve">
+    <value>Leggi qui; scrivi e rispondi sul telefono.</value>
+  </data>
 </root>

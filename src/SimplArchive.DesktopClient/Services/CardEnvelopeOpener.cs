@@ -37,6 +37,22 @@ public static class CardEnvelopeOpener
     public static async Task<(byte[] Bytes, string ContentType)?> TryOpen(
         ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients)
     {
+        if (enveloped.Content is null)
+        {
+            return null;
+        }
+
+        // What comes out is the inner MIME entity the server enveloped — a part with the document's real content
+        // type and file name, which is the whole reason the funnel returns a type at all.
+        return await TryOpenRawAsync(SmimeEnvelope.Cms(enveloped), recipients) is { } inner ? SmimeEnvelope.Payload(inner) : null;
+    }
+
+    /// <summary>
+    /// Opens a BARE CMS envelope with the card and hands back its content as it is — not a document, but, say, a
+    /// Messenger conversation key or file (core #1813), which the server never wraps in MIME. Null declines.
+    /// </summary>
+    public static async Task<byte[]?> TryOpenRawAsync(byte[] cms, IReadOnlyList<(string Issuer, string Serial)> recipients)
+    {
         // IS THIS CARD EVEN THE ADDRESSEE? Asked first, and asked from PUBLIC data — the envelope names its
         // recipients by issuer and serial, and a token's certificates are readable with no login. Only then is
         // a session opened, which is what prompts for the PIN.
@@ -44,18 +60,18 @@ public static class CardEnvelopeOpener
         // The order is the whole point. Opening the session first meant a document addressed to a COLLEAGUE
         // asked for the user's PIN and then failed — a credential prompt whose answer was going to be no,
         // which is exactly how people learn to click through prompts.
-        if (recipients.Count == 0 || enveloped.Content is null)
+        if (recipients.Count == 0)
         {
             return null;
         }
 
-        var raw = SmimeEnvelope.Cms(enveloped);
+        var raw = cms;
 
         // ONE gated critical section for everything that touches the card: reading its certificates, opening
         // the logged-in session, and the unwrap. Not three, because C_Initialize is per PROCESS and a decrypt
         // is two calls with state between them — a preview firing its page render, thumbnails and text layout
         // at once is exactly what found that out (CKR_CRYPTOKI_ALREADY_INITIALIZED, live).
-        return await CardModule.UseAsync<(byte[] Bytes, string ContentType)?>(
+        return await CardModule.UseAsync<byte[]?>(
             async library =>
             {
                 // IS THIS CARD EVEN THE ADDRESSEE? From PUBLIC data — the envelope names its recipients and a
@@ -107,7 +123,7 @@ public static class CardEnvelopeOpener
             whenUnavailable: null);
     }
 
-    private static (byte[] Bytes, string ContentType)? Unwrap(
+    private static byte[]? Unwrap(
         CAManagement.Pkcs11.Pkcs11Session session,
         byte[] raw,
         byte[]? keyId,
@@ -219,11 +235,7 @@ public static class CardEnvelopeOpener
             return null;
         }
 
-        var inner = DecryptContent(raw, envelopedCms.ContentInfo.Content, contentKey);
-
-        // What comes out is the inner MIME entity the server enveloped — a part with the document's real
-        // content type and file name, which is the whole reason the funnel returns a type at all.
-        return SmimeEnvelope.Payload(inner);
+        return DecryptContent(raw, envelopedCms.ContentInfo.Content, contentKey);
     }
 
     /// <summary>
