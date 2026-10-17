@@ -116,6 +116,17 @@ public static class DemoDataSeeder
             await dbContext.SaveChangesAsync();
         }
 
+        // The unattended SETUP principal of the Demo tenant (ADR 0949): what the kiosk's messenger-seed.sh acts as —
+        // activating the Messenger, creating its repository, switching on self-service enrolment. Narrow on purpose
+        // (ADR 0870), apart from the migration account above: it manages modules and repositories and nothing else,
+        // and holds no grant — it is the creator, and so the owner, of the one repository it makes.
+        // No-op unless Demo:Setup:ServiceAccount:* is configured, which only the kiosk does.
+        if (await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "Demo:Setup", provisioned.TenantId,
+                grantOn: null, rights: account => (account.CanManageModules, account.CanManageRepositories) = (true, true), grant: null))
+        {
+            await dbContext.SaveChangesAsync();
+        }
+
         // The Flight School repository and its unattended setup principal (FlightSchool#85). No-op unless
         // FlightSchoolDemo:ServiceAccount:* is configured, which only the kiosk and the module's local demo do.
         await FlightSchoolDemoSetup.AddIfConfiguredAsync(services, dbContext, configuration, provisioned.TenantId,

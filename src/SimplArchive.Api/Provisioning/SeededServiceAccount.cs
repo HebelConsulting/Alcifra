@@ -58,7 +58,7 @@ public static class SeededServiceAccount
     // is passed in, so a narrowly-scoped account (ADR 0870) does not inherit the migration principal's reach.
     public static async Task<bool> AddIfConfiguredAsync(
         IServiceProvider services, SimplArchiveDbContext dbContext, IConfiguration configuration,
-        string sectionPrefix, Guid tenantId, Guid grantOn, Action<ServiceAccount> rights, Action<AclEntry> grant)
+        string sectionPrefix, Guid tenantId, Guid? grantOn, Action<ServiceAccount> rights, Action<AclEntry>? grant)
     {
         var clientId = configuration[$"{sectionPrefix}:ServiceAccount:ClientId"];
         var clientSecret = configuration[$"{sectionPrefix}:ServiceAccount:ClientSecret"];
@@ -96,16 +96,21 @@ public static class SeededServiceAccount
 
         dbContext.ServiceAccounts.Add(serviceAccount);
 
-        var entry = new AclEntry
+        // No grant at all is a legitimate shape: a setup account that CREATES what it works on is its creator, and
+        // holds that object's rights from the moment it exists (the Messenger's kiosk setup, ADR 0949).
+        if (grantOn is { } document && grant is not null)
         {
-            Id = Guid.NewGuid(),
-            TenantId = tenantId,
-            DocumentId = grantOn,
-            ServiceAccountId = serviceAccount.Id,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
-        grant(entry);
-        dbContext.AclEntries.Add(entry);
+            var entry = new AclEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                DocumentId = document,
+                ServiceAccountId = serviceAccount.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+            };
+            grant(entry);
+            dbContext.AclEntries.Add(entry);
+        }
 
         return true;
     }

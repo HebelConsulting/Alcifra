@@ -178,7 +178,8 @@ public static class CryptoDemoSeeder
 
         await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "CryptoDemo",
             provisioned.TenantId, grantOn: administration.Id,
-            rights: account => account.CanManageModules = true,
+            // CanManageRepositories since v0.47.0: the Messenger's kiosk setup creates its repository (ADR 0949).
+            rights: account => (account.CanManageModules, account.CanManageRepositories) = (true, true),
             grant: entry =>
             {
                 entry.CanSee = true;
