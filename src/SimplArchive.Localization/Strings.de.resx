@@ -5400,6 +5400,15 @@
   <data name="MobKeyIntro" xml:space="preserve">
     <value>Dieses Dokument ist für Sie versiegelt. Geben Sie die PIN Ihres Schlüssels ein und halten Sie den Schlüssel dann ans Telefon oder stecken Sie ihn ein.</value>
   </data>
+  <data name="MobKeyMessagesTitle" xml:space="preserve">
+    <value>Nachrichten entsperren</value>
+  </data>
+  <data name="MobKeyMessagesIntro" xml:space="preserve">
+    <value>Ihre Nachrichten sind für Sie versiegelt. Geben Sie einmal die PIN Ihres Schlüssels ein und stecken Sie den Schlüssel ein oder halten Sie ihn ans Telefon. Eingesteckt (USB-C) öffnet er Ihre Nachrichten, bis Sie ihn abziehen. Ans Telefon gehalten (NFC) halten Sie ihn bei jedem Gespräch, das geöffnet wird, erneut daran.</value>
+  </data>
+  <data name="MobKeyMessagesIntroEachTime" xml:space="preserve">
+    <value>Ihre Nachrichten sind für Sie versiegelt. Geben Sie die PIN Ihres Schlüssels ein und stecken Sie den Schlüssel ein oder halten Sie ihn ans Telefon. Bei jedem Gespräch, das geöffnet wird, wird die PIN erneut abgefragt: Ein ans Telefon gehaltener Schlüssel (NFC) wird erneut daran gehalten, ein eingesteckter (USB-C) kann eingesteckt bleiben.</value>
+  </data>
   <data name="MobKeyPin" xml:space="preserve">
     <value>PIN</value>
   </data>

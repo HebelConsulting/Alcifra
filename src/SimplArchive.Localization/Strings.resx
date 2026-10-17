@@ -5400,6 +5400,15 @@
   <data name="MobKeyIntro" xml:space="preserve">
     <value>This document is sealed for you. Enter your key's PIN, then hold the key to the phone or plug it in.</value>
   </data>
+  <data name="MobKeyMessagesTitle" xml:space="preserve">
+    <value>Unlock your messages</value>
+  </data>
+  <data name="MobKeyMessagesIntro" xml:space="preserve">
+    <value>Your messages are sealed for you. Enter your key's PIN once, then plug the key in or hold it to the phone. Plugged in (USB-C), it opens your messages until you remove it. Held to the phone (NFC), hold it again each time a conversation is opened.</value>
+  </data>
+  <data name="MobKeyMessagesIntroEachTime" xml:space="preserve">
+    <value>Your messages are sealed for you. Enter your key's PIN, then plug the key in or hold it to the phone. Each time a conversation is opened, the PIN is asked again: a key held to the phone (NFC) is held to it again, a plugged-in one (USB-C) can stay plugged in.</value>
+  </data>
   <data name="MobKeyPin" xml:space="preserve">
     <value>PIN</value>
   </data>

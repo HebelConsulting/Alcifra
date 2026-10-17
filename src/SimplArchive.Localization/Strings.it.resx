@@ -5400,6 +5400,15 @@
   <data name="MobKeyIntro" xml:space="preserve">
     <value>Questo documento è sigillato per te. Inserisci il PIN della tua chiave, poi avvicina la chiave al telefono o collegala.</value>
   </data>
+  <data name="MobKeyMessagesTitle" xml:space="preserve">
+    <value>Sblocca i tuoi messaggi</value>
+  </data>
+  <data name="MobKeyMessagesIntro" xml:space="preserve">
+    <value>I tuoi messaggi sono sigillati per te. Inserisci una volta il PIN della chiave, poi collegala o avvicinala al telefono. Collegata (USB-C), apre i tuoi messaggi finché non la rimuovi. Avvicinata al telefono (NFC), avvicinala di nuovo ogni volta che si apre una conversazione.</value>
+  </data>
+  <data name="MobKeyMessagesIntroEachTime" xml:space="preserve">
+    <value>I tuoi messaggi sono sigillati per te. Inserisci il PIN della chiave, poi collegala o avvicinala al telefono. Ogni volta che si apre una conversazione il PIN viene richiesto di nuovo: una chiave avvicinata al telefono (NFC) va avvicinata di nuovo, una collegata (USB-C) può restare collegata.</value>
+  </data>
   <data name="MobKeyPin" xml:space="preserve">
     <value>PIN</value>
   </data>

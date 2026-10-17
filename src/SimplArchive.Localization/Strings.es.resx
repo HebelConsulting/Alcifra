@@ -5400,6 +5400,15 @@
   <data name="MobKeyIntro" xml:space="preserve">
     <value>Este documento está sellado para usted. Introduzca el PIN de su llave y después acerque la llave al teléfono o conéctela.</value>
   </data>
+  <data name="MobKeyMessagesTitle" xml:space="preserve">
+    <value>Desbloquee sus mensajes</value>
+  </data>
+  <data name="MobKeyMessagesIntro" xml:space="preserve">
+    <value>Sus mensajes están sellados para usted. Introduzca una vez el PIN de su llave y conéctela o acérquela al teléfono. Conectada (USB-C), abre sus mensajes hasta que la retire. Acercada al teléfono (NFC), acérquela de nuevo cada vez que se abra una conversación.</value>
+  </data>
+  <data name="MobKeyMessagesIntroEachTime" xml:space="preserve">
+    <value>Sus mensajes están sellados para usted. Introduzca el PIN de su llave y conéctela o acérquela al teléfono. Cada vez que se abre una conversación se vuelve a pedir el PIN: una llave acercada al teléfono (NFC) se vuelve a acercar, una conectada (USB-C) puede quedarse conectada.</value>
+  </data>
   <data name="MobKeyPin" xml:space="preserve">
     <value>PIN</value>
   </data>
