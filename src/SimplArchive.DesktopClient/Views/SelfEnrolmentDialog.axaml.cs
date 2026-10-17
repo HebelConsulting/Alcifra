@@ -108,6 +108,18 @@ public partial class SelfEnrolmentDialog : Window
         Accept(buffer.ToArray(), files[0].Name);
     });
 
+    // From a card or token (PKCS#11): the picker lists the device's certificates, flagging one that cannot receive
+    // encrypted content, and hands back the chosen one's public certificate — which then takes the same path as a file.
+    private void OnFromCard(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        var picker = new CardCertificateDialog();
+        await picker.ShowDialog(this);
+        if (picker.ChosenPem is { Length: > 0 } pem)
+        {
+            Accept(System.Text.Encoding.UTF8.GetBytes(pem), Strings.Get("SmimeAddCard").TrimEnd('…'));
+        }
+    });
+
     /// <summary>
     /// Takes the chosen file if it is a certificate and nothing more.
     /// </summary>
