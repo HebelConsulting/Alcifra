@@ -192,8 +192,10 @@ SimplArchive.ModuleAbi.HypermediaResource::System.Collections.Generic.List`1[Sim
 SimplArchive.ModuleAbi.HypermediaResource::System.Collections.Generic.List`1[SimplArchive.ModuleAbi.Link] get_Links()
 SimplArchive.ModuleAbi.HypermediaResource::Void set_Links(System.Collections.Generic.List`1[SimplArchive.ModuleAbi.Link])
 SimplArchive.ModuleAbi.IIndustryModule::Boolean LicensesCertificateEnrolment
+SimplArchive.ModuleAbi.IIndustryModule::Boolean RequiresLicence
 SimplArchive.ModuleAbi.IIndustryModule::Boolean SendsExternalNotices
 SimplArchive.ModuleAbi.IIndustryModule::Boolean get_LicensesCertificateEnrolment()
+SimplArchive.ModuleAbi.IIndustryModule::Boolean get_RequiresLicence()
 SimplArchive.ModuleAbi.IIndustryModule::Boolean get_SendsExternalNotices()
 SimplArchive.ModuleAbi.IIndustryModule::Int32 AbiMajorVersion
 SimplArchive.ModuleAbi.IIndustryModule::Int32 AbiMinorVersion

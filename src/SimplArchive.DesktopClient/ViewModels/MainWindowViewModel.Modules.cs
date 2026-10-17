@@ -94,6 +94,7 @@ public sealed class ModuleRowViewModel(AdminClient.ModuleInfo module)
         { Activated: false } => Strings.Get("ModNotActivated"),
         { Active: true, InGrace: true, DeactivatesAt: { } grace } =>
             string.Format(Strings.Get("ModInGrace"), grace.InZone(SessionTimeZone.Current).DateTime.ToString("yyyy-MM-dd")),
+        { Active: true, SupportContractEndDate: null } => Strings.Get("ModActiveNoLicence"),   // a licence-free module (ADR 0944)
         { Active: true, SupportContractEndDate: { } end } =>
             string.Format(Strings.Get("ModActiveUntil"), end.InZone(SessionTimeZone.Current).DateTime.ToString("yyyy-MM-dd")),
         _ => Strings.Get("ModDeactivated"),

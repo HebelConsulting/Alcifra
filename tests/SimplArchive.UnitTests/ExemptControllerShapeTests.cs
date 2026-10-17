@@ -67,7 +67,9 @@ public partial class ExemptControllerShapeTests
         ["LegalHoldsController.cs"] = 4,
         ["MachineTransitionsController.cs"] = 1,
         ["MasksController.cs"] = 1,
-        ["ModulesController.cs"] = 3,
+        // 5 since ABI 1.23 (ADR 0944): activating and deactivating a licence-free module write only the activation
+        // row, never a document, so the Document verdict ("reads only") still holds.
+        ["ModulesController.cs"] = 5,
         ["NotebookController.cs"] = 2,
         ["NotificationsController.cs"] = 3,
         ["PasskeysController.cs"] = 3,

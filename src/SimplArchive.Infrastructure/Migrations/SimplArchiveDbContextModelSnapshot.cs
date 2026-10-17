@@ -1996,7 +1996,7 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.Property<int>("EscalationLevel")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("LicenseDocumentId")
+                    b.Property<Guid?>("LicenseDocumentId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ManualDocumentId")
@@ -2007,7 +2007,7 @@ namespace SimplArchive.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<DateTimeOffset>("SupportContractEndDate")
+                    b.Property<DateTimeOffset?>("SupportContractEndDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("TenantId")

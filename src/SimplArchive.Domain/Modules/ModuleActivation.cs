@@ -25,14 +25,16 @@ public class ModuleActivation : ITenantScoped, IConcurrencyTracked
 
     /// <summary>The support contract's last day, inclusive, at midnight UTC (from the license claim).
     /// The behaviour runs through this day plus the grace period, then deactivates (ADR 0740).</summary>
-    public DateTimeOffset SupportContractEndDate { get; set; }
+    /// <remarks>NULL for a module that needs no licence (ABI 1.23, ADR 0944): no contract, so nothing ends.</remarks>
+    public DateTimeOffset? SupportContractEndDate { get; set; }
 
     /// <summary>
     /// The filed license document this activation rests on. A plain column, not a FK — the
     /// <c>Document.CurrentVersionId</c> precedent (ADR 0503): the license document lives wherever the
     /// administrator filed it, and its deletion must not cascade into (or be blocked by) this row.
     /// </summary>
-    public Guid LicenseDocumentId { get; set; }
+    /// <remarks>NULL for a module that needs no licence (ABI 1.23, ADR 0944): nothing was filed.</remarks>
+    public Guid? LicenseDocumentId { get; set; }
 
     public DateTimeOffset ActivatedAt { get; set; }
 

@@ -4959,6 +4959,9 @@
   <data name="ModActiveUntil" xml:space="preserve">
     <value>Aktiv — Supportvertrag bis {0}</value>
   </data>
+  <data name="ModActiveNoLicence" xml:space="preserve">
+    <value>Aktiv — benötigt keine Lizenz</value>
+  </data>
   <data name="ModInGrace" xml:space="preserve">
     <value>Verlängerung fällig — Kulanzbetrieb bis {0}</value>
   </data>

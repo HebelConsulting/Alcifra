@@ -29,6 +29,10 @@ public sealed class ModuleLicenseException : InvalidOperationException
     public static ModuleLicenseException WrongTenant() =>
         new("The license is issued for a different tenant.");
 
+    /// <summary>Activation without a licence was asked of a module that requires one (ABI 1.23, ADR 0944).</summary>
+    public static ModuleLicenseException LicenceRequired(string moduleId) =>
+        new($"Module '{moduleId}' requires a licence; file one to activate it.");
+
     /// <summary>The license was issued for a different ABI major than this host runs (ADR 0741).</summary>
     public static ModuleLicenseException AbiMismatch(int licensed, int hosted) =>
         new($"The license is issued for ABI major {licensed}; this host runs ABI major {hosted}.");

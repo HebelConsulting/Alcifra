@@ -91,6 +91,19 @@ public interface IIndustryModule
     IReadOnlyList<string> LicenseVerifyKeysPem => [LicenseVerifyKeyPem];
 
     /// <summary>
+    /// Whether a tenant needs a vendor-signed licence to activate this module (ABI 1.23, core ADR 0944). True — the
+    /// default — keeps the licensing act and its support-contract ladder. A module that answers false is activated by
+    /// a tenant administrator WITHOUT a licence file, and nothing lapses: the open-source Messenger, which anyone may run
+    /// on the open-source core.
+    /// </summary>
+    /// <remarks>
+    /// Everything else stays as for a licensed module: the per-tenant principal, the administrator's consent, the
+    /// activation gate. Such a module may leave <see cref="LicenseVerifyKeyPem"/> empty. A default member, so a 1.22
+    /// module is unaffected.
+    /// </remarks>
+    bool RequiresLicence => true;
+
+    /// <summary>
     /// The masks this module contributes. Seeded into a tenant at activation, idempotently, and healed on
     /// upgrade the way the core's own well-known masks are. Permanent tenant data once seeded (ADR 0740).
     /// </summary>

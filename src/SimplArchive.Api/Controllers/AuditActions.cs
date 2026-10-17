@@ -200,6 +200,10 @@ public static class AuditActions
     // event — deactivation is derived from the license's end date at every ask, so no moment exists to record.
     public const string ModuleActivated = "Module.Activated";
 
+    // A module that needs no licence (ABI 1.23, ADR 0944) is turned off by an administrator, a real act with a moment:
+    // so for it, and only it, deactivation is recorded.
+    public const string ModuleDeactivated = "Module.Deactivated";
+
     // The KEYS whose values changed, never the values — a settings write can carry a credential (ADR 0772).
     public const string ModuleSettingsUpdated = "Module.SettingsUpdated";
 

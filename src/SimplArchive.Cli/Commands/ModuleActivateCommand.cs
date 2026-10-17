@@ -15,12 +15,12 @@ public sealed class ModuleActivateSettings : TenantSessionSettings
     // --help, which a compile could never catch. Both spellings exist because the codebase writes "licence"
     // and the API field is `licenseDocumentId`, so an administrator will reasonably type either.
     [CommandOption("--licence|--license <FILE>")]
-    [Description("The vendor-signed licence file to file and activate.")]
-    public required string Licence { get; init; }
+    [Description("The vendor-signed licence file to file and activate. Omit it for a module that needs no licence (with --module).")]
+    public string? Licence { get; init; }
 
     [CommandOption("--parent <DOCUMENT>")]
-    [Description("Id of the document (a repository or folder) to file the licence in.")]
-    public required string Parent { get; init; }
+    [Description("Id of the document (a repository or folder) to file the licence in. Required with --licence.")]
+    public string? Parent { get; init; }
 
     [CommandOption("--module <ID>")]
     [Description("Activate only this module of the ones the licence names. Default: every one this installation has.")]
@@ -61,6 +61,11 @@ public sealed class ModuleActivateCommand(ILogger<ModuleActivateCommand> logger)
     protected override async Task<int> ExecuteAsync(
         CommandContext context, ModuleActivateSettings settings, CancellationToken cancellationToken)
     {
+        if (settings.Licence is null)
+        {
+            return await ActivateWithoutLicenceAsync(settings, cancellationToken);
+        }
+
         if (!File.Exists(settings.Licence))
         {
             throw new CliException($"No such licence file: {settings.Licence}");
@@ -117,6 +122,70 @@ public sealed class ModuleActivateCommand(ILogger<ModuleActivateCommand> logger)
 
         logger.LogInformation("Support runs through {SupportEnd} (inclusive).", claims.SupportContractEnd);
 
+        return 0;
+    }
+
+    /// <summary>
+    /// A module that needs no licence (ABI 1.23, ADR 0944): no file, so the module must be named, and the tool follows
+    /// its <c>activate</c> rel. A module that requires a licence advertises <c>license</c> instead, and is told so.
+    /// </summary>
+    private async Task<int> ActivateWithoutLicenceAsync(ModuleActivateSettings settings, CancellationToken cancellationToken)
+    {
+        if (settings.Module is not { Length: > 0 } moduleId)
+        {
+            throw new CliException("Without --licence, name the module to activate with --module (one that needs no licence).");
+        }
+
+        using var http = new HttpClient { BaseAddress = new Uri(settings.ResolvedUrl.TrimEnd('/') + "/") };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.ResolvedToken);
+        var api = new SimplArchiveApi(http);
+        var links = ModuleTargets.LinksOf(await ModuleSurface.ListingAsync(api, cancellationToken), moduleId)
+            ?? throw new CliException($"This installation does not carry module '{moduleId}'.");
+        if (links.TryGetValue("activate", out var href))
+        {
+            await api.PutAsync(href, new { }, cancellationToken);
+            logger.LogInformation("Activated {Module}; it needs no licence and does not lapse.", moduleId);
+            return 0;
+        }
+
+        if (links.ContainsKey("deactivate"))
+        {
+            logger.LogInformation("{Module} is already active; it needs no licence.", moduleId);
+            return 0;
+        }
+
+        throw new CliException(links.ContainsKey("license")
+            ? $"Module '{moduleId}' requires a licence: run this with --licence <FILE> --parent <DOCUMENT>."
+            : $"Module '{moduleId}' cannot be activated by you here (are you a tenant administrator?).");
+    }
+}
+
+/// <summary>Turns a module that needs no licence off for this tenant (ABI 1.23, ADR 0944), by its <c>deactivate</c> rel.</summary>
+public sealed class ModuleDeactivateSettings : TenantSessionSettings
+{
+    [CommandOption("--module <ID>")]
+    [Description("The module to turn off. Only a module that needs no licence; a licensed one lapses by its licence.")]
+    public required string Module { get; init; }
+}
+
+public sealed class ModuleDeactivateCommand(ILogger<ModuleDeactivateCommand> logger) : AsyncCommand<ModuleDeactivateSettings>
+{
+    protected override async Task<int> ExecuteAsync(CommandContext context, ModuleDeactivateSettings settings, CancellationToken cancellationToken)
+    {
+        using var http = new HttpClient { BaseAddress = new Uri(settings.ResolvedUrl.TrimEnd('/') + "/") };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", settings.ResolvedToken);
+        var api = new SimplArchiveApi(http);
+        var links = ModuleTargets.LinksOf(await ModuleSurface.ListingAsync(api, cancellationToken), settings.Module)
+            ?? throw new CliException($"This installation does not carry module '{settings.Module}'.");
+        if (!links.TryGetValue("deactivate", out var href))
+        {
+            throw new CliException(links.ContainsKey("activate")
+                ? $"Module '{settings.Module}' is not active."
+                : $"Module '{settings.Module}' cannot be turned off here: a licensed module lapses by its licence.");
+        }
+
+        await api.DeleteAsync(href, cancellationToken);
+        logger.LogInformation("Deactivated {Module}.", settings.Module);
         return 0;
     }
 }
@@ -238,6 +307,15 @@ internal sealed record ModuleTargets(
             present,
             [.. installed.Keys]);
     }
+
+    /// <summary>The links of <paramref name="moduleId"/> in the modules listing, or null when the host does not carry it.</summary>
+    internal static Dictionary<string, string>? LinksOf(JsonElement modules, string moduleId) =>
+        modules.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array
+            ? items.EnumerateArray()
+                .Where(m => m.TryGetProperty("moduleId", out var id) && id.GetString() == moduleId)
+                .Select(Links)
+                .FirstOrDefault()
+            : null;
 
     private static Dictionary<string, string> Links(JsonElement resource)
     {

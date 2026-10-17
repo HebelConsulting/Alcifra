@@ -36,6 +36,7 @@ public sealed class ModuleEscalationService
         var activations = await _dbContext.ModuleActivations
             .IgnoreQueryFilters(["TenantFilter"])
             .AsNoTracking()
+            .Where(a => a.SupportContractEndDate != null)   // licence-free (ADR 0944): no contract, nothing to announce
             .ToListAsync(cancellationToken);
 
         var notified = 0;
@@ -136,7 +137,7 @@ public sealed class ModuleEscalationService
 
     private static (string Title, string Body) Announce(ModuleActivation activation, int level)
     {
-        var end = activation.SupportContractEndDate.ToString("yyyy-MM-dd");
+        var end = activation.SupportContractEndDate?.ToString("yyyy-MM-dd") ?? string.Empty;
         var off = ModuleActivationPolicy.DeactivatesAt(activation).ToString("yyyy-MM-dd");
         return level switch
         {

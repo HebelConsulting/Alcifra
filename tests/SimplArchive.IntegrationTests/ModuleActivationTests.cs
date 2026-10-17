@@ -80,6 +80,59 @@ public class ModuleActivationTests
         return System.Text.Json.JsonSerializer.Serialize(license, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
     }
 
+    /// <summary>A module that needs no licence (ABI 1.23, ADR 0944), as the open-source Messenger declares.</summary>
+    private sealed class LicenceFreeModule : IIndustryModule
+    {
+        public string ModuleId => "free-module";
+        public string DisplayName => "Free module";
+        public int AbiMajorVersion => ModuleAbiVersion.Major;
+        public int AbiMinorVersion => ModuleAbiVersion.Minor;
+        public string LicenseVerifyKeyPem => string.Empty;
+        public bool RequiresLicence => false;
+        public IReadOnlyList<ModuleMaskSeed> Masks => [];
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+
+    [Fact]
+    public async Task A_licence_free_module_is_activated_without_a_file_and_never_lapses()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var (tenantId, userId) = await SeedTenantAsync(connection);
+
+        using (var context = CreateContext(connection, tenantId))
+        {
+            await new WellKnownMaskSeeder(context, NullLogger<WellKnownMaskSeeder>.Instance).EnsureWellKnownMasksAsync(tenantId);
+            var activation = await CreateService(context, userId).ActivateWithoutLicenceAsync(new LicenceFreeModule(), tenantId, userId);
+
+            Assert.Null(activation.SupportContractEndDate);
+            Assert.Null(activation.LicenseDocumentId);
+            Assert.True(ModuleActivationPolicy.IsLicenceFree(activation));
+            Assert.True(ModuleActivationPolicy.IsActive(activation, DateTimeOffset.UtcNow.AddYears(80)));   // nothing lapses
+            Assert.False(ModuleActivationPolicy.IsInGrace(activation, DateTimeOffset.UtcNow.AddYears(80)));
+            Assert.Equal(0, ModuleActivationPolicy.EscalationLevelFor(activation, DateTimeOffset.UtcNow.AddYears(80)));
+        }
+
+        using var check = CreateContext(connection, tenantId);
+        Assert.Single(await check.ModuleActivations.ToListAsync());
+        // Its principal exists, as for a licensed module: consent is still the administrator's (ADR 0736).
+        Assert.True(await check.ServiceAccounts.AnyAsync(a => a.Name == "Module: Free module"));
+    }
+
+    [Fact]
+    public async Task A_module_that_requires_a_licence_is_not_activated_without_one()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var (tenantId, userId) = await SeedTenantAsync(connection);
+        using var context = CreateContext(connection, tenantId);
+
+        var refusal = await Assert.ThrowsAsync<ModuleLicenseException>(() =>
+            CreateService(context, userId).ActivateWithoutLicenceAsync(new TestModule.TestModule(), tenantId, userId));
+        Assert.Contains("requires a licence", refusal.Message, StringComparison.Ordinal);
+        Assert.Empty(await context.ModuleActivations.ToListAsync());
+    }
+
     [Fact]
     public async Task Activation_seeds_the_masks_and_writes_the_row()
     {

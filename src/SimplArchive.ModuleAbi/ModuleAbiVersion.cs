@@ -135,5 +135,9 @@ public static class ModuleAbiVersion
     /// never-mailed "something new here" for a user, pushed to the phone once while unread (core ADR 0943). Default members
     /// and a new type only, so a 1.21 module is unaffected.
     /// </para>
-    public const int Minor = 22;
+    /// <para>
+    /// 1.23 adds <see cref="IIndustryModule.RequiresLicence"/>: a module may be activated without a licence file and then
+    /// never lapses (core ADR 0944). A default member only, so a 1.22 module is unaffected.
+    /// </para>
+    public const int Minor = 23;
 }

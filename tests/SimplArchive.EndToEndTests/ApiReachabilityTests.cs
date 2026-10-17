@@ -64,6 +64,8 @@ public class ApiReachabilityTests(E2EApiFactory factory)
     /// </remarks>
     private static readonly Dictionary<string, string> Unreached = new(StringComparer.Ordinal)
     {
+        ["DELETE api/modules/{moduleId}/activation"] = "advertised only for an active module that needs no licence (ADR 0944); this tenant's test module requires one — LicenceFreeModuleTests follows the rel",
+        ["PUT api/modules/{moduleId}/activation"] = "advertised only for a module that needs no licence (ADR 0944); this tenant's test module requires one — LicenceFreeModuleTests follows the rel",
         ["GET api/certificate-policy"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["GET api/certificate-settings"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["GET api/certificates"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",

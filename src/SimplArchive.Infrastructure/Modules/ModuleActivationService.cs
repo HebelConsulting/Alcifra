@@ -95,6 +95,39 @@ public sealed class ModuleActivationService
     /// unstamped Basic Entry (found 2026-09-08). The projection must still not fight an administrator's
     /// own typing choice — a license typed as, say, an eMail stays what they made it.
     /// </summary>
+    /// <summary>
+    /// Activates a module that needs no licence (ABI 1.23, ADR 0944): the same act as <see cref="ActivateAsync"/> —
+    /// masks seeded, the activation row, the module's principal — with no licence parsed, filed or stamped, and no end
+    /// date, so it never lapses. Refused for a module that requires a licence.
+    /// </summary>
+    public async Task<ModuleActivation> ActivateWithoutLicenceAsync(
+        IIndustryModule module, Guid tenantId, Guid? actorUserId, CancellationToken cancellationToken = default)
+    {
+        if (module.RequiresLicence)
+        {
+            throw ModuleLicenseException.LicenceRequired(module.ModuleId);
+        }
+
+        await _seeder.SeedAsync(module, tenantId, cancellationToken);
+        var activation = await _dbContext.ModuleActivations
+            .SingleOrDefaultAsync(a => a.ModuleId == module.ModuleId, cancellationToken);
+        if (activation is null)
+        {
+            activation = new ModuleActivation { Id = Guid.NewGuid(), TenantId = tenantId, ModuleId = module.ModuleId };
+            _dbContext.ModuleActivations.Add(activation);
+        }
+
+        activation.SupportContractEndDate = null;
+        activation.LicenseDocumentId = null;
+        activation.VerifiedByKeyThumbprint = null;
+        activation.ActivatedByUserId = actorUserId;
+        activation.ActivatedAt = DateTimeOffset.UtcNow;
+        activation.EscalationLevel = 0;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await ModulePrincipal.EnsureAsync(_dbContext, module.ModuleId, module.DisplayName, tenantId, cancellationToken);
+        return activation;
+    }
+
     private async Task StampLicenseDocumentAsync(Guid licenseDocumentId, TenantLicense license, CancellationToken cancellationToken)
     {
         var document = await _dbContext.Documents.SingleAsync(d => d.Id == licenseDocumentId, cancellationToken);

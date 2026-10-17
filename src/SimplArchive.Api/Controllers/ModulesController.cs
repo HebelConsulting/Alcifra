@@ -101,6 +101,10 @@ public class ModulesController : ControllerBase
         /// <summary>Whether the contract has ended and only the grace period carries the behaviour.</summary>
         public bool InGrace { get; set; }
 
+        /// <summary>Whether activating needs a licence file (ABI 1.23, ADR 0944); false: an administrator activates it
+        /// without one, and it never lapses (no support end date).</summary>
+        public bool RequiresLicence { get; set; } = true;
+
         public DateTimeOffset? SupportContractEndDate { get; set; }
 
         /// <summary>The instant the grace runs out and the module deactivates itself.</summary>
@@ -229,6 +233,68 @@ public class ModulesController : ControllerBase
         // The rebuild derives from documents through the facade — module code, module eyes (ADR 0736).
         HttpContext.RequestServices.GetRequiredService<ModuleIdentityAccessor>().ModuleId = moduleId;
         await rebuilder.RebuildAsync(projectionName, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Activates a module that needs no licence (ABI 1.23, ADR 0944): the licensing act without a file — masks seeded,
+    /// the activation row, the module's principal, its manual and personal folders — and nothing that lapses.
+    /// </summary>
+    [HttpPut("{moduleId}/activation")]
+    public async Task<IActionResult> PutActivation(
+        string moduleId, [FromServices] SimplArchive.Api.Manuals.ManualFiler manuals,
+        [FromServices] SimplArchive.Api.Documents.ModulePersonalFolders personalFolders, CancellationToken cancellationToken)
+    {
+        if (!await CanAdministerModulesAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var loaded = _modules.FirstOrDefault(m => string.Equals(m.Module.ModuleId, moduleId, StringComparison.Ordinal));
+        var module = loaded?.Module ?? throw new ModuleNotInstalledException(moduleId);
+        ModuleActivation activation;
+        try
+        {
+            activation = await _activation.ActivateWithoutLicenceAsync(
+                module, _currentTenantAccessor.TenantId!.Value, _currentUserAccessor.UserId, cancellationToken);
+        }
+        catch (ModuleLicenseException exception)
+        {
+            throw new ModuleLicenseRejectedException(exception.Message);
+        }
+
+        await _audit.RecordAsync(AuditActions.ModuleActivated, "Module", activation.Id, module.ModuleId,
+            "Activated without a licence (the module requires none)", cancellationToken: cancellationToken);
+        await manuals.FileModuleManualAsync(module, cancellationToken);
+        await personalFolders.EnsureForTenantAsync(_currentTenantAccessor.TenantId!.Value, cancellationToken);
+
+        return Ok(ToResource(module.ModuleId, module.DisplayName, module.AbiMajorVersion, installed: true, activation,
+            hasSettings: DeclaredSettings(module.ModuleId).Count > 0, build: loaded?.Build,
+            health: (await ContentHealthAsync(cancellationToken)).GetValueOrDefault(module.ModuleId), requiresLicence: false));
+    }
+
+    /// <summary>
+    /// Turns a licence-free module off for this tenant (ADR 0944): the activation row goes, its behaviour with it; masks,
+    /// documents and the principal's grants stay (ADR 0740). A licensed module lapses by its contract instead.
+    /// </summary>
+    [HttpDelete("{moduleId}/activation")]
+    public async Task<IActionResult> DeleteActivation(string moduleId, CancellationToken cancellationToken)
+    {
+        if (!await CanAdministerModulesAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var activation = await _dbContext.ModuleActivations.SingleOrDefaultAsync(a => a.ModuleId == moduleId, cancellationToken);
+        if (activation is null || !ModuleActivationPolicy.IsLicenceFree(activation))
+        {
+            return NotFound();   // nothing to turn off here: not active, or it lapses by its licence
+        }
+
+        _dbContext.ModuleActivations.Remove(activation);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _audit.RecordAsync(AuditActions.ModuleDeactivated, "Module", activation.Id, moduleId,
+            "Deactivated by an administrator (licence-free module)", cancellationToken: cancellationToken);
         return NoContent();
     }
 
@@ -694,7 +760,7 @@ public class ModulesController : ControllerBase
             .Select(m => ToResource(
                 m.Module.ModuleId, m.Module.DisplayName, m.Module.AbiMajorVersion, installed: true,
                 byModuleId.GetValueOrDefault(m.Module.ModuleId), hasSettings: DeclaredSettings(m.Module.ModuleId).Count > 0,
-                build: m.Build, health: health.GetValueOrDefault(m.Module.ModuleId)))
+                build: m.Build, health: health.GetValueOrDefault(m.Module.ModuleId), requiresLicence: m.Module.RequiresLicence))
             .ToList();
 
         // Activation rows whose module is no longer on disk: the data outlives the code (ADR 0740), and an
@@ -752,7 +818,7 @@ public class ModulesController : ControllerBase
 
     private static ModuleResource ToResource(
         string moduleId, string displayName, int abiMajorVersion, bool installed, ModuleActivation? activation,
-        bool hasSettings, string? build = null, ContentHealthSummary? health = null)
+        bool hasSettings, string? build = null, ContentHealthSummary? health = null, bool requiresLicence = true)
     {
         var now = DateTimeOffset.UtcNow;
         return new ModuleResource
@@ -768,8 +834,9 @@ public class ModulesController : ControllerBase
             Activated = activation is not null,
             Active = installed && activation is not null && ModuleActivationPolicy.IsActive(activation, now),
             InGrace = activation is not null && ModuleActivationPolicy.IsInGrace(activation, now),
+            RequiresLicence = requiresLicence,
             SupportContractEndDate = activation?.SupportContractEndDate,
-            DeactivatesAt = activation is null ? null : ModuleActivationPolicy.DeactivatesAt(activation),
+            DeactivatesAt = activation is null || ModuleActivationPolicy.IsLicenceFree(activation) ? null : ModuleActivationPolicy.DeactivatesAt(activation),
             LicenseDocumentId = activation?.LicenseDocumentId,
             ActivatedAt = activation?.ActivatedAt,
             // The activation act is only reachable where the code to activate exists; a not-installed row
@@ -781,7 +848,13 @@ public class ModulesController : ControllerBase
             Links = installed
                 ?
                 [
-                    new Link("license", $"/api/modules/{moduleId}/license", "PUT"),
+                    // A licensed module is activated by filing its licence; a licence-free one (ADR 0944) by the
+                    // administrator alone, as a state pair: activate while off, deactivate while on.
+                    .. requiresLicence
+                        ? new[] { new Link("license", $"/api/modules/{moduleId}/license", "PUT") }
+                        : activation is null
+                            ? [new Link("activate", $"/api/modules/{moduleId}/activation", "PUT")]
+                            : [new Link("deactivate", $"/api/modules/{moduleId}/activation", "DELETE")],
                     .. hasSettings
                         ? new[] { new Link("settings", $"/api/modules/{moduleId}/settings", "GET") }
                         : [],

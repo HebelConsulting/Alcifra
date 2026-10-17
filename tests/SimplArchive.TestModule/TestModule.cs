@@ -93,6 +93,10 @@ public sealed class TestModule : IIndustryModule
             },
         };
 
+    /// <summary>Licence-free on demand (ABI 1.23, ADR 0944), so the end-to-end suite can follow the activate and
+    /// deactivate rels a licence-free module carries.</summary>
+    public bool RequiresLicence => Environment.GetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_LICENCE_FREE") != "1";
+
     public string LicenseVerifyKeyPem =>
         Environment.GetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_VERIFY_KEY") ?? VerifyKeyPem;
 

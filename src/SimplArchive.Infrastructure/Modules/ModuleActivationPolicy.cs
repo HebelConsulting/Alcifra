@@ -20,11 +20,15 @@ public static class ModuleActivationPolicy
     /// <summary>The first instant the contract no longer covers — the end DAY is inclusive
     /// (<see cref="ModuleActivation.SupportContractEndDate"/> stores its midnight UTC).</summary>
     public static DateTimeOffset ExpiresAt(ModuleActivation activation) =>
-        activation.SupportContractEndDate.AddDays(1);
+        activation.SupportContractEndDate is { } end ? end.AddDays(1) : DateTimeOffset.MaxValue;
 
     /// <summary>The instant the grace runs out and the module deactivates itself.</summary>
+    /// <remarks>A licence-free activation (no end date, ADR 0944) never deactivates: <see cref="DateTimeOffset.MaxValue"/>.</remarks>
     public static DateTimeOffset DeactivatesAt(ModuleActivation activation) =>
-        ExpiresAt(activation) + GracePeriod;
+        activation.SupportContractEndDate is null ? DateTimeOffset.MaxValue : ExpiresAt(activation) + GracePeriod;
+
+    /// <summary>A licence-free activation (ABI 1.23, ADR 0944): no contract, no ladder, never lapses.</summary>
+    public static bool IsLicenceFree(ModuleActivation activation) => activation.SupportContractEndDate is null;
 
     /// <summary>Whether the module's behaviour is on for this tenant right now.</summary>
     public static bool IsActive(ModuleActivation activation, DateTimeOffset now) =>
@@ -43,7 +47,8 @@ public static class ModuleActivationPolicy
     /// 3 deactivated) — derived like everything else here; the stored level only remembers what was
     /// already announced.</summary>
     public static int EscalationLevelFor(ModuleActivation activation, DateTimeOffset now) =>
-        !IsActive(activation, now) ? 3
+        IsLicenceFree(activation) ? 0
+        : !IsActive(activation, now) ? 3
         : IsInGrace(activation, now) ? 2
         : now >= ExpiresAt(activation) - WarnWindow ? 1
         : 0;

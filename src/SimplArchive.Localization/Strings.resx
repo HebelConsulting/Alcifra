@@ -4959,6 +4959,9 @@
   <data name="ModActiveUntil" xml:space="preserve">
     <value>Active — support contract through {0}</value>
   </data>
+  <data name="ModActiveNoLicence" xml:space="preserve">
+    <value>Active — needs no licence</value>
+  </data>
   <data name="ModInGrace" xml:space="preserve">
     <value>Renewal due — runs in grace until {0}</value>
   </data>

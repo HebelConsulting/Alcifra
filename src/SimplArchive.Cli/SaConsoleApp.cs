@@ -175,7 +175,9 @@ public static class SaConsoleApp
                 module.AddCommand<ModuleRebuildCommand>("rebuild")
                     .WithDescription("Re-derive a module's read model from documents. One projection, or all.");
                 module.AddCommand<ModuleActivateCommand>("activate")
-                    .WithDescription("File a vendor-signed licence and activate every module it names.");
+                    .WithDescription("File a vendor-signed licence and activate every module it names; or, with --module alone, activate a module that needs no licence.");
+                module.AddCommand<ModuleDeactivateCommand>("deactivate")
+                    .WithDescription("Turn off a module that needs no licence (ADR 0944).");
                 module.AddCommand<ModuleActionCommand>("action")
                     .WithDescription("Invoke a module's action on a document. A value it reveals once is written to a file.");
                 module.AddCommand<ModuleUploadCommand>("upload")
