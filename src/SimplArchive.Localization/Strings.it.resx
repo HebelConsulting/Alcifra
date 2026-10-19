@@ -5799,4 +5799,13 @@
   <data name="MobAddressBook" xml:space="preserve">
     <value>Rubrica</value>
   </data>
+  <data name="MobApptZone" xml:space="preserve">
+    <value>Fuso orario: {0}</value>
+  </data>
+  <data name="MobApptZoneChange" xml:space="preserve">
+    <value>Cambia</value>
+  </data>
+  <data name="MobApptZoneFloating" xml:space="preserve">
+    <value>Nessun fuso orario (fluttuante)</value>
+  </data>
 </root>

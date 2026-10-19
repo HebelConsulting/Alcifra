@@ -5799,4 +5799,13 @@
   <data name="MobAddressBook" xml:space="preserve">
     <value>Libreta de direcciones</value>
   </data>
+  <data name="MobApptZone" xml:space="preserve">
+    <value>Zona horaria: {0}</value>
+  </data>
+  <data name="MobApptZoneChange" xml:space="preserve">
+    <value>Cambiar</value>
+  </data>
+  <data name="MobApptZoneFloating" xml:space="preserve">
+    <value>Sin zona horaria (flotante)</value>
+  </data>
 </root>
