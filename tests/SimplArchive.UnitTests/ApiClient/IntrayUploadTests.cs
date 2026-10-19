@@ -31,4 +31,23 @@ public sealed class IntrayUploadTests : ApiClientSettingsTest
         Assert.Contains("Shared.pdf", server.Requests[1].Body, StringComparison.Ordinal);
         Assert.Equal("%PDF-1.7", server.Requests[2].Body);
     }
+
+    [Fact]
+    public async Task A_listed_item_without_a_download_rel_lists_with_an_empty_address()
+    {
+        // A strict tenant offers no plaintext door, so its items carry no `download` (#1376); the listing must still read.
+        using var server = new LoopbackServer((method, path, _) => (method, path) switch
+        {
+            ("GET", "/api") => (200, """{"links":[{"rel":"intray","href":"/api/intray"}]}"""),
+            ("GET", "/api/intray") => (200, """{"items":[{"name":"Sealed.pdf","size":12,"links":[{"rel":"preview","href":"/api/intray/Sealed.pdf/preview","method":"GET"},{"rel":"move","href":"/api/intray/Sealed.pdf/parent","method":"PUT"}]}],"links":[]}"""),
+            _ => (404, "{}"),
+        });
+        ApiClientSettings.ApiRootUrl = server.BaseUrl.TrimEnd('/');
+
+        var item = Assert.Single((await new IntrayApi(new ApiCore("access-1")).ListAsync()).Items);
+
+        Assert.Equal("Sealed.pdf", item.Name);
+        Assert.Equal(string.Empty, item.DownloadUrl);
+        Assert.Equal("/api/intray/Sealed.pdf/parent", item.MoveUrl);
+    }
 }

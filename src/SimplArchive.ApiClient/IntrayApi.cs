@@ -53,9 +53,13 @@ public sealed class IntrayApi(ApiCore core)
         {
             foreach (var item in array.EnumerateArray())
             {
+                // A rel the row does not carry is empty, never a throw: a strict tenant lists items with no `download`
+                // (#1376), and the throw read as "the server cannot be reached" on the phone (2026-10-19).
                 string Link(string rel) => item.TryGetProperty("links", out var links)
-                    ? links.EnumerateArray().FirstOrDefault(l => l.GetProperty("rel").GetString() == rel).GetProperty("href").GetString() ?? ""
-                    : "";
+                    && links.EnumerateArray().FirstOrDefault(l => l.GetProperty("rel").GetString() == rel) is { ValueKind: JsonValueKind.Object } link
+                    && link.TryGetProperty("href", out var href)
+                        ? href.GetString() ?? string.Empty
+                        : string.Empty;
                 Guid? Id(string prop) => item.TryGetProperty(prop, out var p) && p.ValueKind == JsonValueKind.String ? p.GetGuid() : null;
                 string? Str(string prop) => item.TryGetProperty(prop, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
                 items.Add(new IntrayItemInfo(
@@ -383,8 +387,8 @@ public sealed class IntrayApi(ApiCore core)
     {
         var intray = await core.Http.GetFromJsonAsync<JsonElement>(await core.RootHrefAsync("intray", cancellationToken), cancellationToken);
         var href = intray.GetProperty("links").EnumerateArray()
-            .FirstOrDefault(l => l.GetProperty("rel").GetString() == "from-document")
-            .GetProperty("href").GetString()
+            .Where(l => l.GetProperty("rel").GetString() == "from-document")
+            .Select(l => l.GetProperty("href").GetString()).FirstOrDefault()
             ?? throw new ApiActionException("The intray did not offer a template copy here.");
 
         using var response = await core.Http.PostAsJsonAsync(href, new { documentId }, cancellationToken);
