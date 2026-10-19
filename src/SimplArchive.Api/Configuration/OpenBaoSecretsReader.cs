@@ -70,6 +70,13 @@ public sealed class OpenBaoSecretsReader
         if (webPush.TryGetValue("publicKey", out var vapidPublic)) data["WebPush:VapidPublicKey"] = vapidPublic;
         if (webPush.TryGetValue("privateKey", out var vapidPrivate)) data["WebPush:VapidPrivateKey"] = vapidPrivate;
 
+        // The APNs key that signs pushes to iPhones and iPads (core #1805): keyId, teamId and the .p8's PEM. Optional —
+        // without it the installation sends no APNs pushes and offers none; partly set is refused in production.
+        var apns = await ReadKvAsync(token, "simplarchive/apns", cancellationToken, optional: true);
+        if (apns.TryGetValue("keyId", out var apnsKeyId)) data["Apns:KeyId"] = apnsKeyId;
+        if (apns.TryGetValue("teamId", out var apnsTeamId)) data["Apns:TeamId"] = apnsTeamId;
+        if (apns.TryGetValue("privateKey", out var apnsKey)) data["Apns:PrivateKeyPem"] = apnsKey;
+
         // Dynamic Postgres credential — OpenBao mints a short-lived role; compose the connection string from the
         // non-secret template + the issued username/password.
         if (!string.IsNullOrWhiteSpace(_options.DatabaseConnectionTemplate))

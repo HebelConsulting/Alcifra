@@ -29,6 +29,8 @@ namespace SimplArchive.Api.Notifications;
 public sealed class PhonePushSender(
     IServiceScopeFactory scopes,
     DavPushConfiguration webPush,
+    Microsoft.Extensions.Options.IOptions<ApnsOptions> apnsOptions,
+    ApnsClient apns,
     IHttpClientFactory httpClients,
     ILogger<PhonePushSender> logger) : IPhonePushNotifier
 {
@@ -37,7 +39,7 @@ public sealed class PhonePushSender(
 
     public void Notify(IReadOnlyList<PhonePushItem> items)
     {
-        if (!webPush.IsEnabled || items.Count == 0)
+        if ((!webPush.IsEnabled && !apnsOptions.Value.IsConfigured) || items.Count == 0)
         {
             return;
         }
@@ -79,12 +81,25 @@ public sealed class PhonePushSender(
 
         using var http = httpClients.CreateClient(nameof(PhonePushSender));
         http.Timeout = PerDevice;
+        using var apple = httpClients.CreateClient(ApnsClient.HttpClientName);
+        apple.Timeout = PerDevice;
         var gone = new List<Guid>();
         foreach (var item in items.Where(i => !phoneOff.Any(p => p.UserId == i.UserId && p.Type == i.Type)))
         {
             var payload = System.Text.Encoding.UTF8.GetBytes(Payload(item));
             foreach (var device in devices.Where(d => d.UserId == item.UserId))
             {
+                if (device.Transport == Domain.Notifications.PushTransports.Apns)
+                {
+                    await SendApnsAsync(apple, device, item, gone);
+                    continue;
+                }
+
+                if (!webPush.IsEnabled)
+                {
+                    continue;
+                }
+
                 try
                 {
                     using var response = await http.SendAsync(Request(device, payload));
@@ -112,11 +127,42 @@ public sealed class PhonePushSender(
         }
     }
 
+    // An iPhone or iPad through APNs (core #1805): a token Apple calls gone is unregistered; refused credentials are an
+    // administrator's to fix, and say so (ADR 0626) — never the token itself, which identifies a device.
+    private async Task SendApnsAsync(HttpClient apple, Domain.Notifications.PhonePushRegistration device, PhonePushItem item, List<Guid> gone)
+    {
+        if (!apnsOptions.Value.IsConfigured)
+        {
+            return;
+        }
+
+        try
+        {
+            var (outcome, status, reason) = await apns.SendAsync(apple, device, item.NotificationId, CancellationToken.None);
+            switch (outcome)
+            {
+                case ApnsClient.Outcome.Gone:
+                    gone.Add(device.Id);
+                    break;
+                case ApnsClient.Outcome.CredentialsRefused:
+                    logger.LogWarning("APNs refused the installation's credentials ({Status} {Reason}): no iPhone or iPad receives pushes until the Apns settings are fixed", status, reason);
+                    break;
+                case ApnsClient.Outcome.Failed:
+                    logger.LogWarning("An APNs push to registration {RegistrationId} was refused with {Status} {Reason}", device.Id, status, reason);
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogWarning(e, "An APNs push to registration {RegistrationId} failed", device.Id);
+        }
+    }
+
     // RFC 8030: the encrypted body, how long the push service may hold it, and the VAPID authorisation (RFC 8292).
     private HttpRequestMessage Request(Domain.Notifications.PhonePushRegistration device, byte[] payload)
     {
         var body = new ByteArrayContent(WebPushMessage.Encrypt(
-            WebPushMessage.FromBase64Url(device.P256dh), WebPushMessage.FromBase64Url(device.Auth), payload));
+            WebPushMessage.FromBase64Url(device.P256dh!), WebPushMessage.FromBase64Url(device.Auth!), payload));
         body.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
         body.Headers.ContentEncoding.Add("aes128gcm");
         var request = new HttpRequestMessage(HttpMethod.Post, device.Endpoint) { Content = body };

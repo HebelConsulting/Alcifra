@@ -250,4 +250,36 @@ public class ProductionReadinessValidatorTests
         Assert.Empty(ProductionReadinessValidator.Validate(
             config, new StubEnvironment { EnvironmentName = "Development" }));
     }
+
+    // Core #1805: APNs all three settings or none — a half-configured sender would offer push to iPhones and fail it.
+    [Theory]
+    [InlineData("Apns:KeyId")]
+    [InlineData("Apns:TeamId")]
+    [InlineData("Apns:PrivateKeyPem")]
+    public void A_partly_configured_apns_is_refused(string missing)
+    {
+        var values = new Dictionary<string, string?>(CleanProduction)
+        {
+            ["Apns:KeyId"] = "ABC123DEFG",
+            ["Apns:TeamId"] = "Y45XPY3925",
+            ["Apns:PrivateKeyPem"] = "a key (the gate only asks that it is set)",
+        };
+        values.Remove(missing);
+
+        Assert.Contains(ProductionReadinessValidator.Validate(Config(values), new StubEnvironment(), StampedVersion),
+            v => v.StartsWith("Apns is only partly configured", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Apns_configured_whole_passes()
+    {
+        var values = new Dictionary<string, string?>(CleanProduction)
+        {
+            ["Apns:KeyId"] = "ABC123DEFG",
+            ["Apns:TeamId"] = "Y45XPY3925",
+            ["Apns:PrivateKeyPem"] = "a key (the gate only asks that it is set)",
+        };
+
+        Assert.Empty(ProductionReadinessValidator.Validate(Config(values), new StubEnvironment(), StampedVersion));
+    }
 }

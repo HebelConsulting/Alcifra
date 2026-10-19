@@ -2212,13 +2212,16 @@ namespace SimplArchive.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ApnsEnvironment")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("App")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.Property<string>("Auth")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
@@ -2243,12 +2246,18 @@ namespace SimplArchive.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("P256dh")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Transport")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("webpush");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -2262,7 +2271,10 @@ namespace SimplArchive.Infrastructure.Migrations
 
                     b.HasIndex("TenantId", "UserId");
 
-                    b.ToTable("PhonePushRegistrations");
+                    b.ToTable("PhonePushRegistrations", t =>
+                        {
+                            t.HasCheckConstraint("CK_PhonePushRegistrations_Transport", "(CASE WHEN \"Transport\" = 'webpush' AND \"P256dh\" IS NOT NULL AND \"Auth\" IS NOT NULL AND \"ApnsEnvironment\" IS NULL THEN 1 WHEN \"Transport\" = 'apns' AND \"P256dh\" IS NULL AND \"Auth\" IS NULL AND \"ApnsEnvironment\" IN ('sandbox', 'production') THEN 1 ELSE 0 END) = 1");
+                        });
                 });
 
             modelBuilder.Entity("SimplArchive.Domain.Notifications.UserNotificationPreference", b =>

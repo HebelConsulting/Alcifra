@@ -17,8 +17,18 @@ public class PhonePushRegistrationConfiguration : IEntityTypeConfiguration<Phone
         builder.Property(r => r.App).IsRequired().HasMaxLength(100);
         builder.Property(r => r.DeviceLabel).IsRequired().HasMaxLength(100);
         builder.Property(r => r.Endpoint).IsRequired().HasMaxLength(2000);
-        builder.Property(r => r.P256dh).IsRequired().HasMaxLength(200);
-        builder.Property(r => r.Auth).IsRequired().HasMaxLength(200);
+        builder.Property(r => r.P256dh).HasMaxLength(200);
+        builder.Property(r => r.Auth).HasMaxLength(200);
+
+        // Owner-approved (2026-10-19, core #1805): Web Push or APNs. A Web Push row has its two keys and no environment; an
+        // APNs row has an environment and no keys. CASE WHEN, so it stays portable across PostgreSQL and SQLite.
+        builder.Property(r => r.Transport).IsRequired().HasMaxLength(20).HasDefaultValue(PushTransports.WebPush);
+        builder.Property(r => r.ApnsEnvironment).HasMaxLength(20);
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_PhonePushRegistrations_Transport",
+            "(CASE WHEN \"Transport\" = 'webpush' AND \"P256dh\" IS NOT NULL AND \"Auth\" IS NOT NULL AND \"ApnsEnvironment\" IS NULL THEN 1 " +
+            "WHEN \"Transport\" = 'apns' AND \"P256dh\" IS NULL AND \"Auth\" IS NULL AND \"ApnsEnvironment\" IN ('sandbox', 'production') THEN 1 " +
+            "ELSE 0 END) = 1"));
 
         builder.HasIndex(r => new { r.TenantId, r.Endpoint }).IsUnique();
         builder.HasIndex(r => new { r.TenantId, r.UserId });

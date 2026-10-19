@@ -298,7 +298,8 @@ postfix:
 # the phone app still works and shows notifications when opened; with it, each notification wakes the phone. It must
 # be reachable from the internet at `publicUrl`, through the ingress below or one of your own, because the phone's
 # distributor app connects to it directly. The VAPID key pair that signs the pushes comes from OpenBao
-# (secret/simplarchive/webpush: publicKey, privateKey); without it the app sends nothing.
+# (secret/simplarchive/webpush: publicKey, privateKey); without it the app sends nothing. iPhones and iPads need no
+# push server: the Api sends through APNs with a key at secret/simplarchive/apns (keyId, teamId, privateKey; ADR 0951).
 #
 # The message cache is an emptyDir: it holds a day of id-only messages for phones that were offline, and losing it
 # in a restart costs those phones a wake-up, never a notification.

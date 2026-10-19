@@ -185,14 +185,8 @@ builder.Services.AddSingleton<SimplArchive.Api.Security.ISignInThrottle, SimplAr
 
 builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, SimplArchive.Api.Realtime.SubjectUserIdProvider>();
 builder.Services.AddSingleton<SimplArchive.Application.Abstractions.IRealtimeNotifier, SimplArchive.Api.Realtime.SignalRRealtimeNotifier>();
-// New notifications to the recipients' phones (SimplArchiveMobile #20): best effort, after the save, off the request.
-builder.Services.AddSingleton<SimplArchive.Application.Abstractions.IPhonePushNotifier, SimplArchive.Api.Notifications.PhonePushSender>();
-// The phone's push address is whatever the device registered, so it goes through the same outbound guard as the
-// calendar push: without it, a registration naming an internal host would make the server post to it (SSRF).
-builder.Services.AddHttpClient(nameof(SimplArchive.Api.Notifications.PhonePushSender))
-    .ConfigurePrimaryHttpMessageHandler(provider =>
-        SimplArchive.Infrastructure.Http.GuardedOutboundHandler.Create(
-            provider.GetRequiredService<SimplArchive.Application.Abstractions.IOutboundAddressPolicy>()));
+// New notifications to the recipients' phones: Web Push and APNs, behind the outbound guard (PhonePushServices).
+SimplArchive.Api.Notifications.PhonePushServices.AddPhonePush(builder.Services, builder.Configuration);
 
 // The IMAP endpoint (ADR "IMAP endpoint (read-only, first slice)", #562) — a raw TCP hosted service, off
 // unless Imap:Enabled. Registered as a singleton FIRST so tests (and the dialog surface) can read the bound
@@ -254,8 +248,6 @@ builder.Services.Configure<SimplArchive.Api.CalDav.DavPushOptions>(
     builder.Configuration.GetSection("WebPush").Exists()
         ? builder.Configuration.GetSection("WebPush")
         : builder.Configuration.GetSection(SimplArchive.Api.CalDav.DavPushOptions.SectionName));
-builder.Services.Configure<SimplArchive.Api.Controllers.PhonePushOptions>(
-    builder.Configuration.GetSection(SimplArchive.Api.Controllers.PhonePushOptions.SectionName));
 builder.Services.AddSingleton<SimplArchive.Api.CalDav.DavPushConfiguration>();
 builder.Services.AddHttpClient<SimplArchive.Api.CalDav.DavPushNotifier>()
     .ConfigurePrimaryHttpMessageHandler(provider =>

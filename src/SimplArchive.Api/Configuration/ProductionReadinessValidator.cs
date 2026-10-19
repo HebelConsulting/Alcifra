@@ -131,6 +131,14 @@ public static class ProductionReadinessValidator
             violations.Add("ConnectionStrings:Default uses the development Postgres password — use a real credential (or source it from OpenBao).");
         }
 
+        // APNs (core #1805): all three settings or none — a half-configured sender would offer push to iPhones and then
+        // fail every one of them silently.
+        var apns = configuration.GetSection(Notifications.ApnsOptions.SectionName).Get<Notifications.ApnsOptions>();
+        if (apns is { IsPartlyConfigured: true })
+        {
+            violations.Add("Apns is only partly configured — set Apns:KeyId, Apns:TeamId and Apns:PrivateKeyPem together, or none of them.");
+        }
+
         return violations;
     }
 

@@ -30,7 +30,6 @@ namespace SimplArchive.Api.Controllers;
 [Route("api/push-registrations")]
 public sealed class PushRegistrationsController : ControllerBase
 {
-    private const int EndpointMax = 2000, KeyMax = 200, LabelMax = 100;
 
     private readonly SimplArchiveDbContext _dbContext;
     private readonly ICurrentUserAccessor _currentUser;
@@ -38,6 +37,7 @@ public sealed class PushRegistrationsController : ControllerBase
     private readonly PhonePushRegistrationVerbs _registrations;
     private readonly DavPushConfiguration _webPush;
     private readonly PhonePushOptions _options;
+    private readonly Notifications.ApnsOptions _apns;
     private readonly IAuditRecorder _audit;
     private readonly bool _development;
 
@@ -48,12 +48,14 @@ public sealed class PushRegistrationsController : ControllerBase
         PhonePushRegistrationVerbs registrations,
         DavPushConfiguration webPush,
         IOptions<PhonePushOptions> options,
+        IOptions<Notifications.ApnsOptions> apns,
         IAuditRecorder audit,
         IHostEnvironment environment)
     {
         _development = environment.IsDevelopment();
         (_dbContext, _currentUser, _currentTenant, _registrations, _webPush, _audit) = (dbContext, currentUser, currentTenant, registrations, webPush, audit);
         _options = options.Value;
+        _apns = apns.Value;
     }
 
     public sealed class RegistrationRequest
@@ -63,6 +65,12 @@ public sealed class PushRegistrationsController : ControllerBase
         public string Endpoint { get; set; } = string.Empty;
         public string P256dh { get; set; } = string.Empty;
         public string Auth { get; set; } = string.Empty;
+
+        /// <summary><c>webpush</c> (the default, what every app sent before APNs) or <c>apns</c> (iOS, core #1805).</summary>
+        public string Transport { get; set; } = PushTransports.WebPush;
+
+        /// <summary>For APNs: <c>sandbox</c> (a development build) or <c>production</c> (TestFlight, the App Store).</summary>
+        public string? ApnsEnvironment { get; set; }
     }
 
     public sealed class RegistrationResource : HypermediaResource
@@ -83,6 +91,9 @@ public sealed class PushRegistrationsController : ControllerBase
 
         /// <summary>The installation's push server, for the distributor app's settings; null when none is set.</summary>
         public string? PushServer { get; set; }
+
+        /// <summary>Whether the installation sends through APNs, so an iPhone registers its device token (core #1805).</summary>
+        public bool ApnsAvailable { get; set; }
     }
 
     [HttpGet]
@@ -100,6 +111,7 @@ public sealed class PushRegistrationsController : ControllerBase
             Registrations = [.. rows.Select(Resource)],
             VapidPublicKey = _webPush.IsEnabled ? _webPush.VapidPublicKey : null,
             PushServer = string.IsNullOrWhiteSpace(_options.ServerUrl) ? null : _options.ServerUrl,
+            ApnsAvailable = _apns.IsConfigured,
             // One rel for the collection: GET lists, POST to the same address registers (ADR 0719).
             Links = [new Link("self", Url.Action(nameof(List))!, "GET")],
         });
@@ -121,7 +133,7 @@ public sealed class PushRegistrationsController : ControllerBase
             return Forbid();
         }
 
-        Validate(request, requireApp: true, _development);
+        Validate(request, requireApp: true, _development, _apns.IsConfigured);
         if (await _dbContext.PhonePushRegistrations.FirstOrDefaultAsync(r => r.Endpoint == request.Endpoint, cancellationToken) is { } existing)
         {
             if (existing.UserId != userId)
@@ -141,9 +153,11 @@ public sealed class PushRegistrationsController : ControllerBase
             UserId = userId,
             App = request.App.Trim(),
             DeviceLabel = request.DeviceLabel.Trim(),
+            Transport = request.Transport,
             Endpoint = request.Endpoint,
-            P256dh = request.P256dh,
-            Auth = request.Auth,
+            P256dh = IsApns(request) ? null : request.P256dh,
+            Auth = IsApns(request) ? null : request.Auth,
+            ApnsEnvironment = IsApns(request) ? request.ApnsEnvironment : null,
             CreatedAt = now,
             LastRegisteredAt = now,
         };
@@ -176,7 +190,12 @@ public sealed class PushRegistrationsController : ControllerBase
     {
         _registrations.RequireIfMatch(Request);
         var registration = await MineAsync(id, cancellationToken);
-        Validate(request, requireApp: false, _development);
+        Validate(request, requireApp: false, _development, _apns.IsConfigured);
+        if (request.Transport != registration.Transport)
+        {
+            throw new InvalidPushRegistrationException();   // a device that changes transport registers anew
+        }
+
         if (request.Endpoint != registration.Endpoint
             && await _dbContext.PhonePushRegistrations.AnyAsync(r => r.Endpoint == request.Endpoint && r.Id != id, cancellationToken))
         {
@@ -187,8 +206,9 @@ public sealed class PushRegistrationsController : ControllerBase
         {
             registration.DeviceLabel = request.DeviceLabel.Trim();
             registration.Endpoint = request.Endpoint;
-            registration.P256dh = request.P256dh;
-            registration.Auth = request.Auth;
+            registration.P256dh = IsApns(request) ? null : request.P256dh;
+            registration.Auth = IsApns(request) ? null : request.Auth;
+            registration.ApnsEnvironment = IsApns(request) ? request.ApnsEnvironment : null;
             registration.LastRegisteredAt = DateTimeOffset.UtcNow;
             return Task.CompletedTask;
         },
@@ -221,32 +241,14 @@ public sealed class PushRegistrationsController : ControllerBase
             ? registration
             : throw new PushRegistrationNotFoundException();
 
-    // https only: the server posts to whatever address a device names, so a plain-http or internal address would let
-    // a user aim it at the installation's own services. Loopback http is accepted in Development alone, where a test
-    // or a developer's local push server listens on it.
-    private static void Validate(RegistrationRequest request, bool requireApp, bool development)
+    private static bool IsApns(RegistrationRequest request) => request.Transport == PushTransports.Apns;
+
+    private static void Validate(RegistrationRequest request, bool requireApp, bool development, bool apnsConfigured)
     {
-        var valid = (!requireApp || request.App.Trim() is { Length: > 0 and <= LabelMax })
-            && request.DeviceLabel.Trim() is { Length: > 0 and <= LabelMax }
-            && request.Endpoint.Length <= EndpointMax
-            && Uri.TryCreate(request.Endpoint, UriKind.Absolute, out var endpoint)
-            && (endpoint.Scheme == Uri.UriSchemeHttps || (development && endpoint.Scheme == Uri.UriSchemeHttp && endpoint.IsLoopback))
-            && request.P256dh is { Length: > 0 and <= KeyMax } && DecodedLength(request.P256dh) is 65
-            && request.Auth is { Length: > 0 and <= KeyMax } && DecodedLength(request.Auth) is 16;
-        if (!valid)
+        if (!PushRegistrationRules.IsValid(request, requireApp, development, apnsConfigured))
         {
             throw new InvalidPushRegistrationException();
         }
-    }
-
-    // RFC 8291's keys, checked here rather than at the first push: an uncompressed P-256 point (65 bytes) and a 16-byte
-    // auth secret, base64url. A registration whose keys cannot encrypt would otherwise fail silently on every push.
-    private static int DecodedLength(string base64Url)
-    {
-        var padded = base64Url.Replace('-', '+').Replace('_', '/');
-        padded = padded.PadRight(padded.Length + ((4 - (padded.Length % 4)) % 4), '=');
-        var buffer = new byte[padded.Length];
-        return Convert.TryFromBase64String(padded, buffer, out var written) ? written : -1;
     }
 
     private RegistrationResource Resource(PhonePushRegistration r) => new()

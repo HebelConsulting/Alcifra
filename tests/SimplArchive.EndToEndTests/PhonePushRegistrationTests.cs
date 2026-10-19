@@ -98,6 +98,28 @@ public class PhonePushRegistrationTests
         Assert.Equal(HttpStatusCode.NotFound, notHis.StatusCode);
     }
 
+    // Core #1805: an installation without APNs credentials says so, and refuses an iPhone's token rather than keep a
+    // registration that never receives anything. (With credentials, sending reaches Apple, which CI does not call.)
+    [Fact]
+    public async Task Without_apns_credentials_the_collection_says_so_and_an_apns_token_is_refused()
+    {
+        var api = await UserAsync(await _factory.SeedTenantNamedAsync($"push-{Guid.NewGuid():N}"));
+        var collection = await CollectionAsync(api);
+
+        var listed = await TestJson.Get(api, collection);
+        using var apns = await api.PostAsJsonAsync(collection, new
+        {
+            app = "dev.simplarchive.mobile",
+            deviceLabel = "iPhone · Anna on demo",
+            transport = "apns",
+            endpoint = new string('a', 64),
+            apnsEnvironment = "sandbox",
+        });
+
+        Assert.False(listed.GetProperty("apnsAvailable").GetBoolean());
+        Assert.Equal(HttpStatusCode.BadRequest, apns.StatusCode);
+    }
+
     [Fact]
     public async Task A_registration_needs_an_https_address_and_usable_keys()
     {
