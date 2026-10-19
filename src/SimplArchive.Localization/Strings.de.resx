@@ -5436,6 +5436,15 @@
   <data name="MobKeyTurnOnNfc" xml:space="preserve">
     <value>NFC einschalten</value>
   </data>
+  <data name="MobKeyNoLightning" xml:space="preserve">
+    <value>Dieses Gerät hat keinen Lightning-Anschluss.</value>
+  </data>
+  <data name="MobKeyNotYet" xml:space="preserve">
+    <value>Noch nicht unterstützt.</value>
+  </data>
+  <data name="MobKeyPinFirst" xml:space="preserve">
+    <value>Geben Sie zuerst Ihre PIN ein (6–8 Ziffern).</value>
+  </data>
   <data name="MobKeyHold" xml:space="preserve">
     <value>Halten Sie den Schlüssel an die Rückseite des Telefons…</value>
   </data>

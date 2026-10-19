@@ -5436,6 +5436,15 @@
   <data name="MobKeyTurnOnNfc" xml:space="preserve">
     <value>Turn on NFC</value>
   </data>
+  <data name="MobKeyNoLightning" xml:space="preserve">
+    <value>This device has no Lightning port.</value>
+  </data>
+  <data name="MobKeyNotYet" xml:space="preserve">
+    <value>Not supported yet.</value>
+  </data>
+  <data name="MobKeyPinFirst" xml:space="preserve">
+    <value>Enter your PIN first (6–8 digits).</value>
+  </data>
   <data name="MobKeyHold" xml:space="preserve">
     <value>Hold the key to the back of the phone…</value>
   </data>
