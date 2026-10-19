@@ -26,11 +26,13 @@ public class DesktopCheckoutBulkTests
         var repo = (await api.Documents.GetRepositoriesAsync()).Single(n => n.Name == "Demo Repository");
         var names = new[] { $"cobulk-{Guid.NewGuid():N}.txt", $"cobulk-{Guid.NewGuid():N}.txt" };
         var ids = new List<Guid>();
+        var versionsHrefs = new List<string>();
         foreach (var fileName in names)
         {
             await api.Documents.UploadFileAsync(repo.Href("children"), fileName, Encoding.UTF8.GetBytes("original"));
             var doc = (await api.Documents.GetChildrenAsync(repo.Href("children"))).Single(n => n.Name == Path.GetFileNameWithoutExtension(fileName));
             ids.Add(doc.Id);
+            versionsHrefs.Add(doc.Href("versions"));
             await api.Checkout.CheckOutViaDocumentAsync(doc.Href("self"));
             await api.Checkout.SaveWorkingCopyAsync((await api.Checkout.GetCheckoutsAsync()).Single(c => c.Id == doc.Id), Encoding.UTF8.GetBytes("edited"));
         }
@@ -52,11 +54,17 @@ public class DesktopCheckoutBulkTests
         Assert.False(vm.SelectedCanUnlock);
         Assert.False(vm.SelectedCanExtend);
 
-        // Bulk check-in: both promoted, one summary in the "{ok} of {n}" shape.
-        await vm.CheckInSelectionAsync(rows);
+        // Bulk check-in: both promoted, one summary in the "{ok} of {n}" shape — and the ONE comment the window
+        // asked for lands on every new version (ADR 0952).
+        await vm.CheckInSelectionAsync(rows, "Bulk reason");
 
         Assert.Equal(string.Format(SimplArchive.Localization.Strings.Get("CoBulkCheckedIn"), 2, 2), shell.Reports.LastOrDefault());
         Assert.DoesNotContain(vm.Items, i => ids.Contains(i.Id)); // both released, so both left the tab
+        foreach (var versionsHref in versionsHrefs)
+        {
+            var latest = (await api.Versions.GetVersionsAsync(versionsHref)).MaxBy(v => v.VersionNumber ?? 0)!;
+            Assert.Equal("Bulk reason", latest.Comment);
+        }
 
         // And a single-row selection flips the gates back the other way.
         var single = new CheckoutRowViewModel

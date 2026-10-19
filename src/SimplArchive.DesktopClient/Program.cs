@@ -402,6 +402,12 @@ internal static class Program
             return;
         }
 
+        // The check-in comment dialog driven for real against a running Api (ADR 0952).
+        if (Views.CheckInCommentCheck.TryRun(args))
+        {
+            return;
+        }
+
         // The icon hooks (ADR 0578): `--gen-icons [dir]` writes every launcher artefact from the one piece of
         // art, `--gen-icon <out.png>` renders that art alone. Both need Skia, hence the shared setup; the
         // dispatch and the argument walk belong to IconWriter, which is the thing that knows about icons.

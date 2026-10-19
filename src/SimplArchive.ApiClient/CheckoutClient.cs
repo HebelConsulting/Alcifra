@@ -123,9 +123,15 @@ public sealed class CheckoutClient(ApiCore core)
     // confirmed version and releases the lock — the desktop no longer uploads a local file. Holder-only; 400 if
     // there's no stash to check in (nothing changed).
 
-    public async Task CheckInFromStashAsync(CheckoutItem checkout, CancellationToken cancellationToken = default)
+    public Task CheckInFromStashAsync(CheckoutItem checkout, CancellationToken cancellationToken = default) =>
+        CheckInFromStashAsync(checkout, null, cancellationToken);
+
+    // The same check-in carrying the user's "why this version" note, which becomes the new version's comment (ADR
+    // 0952); null or blank means none. An overload, not an optional parameter, so callers compiled against the
+    // two-argument form keep binding (an optional parameter changes the method's binary signature).
+    public async Task CheckInFromStashAsync(CheckoutItem checkout, string? comment, CancellationToken cancellationToken = default)
     {
-        using var response = await _core.SendRelAsync(checkout.Links, "checkin", new { }, cancellationToken);
+        using var response = await _core.SendRelAsync(checkout.Links, "checkin", new { comment }, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
             throw new ApiActionException("You don't have permission to check in this document.");

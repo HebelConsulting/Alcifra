@@ -563,12 +563,21 @@
         catch (Exception) { Snackbar.Add(Strings.Get("CoErrUpload"), Severity.Error); }
     }
 
-    // Check in: promote the cloud stash to a new version + release (server-side).
+    // Check in: promote the cloud stash to a new version + release (server-side). The optional comment is asked
+    // first and becomes the new version's comment; Cancel aborts (ADR 0952).
     private async Task CheckInFromStashAsync(CheckoutDto c)
+    {
+        if (await CheckInCommentDialog.AskAsync(DialogService) is { } comment)
+        {
+            await CheckInFromStashAsync(c, comment);
+        }
+    }
+
+    private async Task CheckInFromStashAsync(CheckoutDto c, string comment)
     {
         try
         {
-            var resp = await Links.SendAsync(Http, c.Links, "checkin");
+            var resp = await Links.SendAsync(Http, c.Links, "checkin", CheckInBody(comment));
             if (resp.StatusCode == System.Net.HttpStatusCode.BadRequest) { Snackbar.Add(Strings.Get("CoErrUploadFirst"), Severity.Warning); return; }
             resp.EnsureSuccessStatusCode();
             Snackbar.Add(string.Format(Strings.Get("CoOkCheckedIn"), c.Name), Severity.Success);
@@ -577,6 +586,9 @@
         }
         catch (Exception) { Snackbar.Add(Strings.Get("CoErrCheckIn"), Severity.Error); }
     }
+
+    // The check-in body: the comment, or none when the user left it empty.
+    private static object CheckInBody(string comment) => new { comment = comment.Length == 0 ? null : comment };
 
     // Rotate/Sort the working copy (ADR 0593): thumbnails from pdf.js where the copy is a PDF (numbered tiles
     // otherwise), the shared dialog, then ONE request that writes the whole arrangement into the stash. The
@@ -684,16 +696,20 @@
     // through the single-row method, keeping its wording and its per-error snackbars exactly what they were.
     // An unmodified row under a bulk check-in is skipped, not failed: the gate only promises SOME row can.
 
+    //
+    // The comment is asked ONCE for the whole selection and becomes every new version's comment (ADR 0952).
+
     private async Task CheckInSelectionAsync()
     {
         var eligible = SelectedRows.Where(r => r.IsModified).ToList();
-        if (eligible.Count <= 1)
+        if (eligible.Count == 0 || await CheckInCommentDialog.AskAsync(DialogService) is not { } comment)
         {
-            if (eligible.FirstOrDefault() is { } single)
-            {
-                await CheckInFromStashAsync(single);
-            }
+            return;
+        }
 
+        if (eligible.Count == 1)
+        {
+            await CheckInFromStashAsync(eligible[0], comment);
             return;
         }
 
@@ -702,7 +718,7 @@
         {
             try
             {
-                var resp = await Links.SendAsync(Http, row.Links, "checkin");
+                var resp = await Links.SendAsync(Http, row.Links, "checkin", CheckInBody(comment));
                 if (resp.IsSuccessStatusCode)
                 {
                     succeeded++;

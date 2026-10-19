@@ -1,0 +1,47 @@
+@* Asked before a check-in (ADR 0952): the optional "why this version" note the new version carries — the
+   desktop's CheckInCommentDialog, matched (ADR 0511). Empty is allowed and means no comment; Cancel (or Esc)
+   aborts the check-in. A multi-document check-in asks once and gives every version the same comment.
+
+   Open it through AskAsync, which answers null for "cancelled" and string.Empty for "no comment", so a caller
+   cannot confuse the two. *@
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_comment" Label="@Strings.Get("FilingCommentLabel")"
+                      Placeholder="@Strings.Get("FilingCommentPlaceholder")" Variant="Variant.Outlined"
+                      Immediate="true" AutoFocus="true" OnKeyDown="OnKeyDown" Style="min-width: 360px;" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Strings.Get("Cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Accept">@Strings.Get("CoCheckIn")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private string? _comment = string.Empty;
+
+    /// <summary>
+    /// Asks for the check-in comment: null when the user cancelled, otherwise the trimmed comment
+    /// (<see cref="string.Empty"/> for none).
+    /// </summary>
+    public static async Task<string?> AskAsync(IDialogService dialogs)
+    {
+        var dialog = await dialogs.ShowAsync<CheckInCommentDialog>(
+            Strings.Get("CoCheckIn"), new DialogOptions { CloseOnEscapeKey = true });
+        return await dialog.Result is { Canceled: false, Data: string comment } ? comment : null;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Accept();
+        }
+    }
+
+    private void Accept() => Dialog.Close(DialogResult.Ok(_comment?.Trim() ?? string.Empty));
+
+    private void Cancel() => Dialog.Cancel();
+}

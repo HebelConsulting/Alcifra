@@ -167,6 +167,50 @@ public class CheckoutTests
         Assert.Equal("web-edited v2", await storage.GetStringAsync(download));
     }
 
+    // ADR 0952: a check-in may carry the user's "why this version" note, which becomes the new version's
+    // comment (trimmed, like the versions endpoint); a client that sends no body at all — one predating the
+    // comment — still checks in, and its version carries none.
+    [Fact]
+    public async Task Check_in_carries_an_optional_comment_onto_the_new_version()
+    {
+        var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
+        using var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
+
+        var repoId = (await TestJson.Post(owner, "/api/repositories", new { name = $"CC {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+        var docId = (await TestJson.Post(owner, $"/api/documents/{repoId}/children", new { name = "checkin-comment-doc" })).GetProperty("id").GetGuid();
+        await UploadConfirmedVersionAsync(owner, docId, "v1");
+        var (_, holder) = await SeedAdminAsync(tenantId);
+
+        // With a comment: padded on purpose, so the trim is what is asserted.
+        await CheckOutAndStashAsync(holder, docId, "v2");
+        (await holder.PostAsJsonAsync($"/api/documents/{docId}/checkout/checkin", new { comment = "  Fixed the totals  " })).EnsureSuccessStatusCode();
+        Assert.Equal("Fixed the totals", LatestComment(await TestJson.Get(owner, $"/api/documents/{docId}/versions")));
+
+        // No body at all: still a check-in, with no comment.
+        await CheckOutAndStashAsync(holder, docId, "v3");
+        (await holder.PostAsync($"/api/documents/{docId}/checkout/checkin", null)).EnsureSuccessStatusCode();
+        Assert.Null(LatestComment(await TestJson.Get(owner, $"/api/documents/{docId}/versions")));
+
+        // A blank comment is no comment.
+        await CheckOutAndStashAsync(holder, docId, "v4");
+        (await holder.PostAsJsonAsync($"/api/documents/{docId}/checkout/checkin", new { comment = "   " })).EnsureSuccessStatusCode();
+        Assert.Null(LatestComment(await TestJson.Get(owner, $"/api/documents/{docId}/versions")));
+    }
+
+    private static async Task CheckOutAndStashAsync(HttpClient holder, Guid docId, string content)
+    {
+        (await holder.PutAsync($"/api/documents/{docId}/checkout", null)).EnsureSuccessStatusCode();
+        var uploadUrl = (await TestJson.Put(holder, $"/api/documents/{docId}/checkout/working-copy", new { })).GetProperty("uploadUrl").GetString()!;
+        using var storage = new HttpClient();
+        (await storage.PutAsync(uploadUrl, new ByteArrayContent(Encoding.UTF8.GetBytes(content)))).EnsureSuccessStatusCode();
+    }
+
+    private static string? LatestComment(JsonElement versions)
+    {
+        var latest = versions.GetProperty("versions").EnumerateArray().OrderByDescending(v => v.GetProperty("versionNumber").GetInt32()).First();
+        return latest.TryGetProperty("comment", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
+    }
+
     // Anti-litter (like the intray, ADR 0306): the S3 checkout stash prefix must not accumulate orphaned working
     // copies — a release (check-in / unlock / discard / override) removes the stash object.
     [Fact]

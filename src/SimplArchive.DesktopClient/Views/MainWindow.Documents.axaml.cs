@@ -334,13 +334,23 @@ public partial class MainWindow
         : [];
 
     // Check in the selection — one document or many; the view-model routes a single row through the single-row
-    // path so its wording stays what it was.
+    // path so its wording stays what it was. The optional comment is asked first, ONCE for the whole selection,
+    // and becomes each new version's comment; Cancel aborts the check-in (ADR 0952).
     internal void OnCheckoutCheckIn(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
-        if (DataContext is MainWindowViewModel vm)
+        if (DataContext is not MainWindowViewModel vm)
         {
-            await vm.Checkout.CheckInSelectionAsync(CheckoutRowsFrom(sender, vm));
+            return;
         }
+
+        var rows = CheckoutRowsFrom(sender, vm);
+        if (rows.Count == 0
+            || await new CheckInCommentDialog().ShowDialog<string?>(this) is not { } comment)
+        {
+            return;
+        }
+
+        await vm.Checkout.CheckInSelectionAsync(rows, comment.Length == 0 ? null : comment);
     });
 
     // Discard a checked-out document's changes (ADR "Document check-out / check-in"; ADR 0513) — confirmed, since it

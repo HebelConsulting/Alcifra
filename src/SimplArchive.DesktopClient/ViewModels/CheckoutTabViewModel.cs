@@ -403,9 +403,12 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
     }
 
     // Check in: the server promotes the cloud stash (the WebDAV-edited working copy) to a new confirmed version and
-    // releases the lock (ADR 0513). Only offered when the row is Modified.
+    // releases the lock (ADR 0513). Only offered when the row is Modified. The command checks in with no comment;
+    // the window asks for one first and comes through CheckInSelectionAsync (ADR 0952).
     [RelayCommand]
-    private async Task CheckIn(CheckoutRowViewModel? row)
+    private Task CheckIn(CheckoutRowViewModel? row) => CheckInAsync(row, comment: null);
+
+    private async Task CheckInAsync(CheckoutRowViewModel? row, string? comment)
     {
         if (_api is null || row?.Item is not { } checkout)
         {
@@ -414,7 +417,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
 
         try
         {
-            await _api.Checkout.CheckInFromStashAsync(checkout);
+            await _api.Checkout.CheckInFromStashAsync(checkout, comment);
             Report($"Checked in '{row.Name}'.");
             await ReloadAllAsync();
         }
@@ -471,12 +474,15 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
     // first bad one, which is the partial-failure story the web's bulk-move path already tells. A single-row
     // selection routes through the single-row method so its wording and per-error reporting stay exactly what
     // they were.
+    //
+    // The comment is asked ONCE by the window and becomes every new version's comment (ADR 0952): a multi-row
+    // check-in is one act with one reason, and a prompt per document would only invite giving up halfway.
 
-    public async Task CheckInSelectionAsync(IReadOnlyList<CheckoutRowViewModel> rows)
+    public async Task CheckInSelectionAsync(IReadOnlyList<CheckoutRowViewModel> rows, string? comment = null)
     {
         if (rows.Count <= 1)
         {
-            await CheckIn(rows.FirstOrDefault());
+            await CheckInAsync(rows.FirstOrDefault(), comment);
             return;
         }
 
@@ -484,7 +490,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
         var succeeded = 0;
         foreach (var row in eligible)
         {
-            if (await TryCheckInAsync(row))
+            if (await TryCheckInAsync(row, comment))
             {
                 succeeded++;
             }
@@ -520,7 +526,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
         await ReloadAllAsync();
     }
 
-    private async Task<bool> TryCheckInAsync(CheckoutRowViewModel row)
+    private async Task<bool> TryCheckInAsync(CheckoutRowViewModel row, string? comment)
     {
         if (_api is null || row.Item is not { } checkout)
         {
@@ -529,7 +535,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
 
         try
         {
-            await _api.Checkout.CheckInFromStashAsync(checkout);
+            await _api.Checkout.CheckInFromStashAsync(checkout, comment);
             return true;
         }
         catch (Exception)

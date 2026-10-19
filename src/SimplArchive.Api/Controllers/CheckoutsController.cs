@@ -2,6 +2,7 @@ using SimplArchive.Api.Documents;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Errors;
 using SimplArchive.Api.Errors.Exceptions.Checkout;
@@ -512,8 +513,11 @@ public class CheckoutsController : ControllerBase
     // stash to a new confirmed version (server-side copy + finalize, keeping the mask), releases the lock, and
     // deletes the stash. The web check-in path (the browser has no local file to upload as a version): the user
     // uploads their edited file to the stash first, then this commits it. Holder-only; 400 if there's no stash.
+    //
+    // The body is optional (ADR 0952): `{ "comment": "…" }` becomes the new version's comment, exactly as on the
+    // versions endpoint; `{}` or no body at all checks in with none, so a client that predates it is unaffected.
     [HttpPost("checkin")]
-    public async Task<IActionResult> CheckInFromStash(Guid documentId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CheckInFromStash(Guid documentId, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CheckInRequest? request, CancellationToken cancellationToken)
     {
         if (_currentUserAccessor.UserId is not { } userId || _currentTenantAccessor.TenantId is not { } tenantId)
         {
@@ -565,6 +569,7 @@ public class CheckoutsController : ControllerBase
             CreatedByUserId = userId,
             CreatedAt = now,
             DocumentDate = DateOnly.FromDateTime(now.UtcDateTime),
+            Comment = string.IsNullOrWhiteSpace(request?.Comment) ? null : request.Comment.Trim(),
         };
 
         // ONE transaction for one check-in (#1171). This filed the version, let the finalizer commit, and then
@@ -618,6 +623,14 @@ public class CheckoutsController : ControllerBase
         await _objectStorage.DeleteObjectAsync(stashKey, cancellationToken);
         await _audit.RecordAsync(AuditActions.DocumentCheckedIn, "Document", documentId, document.Name, cancellationToken: cancellationToken);
         return NoContent();
+    }
+
+    // The optional body of a check-in (ADR 0952) — a mutable class with a parameterless constructor, for the XML
+    // serializer like every request DTO.
+    public class CheckInRequest
+    {
+        // The "why this version" note the new version carries (ADR 0528); null or blank means none.
+        public string? Comment { get; set; }
     }
 
     // The containing-folder path ("Repositories / Contracts / 2026") — the ancestor chain, like the recycle bin.

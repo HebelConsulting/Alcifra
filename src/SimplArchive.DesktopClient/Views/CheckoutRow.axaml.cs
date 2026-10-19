@@ -16,8 +16,8 @@ namespace SimplArchive.DesktopClient.Views;
 /// detail pane's asynchronously-loaded state (ADR 0559).
 /// </para>
 /// <para>
-/// The two compare actions and discard reach the window (they need a parent for a modal dialog); check-in,
-/// unlock, edit and extend are commands on the tab's own view-model and are invoked directly with this row as
+/// The two compare actions, discard and check-in reach the window (they need a parent for a modal dialog —
+/// check-in asks for its optional comment, ADR 0952); unlock, edit and extend are commands on the tab's own view-model and are invoked directly with this row as
 /// the parameter — so the row, not the selection, is what they receive.
 /// </para>
 /// </remarks>
@@ -32,7 +32,8 @@ public partial class CheckoutRow : UserControl
 
     private void OnEdit(object? sender, RoutedEventArgs e) => Invoke(t => t.EditCommand.Execute(Row));
 
-    private void OnCheckIn(object? sender, RoutedEventArgs e) => Invoke(t => t.CheckInCommand.Execute(Row));
+    // Through the window, which asks for the optional check-in comment first (ADR 0952).
+    private void OnCheckIn(object? sender, RoutedEventArgs e) => Forward(w => w.OnCheckoutCheckIn(Tagged(), e));
 
     private void OnUnlock(object? sender, RoutedEventArgs e) => Invoke(t => t.UnlockCommand.Execute(Row));
 
