@@ -5469,6 +5469,15 @@
   <data name="MobShareSignIn" xml:space="preserve">
     <value>Melden Sie sich an, um das Geteilte abzulegen.</value>
   </data>
+  <data name="MobShareHandedOver" xml:space="preserve">
+    <value>Für SimplArchive gesichert. Öffnen Sie SimplArchive, um es abzulegen.</value>
+  </data>
+  <data name="MobShareHandOverFailed" xml:space="preserve">
+    <value>Das konnte nicht an SimplArchive übergeben werden.</value>
+  </data>
+  <data name="MobShareFilingAs" xml:space="preserve">
+    <value>Ablegen als: {0}</value>
+  </data>
   <data name="MobChooseFile" xml:space="preserve">
     <value>Datei wählen</value>
   </data>

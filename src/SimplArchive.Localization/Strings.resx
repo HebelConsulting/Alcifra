@@ -5469,6 +5469,15 @@
   <data name="MobShareSignIn" xml:space="preserve">
     <value>Sign in to file what was shared.</value>
   </data>
+  <data name="MobShareHandedOver" xml:space="preserve">
+    <value>Saved for SimplArchive. Open SimplArchive to file it.</value>
+  </data>
+  <data name="MobShareHandOverFailed" xml:space="preserve">
+    <value>This could not be handed to SimplArchive.</value>
+  </data>
+  <data name="MobShareFilingAs" xml:space="preserve">
+    <value>Filing as: {0}</value>
+  </data>
   <data name="MobChooseFile" xml:space="preserve">
     <value>Choose a file</value>
   </data>
