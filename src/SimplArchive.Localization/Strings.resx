@@ -5421,6 +5421,21 @@
   <data name="MobKeyUsb" xml:space="preserve">
     <value>Plugged in (USB-C)</value>
   </data>
+  <data name="MobKeyNoNfcReader" xml:space="preserve">
+    <value>This device has no NFC reader.</value>
+  </data>
+  <data name="MobKeyNoUsbC" xml:space="preserve">
+    <value>This device has no USB-C port.</value>
+  </data>
+  <data name="MobKeyNoUsbHost" xml:space="preserve">
+    <value>This device cannot use a plugged-in key.</value>
+  </data>
+  <data name="MobKeyNfcOff" xml:space="preserve">
+    <value>NFC is switched off.</value>
+  </data>
+  <data name="MobKeyTurnOnNfc" xml:space="preserve">
+    <value>Turn on NFC</value>
+  </data>
   <data name="MobKeyHold" xml:space="preserve">
     <value>Hold the key to the back of the phone…</value>
   </data>

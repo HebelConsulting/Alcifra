@@ -5421,6 +5421,21 @@
   <data name="MobKeyUsb" xml:space="preserve">
     <value>Collegata (USB-C)</value>
   </data>
+  <data name="MobKeyNoNfcReader" xml:space="preserve">
+    <value>Questo dispositivo non ha un lettore NFC.</value>
+  </data>
+  <data name="MobKeyNoUsbC" xml:space="preserve">
+    <value>Questo dispositivo non ha una porta USB-C.</value>
+  </data>
+  <data name="MobKeyNoUsbHost" xml:space="preserve">
+    <value>Questo dispositivo non può usare una chiave collegata.</value>
+  </data>
+  <data name="MobKeyNfcOff" xml:space="preserve">
+    <value>L'NFC è disattivato.</value>
+  </data>
+  <data name="MobKeyTurnOnNfc" xml:space="preserve">
+    <value>Attiva NFC</value>
+  </data>
   <data name="MobKeyHold" xml:space="preserve">
     <value>Avvicina la chiave al retro del telefono…</value>
   </data>

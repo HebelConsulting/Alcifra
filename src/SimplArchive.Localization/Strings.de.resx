@@ -5421,6 +5421,21 @@
   <data name="MobKeyUsb" xml:space="preserve">
     <value>Eingesteckt (USB-C)</value>
   </data>
+  <data name="MobKeyNoNfcReader" xml:space="preserve">
+    <value>Dieses Gerät hat keinen NFC-Leser.</value>
+  </data>
+  <data name="MobKeyNoUsbC" xml:space="preserve">
+    <value>Dieses Gerät hat keinen USB-C-Anschluss.</value>
+  </data>
+  <data name="MobKeyNoUsbHost" xml:space="preserve">
+    <value>Dieses Gerät kann keinen eingesteckten Schlüssel verwenden.</value>
+  </data>
+  <data name="MobKeyNfcOff" xml:space="preserve">
+    <value>NFC ist ausgeschaltet.</value>
+  </data>
+  <data name="MobKeyTurnOnNfc" xml:space="preserve">
+    <value>NFC einschalten</value>
+  </data>
   <data name="MobKeyHold" xml:space="preserve">
     <value>Halten Sie den Schlüssel an die Rückseite des Telefons…</value>
   </data>
