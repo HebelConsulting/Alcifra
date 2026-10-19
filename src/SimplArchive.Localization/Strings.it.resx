@@ -5793,4 +5793,10 @@
   <data name="MobBackupIntrayHint" xml:space="preserve">
     <value>Il backup viene archiviato nel tuo vassoio d'ingresso dell'archivio: sempre sigillato per le tue chiavi, e al sicuro se perdi il telefono.</value>
   </data>
+  <data name="MobContactCall" xml:space="preserve">
+    <value>Chiama</value>
+  </data>
+  <data name="MobAddressBook" xml:space="preserve">
+    <value>Rubrica</value>
+  </data>
 </root>

@@ -5793,4 +5793,10 @@
   <data name="MobBackupIntrayHint" xml:space="preserve">
     <value>Die Sicherung wird in Ihrem Eingangskorb im Archiv abgelegt: weiter versiegelt für Ihre Schlüssel, und sicher, wenn das Telefon verloren geht.</value>
   </data>
+  <data name="MobContactCall" xml:space="preserve">
+    <value>Anrufen</value>
+  </data>
+  <data name="MobAddressBook" xml:space="preserve">
+    <value>Adressbuch</value>
+  </data>
 </root>

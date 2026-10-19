@@ -5793,4 +5793,10 @@
   <data name="MobBackupIntrayHint" xml:space="preserve">
     <value>The backup is filed in your intray in the archive: still sealed to your keys, and safe if the phone is lost.</value>
   </data>
+  <data name="MobContactCall" xml:space="preserve">
+    <value>Call</value>
+  </data>
+  <data name="MobAddressBook" xml:space="preserve">
+    <value>Address book</value>
+  </data>
 </root>

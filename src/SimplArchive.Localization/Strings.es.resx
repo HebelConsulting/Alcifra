@@ -5793,4 +5793,10 @@
   <data name="MobBackupIntrayHint" xml:space="preserve">
     <value>La copia se guarda en su entrada del archivo: sigue sellada para sus llaves y a salvo si pierde el teléfono.</value>
   </data>
+  <data name="MobContactCall" xml:space="preserve">
+    <value>Llamar</value>
+  </data>
+  <data name="MobAddressBook" xml:space="preserve">
+    <value>Libreta de direcciones</value>
+  </data>
 </root>
