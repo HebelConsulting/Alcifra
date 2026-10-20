@@ -5811,4 +5811,10 @@
   <data name="MobHomePage" xml:space="preserve">
     <value>Zurück zur Startseite</value>
   </data>
+  <data name="MobPushOnApple" xml:space="preserve">
+    <value>Push ist eingeschaltet: Dieses Gerät wird über den Push-Dienst von Apple geweckt.</value>
+  </data>
+  <data name="MobPushWaitingApple" xml:space="preserve">
+    <value>Push: warte darauf, dass iOS der App ihre Adresse übergibt…</value>
+  </data>
 </root>
