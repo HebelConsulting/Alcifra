@@ -5808,4 +5808,7 @@
   <data name="MobApptZoneFloating" xml:space="preserve">
     <value>No time zone (floating)</value>
   </data>
+  <data name="MobHomePage" xml:space="preserve">
+    <value>Back to the home page</value>
+  </data>
 </root>
