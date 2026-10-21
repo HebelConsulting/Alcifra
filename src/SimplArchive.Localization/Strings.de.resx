@@ -5862,6 +5862,21 @@
   <data name="MobLevelPro" xml:space="preserve">
     <value>Pro</value>
   </data>
+  <data name="MobScanLicence" xml:space="preserve">
+    <value>QR-Code scannen</value>
+  </data>
+  <data name="MobScanLicenceHint" xml:space="preserve">
+    <value>Richten Sie die Kamera auf den QR-Code der Lizenz.</value>
+  </data>
+  <data name="MobCameraReason" xml:space="preserve">
+    <value>SimplArchive verwendet die Kamera, um Fotos zum Ablegen aufzunehmen und den QR-Code einer Lizenz zu scannen.</value>
+  </data>
+  <data name="MobCameraDenied" xml:space="preserve">
+    <value>Die Kamera ist nicht erlaubt. Erlauben Sie sie für SimplArchive in den Systemeinstellungen, um eine Lizenz zu scannen.</value>
+  </data>
+  <data name="MobCameraUnavailable" xml:space="preserve">
+    <value>Dieses Gerät hat keine Kamera, die einen QR-Code scannen kann.</value>
+  </data>
   <data name="MobHardwareKey" xml:space="preserve">
     <value>Hardware-Schlüssel</value>
   </data>
