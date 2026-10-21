@@ -301,6 +301,7 @@ SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArc
 SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] GetAsync(System.String, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] HeadAsync(System.String, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleHttpClient::System.Threading.Tasks.Task`1[SimplArchive.ModuleAbi.ModuleHttpResponse] PostFormAsync(System.String, System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Collections.Generic.IReadOnlyDictionary`2[System.String,System.String], System.Threading.CancellationToken)
+SimplArchive.ModuleAbi.IModuleLiveEvents::System.Threading.Tasks.Task`1[System.Int32] SendAsync(SimplArchive.ModuleAbi.ModuleLiveEvent, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task ClearSignalsAsync(System.Guid, System.Guid, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task SignalAsync(SimplArchive.ModuleAbi.ModuleSignal, System.Threading.CancellationToken)
 SimplArchive.ModuleAbi.IModuleNotices::System.Threading.Tasks.Task`1[System.Boolean] QueueAsync(SimplArchive.ModuleAbi.ModuleNotice, System.Threading.CancellationToken)
@@ -632,6 +633,34 @@ SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_ContentType(System.String)
 SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_ETag(System.String)
 SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_IsSuccess(Boolean)
 SimplArchive.ModuleAbi.ModuleHttpResponse::Void set_StatusCode(Int32)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Boolean Equals(SimplArchive.ModuleAbi.ModuleLiveEvent)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleLiveEvent, SimplArchive.ModuleAbi.ModuleLiveEvent)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Boolean op_Inequality(SimplArchive.ModuleAbi.ModuleLiveEvent, SimplArchive.ModuleAbi.ModuleLiveEvent)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 GetHashCode()
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 MaxEventsPerModule
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 MaxEventsPerSender
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 MaxNameLength
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 MaxPayloadBytes
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 MaxRecipients
+SimplArchive.ModuleAbi.ModuleLiveEvent::Int32 RateWindowSeconds
+SimplArchive.ModuleAbi.ModuleLiveEvent::SimplArchive.ModuleAbi.ModuleLiveEvent <Clone>$()
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.Collections.Generic.IReadOnlyList`1[System.Guid] RecipientUserIds
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.Collections.Generic.IReadOnlyList`1[System.Guid] get_RecipientUserIds()
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.String Name
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.String Payload
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.String ToString()
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.String get_Name()
+SimplArchive.ModuleAbi.ModuleLiveEvent::System.String get_Payload()
+SimplArchive.ModuleAbi.ModuleLiveEvent::Void .ctor(System.Collections.Generic.IReadOnlyList`1[System.Guid], System.String, System.String)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Void Deconstruct(System.Collections.Generic.IReadOnlyList`1[System.Guid] ByRef, System.String ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Void set_Name(System.String)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Void set_Payload(System.String)
+SimplArchive.ModuleAbi.ModuleLiveEvent::Void set_RecipientUserIds(System.Collections.Generic.IReadOnlyList`1[System.Guid])
+SimplArchive.ModuleAbi.ModuleLiveEventInvalidException::Void .ctor(System.String)
+SimplArchive.ModuleAbi.ModuleLiveEventNotPermittedException::Void .ctor(System.String)
+SimplArchive.ModuleAbi.ModuleLiveEventRateLimitedException::Void .ctor()
+SimplArchive.ModuleAbi.ModuleLiveEventTooLargeException::Void .ctor(System.String)
 SimplArchive.ModuleAbi.ModuleManual::Boolean Equals(SimplArchive.ModuleAbi.ModuleManual)
 SimplArchive.ModuleAbi.ModuleManual::Boolean Equals(System.Object)
 SimplArchive.ModuleAbi.ModuleManual::Boolean op_Equality(SimplArchive.ModuleAbi.ModuleManual, SimplArchive.ModuleAbi.ModuleManual)

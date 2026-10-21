@@ -49,6 +49,8 @@ builder.Services.AddOidcAuthentication(options =>
 // handler and the ImpersonationService/MainLayout must share one instance to see the same token.
 builder.Services.AddSingleton<SimplArchive.Client.Services.ImpersonationState>();
 builder.Services.AddSingleton<SimplArchive.Client.Services.AppNavigationState>();
+// Modules' ephemeral events off the layout's live hub (ABI 1.25, ADR 0957): a module's view subscribes by module id.
+builder.Services.AddSingleton<SimplArchive.Presentation.ModuleLiveEventRouter>();
 builder.Services.AddScoped<SimplArchive.Client.Services.ImpersonationHandler>();
 builder.Services.AddScoped<SimplArchive.Client.Services.ImpersonationService>();
 

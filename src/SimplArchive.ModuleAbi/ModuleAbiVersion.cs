@@ -143,5 +143,10 @@ public static class ModuleAbiVersion
     /// 1.24 adds <see cref="MobileLicense"/>: the SimplArchive Mobile app's licence, signed and verified as a tenant licence
     /// is (core ADR 0954). A new type only, so a 1.23 module is unaffected.
     /// </para>
-    public const int Minor = 24;
+    /// <para>
+    /// 1.25 adds <see cref="IModuleLiveEvents"/>: an ephemeral event a module sends to users' open apps over the core's live
+    /// hub, never stored and never pushed to a closed app (core ADR 0957). A new interface and new types only, so a 1.24
+    /// module is unaffected.
+    /// </para>
+    public const int Minor = 25;
 }

@@ -41,6 +41,8 @@ public static class ModuleApiServices
         services.AddScoped<SimplArchive.Api.Documents.ModulePersonalFolders>();
         // Certificate enrolment, owned by the core and offered while a module licenses it (ADR 0936).
         services.AddScoped<SimplArchive.Api.Certificates.CertificateEnrolment>();
+        // A module's ephemeral event over the live hub, never stored (ABI 1.25, ADR 0957).
+        services.AddScoped<IModuleLiveEvents, SimplArchive.Api.Realtime.ModuleLiveEventSender>();
         return services;
     }
 }

@@ -221,6 +221,23 @@ public sealed class TestModuleController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>What the live-event fixture is asked to send (ABI 1.25).</summary>
+    public sealed class LiveEventRequest
+    {
+        public List<Guid> RecipientUserIds { get; set; } = [];
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Payload { get; set; } = string.Empty;
+    }
+
+    /// <summary>The live-event fixture (ABI 1.25, ADR 0957): sends an ephemeral event and answers how many were addressed;
+    /// a refusal surfaces as the host's problem response.</summary>
+    [HttpPost("live-events")]
+    public async Task<IActionResult> SendLiveEvent(
+        [FromBody] LiveEventRequest body, [FromServices] IModuleLiveEvents liveEvents, CancellationToken cancellationToken) =>
+        Ok(new { delivered = await liveEvents.SendAsync(new ModuleLiveEvent(body.RecipientUserIds, body.Name, body.Payload), cancellationToken) });
+
     /// <summary>The reveal-once fixture (ABI 1.8, ADR 0899): an action outcome carrying a value shown once.</summary>
     [HttpPost("reveal")]
     public IActionResult Reveal() =>

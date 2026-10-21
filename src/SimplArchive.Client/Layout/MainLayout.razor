@@ -18,6 +18,7 @@
 @inject SimplArchive.Client.Services.AppNavigationState AppNav
 @inject SimplArchive.Client.Services.ApiRoot ApiRoot
 @inject IHttpClientFactory HttpFactory
+@inject SimplArchive.Presentation.ModuleLiveEventRouter ModuleLiveEvents
 
 <MudThemeProvider @ref="_themeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -723,6 +724,11 @@
                 await LoadUnreadCountAsync();
                 StateHasChanged();
             }));
+
+            // Modules' ephemeral events (ABI 1.25, ADR 0957) ride the same connection; the router hands each to the views
+            // subscribed to its module, which marshal to the renderer themselves.
+            _hub.On<SimplArchive.Presentation.ModuleLiveEvent>(SimplArchive.Presentation.ModuleLiveEvent.HubMethod,
+                e => ModuleLiveEvents.Dispatch(e));
 
             await _hub.StartAsync();
         }
