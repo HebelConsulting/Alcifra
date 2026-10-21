@@ -5898,4 +5898,67 @@
   <data name="MobPinSetPerSession" xml:space="preserve">
     <value>Ihre Organisation legt es einmal pro Sitzung fest</value>
   </data>
+  <data name="KtTitle" xml:space="preserve">
+    <value>Hardware-Schlüssel testen</value>
+  </data>
+  <data name="KtIntro" xml:space="preserve">
+    <value>Stecken Sie Ihren Schlüssel ein und starten Sie den Test. Er versiegelt eine neue Zufallsnachricht an das eigene Zertifikat des Schlüssels und öffnet sie mit dem Schlüssel und seiner PIN. Er braucht keinen Server und sendet nichts.</value>
+  </data>
+  <data name="KtRun" xml:space="preserve">
+    <value>Test starten</value>
+  </data>
+  <data name="KtRunning" xml:space="preserve">
+    <value>Wird getestet…</value>
+  </data>
+  <data name="KtWorks" xml:space="preserve">
+    <value>Der Schlüssel funktioniert mit SimplArchive.</value>
+  </data>
+  <data name="KtFailedAt" xml:space="preserve">
+    <value>Der Test ist fehlgeschlagen bei: {0}</value>
+  </data>
+  <data name="KtNotCompleted" xml:space="preserve">
+    <value>Der Test wurde nicht abgeschlossen: Es wurde keine PIN eingegeben.</value>
+  </data>
+  <data name="KtNotRun" xml:space="preserve">
+    <value>Es wurde noch kein Test ausgeführt.</value>
+  </data>
+  <data name="KtReport" xml:space="preserve">
+    <value>Bericht für den Support</value>
+  </data>
+  <data name="KtReportContains" xml:space="preserve">
+    <value>Der Bericht enthält die App- und Systemversionen, die PKCS#11-Bibliothek, Ihre Lesegeräte, Hersteller, Modell, Firmware und Seriennummer des Schlüssels, seine Zertifikate und jeden Testschritt. Er enthält nie Ihre PIN, Dokumente, Anmelde-Tokens oder andere Geheimnisse.</value>
+  </data>
+  <data name="KtIncludeArchive" xml:space="preserve">
+    <value>Archivseite einschließen: Serveradresse und -version, ob dieses Zertifikat für Sie registriert ist, Verschlüsselungsmodus und PIN-Richtlinie</value>
+  </data>
+  <data name="KtCopy" xml:space="preserve">
+    <value>Bericht kopieren</value>
+  </data>
+  <data name="KtCopied" xml:space="preserve">
+    <value>Der Bericht ist in der Zwischenablage.</value>
+  </data>
+  <data name="KtStepFindLibrary" xml:space="preserve">
+    <value>PKCS#11-Bibliothek finden</value>
+  </data>
+  <data name="KtStepListReaders" xml:space="preserve">
+    <value>Lesegeräte auflisten</value>
+  </data>
+  <data name="KtStepReadKey" xml:space="preserve">
+    <value>Schlüssel und Zertifikate lesen</value>
+  </data>
+  <data name="KtStepChooseCertificate" xml:space="preserve">
+    <value>Schlüsselverwaltungs-Zertifikat wählen</value>
+  </data>
+  <data name="KtStepSeal" xml:space="preserve">
+    <value>Neue Zufallsnachricht daran versiegeln</value>
+  </data>
+  <data name="KtStepUnlock" xml:space="preserve">
+    <value>Schlüssel mit der PIN entsperren</value>
+  </data>
+  <data name="KtStepOpen" xml:space="preserve">
+    <value>Nachricht mit dem Schlüssel öffnen</value>
+  </data>
+  <data name="KtStepCompare" xml:space="preserve">
+    <value>Mit dem Versiegelten vergleichen</value>
+  </data>
 </root>

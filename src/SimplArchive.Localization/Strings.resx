@@ -5898,4 +5898,67 @@
   <data name="MobPinSetPerSession" xml:space="preserve">
     <value>your organisation sets it once per session</value>
   </data>
+  <data name="KtTitle" xml:space="preserve">
+    <value>Test the hardware key</value>
+  </data>
+  <data name="KtIntro" xml:space="preserve">
+    <value>Insert your key, then run the test. It seals a fresh random message to the key's own certificate and opens it with the key and its PIN. It needs no server and sends nothing anywhere.</value>
+  </data>
+  <data name="KtRun" xml:space="preserve">
+    <value>Run the test</value>
+  </data>
+  <data name="KtRunning" xml:space="preserve">
+    <value>Testing…</value>
+  </data>
+  <data name="KtWorks" xml:space="preserve">
+    <value>The key works with SimplArchive.</value>
+  </data>
+  <data name="KtFailedAt" xml:space="preserve">
+    <value>The test failed at: {0}</value>
+  </data>
+  <data name="KtNotCompleted" xml:space="preserve">
+    <value>The test did not finish: no PIN was given.</value>
+  </data>
+  <data name="KtNotRun" xml:space="preserve">
+    <value>No test has run yet.</value>
+  </data>
+  <data name="KtReport" xml:space="preserve">
+    <value>Report for support</value>
+  </data>
+  <data name="KtReportContains" xml:space="preserve">
+    <value>The report contains the app and system versions, the PKCS#11 library, your readers, the key's manufacturer, model, firmware and serial number, its certificates and each step of the test. It never contains your PIN, documents, sign-in tokens or other secrets.</value>
+  </data>
+  <data name="KtIncludeArchive" xml:space="preserve">
+    <value>Include the archive side: server address and version, whether this certificate is enrolled for you, encryption mode and PIN policy</value>
+  </data>
+  <data name="KtCopy" xml:space="preserve">
+    <value>Copy report</value>
+  </data>
+  <data name="KtCopied" xml:space="preserve">
+    <value>The report is on the clipboard.</value>
+  </data>
+  <data name="KtStepFindLibrary" xml:space="preserve">
+    <value>Find the PKCS#11 library</value>
+  </data>
+  <data name="KtStepListReaders" xml:space="preserve">
+    <value>List the readers</value>
+  </data>
+  <data name="KtStepReadKey" xml:space="preserve">
+    <value>Read the key and its certificates</value>
+  </data>
+  <data name="KtStepChooseCertificate" xml:space="preserve">
+    <value>Choose the key-management certificate</value>
+  </data>
+  <data name="KtStepSeal" xml:space="preserve">
+    <value>Seal a fresh random message to it</value>
+  </data>
+  <data name="KtStepUnlock" xml:space="preserve">
+    <value>Unlock the key with its PIN</value>
+  </data>
+  <data name="KtStepOpen" xml:space="preserve">
+    <value>Open the message with the key</value>
+  </data>
+  <data name="KtStepCompare" xml:space="preserve">
+    <value>Compare with what was sealed</value>
+  </data>
 </root>

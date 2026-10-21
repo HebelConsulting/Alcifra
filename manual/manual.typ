@@ -1426,10 +1426,28 @@ ykman piv certificates import 9d holder.crt
 *inserted*, so a card personalised in place is not yet visible to anything. Skipping this makes a correctly
 prepared card look broken.
 
+== Testing the key from the desktop client <keytest>
+
+*Test the hardware key*#idx("Hardware key test") is the toolbox icon on the logon window — so it works before
+you sign in — and beside the help icon in the main window's title bar. Insert the key and press *Run the test*.
+
+It reads the certificate in the key's key-management slot (no PIN), seals a fresh random message to it on your
+computer, asks for the PIN, opens the message with the key and compares. It needs no server, sends nothing anywhere,
+and works for any RSA or elliptic-curve key the archive accepts, yours or one your organisation issued. Each step is
+listed as it runs; the first one that fails says why, with the exact code the smartcard software answered
+(`CKR_PIN_INCORRECT` for a wrong PIN — mind the retry counter).
+
+*The report for support.* Below the steps is a report you can copy and send to whoever supports you. The window
+says what it contains before you copy it: the app and system versions, the PKCS\#11 library found, your readers,
+the key's manufacturer, model, firmware and *serial number*, its certificates, and every step with its outcome.
+Signed in, a switch (on unless you turn it off) adds the archive side: the server's address and version, whether
+the tested certificate is enrolled for you, the PIN policy and your organisation's encryption mode. The report never contains your PIN, documents,
+sign-in tokens or other secrets.
+
 == Checking the card before you rely on it
 
-The desktop client carries two hooks that answer *"is this card actually going to work?"* without a server, an
-account, or a document. They are worth running before registering anything, and they are the first thing to
+Beside the window above, the desktop client carries two hooks that answer *"is this card actually going to work?"*
+without a server, an account, or a document. They are worth running before registering anything, and they are the first thing to
 reach for when a card misbehaves later.
 
 Both are the *installed desktop client*, run from a terminal with a flag — there is nothing extra to install

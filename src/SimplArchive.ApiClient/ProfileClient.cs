@@ -342,6 +342,33 @@ public sealed class ProfileClient(ApiCore core)
         return new ReaderCertificateSet(ApiWire.StrOrNull(json, "source") ?? "none", ApiWire.StrOrNull(json, "reason"), certificates);
     }
 
+    // ---- The tenant's encryption posture (#1864, ADR 0955) -------------------------------------------
+
+    /// <summary>
+    /// The tenant's encryption mode and its four membership answers. Act on the ANSWERS, never on the mode's name:
+    /// the modes are not an ordered scale (core ADR 0834).
+    /// </summary>
+    public sealed record EncryptionPosture(
+        string Mode, bool WrapsAtRest, bool RefusesPlaintextDoors, bool DeliversEnvelopes, bool EnvelopesMail);
+
+    /// <summary>The caller's tenant's encryption posture, or null where the installation does not advertise it.</summary>
+    public async Task<EncryptionPosture?> GetEncryptionPostureAsync(CancellationToken cancellationToken = default)
+    {
+        await MeHrefAsync("self", cancellationToken);   // populates the cache
+        if (_meLinks is null || !_meLinks.Has("encryption"))
+        {
+            return null;
+        }
+
+        var json = await _core.Http.GetFromJsonAsync<JsonElement>(await MeHrefAsync("encryption", cancellationToken), cancellationToken);
+        return new EncryptionPosture(
+            ApiWire.StrOrNull(json, "mode") ?? string.Empty,
+            json.TryGetProperty("wrapsAtRest", out var atRest) && atRest.ValueKind == JsonValueKind.True,
+            json.TryGetProperty("refusesPlaintextDoors", out var doors) && doors.ValueKind == JsonValueKind.True,
+            json.TryGetProperty("deliversEnvelopes", out var envelopes) && envelopes.ValueKind == JsonValueKind.True,
+            json.TryGetProperty("envelopesMail", out var mail) && mail.ValueKind == JsonValueKind.True);
+    }
+
     // ---- What the tenant allows the phone's offline cache (#1742, ADR 0923) --------------------------
 
     /// <summary>The tenant's offline-cache policy as read, with the tag a save must present and the address it goes to.</summary>

@@ -5898,4 +5898,67 @@
   <data name="MobPinSetPerSession" xml:space="preserve">
     <value>la tua organizzazione lo imposta una volta per sessione</value>
   </data>
+  <data name="KtTitle" xml:space="preserve">
+    <value>Prova la chiave hardware</value>
+  </data>
+  <data name="KtIntro" xml:space="preserve">
+    <value>Inserisci la chiave, poi avvia la prova. Sigilla un nuovo messaggio casuale con il certificato della chiave stessa e lo apre con la chiave e il suo PIN. Non richiede un server e non invia nulla.</value>
+  </data>
+  <data name="KtRun" xml:space="preserve">
+    <value>Avvia la prova</value>
+  </data>
+  <data name="KtRunning" xml:space="preserve">
+    <value>Prova in corso…</value>
+  </data>
+  <data name="KtWorks" xml:space="preserve">
+    <value>La chiave funziona con SimplArchive.</value>
+  </data>
+  <data name="KtFailedAt" xml:space="preserve">
+    <value>La prova non è riuscita al passo: {0}</value>
+  </data>
+  <data name="KtNotCompleted" xml:space="preserve">
+    <value>La prova non è terminata: non è stato inserito alcun PIN.</value>
+  </data>
+  <data name="KtNotRun" xml:space="preserve">
+    <value>Non è ancora stata eseguita alcuna prova.</value>
+  </data>
+  <data name="KtReport" xml:space="preserve">
+    <value>Rapporto per l'assistenza</value>
+  </data>
+  <data name="KtReportContains" xml:space="preserve">
+    <value>Il rapporto contiene le versioni dell'app e del sistema, la libreria PKCS#11, i lettori, produttore, modello, firmware e numero di serie della chiave, i suoi certificati e ogni passo della prova. Non contiene mai il PIN, documenti, token di accesso o altri segreti.</value>
+  </data>
+  <data name="KtIncludeArchive" xml:space="preserve">
+    <value>Includi il lato archivio: indirizzo e versione del server, se questo certificato è registrato per te, modalità di cifratura e criterio del PIN</value>
+  </data>
+  <data name="KtCopy" xml:space="preserve">
+    <value>Copia rapporto</value>
+  </data>
+  <data name="KtCopied" xml:space="preserve">
+    <value>Il rapporto è negli appunti.</value>
+  </data>
+  <data name="KtStepFindLibrary" xml:space="preserve">
+    <value>Trova la libreria PKCS#11</value>
+  </data>
+  <data name="KtStepListReaders" xml:space="preserve">
+    <value>Elenca i lettori</value>
+  </data>
+  <data name="KtStepReadKey" xml:space="preserve">
+    <value>Leggi la chiave e i certificati</value>
+  </data>
+  <data name="KtStepChooseCertificate" xml:space="preserve">
+    <value>Scegli il certificato di gestione chiavi</value>
+  </data>
+  <data name="KtStepSeal" xml:space="preserve">
+    <value>Sigilla un nuovo messaggio casuale</value>
+  </data>
+  <data name="KtStepUnlock" xml:space="preserve">
+    <value>Sblocca la chiave con il PIN</value>
+  </data>
+  <data name="KtStepOpen" xml:space="preserve">
+    <value>Apri il messaggio con la chiave</value>
+  </data>
+  <data name="KtStepCompare" xml:space="preserve">
+    <value>Confronta con quanto sigillato</value>
+  </data>
 </root>

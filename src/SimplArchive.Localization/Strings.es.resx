@@ -5898,4 +5898,67 @@
   <data name="MobPinSetPerSession" xml:space="preserve">
     <value>su organización lo fija una vez por sesión</value>
   </data>
+  <data name="KtTitle" xml:space="preserve">
+    <value>Probar la llave de hardware</value>
+  </data>
+  <data name="KtIntro" xml:space="preserve">
+    <value>Inserte su llave y ejecute la prueba. Sella un mensaje aleatorio nuevo con el certificado de la propia llave y lo abre con la llave y su PIN. No necesita servidor y no envía nada.</value>
+  </data>
+  <data name="KtRun" xml:space="preserve">
+    <value>Ejecutar la prueba</value>
+  </data>
+  <data name="KtRunning" xml:space="preserve">
+    <value>Probando…</value>
+  </data>
+  <data name="KtWorks" xml:space="preserve">
+    <value>La llave funciona con SimplArchive.</value>
+  </data>
+  <data name="KtFailedAt" xml:space="preserve">
+    <value>La prueba falló en: {0}</value>
+  </data>
+  <data name="KtNotCompleted" xml:space="preserve">
+    <value>La prueba no terminó: no se introdujo ningún PIN.</value>
+  </data>
+  <data name="KtNotRun" xml:space="preserve">
+    <value>Todavía no se ha ejecutado ninguna prueba.</value>
+  </data>
+  <data name="KtReport" xml:space="preserve">
+    <value>Informe para soporte</value>
+  </data>
+  <data name="KtReportContains" xml:space="preserve">
+    <value>El informe contiene las versiones de la aplicación y del sistema, la biblioteca PKCS#11, sus lectores, el fabricante, modelo, firmware y número de serie de la llave, sus certificados y cada paso de la prueba. Nunca contiene su PIN, documentos, tokens de sesión ni otros secretos.</value>
+  </data>
+  <data name="KtIncludeArchive" xml:space="preserve">
+    <value>Incluir el lado del archivo: dirección y versión del servidor, si este certificado está registrado para usted, modo de cifrado y política de PIN</value>
+  </data>
+  <data name="KtCopy" xml:space="preserve">
+    <value>Copiar informe</value>
+  </data>
+  <data name="KtCopied" xml:space="preserve">
+    <value>El informe está en el portapapeles.</value>
+  </data>
+  <data name="KtStepFindLibrary" xml:space="preserve">
+    <value>Buscar la biblioteca PKCS#11</value>
+  </data>
+  <data name="KtStepListReaders" xml:space="preserve">
+    <value>Listar los lectores</value>
+  </data>
+  <data name="KtStepReadKey" xml:space="preserve">
+    <value>Leer la llave y sus certificados</value>
+  </data>
+  <data name="KtStepChooseCertificate" xml:space="preserve">
+    <value>Elegir el certificado de gestión de claves</value>
+  </data>
+  <data name="KtStepSeal" xml:space="preserve">
+    <value>Sellar un mensaje aleatorio nuevo</value>
+  </data>
+  <data name="KtStepUnlock" xml:space="preserve">
+    <value>Desbloquear la llave con su PIN</value>
+  </data>
+  <data name="KtStepOpen" xml:space="preserve">
+    <value>Abrir el mensaje con la llave</value>
+  </data>
+  <data name="KtStepCompare" xml:space="preserve">
+    <value>Comparar con lo sellado</value>
+  </data>
 </root>

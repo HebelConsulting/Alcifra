@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SimplArchive.DesktopClient.ViewModels"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        xmlns:loc="using:SimplArchive.DesktopClient.Localization"
+        x:Class="SimplArchive.DesktopClient.Views.KeyTestWindow"
+        x:DataType="vm:KeyTestViewModel"
+        Title="{loc:Tr KtTitle}" Width="680" Height="820" MinWidth="520" MinHeight="560"
+        Background="{DynamicResource WbSurface}"
+        WindowStartupLocation="CenterOwner">
+    <!-- Test the hardware key (core #1864, ADR 0955). Top to bottom: what the test does, Run, the verdict and the
+         steps as they happen, then the report — WHAT it contains said before the Copy button, and the archive
+         side behind a switch that is on by default and offered only when signed in. -->
+    <DockPanel Margin="20" LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <i:Icon Value="mdi-toolbox-outline" FontSize="26" Foreground="{DynamicResource WbAccent}" />
+                <TextBlock Text="{loc:Tr KtTitle}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{DynamicResource WbText}" />
+            </StackPanel>
+            <TextBlock Text="{loc:Tr KtIntro}" TextWrapping="Wrap" Foreground="{DynamicResource WbMuted}" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="accent" Command="{Binding RunCommand}" AutomationProperties.AutomationId="key-test-run">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-play" />
+                        <TextBlock Text="{loc:Tr KtRun}" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Text="{Binding Verdict}" Foreground="{Binding VerdictColour}" FontWeight="SemiBold"
+                           VerticalAlignment="Center" TextWrapping="Wrap" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- The report, pinned to the bottom so the Copy button never scrolls away. -->
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+            <TextBlock Text="{loc:Tr KtReport}" FontWeight="SemiBold" Foreground="{DynamicResource WbText}" />
+            <TextBlock Text="{loc:Tr KtReportContains}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+            <CheckBox IsChecked="{Binding IncludeArchive}" IsVisible="{Binding CanIncludeArchive}"
+                      AutomationProperties.AutomationId="key-test-include-archive">
+                <TextBlock Text="{loc:Tr KtIncludeArchive}" TextWrapping="Wrap" FontSize="12" />
+            </CheckBox>
+            <TextBox Text="{Binding ReportText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                     FontFamily="Menlo,Consolas,monospace" FontSize="11" Height="210"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding CopyStatus}" FontSize="12" Foreground="{DynamicResource WbMuted}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1" Command="{Binding CopyCommand}" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="key-test-copy">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-content-copy" />
+                        <TextBlock Text="{loc:Tr KtCopy}" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Content="{loc:Tr Close}" Click="OnClose" IsCancel="True" />
+            </Grid>
+        </StackPanel>
+
+        <!-- The steps, filling what is left. -->
+        <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4" Margin="0,12,0,0" Padding="8">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Steps}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:KeyTestStepRow">
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,3">
+                                <i:Icon Grid.Column="0" Value="{Binding Icon}" Foreground="{Binding IconColour}" FontSize="16"
+                                        VerticalAlignment="Top" Margin="0,1,8,0" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource WbText}" />
+                                    <SelectableTextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="12"
+                                                         Foreground="{DynamicResource WbMuted}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</Window>

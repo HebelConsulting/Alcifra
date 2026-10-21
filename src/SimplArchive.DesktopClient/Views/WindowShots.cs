@@ -21,6 +21,12 @@ public static class WindowShots
     /// <summary>Runs the matching hook, if any; false means the argument belonged to somebody else.</summary>
     public static bool TryRun(string[] args)
     {
+        // Test the hardware key (ADR 0955) — its own file, the hook carries a sample report.
+        if (KeyTestShot.TryRun(args))
+        {
+            return true;
+        }
+
         // Headless render of the annotation dialog in SHAPE (markup) mode — verifies the palette is offered with
         // an optional label so a highlight can be recoloured (ADR "Annotation shape recolour"):
         // `--annotationshape-screenshot <out.png>`.

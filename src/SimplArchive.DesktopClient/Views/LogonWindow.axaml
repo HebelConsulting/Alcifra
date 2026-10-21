@@ -10,10 +10,17 @@
         Title="{loc:Tr LogonTitle}" Width="380" Height="430"
         CanResize="False" WindowStartupLocation="CenterScreen">
     <StackPanel Margin="28" Spacing="16">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-            <i:Icon Value="mdi-file-cabinet" FontSize="28" Foreground="{DynamicResource WbAccent}" />
-            <TextBlock Text="SimplArchive" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
-        </StackPanel>
+        <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                <i:Icon Value="mdi-file-cabinet" FontSize="28" Foreground="{DynamicResource WbAccent}" />
+                <TextBlock Text="SimplArchive" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
+            <!-- Test the hardware key BEFORE any sign-in (core #1864, ADR 0955), as the phone's sign-in page offers. -->
+            <Button Grid.Column="1" ToolTip.Tip="{loc:Tr KtTitle}" Background="Transparent" BorderThickness="0" Padding="4"
+                    VerticalAlignment="Center" Click="OnTestHardwareKey" AutomationProperties.AutomationId="key-test">
+                <i:Icon Value="mdi-toolbox-outline" Foreground="{DynamicResource WbMuted}" FontSize="22" />
+            </Button>
+        </Grid>
 
         <StackPanel Spacing="4">
             <TextBlock Text="{loc:Tr LogonUsername}" FontSize="12" Foreground="{DynamicResource WbMuted}" />

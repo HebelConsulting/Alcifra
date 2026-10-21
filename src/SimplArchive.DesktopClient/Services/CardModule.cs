@@ -43,6 +43,12 @@ public static class CardModule
     /// </remarks>
     public static bool? LastSawToken { get; private set; }
 
+    /// <summary>
+    /// What the last failed card operation threw — so the hardware-key test can name the exact reason a library
+    /// would not load (ADR 0955), where every other caller is content with "unavailable".
+    /// </summary>
+    public static Exception? LastFailure { get; private set; }
+
     /// <summary>Records what a slot query saw, for <see cref="LastSawToken"/>.</summary>
     internal static void Observed(bool tokenPresent) => LastSawToken = tokenPresent;
 
@@ -57,6 +63,7 @@ public static class CardModule
         catch (Exception e)
         {
             DesktopLog.Warn(e, "A card operation failed");
+            LastFailure = e;
             return whenUnavailable;
         }
         finally

@@ -129,7 +129,6 @@ public static class CardEnvelopeOpener
         byte[]? keyId,
         X509Certificate2 addressedTo)
     {
-
         var envelopedCms = new EnvelopedCms();
         try
         {
@@ -148,48 +147,9 @@ public static class CardEnvelopeOpener
         byte[] contentKey;
         try
         {
-            // The first (and, for this server, only) recipient. A multi-recipient envelope would want the one
-            // matching the card's own certificate; the server addresses one reader per response, so taking the
-            // first is correct here and would become a lookup the day that changes.
-            var keys = session.FindObjects(CK_OBJECT_CLASS.CKO_PRIVATE_KEY);
-            if (keys.Count == 0)
+            if (KeyOperations(session, keyId) is not { } operations)
             {
                 return null;
-            }
-
-            // THE KEY THAT BELONGS TO THE MATCHED CERTIFICATE, by CKA_ID (#1500). A PIV token has four key
-            // slots, so taking the first is a guess — right by luck on a card where only slot 9D holds a key,
-            // and wrong the moment a signing key in 9C comes first. The fallback keeps a token that sets no
-            // CKA_ID working, and says so rather than failing silently.
-            var key = keys[0];
-            if (keyId is { Length: > 0 })
-            {
-                // AN INDEX, not the handle: an object handle is a CK_ULONG, so FirstOrDefault answers 0 for
-                // "not found" — indistinguishable from a real handle of 0 — and the type cannot be named in a
-                // nullable to fix that (ADR 0831). The index says "not found" as -1, unambiguously.
-                var match = keys.ToList().FindIndex(handle =>
-                {
-                    try
-                    {
-                        return session.GetAttributeValue(handle, CK_ATTRIBUTE_TYPE.CKA_ID)
-                            .AsSpan().SequenceEqual(keyId);
-                    }
-                    catch (Exception)
-                    {
-                        return false;   // this key will not say what it is; another may
-                    }
-                });
-
-                if (match >= 0)
-                {
-                    key = keys[match];
-                }
-                else
-                {
-                    DesktopLog.Debug(
-                        "No private key on the card carries the matched certificate's CKA_ID, so the first of "
-                        + "{Count} is used. An unwrap failure after this is likely the wrong key.", keys.Count);
-                }
             }
 
             // OUR OWN RECIPIENT, not the first one in the set (#1500). The server addresses a reader's whole
@@ -209,22 +169,7 @@ public static class CardEnvelopeOpener
                 return null;
             }
 
-            // ROUTED BY RECIPIENT KIND, because the two kinds do not differ in degree. An RSA recipient has
-            // the content key WRAPPED to its public key and carries it in EncryptedKey; an elliptic-curve
-            // recipient AGREES a key-encryption key and EncryptedKey holds the content key wrapped under
-            // THAT. Reading EncryptedKey and decrypting it is meaningless for the second — which is why this
-            // opener could not read an EC recipient of any curve before ABI-side work made agreement possible.
-            contentKey = envelopedCms.RecipientInfos[mine] switch
-            {
-                // The card's part passed as a LAMBDA, not the handle: NativeULong is a global using alias
-                // inside CAManagement (uint on Windows, ulong on Unix), so a consumer cannot name it in a
-                // signature — and closing over it here keeps the agreement logic free of the card entirely,
-                // which is what makes it testable without one.
-                KeyAgreeRecipientInfo agreed => AgreeContentKey(
-                    raw, agreed.EncryptedKey, point => session.DeriveEcdhSecret(point, key), mine),
-                _ => session.Decrypt(
-                    CK_MECHANISM_TYPE.CKM_RSA_PKCS, envelopedCms.RecipientInfos[mine].EncryptedKey, key),
-            };
+            contentKey = ContentKey(envelopedCms, raw, mine, operations.Decrypt, operations.Derive);
         }
         catch (Exception e)
         {
@@ -237,6 +182,120 @@ public static class CardEnvelopeOpener
 
         return DecryptContent(raw, envelopedCms.ContentInfo.Content, contentKey);
     }
+
+    /// <summary>
+    /// Opens <paramref name="raw"/> with the card, THROWING with the reason where the production path declines —
+    /// the hardware-key test's path (ADR 0955), which must report the exact failure (a PKCS#11 return value, a
+    /// cipher this client does not implement) rather than "not this card".
+    /// </summary>
+    /// <remarks>
+    /// The same key selection and the same recipient routing as <see cref="Unwrap"/>, through the same methods,
+    /// so a key that passes the test is a key the document path opens with.
+    /// </remarks>
+    internal static byte[] OpenOnCard(
+        CAManagement.Pkcs11.Pkcs11Session session, byte[] raw, byte[]? keyId, X509Certificate2 addressedTo)
+    {
+        var (decrypt, derive) = KeyOperations(session, keyId)
+            ?? throw new EnvelopeNotOpenedException("the key shows no private key once the PIN was accepted");
+        return OpenWith(raw, addressedTo, decrypt, derive);
+    }
+
+    /// <summary>
+    /// Opens <paramref name="raw"/> for <paramref name="addressedTo"/> with the key's private operations passed in —
+    /// the card's in production, a software key in a test. Throws <see cref="EnvelopeNotOpenedException"/> or the
+    /// operation's own exception on failure.
+    /// </summary>
+    internal static byte[] OpenWith(
+        byte[] raw, X509Certificate2 addressedTo, Func<byte[], byte[]> decryptWrappedKey, Func<byte[], byte[]> deriveSharedSecret)
+    {
+        var envelopedCms = new EnvelopedCms();
+        envelopedCms.Decode(raw);
+        var mine = RecipientIndexOf(envelopedCms, addressedTo);
+        if (mine < 0)
+        {
+            throw new EnvelopeNotOpenedException("the envelope is not addressed to this key's certificate");
+        }
+
+        return DecryptContent(
+            raw, envelopedCms.ContentInfo.Content, ContentKey(envelopedCms, raw, mine, decryptWrappedKey, deriveSharedSecret));
+    }
+
+    /// <summary>
+    /// The card's two private operations over the key that belongs to the matched certificate, or null when the
+    /// session shows no private key at all.
+    /// </summary>
+    /// <remarks>
+    /// Handed back as LAMBDAS, not the handle: NativeULong is a global using alias inside CAManagement (uint on
+    /// Windows, ulong on Unix), so a consumer cannot name it in a signature (ADR 0831) — and closing over it keeps
+    /// the routing below free of the card entirely, which is what makes it testable without one.
+    /// </remarks>
+    private static (Func<byte[], byte[]> Decrypt, Func<byte[], byte[]> Derive)? KeyOperations(
+        CAManagement.Pkcs11.Pkcs11Session session, byte[]? keyId)
+    {
+        var keys = session.FindObjects(CK_OBJECT_CLASS.CKO_PRIVATE_KEY);
+        if (keys.Count == 0)
+        {
+            return null;
+        }
+
+        // THE KEY THAT BELONGS TO THE MATCHED CERTIFICATE, by CKA_ID (#1500). A PIV token has four key
+        // slots, so taking the first is a guess — right by luck on a card where only slot 9D holds a key,
+        // and wrong the moment a signing key in 9C comes first. The fallback keeps a token that sets no
+        // CKA_ID working, and says so rather than failing silently.
+        var key = keys[0];
+        if (keyId is { Length: > 0 })
+        {
+            // AN INDEX, not the handle: an object handle is a CK_ULONG, so FirstOrDefault answers 0 for
+            // "not found" — indistinguishable from a real handle of 0 — and the type cannot be named in a
+            // nullable to fix that (ADR 0831). The index says "not found" as -1, unambiguously.
+            var match = keys.ToList().FindIndex(handle =>
+            {
+                try
+                {
+                    return session.GetAttributeValue(handle, CK_ATTRIBUTE_TYPE.CKA_ID)
+                        .AsSpan().SequenceEqual(keyId);
+                }
+                catch (Exception)
+                {
+                    return false;   // this key will not say what it is; another may
+                }
+            });
+
+            if (match >= 0)
+            {
+                key = keys[match];
+            }
+            else
+            {
+                DesktopLog.Debug(
+                    "No private key on the card carries the matched certificate's CKA_ID, so the first of "
+                    + "{Count} is used. An unwrap failure after this is likely the wrong key.", keys.Count);
+            }
+        }
+
+        return (
+            wrapped => session.Decrypt(CK_MECHANISM_TYPE.CKM_RSA_PKCS, wrapped, key),
+            point => session.DeriveEcdhSecret(point, key));
+    }
+
+    /// <summary>
+    /// The content-encryption key of recipient <paramref name="mine"/>, ROUTED BY RECIPIENT KIND.
+    /// </summary>
+    /// <remarks>
+    /// The two kinds do not differ in degree. An RSA recipient has the content key WRAPPED to its public key and
+    /// carries it in EncryptedKey (PKCS#1 v1.5, so <c>CKM_RSA_PKCS</c>); an elliptic-curve recipient AGREES a
+    /// key-encryption key and EncryptedKey holds the content key wrapped under THAT. Reading EncryptedKey and
+    /// decrypting it is meaningless for the second — which is why this opener could not read an EC recipient of
+    /// any curve before ABI-side work made agreement possible.
+    /// </remarks>
+    private static byte[] ContentKey(
+        EnvelopedCms envelopedCms, byte[] raw, int mine,
+        Func<byte[], byte[]> decryptWrappedKey, Func<byte[], byte[]> deriveSharedSecret) =>
+        envelopedCms.RecipientInfos[mine] switch
+        {
+            KeyAgreeRecipientInfo agreed => AgreeContentKey(raw, agreed.EncryptedKey, deriveSharedSecret, mine),
+            var transport => decryptWrappedKey(transport.EncryptedKey),
+        };
 
     /// <summary>
     /// Which recipient of <paramref name="envelopedCms"/> is <paramref name="certificate"/>, or -1.

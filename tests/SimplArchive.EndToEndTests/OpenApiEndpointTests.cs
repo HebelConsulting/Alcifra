@@ -35,6 +35,9 @@ public class OpenApiEndpointTests
 
         var paths = root.GetProperty("paths");
         Assert.True(paths.TryGetProperty("/api/repositories", out _), "the spec should enumerate the real controller routes");
+        // The tenant's encryption posture (ADR 0955), read-only: GET and its HEAD companion.
+        Assert.True(paths.TryGetProperty("/api/me/encryption", out var posture), "the spec should describe the encryption posture");
+        Assert.True(posture.TryGetProperty("get", out _) && posture.TryGetProperty("head", out _));
     }
 
     [Fact]

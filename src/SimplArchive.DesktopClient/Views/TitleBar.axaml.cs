@@ -58,6 +58,16 @@ public partial class TitleBar : UserControl
 
     private void OnShowLogs(object? sender, RoutedEventArgs e) => Window()?.OnShowLogs(sender, e);
 
+    // Not forwarded to MainWindow, unlike the rest: that class is on the 1000-line debt list, and the logon window
+    // opens the same test, so both call KeyTestWindow.ShowAsync directly (ADR 0955).
+    private void OnTestHardwareKey(object? sender, RoutedEventArgs e) => Services.Safe.Fire(async () =>
+    {
+        if (Window() is { } window)
+        {
+            await KeyTestWindow.ShowAsync(window, (DataContext as ViewModels.MainWindowViewModel)?.Api);
+        }
+    });
+
     // Null in the headless screenshot renders, which host panes without a window — so every forwarder tolerates
     // it rather than throwing where nothing could have been clicked anyway.
     private MainWindow? Window() => TopLevel.GetTopLevel(this) as MainWindow;

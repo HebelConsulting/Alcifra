@@ -16,6 +16,10 @@ public partial class LogonWindow : Window
         Opened += (_, _) => (DataContext as ViewModels.LogonViewModel)?.Activate();
     }
 
+    // Signed out by definition, so the test runs without an archive side (ADR 0955).
+    private void OnTestHardwareKey(object? sender, RoutedEventArgs e) =>
+        Services.Safe.Fire(() => KeyTestWindow.ShowAsync(this, api: null));
+
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.P && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)))

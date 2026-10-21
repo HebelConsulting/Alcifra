@@ -283,6 +283,33 @@ public sealed class ApiCore
     /// <summary>The authenticated HttpClient every area client sends through.</summary>
     public HttpClient Http { get; }
 
+    // The root's serverVersion as last read by GetRootLinksAsync (ADR 0955).
+    private string? _serverVersion;
+
+    /// <summary>The installation this core talks to — its root address, which carries no credential.</summary>
+    public string RootUrl => _apiRootUrl;
+
+    /// <summary>
+    /// The server's own build version from the API root (<c>serverVersion</c>, ADR 0512), or null when the root does
+    /// not say or cannot be read. Read for the hardware-key test's report (ADR 0955); never throws for a bad answer.
+    /// </summary>
+    /// <remarks>
+    /// Through <see cref="GetRootLinksAsync"/>, the one place the root is read — a second GET of it would be a second
+    /// copy of the error handling there, and a second composed address for the hypermedia guard.
+    /// </remarks>
+    public async Task<string?> GetServerVersionAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await GetRootLinksAsync(cancellationToken);
+            return _serverVersion;
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>
     /// Ends this session on the SERVER as well as here: presents its refresh token and then its access token to the
     /// standard revocation endpoint (RFC 7009), and forgets the stored session (#1578).
@@ -403,6 +430,13 @@ public sealed class ApiCore
 
         using (doc)
         {
+            _serverVersion = doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("serverVersion", out var version)
+                && version.ValueKind == JsonValueKind.String
+                && version.GetString() is { Length: > 0 } text
+                    ? text.Trim()
+                    : null;
+
             if (doc.RootElement.TryGetProperty("links", out var items) && items.ValueKind == JsonValueKind.Array)
             {
                 foreach (var link in items.EnumerateArray())
