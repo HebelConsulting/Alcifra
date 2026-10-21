@@ -5820,4 +5820,25 @@
   <data name="MobIntrayPaneHint" xml:space="preserve">
     <value>Seleziona un elemento per vederne l'anteprima.</value>
   </data>
+  <data name="MobHardwareKey" xml:space="preserve">
+    <value>Chiave hardware</value>
+  </data>
+  <data name="MobHardwareKeyInfo" xml:space="preserve">
+    <value>Quante volte viene chiesto il PIN della chiave: per i documenti, i messaggi e la copia offline allo stesso modo.</value>
+  </data>
+  <data name="MobPinInEffect" xml:space="preserve">
+    <value>In vigore: {0}</value>
+  </data>
+  <data name="MobPinInEffectBecause" xml:space="preserve">
+    <value>In vigore: {0} — {1}</value>
+  </data>
+  <data name="MobPinNotAllowed" xml:space="preserve">
+    <value>la tua organizzazione non consente di conservare il PIN</value>
+  </data>
+  <data name="MobPinSetPerDocument" xml:space="preserve">
+    <value>la tua organizzazione lo imposta per ogni documento</value>
+  </data>
+  <data name="MobPinSetPerSession" xml:space="preserve">
+    <value>la tua organizzazione lo imposta una volta per sessione</value>
+  </data>
 </root>
