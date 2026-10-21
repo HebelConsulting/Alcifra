@@ -5877,6 +5877,21 @@
   <data name="MobCameraUnavailable" xml:space="preserve">
     <value>Questo dispositivo non ha una fotocamera in grado di scansionare un codice QR.</value>
   </data>
+  <data name="MobManagedByOrganisation" xml:space="preserve">
+    <value>Gestito dalla tua organizzazione</value>
+  </data>
+  <data name="MobManagedCannotChange" xml:space="preserve">
+    <value>È gestito dalla tua organizzazione: qui non può essere modificato né eliminato.</value>
+  </data>
+  <data name="MobProfilesLocked" xml:space="preserve">
+    <value>La tua organizzazione gestisce i profili su questo dispositivo: non se ne possono aggiungere e i tuoi non si possono modificare.</value>
+  </data>
+  <data name="MobLicenceManaged" xml:space="preserve">
+    <value>Impostata dalla gestione dei dispositivi della tua organizzazione; decade quando la tua organizzazione la rimuove.</value>
+  </data>
+  <data name="MobPinSetByDeviceManagement" xml:space="preserve">
+    <value>la gestione dei dispositivi della tua organizzazione lo imposta per ogni documento su questo dispositivo</value>
+  </data>
   <data name="MobHardwareKey" xml:space="preserve">
     <value>Chiave hardware</value>
   </data>
