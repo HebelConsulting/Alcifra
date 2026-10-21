@@ -5817,4 +5817,7 @@
   <data name="MobPushWaitingApple" xml:space="preserve">
     <value>Push: in attesa che iOS fornisca all'app il suo indirizzo…</value>
   </data>
+  <data name="MobIntrayPaneHint" xml:space="preserve">
+    <value>Seleziona un elemento per vederne l'anteprima.</value>
+  </data>
 </root>
