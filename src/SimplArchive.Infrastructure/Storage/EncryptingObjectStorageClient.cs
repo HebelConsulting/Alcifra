@@ -164,7 +164,9 @@ public sealed class EncryptingObjectStorageClient(
         var dek = await keys.UnwrapDekAsync(wrappedDek, stored.Metadata[KekGenerationKey],
             stored.Metadata.GetValueOrDefault(KekThumbprintKey), objectKey, cancellationToken);
         var plaintext = AtRestBlobCipher.Decrypt(dek, buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
-        return stored with { Content = new MemoryStream(plaintext), Length = plaintext.Length };
+        // publiclyVisible: the range read below slices this buffer. A MemoryStream made from a bare array hides it, and
+        // GetBuffer() then threw — every Messenger file on a Strict tenant answered 500 (2026-10-21).
+        return stored with { Content = new MemoryStream(plaintext, 0, plaintext.Length, writable: true, publiclyVisible: true), Length = plaintext.Length };
     }
 
     public async Task<Stream> GetObjectRangeAsync(string objectKey, long from, long to, CancellationToken cancellationToken = default)

@@ -82,8 +82,26 @@ public class SealedContentOnTheStrictTierTests
         Assert.Null(await client.GetPresignedDownloadUrlAsync(archive, TimeSpan.FromMinutes(1)));
     }
 
+    // The test above writes past the wrap; the Messenger does not. Filed THROUGH the decorator, the envelope is wrapped at
+    // rest, so the door's shape check reads a range of a DECRYPTED object — which threw (MemoryStream.GetBuffer on a
+    // hidden buffer) and answered every Messenger photo on the kiosk's Crypto tenant with 500 (2026-10-21).
+    [Fact]
+    public async Task An_envelope_wrapped_at_rest_still_leaves_through_the_door()
+    {
+        var (client, _, tenantId) = await StrictClientAsync(Environment.GetEnvironmentVariable("Encryption__ServiceUrl"));
+        var envelope = $"tenants/{tenantId:D}/{Segment}/{Guid.NewGuid():D}/content.p7m";
+        var sealedBytes = Seal("a photo for the readers only");
+        await client.PutObjectAsync(envelope, new MemoryStream(sealedBytes), "application/pkcs7-mime");
+
+        Assert.NotNull(await client.GetPresignedDownloadUrlAsync(envelope, TimeSpan.FromMinutes(1)));
+        await using var range = await client.GetObjectRangeForClientAsync(envelope, 0, 3, "the test door");
+        using var copy = new MemoryStream();
+        await range.CopyToAsync(copy);
+        Assert.Equal(sealedBytes[..4], copy.ToArray());
+    }
+
     /// <summary>The decorator over the fixture's real store, with a strict mode for a tenant of this test's own.</summary>
-    private async Task<(EncryptingObjectStorageClient Client, S3ObjectStorageClient Store, Guid TenantId)> StrictClientAsync()
+    private async Task<(EncryptingObjectStorageClient Client, S3ObjectStorageClient Store, Guid TenantId)> StrictClientAsync(string? serviceUrl = null)
     {
         var tenant = new Tenant { Id = Guid.NewGuid(), Name = $"sealed-{Guid.NewGuid():N}", CreatedAt = DateTimeOffset.UtcNow };
         using (var scope = _factory.Services.CreateScope())
@@ -95,7 +113,7 @@ public class SealedContentOnTheStrictTierTests
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["Encryption:ServiceUrl"] = "http://127.0.0.1:9",   // never called: nothing here is wrapped at rest
+            ["Encryption:ServiceUrl"] = serviceUrl ?? "http://127.0.0.1:9",   // the fixture's stub where a test wraps at rest
             [$"Encryption:Modes:{tenant.Name}"] = "Strict",
         }).Build();
         var keys = new AtRestKeyService(configuration, _factory.Services.GetRequiredService<IHttpClientFactory>(),
