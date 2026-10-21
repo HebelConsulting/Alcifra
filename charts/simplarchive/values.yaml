@@ -471,8 +471,8 @@ modules:
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).
     MESSENGER:
       package: SimplArchive.Messenger
-      version: 0.6.0
-      sha512: "0VCDDX0Vac6aUhIJHcwe7ouOKHB88j+T1S9cbMK09imDSM41ZLNFjuC4MIZtvH4pq26XdsZmUqq8Ut4RfeQW5Q=="
+      version: 0.7.0
+      sha512: "H+8gOzZWkX9s4c8V9aymoQB6HjYiIt063lWKzFqVy+vCuqcpt5QUg3j6Rh4MlVIOf15rFRCDTADod/L3ApfEew=="
       source: nuget.org
 
   # Plain alpine: a .nupkg is a zip, so the installer needs no NuGet tooling and no SDK image.
