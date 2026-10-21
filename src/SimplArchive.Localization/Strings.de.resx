@@ -5961,4 +5961,49 @@
   <data name="KtStepCompare" xml:space="preserve">
     <value>Mit dem Versiegelten vergleichen</value>
   </data>
+  <data name="KtStepConnect" xml:space="preserve">
+    <value>Mit dem Schlüssel verbinden</value>
+  </data>
+  <data name="KtStepSelectPiv" xml:space="preserve">
+    <value>Die PIV-Anwendung auswählen</value>
+  </data>
+  <data name="KtShare" xml:space="preserve">
+    <value>Bericht teilen</value>
+  </data>
+  <data name="MobKtIntro" xml:space="preserve">
+    <value>Geben Sie die PIN des Schlüssels ein, dann halten Sie den Schlüssel ans Telefon oder stecken ihn ein. Der Test versiegelt eine neue Zufallsnachricht an das eigene Zertifikat des Schlüssels und öffnet sie mit dem Schlüssel und seiner PIN. Er braucht keinen Server und sendet nichts.</value>
+  </data>
+  <data name="MobKtReportContains" xml:space="preserve">
+    <value>Der Bericht enthält die App- und Systemversionen, das Gerätemodell, wie der Schlüssel verbunden war, Firmware und Seriennummer des Schlüssels, seine Zertifikate und jeden Testschritt. Er enthält nie Ihre PIN, Dokumente, Anmelde-Tokens oder andere Geheimnisse.</value>
+  </data>
+  <data name="MobKtEnvelope" xml:space="preserve">
+    <value>Umschlag</value>
+  </data>
+  <data name="MobKtTestThisKey" xml:space="preserve">
+    <value>Diesen Schlüssel testen</value>
+  </data>
+  <data name="MobKtChooseFile" xml:space="preserve">
+    <value>Datei wählen…</value>
+  </data>
+  <data name="MobKtPickEnvelope" xml:space="preserve">
+    <value>Umschlag wählen (.p7m)</value>
+  </data>
+  <data name="MobKtOpened" xml:space="preserve">
+    <value>Geöffnet.</value>
+  </data>
+  <data name="MobKtCancelled" xml:space="preserve">
+    <value>Abgebrochen.</value>
+  </data>
+  <data name="MobKtError" xml:space="preserve">
+    <value>Etwas ist schiefgegangen: {0}</value>
+  </data>
+  <data name="MobKtEnrolled" xml:space="preserve">
+    <value>Sein Zertifikat ist für Sie registriert.</value>
+  </data>
+  <data name="MobKtNotEnrolled" xml:space="preserve">
+    <value>Sein Zertifikat ist aber nicht für Sie registriert: Das Archiv kann keine Dokumente an es versiegeln.</value>
+  </data>
+  <data name="MobKtVersion" xml:space="preserve">
+    <value>Version {0} ({1})</value>
+  </data>
 </root>

@@ -5961,4 +5961,49 @@
   <data name="KtStepCompare" xml:space="preserve">
     <value>Confronta con quanto sigillato</value>
   </data>
+  <data name="KtStepConnect" xml:space="preserve">
+    <value>Collegati alla chiave</value>
+  </data>
+  <data name="KtStepSelectPiv" xml:space="preserve">
+    <value>Seleziona l'applicazione PIV</value>
+  </data>
+  <data name="KtShare" xml:space="preserve">
+    <value>Condividi rapporto</value>
+  </data>
+  <data name="MobKtIntro" xml:space="preserve">
+    <value>Inserisci il PIN della chiave, poi avvicina la chiave al telefono o collegala. La prova sigilla un nuovo messaggio casuale con il certificato della chiave stessa e lo apre con la chiave e il suo PIN. Non richiede un server e non invia nulla.</value>
+  </data>
+  <data name="MobKtReportContains" xml:space="preserve">
+    <value>Il rapporto contiene le versioni dell'app e del sistema, il modello del dispositivo, come è stata collegata la chiave, firmware e numero di serie della chiave, i suoi certificati e ogni passo della prova. Non contiene mai il PIN, documenti, token di accesso o altri segreti.</value>
+  </data>
+  <data name="MobKtEnvelope" xml:space="preserve">
+    <value>Busta</value>
+  </data>
+  <data name="MobKtTestThisKey" xml:space="preserve">
+    <value>Prova questa chiave</value>
+  </data>
+  <data name="MobKtChooseFile" xml:space="preserve">
+    <value>Scegli un file…</value>
+  </data>
+  <data name="MobKtPickEnvelope" xml:space="preserve">
+    <value>Scegli una busta (.p7m)</value>
+  </data>
+  <data name="MobKtOpened" xml:space="preserve">
+    <value>Aperta.</value>
+  </data>
+  <data name="MobKtCancelled" xml:space="preserve">
+    <value>Annullato.</value>
+  </data>
+  <data name="MobKtError" xml:space="preserve">
+    <value>Qualcosa è andato storto: {0}</value>
+  </data>
+  <data name="MobKtEnrolled" xml:space="preserve">
+    <value>Il suo certificato è registrato per te.</value>
+  </data>
+  <data name="MobKtNotEnrolled" xml:space="preserve">
+    <value>Ma il suo certificato non è registrato per te: l'archivio non può sigillarvi documenti.</value>
+  </data>
+  <data name="MobKtVersion" xml:space="preserve">
+    <value>Versione {0} ({1})</value>
+  </data>
 </root>

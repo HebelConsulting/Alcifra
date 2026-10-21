@@ -182,6 +182,40 @@ public sealed class KeyTestReportTests : ApiClientSettingsTest
         Assert.Contains($"{"PIN policy",-22}: {KeyTestReportText.NotAdvertised}", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_phone_names_its_connection_and_its_PIV_steps_and_no_library()
+    {
+        // The phone reaches the key over USB-C, NFC or Lightning, with no PKCS#11 library: "none found" there would send
+        // support after a library a phone never has (core #1864's phone half).
+        var builder = new KeyTestReportBuilder().NeverShow(Pin);
+        builder.Environment(new KeyTestEnvironment("SimplArchive Mobile", "0.14.0", "Android 16 (Pixel 9)", "Arm64", null,
+            [new KeyTestReader("NFC", true)], Connection: "NFC"));
+        builder.Step(KeyTestStepKind.Connect, KeyTestOutcome.Passed, "Connected over NFC.");
+        builder.Step(KeyTestStepKind.SelectPiv, KeyTestOutcome.Failed, "The key refused selecting PIV (status 6D00).", errorCode: "SW 6D00");
+
+        var text = KeyTestReportText.Render(builder.Build());
+
+        Assert.Contains($"{"Connection",-22}: NFC", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("PKCS#11", text, StringComparison.Ordinal);
+        Assert.Contains("1. Connect to the key: passed", text, StringComparison.Ordinal);
+        Assert.Contains("2. Select the PIV application: FAILED", text, StringComparison.Ordinal);
+        Assert.Contains("   code: SW 6D00", text, StringComparison.Ordinal);
+        Assert.Contains("Result: FAILED at \"Select the PIV application\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_step_has_a_printed_name_and_a_translated_title()
+    {
+        // The desktop titles a step with Strings.Get($"KtStep{kind}") and the phone likewise: an interpolated key no
+        // key scan sees, so a new step kind is checked here.
+        var resx = File.ReadAllText(Path.Combine(RepoPaths.Root(), "src", "SimplArchive.Localization", "Strings.resx"));
+        foreach (var kind in Enum.GetValues<KeyTestStepKind>())
+        {
+            Assert.NotEqual(kind.ToString(), KeyTestReportText.StepName(kind));
+            Assert.Contains($"<data name=\"KtStep{kind}\"", resx, StringComparison.Ordinal);
+        }
+    }
+
     private static KeyTestReport Report(KeyTestArchiveSide? archive)
     {
         var builder = new KeyTestReportBuilder().NeverShow(Pin);

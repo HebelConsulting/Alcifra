@@ -5961,4 +5961,49 @@
   <data name="KtStepCompare" xml:space="preserve">
     <value>Compare with what was sealed</value>
   </data>
+  <data name="KtStepConnect" xml:space="preserve">
+    <value>Connect to the key</value>
+  </data>
+  <data name="KtStepSelectPiv" xml:space="preserve">
+    <value>Select the PIV application</value>
+  </data>
+  <data name="KtShare" xml:space="preserve">
+    <value>Share report</value>
+  </data>
+  <data name="MobKtIntro" xml:space="preserve">
+    <value>Enter the key's PIN, then hold the key to the phone or plug it in. The test seals a fresh random message to the key's own certificate and opens it with the key and its PIN. It needs no server and sends nothing anywhere.</value>
+  </data>
+  <data name="MobKtReportContains" xml:space="preserve">
+    <value>The report contains the app and system versions, the device model, how the key was connected, the key's firmware and serial number, its certificates and each step of the test. It never contains your PIN, documents, sign-in tokens or other secrets.</value>
+  </data>
+  <data name="MobKtEnvelope" xml:space="preserve">
+    <value>Envelope</value>
+  </data>
+  <data name="MobKtTestThisKey" xml:space="preserve">
+    <value>Test this key</value>
+  </data>
+  <data name="MobKtChooseFile" xml:space="preserve">
+    <value>Choose a file…</value>
+  </data>
+  <data name="MobKtPickEnvelope" xml:space="preserve">
+    <value>Choose an envelope (.p7m)</value>
+  </data>
+  <data name="MobKtOpened" xml:space="preserve">
+    <value>Opened.</value>
+  </data>
+  <data name="MobKtCancelled" xml:space="preserve">
+    <value>Cancelled.</value>
+  </data>
+  <data name="MobKtError" xml:space="preserve">
+    <value>Something went wrong: {0}</value>
+  </data>
+  <data name="MobKtEnrolled" xml:space="preserve">
+    <value>Its certificate is enrolled for you.</value>
+  </data>
+  <data name="MobKtNotEnrolled" xml:space="preserve">
+    <value>But its certificate is not enrolled for you: the archive cannot seal documents to it.</value>
+  </data>
+  <data name="MobKtVersion" xml:space="preserve">
+    <value>Version {0} ({1})</value>
+  </data>
 </root>

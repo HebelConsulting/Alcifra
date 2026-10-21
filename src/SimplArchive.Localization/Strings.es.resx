@@ -5961,4 +5961,49 @@
   <data name="KtStepCompare" xml:space="preserve">
     <value>Comparar con lo sellado</value>
   </data>
+  <data name="KtStepConnect" xml:space="preserve">
+    <value>Conectar con la llave</value>
+  </data>
+  <data name="KtStepSelectPiv" xml:space="preserve">
+    <value>Seleccionar la aplicación PIV</value>
+  </data>
+  <data name="KtShare" xml:space="preserve">
+    <value>Compartir informe</value>
+  </data>
+  <data name="MobKtIntro" xml:space="preserve">
+    <value>Introduzca el PIN de la llave y luego acerque la llave al teléfono o conéctela. La prueba sella un mensaje aleatorio nuevo con el certificado de la propia llave y lo abre con la llave y su PIN. No necesita servidor y no envía nada.</value>
+  </data>
+  <data name="MobKtReportContains" xml:space="preserve">
+    <value>El informe contiene las versiones de la aplicación y del sistema, el modelo del dispositivo, cómo se conectó la llave, el firmware y número de serie de la llave, sus certificados y cada paso de la prueba. Nunca contiene su PIN, documentos, tokens de sesión ni otros secretos.</value>
+  </data>
+  <data name="MobKtEnvelope" xml:space="preserve">
+    <value>Sobre</value>
+  </data>
+  <data name="MobKtTestThisKey" xml:space="preserve">
+    <value>Probar esta llave</value>
+  </data>
+  <data name="MobKtChooseFile" xml:space="preserve">
+    <value>Elegir un archivo…</value>
+  </data>
+  <data name="MobKtPickEnvelope" xml:space="preserve">
+    <value>Elija un sobre (.p7m)</value>
+  </data>
+  <data name="MobKtOpened" xml:space="preserve">
+    <value>Abierto.</value>
+  </data>
+  <data name="MobKtCancelled" xml:space="preserve">
+    <value>Cancelado.</value>
+  </data>
+  <data name="MobKtError" xml:space="preserve">
+    <value>Algo salió mal: {0}</value>
+  </data>
+  <data name="MobKtEnrolled" xml:space="preserve">
+    <value>Su certificado está registrado para usted.</value>
+  </data>
+  <data name="MobKtNotEnrolled" xml:space="preserve">
+    <value>Pero su certificado no está registrado para usted: el archivo no puede sellarle documentos.</value>
+  </data>
+  <data name="MobKtVersion" xml:space="preserve">
+    <value>Versión {0} ({1})</value>
+  </data>
 </root>

@@ -52,6 +52,10 @@ public static class KeyTestReportText
                 Field(text, "  PKCS#11 interface", cryptoki);
             }
         }
+        else if (environment.Connection is { Length: > 0 } connection)
+        {
+            Field(text, "Connection", connection);
+        }
         else
         {
             Field(text, "PKCS#11 library", "none found");
@@ -143,6 +147,8 @@ public static class KeyTestReportText
     {
         KeyTestStepKind.FindLibrary => "Find the PKCS#11 library",
         KeyTestStepKind.ListReaders => "List the readers",
+        KeyTestStepKind.Connect => "Connect to the key",
+        KeyTestStepKind.SelectPiv => "Select the PIV application",
         KeyTestStepKind.ReadKey => "Read the key and its certificates",
         KeyTestStepKind.ChooseCertificate => "Choose the key-management certificate",
         KeyTestStepKind.Seal => "Seal a fresh random message to it",

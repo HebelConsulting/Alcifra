@@ -75,6 +75,12 @@ public enum KeyTestStepKind
     /// <summary>List the readers (slots) the library sees.</summary>
     ListReaders,
 
+    /// <summary>Connect to the key over the device's own transport (the phone's USB-C, NFC or Lightning).</summary>
+    Connect,
+
+    /// <summary>Select the key's PIV application — the first command a phone sends to the key.</summary>
+    SelectPiv,
+
     /// <summary>Read the keys present and their certificates — public data, no PIN.</summary>
     ReadKey,
 
@@ -114,19 +120,25 @@ public sealed record KeyTestStep(
 /// <param name="Architecture">The process architecture (<c>Arm64</c>, <c>X64</c>).</param>
 /// <param name="Library">The PKCS#11 library found, or null when none was.</param>
 /// <param name="Readers">The readers (slots) seen, with whether a key was in each.</param>
+/// <param name="Connection">
+/// How the key reached a device that needs no library (the phone: <c>USB-C</c>, <c>NFC</c>, <c>Lightning</c>), or null.
+/// Set, the report names it instead of saying "no PKCS#11 library found", which would send support after a library a
+/// phone never has.
+/// </param>
 public sealed record KeyTestEnvironment(
     string App,
     string AppVersion,
     string OperatingSystem,
     string Architecture,
     KeyTestLibrary? Library,
-    IReadOnlyList<KeyTestReader> Readers)
+    IReadOnlyList<KeyTestReader> Readers,
+    string? Connection = null)
 {
     /// <summary>This machine's operating system and architecture, from the runtime.</summary>
     public static KeyTestEnvironment ThisMachine(
-        string app, string appVersion, KeyTestLibrary? library, IReadOnlyList<KeyTestReader> readers) =>
+        string app, string appVersion, KeyTestLibrary? library, IReadOnlyList<KeyTestReader> readers, string? connection = null) =>
         new(app, appVersion, RuntimeInformation.OSDescription.Trim(), RuntimeInformation.ProcessArchitecture.ToString(),
-            library, readers);
+            library, readers, connection);
 }
 
 /// <summary>The PKCS#11 library a desktop reached the key through.</summary>
