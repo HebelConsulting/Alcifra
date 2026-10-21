@@ -58,6 +58,7 @@ public class IntrayController : ControllerBase
     private readonly DocumentFinalizer _finalizer;
     private readonly Concurrency.DocumentVerbs _documents;
     private readonly IntrayScopeResolver _scopes;
+    private readonly Infrastructure.Storage.OmittableLinks _omittable;
 
     public IntrayController(
         SimplArchiveDbContext dbContext,
@@ -73,8 +74,10 @@ public class IntrayController : ControllerBase
         IStorageQuotaService storageQuota,
         IAuditRecorder audit,
         IUserSystemRightsResolver userSystemRights,
-        IntrayScopeResolver scopes)
+        IntrayScopeResolver scopes,
+        Infrastructure.Storage.OmittableLinks omittable)
     {
+        _omittable = omittable;
         _dbContext = dbContext;
         _objectStorageClient = objectStorageClient;
         _documentPreviewService = documentPreviewService;
@@ -230,7 +233,11 @@ public class IntrayController : ControllerBase
                 continue; // the prefix placeholder, a hidden mask sidecar, or a cached preview/text-layout artifact
             }
 
-            var download = await _objectStorageClient.GetPresignedDownloadUrlAsync(storageObject.Key, PresignedUrlExpiry, name, cancellationToken);
+            // Dropped, not failed, when the item is encrypted and no service can unwrap it (ADR 0953): one such
+            // item must not take the whole intray listing with it.
+            var download = await _omittable.OrOmittedAsync(
+                _objectStorageClient.GetPresignedDownloadUrlAsync(storageObject.Key, PresignedUrlExpiry, name, cancellationToken),
+                "download");
 
             items.Add(new IntrayItemResource
             {

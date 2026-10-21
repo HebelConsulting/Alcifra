@@ -35,7 +35,8 @@ public sealed class DocumentVersionResourceBuilder(
     SimplArchiveDbContext dbContext,
     IDocumentPreviewService previews,
     IObjectStorageClient storage,
-    StrictEnvelopeDelivery envelopes)
+    StrictEnvelopeDelivery envelopes,
+    SimplArchive.Infrastructure.Storage.OmittableLinks omittable)
 {
     // The same window the upload URL uses. A presigned link is handed to a browser that is about to follow it,
     // so it wants to be short; fifteen minutes survives a slow render without leaving a usable URL in a log.
@@ -124,7 +125,11 @@ public sealed class DocumentVersionResourceBuilder(
             // disables the affordance instead of trying. The document's metadata still renders, which is the
             // whole reason the seam answers null rather than throwing.
             if (doors.Plaintext
-                && await storage.GetPresignedDownloadUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken) is { } downloadUrl)
+                // Through OmittableLinks: without an encryption service an object encrypted at rest refuses its
+                // presign, and this resource drops the link rather than failing (ADR 0953).
+                && await omittable.OrOmittedAsync(
+                    storage.GetPresignedDownloadUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken),
+                    doors.DownloadRel) is { } downloadUrl)
             {
                 links.Add(new Link(doors.DownloadRel, downloadUrl.ToString(), "GET"));
             }
@@ -141,7 +146,9 @@ public sealed class DocumentVersionResourceBuilder(
             // `plain-preview` and the two resolutions are both paid; they ask the same display-object
             // question, so the badge cannot disagree between them.
             if (doors.Plaintext
-                && await previews.GetPreviewUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken) is { } preview)
+                && await omittable.OrOmittedAsync(
+                    previews.GetPreviewUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken),
+                    doors.PreviewRel) is { } preview)
             {
                 links.Add(new Link(doors.PreviewRel, preview.Url.ToString(), "GET"));
                 if (!doors.Enveloped)

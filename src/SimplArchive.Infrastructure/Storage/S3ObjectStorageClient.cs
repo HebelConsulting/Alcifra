@@ -13,7 +13,7 @@ namespace SimplArchive.Infrastructure.Storage;
 // endpoint ObjectStorageOptions points at via the AWS SDK — ForcePathStyle is required for
 // non-AWS-hosted, self-signed-cert-free endpoints like MinIO, which don't support the SDK's default
 // virtual-hosted-style bucket addressing.
-public class S3ObjectStorageClient : IObjectStorageClient
+public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 {
     // Two clients differing only in ServiceURL: _internalClient for the Api's own server-side calls
     // (GetObjectAsync), _presignClient for signing presigned URLs the browser uses. They're the same
@@ -347,17 +347,37 @@ public class S3ObjectStorageClient : IObjectStorageClient
     }
 
     /// <summary>
+    /// The object's user metadata from one HEAD, WITHOUT the refusal above — null when nothing is stored there.
+    /// </summary>
+    /// <remarks>
+    /// The presign guard's probe (#1843, ADR 0953). It decides about the object itself, and a refusal here would
+    /// log this client's Error line for a refusal whose single line belongs to whoever decides its fate (an
+    /// omitted link, or the 503 the exception handler logs).
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<string, string>?> MetadataAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _internalClient.GetObjectMetadataAsync(BucketFor(objectKey), objectKey, cancellationToken);
+            return UserMetadata(response.Metadata);
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Refuses an at-rest-encrypted object when nothing in this process can unwrap its data key (#1499).
     /// </summary>
     /// <remarks>
     /// <para>
     /// Asked only where the metadata is ALREADY in hand — the two reads above — so it costs nothing. A
-    /// PRESIGNED URL is deliberately not guarded: presigning makes no request to the store at all (it is a
-    /// local signature), so a check there would add a HEAD per URL issued, and the version resource builder
-    /// issues one per row. That is a real cost on every healthy installation to insure against a
-    /// misconfiguration, and the free guards catch the same fault at the first server-side touch — of which
-    /// every document gets several. <b>This narrows the window; it does not close it</b>, and saying so is
-    /// part of the decision.
+    /// PRESIGNED URL is not guarded HERE: presigning makes no request to the store (it is a local signature).
+    /// The first version of this guard stopped at that, accepting that it "narrows the window, not closes it"
+    /// — and the window was the preview, which handed ciphertext to the browser (#1843). The presigned reads
+    /// are now refused by <see cref="EncryptedObjectPresignGuard"/>, which wraps this client when no service is
+    /// configured and pays a HEAD per presigned read for it (ADR 0953).
     /// </para>
     /// <para>
     /// A WRITE is not refused either. An installation in this state must keep operating on the objects it can

@@ -402,8 +402,16 @@ public static class DependencyInjection
         }
         else
         {
-            services.AddSingleton<IObjectStorageClient>(provider => provider.GetRequiredService<S3ObjectStorageClient>());
+            // No service: the plain client, behind the guard that refuses to PRESIGN a read of an object
+            // encrypted at rest (#1843, ADR 0953). Its server-side reads already refuse one (#1499); a presign
+            // asks the store nothing, so without the guard it handed the ciphertext to the browser.
+            services.AddSingleton<IObjectStorageClient>(provider => new EncryptedObjectPresignGuard(
+                provider.GetRequiredService<S3ObjectStorageClient>(),
+                provider.GetRequiredService<S3ObjectStorageClient>()));
         }
+        // What a resource that EMBEDS a presigned link goes through, so a refused one is dropped rather than
+        // failing the resource (ADR 0953). Registered either way: with the service nothing throws its refusal.
+        services.AddSingleton<OmittableLinks>();
         services.AddScoped<IDocumentPreviewService, RenditionService>();
 
         // Inline unified text diff between two document versions (ADR "Document version comparison") — reuses the

@@ -40,6 +40,7 @@ public class CheckoutsController : ControllerBase
     private readonly IDocumentVersionComparer _comparer;
     private readonly IDocumentPreviewService _documentPreviewService;
     private readonly Documents.StrictEnvelopeDelivery _strictEnvelopes;
+    private readonly Infrastructure.Storage.OmittableLinks _omittable;
 
     public CheckoutsController(
         SimplArchiveDbContext dbContext,
@@ -53,8 +54,10 @@ public class CheckoutsController : ControllerBase
         IDocumentVersionComparer comparer,
         IDocumentPreviewService documentPreviewService,
         Documents.StrictEnvelopeDelivery strictEnvelopes,
-        Concurrency.DocumentVerbs documents)
+        Concurrency.DocumentVerbs documents,
+        Infrastructure.Storage.OmittableLinks omittable)
     {
+        _omittable = omittable;
         _dbContext = dbContext;
         _documents = documents;
         _currentUserAccessor = currentUserAccessor;
@@ -281,7 +284,10 @@ public class CheckoutsController : ControllerBase
             // simply carries no plaintext URL to fetch the working copy from.
             var downloadUrl = version is null
                 ? null
-                : (await _objectStorage.GetPresignedDownloadUrlAsync(version.ObjectKey, PresignedUrlExpiry, cancellationToken: cancellationToken))?.ToString();
+                // Dropped, not failed, when the object is encrypted and no service can unwrap it (ADR 0953).
+                : (await _omittable.OrOmittedAsync(
+                    _objectStorage.GetPresignedDownloadUrlAsync(version.ObjectKey, PresignedUrlExpiry, cancellationToken: cancellationToken),
+                    "downloadUrl"))?.ToString();
 
             // Is there a cloud stash (in-progress working copy) for this check-out? If so, offer its download URL
             // so the client restores it on login, and decide whether it's actually MODIFIED — the working copy in
@@ -296,7 +302,9 @@ public class CheckoutsController : ControllerBase
                 hasStash = await _objectStorage.ExistsAsync(stashKey, cancellationToken);
                 if (hasStash)
                 {
-                    stashDownloadUrl = (await _objectStorage.GetPresignedDownloadUrlAsync(stashKey, PresignedUrlExpiry, cancellationToken: cancellationToken))?.ToString();
+                    stashDownloadUrl = (await _omittable.OrOmittedAsync(
+                        _objectStorage.GetPresignedDownloadUrlAsync(stashKey, PresignedUrlExpiry, cancellationToken: cancellationToken),
+                        "stashDownloadUrl"))?.ToString();
                     if (version is not null)
                     {
                         await using var stashStream = await _objectStorage.GetObjectAsync(stashKey, cancellationToken);

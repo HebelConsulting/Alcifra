@@ -525,6 +525,7 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
         {
             services.RemoveAll<SimplArchive.Application.Abstractions.IDnsTxtLookup>();
             services.AddSingleton<SimplArchive.Application.Abstractions.IDnsTxtLookup>(Dns);
+            RehearseThePresignGuard(services);
         });
     }
 

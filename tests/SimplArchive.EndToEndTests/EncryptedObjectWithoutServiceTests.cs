@@ -95,6 +95,50 @@ public class EncryptedObjectWithoutServiceTests
         Assert.Equal("an ordinary document", await new StreamReader(content).ReadToEndAsync());
     }
 
+    [Fact]
+    public async Task A_presigned_READ_of_an_object_carrying_a_wrapped_DEK_is_refused_too()
+    {
+        // #1843: the reads above refused, but a presign asks the store nothing — so the preview's URL handed the
+        // browser the ciphertext. The guard the composition root installs without a service asks first (one HEAD),
+        // against the REAL store here because what it reads is metadata the S3 response carries.
+        var tenantId = Guid.NewGuid();
+        var encrypted = $"tenants/{tenantId:D}/2026/{Guid.NewGuid():D}/content.pdf";
+        var plaintext = $"tenants/{tenantId:D}/2026/{Guid.NewGuid():D}/content.txt";
+        var missing = $"tenants/{tenantId:D}/2026/{Guid.NewGuid():D}/content.pdf";
+
+        var writer = Client(refuseEncryptedObjects: false);
+        await writer.EnsureTenantBucketAsync(tenantId);
+        await writer.PutObjectAsync(
+            encrypted,
+            new MemoryStream(Encoding.UTF8.GetBytes("this stands in for ciphertext")),
+            "application/pdf",
+            new Dictionary<string, string>
+            {
+                [EncryptingObjectStorageClient.WrappedDekKey] = "not-a-real-wrapped-key",
+                [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+            });
+        await writer.PutObjectAsync(
+            plaintext, new MemoryStream(Encoding.UTF8.GetBytes("an ordinary document")), "text/plain");
+
+        var plain = Client(refuseEncryptedObjects: true);
+        var guarded = new EncryptedObjectPresignGuard(plain, plain);
+
+        var download = await Assert.ThrowsAsync<EncryptedObjectWithoutEncryptionServiceException>(
+            () => guarded.GetPresignedDownloadUrlAsync(encrypted, TimeSpan.FromMinutes(5), "letterhead.pdf"));
+        await Assert.ThrowsAsync<EncryptedObjectWithoutEncryptionServiceException>(
+            () => guarded.GetPresignedPreviewUrlAsync(encrypted, TimeSpan.FromMinutes(5), "letterhead.pdf"));
+        Assert.Equal("ENCRYPTION_SERVICE_NOT_CONFIGURED", download.ErrorCode);
+        Assert.Equal(503, download.ApiStatusCode);
+
+        // The anti-vacuous half: plaintext presigns as before, and so does a key with nothing stored under it —
+        // the store's real 404 on the HEAD must read as "nothing to hand out", not as a failure.
+        Assert.NotNull(await guarded.GetPresignedPreviewUrlAsync(plaintext, TimeSpan.FromMinutes(5), "a.txt", "text/plain"));
+        Assert.NotNull(await guarded.GetPresignedDownloadUrlAsync(missing, TimeSpan.FromMinutes(5)));
+
+        // An upload is not a read: presigned as before.
+        Assert.NotNull(await guarded.GetPresignedUploadUrlAsync(encrypted, TimeSpan.FromMinutes(5)));
+    }
+
     /// <summary>The real S3 client against the fixture's store, with the flag the composition root sets.</summary>
     private S3ObjectStorageClient Client(bool refuseEncryptedObjects) => new(
         _factory.Services.GetRequiredService<IOptions<ObjectStorageOptions>>(),
