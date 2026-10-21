@@ -126,4 +126,83 @@ public class DbInitCopyLockstepTests
             + "absent, which is exactly why a chart install ran the wrong credential model for a year without "
             + "a single error (#1249).");
     }
+
+    // THE KIOSK WAS THE FIFTH PLACE (#1868). The theory above names the chart's files, so it never looked at
+    // tools/kiosk/docker-compose.yml — whose openbao-init granted only database/creds/simplarchive and whose api
+    // env never set OpenBao__DatabaseRuntimeStaticRole. Its db-init (guarded above) created simplarchive_runtime,
+    // and nothing used it: the public demo ran one DYNAMIC user per instance start for as long as anyone looked.
+    // So the chain is checked on every provisioner and every deployment the repository has, FOUND rather than
+    // listed: a file that configures OpenBao's database engine must allow, register and grant the runtime static
+    // role; a file that hands the app a connection template must also name the role.
+    [Fact]
+    public void Every_OpenBao_provisioner_wires_the_runtime_static_role()
+    {
+        if (PrivateRepositoryGate.RepoRoot() is not { } root)
+        {
+            return;
+        }
+
+        var provisioners = DeploymentFiles(root)
+            .Where(f => File.ReadAllText(f).Contains("bao write database/config/simplarchive", StringComparison.Ordinal))
+            .ToList();
+        Assert.Contains(provisioners, f => f.EndsWith(Path.Combine("charts", "simplarchive", "files", "openbao-entrypoint.sh"), StringComparison.Ordinal));
+        if (PrivateRepositoryGate.IsPrivateRepository(root))
+        {
+            Assert.Contains(provisioners, f => f.EndsWith(Path.Combine("tools", "kiosk", "docker-compose.yml"), StringComparison.Ordinal));
+        }
+
+        var missing = new List<string>();
+        foreach (var file in provisioners)
+        {
+            var text = File.ReadAllText(file);
+            var name = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
+            var allowed = text.Split('\n').FirstOrDefault(l => l.Contains("allowed_roles=", StringComparison.Ordinal));
+            if (allowed is null || !allowed.Contains("simplarchive-runtime", StringComparison.Ordinal))
+            {
+                missing.Add($"  {name}: allowed_roles does not name simplarchive-runtime");
+            }
+
+            if (!text.Contains("database/static-roles/simplarchive-runtime", StringComparison.Ordinal))
+            {
+                missing.Add($"  {name}: no database/static-roles/simplarchive-runtime");
+            }
+
+            if (!text.Contains("database/static-creds/simplarchive-runtime", StringComparison.Ordinal))
+            {
+                missing.Add($"  {name}: the policy grants no database/static-creds/simplarchive-runtime");
+            }
+        }
+
+        foreach (var file in DeploymentFiles(root)
+            .Where(f => File.ReadAllText(f).Contains("OpenBao__DatabaseConnectionTemplate", StringComparison.Ordinal)))
+        {
+            if (!File.ReadAllText(file).Contains("OpenBao__DatabaseRuntimeStaticRole", StringComparison.Ordinal))
+            {
+                missing.Add($"  {Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/')}: "
+                    + "sets OpenBao__DatabaseConnectionTemplate but not OpenBao__DatabaseRuntimeStaticRole");
+            }
+        }
+
+        Assert.True(missing.Count == 0,
+            "The runtime static role is not wired end to end:\n" + string.Join("\n", missing)
+            + "\n\nEach gap fails SILENTLY into a dynamic credential (a new user name per lease, which a live pool "
+            + "cannot swap; CLAUDE.md, ADR 0721). The kiosk ran that way unnoticed until #1868.");
+    }
+
+    // Deployment configuration only: compose files, shell provisioners and Helm templates, outside build output,
+    // docs and tests (which quote these strings to explain them).
+    private static IEnumerable<string> DeploymentFiles(string root) =>
+        Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+            .Where(f => f.EndsWith(".yml", StringComparison.Ordinal) || f.EndsWith(".yaml", StringComparison.Ordinal)
+                || f.EndsWith(".sh", StringComparison.Ordinal) || f.EndsWith(".tpl", StringComparison.Ordinal))
+            .Where(f =>
+            {
+                var relative = Path.GetRelativePath(root, f).Replace(Path.DirectorySeparatorChar, '/');
+                return !relative.StartsWith("docs/", StringComparison.Ordinal)
+                    && !relative.StartsWith("tests/", StringComparison.Ordinal)
+                    && !relative.StartsWith(".git/", StringComparison.Ordinal)
+                    && !relative.Contains("/bin/", StringComparison.Ordinal)
+                    && !relative.Contains("/obj/", StringComparison.Ordinal)
+                    && !relative.Contains("node_modules/", StringComparison.Ordinal);
+            });
 }
