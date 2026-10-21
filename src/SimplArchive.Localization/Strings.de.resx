@@ -5820,6 +5820,48 @@
   <data name="MobIntrayPaneHint" xml:space="preserve">
     <value>Wählen Sie ein Element, um seine Vorschau zu sehen.</value>
   </data>
+  <data name="MobSubscription" xml:space="preserve">
+    <value>Abonnement</value>
+  </data>
+  <data name="MobSubscriptionNone" xml:space="preserve">
+    <value>Kein Abonnement: Nur Profile auf der öffentlichen Demo können verwendet werden. Geben Sie die Lizenz ein, die Sie von Ihrer Organisation oder vom Hersteller erhalten haben.</value>
+  </data>
+  <data name="MobSubscriptionDemoOnly" xml:space="preserve">
+    <value>Ohne Abonnement können nur Profile auf der öffentlichen Demo verwendet, hinzugefügt, geändert oder gelöscht werden.</value>
+  </data>
+  <data name="MobSubscriptionNeeded" xml:space="preserve">
+    <value>Abonnement erforderlich</value>
+  </data>
+  <data name="MobLicenceHeld" xml:space="preserve">
+    <value>{0}-Lizenz für {1}</value>
+  </data>
+  <data name="MobLicenceDomains" xml:space="preserve">
+    <value>Für Benutzernamen bei: {0}</value>
+  </data>
+  <data name="MobLicencePaste" xml:space="preserve">
+    <value>Lizenz hier einfügen</value>
+  </data>
+  <data name="MobLicenceUnreadable" xml:space="preserve">
+    <value>Das ist keine Lizenz. Fügen Sie den ganzen Text so ein, wie Sie ihn erhalten haben.</value>
+  </data>
+  <data name="MobLicenceNotSigned" xml:space="preserve">
+    <value>Diese Lizenz ist nicht vom Hersteller signiert, oder sie wurde verändert.</value>
+  </data>
+  <data name="MobLicenceEnded" xml:space="preserve">
+    <value>Diese Lizenz ist am {0} abgelaufen.</value>
+  </data>
+  <data name="MobLicenceNotCovering" xml:space="preserve">
+    <value>Die Lizenz deckt diesen Benutzernamen nicht ab. Ihre Domains: {0}.</value>
+  </data>
+  <data name="MobLicenceRemoveQuestion" xml:space="preserve">
+    <value>Lizenz entfernen? Die Profile, die sie abdeckt, brauchen dann wieder ein Abonnement.</value>
+  </data>
+  <data name="MobLevelStandard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="MobLevelPro" xml:space="preserve">
+    <value>Pro</value>
+  </data>
   <data name="MobHardwareKey" xml:space="preserve">
     <value>Hardware-Schlüssel</value>
   </data>

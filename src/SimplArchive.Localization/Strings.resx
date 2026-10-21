@@ -5820,6 +5820,48 @@
   <data name="MobIntrayPaneHint" xml:space="preserve">
     <value>Select an item to see its preview.</value>
   </data>
+  <data name="MobSubscription" xml:space="preserve">
+    <value>Subscription</value>
+  </data>
+  <data name="MobSubscriptionNone" xml:space="preserve">
+    <value>No subscription: only profiles on the public demo can be used. Enter the licence your organisation or the vendor gave you.</value>
+  </data>
+  <data name="MobSubscriptionDemoOnly" xml:space="preserve">
+    <value>Without a subscription, only profiles on the public demo can be used, added, changed or deleted.</value>
+  </data>
+  <data name="MobSubscriptionNeeded" xml:space="preserve">
+    <value>Subscription needed</value>
+  </data>
+  <data name="MobLicenceHeld" xml:space="preserve">
+    <value>{0} licence for {1}</value>
+  </data>
+  <data name="MobLicenceDomains" xml:space="preserve">
+    <value>For user names at: {0}</value>
+  </data>
+  <data name="MobLicencePaste" xml:space="preserve">
+    <value>Paste the licence here</value>
+  </data>
+  <data name="MobLicenceUnreadable" xml:space="preserve">
+    <value>This is not a licence. Paste the whole text as you received it.</value>
+  </data>
+  <data name="MobLicenceNotSigned" xml:space="preserve">
+    <value>This licence is not signed by the vendor, or it was changed.</value>
+  </data>
+  <data name="MobLicenceEnded" xml:space="preserve">
+    <value>This licence ended on {0}.</value>
+  </data>
+  <data name="MobLicenceNotCovering" xml:space="preserve">
+    <value>The licence does not cover this user name. Its domains: {0}.</value>
+  </data>
+  <data name="MobLicenceRemoveQuestion" xml:space="preserve">
+    <value>Remove the licence? The profiles it covers will need a subscription again.</value>
+  </data>
+  <data name="MobLevelStandard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="MobLevelPro" xml:space="preserve">
+    <value>Pro</value>
+  </data>
   <data name="MobHardwareKey" xml:space="preserve">
     <value>Hardware key</value>
   </data>

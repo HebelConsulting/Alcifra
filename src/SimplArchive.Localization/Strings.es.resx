@@ -5820,6 +5820,48 @@
   <data name="MobIntrayPaneHint" xml:space="preserve">
     <value>Seleccione un elemento para ver su vista previa.</value>
   </data>
+  <data name="MobSubscription" xml:space="preserve">
+    <value>Suscripción</value>
+  </data>
+  <data name="MobSubscriptionNone" xml:space="preserve">
+    <value>Sin suscripción: solo se pueden usar los perfiles de la demo pública. Introduzca la licencia que le dio su organización o el proveedor.</value>
+  </data>
+  <data name="MobSubscriptionDemoOnly" xml:space="preserve">
+    <value>Sin suscripción, solo se pueden usar, añadir, modificar o eliminar los perfiles de la demo pública.</value>
+  </data>
+  <data name="MobSubscriptionNeeded" xml:space="preserve">
+    <value>Se necesita una suscripción</value>
+  </data>
+  <data name="MobLicenceHeld" xml:space="preserve">
+    <value>Licencia {0} para {1}</value>
+  </data>
+  <data name="MobLicenceDomains" xml:space="preserve">
+    <value>Para nombres de usuario en: {0}</value>
+  </data>
+  <data name="MobLicencePaste" xml:space="preserve">
+    <value>Pegue aquí la licencia</value>
+  </data>
+  <data name="MobLicenceUnreadable" xml:space="preserve">
+    <value>Esto no es una licencia. Pegue el texto completo tal como lo recibió.</value>
+  </data>
+  <data name="MobLicenceNotSigned" xml:space="preserve">
+    <value>Esta licencia no está firmada por el proveedor, o ha sido modificada.</value>
+  </data>
+  <data name="MobLicenceEnded" xml:space="preserve">
+    <value>Esta licencia venció el {0}.</value>
+  </data>
+  <data name="MobLicenceNotCovering" xml:space="preserve">
+    <value>La licencia no cubre este nombre de usuario. Sus dominios: {0}.</value>
+  </data>
+  <data name="MobLicenceRemoveQuestion" xml:space="preserve">
+    <value>¿Quitar la licencia? Los perfiles que cubre volverán a necesitar una suscripción.</value>
+  </data>
+  <data name="MobLevelStandard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="MobLevelPro" xml:space="preserve">
+    <value>Pro</value>
+  </data>
   <data name="MobHardwareKey" xml:space="preserve">
     <value>Llave de hardware</value>
   </data>
