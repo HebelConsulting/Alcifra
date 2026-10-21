@@ -139,5 +139,9 @@ public static class ModuleAbiVersion
     /// 1.23 adds <see cref="IIndustryModule.RequiresLicence"/>: a module may be activated without a licence file and then
     /// never lapses (core ADR 0944). A default member only, so a 1.22 module is unaffected.
     /// </para>
-    public const int Minor = 23;
+    /// <para>
+    /// 1.24 adds <see cref="MobileLicense"/>: the SimplArchive Mobile app's licence, signed and verified as a tenant licence
+    /// is (core ADR 0954). A new type only, so a 1.23 module is unaffected.
+    /// </para>
+    public const int Minor = 24;
 }

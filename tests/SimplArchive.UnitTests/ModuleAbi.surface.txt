@@ -332,6 +332,40 @@ SimplArchive.ModuleAbi.Link::Void set_Href(System.String)
 SimplArchive.ModuleAbi.Link::Void set_Label(System.String)
 SimplArchive.ModuleAbi.Link::Void set_Method(System.String)
 SimplArchive.ModuleAbi.Link::Void set_Rel(System.String)
+SimplArchive.ModuleAbi.MobileLicense::Boolean Equals(SimplArchive.ModuleAbi.MobileLicense)
+SimplArchive.ModuleAbi.MobileLicense::Boolean Equals(System.Object)
+SimplArchive.ModuleAbi.MobileLicense::Boolean IsPro
+SimplArchive.ModuleAbi.MobileLicense::Boolean IsValidOn(System.DateOnly)
+SimplArchive.ModuleAbi.MobileLicense::Boolean Unlocks(System.String)
+SimplArchive.ModuleAbi.MobileLicense::Boolean VerifiedBy(System.Security.Cryptography.ECDsa)
+SimplArchive.ModuleAbi.MobileLicense::Boolean get_IsPro()
+SimplArchive.ModuleAbi.MobileLicense::Boolean op_Equality(SimplArchive.ModuleAbi.MobileLicense, SimplArchive.ModuleAbi.MobileLicense)
+SimplArchive.ModuleAbi.MobileLicense::Boolean op_Inequality(SimplArchive.ModuleAbi.MobileLicense, SimplArchive.ModuleAbi.MobileLicense)
+SimplArchive.ModuleAbi.MobileLicense::Int32 GetHashCode()
+SimplArchive.ModuleAbi.MobileLicense::SimplArchive.ModuleAbi.MobileLicense <Clone>$()
+SimplArchive.ModuleAbi.MobileLicense::SimplArchive.ModuleAbi.MobileLicense Sign(System.Security.Cryptography.ECDsa)
+SimplArchive.ModuleAbi.MobileLicense::System.Collections.Generic.IReadOnlyList`1[System.String] Domains
+SimplArchive.ModuleAbi.MobileLicense::System.Collections.Generic.IReadOnlyList`1[System.String] get_Domains()
+SimplArchive.ModuleAbi.MobileLicense::System.DateOnly ValidUntil
+SimplArchive.ModuleAbi.MobileLicense::System.DateOnly get_ValidUntil()
+SimplArchive.ModuleAbi.MobileLicense::System.String Kind
+SimplArchive.ModuleAbi.MobileLicense::System.String Level
+SimplArchive.ModuleAbi.MobileLicense::System.String Licensee
+SimplArchive.ModuleAbi.MobileLicense::System.String Pro
+SimplArchive.ModuleAbi.MobileLicense::System.String Signature
+SimplArchive.ModuleAbi.MobileLicense::System.String SignedPayload()
+SimplArchive.ModuleAbi.MobileLicense::System.String Standard
+SimplArchive.ModuleAbi.MobileLicense::System.String ToString()
+SimplArchive.ModuleAbi.MobileLicense::System.String get_Level()
+SimplArchive.ModuleAbi.MobileLicense::System.String get_Licensee()
+SimplArchive.ModuleAbi.MobileLicense::System.String get_Signature()
+SimplArchive.ModuleAbi.MobileLicense::Void .ctor(System.String, System.Collections.Generic.IReadOnlyList`1[System.String], System.String, System.DateOnly, System.String)
+SimplArchive.ModuleAbi.MobileLicense::Void Deconstruct(System.String ByRef, System.Collections.Generic.IReadOnlyList`1[System.String] ByRef, System.String ByRef, System.DateOnly ByRef, System.String ByRef)
+SimplArchive.ModuleAbi.MobileLicense::Void set_Domains(System.Collections.Generic.IReadOnlyList`1[System.String])
+SimplArchive.ModuleAbi.MobileLicense::Void set_Level(System.String)
+SimplArchive.ModuleAbi.MobileLicense::Void set_Licensee(System.String)
+SimplArchive.ModuleAbi.MobileLicense::Void set_Signature(System.String)
+SimplArchive.ModuleAbi.MobileLicense::Void set_ValidUntil(System.DateOnly)
 SimplArchive.ModuleAbi.ModuleAbiVersion::Int32 Major
 SimplArchive.ModuleAbi.ModuleAbiVersion::Int32 Minor
 SimplArchive.ModuleAbi.ModuleAccess::Int32 value__

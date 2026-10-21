@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 
 namespace SimplArchive.ModuleAbi;
 
@@ -75,24 +74,8 @@ public sealed record TenantLicense(
     /// <summary>
     /// Signs the claims with the vendor's private key (the vendor-tool half; the core only ever verifies).
     /// </summary>
-    public TenantLicense Sign(ECDsa privateKey) => this with
-    {
-        Signature = Convert.ToBase64String(
-            privateKey.SignData(Encoding.UTF8.GetBytes(SignedPayload()), HashAlgorithmName.SHA256)),
-    };
+    public TenantLicense Sign(ECDsa privateKey) => this with { Signature = SignedClaims.Sign(privateKey, SignedPayload()) };
 
     /// <summary>True when <paramref name="publicKey"/> signed exactly these claims.</summary>
-    public bool VerifiedBy(ECDsa publicKey)
-    {
-        try
-        {
-            return publicKey.VerifyData(
-                Encoding.UTF8.GetBytes(SignedPayload()), Convert.FromBase64String(Signature),
-                HashAlgorithmName.SHA256);
-        }
-        catch (FormatException)
-        {
-            return false;   // a Signature that is not base64 at all is a failed verification, not a crash
-        }
-    }
+    public bool VerifiedBy(ECDsa publicKey) => SignedClaims.Verify(publicKey, SignedPayload(), Signature);
 }
