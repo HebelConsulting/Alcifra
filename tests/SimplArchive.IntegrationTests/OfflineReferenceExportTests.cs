@@ -133,17 +133,19 @@ public partial class RepositoryExporterTests
         Assert.Equal(new HashSet<Guid> { seed.X, seed.Y, seed.DocY, seed.Z, seed.DocZ },
             JsonLines(entries, "tree/referenced.jsonl").Select(r => r.GetProperty("documentId").GetGuid()).ToHashSet());
 
-        // Every reference filed in what the export holds is listed; one into the chain (Archive) is not.
+        // Every reference filed in what the export holds is listed, but one into the chain (Archive) and one to a target the
+        // caller may not see (Secret) are not.
         var references = JsonLines(entries, "tree/references.jsonl");
-        Assert.Equal(6, references.Count);
+        Assert.Equal(5, references.Count);
         var toX = references.Single(r => r.GetProperty("id").GetGuid() == seed.ReferenceToX);
-        Assert.Equal((true, "X", false), (toX.GetProperty("targetAccessible").GetBoolean(), toX.GetProperty("targetName").GetString(), toX.GetProperty("targetIsFolder").GetBoolean()));
+        Assert.Equal(("X", false), (toX.GetProperty("targetName").GetString(), toX.GetProperty("targetIsFolder").GetBoolean()));
+        Assert.False(toX.TryGetProperty("targetAccessible", out var accessible), $"{accessible}");
         Assert.True(references.Single(r => r.GetProperty("targetDocumentId").GetGuid() == seed.Y && r.GetProperty("parentFolderId").GetGuid() == seed.MyDocuments)
             .GetProperty("targetIsFolder").GetBoolean());
     }
 
     [Fact]
-    public async Task A_target_the_caller_may_not_see_is_not_brought_in_and_its_reference_names_nothing()
+    public async Task A_target_the_caller_may_not_see_is_not_brought_in_and_its_reference_is_not_listed()
     {
         var (connection, storage) = await DatabaseAsync();
         using var _ = connection;
@@ -159,9 +161,8 @@ public partial class RepositoryExporterTests
         Assert.DoesNotContain(seed.DocZ, documents);
         Assert.Contains(seed.DocY, documents);
 
-        var toSecret = JsonLines(entries, "tree/references.jsonl").Single(r => r.GetProperty("targetDocumentId").GetGuid() == seed.Secret);
-        Assert.False(toSecret.GetProperty("targetAccessible").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, toSecret.GetProperty("targetName").ValueKind);
+        // As online (ADR 0765; owner decision 2026-10-22): the reference is not listed at all.
+        Assert.DoesNotContain(JsonLines(entries, "tree/references.jsonl"), r => r.GetProperty("targetDocumentId").GetGuid() == seed.Secret);
         Assert.DoesNotContain("Secret", entries["tree/references.jsonl"], StringComparison.Ordinal);
     }
 
@@ -248,7 +249,7 @@ public partial class RepositoryExporterTests
         // Every reference in the anchor is listed; only the limit's worth of their targets is brought in (502 are visible).
         var listed = JsonLines(entries, "tree/references.jsonl").Where(r => r.GetProperty("parentFolderId").GetGuid() == seed.MyDocuments)
             .Select(r => r.GetProperty("targetDocumentId").GetGuid()).ToHashSet();
-        Assert.Equal(OfflineReferenceFollowerLimit + 3, listed.Count);
+        Assert.Equal(OfflineReferenceFollowerLimit + 2, listed.Count);   // not the one to Secret, which the caller may not see
         var targets = JsonLines(entries, "tree/referenced.jsonl").Select(r => r.GetProperty("documentId").GetGuid()).ToHashSet();
         Assert.Equal(OfflineReferenceFollowerLimit, targets.Count(listed.Contains));
     }
@@ -298,10 +299,9 @@ public partial class RepositoryExporterTests
             Assert.True(later.Contains(seed.DocY));
             Assert.True(later.Contains(seed.Local));
 
-            // And the responder lists what is left: My documents' reference to Secret, saying it is not the user's to see.
+            // And the responder lists what is left: nothing, since the reference to Secret is not the user's to see.
             var archive = await OfflineArchive.OpenAsync(new DirectoryArchiveStorage(directory));
-            var reference = Assert.Single(archive.References(seed.MyDocuments));
-            Assert.Equal((seed.Secret, (bool?)false), (reference.TargetId, reference.TargetAccessible));
+            Assert.Empty(archive.References(seed.MyDocuments));
         }
         finally
         {

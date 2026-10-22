@@ -147,8 +147,8 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
     /// <summary>
     /// A reference row as the server's folder references listing has it (core ADR 0959): the target's row with the
     /// reference's own fields, its links the target's in the copy. A target the copy does not hold is listed with no
-    /// link and says why in <c>offlineUnavailable</c>: <c>NotAccessible</c> (the user may not see it, and its name is
-    /// not carried, ADR 0765) or <c>NotInCopy</c> (not brought in, or evicted). No <c>delete</c>: nothing is written offline.
+    /// link and says why in <c>offlineUnavailable</c>: <c>NotInCopy</c> (not brought in, or evicted). A reference whose
+    /// target the user may not see is not in the copy at all, as online (ADR 0765). No <c>delete</c>: nothing is written offline.
     /// </summary>
     private object Reference(OfflineArchive.ArchivedReference r)
     {
@@ -182,19 +182,18 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
             };
         }
 
-        var accessible = r.TargetAccessible ?? true;
-        var isFolder = accessible && (r.TargetIsFolder ?? false);
+        var isFolder = r.TargetIsFolder ?? false;
         return new
         {
             referenceId = r.Id,
             id = r.TargetId,
-            name = accessible ? r.TargetName ?? string.Empty : string.Empty,
+            name = r.TargetName ?? string.Empty,
             isReference = true,
             isFolder,
             hasChildren = false,
             hasSubfolders = false,
             hasVersions = !isFolder,
-            offlineUnavailable = accessible ? "NotInCopy" : "NotAccessible",
+            offlineUnavailable = "NotInCopy",
             links = Array.Empty<object>(),
         };
     }

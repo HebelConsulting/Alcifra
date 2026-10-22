@@ -7,7 +7,8 @@ namespace SimplArchive.Infrastructure.Persistence;
 
 /// <summary>
 /// Stamps <see cref="Document.ChangedAt"/> at the ONE place every write path passes through (ADR 0925): a document
-/// added or modified, and the document a version, an index value or a chat message belongs to. "Changes since"
+/// added or modified, the document a version, an index value or a chat message belongs to, and the folder a reference
+/// is placed into or removed from (ADR 0959). "Changes since"
 /// pages by the stamp, so an offline copy learns what changed without re-reading what did not.
 /// </summary>
 /// <remarks>
@@ -35,6 +36,9 @@ internal static class DocumentChangeStamper
         var related = tracker.Entries<DocumentVersion>().Where(Changed).Select(e => e.Entity.DocumentId)
             .Concat(tracker.Entries<FieldValue>().Where(Changed).Select(e => e.Entity.DocumentId))
             .Concat(tracker.Entries<ChatMessage>().Where(Changed).Select(e => e.Entity.DocumentId))
+            // A reference placed or removed changes its FOLDER (ADR 0959; owner decision 2026-10-22): the phone's next
+            // refresh exports that folder again, and the target arrives in, or leaves, the offline copy.
+            .Concat(tracker.Entries<DocumentReference>().Where(Changed).Select(e => e.Entity.ParentFolderId))
             .ToHashSet();
         related.ExceptWith(tracker.Entries<Document>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .Select(e => e.Entity.Id));

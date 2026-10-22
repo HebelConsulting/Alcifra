@@ -64,6 +64,40 @@ public class ChangesEndpointTests
         Assert.True(Assert.Single(afterDelete, r => r.GetProperty("id").GetGuid() == visibleId).GetProperty("deleted").GetBoolean());
     }
 
+    // ADR 0959 (owner decision 2026-10-22): a reference placed into a folder, or removed from it, reports the folder as
+    // changed, so the phone's next refresh exports it again and the target arrives in (or leaves) the offline copy.
+    [Fact]
+    public async Task Placing_and_removing_a_reference_reports_its_folder_as_changed()
+    {
+        var (clientId, secret, _) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
+        var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
+        var repoId = (await PostJson(owner, "/api/repositories", new { name = $"Changes refs {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+        var folderId = (await PostJson(owner, $"/api/documents/{repoId}/children", new { name = "My documents" })).GetProperty("id").GetGuid();
+        var targetId = (await PostJson(owner, $"/api/documents/{repoId}/children", new { name = "Agreement" })).GetProperty("id").GetGuid();
+        var changesHref = (await GetJson(owner, "/api")).GetProperty("links").EnumerateArray()
+            .Single(l => l.GetProperty("rel").GetString() == "changes").GetProperty("href").GetString()!;
+
+        async Task<string> CursorAsync() => (await GetJson(owner, changesHref)).GetProperty("cursor").GetString()!;
+        async Task<List<JsonElement>> SinceAsync(string since) =>
+            [.. (await GetJson(owner, $"{changesHref}?since={Uri.EscapeDataString(since)}")).GetProperty("changes").EnumerateArray()];
+
+        await Task.Delay(PastTheSettleWindow);
+        var cursor = await CursorAsync();
+        await Task.Delay(PastTheSettleWindow);
+        var placed = await PostJson(owner, $"/api/documents/{folderId}/references", new { targetId });
+        await Task.Delay(PastTheSettleWindow);
+        Assert.Contains(await SinceAsync(cursor), r => r.GetProperty("id").GetGuid() == folderId);
+
+        await Task.Delay(PastTheSettleWindow);   // a cursor that starts after the placement, so only the removal can report it
+        cursor = await CursorAsync();
+        Assert.DoesNotContain(await SinceAsync(cursor), r => r.GetProperty("id").GetGuid() == folderId);
+        await Task.Delay(PastTheSettleWindow);
+        var delete = placed.GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "delete").GetProperty("href").GetString()!;
+        (await owner.DeleteAsync(delete)).EnsureSuccessStatusCode();
+        await Task.Delay(PastTheSettleWindow);
+        Assert.Contains(await SinceAsync(cursor), r => r.GetProperty("id").GetGuid() == folderId);
+    }
+
     [Fact]
     public async Task A_cursor_the_endpoint_did_not_issue_is_refused()
     {

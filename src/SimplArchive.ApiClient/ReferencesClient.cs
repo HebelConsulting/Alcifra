@@ -50,8 +50,8 @@ public sealed class ReferencesClient(ApiCore core)
         string? Icon = null,
         // The TARGET's folder flag from its mask (#1708); null from a server that does not send it.
         bool? Folder = null,
-        // Only from an offline copy (core ADR 0959): why its target cannot be opened there, "NotAccessible" (the user
-        // may not see it; no name is carried) or "NotInCopy" (not brought in, or evicted); null where it opens.
+        // Only from an offline copy (core ADR 0959): why its target cannot be opened there, "NotInCopy" (not brought
+        // in, or evicted); null where it opens.
         string? OfflineUnavailable = null)
     {
         /// <summary>Whether the target is a folder: the server's answer, else the old "has no file" inference.</summary>

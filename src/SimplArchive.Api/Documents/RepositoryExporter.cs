@@ -438,7 +438,8 @@ public sealed class RepositoryExporter
         else
         {
             // The offline export's rows add what the copy needs to list a reference whose target it does not hold
-            // (ADR 0959): whether the caller may see the target, and only then its name and whether it is a folder.
+            // (ADR 0959): the target's name and whether it is a folder. A reference whose target the caller
+            // may not see is not listed at all, as online (ADR 0765).
             await WriteJsonLinesAsync(archive, "tree/references.jsonl", followedReferences.Select(f => (object)new
             {
                 id = f.Reference.Id,
@@ -447,7 +448,6 @@ public sealed class RepositoryExporter
                 createdByUserId = f.Reference.CreatedByUserId,
                 createdByServiceAccountId = f.Reference.CreatedByServiceAccountId,
                 createdAt = f.Reference.CreatedAt,
-                targetAccessible = f.TargetAccessible,
                 targetName = f.TargetName,
                 targetIsFolder = f.TargetIsFolder,
             }), cancellationToken);

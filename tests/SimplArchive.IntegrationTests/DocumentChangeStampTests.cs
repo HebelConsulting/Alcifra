@@ -115,4 +115,49 @@ public sealed class DocumentChangeStampTests : IAsyncLifetime
 
         Assert.Equal(LongAgo, (await ReadAsync()).ChangedAt);
     }
+
+    // ADR 0959 (owner decision 2026-10-22): placing or removing a reference changes its folder, so the phone's next
+    // refresh exports the folder again; the stamp alone keeps the folder's ETag.
+    [Fact]
+    public async Task Placing_and_removing_a_reference_stamps_its_folder_and_keeps_the_etag()
+    {
+        var targetId = Guid.NewGuid();
+        var referenceId = Guid.NewGuid();
+        using (var context = Context(_tenantId))
+        {
+            context.Documents.Add(new Document { Id = targetId, TenantId = _tenantId, Name = "Target", CreatedByUserId = _userId, CreatedAt = DateTimeOffset.UtcNow });
+            await context.SaveChangesAsync();
+            await context.Documents.IgnoreQueryFilters().Where(d => d.Id == _documentId).ExecuteUpdateAsync(set => set.SetProperty(d => d.ChangedAt, LongAgo));
+        }
+
+        var before = await ReadAsync();
+        using (var context = Context(_tenantId))
+        {
+            context.DocumentReferences.Add(new DocumentReference
+            {
+                Id = referenceId,
+                TenantId = _tenantId,
+                ParentFolderId = _documentId,
+                TargetDocumentId = targetId,
+                CreatedByUserId = _userId,
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var placed = await ReadAsync();
+        Assert.True(placed.ChangedAt > LongAgo);
+        Assert.Equal(before.Token, placed.Token);
+
+        using (var context = Context(_tenantId))
+        {
+            await context.Documents.IgnoreQueryFilters().Where(d => d.Id == _documentId).ExecuteUpdateAsync(set => set.SetProperty(d => d.ChangedAt, LongAgo));
+            context.DocumentReferences.Remove(await context.DocumentReferences.SingleAsync(r => r.Id == referenceId));
+            await context.SaveChangesAsync();
+        }
+
+        var removed = await ReadAsync();
+        Assert.True(removed.ChangedAt > LongAgo);
+        Assert.Equal(before.Token, removed.Token);
+    }
 }

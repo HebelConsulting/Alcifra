@@ -24,8 +24,8 @@ namespace SimplArchive.Api.Documents;
 /// </para>
 /// <para>
 /// <b>The caller's rights decide</b>, as everywhere in the offline export: a target the caller may not see is not
-/// brought in and the reference row says so, without the target's name (ADR 0765: what you cannot see is not named
-/// to you); beneath a brought-in folder, what the caller cannot see is left out with its subtree.
+/// brought in and its reference is not listed, as online (ADR 0765: what you cannot see is not named to you; owner
+/// decision 2026-10-22); beneath a brought-in folder, what the caller cannot see is left out with its subtree.
 /// </para>
 /// </remarks>
 public sealed class OfflineReferenceFollower(SimplArchiveDbContext dbContext, ILogger logger)
@@ -33,11 +33,11 @@ public sealed class OfflineReferenceFollower(SimplArchiveDbContext dbContext, IL
     /// <summary>How many reference targets one offline export follows at most.</summary>
     public const int MaxFollowedTargets = 500;
 
-    /// <summary>A reference filed in the export's scope, with what the copy needs to list it when its target is absent.</summary>
-    /// <param name="TargetAccessible">Whether the caller may see the target.</param>
-    /// <param name="TargetName">The target's name; null when the caller may not see it.</param>
-    /// <param name="TargetIsFolder">Whether the target is a folder (holds no confirmed version); null when not accessible.</param>
-    public sealed record FollowedReference(DocumentReference Reference, bool TargetAccessible, string? TargetName, bool? TargetIsFolder);
+    /// <summary>A reference filed in the export's scope whose target the caller may see, with what the copy needs to list
+    /// it when its target is absent.</summary>
+    /// <param name="TargetName">The target's name.</param>
+    /// <param name="TargetIsFolder">Whether the target is a folder (holds no confirmed version).</param>
+    public sealed record FollowedReference(DocumentReference Reference, string TargetName, bool TargetIsFolder);
 
     /// <param name="BroughtIn">The targets and what the caller may see beneath them, parents before children.</param>
     /// <param name="Chains">The visible folders above the targets that are not otherwise in the export, metadata only.</param>
@@ -84,9 +84,10 @@ public sealed class OfflineReferenceFollower(SimplArchiveDbContext dbContext, IL
 
             var targetRights = await audience.RightsForMany([.. filed.Select(f => f.Reference.TargetDocumentId).Distinct()], cancellationToken);
             bool Sees(Guid id) => targetRights.TryGetValue(id, out var r) && r.CanSee;
-            references.AddRange(filed.Select(f => Sees(f.Reference.TargetDocumentId)
-                ? new FollowedReference(f.Reference, true, f.TargetName, !f.TargetHasVersions)
-                : new FollowedReference(f.Reference, false, null, null)));
+            // A reference whose target the caller may not see is left out, as the online listing leaves it out (ADR 0765;
+            // owner decision 2026-10-22).
+            references.AddRange(filed.Where(f => Sees(f.Reference.TargetDocumentId))
+                .Select(f => new FollowedReference(f.Reference, f.TargetName ?? string.Empty, !f.TargetHasVersions)));
 
             // The targets to follow now: visible, not yet held, each once, within the bound.
             var next = new List<Guid>();

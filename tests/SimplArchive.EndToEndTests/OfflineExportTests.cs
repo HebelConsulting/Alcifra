@@ -143,7 +143,7 @@ public class OfflineExportTests
     }
 
     // ADR 0959 (#1881): the offline export follows a reference to a document in another repository and brings it in;
-    // a reference to one the caller may not see is listed without its name; the repository export does not follow.
+    // a reference to one the caller may not see is not listed, as online; the repository export does not follow.
     [Fact]
     public async Task The_offline_export_follows_references_out_of_its_scope_and_the_repository_export_does_not()
     {
@@ -172,8 +172,7 @@ public class OfflineExportTests
         Assert.Equal([referenced], Ids(offline, "tree/referenced.jsonl", "documentId"));
         var rows = Lines(offline, "tree/references.jsonl").ToDictionary(r => r.GetProperty("targetDocumentId").GetGuid());
         Assert.Equal("Framework agreement", rows[referenced].GetProperty("targetName").GetString());
-        Assert.False(rows[hidden].GetProperty("targetAccessible").GetBoolean());
-        Assert.Equal(JsonValueKind.Null, rows[hidden].GetProperty("targetName").ValueKind);
+        Assert.False(rows.ContainsKey(hidden));   // as online: not listed (ADR 0765)
 
         using var regular = await ZipAsync(s.Admin, $"/api/documents/{s.FolderId}/export");
         Assert.DoesNotContain(referenced, Ids(regular, "tree/documents.jsonl"));

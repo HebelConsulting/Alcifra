@@ -5634,9 +5634,6 @@
   <data name="MobReferenceNotInCopy" xml:space="preserve">
     <value>Non è nella copia offline</value>
   </data>
-  <data name="MobReferenceNotAccessible" xml:space="preserve">
-    <value>Non disponibile per te</value>
-  </data>
   <data name="MobOfflineNotAllowed" xml:space="preserve">
     <value>La tua organizzazione non consente una copia offline.</value>
   </data>

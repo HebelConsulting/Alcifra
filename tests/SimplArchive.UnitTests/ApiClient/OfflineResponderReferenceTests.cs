@@ -78,10 +78,11 @@ public sealed class OfflineResponderReferenceTests
     {
         var listed = await ListedAsync(await ResponderAsync());
 
-        Assert.Equal([Target, Evicted, Hidden, TargetFolder], listed.Select(r => r.TargetId));
+        // The hidden row is one an earlier export wrote (targetAccessible: false): read as online, without it (ADR 0765).
+        Assert.Equal([Target, Evicted, TargetFolder], listed.Select(r => r.TargetId));
         var target = listed[0];
         Assert.Equal(("Framework agreement", false, 1, (string?)null), (target.Name, target.IsFolder, target.VersionCount, target.OfflineUnavailable));
-        Assert.True(listed[3].IsFolder);
+        Assert.True(listed[2].IsFolder);
         Assert.Null(target.DeleteHref);   // nothing is written offline
     }
 
@@ -119,11 +120,6 @@ public sealed class OfflineResponderReferenceTests
         var evicted = listed[1];
         Assert.Equal(("Old offer", "NotInCopy"), (evicted.Name, evicted.OfflineUnavailable));
         Assert.Null(evicted.Links?.Href("self"));
-
-        // A target the user may not see is not named (core ADR 0765).
-        var hidden = listed[2];
-        Assert.Equal((string.Empty, "NotAccessible"), (hidden.Name, hidden.OfflineUnavailable));
-        Assert.Null(hidden.Links?.Href("self"));
 
         var client = new HttpClient(await ResponderAsync()) { BaseAddress = new Uri(OfflineAddress.Root) };
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"offline/documents/{Evicted}")).StatusCode);

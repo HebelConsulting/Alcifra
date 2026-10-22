@@ -27,12 +27,11 @@ public sealed class OfflineArchive
     public sealed record ArchivedNotification(Guid Id, string Type, string Title, string Body, Guid? DocumentId, DateTimeOffset CreatedAt, bool IsRead);
 
     /// <summary>
-    /// A reference filed in a folder (core ADR 0959). An offline export says whether the caller may see the target and,
-    /// only then, its name and folder flag, so a reference whose target the copy does not hold is still listed; a
-    /// repository export carries neither (null), and holds the target anyway.
+    /// A reference filed in a folder (core ADR 0959). An offline export carries the target's name and folder flag, so a
+    /// reference whose target the copy does not hold is still listed; a repository export carries neither (null), and
+    /// holds the target anyway. A reference whose target the user may not see is never carried (ADR 0765).
     /// </summary>
-    public sealed record ArchivedReference(Guid Id, Guid ParentFolderId, Guid TargetId, DateTimeOffset CreatedAt, bool? TargetAccessible, string? TargetName,
-        bool? TargetIsFolder);
+    public sealed record ArchivedReference(Guid Id, Guid ParentFolderId, Guid TargetId, DateTimeOffset CreatedAt, string? TargetName, bool? TargetIsFolder);
 
     public sealed record ArchivedMessage(Guid Id, Guid DocumentId, Guid? ParentMessageId, string Body, string Author, DateTimeOffset CreatedAt,
         IReadOnlyList<(Guid UserId, string DisplayName)> Mentions);
@@ -125,12 +124,13 @@ public sealed class OfflineArchive
             x.TryGetProperty("createdAt", out var nc) && nc.TryGetDateTimeOffset(out var noted) ? noted : default,
             x.TryGetProperty("isRead", out var r) && r.ValueKind == JsonValueKind.True))];
 
-        _references = Lines("tree/references.jsonl").Select(r => new ArchivedReference(
+        // An export written while hidden targets were still listed (targetAccessible: false) is read as online: without them.
+        _references = Lines("tree/references.jsonl").Where(r => !(r.TryGetProperty("targetAccessible", out var ta) && ta.ValueKind == JsonValueKind.False))
+            .Select(r => new ArchivedReference(
             r.GetProperty("id").GetGuid(),
             r.GetProperty("parentFolderId").GetGuid(),
             r.GetProperty("targetDocumentId").GetGuid(),
             r.TryGetProperty("createdAt", out var rc) && rc.TryGetDateTimeOffset(out var placed) ? placed : default,
-            r.TryGetProperty("targetAccessible", out var ta) && ta.ValueKind is JsonValueKind.True or JsonValueKind.False ? ta.GetBoolean() : null,
             r.TryGetProperty("targetName", out var tn) && tn.ValueKind == JsonValueKind.String ? tn.GetString() : null,
             r.TryGetProperty("targetIsFolder", out var tf) && tf.ValueKind is JsonValueKind.True or JsonValueKind.False ? tf.GetBoolean() : null)).ToLookup(r => r.ParentFolderId);
 
