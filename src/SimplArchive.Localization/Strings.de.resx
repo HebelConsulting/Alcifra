@@ -6051,4 +6051,10 @@
   <data name="MobKtVersion" xml:space="preserve">
     <value>Version {0} ({1})</value>
   </data>
+  <data name="OfflineExportRecoveryNotice" xml:space="preserve">
+    <value>Das Wiederherstellungszertifikat der Organisation kann jeden Offline-Export ebenfalls öffnen, damit ein Archiv lesbar bleibt, wenn die Karten, für die es verschlüsselt wurde, ablaufen oder verloren gehen.</value>
+  </data>
+  <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
+    <value>Diese Organisation hat noch kein Wiederherstellungszertifikat für Offline-Exporte, deshalb kann keiner erstellt werden. Bitten Sie eine Mandantenadministratorin oder einen Mandantenadministrator, eines festzulegen.</value>
+  </data>
 </root>

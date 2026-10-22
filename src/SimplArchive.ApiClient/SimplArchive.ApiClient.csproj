@@ -35,6 +35,8 @@
     <ProjectReference Include="..\SimplArchive.Presentation\SimplArchive.Presentation.csproj" />
     <!-- The find-in-document word source's local half (WordLayoutSource): PDF bytes to word boxes, pure managed. -->
     <ProjectReference Include="..\SimplArchive.TextLayout\SimplArchive.TextLayout.csproj" />
+    <!-- The .simplarchive container's reader (ADR 0961): a road copy opens into the same responder as an export. -->
+    <ProjectReference Include="..\SimplArchive.SealedArchive\SimplArchive.SealedArchive.csproj" />
   </ItemGroup>
 
 </Project>

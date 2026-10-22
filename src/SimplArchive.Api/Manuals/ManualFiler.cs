@@ -114,6 +114,33 @@ public sealed class ManualFiler(
             cancellationToken);
     }
 
+    /// <summary>The Manual "Article number" of the archive signing keys document (ADR 0961) — how it is found again.</summary>
+    public const string ArchiveSigningKeysArticleNumber = "simplarchive-archive-signing-keys";
+
+    /// <summary>
+    /// Files the installation's archive signing keys (ADR 0961) in the current tenant: the PUBLIC certificate of every key
+    /// that ever signed an offline archive, newest first, so an archive is verifiable years later with no network — the
+    /// Licensing Module's "Verify keys" document, for the core. A rotation is a new version of the same document.
+    /// </summary>
+    public Task<ManualFilingOutcome> FileArchiveSigningKeysAsync(string historyPem, string currentThumbprint, CancellationToken cancellationToken = default)
+    {
+        if (historyPem.Length == 0)
+        {
+            return Task.FromResult(ManualFilingOutcome.NotDeclared);   // no key: nothing is signed, nothing to publish
+        }
+
+        var bytes = System.Text.Encoding.ASCII.GetBytes(historyPem);
+        var source = new ManualSource("Archive signing keys", "archive-signing-keys.pem", "application/x-pem-file",
+            () => new MemoryStream(bytes), "SimplArchive", ArchiveSigningKeysArticleNumber, currentThumbprint);
+
+        return FileAsync(source,
+            findExisting: () => ManualDocumentIdAsync(ArchiveSigningKeysArticleNumber, cancellationToken),
+            remember: _ => Task.CompletedTask,
+            author: AuthorOfStandardRepositoryAsync,
+            auditActor: _ => (AuditActorType.System, Guid.Empty, "SimplArchive"),
+            cancellationToken);
+    }
+
     /// <summary>The Article number prefix of a client manual: <c>client:</c> and the file's name without extension.</summary>
     public const string ClientArticlePrefix = "client:";
 

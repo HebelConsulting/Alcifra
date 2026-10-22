@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Published for the mobile app (ADR 0917): the ApiClient package reads a .simplarchive through it, so it travels as
+       a package too. Conditional for the Docker restore layer, as in Presentation. -->
+  <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
+  <PropertyGroup>
+    <Description>The .simplarchive container: a signed cover, a payload sealed to certificates, written and verified by one implementation (ADR 0961).</Description>
+  </PropertyGroup>
+
+  <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker
+       restore layer copies only the .csproj files, not Directory.Build.props; every project does the same. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- The .simplarchive CONTAINER (ADR 0961, #1694), once for both sides: the server writes it, the desktop and the
+       phone read it. A leaf like TextLayout: the writer and the reader of one format must not live in two places,
+       and the server may not reference the shared API client (nor the client the server).
+
+       It knows nothing of the archive's CONTENT (the export layout of ADR 0347 rides inside as opaque files), of a
+       database, or of HTTP. -->
+
+  <ItemGroup>
+    <!-- Pinned above what other packages bring: CVE-2026-84008 and CVE-2026-70162, fixed in 10.0.13 (as ApiClient). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <!-- Apache-2.0: ConversationKeys.SealTo, the ONE sealer that addresses RSA (key transport) and elliptic-curve (key
+         agreement) certificates alike; the platform's CMS addresses RSA only. Never a second CMS writer (ADR 0961).
+         The desktop already references this version. -->
+    <PackageReference Include="SimplArchive.Messenger.Client" Version="0.13.0" />
+  </ItemGroup>
+
+</Project>

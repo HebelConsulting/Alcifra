@@ -21,6 +21,7 @@ public class OpenBaoSecretsReaderTests
         public string? SentToken { get; private set; }
         public bool IncludeOwner { get; init; } = true;
         public bool IncludeWebPush { get; init; }
+        public bool IncludeArchiveSigning { get; init; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -62,6 +63,10 @@ public class OpenBaoSecretsReaderTests
             else if (IncludeWebPush && path.EndsWith("/v1/secret/data/simplarchive/webpush"))
             {
                 body = """{"data":{"data":{"publicKey":"BPub","privateKey":"priv"}}}""";
+            }
+            else if (IncludeArchiveSigning && path.EndsWith("/v1/secret/data/simplarchive/archive-signing"))
+            {
+                body = JsonSerializer.Serialize(new { data = new { data = new { current = PkiIssueJson(), previous = "-----BEGIN CERTIFICATE-----\nretired\n-----END CERTIFICATE-----\n" } } });
             }
             else if (path.EndsWith("/v1/secret/data/simplarchive/openiddict"))
             {
@@ -130,6 +135,23 @@ public class OpenBaoSecretsReaderTests
         var none = await new OpenBaoSecretsReader(without, options).ReadAsync();
         Assert.False(none.ContainsKey("WebPush:VapidPublicKey"));
         Assert.False(none.ContainsKey("WebPush:VapidPrivateKey"));
+    }
+
+    // ADR 0961: the archive signing key, current and retired, when provisioned; nothing (and archives refused) when not.
+    [Fact]
+    public async Task Reads_the_archive_signing_key_and_its_history_when_provisioned()
+    {
+        var options = new OpenBaoOptions { Address = "http://openbao.test:8200", RoleId = "r", SecretId = "s" };
+
+        using var withKey = new HttpClient(new FakeOpenBaoHandler { IncludeArchiveSigning = true }) { BaseAddress = new Uri("http://openbao.test:8200/") };
+        var data = await new OpenBaoSecretsReader(withKey, options).ReadAsync();
+        Assert.Contains("-----BEGIN CERTIFICATE-----", data["OfflineArchive:SigningCertificatePem"]);
+        Assert.False(string.IsNullOrEmpty(data["OfflineArchive:SigningKeyPem"]));
+        Assert.Contains("retired", data["OfflineArchive:PreviousSigningCertificatesPem"]);
+
+        using var without = new HttpClient(new FakeOpenBaoHandler()) { BaseAddress = new Uri("http://openbao.test:8200/") };
+        var none = await new OpenBaoSecretsReader(without, options).ReadAsync();
+        Assert.False(none.ContainsKey("OfflineArchive:SigningCertificatePem"));
     }
 
     [Fact]

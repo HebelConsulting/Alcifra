@@ -100,6 +100,12 @@ public static class ManualStartupFiling
         IServiceProvider root, Guid tenantId, IReadOnlyList<IIndustryModule> modules, ILogger logger, CancellationToken cancellationToken = default)
     {
         await GuardedAsync(root, tenantId, "SimplArchive", filer => filer.FileCoreManualAsync(cancellationToken), logger);
+        // The archive signing keys (ADR 0961) beside the manuals: what an offline reader trusts, published where every
+        // member already reads.
+        var signing = root.GetRequiredService<OfflineArchives.ArchiveSigningKey>();
+        await GuardedAsync(root, tenantId, "archive signing keys",
+            filer => filer.FileArchiveSigningKeysAsync(signing.HistoryPem(), signing.Current?.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA256) ?? string.Empty, cancellationToken),
+            logger);
         foreach (var module in modules)
         {
             await GuardedAsync(root, tenantId, module.ModuleId, filer => filer.FileModuleManualAsync(module, cancellationToken), logger);

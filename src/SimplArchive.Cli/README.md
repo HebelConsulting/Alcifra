@@ -30,6 +30,7 @@ configured from a terminal or a script:
 |---|---|
 | `login`, `whoami` | Sign in (interactively, or as a service account) and show who you are acting as |
 | `tenant create`, `tenant standard-repository` | Provision a tenant with its first administrator; choose where SimplArchive files what it brings |
+| `tenant recovery-certificate show`, `set`, `replace` | The tenant's recovery certificate (ADR 0960): every offline export is also sealed to it, so an archive stays readable after its cards expire. Only the PUBLIC certificate is uploaded; `set` refuses where one is set, `replace` where none is. Without one, every offline export is refused (`RECOVERY_CERTIFICATE_REQUIRED`). `show --pem` prints the certificate for a script |
 | `tenant offline-cache show`, `set` | What the tenant allows the phone app's offline cache: the cache at all, what it may keep, how it unlocks and refreshes, how long it may stay unlocked. It binds the apps, which honour it; a phone cannot be forced |
 | `module list`, `module activate`, `module settings`, `module rebuild` | Activate industry modules with a vendor-signed licence, configure them, rebuild their read models |
 | `module action` | Invoke a module's action on a document; a value it reveals once (a credential) is written to a mode-600 file |

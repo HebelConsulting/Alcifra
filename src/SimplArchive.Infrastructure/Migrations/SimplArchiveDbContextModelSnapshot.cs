@@ -2659,6 +2659,9 @@ namespace SimplArchive.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("OfflineExportRecoveryCertificatePem")
+                        .HasColumnType("text");
+
                     b.Property<bool>("RequireDispositionReview")
                         .HasColumnType("boolean");
 

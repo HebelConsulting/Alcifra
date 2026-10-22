@@ -88,6 +88,8 @@
     <!-- The design tokens (ADR 0578): the shipped palette, and the loader that reads an
          installation's custom/theme.json over it. -->
     <ProjectReference Include="..\SimplArchive.Theming\SimplArchive.Theming.csproj" />
+    <!-- The .simplarchive container (ADR 0961): the server WRITES road copies with the same code the clients read them with. -->
+    <ProjectReference Include="..\SimplArchive.SealedArchive\SimplArchive.SealedArchive.csproj" />
   </ItemGroup>
 
   <ItemGroup>

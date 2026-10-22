@@ -27,6 +27,10 @@
     <!-- Architecture tests (ADR "Architecture tests (NetArchTest)") — assert the Clean Architecture layering. -->
     <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
     <PackageReference Include="xunit" Version="2.9.3" />
+    <!-- MIT, already in the tree through MimeKit and the Messenger client. Aliased because WebPush brings the OLD
+         Portable.BouncyCastle with the same namespaces; the sealed-archive tests open EC key agreement with it, as a card
+         does (SealedArchiveTestKeys). -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" Aliases="BouncyCastleCryptography" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 

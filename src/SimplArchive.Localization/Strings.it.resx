@@ -6051,4 +6051,10 @@
   <data name="MobKtVersion" xml:space="preserve">
     <value>Versione {0} ({1})</value>
   </data>
+  <data name="OfflineExportRecoveryNotice" xml:space="preserve">
+    <value>Anche il certificato di recupero dell'organizzazione può aprire ogni esportazione offline, così un archivio resta leggibile quando le carte a cui è stato cifrato scadono o vanno perse.</value>
+  </data>
+  <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
+    <value>Questa organizzazione non ha ancora un certificato di recupero per le esportazioni offline, quindi non è possibile crearne. Chiedi a un amministratore del tenant di impostarne uno.</value>
+  </data>
 </root>

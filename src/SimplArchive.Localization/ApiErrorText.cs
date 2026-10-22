@@ -65,6 +65,8 @@ public static class ApiErrorText
         "CORE_OWNED_MASK" => Strings.Get("ApiErrCoreOwnedMask"),
         "DOCUMENT_CHECKED_OUT" => Strings.Get("ApiErrDocumentCheckedOut"),
         "ETAG_MISMATCH" => Strings.Get("ApiErrEtagMismatch"),
+        // An offline export with no recovery certificate (ADR 0960): the fix is a tenant administrator's.
+        "RECOVERY_CERTIFICATE_REQUIRED" => Strings.Get("ApiErrRecoveryCertificateRequired"),
         "IF_MATCH_REQUIRED" => Strings.Get("ApiErrIfMatchRequired"),
         "STORAGE_QUOTA_EXCEEDED" => Strings.Get("ApiErrStorageQuotaExceeded"),
         "INVALID_WORKFLOW_TRANSITION" => Strings.Get("ApiErrWorkflowTransitionNotAllowed"),

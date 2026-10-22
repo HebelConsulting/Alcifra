@@ -282,4 +282,16 @@ public class ProductionReadinessValidatorTests
 
         Assert.Empty(ProductionReadinessValidator.Validate(Config(values), new StubEnvironment(), StampedVersion));
     }
+
+    // ADR 0961: the offline-archive signing key is its certificate and its key together, or neither.
+    [Theory]
+    [InlineData("OfflineArchive:SigningCertificatePem")]
+    [InlineData("OfflineArchive:SigningKeyPem")]
+    public void A_partly_configured_archive_signing_key_is_refused(string only)
+    {
+        var values = new Dictionary<string, string?>(CleanProduction) { [only] = "a PEM (the gate only asks that it is set)" };
+
+        Assert.Contains(ProductionReadinessValidator.Validate(Config(values), new StubEnvironment(), StampedVersion),
+            v => v.StartsWith("OfflineArchive is only partly configured", StringComparison.Ordinal));
+    }
 }

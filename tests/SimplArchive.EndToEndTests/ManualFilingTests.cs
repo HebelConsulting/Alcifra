@@ -1,3 +1,4 @@
+using SimplArchive.Application.Abstractions;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -139,6 +140,35 @@ public class ManualFilingTests
         var manual = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id);
         Assert.Equal("SimplArchive Manual", manual.Name);
         Assert.Equal("simplarchive-core", await FieldAsync(rig.TenantId, manual.Id, "Article number"));
+    }
+
+    [Fact]
+    public async Task The_archive_signing_keys_are_published_beside_the_manuals_and_unchanged_keys_file_nothing()
+    {
+        // ADR 0961: every public key that ever signed an offline archive, newest first, where every member reads.
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        var signing = _factory.Services.GetRequiredService<SimplArchive.Api.OfflineArchives.ArchiveSigningKey>();
+
+        await ManualStartupFiling.FileForTenantAsync(_factory.Services, rig.TenantId, [], NullLogger.Instance);
+        await ManualStartupFiling.FileForTenantAsync(_factory.Services, rig.TenantId, [], NullLogger.Instance);
+
+        var folder = await ManualsFolderAsync(rig.TenantId);
+        Guid documentId;
+        await using (var scope = await TenantScopeAsync(rig.TenantId))
+        {
+            documentId = (await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id && d.Name == "Archive signing keys")).Id;
+        }
+
+        Assert.Equal(ManualFiler.ArchiveSigningKeysArticleNumber, await FieldAsync(rig.TenantId, documentId, "Article number"));
+        var (_, versions) = await DocumentAsync(rig.TenantId, documentId);
+        var version = Assert.Single(versions);   // the second pass found the same keys
+        await using var content = await _factory.Services.GetRequiredService<IObjectStorageClient>().GetObjectAsync(version.ObjectKey);
+        using var reader = new StreamReader(content);
+        var published = await reader.ReadToEndAsync();
+        Assert.Equal(signing.HistoryPem(), published);
+        Assert.Contains(signing.Current!.ExportCertificatePem(), published, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE KEY", published, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -601,6 +601,12 @@ services:
         bao write -format=json pki/issue/openiddict common_name=simplarchive-signing ttl=8760h > /tmp/signing.json
         bao write -format=json pki/issue/openiddict common_name=simplarchive-encryption ttl=8760h > /tmp/encryption.json
         bao kv put secret/simplarchive/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
+        # The offline-archive signing key (ADR 0961): issued ONCE and kept. Rotating it moves the old certificate into
+        # `previous`, which stays published so archives it signed keep verifying; re-issuing in place would orphan them.
+        bao kv get secret/simplarchive/archive-signing >/dev/null 2>&1 || {
+          bao write -format=json pki/issue/openiddict common_name=simplarchive-archive-signing ttl=8760h > /tmp/archive-signing.json
+          bao kv put secret/simplarchive/archive-signing current=@/tmp/archive-signing.json previous=
+        }
         echo 'openbao provisioned'
 
   # Install the industry modules this deployment pins (ADR 0799) — the fourth one-shot, and the reason a module

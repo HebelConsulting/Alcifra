@@ -221,7 +221,7 @@ public static class SaConsoleApp
 
             config.AddBranch("tenant", tenant =>
             {
-                tenant.SetDescription("Tenant administration: provisioning (platform administrator), the tenant's standard repository and its offline-cache policy (tenant administrator).");
+                tenant.SetDescription("Tenant administration: provisioning (platform administrator), the tenant's standard repository, its recovery certificate and its offline-cache policy (tenant administrator).");
                 tenant.AddCommand<TenantCreateCommand>("create")
                     .WithDescription("Provision a tenant with its first administrator and repository.");
                 tenant.AddBranch("standard-repository", standard =>
@@ -231,6 +231,16 @@ public static class SaConsoleApp
                         .WithDescription("Show the tenant's standard repository.");
                     standard.AddCommand<StandardRepositorySetCommand>("set")
                         .WithDescription("Make another repository the standard one; the manuals folder moves with it.");
+                });
+                tenant.AddBranch("recovery-certificate", recovery =>
+                {
+                    recovery.SetDescription("The certificate every offline export is also sealed to, so it stays readable when cards expire (ADR 0960). Public half only.");
+                    recovery.AddCommand<RecoveryCertificateShowCommand>("show")
+                        .WithDescription("Show the recovery certificate, or that none is set.");
+                    recovery.AddCommand<RecoveryCertificateSetCommand>("set")
+                        .WithDescription("Set it where none is set yet; offline exports are refused until then.");
+                    recovery.AddCommand<RecoveryCertificateReplaceCommand>("replace")
+                        .WithDescription("Replace it; archives made so far stay sealed to the previous one.");
                 });
                 tenant.AddBranch("offline-cache", cache =>
                 {

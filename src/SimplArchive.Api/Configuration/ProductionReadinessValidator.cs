@@ -139,6 +139,13 @@ public static class ProductionReadinessValidator
             violations.Add("Apns is only partly configured — set Apns:KeyId, Apns:TeamId and Apns:PrivateKeyPem together, or none of them.");
         }
 
+        // The offline-archive signing key (ADR 0961): certificate and key together, or neither (archives are then refused).
+        var archiveSigning = configuration.GetSection(OfflineArchives.ArchiveSigningOptions.SectionName).Get<OfflineArchives.ArchiveSigningOptions>();
+        if (archiveSigning is { IsPartlyConfigured: true })
+        {
+            violations.Add("OfflineArchive is only partly configured — set OfflineArchive:SigningCertificatePem and OfflineArchive:SigningKeyPem together, or neither.");
+        }
+
         return violations;
     }
 

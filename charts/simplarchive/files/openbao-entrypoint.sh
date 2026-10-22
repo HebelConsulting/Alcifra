@@ -116,5 +116,12 @@ if ! bao kv get secret/simplarchive/openiddict >/dev/null 2>&1; then
   bao kv put secret/simplarchive/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
 fi
 
+# The offline-archive signing key (ADR 0961) — issued ONCE, like the OpenIddict certificates. A rotation moves the old
+# certificate into `previous` (kept published, so archives it signed keep verifying) and issues a new `current`.
+if ! bao kv get secret/simplarchive/archive-signing >/dev/null 2>&1; then
+  bao write -format=json pki/issue/openiddict common_name=simplarchive-archive-signing ttl=8760h > /tmp/archive-signing.json
+  bao kv put secret/simplarchive/archive-signing current=@/tmp/archive-signing.json previous=
+fi
+
 echo 'openbao ready + provisioned'
 wait "$PID"

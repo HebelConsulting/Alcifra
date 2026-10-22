@@ -10,6 +10,9 @@ public enum ExportVersionSelection
 
     // An offline export's (ADR 0927): the current version (ADR 0503) as the caller may read it.
     CurrentForCaller,
+
+    // A road copy's (ADR 0961, owner decision: road copies are complete): every confirmed version the caller may read.
+    EveryReadableForCaller,
 }
 
 // The filters an export applies while walking the subtree (ADR "Repository export"). All optional; a null

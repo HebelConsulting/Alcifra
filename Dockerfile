@@ -30,6 +30,7 @@ COPY ["src/SimplArchive.Localization/SimplArchive.Localization.csproj", "src/Sim
 COPY ["src/SimplArchive.ModuleAbi/SimplArchive.ModuleAbi.csproj", "src/SimplArchive.ModuleAbi/"]
 COPY ["src/SimplArchive.Presentation/SimplArchive.Presentation.csproj", "src/SimplArchive.Presentation/"]
 COPY ["src/SimplArchive.TextLayout/SimplArchive.TextLayout.csproj", "src/SimplArchive.TextLayout/"]
+COPY ["src/SimplArchive.SealedArchive/SimplArchive.SealedArchive.csproj", "src/SimplArchive.SealedArchive/"]
 COPY ["src/SimplArchive.Theming/SimplArchive.Theming.csproj", "src/SimplArchive.Theming/"]
 COPY ["src/SimplArchive.Domain/SimplArchive.Domain.csproj", "src/SimplArchive.Domain/"]
 COPY ["src/SimplArchive.Application/SimplArchive.Application.csproj", "src/SimplArchive.Application/"]

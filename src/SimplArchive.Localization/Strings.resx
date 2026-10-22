@@ -6051,4 +6051,10 @@
   <data name="MobKtVersion" xml:space="preserve">
     <value>Version {0} ({1})</value>
   </data>
+  <data name="OfflineExportRecoveryNotice" xml:space="preserve">
+    <value>The organisation's recovery certificate can also open every offline export, so an archive stays readable after the cards it was sealed to expire or are lost.</value>
+  </data>
+  <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
+    <value>This organisation has no recovery certificate for offline exports yet, so none can be made. Ask a tenant administrator to set one.</value>
+  </data>
 </root>

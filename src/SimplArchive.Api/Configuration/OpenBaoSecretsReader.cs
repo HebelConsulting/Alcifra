@@ -64,6 +64,17 @@ public sealed class OpenBaoSecretsReader
             data["OpenIddict:EncryptionKeyPem"] = encryptionKey;
         }
 
+        // The key that signs offline archives (ADR 0961): `current` is a PKI issue response like the OpenIddict ones,
+        // `previous` the retired certificates' PEM, kept published so old archives verify. Optional: without it offline
+        // archives are refused outside Development, and the existing `secret/data/simplarchive/*` grant already covers it.
+        var archiveSigning = await ReadKvAsync(token, "simplarchive/archive-signing", cancellationToken, optional: true);
+        if (archiveSigning.TryGetValue("current", out var archiveJson) && TryParsePkiIssue(archiveJson, out var archiveCert, out var archiveKey))
+        {
+            data["OfflineArchive:SigningCertificatePem"] = archiveCert;
+            data["OfflineArchive:SigningKeyPem"] = archiveKey;
+        }
+        if (archiveSigning.TryGetValue("previous", out var archivePrevious)) data["OfflineArchive:PreviousSigningCertificatesPem"] = archivePrevious;
+
         // The VAPID key pair that signs Web Push requests (RFC 8292): phones and calendar clients (ADRs 0622, 0919).
         // Optional — without it push is simply off outside Development, which is what DavPushConfiguration does.
         var webPush = await ReadKvAsync(token, "simplarchive/webpush", cancellationToken, optional: true);

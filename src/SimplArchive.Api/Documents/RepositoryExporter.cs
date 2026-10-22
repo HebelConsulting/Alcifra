@@ -119,13 +119,19 @@ public sealed class RepositoryExporter
             }
 
             IEnumerable<DocumentVersion> candidates = docVersions;
-            if (filters.Versions == ExportVersionSelection.CurrentForCaller)
+            // What the caller may read of a version (ADR 0300): content rights, and a gated version only for editors and
+            // its assigned reviewer.
+            var r = rights.GetValueOrDefault(document.Id);
+            bool Readable(DocumentVersion v) => r is { CanReadContent: true } && (r.CanEditContent || !gated.Contains(v.Id) || reviewing.Contains(v.Id));
+            if (filters.Versions == ExportVersionSelection.EveryReadableForCaller)
+            {
+                // A road copy (ADR 0961): every version the caller may read, oldest first.
+                candidates = docVersions.Where(Readable).OrderBy(v => v.VersionNumber ?? 0);
+            }
+            else if (filters.Versions == ExportVersionSelection.CurrentForCaller)
             {
                 // The version the caller would see online (ADR 0927): the current one (pinned, else the newest
-                // confirmed, ADR 0503) when they may read it; else the newest one they may read (ADR 0300: a gated
-                // version is for editors and its assigned reviewer); none without CanReadContent.
-                var r = rights.GetValueOrDefault(document.Id);
-                bool Readable(DocumentVersion v) => r is { CanReadContent: true } && (r.CanEditContent || !gated.Contains(v.Id) || reviewing.Contains(v.Id));
+                // confirmed, ADR 0503) when they may read it; else the newest one they may read; none without CanReadContent.
                 var current = docVersions.FirstOrDefault(v => v.Id == document.CurrentVersionId)
                     ?? docVersions.OrderByDescending(v => v.VersionNumber ?? 0).First();
                 var chosen = Readable(current) ? current : docVersions.Where(Readable).OrderByDescending(v => v.VersionNumber ?? 0).FirstOrDefault();
@@ -526,7 +532,13 @@ public sealed class RepositoryExporter
                 documentDateTimeZone = filters.TimeZoneId,
                 filedFrom = filters.FiledFrom,
                 filedTo = filters.FiledTo,
-                versions = filters.Versions switch { ExportVersionSelection.ActiveOnly => "active", ExportVersionSelection.CurrentForCaller => "current", _ => "all" },
+                versions = filters.Versions switch
+                {
+                    ExportVersionSelection.ActiveOnly => "active",
+                    ExportVersionSelection.CurrentForCaller => "current",
+                    ExportVersionSelection.EveryReadableForCaller => "every-readable",
+                    _ => "all",
+                },
                 createdBy = filters.CreatedBy,
             },
             counts = new

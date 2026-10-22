@@ -872,6 +872,8 @@ public class TenantSettingsController : ControllerBase
             new Link("settings-general", "/api/tenant-settings/general", "PUT"),
             new Link("settings-capture", "/api/tenant-settings/capture", "PUT"),
             new Link("settings-standard-repository", "/api/tenant-settings/standard-repository", "PUT"),
+            // The recovery certificate for offline exports (ADR 0960): GET/HEAD/PUT on one address (ADR 0719).
+            new Link("settings-recovery-certificate", "/api/tenant-settings/recovery-certificate", "GET"),
             new Link("settings-security", "/api/tenant-settings/security", "PUT"),
             new Link("settings-records", "/api/tenant-settings/records", "PUT"),
             new Link("settings-checkout", "/api/tenant-settings/checkout", "PUT"),

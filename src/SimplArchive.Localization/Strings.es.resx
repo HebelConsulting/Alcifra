@@ -6051,4 +6051,10 @@
   <data name="MobKtVersion" xml:space="preserve">
     <value>Versión {0} ({1})</value>
   </data>
+  <data name="OfflineExportRecoveryNotice" xml:space="preserve">
+    <value>El certificado de recuperación de la organización también puede abrir cada exportación sin conexión, de modo que un archivo sigue siendo legible cuando las tarjetas para las que se cifró caducan o se pierden.</value>
+  </data>
+  <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
+    <value>Esta organización aún no tiene un certificado de recuperación para las exportaciones sin conexión, por lo que no se puede crear ninguna. Pida a un administrador del inquilino que establezca uno.</value>
+  </data>
 </root>
