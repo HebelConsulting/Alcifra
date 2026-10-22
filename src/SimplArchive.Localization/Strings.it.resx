@@ -5833,7 +5833,7 @@
     <value>Abbonamento</value>
   </data>
   <data name="MobSubscriptionNone" xml:space="preserve">
-    <value>Nessun abbonamento: si possono usare solo i profili della demo pubblica. Inserisci la licenza ricevuta dalla tua organizzazione o dal fornitore.</value>
+    <value>Nessun abbonamento: si possono usare solo i profili della demo pubblica. Abbonati nello store, oppure inserisci la licenza ricevuta dalla tua organizzazione o dal fornitore.</value>
   </data>
   <data name="MobSubscriptionDemoOnly" xml:space="preserve">
     <value>Senza abbonamento si possono usare, aggiungere, modificare o eliminare solo i profili della demo pubblica.</value>
@@ -6062,5 +6062,80 @@
   </data>
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>Questa organizzazione non ha ancora un certificato di recupero per le esportazioni offline, quindi non è possibile crearne. Chiedi a un amministratore del tenant di impostarne uno.</value>
+  </data>
+  <data name="MobStoreHeading" xml:space="preserve">
+    <value>Dallo store</value>
+  </data>
+  <data name="MobStoreAsking" xml:space="preserve">
+    <value>Richiesta allo store…</value>
+  </data>
+  <data name="MobStoreUnavailable" xml:space="preserve">
+    <value>Gli abbonamenti dello store non sono disponibili su questo dispositivo. Una licenza della tua organizzazione o del fornitore funziona senza store.</value>
+  </data>
+  <data name="MobStoreNoOffers" xml:space="preserve">
+    <value>Al momento lo store non offre abbonamenti.</value>
+  </data>
+  <data name="MobStoreHeld" xml:space="preserve">
+    <value>Abbonamento {0} dallo store</value>
+  </data>
+  <data name="MobStoreRenewsOn" xml:space="preserve">
+    <value>Si rinnova il {0}</value>
+  </data>
+  <data name="MobStoreEndsOn" xml:space="preserve">
+    <value>Termina il {0}: non si rinnova</value>
+  </data>
+  <data name="MobStoreRenews" xml:space="preserve">
+    <value>Si rinnova automaticamente</value>
+  </data>
+  <data name="MobStoreDoesNotRenew" xml:space="preserve">
+    <value>Non si rinnova</value>
+  </data>
+  <data name="MobStoreStandardWhat" xml:space="preserve">
+    <value>Tutta l'app nel layout per telefono, su qualsiasi dispositivo.</value>
+  </data>
+  <data name="MobStoreProWhat" xml:space="preserve">
+    <value>Standard e il layout per tablet: in una finestra larga, l'elenco accanto al documento.</value>
+  </data>
+  <data name="MobStoreUpgrade" xml:space="preserve">
+    <value>Passa a Pro</value>
+  </data>
+  <data name="MobStoreTermMonthly" xml:space="preserve">
+    <value>Mensile</value>
+  </data>
+  <data name="MobStoreTerm3" xml:space="preserve">
+    <value>3 mesi</value>
+  </data>
+  <data name="MobStoreTerm6" xml:space="preserve">
+    <value>6 mesi</value>
+  </data>
+  <data name="MobStoreTerm12" xml:space="preserve">
+    <value>12 mesi</value>
+  </data>
+  <data name="MobStoreOffer" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="MobStoreRenewNote" xml:space="preserve">
+    <value>Ogni periodo si rinnova automaticamente finché non lo disdici nello store. I prezzi sono quelli dello store, nella tua valuta.</value>
+  </data>
+  <data name="MobStoreRestore" xml:space="preserve">
+    <value>Ripristina acquisti</value>
+  </data>
+  <data name="MobStoreManage" xml:space="preserve">
+    <value>Gestisci o disdici nello store</value>
+  </data>
+  <data name="MobStorePending" xml:space="preserve">
+    <value>L'acquisto è in sospeso: vale non appena lo store lo conferma.</value>
+  </data>
+  <data name="MobStoreFailed" xml:space="preserve">
+    <value>Lo store non ha potuto completare l'acquisto.</value>
+  </data>
+  <data name="MobStoreRestored" xml:space="preserve">
+    <value>L'abbonamento dello store è ripristinato.</value>
+  </data>
+  <data name="MobStoreNothingToRestore" xml:space="preserve">
+    <value>Lo store non ha abbonamenti a questa app per il tuo account.</value>
+  </data>
+  <data name="MobLicenceHeading" xml:space="preserve">
+    <value>Una licenza della tua organizzazione o del fornitore</value>
   </data>
 </root>

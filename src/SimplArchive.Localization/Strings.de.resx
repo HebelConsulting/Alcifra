@@ -5833,7 +5833,7 @@
     <value>Abonnement</value>
   </data>
   <data name="MobSubscriptionNone" xml:space="preserve">
-    <value>Kein Abonnement: Nur Profile auf der öffentlichen Demo können verwendet werden. Geben Sie die Lizenz ein, die Sie von Ihrer Organisation oder vom Hersteller erhalten haben.</value>
+    <value>Kein Abonnement: Nur Profile auf der öffentlichen Demo können verwendet werden. Abonnieren Sie im Store, oder geben Sie die Lizenz ein, die Sie von Ihrer Organisation oder vom Hersteller erhalten haben.</value>
   </data>
   <data name="MobSubscriptionDemoOnly" xml:space="preserve">
     <value>Ohne Abonnement können nur Profile auf der öffentlichen Demo verwendet, hinzugefügt, geändert oder gelöscht werden.</value>
@@ -6062,5 +6062,80 @@
   </data>
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>Diese Organisation hat noch kein Wiederherstellungszertifikat für Offline-Exporte, deshalb kann keiner erstellt werden. Bitten Sie eine Mandantenadministratorin oder einen Mandantenadministrator, eines festzulegen.</value>
+  </data>
+  <data name="MobStoreHeading" xml:space="preserve">
+    <value>Im Store</value>
+  </data>
+  <data name="MobStoreAsking" xml:space="preserve">
+    <value>Der Store wird gefragt…</value>
+  </data>
+  <data name="MobStoreUnavailable" xml:space="preserve">
+    <value>Die Abonnements des Stores sind auf diesem Gerät nicht verfügbar. Eine Lizenz Ihrer Organisation oder des Herstellers funktioniert ohne Store.</value>
+  </data>
+  <data name="MobStoreNoOffers" xml:space="preserve">
+    <value>Der Store bietet zurzeit keine Abonnements an.</value>
+  </data>
+  <data name="MobStoreHeld" xml:space="preserve">
+    <value>{0}-Abonnement aus dem Store</value>
+  </data>
+  <data name="MobStoreRenewsOn" xml:space="preserve">
+    <value>Verlängert sich am {0}</value>
+  </data>
+  <data name="MobStoreEndsOn" xml:space="preserve">
+    <value>Endet am {0}: Es verlängert sich nicht</value>
+  </data>
+  <data name="MobStoreRenews" xml:space="preserve">
+    <value>Verlängert sich automatisch</value>
+  </data>
+  <data name="MobStoreDoesNotRenew" xml:space="preserve">
+    <value>Verlängert sich nicht</value>
+  </data>
+  <data name="MobStoreStandardWhat" xml:space="preserve">
+    <value>Die ganze App in der Telefon-Darstellung, auf jedem Gerät.</value>
+  </data>
+  <data name="MobStoreProWhat" xml:space="preserve">
+    <value>Standard und die Tablet-Darstellung: In einem breiten Fenster steht die Liste neben dem Dokument.</value>
+  </data>
+  <data name="MobStoreUpgrade" xml:space="preserve">
+    <value>Auf Pro wechseln</value>
+  </data>
+  <data name="MobStoreTermMonthly" xml:space="preserve">
+    <value>Monatlich</value>
+  </data>
+  <data name="MobStoreTerm3" xml:space="preserve">
+    <value>3 Monate</value>
+  </data>
+  <data name="MobStoreTerm6" xml:space="preserve">
+    <value>6 Monate</value>
+  </data>
+  <data name="MobStoreTerm12" xml:space="preserve">
+    <value>12 Monate</value>
+  </data>
+  <data name="MobStoreOffer" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="MobStoreRenewNote" xml:space="preserve">
+    <value>Jede Laufzeit verlängert sich automatisch, bis Sie sie im Store kündigen. Die Preise sind die des Stores, in Ihrer Währung.</value>
+  </data>
+  <data name="MobStoreRestore" xml:space="preserve">
+    <value>Käufe wiederherstellen</value>
+  </data>
+  <data name="MobStoreManage" xml:space="preserve">
+    <value>Im Store verwalten oder kündigen</value>
+  </data>
+  <data name="MobStorePending" xml:space="preserve">
+    <value>Der Kauf ist ausstehend: Er gilt, sobald der Store ihn bestätigt.</value>
+  </data>
+  <data name="MobStoreFailed" xml:space="preserve">
+    <value>Der Store konnte den Kauf nicht abschließen.</value>
+  </data>
+  <data name="MobStoreRestored" xml:space="preserve">
+    <value>Das Abonnement aus dem Store ist wiederhergestellt.</value>
+  </data>
+  <data name="MobStoreNothingToRestore" xml:space="preserve">
+    <value>Der Store hat für Ihr Konto kein Abonnement dieser App.</value>
+  </data>
+  <data name="MobLicenceHeading" xml:space="preserve">
+    <value>Eine Lizenz Ihrer Organisation oder des Herstellers</value>
   </data>
 </root>

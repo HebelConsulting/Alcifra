@@ -5833,7 +5833,7 @@
     <value>Suscripción</value>
   </data>
   <data name="MobSubscriptionNone" xml:space="preserve">
-    <value>Sin suscripción: solo se pueden usar los perfiles de la demo pública. Introduzca la licencia que le dio su organización o el proveedor.</value>
+    <value>Sin suscripción: solo se pueden usar los perfiles de la demo pública. Suscríbase en la tienda o introduzca la licencia que le dio su organización o el proveedor.</value>
   </data>
   <data name="MobSubscriptionDemoOnly" xml:space="preserve">
     <value>Sin suscripción, solo se pueden usar, añadir, modificar o eliminar los perfiles de la demo pública.</value>
@@ -6062,5 +6062,80 @@
   </data>
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>Esta organización aún no tiene un certificado de recuperación para las exportaciones sin conexión, por lo que no se puede crear ninguna. Pida a un administrador del inquilino que establezca uno.</value>
+  </data>
+  <data name="MobStoreHeading" xml:space="preserve">
+    <value>En la tienda</value>
+  </data>
+  <data name="MobStoreAsking" xml:space="preserve">
+    <value>Consultando la tienda…</value>
+  </data>
+  <data name="MobStoreUnavailable" xml:space="preserve">
+    <value>Las suscripciones de la tienda no están disponibles en este dispositivo. Una licencia de su organización o del proveedor funciona sin la tienda.</value>
+  </data>
+  <data name="MobStoreNoOffers" xml:space="preserve">
+    <value>La tienda no ofrece suscripciones en este momento.</value>
+  </data>
+  <data name="MobStoreHeld" xml:space="preserve">
+    <value>Suscripción {0} de la tienda</value>
+  </data>
+  <data name="MobStoreRenewsOn" xml:space="preserve">
+    <value>Se renueva el {0}</value>
+  </data>
+  <data name="MobStoreEndsOn" xml:space="preserve">
+    <value>Termina el {0}: no se renueva</value>
+  </data>
+  <data name="MobStoreRenews" xml:space="preserve">
+    <value>Se renueva automáticamente</value>
+  </data>
+  <data name="MobStoreDoesNotRenew" xml:space="preserve">
+    <value>No se renueva</value>
+  </data>
+  <data name="MobStoreStandardWhat" xml:space="preserve">
+    <value>Toda la aplicación con el diseño de teléfono, en cualquier dispositivo.</value>
+  </data>
+  <data name="MobStoreProWhat" xml:space="preserve">
+    <value>Standard y el diseño de tableta: en una ventana ancha, la lista junto al documento.</value>
+  </data>
+  <data name="MobStoreUpgrade" xml:space="preserve">
+    <value>Pasar a Pro</value>
+  </data>
+  <data name="MobStoreTermMonthly" xml:space="preserve">
+    <value>Mensual</value>
+  </data>
+  <data name="MobStoreTerm3" xml:space="preserve">
+    <value>3 meses</value>
+  </data>
+  <data name="MobStoreTerm6" xml:space="preserve">
+    <value>6 meses</value>
+  </data>
+  <data name="MobStoreTerm12" xml:space="preserve">
+    <value>12 meses</value>
+  </data>
+  <data name="MobStoreOffer" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="MobStoreRenewNote" xml:space="preserve">
+    <value>Cada periodo se renueva automáticamente hasta que lo cancele en la tienda. Los precios son los de la tienda, en su moneda.</value>
+  </data>
+  <data name="MobStoreRestore" xml:space="preserve">
+    <value>Restaurar compras</value>
+  </data>
+  <data name="MobStoreManage" xml:space="preserve">
+    <value>Gestionar o cancelar en la tienda</value>
+  </data>
+  <data name="MobStorePending" xml:space="preserve">
+    <value>La compra está pendiente: se aplica en cuanto la tienda la confirme.</value>
+  </data>
+  <data name="MobStoreFailed" xml:space="preserve">
+    <value>La tienda no pudo completar la compra.</value>
+  </data>
+  <data name="MobStoreRestored" xml:space="preserve">
+    <value>La suscripción de la tienda se ha restaurado.</value>
+  </data>
+  <data name="MobStoreNothingToRestore" xml:space="preserve">
+    <value>La tienda no tiene ninguna suscripción de esta aplicación para su cuenta.</value>
+  </data>
+  <data name="MobLicenceHeading" xml:space="preserve">
+    <value>Una licencia de su organización o del proveedor</value>
   </data>
 </root>

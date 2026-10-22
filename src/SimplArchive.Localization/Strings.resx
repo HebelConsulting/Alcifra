@@ -5833,7 +5833,7 @@
     <value>Subscription</value>
   </data>
   <data name="MobSubscriptionNone" xml:space="preserve">
-    <value>No subscription: only profiles on the public demo can be used. Enter the licence your organisation or the vendor gave you.</value>
+    <value>No subscription: only profiles on the public demo can be used. Subscribe in the store, or enter the licence your organisation or the vendor gave you.</value>
   </data>
   <data name="MobSubscriptionDemoOnly" xml:space="preserve">
     <value>Without a subscription, only profiles on the public demo can be used, added, changed or deleted.</value>
@@ -6062,5 +6062,80 @@
   </data>
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>This organisation has no recovery certificate for offline exports yet, so none can be made. Ask a tenant administrator to set one.</value>
+  </data>
+  <data name="MobStoreHeading" xml:space="preserve">
+    <value>From the store</value>
+  </data>
+  <data name="MobStoreAsking" xml:space="preserve">
+    <value>Asking the store…</value>
+  </data>
+  <data name="MobStoreUnavailable" xml:space="preserve">
+    <value>The store's subscriptions are not available on this device. A licence from your organisation or the vendor works without the store.</value>
+  </data>
+  <data name="MobStoreNoOffers" xml:space="preserve">
+    <value>The store offers no subscriptions at the moment.</value>
+  </data>
+  <data name="MobStoreHeld" xml:space="preserve">
+    <value>{0} subscription from the store</value>
+  </data>
+  <data name="MobStoreRenewsOn" xml:space="preserve">
+    <value>Renews on {0}</value>
+  </data>
+  <data name="MobStoreEndsOn" xml:space="preserve">
+    <value>Ends on {0}: it does not renew</value>
+  </data>
+  <data name="MobStoreRenews" xml:space="preserve">
+    <value>Renews automatically</value>
+  </data>
+  <data name="MobStoreDoesNotRenew" xml:space="preserve">
+    <value>Does not renew</value>
+  </data>
+  <data name="MobStoreStandardWhat" xml:space="preserve">
+    <value>The whole app in its phone layout, on any device.</value>
+  </data>
+  <data name="MobStoreProWhat" xml:space="preserve">
+    <value>Standard and the tablet layout: in a wide window, the list beside the document.</value>
+  </data>
+  <data name="MobStoreUpgrade" xml:space="preserve">
+    <value>Upgrade to Pro</value>
+  </data>
+  <data name="MobStoreTermMonthly" xml:space="preserve">
+    <value>Monthly</value>
+  </data>
+  <data name="MobStoreTerm3" xml:space="preserve">
+    <value>3 months</value>
+  </data>
+  <data name="MobStoreTerm6" xml:space="preserve">
+    <value>6 months</value>
+  </data>
+  <data name="MobStoreTerm12" xml:space="preserve">
+    <value>12 months</value>
+  </data>
+  <data name="MobStoreOffer" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="MobStoreRenewNote" xml:space="preserve">
+    <value>Every term renews automatically until you cancel it in the store. Prices are the store's, in your currency.</value>
+  </data>
+  <data name="MobStoreRestore" xml:space="preserve">
+    <value>Restore purchases</value>
+  </data>
+  <data name="MobStoreManage" xml:space="preserve">
+    <value>Manage or cancel in the store</value>
+  </data>
+  <data name="MobStorePending" xml:space="preserve">
+    <value>The purchase is pending: it applies once the store confirms it.</value>
+  </data>
+  <data name="MobStoreFailed" xml:space="preserve">
+    <value>The store could not complete the purchase.</value>
+  </data>
+  <data name="MobStoreRestored" xml:space="preserve">
+    <value>The store's subscription is restored.</value>
+  </data>
+  <data name="MobStoreNothingToRestore" xml:space="preserve">
+    <value>The store holds no subscription of this app for your account.</value>
+  </data>
+  <data name="MobLicenceHeading" xml:space="preserve">
+    <value>A licence from your organisation or the vendor</value>
   </data>
 </root>
