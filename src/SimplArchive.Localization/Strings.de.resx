@@ -5769,6 +5769,12 @@
   <data name="MobBackupFailed" xml:space="preserve">
     <value>Die Sicherung ist fehlgeschlagen: {0}</value>
   </data>
+  <data name="MsgFileOpenFailed" xml:space="preserve">
+    <value>Die Datei konnte nicht geöffnet werden: {0}</value>
+  </data>
+  <data name="MsgRestoreFailed" xml:space="preserve">
+    <value>Die Wiederherstellung ist fehlgeschlagen: {0}</value>
+  </data>
   <data name="MobBackupSignIn" xml:space="preserve">
     <value>Melden Sie sich an, damit Ihre Nachrichten weiter gesichert werden.</value>
   </data>

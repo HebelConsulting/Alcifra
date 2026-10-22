@@ -5769,6 +5769,12 @@
   <data name="MobBackupFailed" xml:space="preserve">
     <value>Il backup non è riuscito: {0}</value>
   </data>
+  <data name="MsgFileOpenFailed" xml:space="preserve">
+    <value>Impossibile aprire il file: {0}</value>
+  </data>
+  <data name="MsgRestoreFailed" xml:space="preserve">
+    <value>Il ripristino non è riuscito: {0}</value>
+  </data>
   <data name="MobBackupSignIn" xml:space="preserve">
     <value>Accedi per continuare il backup dei messaggi.</value>
   </data>

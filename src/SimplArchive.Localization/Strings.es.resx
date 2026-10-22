@@ -5769,6 +5769,12 @@
   <data name="MobBackupFailed" xml:space="preserve">
     <value>La copia ha fallado: {0}</value>
   </data>
+  <data name="MsgFileOpenFailed" xml:space="preserve">
+    <value>No se pudo abrir el archivo: {0}</value>
+  </data>
+  <data name="MsgRestoreFailed" xml:space="preserve">
+    <value>La restauración ha fallado: {0}</value>
+  </data>
   <data name="MobBackupSignIn" xml:space="preserve">
     <value>Inicie sesión para seguir haciendo copias de sus mensajes.</value>
   </data>

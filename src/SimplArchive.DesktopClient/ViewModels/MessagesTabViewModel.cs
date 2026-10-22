@@ -289,7 +289,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
             return;
         }
 
-        await Reported(async () => await NativeFileOpener.OpenBytesAsync(await session.OpenFileAsync(bubble.Row.Message), file.Name));
+        await Reported("MsgFileOpenFailed", async () => await NativeFileOpener.OpenBytesAsync(await session.OpenFileAsync(bubble.Row.Message), file.Name));
     }
 
     /// <summary>Writes the user's conversations to a file they choose: sealed, nothing decrypted, no key asked for.</summary>
@@ -302,7 +302,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
             return;
         }
 
-        await Reported(async () =>
+        await Reported("MobBackupFailed", async () =>
         {
             await using (file)
             {
@@ -321,7 +321,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
             return;
         }
 
-        await Reported(async () =>
+        await Reported("MsgRestoreFailed", async () =>
         {
             // Read whole first: a backup is checked entry by entry before anything is restored, which needs to seek.
             using var copy = new MemoryStream();
@@ -339,8 +339,10 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         });
     }
 
-    // A refusal or a failure in the status line, in words a person can act on.
-    private async Task Reported(Func<Task> act)
+    // A refusal or a failure in the status line, in words a person can act on, worded for the act that failed
+    // (an attachment that would not open once read "The backup failed", #1878), and logged: the status line is gone
+    // on the next report, and nobody would otherwise find out why (ADR 0626).
+    internal async Task Reported(string failedKey, Func<Task> act)
     {
         try
         {
@@ -349,7 +351,8 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         catch (Exception e) when (e is HttpRequestException or MessengerApiException or BackupDamagedException or EnvelopeNotOpenedException
             or IOException or UnauthorizedAccessException)
         {
-            _shell.Report(string.Format(CultureInfo.CurrentCulture, Strings.Get("MobBackupFailed"), e.Message));
+            DesktopLog.Warn(e, "Messages: {Act} failed", failedKey);
+            _shell.Report(string.Format(CultureInfo.CurrentCulture, Strings.Get(failedKey), e.Message));
         }
     }
 

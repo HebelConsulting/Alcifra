@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using SimplArchive.DesktopClient;
 using SimplArchive.DesktopClient.Services;
 using SimplArchive.DesktopClient.ViewModels;
+using SimplArchive.Localization;
 using SimplArchive.Messenger.Client;
 using SimplArchive.Messenger.Client.Display;
 
@@ -67,6 +68,22 @@ public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
 
         router.Dispatch(new SimplArchive.Presentation.ModuleLiveEvent("messenger", "typing", "{}"));   // let go of: not heard
         Assert.Equal([("typing", "{}")], heard);
+    }
+
+    // #1878: an attachment that would not open was reported as "The backup failed" and logged nowhere.
+    [Fact]
+    public async Task A_failed_act_is_worded_for_that_act_in_the_status_line()
+    {
+        var shell = new TestShell();
+        var tab = new MessagesTabViewModel(shell, () => null, NoLiveEvents.Instance);
+
+        await tab.Reported("MsgFileOpenFailed", () => throw new HttpRequestException("no key here"));
+        await tab.Reported("MsgRestoreFailed", () => throw new IOException("disk full"));
+
+        Assert.Equal(
+            [$"{Strings.Get("MsgFileOpenFailed").Replace("{0}", "no key here")}", $"{Strings.Get("MsgRestoreFailed").Replace("{0}", "disk full")}"],
+            shell.Reports);
+        Assert.DoesNotContain(shell.Reports, r => r.StartsWith(Strings.Get("MobBackupFailed").Replace("{0}", string.Empty), StringComparison.Ordinal));
     }
 
     private static X509Certificate2 NewCertificate()
