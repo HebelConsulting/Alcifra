@@ -32,7 +32,13 @@ public sealed class RenewingAuthHandler : DelegatingHandler
     private readonly TokenSession.Holder _session;
     private readonly ITokenSessionStore? _store;
     private readonly bool _announce;
-    private readonly SemaphoreSlim _renewGate = new(1, 1);
+    private readonly SemaphoreSlim _ownGate = new(1, 1);
+
+    /// <summary>One gate per installation for every handler over a STORED holder (#1869): the clients of one slot are
+    /// separate handlers, so a gate per handler let each of them spend the same refresh token. Keyed by installation
+    /// alone, not by slot: two profiles on one server then renew one after the other, which costs a few milliseconds
+    /// once a quarter of an hour and needs no slot identity from the host's store.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> SharedGates = new(StringComparer.OrdinalIgnoreCase);
 
     public RenewingAuthHandler(string apiRootUrl, TokenSession.Holder session, HttpMessageHandler inner)
         : this(apiRootUrl, session, inner, store: null, announce: true)
@@ -55,10 +61,18 @@ public sealed class RenewingAuthHandler : DelegatingHandler
 
     private ITokenSessionStore Store => _store ?? ApiClientSettings.Sessions;
 
+    private SemaphoreSlim RenewGate => _session.IsStored
+        ? SharedGates.GetOrAdd(_apiRootUrl.TrimEnd('/'), static _ => new SemaphoreSlim(1, 1))
+        : _ownGate;
+
     private void End()
     {
         _session.Value = null;
-        Store.Clear(_apiRootUrl);
+        if (!_session.IsStored)
+        {
+            Store.Clear(_apiRootUrl);
+        }
+
         if (_announce)
         {
             SessionEnded?.Invoke(_apiRootUrl);
@@ -85,6 +99,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         }
 
         Attach(request, session);
+        var sent = session?.AccessToken;
 
         var response = await base.SendAsync(request, cancellationToken);
         if (response.StatusCode != HttpStatusCode.Unauthorized)
@@ -95,6 +110,15 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         // A 401 the clock did not predict. Renew ONCE and replay — not in a loop, because a token the server
         // keeps refusing is a session that has ended, and retrying it is just a slower way to say so.
         var current = _session.Value;
+
+        // Another client of the same slot renewed while this request was on the wire (#1869): the session has not
+        // ended, only this request's token aged. Replay with theirs rather than ending a session somebody just renewed.
+        if (current is { NeedsRenewal: false, AccessToken.Length: > 0 } && !string.Equals(current.AccessToken, sent, StringComparison.Ordinal))
+        {
+            response.Dispose();
+            return await ReplayAsync(request, current, cancellationToken);
+        }
+
         if (current is not { CanRenew: true })
         {
             End();
@@ -107,7 +131,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
             throw new SessionEndedException(_apiRootUrl);
         }
 
-        var renewed = await RenewAsync(current, cancellationToken, rejected: current.AccessToken);
+        var renewed = await RenewAsync(current, cancellationToken, rejected: sent);
         if (renewed is null || string.IsNullOrEmpty(renewed.AccessToken))
         {
             // Renewal was possible in principle and still failed — the same ended session, reached one step
@@ -119,9 +143,13 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         }
 
         response.Dispose();
+        return await ReplayAsync(request, renewed, cancellationToken);
+    }
 
+    private async Task<HttpResponseMessage> ReplayAsync(HttpRequestMessage request, TokenSession session, CancellationToken cancellationToken)
+    {
         var replay = await CloneAsync(request, cancellationToken);
-        Attach(replay, renewed);
+        Attach(replay, session);
         return await base.SendAsync(replay, cancellationToken);
     }
 
@@ -136,7 +164,8 @@ public sealed class RenewingAuthHandler : DelegatingHandler
     /// <summary>Exchanges the refresh token for a new pair, or ends the session when the server refuses.</summary>
     private async Task<TokenSession?> RenewAsync(TokenSession session, CancellationToken cancellationToken, string? rejected = null)
     {
-        await _renewGate.WaitAsync(cancellationToken);
+        var gate = RenewGate;
+        await gate.WaitAsync(cancellationToken);
         try
         {
             // Another request may have renewed while this one waited at the gate — the common case under load,
@@ -157,20 +186,22 @@ public sealed class RenewingAuthHandler : DelegatingHandler
                 return latest ?? session;
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiRootUrl.TrimEnd('/')}/connect/token")
-            {
-                Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                {
-                    ["grant_type"] = "refresh_token",
-                    ["refresh_token"] = refreshToken,
-                    ["client_id"] = ApiClientSettings.ClientId,
-                }),
-            };
+            var next = await RedeemAsync(refreshToken, cancellationToken);
 
-            // Sent through the INNER handler: this request carries its own credential and must not be given a
-            // bearer, retried on 401, or recursed back into this method.
-            using var response = await base.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            // Refused — and yet the slot may now hold a DIFFERENT refresh token, written by somebody outside this gate:
+            // another process sharing the store, or a fresh sign-in of the same profile meanwhile (#1869). That
+            // session has not been refused; end it and the user is signed out of a session that works. Try it once.
+            if (next is null && _session.Value is { CanRenew: true } stored && !string.Equals(stored.RefreshToken, refreshToken, StringComparison.Ordinal))
+            {
+                if (stored is { NeedsRenewal: false, AccessToken.Length: > 0 } && !string.Equals(stored.AccessToken, rejected, StringComparison.Ordinal))
+                {
+                    return stored;
+                }
+
+                next = await RedeemAsync(stored.RefreshToken!, cancellationToken);
+            }
+
+            if (next is null)
             {
                 // The server has refused this refresh token — expired, revoked, rotated away, or the account
                 // deactivated. It will not start working, so the session is over and the stored token goes with
@@ -179,26 +210,15 @@ public sealed class RenewingAuthHandler : DelegatingHandler
                 return null;
             }
 
-            var tokens = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            var accessToken = tokens.TryGetProperty("access_token", out var access) ? access.GetString() : null;
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                End();
-                return null;
-            }
-
-            // Rotation is on server-side, so a NEW refresh token comes back and the old one is now spent. Keeping
-            // the old one would guarantee the next renewal fails.
-            var rotated = tokens.TryGetProperty("refresh_token", out var refresh) ? refresh.GetString() : refreshToken;
-            var lifetime = tokens.TryGetProperty("expires_in", out var expires) && expires.TryGetInt32(out var seconds)
-                ? TimeSpan.FromSeconds(seconds)
-                : TimeSpan.Zero;
-
-            var next = new TokenSession(accessToken, rotated, DateTimeOffset.UtcNow + lifetime);
             _session.Value = next;
 
-            // The rotated refresh token is also persisted for the SERVER, so the next launch starts signed in.
-            Store.Set(_apiRootUrl, next);
+            // The rotated refresh token is also persisted for the SERVER, so the next launch starts signed in. A stored
+            // holder has just written it there itself.
+            if (!_session.IsStored)
+            {
+                Store.Set(_apiRootUrl, next);
+            }
+
             return next;
         }
         catch (HttpRequestException)
@@ -210,8 +230,47 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         }
         finally
         {
-            _renewGate.Release();
+            gate.Release();
         }
+    }
+
+    /// <summary>One refresh-token grant: the new session, or null when the server refused it (or answered no access
+    /// token). An unreachable server throws <see cref="HttpRequestException"/>, which is not a refusal.</summary>
+    private async Task<TokenSession?> RedeemAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiRootUrl.TrimEnd('/')}/connect/token")
+        {
+            Content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = refreshToken,
+                ["client_id"] = ApiClientSettings.ClientId,
+            }),
+        };
+
+        // Sent through the INNER handler: this request carries its own credential and must not be given a
+        // bearer, retried on 401, or recursed back into this method.
+        using var response = await base.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var tokens = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        var accessToken = tokens.TryGetProperty("access_token", out var access) ? access.GetString() : null;
+        if (string.IsNullOrEmpty(accessToken))
+        {
+            return null;
+        }
+
+        // Rotation is on server-side, so a NEW refresh token comes back and the old one is now spent. Keeping
+        // the old one would guarantee the next renewal fails.
+        var rotated = tokens.TryGetProperty("refresh_token", out var refresh) ? refresh.GetString() : refreshToken;
+        var lifetime = tokens.TryGetProperty("expires_in", out var expires) && expires.TryGetInt32(out var seconds)
+            ? TimeSpan.FromSeconds(seconds)
+            : TimeSpan.Zero;
+
+        return new TokenSession(accessToken, rotated, DateTimeOffset.UtcNow + lifetime);
     }
 
     /// <summary>A replayable copy: a sent request cannot be sent again, and its content stream is consumed.</summary>

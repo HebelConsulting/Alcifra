@@ -180,8 +180,14 @@ public sealed class ApiCore
     /// as a phone fetching what a push announced for a profile that may not be the one on screen (mobile #20).
     /// </summary>
     /// <returns>Null when <paramref name="sessions"/> holds no session for the installation.</returns>
+    /// <remarks>
+    /// Every client bound to one slot SHARES its session (#1869): it reads the slot on every request rather than a copy
+    /// taken here, and renews one at a time with every other client of that installation. A phone holds several at
+    /// once for one profile (the page on screen, a push's fetch, the scheduled backup); with a copy each, one renewal
+    /// spent the refresh token the others still held, and one ended session cleared the slot under the others.
+    /// </remarks>
     public static ApiCore? Bound(string apiRootUrl, ITokenSessionStore sessions) =>
-        sessions.For(apiRootUrl) is { AccessToken.Length: > 0 } session ? new ApiCore(apiRootUrl, session, sessions) : null;
+        sessions.For(apiRootUrl) is { AccessToken.Length: > 0 } ? new ApiCore(apiRootUrl, sessions) : null;
 
     /// <summary>
     /// A client over an archive instead of a server (#1697): every request goes to <paramref name="responder"/>, in
@@ -199,11 +205,11 @@ public sealed class ApiCore
         AddClientHeaders(Http);
     }
 
-    private ApiCore(string apiRootUrl, TokenSession session, ITokenSessionStore sessions)
+    private ApiCore(string apiRootUrl, ITokenSessionStore sessions)
     {
         _apiRootUrl = apiRootUrl;
         _store = sessions;
-        _session = new TokenSession.Holder(session);
+        _session = TokenSession.Holder.Stored(sessions, apiRootUrl);
         Http = new HttpClient(new RenewingAuthHandler(_apiRootUrl, _session, new HttpClientHandler(), sessions, announce: false))
         {
             BaseAddress = new Uri(_apiRootUrl),

@@ -22,10 +22,60 @@ public sealed record TokenSession(string AccessToken, string? RefreshToken, Date
     /// first. That is not a test-only concern — impersonation (ADR 0354) is exactly two identities against one
     /// server — but the tests are what surfaced it, as 115 failures and then two subtler ones where a user
     /// read another user's personal repository.
+    /// <para>
+    /// <b>A holder over a store is the exception, and it is the phone's every client (#1869).</b> A client bound to ONE
+    /// slot (<see cref="ApiCore.Bound"/>: one profile, one installation) has no identity question to answer — the slot
+    /// IS the identity — and there a private copy is the defect: the phone holds several clients of one profile at once
+    /// (the page on screen, a push's fetch, the scheduled backup, a revoke), and each copy went stale the moment another
+    /// renewed or ended. One spent a refresh token the other then presented again; one ended and cleared the slot under
+    /// the other. So <see cref="Stored"/> keeps no copy at all: every read is the slot's current session, and every
+    /// renewal is seen by every client of it.
+    /// </para>
     /// </remarks>
-    public sealed class Holder(TokenSession? initial)
+    public sealed class Holder
     {
-        public TokenSession? Value { get; set; } = initial;
+        private readonly ITokenSessionStore? _store;
+        private readonly string _apiRootUrl = string.Empty;
+        private TokenSession? _value;
+
+        public Holder(TokenSession? initial) => _value = initial;
+
+        private Holder(ITokenSessionStore store, string apiRootUrl)
+        {
+            _store = store;
+            _apiRootUrl = apiRootUrl;
+        }
+
+        /// <summary>A holder that IS the store's slot for <paramref name="apiRootUrl"/>: no copy, so every client over
+        /// that slot shares one session (#1869).</summary>
+        public static Holder Stored(ITokenSessionStore store, string apiRootUrl)
+        {
+            ArgumentNullException.ThrowIfNull(store);
+            return new Holder(store, apiRootUrl);
+        }
+
+        /// <summary>Whether this holder reads and writes the store's slot rather than a private copy.</summary>
+        public bool IsStored => _store is not null;
+
+        public TokenSession? Value
+        {
+            get => _store is null ? _value : _store.For(_apiRootUrl);
+            set
+            {
+                if (_store is null)
+                {
+                    _value = value;
+                }
+                else if (value is null)
+                {
+                    _store.Clear(_apiRootUrl);
+                }
+                else
+                {
+                    _store.Set(_apiRootUrl, value);
+                }
+            }
+        }
     }
 
     /// <summary>How far ahead of expiry a renewal is due.</summary>
