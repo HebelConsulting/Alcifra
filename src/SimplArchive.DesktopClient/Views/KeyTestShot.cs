@@ -9,12 +9,14 @@ namespace SimplArchive.DesktopClient.Views;
 
 /// <summary>
 /// Renders <i>Test the hardware key</i> headlessly to PNG (ADR 0955):
-/// <c>--key-test-screenshot &lt;out.png&gt; [--dark] [--failed] [--signed-out] [--lang &lt;code&gt;]</c>.
+/// <c>--key-test-screenshot &lt;out.png&gt; [--dark] [--failed] [--signed-out] [--before] [--expanded] [--lang &lt;code&gt;]</c>.
 /// </summary>
 /// <remarks>
 /// A SAMPLE report, because a screenshot run has no card: this checks how the window RENDERS a finished test — the
 /// verdict, the steps, the report and its switch — not what a key answers. <c>--failed</c> shows a refused PIN, the
-/// case a support conversation starts from; <c>--signed-out</c> is the logon window's form, with no archive switch.
+/// case a support conversation starts from; <c>--signed-out</c> is the logon window's form, with no archive switch;
+/// <c>--before</c> is the window before any test (instructions only, no verdict); <c>--expanded</c> opens the report,
+/// which is collapsed by default (ADR 0962).
 /// </remarks>
 public static class KeyTestShot
 {
@@ -45,7 +47,12 @@ public static class KeyTestShot
         var signedIn = !args.Contains("--signed-out");
         var test = new HardwareKeyTest(new NoKeyPort(), _ => Task.FromResult<string?>(null), null, ClientUpdate.RunningVersion);
         var model = new KeyTestViewModel(test, signedIn);
-        model.Show(Sample(failed: args.Contains("--failed"), signedIn));
+        if (!args.Contains("--before"))
+        {
+            model.Show(Sample(failed: args.Contains("--failed"), signedIn));
+        }
+
+        model.IsReportExpanded = args.Contains("--expanded");
 
         var window = new KeyTestWindow(model);
         window.Show();

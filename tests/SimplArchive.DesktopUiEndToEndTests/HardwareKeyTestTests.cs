@@ -171,6 +171,58 @@ public class HardwareKeyTestTests
     }
 
     [Fact]
+    public void Before_a_run_the_window_shows_no_verdict_and_no_report()
+    {
+        var model = new SimplArchive.DesktopClient.ViewModels.KeyTestViewModel(
+            new HardwareKeyTest(new SoftwarePort([]), _ => Task.FromResult<string?>(null), null, "1.2.3"), signedIn: false);
+
+        Assert.False(model.HasVerdict);
+        Assert.False(model.HasReport);
+        Assert.False(model.HasSteps);
+        Assert.False(model.CopyCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task A_refused_PIN_shows_a_prominent_does_not_work_verdict_naming_the_wrong_PIN()
+    {
+        using var key = SoftwareKey.Create("p256", "X.509 Certificate for Key Management");
+        var model = new SimplArchive.DesktopClient.ViewModels.KeyTestViewModel(
+            new HardwareKeyTest(new SoftwarePort([key]), _ => Task.FromResult<string?>("777777"), null, "1.2.3"), signedIn: false);
+
+        await model.RunCommand.ExecuteAsync(null);
+
+        Assert.True(model.HasVerdict);
+        Assert.True(model.DoesNotWork);
+        Assert.False(model.Works);
+        Assert.Equal("mdi-close-circle", model.VerdictIcon);
+        Assert.Equal(SimplArchive.Localization.Strings.Get("KtDoesNotWork"), model.Verdict!.Headline);
+        Assert.Equal(SimplArchive.Localization.Strings.Get("KtWhyWrongPin"), model.Verdict.Reason);
+        Assert.StartsWith(model.Verdict.Headline, model.VerdictSpoken, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_report_is_collapsed_by_default_and_Copy_still_copies_all_of_it()
+    {
+        using var key = SoftwareKey.Create("p256", "X.509 Certificate for Key Management");
+        var model = new SimplArchive.DesktopClient.ViewModels.KeyTestViewModel(
+            new HardwareKeyTest(new SoftwarePort([key]), _ => Task.FromResult<string?>(Pin), null, "1.2.3"), signedIn: false);
+        string? copied = null;
+        model.CopyToClipboard = text => { copied = text; return Task.CompletedTask; };
+
+        await model.RunCommand.ExecuteAsync(null);
+        Assert.True(model.Works);
+        Assert.Equal("mdi-check-circle", model.VerdictIcon);
+        Assert.False(model.IsReportExpanded);   // collapsed by default
+        Assert.True(model.HasReport);
+
+        await model.CopyCommand.ExecuteAsync(null);
+
+        Assert.Equal(model.ReportText, copied);
+        Assert.Contains("== The test ==", copied, StringComparison.Ordinal);
+        Assert.False(model.IsReportExpanded);
+    }
+
+    [Fact]
     public void Signed_out_the_window_offers_no_archive_switch()
     {
         var model = new SimplArchive.DesktopClient.ViewModels.KeyTestViewModel(

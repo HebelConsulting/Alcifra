@@ -5929,16 +5929,10 @@
     <value>Testing…</value>
   </data>
   <data name="KtWorks" xml:space="preserve">
-    <value>The key works with SimplArchive.</value>
-  </data>
-  <data name="KtFailedAt" xml:space="preserve">
-    <value>The test failed at: {0}</value>
+    <value>Your hardware key works with SimplArchive.</value>
   </data>
   <data name="KtNotCompleted" xml:space="preserve">
     <value>The test did not finish: no PIN was given.</value>
-  </data>
-  <data name="KtNotRun" xml:space="preserve">
-    <value>No test has run yet.</value>
   </data>
   <data name="KtReport" xml:space="preserve">
     <value>Report for support</value>
@@ -5987,6 +5981,39 @@
   </data>
   <data name="KtShare" xml:space="preserve">
     <value>Share report</value>
+  </data>
+  <data name="KtDoesNotWork" xml:space="preserve">
+    <value>Your hardware key does not work with SimplArchive.</value>
+  </data>
+  <data name="KtWhyNoLibrary" xml:space="preserve">
+    <value>No PKCS#11 library could be used: install the key's smartcard software and run the test again.</value>
+  </data>
+  <data name="KtWhyNoKey" xml:space="preserve">
+    <value>No key was found: insert the key (or hold it to the phone) and run the test again.</value>
+  </data>
+  <data name="KtWhyNoPiv" xml:space="preserve">
+    <value>The key did not answer as a PIV smartcard.</value>
+  </data>
+  <data name="KtWhyNoCertificate" xml:space="preserve">
+    <value>The key holds no certificate in its key-management slot (9D).</value>
+  </data>
+  <data name="KtWhyCannotSeal" xml:space="preserve">
+    <value>Nothing can be sealed to the key's certificate: its key type is not supported.</value>
+  </data>
+  <data name="KtWhyWrongPin" xml:space="preserve">
+    <value>Wrong PIN. A few wrong entries block the PIN.</value>
+  </data>
+  <data name="KtWhyWrongPinLeft" xml:space="preserve">
+    <value>Wrong PIN: {0} tries left before the PIN is blocked.</value>
+  </data>
+  <data name="KtWhyPinBlocked" xml:space="preserve">
+    <value>The PIN is blocked. Unblock it with the PUK, or ask whoever issued the key.</value>
+  </data>
+  <data name="KtWhyNotUnlocked" xml:space="preserve">
+    <value>The key could not be unlocked.</value>
+  </data>
+  <data name="KtWhyNotOpened" xml:space="preserve">
+    <value>The key could not open what was sealed to it.</value>
   </data>
   <data name="MobKtIntro" xml:space="preserve">
     <value>Enter the key's PIN, then hold the key to the phone or plug it in. The test seals a fresh random message to the key's own certificate and opens it with the key and its PIN. It needs no server and sends nothing anywhere.</value>

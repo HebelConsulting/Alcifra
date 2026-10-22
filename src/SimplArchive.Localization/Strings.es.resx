@@ -5929,16 +5929,10 @@
     <value>Probando…</value>
   </data>
   <data name="KtWorks" xml:space="preserve">
-    <value>La llave funciona con SimplArchive.</value>
-  </data>
-  <data name="KtFailedAt" xml:space="preserve">
-    <value>La prueba falló en: {0}</value>
+    <value>Tu llave de hardware funciona con SimplArchive.</value>
   </data>
   <data name="KtNotCompleted" xml:space="preserve">
     <value>La prueba no terminó: no se introdujo ningún PIN.</value>
-  </data>
-  <data name="KtNotRun" xml:space="preserve">
-    <value>Todavía no se ha ejecutado ninguna prueba.</value>
   </data>
   <data name="KtReport" xml:space="preserve">
     <value>Informe para soporte</value>
@@ -5987,6 +5981,39 @@
   </data>
   <data name="KtShare" xml:space="preserve">
     <value>Compartir informe</value>
+  </data>
+  <data name="KtDoesNotWork" xml:space="preserve">
+    <value>Tu llave de hardware no funciona con SimplArchive.</value>
+  </data>
+  <data name="KtWhyNoLibrary" xml:space="preserve">
+    <value>No se pudo usar ninguna biblioteca PKCS#11: instala el software de tarjeta inteligente de la llave y vuelve a ejecutar la prueba.</value>
+  </data>
+  <data name="KtWhyNoKey" xml:space="preserve">
+    <value>No se encontró ninguna llave: inserta la llave (o acércala al teléfono) y vuelve a ejecutar la prueba.</value>
+  </data>
+  <data name="KtWhyNoPiv" xml:space="preserve">
+    <value>La llave no respondió como tarjeta inteligente PIV.</value>
+  </data>
+  <data name="KtWhyNoCertificate" xml:space="preserve">
+    <value>La llave no contiene ningún certificado en su ranura de gestión de claves (9D).</value>
+  </data>
+  <data name="KtWhyCannotSeal" xml:space="preserve">
+    <value>No se puede sellar nada para el certificado de la llave: su tipo de clave no es compatible.</value>
+  </data>
+  <data name="KtWhyWrongPin" xml:space="preserve">
+    <value>PIN incorrecto. Unos pocos intentos fallidos bloquean el PIN.</value>
+  </data>
+  <data name="KtWhyWrongPinLeft" xml:space="preserve">
+    <value>PIN incorrecto: quedan {0} intentos antes de que se bloquee el PIN.</value>
+  </data>
+  <data name="KtWhyPinBlocked" xml:space="preserve">
+    <value>El PIN está bloqueado. Desbloquéalo con el PUK o consulta a quien emitió la llave.</value>
+  </data>
+  <data name="KtWhyNotUnlocked" xml:space="preserve">
+    <value>No se pudo desbloquear la llave.</value>
+  </data>
+  <data name="KtWhyNotOpened" xml:space="preserve">
+    <value>La llave no pudo abrir lo que se selló para ella.</value>
   </data>
   <data name="MobKtIntro" xml:space="preserve">
     <value>Introduzca el PIN de la llave y luego acerque la llave al teléfono o conéctela. La prueba sella un mensaje aleatorio nuevo con el certificado de la propia llave y lo abre con la llave y su PIN. No necesita servidor y no envía nada.</value>

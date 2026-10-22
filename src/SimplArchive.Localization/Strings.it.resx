@@ -5929,16 +5929,10 @@
     <value>Prova in corso…</value>
   </data>
   <data name="KtWorks" xml:space="preserve">
-    <value>La chiave funziona con SimplArchive.</value>
-  </data>
-  <data name="KtFailedAt" xml:space="preserve">
-    <value>La prova non è riuscita al passo: {0}</value>
+    <value>La tua chiave hardware funziona con SimplArchive.</value>
   </data>
   <data name="KtNotCompleted" xml:space="preserve">
     <value>La prova non è terminata: non è stato inserito alcun PIN.</value>
-  </data>
-  <data name="KtNotRun" xml:space="preserve">
-    <value>Non è ancora stata eseguita alcuna prova.</value>
   </data>
   <data name="KtReport" xml:space="preserve">
     <value>Rapporto per l'assistenza</value>
@@ -5987,6 +5981,39 @@
   </data>
   <data name="KtShare" xml:space="preserve">
     <value>Condividi rapporto</value>
+  </data>
+  <data name="KtDoesNotWork" xml:space="preserve">
+    <value>La tua chiave hardware non funziona con SimplArchive.</value>
+  </data>
+  <data name="KtWhyNoLibrary" xml:space="preserve">
+    <value>Non è stato possibile usare alcuna libreria PKCS#11: installa il software smartcard della chiave ed esegui di nuovo la prova.</value>
+  </data>
+  <data name="KtWhyNoKey" xml:space="preserve">
+    <value>Non è stata trovata alcuna chiave: inserisci la chiave (o avvicinala al telefono) ed esegui di nuovo la prova.</value>
+  </data>
+  <data name="KtWhyNoPiv" xml:space="preserve">
+    <value>La chiave non ha risposto come smartcard PIV.</value>
+  </data>
+  <data name="KtWhyNoCertificate" xml:space="preserve">
+    <value>La chiave non contiene alcun certificato nello slot di gestione delle chiavi (9D).</value>
+  </data>
+  <data name="KtWhyCannotSeal" xml:space="preserve">
+    <value>Non si può sigillare nulla per il certificato della chiave: il suo tipo di chiave non è supportato.</value>
+  </data>
+  <data name="KtWhyWrongPin" xml:space="preserve">
+    <value>PIN errato. Pochi tentativi errati bloccano il PIN.</value>
+  </data>
+  <data name="KtWhyWrongPinLeft" xml:space="preserve">
+    <value>PIN errato: restano {0} tentativi prima che il PIN venga bloccato.</value>
+  </data>
+  <data name="KtWhyPinBlocked" xml:space="preserve">
+    <value>Il PIN è bloccato. Sbloccalo con il PUK o rivolgiti a chi ha emesso la chiave.</value>
+  </data>
+  <data name="KtWhyNotUnlocked" xml:space="preserve">
+    <value>Non è stato possibile sbloccare la chiave.</value>
+  </data>
+  <data name="KtWhyNotOpened" xml:space="preserve">
+    <value>La chiave non ha potuto aprire ciò che era stato sigillato per lei.</value>
   </data>
   <data name="MobKtIntro" xml:space="preserve">
     <value>Inserisci il PIN della chiave, poi avvicina la chiave al telefono o collegala. La prova sigilla un nuovo messaggio casuale con il certificato della chiave stessa e lo apre con la chiave e il suo PIN. Non richiede un server e non invia nulla.</value>

@@ -5929,16 +5929,10 @@
     <value>Wird getestet…</value>
   </data>
   <data name="KtWorks" xml:space="preserve">
-    <value>Der Schlüssel funktioniert mit SimplArchive.</value>
-  </data>
-  <data name="KtFailedAt" xml:space="preserve">
-    <value>Der Test ist fehlgeschlagen bei: {0}</value>
+    <value>Ihr Hardware-Schlüssel funktioniert mit SimplArchive.</value>
   </data>
   <data name="KtNotCompleted" xml:space="preserve">
     <value>Der Test wurde nicht abgeschlossen: Es wurde keine PIN eingegeben.</value>
-  </data>
-  <data name="KtNotRun" xml:space="preserve">
-    <value>Es wurde noch kein Test ausgeführt.</value>
   </data>
   <data name="KtReport" xml:space="preserve">
     <value>Bericht für den Support</value>
@@ -5987,6 +5981,39 @@
   </data>
   <data name="KtShare" xml:space="preserve">
     <value>Bericht teilen</value>
+  </data>
+  <data name="KtDoesNotWork" xml:space="preserve">
+    <value>Ihr Hardware-Schlüssel funktioniert nicht mit SimplArchive.</value>
+  </data>
+  <data name="KtWhyNoLibrary" xml:space="preserve">
+    <value>Es konnte keine PKCS#11-Bibliothek verwendet werden: Installieren Sie die Smartcard-Software des Schlüssels und führen Sie den Test erneut aus.</value>
+  </data>
+  <data name="KtWhyNoKey" xml:space="preserve">
+    <value>Es wurde kein Schlüssel gefunden: Stecken Sie den Schlüssel ein (oder halten Sie ihn an das Telefon) und führen Sie den Test erneut aus.</value>
+  </data>
+  <data name="KtWhyNoPiv" xml:space="preserve">
+    <value>Der Schlüssel hat nicht als PIV-Smartcard geantwortet.</value>
+  </data>
+  <data name="KtWhyNoCertificate" xml:space="preserve">
+    <value>Der Schlüssel enthält kein Zertifikat in seinem Schlüsselverwaltungs-Slot (9D).</value>
+  </data>
+  <data name="KtWhyCannotSeal" xml:space="preserve">
+    <value>An das Zertifikat des Schlüssels kann nichts versiegelt werden: Sein Schlüsseltyp wird nicht unterstützt.</value>
+  </data>
+  <data name="KtWhyWrongPin" xml:space="preserve">
+    <value>Falsche PIN. Nach wenigen Fehleingaben wird die PIN gesperrt.</value>
+  </data>
+  <data name="KtWhyWrongPinLeft" xml:space="preserve">
+    <value>Falsche PIN: noch {0} Versuche, bevor die PIN gesperrt wird.</value>
+  </data>
+  <data name="KtWhyPinBlocked" xml:space="preserve">
+    <value>Die PIN ist gesperrt. Entsperren Sie sie mit der PUK oder wenden Sie sich an die Stelle, die den Schlüssel ausgegeben hat.</value>
+  </data>
+  <data name="KtWhyNotUnlocked" xml:space="preserve">
+    <value>Der Schlüssel konnte nicht entsperrt werden.</value>
+  </data>
+  <data name="KtWhyNotOpened" xml:space="preserve">
+    <value>Der Schlüssel konnte nicht öffnen, was an ihn versiegelt wurde.</value>
   </data>
   <data name="MobKtIntro" xml:space="preserve">
     <value>Geben Sie die PIN des Schlüssels ein, dann halten Sie den Schlüssel ans Telefon oder stecken ihn ein. Der Test versiegelt eine neue Zufallsnachricht an das eigene Zertifikat des Schlüssels und öffnet sie mit dem Schlüssel und seiner PIN. Er braucht keinen Server und sendet nichts.</value>

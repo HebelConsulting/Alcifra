@@ -37,7 +37,8 @@ public sealed class KeyTestStepRow(KeyTestStep step)
 
 /// <summary>
 /// <i>Test the hardware key</i> (core #1864, ADR 0955): runs <see cref="HardwareKeyTest"/>, lists its steps as they
-/// happen, and shows the report — with the archive side behind a switch, ON by default, offered only signed in.
+/// happen, then a prominent verdict, and below it the report — collapsed by default (ADR 0962), with the archive side
+/// behind a switch, ON by default, offered only signed in.
 /// </summary>
 public sealed partial class KeyTestViewModel : ObservableObject
 {
@@ -51,7 +52,7 @@ public sealed partial class KeyTestViewModel : ObservableObject
         _test = test;
         CanIncludeArchive = signedIn;
         IncludeArchive = signedIn;
-        Verdict = Strings.Get("KtNotRun");
+        Steps.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasSteps));
     }
 
     /// <summary>Puts text on the clipboard — the view's, which does not exist when this is built (ADR 0730).</summary>
@@ -70,13 +71,46 @@ public sealed partial class KeyTestViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RunCommand))]
     private bool _isRunning;
 
-    [ObservableProperty] private string _verdict;
+    public bool HasSteps => Steps.Count > 0;
 
-    [ObservableProperty] private string _verdictColour = "#8a8a8a";
+    /// <summary>
+    /// The verdict above the report (owner 2026-10-22, ADR 0962): null before a test has finished — the window then
+    /// shows only the instructions.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasVerdict), nameof(Works), nameof(DoesNotWork), nameof(Unfinished),
+        nameof(VerdictIcon), nameof(HasVerdictReason), nameof(VerdictSpoken))]
+    private KeyTestVerdictLine? _verdict;
+
+    public bool HasVerdict => Verdict is not null;
+
+    public bool Works => Verdict?.Verdict == KeyTestVerdict.Works;
+
+    public bool DoesNotWork => Verdict?.Verdict == KeyTestVerdict.Failed;
+
+    public bool Unfinished => Verdict?.Verdict == KeyTestVerdict.NotCompleted;
+
+    public bool HasVerdictReason => Verdict?.Reason is { Length: > 0 };
+
+    public string VerdictIcon => Verdict?.Verdict switch
+    {
+        KeyTestVerdict.Works => "mdi-check-circle",
+        KeyTestVerdict.Failed => "mdi-close-circle",
+        _ => "mdi-alert-circle",
+    };
+
+    /// <summary>What a screen reader announces when the verdict appears: the headline and its reason.</summary>
+    public string VerdictSpoken => Verdict is { } line ? $"{line.Headline} {line.Reason}".TrimEnd() : string.Empty;
+
+    /// <summary>The report for support, collapsed by default; Copy works either way.</summary>
+    [ObservableProperty] private bool _isReportExpanded;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CopyCommand))]
+    [NotifyPropertyChangedFor(nameof(HasReport))]
     private string _reportText = string.Empty;
+
+    public bool HasReport => ReportText.Length > 0;
 
     [ObservableProperty] private string _copyStatus = string.Empty;
 
@@ -90,12 +124,7 @@ public sealed partial class KeyTestViewModel : ObservableObject
             Steps.Add(new KeyTestStepRow(step));
         }
 
-        (Verdict, VerdictColour) = report.Verdict switch
-        {
-            KeyTestVerdict.Works => (Strings.Get("KtWorks"), "#2e7d32"),
-            KeyTestVerdict.Failed => (string.Format(Strings.Get("KtFailedAt"), Strings.Get($"KtStep{report.FirstFailure!.Kind}")), "#c62828"),
-            _ => (Strings.Get("KtNotCompleted"), "#b26a00"),
-        };
+        Verdict = KeyTestVerdictText.Of(report);
         Render();
     }
 
@@ -112,8 +141,9 @@ public sealed partial class KeyTestViewModel : ObservableObject
         IsRunning = true;
         CopyStatus = string.Empty;
         Steps.Clear();
-        Verdict = Strings.Get("KtRunning");
-        VerdictColour = "#8a8a8a";
+        Verdict = null;
+        _report = null;
+        Render();
         try
         {
             // On the UI thread, as the document path's card reads are: the PIN dialog is awaited here, and the card
