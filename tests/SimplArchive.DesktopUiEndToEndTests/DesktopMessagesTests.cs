@@ -4,6 +4,7 @@ using SimplArchive.DesktopClient;
 using SimplArchive.DesktopClient.Services;
 using SimplArchive.DesktopClient.ViewModels;
 using SimplArchive.Messenger.Client;
+using SimplArchive.Messenger.Client.Display;
 
 namespace SimplArchive.UiEndToEndTests;
 
@@ -43,13 +44,29 @@ public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
     {
         DesktopClientOptions.ApiBaseUrl = app.BaseUrl;
         var api = new SimplArchiveApiClient(await Ui.GetUserTokenAsync(app.BaseUrl));
-        var tab = new MessagesTabViewModel(new TestShell(), () => api);
+        var tab = new MessagesTabViewModel(new TestShell(), () => api, NoLiveEvents.Instance);
 
         await tab.DiscoverAsync();
 
         Assert.False(tab.IsOffered);   // the test installation runs no Messenger module
         await tab.LoadAsync();         // and loading it does nothing rather than failing
         Assert.Empty(tab.Conversations);
+    }
+
+    // SimplArchiveMessenger #26: the tab hears "is typing" off the window's one live connection, the Messenger's events only.
+    [Fact]
+    public void The_window_hands_the_tab_only_the_Messengers_own_live_events()
+    {
+        var router = new SimplArchive.Presentation.ModuleLiveEventRouter();
+        var heard = new List<(string Name, string Payload)>();
+        using (new MessengerLiveEvents(router).Subscribe((name, payload) => heard.Add((name, payload))))
+        {
+            router.Dispatch(new SimplArchive.Presentation.ModuleLiveEvent("messenger", "typing", "{}"));
+            router.Dispatch(new SimplArchive.Presentation.ModuleLiveEvent("flight-school", "typing", "{}"));
+        }
+
+        router.Dispatch(new SimplArchive.Presentation.ModuleLiveEvent("messenger", "typing", "{}"));   // let go of: not heard
+        Assert.Equal([("typing", "{}")], heard);
     }
 
     private static X509Certificate2 NewCertificate()

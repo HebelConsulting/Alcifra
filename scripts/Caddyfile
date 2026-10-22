@@ -101,6 +101,20 @@
 	}
 }
 
+# What every HTTP route to the two instances shares: readiness-gated health checks and the retry on the other one.
+(apiupstream) {
+	health_uri /health/ready
+	health_interval 3s
+	health_timeout 2s
+	# RETRY THE OTHER INSTANCE (#1245). Health checks alone leave a hole: an instance killed for replacement
+	# is not known-dead until the next probe, so for up to health_interval Caddy still routes to it and the
+	# user gets a 502. Measured on a real cutover: 2 failures in 83 requests, one per instance replaced.
+	# lb_try_duration re-dispatches a request whose connection failed to a healthy upstream, which closes
+	# that window — the request is slower, not lost.
+	lb_try_duration 5s
+	lb_try_interval 250ms
+}
+
 # The app's own entry point, plain HTTP on the port the README and the demo login both name. It is served
 # by the PROXY rather than published by an instance, because a host port can only belong to one container —
 # so publishing it from an instance would mean restarting that instance drops http://localhost:8080, which
@@ -110,35 +124,47 @@
 # health_uri, so an instance that is up but not ready receives no HTTP traffic. The asymmetry between the
 # two halves is real; it is stated here so nobody assumes IMAP is gated the same way.
 :8080 {
-	reverse_proxy api:8080 api-b:8080 {
-		lb_policy round_robin
-		health_uri /health/ready
-		health_interval 3s
-		health_timeout 2s
-		# RETRY THE OTHER INSTANCE (#1245). Health checks alone leave a hole: an instance killed for replacement
-		# is not known-dead until the next probe, so for up to health_interval Caddy still routes to it and the
-		# user gets a 502. Measured on a real cutover: 2 failures in 83 requests, one per instance replaced.
-		# lb_try_duration re-dispatches a request whose connection failed to a healthy upstream, which closes
-		# that window — the request is slower, not lost.
-		lb_try_duration 5s
-		lb_try_interval 250ms
+	# THE HUB IS STICKY (ADR 0839), as on the kiosk's edge proxy: a SignalR client negotiates a connection id on one
+	# instance and then opens the WebSocket carrying it, so round-robin sent the upgrade to the OTHER instance, which
+	# answered 404 — this stack's live notifications and modules' live events (ADR 0957) connected only when both
+	# requests happened to land on the same instance. Found walking the Messenger's typing indicator here
+	# (SimplArchiveMessenger #26): every negotiate on api, every upgrade a 404 on api-b. Everything else stays
+	# round-robin.
+	handle /hubs/* {
+		reverse_proxy api:8080 api-b:8080 {
+			lb_policy cookie sa_hub
+			import apiupstream
+		}
+	}
+
+	handle {
+		reverse_proxy api:8080 api-b:8080 {
+			lb_policy round_robin
+			import apiupstream
+		}
 	}
 }
 
 {$PROXY_HOST:localhost}:9443 {
 	tls internal
-	reverse_proxy api:8080 api-b:8080 {
-		lb_policy round_robin
-		health_uri /health/ready
-		health_interval 3s
-		health_timeout 2s
-		# RETRY THE OTHER INSTANCE (#1245). Health checks alone leave a hole: an instance killed for replacement
-		# is not known-dead until the next probe, so for up to health_interval Caddy still routes to it and the
-		# user gets a 502. Measured on a real cutover: 2 failures in 83 requests, one per instance replaced.
-		# lb_try_duration re-dispatches a request whose connection failed to a healthy upstream, which closes
-		# that window — the request is slower, not lost.
-		lb_try_duration 5s
-		lb_try_interval 250ms
+	# THE HUB IS STICKY (ADR 0839), as on the kiosk's edge proxy: a SignalR client negotiates a connection id on one
+	# instance and then opens the WebSocket carrying it, so round-robin sent the upgrade to the OTHER instance, which
+	# answered 404 — this stack's live notifications and modules' live events (ADR 0957) connected only when both
+	# requests happened to land on the same instance. Found walking the Messenger's typing indicator here
+	# (SimplArchiveMessenger #26): every negotiate on api, every upgrade a 404 on api-b. Everything else stays
+	# round-robin.
+	handle /hubs/* {
+		reverse_proxy api:8080 api-b:8080 {
+			lb_policy cookie sa_hub
+			import apiupstream
+		}
+	}
+
+	handle {
+		reverse_proxy api:8080 api-b:8080 {
+			lb_policy round_robin
+			import apiupstream
+		}
 	}
 }
 

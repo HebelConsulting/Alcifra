@@ -65,11 +65,19 @@ public sealed partial class MessagesTabViewModel : ObservableObject
 {
     private readonly IShellContext _shell;
     private readonly Func<SimplArchiveApiClient?> _api;
+    private readonly IMessengerLiveEvents _live;
     private ChatSession? _session;
     private Guid? _showing;
+    private Conversation? _shown;              // the conversation the thread shows, as last read: whether it offers typing
+    private TypingIndicator? _typers;          // who else types in it (#26), each forgotten soon after their last event
+    private IDisposable? _typingEvents;
+    private Avalonia.Threading.DispatcherTimer? _typingTimer;
 
     /// <param name="api">The signed-in client, read when needed: the tab is built before sign-in.</param>
-    public MessagesTabViewModel(IShellContext shell, Func<SimplArchiveApiClient?> api) => (_shell, _api) = (shell, api);
+    /// <param name="live">The Messenger's events off the window's own live connection (SimplArchiveMessenger #26): who is
+    /// typing in the thread on show. ADR 0730: what the shell supplies is a constructor argument.</param>
+    public MessagesTabViewModel(IShellContext shell, Func<SimplArchiveApiClient?> api, IMessengerLiveEvents live) =>
+        (_shell, _api, _live) = (shell, api, live);
 
     public ObservableCollection<MessagesConversationViewModel> Conversations { get; } = [];
 
@@ -84,6 +92,14 @@ public sealed partial class MessagesTabViewModel : ObservableObject
 
     /// <summary>Beneath the thread: restored history says where it came from; a live one that replies are on the phone.</summary>
     [ObservableProperty] private string _threadNote = string.Empty;
+
+    /// <summary>
+    /// Beneath the thread, who else is typing in it (SimplArchiveMessenger #26): "Anna is typing…", "Anna and Tom are
+    /// typing…", "Several people are typing…"; empty for nobody, and always where the user switched the indicator off —
+    /// it works both ways, so the server then offers no <c>typing</c> and nothing is shown. The tab only reads, so it
+    /// never sends the user's own typing.
+    /// </summary>
+    [ObservableProperty] private string _typingLine = string.Empty;
 
     /// <summary>The view's save dialog: a stream for the suggested file name, or null when cancelled (ADR 0730: the view's).</summary>
     public Func<string, Task<Stream?>>? SaveFile { get; set; }
@@ -122,6 +138,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     {
         _session?.Lock();
         (_session, _showing, IsOffered, Selected) = (null, null, false, null);
+        StopTyping();
         Conversations.Clear();
         Bubbles.Clear();
     }
@@ -154,6 +171,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     {
         Bubbles.Clear();
         ThreadNote = string.Empty;
+        StopTyping();
         _showing = item?.Conversation.Id;
         if (item is null || _session is not { } session)
         {
@@ -161,6 +179,11 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         }
 
         var conversation = await session.Api.RefreshAsync(item.Conversation);
+        if (_showing == conversation.Id)
+        {
+            StartTyping(conversation, session.Me);
+        }
+
         var rows = new List<ThreadRow>();
         if (conversation.Offers("earlier"))
         {
@@ -196,6 +219,53 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         {
             await session.Api.MarkReadAsync(conversation, messages[^1].SentAt);   // read here: the phone's signal clears
         }
+    }
+
+    // The thread on show listens for its conversation's typing, and once a second forgets typers whose events stopped.
+    private void StartTyping(Conversation conversation, Guid me)
+    {
+        (_shown, _typers) = (conversation, new TypingIndicator(me));
+        if (!TypingRule.Shows(conversation))
+        {
+            return;   // switched off, or history: nobody's typing is shown here
+        }
+
+        _typingEvents = _live.Subscribe((name, payload) =>
+        {
+            if (TypingEvent.Parse(name, payload) is { } heard && heard.Conversation == conversation.Id)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => Heard(conversation.Id, heard));
+            }
+        });
+        _typingTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _typingTimer.Tick += (_, _) =>
+        {
+            if (_typers?.Expire(DateTimeOffset.UtcNow) == true)
+            {
+                ShowTypers();
+            }
+        };
+        _typingTimer.Start();
+    }
+
+    /// <summary>A typing event for <paramref name="conversation"/> arrived; shown while that conversation is.</summary>
+    public void Heard(Guid conversation, TypingEvent heard)
+    {
+        if (_shown?.Id == conversation && _typers?.Received(heard.User, heard.Typing, DateTimeOffset.UtcNow) == true)
+        {
+            ShowTypers();
+        }
+    }
+
+    private void ShowTypers() => TypingLine = _shown is { } shown ? _typers?.Line(shown) ?? string.Empty : string.Empty;
+
+    private void StopTyping()
+    {
+        _typingEvents?.Dispose();
+        _typingEvents = null;
+        _typingTimer?.Stop();
+        _typingTimer = null;
+        (_shown, _typers, TypingLine) = (null, null, string.Empty);
     }
 
     private static async Task<IReadOnlyList<ThreadRow>> RowsAsync(ChatSession session, Conversation conversation)
@@ -323,5 +393,6 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         }
 
         (IsOffered, ThreadNote) = (true, Strings.Get("MsgReadOnlyHere"));
+        TypingLine = TypingIndicator.Wording(["Tom"]) ?? string.Empty;   // as a live event would show it (#26)
     }
 }

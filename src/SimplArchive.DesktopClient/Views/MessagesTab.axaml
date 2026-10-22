@@ -68,6 +68,10 @@
       <DockPanel Grid.Column="2" LastChildFill="True" Margin="8,0,0,0">
         <TextBlock DockPanel.Dock="Bottom" Text="{Binding ThreadNote}" Foreground="{DynamicResource WbMuted}"
                    HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" />
+        <!-- Who else is typing (SimplArchiveMessenger #26): under the thread, above the note. -->
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding TypingLine}" Foreground="{DynamicResource WbMuted}" FontStyle="Italic"
+                   FontSize="12" Margin="4,4,0,0" TextTrimming="CharacterEllipsis"
+                   IsVisible="{Binding TypingLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <ScrollViewer x:Name="Thread">
           <ItemsControl ItemsSource="{Binding Bubbles}">
             <ItemsControl.ItemTemplate>

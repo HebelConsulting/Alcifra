@@ -306,21 +306,33 @@ public class InstanceParityTests
     /// confusion is what let this sit.
     /// </para>
     /// </remarks>
-    [Fact]
-    public void The_signalr_hub_is_routed_with_session_affinity()
+    // The kiosk's proxy is the host's edge proxy since ADR 0903 (one site); the local stack's proxy serves the two
+    // instances on two sites, :8080 and the LAN's :9443 — it lacked the rule until SimplArchiveMessenger #26 found it.
+    [Theory]
+    [InlineData("tools/edge/Caddyfile", 1)]
+    [InlineData("scripts/Caddyfile", 2)]
+    public void The_signalr_hub_is_routed_with_session_affinity(string path, int sites)
     {
-        // The kiosk's proxy is the host's edge proxy since ADR 0903; the /hubs rule moved with it.
-        var file = Path.Combine("tools", "edge", "Caddyfile");
+        var file = Path.Combine(path.Split('/'));
         if (Withheld(file))
         {
             return; // the public mirror has no tools/, by design
         }
 
         var text = Read(file);
+        var at = 0;
+        for (var site = 0; site < sites; site++)
+        {
+            at = HubBlockIsSticky(text, at, path) + 1;
+        }
+    }
 
-        var hub = text.IndexOf("handle /hubs/", StringComparison.Ordinal);
+    // Asserts the next /hubs/* handler from `from` on is sticky; returns where it starts.
+    private static int HubBlockIsSticky(string text, int from, string path)
+    {
+        var hub = text.IndexOf("handle /hubs/", from, StringComparison.Ordinal);
         Assert.True(hub >= 0,
-            "The edge Caddyfile no longer routes the kiosk's /hubs/* separately. The SignalR handshake needs session "
+            $"{path} no longer routes /hubs/* separately on every site serving both instances. The SignalR handshake needs session "
             + "affinity across the two app instances (ADR 0839): without its own handler the hub falls back to "
             + "the round-robin block, and a negotiate on one instance followed by an upgrade on the other answers "
             + "404 — a hub that connects about half the time and reads as flaky networking.");
@@ -346,6 +358,7 @@ public class InstanceParityTests
 
         Assert.False(block.Contains("round_robin", StringComparison.Ordinal),
             $"The /hubs handler still names round_robin, which is what breaks the handshake. It reads:\n{block}");
+        return hub;
     }
 
     /// <summary>

@@ -13,7 +13,15 @@ public partial class MainWindowViewModel
 
     private MessagesTabViewModel? _messagesTab;
 
-    public MessagesTabViewModel MessagesTab => _messagesTab ??= new MessagesTabViewModel(this, () => _api);
+    public MessagesTabViewModel MessagesTab => _messagesTab ??=
+        new MessagesTabViewModel(this, () => _api, new Services.MessengerLiveEvents(ModuleLiveEvents));
+
+    /// <summary>
+    /// Modules' ephemeral events off the window's live connection (core ABI 1.25, ADR 0957), subscribed here rather than
+    /// on the connection, so a subscription outlives a reconnect: the Messages tab hears "is typing" on it
+    /// (SimplArchiveMessenger #26).
+    /// </summary>
+    public SimplArchive.Presentation.ModuleLiveEventRouter ModuleLiveEvents { get; } = new();
 
     // Signed in: ask whether the Messenger is offered here (the tab shows only if it is). Signed out: forget its keys.
     partial void OnIsLoggedInChanged(bool value)

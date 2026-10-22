@@ -59,6 +59,8 @@ public sealed partial class MainWindowViewModel
                 Status = string.IsNullOrWhiteSpace(n.Title) ? n.Body : n.Title;
                 await LoadNotificationsAsync();
             });
+            // Modules' ephemeral events ride the same connection (ADR 0957): the Messages tab's "is typing".
+            _realtime.ModuleEventReceived += e => ModuleLiveEvents.Dispatch(e);
             await _realtime.StartAsync();
         }
         catch (Exception)
