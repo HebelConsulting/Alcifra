@@ -5631,6 +5631,12 @@
   <data name="MobOfflineCopyInfo" xml:space="preserve">
     <value>Ciò che conservi è sigillato con le tue chiavi registrate: leggerlo offline richiede la chiave e il suo PIN.</value>
   </data>
+  <data name="MobReferenceNotInCopy" xml:space="preserve">
+    <value>Non è nella copia offline</value>
+  </data>
+  <data name="MobReferenceNotAccessible" xml:space="preserve">
+    <value>Non disponibile per te</value>
+  </data>
   <data name="MobOfflineNotAllowed" xml:space="preserve">
     <value>La tua organizzazione non consente una copia offline.</value>
   </data>

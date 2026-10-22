@@ -12,8 +12,8 @@ namespace SimplArchive.ApiClient.Offline;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Read-only, and only what the archive carries:</b> the root, the repository (the exported root), folder contents,
-/// a document's detail, its versions, its index data, its chat, and the content of each version. No write link, no
+/// <b>Read-only, and only what the archive carries:</b> the root, the repository (the exported root), folder contents
+/// and the references filed in a folder (core ADR 0959), a document's detail, its versions, its index data, its chat, and the content of each version. No write link, no
 /// search, no sensitivity or workflow: a client reads their absence as "not available here, now" and hides them.
 /// </para>
 /// <para>
@@ -82,6 +82,9 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
                     links = new[] { Link("self", $"/offline/documents/{f}/children") },
                 })
                 : NotFound(),
+            ["offline", "documents", var id, "references"] => Guid.TryParse(id, out var rf) && archive.Document(rf) is not null
+                ? Json(new { references = archive.References(rf).Select(Reference), links = new[] { Link("self", $"/offline/documents/{rf}/references") } })
+                : NotFound(),
             ["offline", "documents", var id, "versions"] => Guid.TryParse(id, out var v) && archive.Document(v) is not null
                 ? Json(new { versions = archive.Versions(v).Select(Version), links = new[] { Link("self", $"/offline/documents/{v}/versions") } })
                 : NotFound(),
@@ -128,7 +131,8 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
             id = d.Id,
             name = d.Name,
             isFolder = folder,
-            hasChildren = archive.Children(d.Id).Any(),
+            // Anything filed here, a reference too (core #376).
+            hasChildren = archive.Children(d.Id).Any() || archive.References(d.Id).Count > 0,
             hasSubfolders = archive.Children(d.Id).Any(c => archive.IsFolder(c.Id)),
             hasVersions = !folder,
             versionCount = archive.Versions(d.Id).Count,
@@ -137,6 +141,61 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
             createdBy = d.CreatedBy,
             versionCreatedAt = current?.FiledAt,
             links = Links(d, folder),
+        };
+    }
+
+    /// <summary>
+    /// A reference row as the server's folder references listing has it (core ADR 0959): the target's row with the
+    /// reference's own fields, its links the target's in the copy. A target the copy does not hold is listed with no
+    /// link and says why in <c>offlineUnavailable</c>: <c>NotAccessible</c> (the user may not see it, and its name is
+    /// not carried, ADR 0765) or <c>NotInCopy</c> (not brought in, or evicted). No <c>delete</c>: nothing is written offline.
+    /// </summary>
+    private object Reference(OfflineArchive.ArchivedReference r)
+    {
+        if (archive.Document(r.TargetId) is { } target)
+        {
+            var folder = archive.IsFolder(target.Id);
+            var current = archive.Versions(target.Id).FirstOrDefault();
+            var links = Links(target, folder).ToList();
+            if (target.ParentId is { } parent && archive.Document(parent) is not null)
+            {
+                links.Add(Link("go-to", $"/offline/documents/{parent}"));
+            }
+
+            return new
+            {
+                referenceId = r.Id,
+                id = target.Id,
+                name = target.Name,
+                isReference = true,
+                isFolder = folder,
+                hasChildren = archive.Children(target.Id).Any() || archive.References(target.Id).Count > 0,
+                hasSubfolders = archive.Children(target.Id).Any(c => archive.IsFolder(c.Id)),
+                hasVersions = !folder,
+                realParentId = target.ParentId,
+                versionCount = archive.Versions(target.Id).Count,
+                documentType = archive.MaskName(target),
+                documentDate = current?.DocumentDate,
+                createdBy = target.CreatedBy,
+                versionCreatedAt = current?.FiledAt,
+                links,
+            };
+        }
+
+        var accessible = r.TargetAccessible ?? true;
+        var isFolder = accessible && (r.TargetIsFolder ?? false);
+        return new
+        {
+            referenceId = r.Id,
+            id = r.TargetId,
+            name = accessible ? r.TargetName ?? string.Empty : string.Empty,
+            isReference = true,
+            isFolder,
+            hasChildren = false,
+            hasSubfolders = false,
+            hasVersions = !isFolder,
+            offlineUnavailable = accessible ? "NotInCopy" : "NotAccessible",
+            links = Array.Empty<object>(),
         };
     }
 
@@ -173,6 +232,7 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
         if (folder)
         {
             links.Add(Link("children", $"{self}/children"));
+            links.Add(Link("references", $"{self}/references"));
         }
         else
         {

@@ -5631,6 +5631,12 @@
   <data name="MobOfflineCopyInfo" xml:space="preserve">
     <value>What you keep is sealed to your enrolled keys: reading it offline needs your key and its PIN.</value>
   </data>
+  <data name="MobReferenceNotInCopy" xml:space="preserve">
+    <value>Not in the offline copy</value>
+  </data>
+  <data name="MobReferenceNotAccessible" xml:space="preserve">
+    <value>Not available to you</value>
+  </data>
   <data name="MobOfflineNotAllowed" xml:space="preserve">
     <value>Your organisation does not allow an offline copy.</value>
   </data>

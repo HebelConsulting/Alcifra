@@ -82,4 +82,37 @@ public class OfflineResponderParityTests
             _ = new SimplArchiveApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl)).Core;
         }
     }
+
+    // ADR 0959 (#1881): a folder's references read the same online and from its offline export, which brings the
+    // referenced document in from another repository, so it opens offline from the reference row.
+    [Fact]
+    public async Task A_folders_references_read_the_same_online_and_from_its_offline_export()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new SimplArchiveApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+
+        var homeName = $"Offline refs {Guid.NewGuid():N}";
+        var elsewhereName = $"Offline refs elsewhere {Guid.NewGuid():N}";
+        await api.Documents.CreateRepositoryAsync(homeName);
+        await api.Documents.CreateRepositoryAsync(elsewhereName);
+        var repositories = await api.Documents.GetRepositoriesAsync();
+        var home = repositories.Single(r => r.Name == homeName);
+        var elsewhere = repositories.Single(r => r.Name == elsewhereName);
+        await api.Documents.CreateFolderAsync(home.Href("children"), "My documents");
+        var myDocuments = (await api.Documents.GetFolderContentsAsync(home.Href("children"))).Children.Single(n => n.Name == "My documents");
+        await api.Documents.UploadFileAsync(elsewhere.Href("children"), "agreement.txt", Encoding.UTF8.GetBytes("agreement"));
+        var agreement = (await api.Documents.GetFolderContentsAsync(elsewhere.Href("children"))).Children.Single(n => n.Name == "agreement");
+        await api.References.CreateReferenceAsync(myDocuments.Href("references"), agreement.Id);
+
+        var online = await api.References.GetReferencesAsync(myDocuments.Href("references"));
+        var zip = await api.Core.Http.GetByteArrayAsync(await api.Documents.RelViaSelfAsync(myDocuments.Href("self"), "offlineExport"));
+        var responder = new OfflineResponder(await OfflineArchive.OpenAsync(new ZipArchiveStorage(zip)));
+        var offlineCore = ApiCore.FromArchive(responder);
+        var root = Assert.Single(await new DocumentsClient(offlineCore, () => throw new InvalidOperationException("no reminders offline")).GetRepositoriesAsync());
+        var offline = await new ReferencesClient(offlineCore).GetReferencesAsync(root.Href("references"));
+
+        Assert.Equal(online.Select(r => (r.TargetId, r.Name, r.IsFolder)), offline.Select(r => (r.TargetId, r.Name, r.IsFolder)));
+        var detail = await new DocumentsClient(offlineCore, () => throw new InvalidOperationException("no reminders offline")).GetDocumentDetailAsync(Assert.Single(offline).Links!.Href("self")!);
+        Assert.Equal("agreement", detail.Name);
+    }
 }

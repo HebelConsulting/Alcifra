@@ -26,6 +26,14 @@ public sealed class OfflineArchive
     /// <summary>A notification a cache kept (exports carry none): what the notifications page lists offline.</summary>
     public sealed record ArchivedNotification(Guid Id, string Type, string Title, string Body, Guid? DocumentId, DateTimeOffset CreatedAt, bool IsRead);
 
+    /// <summary>
+    /// A reference filed in a folder (core ADR 0959). An offline export says whether the caller may see the target and,
+    /// only then, its name and folder flag, so a reference whose target the copy does not hold is still listed; a
+    /// repository export carries neither (null), and holds the target anyway.
+    /// </summary>
+    public sealed record ArchivedReference(Guid Id, Guid ParentFolderId, Guid TargetId, DateTimeOffset CreatedAt, bool? TargetAccessible, string? TargetName,
+        bool? TargetIsFolder);
+
     public sealed record ArchivedMessage(Guid Id, Guid DocumentId, Guid? ParentMessageId, string Body, string Author, DateTimeOffset CreatedAt,
         IReadOnlyList<(Guid UserId, string DisplayName)> Mentions);
 
@@ -35,6 +43,7 @@ public sealed class OfflineArchive
     private readonly Dictionary<Guid, IReadOnlyList<ArchivedField>> _fields;
     private readonly Dictionary<Guid, string> _maskNames;
     private readonly ILookup<Guid, ArchivedMessage> _chat;
+    private readonly ILookup<Guid, ArchivedReference> _references;
     private readonly IReadOnlyList<ArchivedNotification>? _notifications;
 
     private OfflineArchive(IArchiveStorage storage, IReadOnlyDictionary<string, byte[]?> files)
@@ -116,6 +125,15 @@ public sealed class OfflineArchive
             x.TryGetProperty("createdAt", out var nc) && nc.TryGetDateTimeOffset(out var noted) ? noted : default,
             x.TryGetProperty("isRead", out var r) && r.ValueKind == JsonValueKind.True))];
 
+        _references = Lines("tree/references.jsonl").Select(r => new ArchivedReference(
+            r.GetProperty("id").GetGuid(),
+            r.GetProperty("parentFolderId").GetGuid(),
+            r.GetProperty("targetDocumentId").GetGuid(),
+            r.TryGetProperty("createdAt", out var rc) && rc.TryGetDateTimeOffset(out var placed) ? placed : default,
+            r.TryGetProperty("targetAccessible", out var ta) && ta.ValueKind is JsonValueKind.True or JsonValueKind.False ? ta.GetBoolean() : null,
+            r.TryGetProperty("targetName", out var tn) && tn.ValueKind == JsonValueKind.String ? tn.GetString() : null,
+            r.TryGetProperty("targetIsFolder", out var tf) && tf.ValueKind is JsonValueKind.True or JsonValueKind.False ? tf.GetBoolean() : null)).ToLookup(r => r.ParentFolderId);
+
         _chat = Lines("tree/chat.jsonl").Select(m => new ArchivedMessage(
             m.GetProperty("id").GetGuid(),
             m.GetProperty("documentId").GetGuid(),
@@ -164,7 +182,7 @@ public sealed class OfflineArchive
     /// <summary>The index files the model is built from, read once.</summary>
     private static readonly string[] IndexFiles =
         ["manifest.json", "principals/principals.json", "masks/masks.json", "tree/documents.jsonl", "tree/versions.jsonl", "tree/index-data.jsonl",
-         "tree/chat.jsonl", "tree/notifications.jsonl"];
+         "tree/chat.jsonl", "tree/notifications.jsonl", "tree/references.jsonl"];
 
     public static async Task<OfflineArchive> OpenAsync(IArchiveStorage storage, CancellationToken cancellationToken = default)
     {
@@ -180,6 +198,9 @@ public sealed class OfflineArchive
     public ArchivedDocument? Document(Guid id) => _documents.GetValueOrDefault(id);
 
     public IEnumerable<ArchivedDocument> Children(Guid id) => _children[id];
+
+    /// <summary>The references filed in a folder, in the order the server lists them (placed first, then by id).</summary>
+    public IReadOnlyList<ArchivedReference> References(Guid folder) => [.. _references[folder].OrderBy(r => r.CreatedAt).ThenBy(r => r.Id)];
 
     /// <summary>Confirmed versions, newest first.</summary>
     public IReadOnlyList<ArchivedVersion> Versions(Guid id) => [.. _versions[id].OrderByDescending(v => v.Number)];

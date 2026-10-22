@@ -18,6 +18,13 @@ namespace SimplArchive.ApiClient.Offline;
 /// labels are joined by id.
 /// </para>
 /// <para>
+/// <b>What a reference brought in belongs to the export that brought it</b> (core ADR 0959): the documents an
+/// offline export lists in <c>tree/referenced.jsonl</c> are merged with its subtree, and the copy records which
+/// export holds each document (<c>tree/kept-for.jsonl</c>, the copy's own file). A document no export holds any more
+/// goes; one another export still holds stays. A document the copy held before this bookkeeping is held by nobody
+/// on record and goes only as it always did, with its anchor's subtree.
+/// </para>
+/// <para>
 /// <b>Rows are carried as the exporter wrote them</b>, as JSON, never re-modelled, so a field the copy does not
 /// understand still survives. Every file goes through <c>seal</c> on the way in and <c>open</c> on the way out, as
 /// the responder reads it.
@@ -26,6 +33,9 @@ namespace SimplArchive.ApiClient.Offline;
 public sealed class ArchiveMerger
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
+
+    // The copy's own record of which export holds each document (core ADR 0959); an export carries none.
+    private const string KeptForPath = "tree/kept-for.jsonl";
 
     // The per-document row files, by the property naming their document.
     private static readonly (string Path, string DocumentKey)[] DocumentRows =
@@ -51,6 +61,8 @@ public sealed class ArchiveMerger
     };
     private readonly Dictionary<string, JsonObject> _labels = [];
     private readonly Dictionary<string, JsonObject> _memberships = [];
+    // Which exports hold each document: document → (anchor → held only because a reference brought it in).
+    private readonly Dictionary<Guid, Dictionary<Guid, bool>> _keptFor = [];
     private List<JsonObject> _notifications = [];
     private bool _hasNotifications;
 
@@ -81,10 +93,18 @@ public sealed class ArchiveMerger
     public bool Contains(Guid id) => _documents.ContainsKey(id);
 
     /// <summary>
-    /// Merges one offline export: the anchor's subtree replaces what the copy held of it; the chain above refreshes
-    /// those folders' rows; masks, people and labels are joined; new blobs are copied in, sealed.
+    /// Whether the copy holds this document only because references brought it in (core ADR 0959): no export holds
+    /// it in its own subtree. A phone evicts these first under its size limit.
     /// </summary>
-    /// <returns>The ids of the documents in the export's subtree, for the copy's bookkeeping.</returns>
+    public bool IsByReferenceOnly(Guid id) => _keptFor.TryGetValue(id, out var by) && by.Count > 0 && by.Values.All(byReference => byReference);
+
+    /// <summary>
+    /// Merges one offline export: the anchor's subtree and what its references brought in replace what the copy held
+    /// of them; the chain above refreshes those folders' rows; masks, people and labels are joined; new blobs are
+    /// copied in, sealed.
+    /// </summary>
+    /// <returns>The ids of the documents in the export's subtree and of those its references brought in, for the
+    /// copy's bookkeeping (<see cref="IsByReferenceOnly"/> tells them apart).</returns>
     public async Task<IReadOnlySet<Guid>> MergeAsync(IArchiveStorage export, CancellationToken cancellationToken = default)
     {
         var manifest = JsonNode.Parse(await export.ReadAsync("manifest.json", cancellationToken)
@@ -93,11 +113,37 @@ public sealed class ArchiveMerger
 
         var exported = (await LinesAsync(export, "tree/documents.jsonl", cancellationToken)).ToDictionary(Id);
         var subtree = Subtree(anchor, exported.Values);
+        var brought = (await LinesAsync(export, "tree/referenced.jsonl", cancellationToken)).Select(r => Guid(r, "documentId"))
+            .Where(id => exported.ContainsKey(id) && !subtree.Contains(id)).ToHashSet();
+        var snapshot = subtree.Union(brought).ToHashSet();
 
         // What the copy held beneath the anchor and the export no longer has: deleted, moved away, or not readable.
         foreach (var gone in Subtree(anchor, _documents.Values).Where(id => !subtree.Contains(id)).ToList())
         {
             Remove(gone);
+        }
+
+        // What this export held before, through a reference or as a folder above a target, and no longer carries: it
+        // goes unless another export still holds it. An export holds every row it carries, its folder chains too, so
+        // a folder above another export's document stays.
+        var heldBefore = _keptFor.Where(k => k.Value.ContainsKey(anchor)).Select(k => k.Key).ToList();
+        var lost = heldBefore.Where(id => !exported.ContainsKey(id)).ToHashSet();
+        foreach (var id in heldBefore)
+        {
+            _keptFor[id].Remove(anchor);
+        }
+
+        foreach (var id in exported.Keys)
+        {
+            KeptFor(id)[anchor] = brought.Contains(id);
+        }
+
+        foreach (var gone in lost)
+        {
+            if (_keptFor.TryGetValue(gone, out var by) && by.Count == 0)
+            {
+                Remove(gone);
+            }
         }
 
         foreach (var (id, row) in exported)
@@ -107,8 +153,8 @@ public sealed class ArchiveMerger
 
         foreach (var (path, key) in DocumentRows)
         {
-            _rows[path].RemoveAll(r => subtree.Contains(Guid(r, key)));
-            _rows[path].AddRange((await LinesAsync(export, path, cancellationToken)).Where(r => subtree.Contains(Guid(r, key))));
+            _rows[path].RemoveAll(r => snapshot.Contains(Guid(r, key)));
+            _rows[path].AddRange((await LinesAsync(export, path, cancellationToken)).Where(r => snapshot.Contains(Guid(r, key))));
         }
 
         foreach (var mask in Array(JsonNode.Parse(await export.ReadAsync("masks/masks.json", cancellationToken) ?? "[]"u8.ToArray())))
@@ -138,7 +184,7 @@ public sealed class ArchiveMerger
             _labels[label["name"]!.GetValue<string>()] = label;
         }
 
-        foreach (var sha in _rows["tree/versions.jsonl"].Where(v => subtree.Contains(Guid(v, "documentId"))).Select(v => v["blobRef"]?.GetValue<string>()).OfType<string>().Distinct())
+        foreach (var sha in _rows["tree/versions.jsonl"].Where(v => snapshot.Contains(Guid(v, "documentId"))).Select(v => v["blobRef"]?.GetValue<string>()).OfType<string>().Distinct())
         {
             if (!File.Exists(Path.Combine(_directory, "blobs", sha)) && await export.ReadAsync($"blobs/{sha}", cancellationToken) is { } blob)
             {
@@ -146,13 +192,14 @@ public sealed class ArchiveMerger
             }
         }
 
-        return subtree;
+        return snapshot;
     }
 
     /// <summary>Drops a document and what belongs to it (a newer version removed, evicted, no longer readable).</summary>
     public void Remove(Guid id)
     {
         _documents.Remove(id);
+        _keptFor.Remove(id);
         foreach (var (path, key) in DocumentRows)
         {
             _rows[path].RemoveAll(r => Guid(r, key) == id);
@@ -182,6 +229,9 @@ public sealed class ArchiveMerger
         {
             WriteLines("tree/notifications.jsonl", _notifications);
         }
+
+        WriteLines(KeptForPath, _keptFor.SelectMany(k => k.Value.Select(a => JsonSerializer.SerializeToNode(
+            new { documentId = k.Key, anchorId = a.Key, byReference = a.Value }, Web)!.AsObject())));
 
         Write("masks/masks.json", Bytes(new JsonArray([.. _maskVersions.Values.Select(m => m.DeepClone())])));
         Write("labels/labels.json", Bytes(new JsonArray([.. _labels.Values.Select(l => l.DeepClone())])));
@@ -220,6 +270,11 @@ public sealed class ArchiveMerger
         foreach (var (path, _) in DocumentRows)
         {
             _rows[path].AddRange(await LinesAsync(copy, path, cancellationToken));
+        }
+
+        foreach (var row in await LinesAsync(copy, KeptForPath, cancellationToken))
+        {
+            KeptFor(Guid(row, "documentId"))[Guid(row, "anchorId")] = row["byReference"] is JsonValue v && v.TryGetValue<bool>(out var byReference) && byReference;
         }
 
         if (await copy.ReadAsync("tree/notifications.jsonl", cancellationToken) is { } notifications)
@@ -278,6 +333,8 @@ public sealed class ArchiveMerger
 
         return subtree;
     }
+
+    private Dictionary<Guid, bool> KeptFor(Guid id) => _keptFor.TryGetValue(id, out var by) ? by : _keptFor[id] = [];
 
     private static async Task<List<JsonObject>> LinesAsync(IArchiveStorage storage, string path, CancellationToken cancellationToken) =>
         await storage.ReadAsync(path, cancellationToken) is { } bytes ? [.. Parse(bytes)] : [];

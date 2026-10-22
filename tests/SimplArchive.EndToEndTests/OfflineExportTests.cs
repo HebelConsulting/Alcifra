@@ -141,4 +141,43 @@ public class OfflineExportTests
         Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
         Assert.Contains("OFFLINE_EXPORT_NOT_ALLOWED", await refused.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
+
+    // ADR 0959 (#1881): the offline export follows a reference to a document in another repository and brings it in;
+    // a reference to one the caller may not see is listed without its name; the repository export does not follow.
+    [Fact]
+    public async Task The_offline_export_follows_references_out_of_its_scope_and_the_repository_export_does_not()
+    {
+        var s = await SetUpAsync();
+        var otherRepo = (await TestJson.Post(s.Owner, "/api/repositories", new { name = $"Elsewhere {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+        var referenced = await DocumentWithContentAsync(s.Owner, otherRepo, "Framework agreement");
+        var hidden = await DocumentWithContentAsync(s.Owner, otherRepo, "Board minutes");
+        await TestJson.Put(s.Owner, $"/api/documents/{hidden}/acl-entries/inheritance", new { breaksInheritance = true });
+        await TestJson.Post(s.Owner, $"/api/documents/{s.FolderId}/references", new { targetId = referenced });
+        await TestJson.Post(s.Owner, $"/api/documents/{s.FolderId}/references", new { targetId = hidden });
+
+        var viewerEmail = $"viewer-{Guid.NewGuid():N}@e2e.local";
+        var viewerId = await _factory.SeedUserAsync(s.TenantId, viewerEmail, "ViewerPw123!", "Viewer");
+        foreach (var repo in new[] { s.RepoId, otherRepo })
+        {
+            await TestJson.Put(s.Owner, $"/api/documents/{repo}/acl-entries/users/{viewerId}", new { canSee = true, canReadContent = true });
+        }
+
+        using var viewer = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(viewerEmail, "ViewerPw123!"));
+        using var offline = await ZipAsync(viewer, await OfflineHrefAsync(viewer, s.FolderId));
+        var documents = Ids(offline, "tree/documents.jsonl");
+        Assert.Contains(referenced, documents);
+        Assert.Contains(otherRepo, documents);   // the folder chain above the target, metadata only
+        Assert.DoesNotContain(hidden, documents);
+        Assert.Contains(referenced, Lines(offline, "tree/versions.jsonl").Select(v => v.GetProperty("documentId").GetGuid()));
+        Assert.Equal([referenced], Ids(offline, "tree/referenced.jsonl", "documentId"));
+        var rows = Lines(offline, "tree/references.jsonl").ToDictionary(r => r.GetProperty("targetDocumentId").GetGuid());
+        Assert.Equal("Framework agreement", rows[referenced].GetProperty("targetName").GetString());
+        Assert.False(rows[hidden].GetProperty("targetAccessible").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, rows[hidden].GetProperty("targetName").ValueKind);
+
+        using var regular = await ZipAsync(s.Admin, $"/api/documents/{s.FolderId}/export");
+        Assert.DoesNotContain(referenced, Ids(regular, "tree/documents.jsonl"));
+        Assert.Null(regular.GetEntry("tree/referenced.jsonl"));
+        Assert.Empty(Lines(regular, "tree/references.jsonl"));
+    }
 }

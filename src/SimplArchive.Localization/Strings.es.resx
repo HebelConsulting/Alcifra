@@ -5631,6 +5631,12 @@
   <data name="MobOfflineCopyInfo" xml:space="preserve">
     <value>Lo que guardas se sella con tus llaves registradas: leerlo sin conexión requiere tu llave y su PIN.</value>
   </data>
+  <data name="MobReferenceNotInCopy" xml:space="preserve">
+    <value>No está en la copia sin conexión</value>
+  </data>
+  <data name="MobReferenceNotAccessible" xml:space="preserve">
+    <value>No disponible para ti</value>
+  </data>
   <data name="MobOfflineNotAllowed" xml:space="preserve">
     <value>Tu organización no permite una copia sin conexión.</value>
   </data>

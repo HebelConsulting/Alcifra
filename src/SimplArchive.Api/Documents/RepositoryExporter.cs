@@ -2,6 +2,8 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Masks;
@@ -28,11 +30,13 @@ public sealed class RepositoryExporter
 
     private readonly SimplArchiveDbContext _dbContext;
     private readonly IObjectStorageClient _objectStorage;
+    private readonly ILogger _logger;
 
-    public RepositoryExporter(SimplArchiveDbContext dbContext, IObjectStorageClient objectStorage)
+    public RepositoryExporter(SimplArchiveDbContext dbContext, IObjectStorageClient objectStorage, ILogger<RepositoryExporter>? logger = null)
     {
         _dbContext = dbContext;
         _objectStorage = objectStorage;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
     }
 
     // Writes the export archive to the supplied stream. The root must be an existing, active document of the
@@ -46,7 +50,11 @@ public sealed class RepositoryExporter
         OfflineExportAudience? audience, CancellationToken cancellationToken)
     {
         // 1. Collect the active subtree (tenant + soft-delete filters apply automatically).
-        var documents = await CollectSubtreeAsync(rootId, cancellationToken);
+        var documents = await CollectSubtreeAsync(_dbContext, [rootId], cancellationToken);
+        if (documents.Count == 0 || documents[0].Id != rootId)
+        {
+            throw new InvalidOperationException("The export's root is not an active document of this tenant.");
+        }
 
         // An offline export: the folders above the anchor (metadata only), and only what the caller may see.
         var chain = audience is null ? [] : await CollectAncestorsAsync(documents[0], cancellationToken);
@@ -58,6 +66,24 @@ public sealed class RepositoryExporter
             var seen = new HashSet<Guid>();
             documents = [.. documents.Where(d => (d.Id == rootId || seen.Contains(d.ParentId ?? Guid.Empty)) && Sees(d) && seen.Add(d.Id))];
             chain = [.. chain.TakeWhile(Sees)];
+        }
+
+        // An offline export follows the references in its scope (ADR 0959): each target comes in, a folder with what
+        // the caller may see beneath it, and the visible folder chain above it. The repository export does not: it
+        // stays a restorable snapshot of its subtree, with in-scope references only.
+        var followed = audience is null ? null : await new OfflineReferenceFollower(_dbContext, _logger).FollowAsync(rootId, documents, chain, audience, cancellationToken);
+        if (followed is not null)
+        {
+            var broughtIds = followed.BroughtIn.Select(d => d.Id).ToHashSet();
+            chain = [.. chain.Where(c => !broughtIds.Contains(c.Id)), .. followed.Chains];
+            documents = [.. documents, .. followed.BroughtIn];
+            var merged = new Dictionary<Guid, EffectiveRights>(rights);
+            foreach (var (id, r) in followed.Rights)
+            {
+                merged[id] = r;
+            }
+
+            rights = merged;
         }
 
         var docIds = documents.Select(d => d.Id).ToHashSet();
@@ -122,10 +148,21 @@ public sealed class RepositoryExporter
         // 5. Included documents = those with a surviving version, plus every ancestor up to the root (keep the
         // path intact), plus the root itself (the export anchor).
         var documentById = documents.ToDictionary(d => d.Id);
-        var included = new HashSet<Guid> { rootId };
+        // An offline export's reference targets are anchors too: each is included, and the walk up from what lies
+        // beneath one stops at it.
+        var included = new HashSet<Guid>(followed?.Targets ?? Enumerable.Empty<Guid>()) { rootId };
         foreach (var docId in exportedVersions.Select(v => v.DocumentId).Distinct())
         {
             for (var cursor = (Guid?)docId; cursor is { } id && included.Add(id); cursor = documentById.GetValueOrDefault(id)?.ParentId)
+            {
+            }
+        }
+
+        // A folder holding a listed reference has contents even with no document of its own (#376): it is kept, with the
+        // folders above it, as a folder holding a document is.
+        foreach (var folderId in followed?.References.Select(r => r.Reference.ParentFolderId) ?? [])
+        {
+            for (var cursor = (Guid?)folderId; cursor is { } id && documentById.ContainsKey(id) && included.Add(id); cursor = documentById[id].ParentId)
             {
             }
         }
@@ -156,9 +193,13 @@ public sealed class RepositoryExporter
             .ToListAsync(cancellationToken))
             .OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
             .ToList();
-        var references = await _dbContext.DocumentReferences
-            .Where(r => included.Contains(r.ParentFolderId) && included.Contains(r.TargetDocumentId))
-            .ToListAsync(cancellationToken);
+        var references = followed is null
+            ? await _dbContext.DocumentReferences
+                .Where(r => included.Contains(r.ParentFolderId) && included.Contains(r.TargetDocumentId))
+                .ToListAsync(cancellationToken)
+            : [];
+        // An offline export lists every reference filed in what it holds, its target brought in or not (ADR 0959).
+        var followedReferences = followed?.References.Where(r => included.Contains(r.Reference.ParentFolderId)).ToList() ?? [];
         // Annotations (notes + markup shapes, ADR "Annotations in export/import") — anchored to an exported version.
         var exportedVersionIds = exportedVersions.Select(v => v.Id).ToHashSet();
         var annotations = await _dbContext.DocumentAnnotations
@@ -382,15 +423,40 @@ public sealed class RepositoryExporter
             createdAt = a.CreatedAt,
         }), cancellationToken);
 
-        await WriteJsonLinesAsync(archive, "tree/references.jsonl", references.Select(r => (object)new
+        if (followed is null)
         {
-            id = r.Id,
-            parentFolderId = r.ParentFolderId,
-            targetDocumentId = r.TargetDocumentId,
-            createdByUserId = r.CreatedByUserId,
-            createdByServiceAccountId = r.CreatedByServiceAccountId,
-            createdAt = r.CreatedAt,
-        }), cancellationToken);
+            await WriteJsonLinesAsync(archive, "tree/references.jsonl", references.Select(r => (object)new
+            {
+                id = r.Id,
+                parentFolderId = r.ParentFolderId,
+                targetDocumentId = r.TargetDocumentId,
+                createdByUserId = r.CreatedByUserId,
+                createdByServiceAccountId = r.CreatedByServiceAccountId,
+                createdAt = r.CreatedAt,
+            }), cancellationToken);
+        }
+        else
+        {
+            // The offline export's rows add what the copy needs to list a reference whose target it does not hold
+            // (ADR 0959): whether the caller may see the target, and only then its name and whether it is a folder.
+            await WriteJsonLinesAsync(archive, "tree/references.jsonl", followedReferences.Select(f => (object)new
+            {
+                id = f.Reference.Id,
+                parentFolderId = f.Reference.ParentFolderId,
+                targetDocumentId = f.Reference.TargetDocumentId,
+                createdByUserId = f.Reference.CreatedByUserId,
+                createdByServiceAccountId = f.Reference.CreatedByServiceAccountId,
+                createdAt = f.Reference.CreatedAt,
+                targetAccessible = f.TargetAccessible,
+                targetName = f.TargetName,
+                targetIsFolder = f.TargetIsFolder,
+            }), cancellationToken);
+
+            // The documents the export holds because a reference brought them in, for the copy's bookkeeping: a
+            // phone evicts them first under its size limit (ADR 0959).
+            await WriteJsonLinesAsync(archive, "tree/referenced.jsonl", followed.BroughtIn.Where(d => included.Contains(d.Id))
+                .Select(d => (object)new { documentId = d.Id }), cancellationToken);
+        }
 
         // ACL grants (opt-in). BreaksInheritance already rides on tree/documents.jsonl, so a document's inherit-
         // vs-own-grants semantics reconstruct exactly on import.
@@ -470,7 +536,7 @@ public sealed class RepositoryExporter
                 blobs = writtenBlobs.Count,
                 indexValues = fieldValues.Count,
                 comments = comments.Count,
-                references = references.Count,
+                references = followed is null ? references.Count : followedReferences.Count,
                 maskVersions = maskVersions.Count,
                 principals = referencedUserIds.Count + referencedServiceAccountIds.Count + groupById.Count,
                 aclGrants = aclEntries.Count,
@@ -498,16 +564,20 @@ public sealed class RepositoryExporter
         return chain;
     }
 
-    private async Task<List<Document>> CollectSubtreeAsync(Guid rootId, CancellationToken cancellationToken)
+    // The documents beneath the given roots, the roots first and then level by level (a parent before its
+    // children), each once even where one root lies beneath another. Shared with the reference follower (ADR 0959).
+    internal static async Task<List<Document>> CollectSubtreeAsync(SimplArchiveDbContext dbContext, IReadOnlyCollection<Guid> rootIds, CancellationToken cancellationToken)
     {
-        var root = await _dbContext.Documents.SingleAsync(d => d.Id == rootId, cancellationToken);
-        var all = new List<Document> { root };
-        var level = new List<Guid> { rootId };
+        var all = await dbContext.Documents.Where(d => rootIds.Contains(d.Id)).ToListAsync(cancellationToken);
+        var seen = all.Select(d => d.Id).ToHashSet();
+        var level = seen.ToList();
         while (level.Count > 0)
         {
-            var children = await _dbContext.Documents
+            var children = (await dbContext.Documents
                 .Where(d => d.ParentId != null && level.Contains(d.ParentId!.Value))
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken))
+                .Where(c => seen.Add(c.Id))
+                .ToList();
             if (children.Count == 0)
             {
                 break;

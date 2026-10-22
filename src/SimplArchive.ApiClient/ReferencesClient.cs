@@ -49,7 +49,10 @@ public sealed class ReferencesClient(ApiCore core)
         string? SensitivityLabelColor = null, int VersionCount = 0, DateTimeOffset? VersionCreatedAt = null,
         string? Icon = null,
         // The TARGET's folder flag from its mask (#1708); null from a server that does not send it.
-        bool? Folder = null)
+        bool? Folder = null,
+        // Only from an offline copy (core ADR 0959): why its target cannot be opened there, "NotAccessible" (the user
+        // may not see it; no name is carried) or "NotInCopy" (not brought in, or evicted); null where it opens.
+        string? OfflineUnavailable = null)
     {
         /// <summary>Whether the target is a folder: the server's answer, else the old "has no file" inference.</summary>
         public bool IsFolder => Folder ?? !HasVersions;
@@ -164,5 +167,6 @@ public sealed class ReferencesClient(ApiCore core)
         item.TryGetProperty("versionCount", out var vc) && vc.ValueKind == JsonValueKind.Number ? vc.GetInt32() : 0,
         item.TryGetProperty("versionCreatedAt", out var vca) && vca.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(vca.GetString(), out var vcaDt) ? vcaDt : null,
         item.TryGetProperty("icon", out var ic) && ic.ValueKind == JsonValueKind.String ? ic.GetString() : null,
-        RowFlags.IsFolderOf(item));
+        RowFlags.IsFolderOf(item),
+        item.TryGetProperty("offlineUnavailable", out var ou) && ou.ValueKind == JsonValueKind.String ? ou.GetString() : null);
 }

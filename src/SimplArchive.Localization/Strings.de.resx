@@ -5631,6 +5631,12 @@
   <data name="MobOfflineCopyInfo" xml:space="preserve">
     <value>Was Sie behalten, wird für Ihre registrierten Schlüssel versiegelt: Offline lesen braucht Ihren Schlüssel und seine PIN.</value>
   </data>
+  <data name="MobReferenceNotInCopy" xml:space="preserve">
+    <value>Nicht in der Offline-Kopie</value>
+  </data>
+  <data name="MobReferenceNotAccessible" xml:space="preserve">
+    <value>Für Sie nicht verfügbar</value>
+  </data>
   <data name="MobOfflineNotAllowed" xml:space="preserve">
     <value>Ihre Organisation erlaubt keine Offline-Kopie.</value>
   </data>
