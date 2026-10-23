@@ -6100,7 +6100,7 @@
     <value>Off by default: a reader certificate is accepted only when its key is attested to have been generated on a hardware token whose manufacturer's root the installation trusts. On, certificates without such an attestation are accepted too and marked "not attested"; such a key may be a software key.</value>
   </data>
   <data name="ApiErrCertificateNotAttested" xml:space="preserve">
-    <value>This organisation accepts only keys attested to have been made on a hardware token. Enrol the certificate from the token with the desktop client, which reads the attestation.</value>
+    <value>This organisation accepts only keys attested to have been made on a hardware token. Enrol the certificate from the token with the desktop client or the phone, which read the attestation.</value>
   </data>
   <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
     <value>The key's attestation is not valid, so the certificate was not enrolled.</value>
@@ -6185,5 +6185,44 @@
   </data>
   <data name="MobLicenceHeading" xml:space="preserve">
     <value>A licence from your organisation or the vendor</value>
+  </data>
+  <data name="MobEnrolKey" xml:space="preserve">
+    <value>Enrol this key</value>
+  </data>
+  <data name="MobEnrolIntro" xml:space="preserve">
+    <value>Hold the key to the phone or plug it in. The app reads the certificate in the key's key-management slot (9D) and the key's attestation, which proves the key was made on it. No PIN is needed, and only the public certificate leaves the key.</value>
+  </data>
+  <data name="MobEnrolIssuedTo" xml:space="preserve">
+    <value>Issued to</value>
+  </data>
+  <data name="MobEnrolIssuedBy" xml:space="preserve">
+    <value>Issued by</value>
+  </data>
+  <data name="MobEnrolValidity" xml:space="preserve">
+    <value>Valid from {0} to {1}</value>
+  </data>
+  <data name="MobEnrolFirmwareCannotAttest" xml:space="preserve">
+    <value>This key's firmware cannot attest its keys, so it cannot prove the key was made on it. It is enrolled only where the organisation allows hardware without attestation.</value>
+  </data>
+  <data name="MobEnrolKeyImported" xml:space="preserve">
+    <value>The key in slot 9D cannot be attested: it was imported onto the hardware key rather than made on it. It is enrolled only where the organisation allows hardware without attestation; otherwise have a new key generated on the hardware key.</value>
+  </data>
+  <data name="MobEnrolAttestationAdded" xml:space="preserve">
+    <value>This certificate was already enrolled for you. Its attestation has now been added, so documents are addressed to it again.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyEnrolled" xml:space="preserve">
+    <value>This certificate is already enrolled here. Enrolling it again changes nothing; an existing enrolment has to be revoked before the certificate can be enrolled anew.</value>
+  </data>
+  <data name="ApiErrCertificateRefused" xml:space="preserve">
+    <value>This certificate cannot be enrolled: it does not meet enrolment's rules (for example, it has expired, or its key cannot receive sealed documents).</value>
+  </data>
+  <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
+    <value>Your organisation's certificate policy does not accept this certificate (for example, its issuer or its address). An administrator can say which certificates are accepted.</value>
+  </data>
+  <data name="ApiErrCertificateNoHolder" xml:space="preserve">
+    <value>Your account has no e-mail address, so the certificate would have no holder. An administrator can add one.</value>
+  </data>
+  <data name="ApiErrCertificateNoFolder" xml:space="preserve">
+    <value>There is nowhere to file reader certificates yet: an administrator must first choose where they live, in the organisation's settings.</value>
   </data>
 </root>

@@ -6100,7 +6100,7 @@
     <value>Desactivado por defecto: un certificado de lector solo se acepta si su clave está atestada como generada en un token de hardware cuya raíz del fabricante es de confianza para la instalación. Activado, también se aceptan certificados sin dicha atestación, marcados como "no atestado"; tal clave puede ser una clave de software.</value>
   </data>
   <data name="ApiErrCertificateNotAttested" xml:space="preserve">
-    <value>Esta organización solo acepta claves atestadas como generadas en un token de hardware. Registre el certificado desde el token con el cliente de escritorio, que lee la atestación.</value>
+    <value>Esta organización solo acepta claves atestadas como generadas en un token de hardware. Registre el certificado desde el token con el cliente de escritorio o el teléfono, que leen la atestación.</value>
   </data>
   <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
     <value>La atestación de la clave no es válida; el certificado no se registró.</value>
@@ -6185,5 +6185,44 @@
   </data>
   <data name="MobLicenceHeading" xml:space="preserve">
     <value>Una licencia de su organización o del proveedor</value>
+  </data>
+  <data name="MobEnrolKey" xml:space="preserve">
+    <value>Registrar esta llave</value>
+  </data>
+  <data name="MobEnrolIntro" xml:space="preserve">
+    <value>Acerque la llave al teléfono o conéctela. La app lee el certificado de la ranura de gestión de claves (9D) y la atestación de la llave, que demuestra que la clave se generó en ella. No hace falta el PIN, y solo el certificado público sale de la llave.</value>
+  </data>
+  <data name="MobEnrolIssuedTo" xml:space="preserve">
+    <value>Emitido para</value>
+  </data>
+  <data name="MobEnrolIssuedBy" xml:space="preserve">
+    <value>Emitido por</value>
+  </data>
+  <data name="MobEnrolValidity" xml:space="preserve">
+    <value>Válido del {0} al {1}</value>
+  </data>
+  <data name="MobEnrolFirmwareCannotAttest" xml:space="preserve">
+    <value>El firmware de esta llave no puede atestar sus claves, así que no puede demostrar que la clave se generó en ella. Solo se registra donde la organización admite hardware sin atestación.</value>
+  </data>
+  <data name="MobEnrolKeyImported" xml:space="preserve">
+    <value>La clave de la ranura 9D no puede atestarse: se importó en la llave de hardware en lugar de generarse en ella. Solo se registra donde la organización admite hardware sin atestación; si no, haga generar una clave nueva en la llave de hardware.</value>
+  </data>
+  <data name="MobEnrolAttestationAdded" xml:space="preserve">
+    <value>Este certificado ya estaba registrado para usted. Ahora se ha añadido su atestación, así que los documentos vuelven a dirigirse a él.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyEnrolled" xml:space="preserve">
+    <value>Este certificado ya está registrado aquí. Registrarlo de nuevo no cambia nada; hay que revocar el registro existente antes de poder registrar el certificado de nuevo.</value>
+  </data>
+  <data name="ApiErrCertificateRefused" xml:space="preserve">
+    <value>Este certificado no puede registrarse: no cumple las reglas del registro (por ejemplo, ha caducado o su clave no puede recibir documentos sellados).</value>
+  </data>
+  <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
+    <value>La política de certificados de su organización no acepta este certificado (por ejemplo, por su emisor o su dirección). Un administrador puede indicar qué certificados se aceptan.</value>
+  </data>
+  <data name="ApiErrCertificateNoHolder" xml:space="preserve">
+    <value>Su cuenta no tiene dirección de correo electrónico, así que el certificado no tendría titular. Un administrador puede añadir una.</value>
+  </data>
+  <data name="ApiErrCertificateNoFolder" xml:space="preserve">
+    <value>Todavía no hay dónde archivar los certificados de lector: un administrador debe elegirlo primero en la configuración de la organización.</value>
   </data>
 </root>

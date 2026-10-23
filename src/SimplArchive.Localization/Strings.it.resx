@@ -6100,7 +6100,7 @@
     <value>Disattivato per impostazione predefinita: un certificato di lettura è accettato solo se la sua chiave è attestata come generata su un token hardware la cui radice del produttore è attendibile per l'installazione. Attivato, sono accettati anche certificati senza tale attestazione, marcati "non attestato"; una tale chiave può essere una chiave software.</value>
   </data>
   <data name="ApiErrCertificateNotAttested" xml:space="preserve">
-    <value>Questa organizzazione accetta solo chiavi attestate come generate su un token hardware. Registri il certificato dal token con il client desktop, che legge l'attestazione.</value>
+    <value>Questa organizzazione accetta solo chiavi attestate come generate su un token hardware. Registri il certificato dal token con il client desktop o il telefono, che leggono l'attestazione.</value>
   </data>
   <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
     <value>L'attestazione della chiave non è valida; il certificato non è stato registrato.</value>
@@ -6185,5 +6185,44 @@
   </data>
   <data name="MobLicenceHeading" xml:space="preserve">
     <value>Una licenza della tua organizzazione o del fornitore</value>
+  </data>
+  <data name="MobEnrolKey" xml:space="preserve">
+    <value>Registra questa chiave</value>
+  </data>
+  <data name="MobEnrolIntro" xml:space="preserve">
+    <value>Avvicina la chiave al telefono o collegala. L'app legge il certificato nello slot di gestione delle chiavi (9D) e l'attestazione della chiave, che prova che la chiave è stata generata su di essa. Non serve il PIN, e solo il certificato pubblico lascia la chiave.</value>
+  </data>
+  <data name="MobEnrolIssuedTo" xml:space="preserve">
+    <value>Rilasciato a</value>
+  </data>
+  <data name="MobEnrolIssuedBy" xml:space="preserve">
+    <value>Rilasciato da</value>
+  </data>
+  <data name="MobEnrolValidity" xml:space="preserve">
+    <value>Valido dal {0} al {1}</value>
+  </data>
+  <data name="MobEnrolFirmwareCannotAttest" xml:space="preserve">
+    <value>Il firmware di questa chiave non può attestare le sue chiavi, quindi non può provare che la chiave sia stata generata su di essa. Viene registrata solo dove l'organizzazione ammette hardware senza attestazione.</value>
+  </data>
+  <data name="MobEnrolKeyImported" xml:space="preserve">
+    <value>La chiave nello slot 9D non può essere attestata: è stata importata sulla chiave hardware invece di essere generata su di essa. Viene registrata solo dove l'organizzazione ammette hardware senza attestazione; altrimenti fai generare una nuova chiave sulla chiave hardware.</value>
+  </data>
+  <data name="MobEnrolAttestationAdded" xml:space="preserve">
+    <value>Questo certificato era già registrato per te. Ora è stata aggiunta la sua attestazione, quindi i documenti tornano a essere indirizzati a esso.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyEnrolled" xml:space="preserve">
+    <value>Questo certificato è già registrato qui. Registrarlo di nuovo non cambia nulla; una registrazione esistente deve essere revocata prima che il certificato possa essere registrato di nuovo.</value>
+  </data>
+  <data name="ApiErrCertificateRefused" xml:space="preserve">
+    <value>Questo certificato non può essere registrato: non rispetta le regole della registrazione (ad esempio è scaduto, oppure la sua chiave non può ricevere documenti sigillati).</value>
+  </data>
+  <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
+    <value>La politica dei certificati della sua organizzazione non accetta questo certificato (ad esempio per l'emittente o l'indirizzo). Un amministratore può dire quali certificati sono accettati.</value>
+  </data>
+  <data name="ApiErrCertificateNoHolder" xml:space="preserve">
+    <value>Il suo account non ha un indirizzo e-mail, quindi il certificato non avrebbe un titolare. Un amministratore può aggiungerne uno.</value>
+  </data>
+  <data name="ApiErrCertificateNoFolder" xml:space="preserve">
+    <value>Non c'è ancora un posto in cui archiviare i certificati di lettura: un amministratore deve prima sceglierlo nelle impostazioni dell'organizzazione.</value>
   </data>
 </root>

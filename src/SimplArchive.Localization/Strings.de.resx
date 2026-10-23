@@ -6100,7 +6100,7 @@
     <value>Standardmäßig aus: Ein Leserzertifikat wird nur angenommen, wenn sein Schlüssel nachweislich auf einem Hardware-Token erzeugt wurde, dessen Herstellerwurzel die Installation vertraut. Eingeschaltet werden auch Zertifikate ohne diesen Nachweis angenommen und als "nicht bestätigt" markiert; ein solcher Schlüssel kann ein Software-Schlüssel sein.</value>
   </data>
   <data name="ApiErrCertificateNotAttested" xml:space="preserve">
-    <value>Diese Organisation nimmt nur Schlüssel an, die nachweislich auf einem Hardware-Token erzeugt wurden. Registrieren Sie das Zertifikat mit dem Desktop-Client vom Token, der die Bestätigung liest.</value>
+    <value>Diese Organisation nimmt nur Schlüssel an, die nachweislich auf einem Hardware-Token erzeugt wurden. Registrieren Sie das Zertifikat mit dem Desktop-Client oder dem Telefon vom Token, die die Bestätigung lesen.</value>
   </data>
   <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
     <value>Die Bestätigung des Schlüssels ist ungültig; das Zertifikat wurde nicht registriert.</value>
@@ -6185,5 +6185,44 @@
   </data>
   <data name="MobLicenceHeading" xml:space="preserve">
     <value>Eine Lizenz Ihrer Organisation oder des Herstellers</value>
+  </data>
+  <data name="MobEnrolKey" xml:space="preserve">
+    <value>Diesen Schlüssel hinterlegen</value>
+  </data>
+  <data name="MobEnrolIntro" xml:space="preserve">
+    <value>Halten Sie den Schlüssel ans Telefon oder stecken Sie ihn ein. Die App liest das Zertifikat im Schlüsselverwaltungs-Slot (9D) und die Bestätigung des Schlüssels, die belegt, dass der Schlüssel auf ihm erzeugt wurde. Eine PIN ist nicht nötig, und nur das öffentliche Zertifikat verlässt den Schlüssel.</value>
+  </data>
+  <data name="MobEnrolIssuedTo" xml:space="preserve">
+    <value>Ausgestellt für</value>
+  </data>
+  <data name="MobEnrolIssuedBy" xml:space="preserve">
+    <value>Ausgestellt von</value>
+  </data>
+  <data name="MobEnrolValidity" xml:space="preserve">
+    <value>Gültig vom {0} bis {1}</value>
+  </data>
+  <data name="MobEnrolFirmwareCannotAttest" xml:space="preserve">
+    <value>Die Firmware dieses Schlüssels kann seine Schlüssel nicht bestätigen und so nicht belegen, dass der Schlüssel auf ihm erzeugt wurde. Er wird nur hinterlegt, wo die Organisation Hardware ohne Bestätigung erlaubt.</value>
+  </data>
+  <data name="MobEnrolKeyImported" xml:space="preserve">
+    <value>Der Schlüssel in Slot 9D kann nicht bestätigt werden: Er wurde auf den Hardware-Schlüssel importiert statt auf ihm erzeugt. Er wird nur hinterlegt, wo die Organisation Hardware ohne Bestätigung erlaubt; andernfalls lassen Sie auf dem Hardware-Schlüssel einen neuen Schlüssel erzeugen.</value>
+  </data>
+  <data name="MobEnrolAttestationAdded" xml:space="preserve">
+    <value>Dieses Zertifikat war bereits für Sie hinterlegt. Seine Bestätigung wurde jetzt ergänzt, sodass Dokumente wieder daran adressiert werden.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyEnrolled" xml:space="preserve">
+    <value>Dieses Zertifikat ist hier bereits hinterlegt. Ein erneutes Hinterlegen ändert nichts; eine bestehende Hinterlegung muss widerrufen werden, bevor das Zertifikat neu hinterlegt werden kann.</value>
+  </data>
+  <data name="ApiErrCertificateRefused" xml:space="preserve">
+    <value>Dieses Zertifikat kann nicht hinterlegt werden: Es erfüllt die Regeln der Hinterlegung nicht (zum Beispiel ist es abgelaufen, oder sein Schlüssel kann keine versiegelten Dokumente empfangen).</value>
+  </data>
+  <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
+    <value>Die Zertifikatsrichtlinie Ihrer Organisation nimmt dieses Zertifikat nicht an (zum Beispiel wegen seines Ausstellers oder seiner Adresse). Eine Administratorin kann sagen, welche Zertifikate angenommen werden.</value>
+  </data>
+  <data name="ApiErrCertificateNoHolder" xml:space="preserve">
+    <value>Ihr Konto hat keine E-Mail-Adresse, daher hätte das Zertifikat keinen Inhaber. Eine Administratorin kann eine hinzufügen.</value>
+  </data>
+  <data name="ApiErrCertificateNoFolder" xml:space="preserve">
+    <value>Es gibt noch keinen Ort für Leserzertifikate: Eine Administratorin muss ihn zuerst in den Einstellungen der Organisation wählen.</value>
   </data>
 </root>

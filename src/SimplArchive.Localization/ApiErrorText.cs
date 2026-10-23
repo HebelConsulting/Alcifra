@@ -71,6 +71,15 @@ public static class ApiErrorText
         "CERTIFICATE_ATTESTATION_INVALID" => Strings.Get("ApiErrCertificateAttestationInvalid"),
         "CERTIFICATE_ATTESTATION_KEY_MISMATCH" => Strings.Get("ApiErrCertificateAttestationKeyMismatch"),
         "CERTIFICATE_ATTESTATION_ROOT_NOT_TRUSTED" => Strings.Get("ApiErrCertificateAttestationRootNotTrusted"),
+        // The rest of enrolment's refusals (SimplArchiveMobile #82): the phone shows each by name. Self-service switched
+        // off and no enrolment at all already have their sentences, which the desktop's dialog shows for the same states.
+        "CERTIFICATE_ALREADY_ENROLLED" => Strings.Get("ApiErrCertificateAlreadyEnrolled"),
+        "CERTIFICATE_SELF_SERVICE_DISABLED" => Strings.Get("EnrolDisabled"),
+        "CERTIFICATE_ENROLMENT_NOT_OFFERED" => Strings.Get("EnrolNone"),
+        "CERTIFICATE_REFUSED" => Strings.Get("ApiErrCertificateRefused"),
+        "CERTIFICATE_POLICY_REFUSED" => Strings.Get("ApiErrCertificatePolicyRefused"),
+        "CERTIFICATE_NO_HOLDER" => Strings.Get("ApiErrCertificateNoHolder"),
+        "CERTIFICATE_NO_FOLDER" => Strings.Get("ApiErrCertificateNoFolder"),
         "IF_MATCH_REQUIRED" => Strings.Get("ApiErrIfMatchRequired"),
         "STORAGE_QUOTA_EXCEEDED" => Strings.Get("ApiErrStorageQuotaExceeded"),
         "INVALID_WORKFLOW_TRANSITION" => Strings.Get("ApiErrWorkflowTransitionNotAllowed"),
