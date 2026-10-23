@@ -44,6 +44,22 @@ public sealed class SimplArchiveApiClient
         _http = Core.Http;
     }
 
+    /// <summary>
+    /// The client of a sign-in that just completed: its session (with the refresh token) is recorded for the server
+    /// FIRST, so the client adopts it and renews; the one way every sign-in path builds its client.
+    /// </summary>
+    /// <remarks>
+    /// Two paths built it and only one recorded (2026-10-23): the logon window handed the main window a client
+    /// seeded from the bare access token, which <see cref="ApiCore"/> rightly treats as a session it cannot renew. So
+    /// every session begun at the logon window, the normal one, ended at the access token's lifetime (15 minutes on
+    /// the demo) with "Your session has ended" instead of renewing silently.
+    /// </remarks>
+    public static SimplArchiveApiClient SignedIn(AuthResult result)
+    {
+        TokenSessions.Current.Record(DesktopClientOptions.ApiBaseUrl, result);
+        return new SimplArchiveApiClient(result.AccessToken);
+    }
+
     /// <summary>The shared authenticated HTTP core every per-area client rides on (#443).</summary>
     public ApiCore Core { get; }
 

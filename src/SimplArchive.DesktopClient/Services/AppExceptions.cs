@@ -85,15 +85,20 @@ public static class AppExceptions
         // place, and only after that place has already raised the event that tells the user.
         if (IsSessionEnded(exception))
         {
+            DesktopLog.Debug("An ended session reached the crash guard; its modal is already on the way: {Reason}", exception.Message);
             return;
         }
 
+        // Logged before any modal (2026-10-23): a Messages tab click put the reconnect modal up and the log said nothing,
+        // so nobody could tell what had failed. The modal is gone once dismissed; this line is what is left (ADR 0626).
         if (IsConnectivityError(exception))
         {
+            DesktopLog.Warn(exception, "A request failed as if the server were unreachable; showing the reconnect modal");
             ReportConnectionLost();
             return;
         }
 
+        DesktopLog.Error(exception, "An unhandled exception reached the crash guard; showing the crash dialog");
         Run(() => _ = ShowCrashAsync(exception));
     }
 

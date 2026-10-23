@@ -10,8 +10,16 @@ namespace SimplArchive.UiEndToEndTests;
 // browser (the reachability + OAuth steps are injectable seams): auto-seed a default server, show the "no
 // connection" message when the server is unreachable, and fire LoginSucceeded + remember the choices on success.
 [Collection(UiCollection.Name)]
-public class DesktopLogonTests
+public sealed class DesktopLogonTests : IDisposable
 {
+    // A sign-in now records its session for the server (2026-10-23), and that persists the refresh token: never into
+    // the developer's keychain.
+    private readonly ISecretStore? _secrets = SecretStores.Override;
+
+    public DesktopLogonTests() => SecretStores.Override = new InMemorySecretStore();
+
+    public void Dispose() => SecretStores.Override = _secrets;
+
     [Fact]
     public async Task Auto_seeds_shows_no_connection_and_logs_in()
     {

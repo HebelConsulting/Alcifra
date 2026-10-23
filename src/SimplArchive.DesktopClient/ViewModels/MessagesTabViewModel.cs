@@ -67,6 +67,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     private readonly Func<SimplArchiveApiClient?> _api;
     private readonly IMessengerLiveEvents _live;
     private ChatSession? _session;
+    private SimplArchiveApiClient? _boundTo;   // the client the session was built over
     private Guid? _showing;
     private Conversation? _shown;              // the conversation the thread shows, as last read: whether it offers typing
     private TypingIndicator? _typers;          // who else types in it (#26), each forgotten soon after their last event
@@ -107,52 +108,103 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     /// <summary>The view's open dialog: the chosen backup, or null when cancelled.</summary>
     public Func<Task<Stream?>>? OpenFile { get; set; }
 
-    /// <summary>Asks the archive whether it offers the Messenger here; the tab shows only if it does. Run at sign-in.</summary>
+    /// <summary>
+    /// Asks the archive whether it offers the Messenger here; the tab shows only if it does. Run at every sign-in,
+    /// including the one after an ended session and impersonation: the Messenger client is built over THAT session's
+    /// client, and a session built over an earlier one is never used again (see <see cref="Current"/>).
+    /// </summary>
     public async Task DiscoverAsync()
     {
-        Reset();
-        if (_api() is not { } api)
+        var api = _api();
+        Forget();   // the previous session's keys and rows go now, whatever this discovery finds
+        if (api is null)
         {
+            IsOffered = false;
             return;
         }
 
+        ChatSession? session = null;
         try
         {
             var messenger = new MessengerApi(api.Core.Http);
-            if (!await messenger.DiscoverAsync() || await new WhoAmIClient(api.Core).GetAsync() is not { UserId: { } me } who)
+            if (await messenger.DiscoverAsync() && await new WhoAmIClient(api.Core).GetAsync() is { UserId: { } me } who)
             {
-                return;
+                session = new ChatSession(messenger, new ConversationKeyOpener(), me, who.UserName ?? string.Empty);
             }
-
-            _session = new ChatSession(messenger, new ConversationKeyOpener(), me, who.UserName ?? string.Empty);
-            IsOffered = true;
         }
         catch (Exception e) when (e is HttpRequestException or MessengerApiException or TaskCanceledException)
         {
             DesktopLog.Debug("The Messenger could not be discovered; no Messages tab: {Reason}", e.Message);
         }
+
+        if (!ReferenceEquals(api, _api()))
+        {
+            session?.Lock();   // a newer sign-in arrived meanwhile; its own discovery decides
+            return;
+        }
+
+        _session?.Lock();
+        (_session, _boundTo, IsOffered) = (session, api, session is not null);
     }
 
     /// <summary>Signed out: the opened keys are forgotten and the tab goes.</summary>
     public void Reset()
     {
+        Forget();
+        IsOffered = false;
+    }
+
+    private void Forget()
+    {
         _session?.Lock();
-        (_session, _showing, IsOffered, Selected) = (null, null, false, null);
+        (_session, _boundTo, _showing, Selected) = (null, null, null, null);
         StopTyping();
         Conversations.Clear();
         Bubbles.Clear();
     }
 
+    /// <summary>
+    /// The Messenger session, only while it was built over the window's CURRENT client. After a sign-in that did not
+    /// rediscover yet, there is none: a client of an ended session sends no bearer, and its 401 ended the new
+    /// session's slot too (2026-10-23).
+    /// </summary>
+    private ChatSession? Current => ReferenceEquals(_boundTo, _api()) ? _session : null;
+
     [RelayCommand]
     public async Task LoadAsync()
     {
-        if (_session is null)
+        if (_session is not null && Current is null)
+        {
+            await DiscoverAsync();   // the session changed under the tab: rediscover over the current one
+        }
+
+        if (Current is not { } session)
         {
             return;
         }
 
         var keep = Selected?.Conversation.Id;
-        var list = await _session.Api.ConversationsAsync();
+        ConversationList list;
+        try
+        {
+            list = await session.Api.ConversationsAsync();
+        }
+        catch (Exception e) when (Refusal(e) is { } status)
+        {
+            // Not a lost connection, and the client has already renewed and replayed once: the server answers and
+            // refuses THIS endpoint for the current session. The reconnect modal would not fix it and would come back
+            // on every click, so say it here and in the log (ADR 0626).
+            DesktopLog.Warn(e, "Messages: the Messenger refused the conversation list with {Status} for the current session; "
+                + "the tab stays empty (the client's Trace log carries the exchange)", status);
+            _shell.Report(string.Format(CultureInfo.CurrentCulture, Strings.Get("MsgLoadFailed"), e.Message));
+            return;
+        }
+
+        if (!ReferenceEquals(session, Current))
+        {
+            return;   // the session changed while the list was on its way
+        }
+
         Conversations.Clear();
         foreach (var conversation in list.Items)
         {
@@ -162,6 +214,14 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         EmptyMessage = Conversations.Count == 0 ? ViewText.Get("NoConversations") : string.Empty;
         Selected = Conversations.FirstOrDefault(c => c.Conversation.Id == keep);
     }
+
+    // A refusal of an authenticated request (401/403) as opposed to a failure to reach the server: the status, or null.
+    internal static int? Refusal(Exception e) => e switch
+    {
+        MessengerApiException { StatusCode: 401 or 403 } refused => refused.StatusCode,
+        HttpRequestException { StatusCode: System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden } refused => (int)refused.StatusCode!.Value,
+        _ => null,
+    };
 
     partial void OnSelectedChanged(MessagesConversationViewModel? value) => Safe.Fire(() => ShowAsync(value));
 
@@ -173,7 +233,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         ThreadNote = string.Empty;
         StopTyping();
         _showing = item?.Conversation.Id;
-        if (item is null || _session is not { } session)
+        if (item is null || Current is not { } session)
         {
             return;
         }
@@ -284,7 +344,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     [RelayCommand]
     public async Task OpenFileAsync(MessageBubbleViewModel? bubble)
     {
-        if (bubble?.Row.File is not { } file || _session is not { } session)
+        if (bubble?.Row.File is not { } file || Current is not { } session)
         {
             return;
         }
@@ -296,7 +356,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     [RelayCommand]
     public async Task BackUpAsync()
     {
-        if (_session is not { } session || SaveFile is null || _api() is not { } api
+        if (Current is not { } session || SaveFile is null || _api() is not { } api
             || await SaveFile($"messages-{DateTime.Now.ToString("yyyy-MM-dd-HHmm", CultureInfo.InvariantCulture)}.simplarchive-messages") is not { } file)
         {
             return;
@@ -316,7 +376,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     [RelayCommand]
     public async Task RestoreAsync()
     {
-        if (_session is not { } session || OpenFile is null || await OpenFile() is not { } file)
+        if (Current is not { } session || OpenFile is null || await OpenFile() is not { } file)
         {
             return;
         }

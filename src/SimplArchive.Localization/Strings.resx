@@ -5772,6 +5772,9 @@
   <data name="MsgFileOpenFailed" xml:space="preserve">
     <value>The file could not be opened: {0}</value>
   </data>
+  <data name="MsgLoadFailed" xml:space="preserve">
+    <value>The conversations could not be loaded: {0}</value>
+  </data>
   <data name="MsgRestoreFailed" xml:space="preserve">
     <value>The restore failed: {0}</value>
   </data>

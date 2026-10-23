@@ -53,7 +53,8 @@ public sealed partial class MainWindowViewModel
 
         try
         {
-            _realtime = new RealtimeNotificationClient(DesktopClientOptions.ApiBaseUrl, _api.AccessToken);
+            var api = _api;   // this session's: a reconnect presents its renewed token, a new session gets a new connection
+            _realtime = new RealtimeNotificationClient(DesktopClientOptions.ApiBaseUrl, () => api.AccessToken);
             _realtime.NotificationReceived += n => Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
             {
                 Status = string.IsNullOrWhiteSpace(n.Title) ? n.Body : n.Title;

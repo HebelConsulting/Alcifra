@@ -16,11 +16,18 @@ namespace SimplArchive.ApiClient;
 public sealed class RealtimeNotificationClient : IAsyncDisposable
 {
     private readonly string _baseUrl;
-    private readonly string _accessToken;
+    private readonly Func<string> _accessToken;
     private readonly ModuleLiveEventRouter _moduleEvents = new();
     private HubConnection? _hub;
 
     public RealtimeNotificationClient(string baseUrl, string accessToken)
+        : this(baseUrl, () => accessToken)
+    {
+    }
+
+    /// <param name="accessToken">Read at every (re)connect rather than once: an automatic reconnect after the token's
+    /// lifetime then presents the session's renewed token, not the one the connection was opened with.</param>
+    public RealtimeNotificationClient(string baseUrl, Func<string> accessToken)
     {
         _baseUrl = baseUrl.TrimEnd('/');
         _accessToken = accessToken;
@@ -42,7 +49,7 @@ public sealed class RealtimeNotificationClient : IAsyncDisposable
         _hub = new HubConnectionBuilder()
             .WithUrl($"{_baseUrl}/hubs/notifications", options =>
             {
-                options.AccessTokenProvider = () => Task.FromResult<string?>(_accessToken);
+                options.AccessTokenProvider = () => Task.FromResult<string?>(_accessToken());
             })
             .WithAutomaticReconnect()
             .Build();

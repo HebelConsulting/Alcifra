@@ -5772,6 +5772,9 @@
   <data name="MsgFileOpenFailed" xml:space="preserve">
     <value>Die Datei konnte nicht geöffnet werden: {0}</value>
   </data>
+  <data name="MsgLoadFailed" xml:space="preserve">
+    <value>Die Unterhaltungen konnten nicht geladen werden: {0}</value>
+  </data>
   <data name="MsgRestoreFailed" xml:space="preserve">
     <value>Die Wiederherstellung ist fehlgeschlagen: {0}</value>
   </data>

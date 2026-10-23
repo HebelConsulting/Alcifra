@@ -84,7 +84,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
     private void UseApi(SimplArchiveApiClient api)
     {
         _api = api;
-        SetPreviewApi(api);
+        UseSessionInSurfaces(api);
         _ocrLanguages = new OcrLanguageCatalog(api);
         RecycleBin.SetApi(api);
         Search.SetApi(api);
@@ -338,8 +338,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
             }
 
             _forceLoginNext = false;
-            TokenSessions.Current.Record(DesktopClientOptions.ApiBaseUrl, result);
-            UseApi(new SimplArchiveApiClient(result.AccessToken));
+            UseApi(SimplArchiveApiClient.SignedIn(result));
             UserEmail = result.Email ?? "(unknown)";
             IsLoggedIn = true;
             await SetupUserContextAsync();

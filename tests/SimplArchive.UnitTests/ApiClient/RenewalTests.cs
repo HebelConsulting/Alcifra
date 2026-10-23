@@ -92,6 +92,50 @@ public sealed class RenewalTests : ApiClientSettingsTest
         }
     }
 
+    // 2026-10-23: the desktop's Messages tab kept a client of a session that had ENDED; after the user signed in again
+    // its next request carried no bearer, and its 401 cleared the slot the new sign-in had just recorded and put the
+    // "session ended" modal straight back up, on every click.
+    [Fact]
+    public async Task A_client_whose_session_had_already_ended_neither_clears_a_newer_session_nor_announces_again()
+    {
+        _store.Set(Root, new TokenSession("access-new", "refresh-new", DateTimeOffset.UtcNow.AddMinutes(15)));
+        var log = new RecordingLogger();
+        ApiClientSettings.Logger = log;
+        var announced = 0;
+        void OnEnded(string _) => announced++;
+        RenewingAuthHandler.SessionEnded += OnEnded;
+        try
+        {
+            var handler = new FakeHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+            var stale = new HttpMessageInvoker(new RenewingAuthHandler(Root, new TokenSession.Holder(null), handler));
+
+            await Assert.ThrowsAsync<SessionEndedException>(() => stale.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"{Root}/api/modules/messenger/conversations?x=secret"), default));
+
+            Assert.Null(Assert.Single(handler.Requests).Authorization);           // what the stale client sent: nothing
+            Assert.Equal("refresh-new", _store.For(Root)?.RefreshToken);           // the new sign-in's session survives
+            Assert.Equal(0, announced);                                            // told when it ended, not again
+            var warning = Assert.Single(log.Entries, e => e.Level == Microsoft.Extensions.Logging.LogLevel.Warning);
+            Assert.Contains("/api/modules/messenger/conversations", warning.Message, StringComparison.Ordinal);   // says what was refused
+            Assert.DoesNotContain("secret", warning.Message, StringComparison.Ordinal);                         // never the query
+        }
+        finally
+        {
+            RenewingAuthHandler.SessionEnded -= OnEnded;
+        }
+    }
+
+    [Fact]
+    public async Task A_client_of_an_older_session_ending_leaves_the_newer_one_in_the_store()
+    {
+        _store.Set(Root, new TokenSession("access-new", "refresh-new", DateTimeOffset.UtcNow.AddMinutes(15)));
+        var handler = new FakeHandler(r => new HttpResponseMessage(r.RequestUri!.AbsolutePath == "/connect/token" ? HttpStatusCode.BadRequest : HttpStatusCode.Unauthorized));
+
+        await Assert.ThrowsAsync<SessionEndedException>(() =>
+            Client(new TokenSession("access-old", "refresh-old", DateTimeOffset.MaxValue), handler).SendAsync(Get(), default));
+
+        Assert.Equal("refresh-new", _store.For(Root)?.RefreshToken);
+    }
+
     [Fact]
     public async Task A_refused_renewal_ends_the_session_rather_than_retrying_for_ever()
     {

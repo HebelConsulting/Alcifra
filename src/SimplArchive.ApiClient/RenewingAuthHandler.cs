@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace SimplArchive.ApiClient;
 
@@ -65,19 +66,36 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         ? SharedGates.GetOrAdd(_apiRootUrl.TrimEnd('/'), static _ => new SemaphoreSlim(1, 1))
         : _ownGate;
 
-    private void End()
+    private void End(string why, HttpRequestMessage? refused = null)
     {
+        var ending = _session.Value;
         _session.Value = null;
-        if (!_session.IsStored)
+
+        // A private holder clears the store's slot only while the slot still holds THIS session (2026-10-23). A client
+        // left over from an ended session (the desktop's Messages tab after a sign-in from the "session ended" modal)
+        // sent no bearer, was refused, and cleared the slot the new sign-in had just recorded, keychain included.
+        if (!_session.IsStored && ending is not null && Store.For(_apiRootUrl) is { } stored && IsSame(stored, ending))
         {
             Store.Clear(_apiRootUrl);
         }
 
-        if (_announce)
+        // Said here because nobody else can (ADR 0626): the modal names the server, not what was refused or why. The
+        // path only, never the query, which may carry a credential (the content door's token).
+        ApiClientSettings.Logger.LogWarning("The session on {ApiRootUrl} ended: {Why}; refused: {Method} {Path}",
+            _apiRootUrl, why, refused?.Method.Method ?? "POST", refused?.RequestUri?.AbsolutePath ?? "/connect/token");
+
+        // Announced once, when it ends: a client whose session had ended already was told then, and putting the modal up
+        // again for its next request (while the user may be signed in afresh) is the loop seen on 2026-10-23.
+        if (_announce && ending is not null)
         {
             SessionEnded?.Invoke(_apiRootUrl);
         }
     }
+
+    private static bool IsSame(TokenSession stored, TokenSession ending) =>
+        stored.RefreshToken is { Length: > 0 } refresh
+            ? string.Equals(refresh, ending.RefreshToken, StringComparison.Ordinal)
+            : string.Equals(stored.AccessToken, ending.AccessToken, StringComparison.Ordinal);
 
     /// <summary>
     /// Raised when a session cannot be renewed and the user has to sign in again — with the server named.
@@ -121,7 +139,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
 
         if (current is not { CanRenew: true })
         {
-            End();
+            End(current is null ? "a 401 for a client whose session had already ended (a client left over from it?)" : "a 401 and no refresh token to renew with", request);
 
             // THROW rather than hand the 401 back (#1251). Returning it made one ordinary expiry produce two
             // racing outcomes: the session-ended modal this event raises, and an HttpRequestException from the
@@ -136,7 +154,10 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         {
             // Renewal was possible in principle and still failed — the same ended session, reached one step
             // later. It must not return a 401 either, for exactly the reason above.
-            End();
+            if (_session.Value is not null)   // else the refused renewal has just ended it, and said so
+            {
+                End("a 401 and the renewal did not succeed", request);
+            }
 
             response.Dispose();
             throw new SessionEndedException(_apiRootUrl);
@@ -206,7 +227,7 @@ public sealed class RenewingAuthHandler : DelegatingHandler
                 // The server has refused this refresh token — expired, revoked, rotated away, or the account
                 // deactivated. It will not start working, so the session is over and the stored token goes with
                 // it (see TokenSessions.Clear: a token kept here would fail every future launch first).
-                End();
+                End("the server refused the refresh token");
                 return null;
             }
 

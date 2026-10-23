@@ -289,7 +289,7 @@ public sealed partial class LogonViewModel : ObservableObject
                 return;
             }
 
-            LoginSucceeded?.Invoke(new SimplArchiveApiClient(result.AccessToken), result.Email ?? Username);
+            LoginSucceeded?.Invoke(SimplArchiveApiClient.SignedIn(result), result.Email ?? Username);
         }
         catch (OperationCanceledException)
         {

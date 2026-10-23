@@ -230,6 +230,41 @@ public sealed partial class MainWindowViewModel
         SetPreviewApi(null);
     }
 
+    /// <summary>
+    /// Hands a NEW session to everything that holds on to one beyond a single call: the previews, the Messages tab and
+    /// the live connection. Called by <c>UseApi</c>, so by every sign-in, the sign-in after an ended session, and
+    /// impersonation.
+    /// </summary>
+    /// <remarks>
+    /// The tab and the hub were told only of <see cref="IsLoggedIn"/> changing (2026-10-23), and a sign-in from the
+    /// "session ended" modal does not change it: the window was signed in throughout. So the Messages tab kept the
+    /// Messenger client of the ENDED session, sent no bearer, and its 401 ended the new session's slot too and put
+    /// the modal straight back up; the hub kept the old token (and, impersonating, the other user's notifications).
+    /// The first sign-in comes here before <see cref="IsLoggedIn"/> turns true, so the tab is not discovered twice.
+    /// </remarks>
+    private void UseSessionInSurfaces(SimplArchiveApiClient api)
+    {
+        SetPreviewApi(api);
+        if (_realtime is { } previous)
+        {
+            // Detached at once, so the session's own setup starts the new connection rather than finding the old one.
+            _realtime = null;
+            Safe.Fire(async () => await previous.DisposeAsync());
+        }
+
+        if (IsLoggedIn && _messagesTab is { } messages)
+        {
+            Safe.Fire(async () =>
+            {
+                await messages.DiscoverAsync();
+                if (SelectedTab == MessagesTabIndex)
+                {
+                    await messages.LoadAsync();
+                }
+            });
+        }
+    }
+
     /// <summary>Hands every preview surface the session's API client, or takes it away at sign-out.</summary>
     private void SetPreviewApi(SimplArchiveApiClient? api)
     {
