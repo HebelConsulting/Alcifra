@@ -6357,4 +6357,43 @@
   <data name="PwImportDeleteCsv" xml:space="preserve">
     <value>Die Exportdatei enthält Ihre Passwörter im Klartext. Jetzt löschen?</value>
   </data>
+  <data name="PwPasswords" xml:space="preserve">
+    <value>Passwörter</value>
+  </data>
+  <data name="PwOpenToRead" xml:space="preserve">
+    <value>Dieser Eintrag ist für Sie versiegelt. Öffnen Sie ihn mit Ihrem Schlüssel, um ihn zu lesen.</value>
+  </data>
+  <data name="PwAddField" xml:space="preserve">
+    <value>Feld hinzufügen</value>
+  </data>
+  <data name="PwFieldName" xml:space="preserve">
+    <value>Feldname</value>
+  </data>
+  <data name="PwOtherField" xml:space="preserve">
+    <value>Anderes Feld…</value>
+  </data>
+  <data name="PwFieldNameInvalid" xml:space="preserve">
+    <value>Ein Feld braucht einen Namen ohne Doppelpunkt und ohne Zeilenumbruch.</value>
+  </data>
+  <data name="PwImportSkippedRows" xml:space="preserve">
+    <value>{0} Zeilen der Datei konnten nicht gelesen werden und wurden ausgelassen.</value>
+  </data>
+  <data name="PwImportDeleteFailed" xml:space="preserve">
+    <value>Die Exportdatei konnte von hier aus nicht gelöscht werden. Löschen Sie sie selbst: Sie enthält Ihre Passwörter im Klartext.</value>
+  </data>
+  <data name="PwResealFailed" xml:space="preserve">
+    <value>Mit diesem Schlüssel nicht geöffnet: {0}</value>
+  </data>
+  <data name="PwUse" xml:space="preserve">
+    <value>Dieses Passwort verwenden</value>
+  </data>
+  <data name="PwGenerateLengthRange" xml:space="preserve">
+    <value>Wählen Sie eine Länge von {0} bis {1}.</value>
+  </data>
+  <data name="PwGenerateNoClass" xml:space="preserve">
+    <value>Wählen Sie mindestens eine Art von Zeichen.</value>
+  </data>
+  <data name="PwEntryUnreadable" xml:space="preserve">
+    <value>Dieser Eintrag konnte nicht gelesen werden: Was geöffnet wurde, ist kein Passworteintrag.</value>
+  </data>
 </root>

@@ -20,6 +20,11 @@ public static class SecretFields
     /// <summary>The password is secret; so is any field its author marked secret; every other field (user name, URL, the
     /// rest) is shown plainly. All are copyable.</summary>
     public static SecretFieldPresentation For(bool isPassword, bool markedSecret) => new(isPassword || markedSecret, CanCopy: true);
+
+    /// <summary>A field by its name (ADR 0965): secret where its author marked it, and always where it is the entry's PIN
+    /// (<see cref="PasswordEntryFieldOrder.IsSecret"/>), as the password is.</summary>
+    public static SecretFieldPresentation ForField(string fieldName, bool markedSecret) =>
+        For(isPassword: false, markedSecret || PasswordEntryFieldOrder.IsSecret(PasswordEntryFieldOrder.SlotOf(fieldName)));
 }
 
 /// <summary>
