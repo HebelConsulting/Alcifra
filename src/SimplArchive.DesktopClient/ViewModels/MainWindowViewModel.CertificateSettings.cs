@@ -18,6 +18,7 @@ public partial class MainWindowViewModel
     [ObservableProperty] private bool _tenantCertSelfService;
     [ObservableProperty] private Guid? _tenantCertParentId;
     [ObservableProperty] private string _tenantCertParentName = string.Empty;
+    [ObservableProperty] private bool _tenantCertUnattested;   // hardware without attestation allowed (ADR 0963)
 
     public bool IsEditingTenantCertificates => TenantEditingGroup == "certificates";
 
@@ -48,6 +49,7 @@ public partial class MainWindowViewModel
         TenantCertSelfService = settings?.SelfServiceEnabled ?? false;
         TenantCertParentId = settings?.ParentFolderId;
         TenantCertParentName = settings?.ParentFolderName ?? Strings.Get("TenantCertParentNone");
+        TenantCertUnattested = settings?.UnattestedHardwareAllowed ?? false;
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]
@@ -77,7 +79,7 @@ public partial class MainWindowViewModel
 
         try
         {
-            await _api.CertificateSettings.SaveAsync(read with { SelfServiceEnabled = TenantCertSelfService, ParentFolderId = TenantCertParentId });
+            await _api.CertificateSettings.SaveAsync(read with { SelfServiceEnabled = TenantCertSelfService, ParentFolderId = TenantCertParentId, UnattestedHardwareAllowed = TenantCertUnattested });
             await LoadTenantSettingsAsync();   // re-reads both: they share the tenant's tag
             Status = Strings.Get("StTenantSaved");
         }

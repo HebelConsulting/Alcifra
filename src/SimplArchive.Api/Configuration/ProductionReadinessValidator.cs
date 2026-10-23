@@ -146,6 +146,14 @@ public static class ProductionReadinessValidator
             violations.Add("OfflineArchive is only partly configured — set OfflineArchive:SigningCertificatePem and OfflineArchive:SigningKeyPem together, or neither.");
         }
 
+        // A development test attestation root (ADR 0963): whoever generated it can attest any key as hardware. Seeded only in
+        // Development, and refused here so the setting cannot travel; a row already trusted is refused at startup too
+        // (AttestationRootCatalogueSeeder).
+        if (!string.IsNullOrWhiteSpace(configuration[Infrastructure.Certificates.Attestation.AttestationCatalogue.TestRootPemKey]))
+        {
+            violations.Add($"{Infrastructure.Certificates.Attestation.AttestationCatalogue.TestRootPemKey} is set — a development test attestation root must never be trusted outside Development. Remove it.");
+        }
+
         return violations;
     }
 

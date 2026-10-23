@@ -94,6 +94,15 @@ internal static class ModuleProjectionCollector
             }
         }
 
+        // Attestation evidence added to an existing enrolment (ADR 0963) changes what the registry derives for it.
+        foreach (var entry in tracker.Entries<Domain.Certificates.CertificateAttestation>())
+        {
+            if (entry.State is EntityState.Added)
+            {
+                candidates.Add(entry.Entity.DocumentId);
+            }
+        }
+
         candidates.Remove(Guid.Empty);
         if (candidates.Count == 0)
         {

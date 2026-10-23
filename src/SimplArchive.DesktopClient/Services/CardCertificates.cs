@@ -172,6 +172,112 @@ public static class CardCertificates
                 ? Concerns.KeyUsage
                 : Concerns.None;
 
+    /// <summary>
+    /// The attestation a token offers for <paramref name="chosen"/>'s key (ADR 0963), from the certificates read with it, or
+    /// null when it offers none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Found by the KEY, not by a label</b>, for the reason this class walks slots rather than names: a PKCS#11 module that
+    /// exposes PIV attestation does so as further certificate objects, one per key slot carrying THAT slot's public key and
+    /// signed by the token's own attestation certificate (PIV slot F9), which it exposes too. So the slot's attestation is
+    /// the other certificate on the same token with the same public key, and the token's attestation certificate is the one
+    /// whose subject is that certificate's issuer. Nothing here trusts what it finds; the server verifies the chain.
+    /// </para>
+    /// <para>
+    /// <b>A key that was imported has no attestation</b>: the token attests only keys it generated, so a module finds no
+    /// such certificate for it, and this answers null. The same holds for a module that exposes no attestation at all.
+    /// </para>
+    /// </remarks>
+    public static SimplArchive.ApiClient.EnrolledCertificatesClient.KeyAttestation? AttestationFor(IReadOnlyList<Found> all, Found chosen)
+    {
+        var key = chosen.Certificate.PublicKey.ExportSubjectPublicKeyInfo();
+        var sameToken = all.Where(f => f.TokenSerial == chosen.TokenSerial && f.TokenLabel == chosen.TokenLabel).ToList();
+        var slot = sameToken.FirstOrDefault(f => !ReferenceEquals(f, chosen)
+            && !f.Certificate.RawData.AsSpan().SequenceEqual(chosen.Certificate.RawData)
+            && f.Certificate.PublicKey.ExportSubjectPublicKeyInfo().AsSpan().SequenceEqual(key)
+            && !f.Certificate.SubjectName.RawData.AsSpan().SequenceEqual(f.Certificate.IssuerName.RawData));
+        var device = slot is null ? null : sameToken.FirstOrDefault(f => !ReferenceEquals(f, slot)
+            && f.Certificate.SubjectName.RawData.AsSpan().SequenceEqual(slot.Certificate.IssuerName.RawData));
+        return slot is null || device is null
+            ? null
+            : new(PivFormat, slot.Pem, device.Pem, SlotOf(slot.ObjectLabel));
+    }
+
+    /// <summary>
+    /// The certificates a user may choose to register: everything read except the token's attestation EVIDENCE.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A module that exposes PIV attestation lists, beside the slot's own certificate, the token's attestation
+    /// certificate (F9) and one attestation per key slot — certificates nobody reads an envelope with. Offering them
+    /// would let a user register evidence as their reader certificate, and counting them told the user a card held
+    /// three certificates when it held one. They stay in <see cref="Read"/>'s result, because
+    /// <see cref="AttestationFor"/> needs them.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<Found> Choices(IReadOnlyList<Found> all) =>
+        [.. all.Where(f => !IsEvidence(all, f))];
+
+    /// <summary>The manufacturer's arc for PIV attestation extensions (firmware, serial, policies, form factor).</summary>
+    private const string AttestationExtensionArc = "1.3.6.1.4.1.41482.3.";
+
+    /// <summary>
+    /// Whether <paramref name="candidate"/> is attestation evidence rather than a certificate to register.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The manufacturer's extensions first</b>: a slot attestation carries extensions under
+    /// <c>1.3.6.1.4.1.41482.3</c>, which no reader certificate has a reason to carry.
+    /// </para>
+    /// <para>
+    /// <b>Then the structure, never the label</b>, for a token that names its objects differently or a device
+    /// certificate that carries none of those extensions. A SLOT attestation shares its public key with another
+    /// certificate on the same token and was issued by a certificate on that token. The DEVICE attestation
+    /// certificate issued such a slot attestation. Requiring the shared key is what keeps a user's own certificate
+    /// visible when its issuing CA's certificate happens to sit on the token too: that CA issued a certificate, but
+    /// not one that shares a key with another.
+    /// </para>
+    /// </remarks>
+    private static bool IsEvidence(IReadOnlyList<Found> all, Found candidate)
+    {
+        if (CarriesAttestationExtension(candidate.Certificate))
+        {
+            return true;
+        }
+
+        var sameToken = all.Where(f => !ReferenceEquals(f, candidate)
+            && f.TokenSerial == candidate.TokenSerial && f.TokenLabel == candidate.TokenLabel).ToList();
+        return IsSlotAttestation(sameToken, candidate)
+            || sameToken.Any(f => IssuedBy(f.Certificate, candidate.Certificate)
+                && IsSlotAttestation([.. sameToken.Where(o => !ReferenceEquals(o, f)), candidate], f));
+    }
+
+    private static bool CarriesAttestationExtension(X509Certificate2 certificate) =>
+        certificate.Extensions.Any(e => e.Oid?.Value?.StartsWith(AttestationExtensionArc, StringComparison.Ordinal) == true);
+
+    // Shares its key with another certificate there, and was issued by one there.
+    private static bool IsSlotAttestation(IReadOnlyList<Found> others, Found candidate)
+    {
+        var key = candidate.Certificate.PublicKey.ExportSubjectPublicKeyInfo();
+        return others.Any(o => !o.Certificate.RawData.AsSpan().SequenceEqual(candidate.Certificate.RawData)
+                && o.Certificate.PublicKey.ExportSubjectPublicKeyInfo().AsSpan().SequenceEqual(key))
+            && others.Any(o => IssuedBy(candidate.Certificate, o.Certificate));
+    }
+
+    // Issued by ANOTHER certificate: a self-issued certificate names itself, which says nothing about the token.
+    private static bool IssuedBy(X509Certificate2 subject, X509Certificate2 issuer) =>
+        !subject.RawData.AsSpan().SequenceEqual(issuer.RawData)
+        && subject.IssuerName.RawData.AsSpan().SequenceEqual(issuer.SubjectName.RawData);
+
+    /// <summary>The attestation format a PIV token's evidence is sent as.</summary>
+    public const string PivFormat = "piv";
+
+    // "X.509 Certificate for PIV Attestation 9d" names its slot last; anything else names none we can tell.
+    private static string? SlotOf(string label) =>
+        label.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() is { Length: 2 } last
+            && last.All(Uri.IsHexDigit) ? last.ToLowerInvariant() : null;
+
     private static IReadOnlyList<Found> ReadFromToken(string modulePath) =>
         CardModule.Use(ReadFromLibrary, (IReadOnlyList<Found>)[]);
 
@@ -206,7 +312,13 @@ public static class CardCertificates
                 // key is present, which is a question the user did not ask.
                 using var session = library.OpenSession(slot, readWrite: false);
 
-                foreach (var handle in session.FindObjects(CK_OBJECT_CLASS.CKO_CERTIFICATE))
+                // SESSION OBJECTS TOO, or attestation never arrives (ADR 0963). The manufacturer's PIV module
+                // exposes each key slot's attestation certificate ("X.509 Certificate for PIV Attestation 9d") as a
+                // session object (CKA_TOKEN = false), created on demand; the token-only FindObjects returned the
+                // slot's certificate and silently not its attestation, so AttestationFor answered null and the
+                // enrolment went out unattested — measured with real hardware 2026-10-22. This walk only READS,
+                // so widening it costs nothing a writer would care about.
+                foreach (var handle in session.FindObjectsIncludingSessionObjects(CK_OBJECT_CLASS.CKO_CERTIFICATE))
                 {
                     X509Certificate2 certificate;
                     string label;

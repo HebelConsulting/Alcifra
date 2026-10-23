@@ -10,6 +10,7 @@ using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Masks;
 using SimplArchive.Infrastructure.Certificates;
+using SimplArchive.Infrastructure.Certificates.Attestation;
 using SimplArchive.Infrastructure.Certificates.Policy;
 using SimplArchive.Infrastructure.Modules;
 using SimplArchive.Infrastructure.Persistence;
@@ -34,12 +35,17 @@ public sealed class CertificateEnrolment(
     DocumentAccessService access,
     ICurrentTenantAccessor tenant,
     IReadOnlyList<ModuleLoader.LoadedModule> modules,
+    EnrolmentAttestation attestation,
     ILogger<CertificateEnrolment> logger)
 {
     /// <summary>An enrolled certificate as the listing shows it.</summary>
+    /// <param name="Usable">Whether it addresses its holder now: valid, not revoked, and accepted by the tenant's attestation rules.</param>
+    /// <param name="Attestation">"attested", "rootNotTrusted" or "notAttested" (ADR 0963).</param>
+    /// <param name="AttestationRoot">The name of the root the key is attested to, where it is.</param>
+    /// <param name="DeviceSerial">The token's serial number, as its attestation states it.</param>
     public sealed record Listed(
         Guid DocumentId, string Label, string Thumbprint, string Serial, DateTimeOffset NotAfter, DateTimeOffset? RevokedAt,
-        bool Usable, string? FailsPolicy);
+        bool Usable, string? FailsPolicy, string Attestation = "notAttested", string? AttestationRoot = null, string? DeviceSerial = null);
 
     private Guid TenantId => tenant.TenantId ?? throw new InvalidOperationException("Certificate enrolment needs a current tenant.");
 
@@ -68,17 +74,52 @@ public sealed class CertificateEnrolment(
         var rows = await query.ToListAsync(cancellationToken);
         var policy = await CurrentPolicyAsync(cancellationToken);
         var now = DateTimeOffset.UtcNow;
+        var trust = await AttestationTrust.ForTenantAsync(dbContext, TenantId, cancellationToken);
+        var ids = rows.Select(r => r.DocumentId).ToList();
+        var serials = await dbContext.CertificateAttestations.AsNoTracking().Where(a => ids.Contains(a.DocumentId))
+            .ToDictionaryAsync(a => a.DocumentId, a => a.DeviceSerial, cancellationToken);
         return [.. rows
             .OrderByDescending(r => r.NotAfter)
             .ThenBy(r => r.Thumbprint, StringComparer.Ordinal)
             .Select(r => new Listed(
                 r.DocumentId, r.Label, r.Thumbprint, r.Serial, r.NotAfter, r.RevokedAt,
-                r.RevokedAt is null && r.NotBefore <= now && r.NotAfter > now,
-                PolicyEnforcement.RefusalForEnrolled(policy, r.CertificatePem)))];
+                r.RevokedAt is null && r.NotBefore <= now && r.NotAfter > now && trust.Addresses(r.AttestationRootThumbprint),
+                PolicyEnforcement.RefusalForEnrolled(policy, r.CertificatePem),
+                StateName(trust.StateOf(r.AttestationRootThumbprint)),
+                r.AttestationRootThumbprint is { } root ? trust.RootNames.GetValueOrDefault(root) : null,
+                serials.GetValueOrDefault(r.DocumentId) is { Length: > 0 } serial ? serial : null))];
     }
 
-    /// <summary>Validates and files one certificate; returns what the listing would show for it.</summary>
-    public async Task<Listed> EnrolAsync(string certificatePem, string? label, string? holder, CancellationToken cancellationToken)
+    /// <summary>The wire name of an attestation state, as the listing carries it.</summary>
+    public static string StateName(AttestationState state) => state switch
+    {
+        AttestationState.Attested => "attested",
+        AttestationState.RootNotTrusted => "rootNotTrusted",
+        _ => "notAttested",
+    };
+
+    /// <summary>
+    /// Validates and files one certificate, with its key's attestation where one is sent (ADR 0963); returns what the
+    /// listing would show for it, and whether a NEW enrolment was filed (false: evidence was added to an existing one).
+    /// Every refusal is audited, by code and holder, never with the certificate.
+    /// </summary>
+    public async Task<(Listed Enrolled, bool Created)> EnrolAsync(
+        string certificatePem, string? label, string? holder, AttestationEvidence? evidence, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await EnrolCheckedAsync(certificatePem, label, holder, evidence, cancellationToken);
+        }
+        catch (CertificateException refusal) when (refusal is not CertificateAlreadyEnrolledException)
+        {
+            await audit.RecordAsync(AuditActions.CertificateEnrolmentRefused, "Certificate", null, holder is { Length: > 0 } ? holder : "self",
+                refusal.ErrorCode, cancellationToken: cancellationToken);
+            throw;
+        }
+    }
+
+    private async Task<(Listed Enrolled, bool Created)> EnrolCheckedAsync(
+        string certificatePem, string? label, string? holder, AttestationEvidence? evidence, CancellationToken cancellationToken)
     {
         var admin = await CallerAdministersAsync(cancellationToken);
         var forSomebodyElse = holder is { Length: > 0 };
@@ -114,7 +155,19 @@ public sealed class CertificateEnrolment(
         }
 
         var thumbprint = Convert.ToHexString(SHA256.HashData(leaf.RawData));
-        if (await dbContext.EnrolledCertificates.AsNoTracking().FirstOrDefaultAsync(c => c.Thumbprint == thumbprint, cancellationToken) is { } existing)
+        var existing = await dbContext.EnrolledCertificates.AsNoTracking().FirstOrDefaultAsync(c => c.Thumbprint == thumbprint, cancellationToken);
+
+        // THE WAY BACK for a key enrolled before attestation was required (ADR 0963): the same key, enrolled again with its
+        // attestation, by its holder (where self-service is on) or an administrator, gains the evidence. No new key, no new
+        // document, and nothing an administrator has to do for a holder who can do it themselves.
+        if (existing is not null && evidence is not null
+            && !await dbContext.CertificateAttestations.AnyAsync(a => a.DocumentId == existing.DocumentId, cancellationToken)
+            && await HolderIdAsync(holderAddress, forSomebodyElse, userId, cancellationToken) == existing.UserId)
+        {
+            return (await AttestExistingAsync(existing, evidence, leaf, cancellationToken), false);
+        }
+
+        if (existing is not null)
         {
             throw new CertificateAlreadyEnrolledException(existing.UserId == userId
                 ? $"This certificate is already enrolled as '{existing.Label}'"
@@ -125,8 +178,31 @@ public sealed class CertificateEnrolment(
                     + "readers; if that is genuinely the intent, the existing enrolment has to be revoked first.");
         }
 
-        return await FileEnrolmentAsync(certificatePem, leaf, thumbprint, label, holderAddress, access.GetCallerIdentity(),
-            $"Holder {holderAddress}, thumbprint {thumbprint}", cancellationToken);
+        var evidenceRow = await attestation.DecideAsync(evidence, leaf, cancellationToken);
+        return (await FileEnrolmentAsync(certificatePem, leaf, thumbprint, label, holderAddress, access.GetCallerIdentity(),
+            $"Holder {holderAddress}, thumbprint {thumbprint}, {(evidenceRow is null ? "no attestation" : $"attestation of token {evidenceRow.DeviceSerial}")}",
+            cancellationToken, evidenceRow), true);
+    }
+
+    private async Task<Guid?> HolderIdAsync(string holderAddress, bool forSomebodyElse, Guid? callerId, CancellationToken cancellationToken) =>
+        forSomebodyElse
+            ? await dbContext.Users.Where(u => u.NormalizedEmail == holderAddress.Trim().ToUpperInvariant()).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(cancellationToken)
+            : callerId;
+
+    // Adds the evidence to an enrolment that had none; the projection re-derives its root in the same save.
+    private async Task<Listed> AttestExistingAsync(
+        Domain.Certificates.EnrolledCertificate existing, AttestationEvidence evidence, X509Certificate2 leaf, CancellationToken cancellationToken)
+    {
+        var row = await attestation.DecideAsync(evidence, leaf, cancellationToken)
+            ?? throw new InvalidOperationException("Evidence was sent, so the decision returns its row or refuses.");
+        row.DocumentId = existing.DocumentId;
+        dbContext.CertificateAttestations.Add(row);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await audit.RecordAsync(AuditActions.CertificateAttestationAdded, "Document", existing.DocumentId, existing.Label,
+            $"Thumbprint {existing.Thumbprint}, attestation of token {row.DeviceSerial}", cancellationToken: cancellationToken);
+        logger.LogInformation("Added the attestation of token {DeviceSerial} to enrolled certificate {Thumbprint}", row.DeviceSerial, existing.Thumbprint);
+        return (await ListAsync(everyone: true, cancellationToken)).Single(l => l.DocumentId == existing.DocumentId);
     }
 
     /// <summary>
@@ -136,7 +212,8 @@ public sealed class CertificateEnrolment(
     /// </summary>
     private async Task<Listed> FileEnrolmentAsync(
         string certificatePem, X509Certificate2 leaf, string thumbprint, string? label, string holderAddress,
-        (Guid? UserId, Guid? ServiceAccountId) creator, string auditDetail, CancellationToken cancellationToken)
+        (Guid? UserId, Guid? ServiceAccountId) creator, string auditDetail, CancellationToken cancellationToken,
+        Domain.Certificates.CertificateAttestation? evidence = null)
     {
         var notBefore = new DateTimeOffset(leaf.NotBefore.ToUniversalTime(), TimeSpan.Zero);
         var notAfter = new DateTimeOffset(leaf.NotAfter.ToUniversalTime(), TimeSpan.Zero);
@@ -160,6 +237,13 @@ public sealed class CertificateEnrolment(
                 ?? throw new CertificateFolderNotConfiguredException();
             document = await FileAsync(folder.Id, WellKnownMaskIds.Certificate, $"{fields["Label"]} ({thumbprint[..16]})",
                 Encoding.UTF8.GetBytes(certificatePem), ".pem", "application/x-pem-file", creator, cancellationToken);
+            // The evidence in the same save as the fields, so the projection that save triggers derives the root from it.
+            if (evidence is not null)
+            {
+                evidence.DocumentId = document.Id;
+                dbContext.CertificateAttestations.Add(evidence);
+            }
+
             await SetFieldsAsync(document, fields, cancellationToken);
             if (owned is not null)
             {
@@ -171,7 +255,8 @@ public sealed class CertificateEnrolment(
         await audit.RecordAsync(AuditActions.CertificateEnrolled, "Document", document.Id, document.Name,
             auditDetail, cancellationToken: cancellationToken);
         logger.LogInformation("Enrolled certificate {Thumbprint} as document {DocumentId}", thumbprint, document.Id);
-        return new Listed(document.Id, fields["Label"], thumbprint, fields["Serial"], notAfter, null, true, null);
+        return (await ListAsync(everyone: true, cancellationToken)).FirstOrDefault(l => l.DocumentId == document.Id)
+            ?? new Listed(document.Id, fields["Label"], thumbprint, fields["Serial"], notAfter, null, false, null);
     }
 
     /// <summary>

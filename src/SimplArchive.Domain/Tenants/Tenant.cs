@@ -77,6 +77,12 @@ public class Tenant : IConcurrencyTracked
     // answered by enrolment's "nowhere to file" refusal rather than by a cascade. Null = not configured.
     public Guid? CertificateParentFolderId { get; set; }
 
+    // Whether this tenant accepts reader certificates whose key is NOT attested to a trusted root (#1790, ADR 0963): a
+    // token that cannot attest (PKCS#11 has no standard attestation), or a root switched off. Default false: an
+    // unattested key could be a software key, and enrolling one decides whose key a sealed document is addressed to. An
+    // administrator's explicit, audited choice; such certificates are marked "not attested".
+    public bool CertificateUnattestedHardwareAllowed { get; set; }
+
     // The tamper-evidence hash chain's retained-window start (ADR "Audit trail retention and purge"): purge
     // deletes the oldest contiguous prefix, so verification walks from here instead of Sequence 0 — a purge
     // therefore isn't flagged as tampering, but an edit/deletion within retained events still is.

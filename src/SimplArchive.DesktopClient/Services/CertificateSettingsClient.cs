@@ -11,7 +11,8 @@ namespace SimplArchive.DesktopClient.Services;
 public sealed class CertificateSettingsClient(ApiCore core)
 {
     /// <summary>The settings as read, with the address and tag a save sends back.</summary>
-    public sealed record CertificateSettings(bool SelfServiceEnabled, Guid? ParentFolderId, string? ParentFolderName, string Href, string? ETag);
+    public sealed record CertificateSettings(
+        bool SelfServiceEnabled, Guid? ParentFolderId, string? ParentFolderName, string Href, string? ETag, bool UnattestedHardwareAllowed = false);
 
     /// <summary>The settings, or null where they are not offered or not the caller's to see.</summary>
     public async Task<CertificateSettings?> GetAsync(CancellationToken cancellationToken = default)
@@ -32,7 +33,12 @@ public sealed class CertificateSettingsClient(ApiCore core)
     {
         using var request = new HttpRequestMessage(HttpMethod.Put, settings.Href)
         {
-            Content = JsonContent.Create(new { selfServiceEnabled = settings.SelfServiceEnabled, parentFolderId = settings.ParentFolderId }),
+            Content = JsonContent.Create(new
+            {
+                selfServiceEnabled = settings.SelfServiceEnabled,
+                parentFolderId = settings.ParentFolderId,
+                unattestedHardwareAllowed = settings.UnattestedHardwareAllowed,
+            }),
         };
         if (settings.ETag is { } tag)
         {
@@ -49,5 +55,6 @@ public sealed class CertificateSettingsClient(ApiCore core)
         json.TryGetProperty("parentFolderId", out var parent) && parent.ValueKind == JsonValueKind.String ? parent.GetGuid() : null,
         json.TryGetProperty("parentFolderName", out var name) && name.ValueKind == JsonValueKind.String ? name.GetString() : null,
         href,
-        etag);
+        etag,
+        json.TryGetProperty("unattestedHardwareAllowed", out var unattested) && unattested.ValueKind == JsonValueKind.True);
 }

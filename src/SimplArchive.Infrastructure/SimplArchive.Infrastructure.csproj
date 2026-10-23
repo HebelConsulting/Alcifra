@@ -49,6 +49,12 @@
     <PackageReference Include="PdfPig" Version="0.1.16" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The attestation catalogue (ADR 0963): the PUBLIC root and intermediate certificates of the hardware the project
+         tests with, as the manufacturer publishes them. Seeded switched off; the ADR records where they came from. -->
+    <EmbeddedResource Include="Certificates\Attestation\Catalogue\*.pem" LogicalName="SimplArchive.Attestation.%(Filename).pem" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

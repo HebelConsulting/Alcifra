@@ -28,8 +28,12 @@ public static class CertificateRegistryRebuild
         var modules = root.GetService<IReadOnlyList<ModuleLoader.LoadedModule>>() ?? [];
         if (!modules.Any(m => m.Module.LicensesCertificateEnrolment || m.Module.ReaderCertificates is not null))
         {
+            logger.LogDebug("Certificate registry rebuild skipped: no loaded module encrypts to users");
             return;
         }
+
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        logger.LogDebug("Certificate registry rebuild: starting");
 
         List<Guid> tenants;
         using (var scope = root.CreateScope())
@@ -49,6 +53,8 @@ public static class CertificateRegistryRebuild
                 logger.LogError(e, "Rebuilding the certificate registry failed for tenant {TenantId}", tenantId);
             }
         }
+
+        logger.LogInformation("Certificate registry rebuilt for {Count} tenant(s) in {Elapsed} ms", tenants.Count, started.ElapsedMilliseconds);
     }
 
     /// <summary>One tenant: project every certificate document, drop the rows of documents that are gone.</summary>
@@ -77,5 +83,17 @@ public static class CertificateRegistryRebuild
         }
 
         logger.LogInformation("Certificate registry of tenant {TenantId}: {Count} certificate document(s) projected", tenantId, documents.Count);
+
+        // Certificates that address nobody because their key is not attested to a root trusted here (ADR 0963): said once
+        // per start, because their holders are told only by the listing, and an administrator may need to act.
+        var trust = await Attestation.AttestationTrust.ForTenantAsync(db, tenantId, cancellationToken);
+        var unaddressed = (await db.EnrolledCertificates.AsNoTracking().Where(c => c.RevokedAt == null)
+            .Select(c => c.AttestationRootThumbprint).ToListAsync(cancellationToken)).Count(t => !trust.Addresses(t));
+        if (unaddressed > 0)
+        {
+            logger.LogWarning(
+                "Tenant {TenantId} has {Count} enrolled certificate(s) whose key is not attested to a trusted root; nothing new is sealed "
+                + "to them until their holders enrol them again with the key's attestation (ADR 0963)", tenantId, unaddressed);
+        }
     }
 }

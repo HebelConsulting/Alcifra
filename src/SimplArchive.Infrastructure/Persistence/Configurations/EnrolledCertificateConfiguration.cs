@@ -21,6 +21,7 @@ public class EnrolledCertificateConfiguration : IEntityTypeConfiguration<Enrolle
         builder.Property(c => c.Label).IsRequired().HasMaxLength(500);
         builder.Property(c => c.Thumbprint).IsRequired().HasMaxLength(64);
         builder.Property(c => c.Serial).IsRequired().HasMaxLength(200);
+        builder.Property(c => c.AttestationRootThumbprint).HasMaxLength(64).IsFixedLength();   // ADR 0963
 
         builder.HasIndex(c => new { c.TenantId, c.UserId });
         builder.HasIndex(c => new { c.TenantId, c.Thumbprint }).IsUnique();

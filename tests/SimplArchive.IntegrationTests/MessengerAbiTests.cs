@@ -86,7 +86,8 @@ public class MessengerAbiTests
         var rootId = Guid.NewGuid();
         using (var seed = Ctx(connection))
         {
-            seed.Tenants.Add(new Tenant { Id = tenantId, Name = "T", CreatedAt = DateTimeOffset.UtcNow });
+            // Admits hardware without attestation (ADR 0963): these cases are about the facade, not about attestation.
+            seed.Tenants.Add(new Tenant { Id = tenantId, Name = "T", CreatedAt = DateTimeOffset.UtcNow, CertificateUnattestedHardwareAllowed = true });
             seed.Users.Add(new User { Id = ownerId, TenantId = tenantId, Email = "anna@x.io", DisplayName = "Anna", CreatedAt = DateTimeOffset.UtcNow });
             seed.Users.Add(new User { Id = otherId, TenantId = tenantId, Email = "tom@x.io", DisplayName = "Tom", CreatedAt = DateTimeOffset.UtcNow });
             seed.Documents.Add(new Document { Id = rootId, TenantId = tenantId, Name = "Messenger", CreatedByUserId = ownerId, CreatedAt = DateTimeOffset.UtcNow });
@@ -228,6 +229,15 @@ public class MessengerAbiTests
 
         Assert.Equal([rig.OtherId], everyone.Select(u => u.Id));   // Anna has no key, so she is not offered
         Assert.Equal("Tom", Assert.Single(byMail).DisplayName);
+
+        // Where the tenant requires attestation (ADR 0963), an unattested key is not a usable one: Tom is not offered.
+        using (var db = Ctx(connection, rig.TenantId))
+        {
+            (await db.Tenants.SingleAsync(t => t.Id == rig.TenantId)).CertificateUnattestedHardwareAllowed = false;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await rig.Facade.SearchUsersAsync(string.Empty));
     }
 
     [Fact]

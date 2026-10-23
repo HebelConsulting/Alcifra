@@ -58,4 +58,9 @@
     <ProjectReference Include="..\..\src\SimplArchive.Cli\SimplArchive.Cli.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The generated test attestation hierarchy (ADR 0963), shared by the suites that verify attested enrolment. -->
+    <Compile Include="..\Shared\TestAttestationHierarchy.cs" Link="Shared\TestAttestationHierarchy.cs" />
+  </ItemGroup>
+
 </Project>

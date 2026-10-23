@@ -64,6 +64,8 @@ public class RootController : ControllerBase
         // to one; a rel is how the surface is reachable by the tooling that CAN act as one.
         new Link("encryptionKeys", "/api/encryption/keys", "GET"),
         new Link("searchReindex", "/api/search/reindex", "GET"),
+        // The installation's trusted attestation roots (ADR 0963): which hardware it accepts as attested.
+        new Link("attestationRoots", "/api/attestation-roots", "GET"),
     ];
 
     public class RootResource : HypermediaResource
@@ -230,6 +232,7 @@ public class RootController : ControllerBase
             resource.Links.Add(new Link("certificates", "/api/certificates", "GET"));
             resource.Links.Add(new Link("certificatePolicy", "/api/certificate-policy", "GET"));
             resource.Links.Add(new Link("certificateSettings", "/api/certificate-settings", "GET"));
+            resource.Links.Add(new Link("certificateAttestationRoots", "/api/certificate-attestation-roots", "GET"));   // ADR 0963
             foreach (var (alias, path) in new[] { ("encryption:certificates", "/api/certificates"), ("encryption:certificate-policy", "/api/certificate-policy") })
             {
                 if (resource.Links.All(l => l.Rel != alias))

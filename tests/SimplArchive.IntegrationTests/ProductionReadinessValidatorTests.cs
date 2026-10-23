@@ -294,4 +294,14 @@ public class ProductionReadinessValidatorTests
         Assert.Contains(ProductionReadinessValidator.Validate(Config(values), new StubEnvironment(), StampedVersion),
             v => v.StartsWith("OfflineArchive is only partly configured", StringComparison.Ordinal));
     }
+
+    // ADR 0963: a development test attestation root can attest any key as hardware; its setting never travels.
+    [Fact]
+    public void A_development_test_attestation_root_is_refused()
+    {
+        var values = new Dictionary<string, string?>(CleanProduction) { ["Attestation:DevelopmentTestRootPem"] = "a PEM (the gate only asks that it is set)" };
+
+        Assert.Contains(ProductionReadinessValidator.Validate(Config(values), new StubEnvironment(), StampedVersion),
+            v => v.StartsWith("Attestation:DevelopmentTestRootPem is set", StringComparison.Ordinal));
+    }
 }

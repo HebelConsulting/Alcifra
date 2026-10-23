@@ -46,12 +46,16 @@ public class CertificateSettingsController(
 
         // Its name, so a settings form shows the folder rather than an id; null when none is set or it is gone.
         public string? ParentFolderName { get; set; }
+
+        // Whether certificates whose key is not attested to a trusted root are accepted (ADR 0963); default off.
+        public bool UnattestedHardwareAllowed { get; set; }
     }
 
     public class UpdateCertificateSettingsRequest
     {
         public bool SelfServiceEnabled { get; set; }
         public Guid? ParentFolderId { get; set; }
+        public bool UnattestedHardwareAllowed { get; set; }
     }
 
     [HttpGet]
@@ -83,17 +87,29 @@ public class CertificateSettingsController(
             throw new CertificateParentFolderNotFoundException(parentId);
         }
 
+        var wasUnattestedAllowed = tenant.CertificateUnattestedHardwareAllowed;
         var before = $"self-service {OnOff(tenant.CertificateSelfServiceEnabled)}, parent {tenant.CertificateParentFolderId?.ToString() ?? "none"}";
         await tenants.MutateAsync(Request, tenant,
             apply: () =>
             {
                 tenant.CertificateSelfServiceEnabled = request.SelfServiceEnabled;
                 tenant.CertificateParentFolderId = request.ParentFolderId;
+                tenant.CertificateUnattestedHardwareAllowed = request.UnattestedHardwareAllowed;
                 return Task.CompletedTask;
             },
-            afterCommit: () => audit.RecordAsync(AuditActions.TenantSettingsCertificatesUpdated, "Tenant", tenant.Id, tenant.Name,
-                $"{before} → self-service {OnOff(tenant.CertificateSelfServiceEnabled)}, parent {tenant.CertificateParentFolderId?.ToString() ?? "none"}",
-                cancellationToken: cancellationToken),
+            afterCommit: async () =>
+            {
+                await audit.RecordAsync(AuditActions.TenantSettingsCertificatesUpdated, "Tenant", tenant.Id, tenant.Name,
+                    $"{before} → self-service {OnOff(tenant.CertificateSelfServiceEnabled)}, parent {tenant.CertificateParentFolderId?.ToString() ?? "none"}",
+                    cancellationToken: cancellationToken);
+
+                // Its own event (ADR 0963): admitting keys that may be software keys is a security decision an auditor looks for.
+                if (wasUnattestedAllowed != tenant.CertificateUnattestedHardwareAllowed)
+                {
+                    await audit.RecordAsync(AuditActions.CertificateUnattestedHardwareChanged, "Tenant", tenant.Id, tenant.Name,
+                        $"hardware without attestation {(tenant.CertificateUnattestedHardwareAllowed ? "allowed" : "refused")}", cancellationToken: cancellationToken);
+                }
+            },
             cancellationToken: cancellationToken);
 
         Concurrency.ConcurrencyHeaders.EmitETag(Response, tenant);
@@ -120,6 +136,7 @@ public class CertificateSettingsController(
         ParentFolderName = tenant.CertificateParentFolderId is { } id
             ? await dbContext.Documents.Where(d => d.Id == id).Select(d => d.Name).FirstOrDefaultAsync(cancellationToken)
             : null,
+        UnattestedHardwareAllowed = tenant.CertificateUnattestedHardwareAllowed,
         Links = [new Link("self", "/api/certificate-settings", "GET")],
     };
 }

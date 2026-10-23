@@ -1529,8 +1529,16 @@ you, or open it. That is deliberately not the same message as "this installation
 one of the two is something a colleague can change this afternoon, and a missing entry could not tell them
 apart.
 
-*What it asks for is the certificate file* — the public half, as `.pem`, `.crt` or `.cer`; the desktop client
-also takes the binary `.der` that card tools export. *A file containing a private key is refused before
+*Enrolment happens in the desktop client, not in the browser.* A reader certificate is accepted only when its
+key is *attested* — the token itself proves the key was generated on it and cannot leave it (@attestedenrolment) —
+and only a program that talks to the token can read that proof. So the web client's dialog shows the
+certificates enrolled for you, each with its attestation state, and points you to the desktop client (or the
+phone, or `saconsole`); the desktop client's *Add a card or token…* reads the certificate *and* its attestation
+from the token in one step.
+
+*What it asks for is the certificate* — from the token, or the public half as a file (`.pem`, `.crt`, `.cer` or
+the binary `.der` that card tools export). A file carries no attestation, so it is accepted only where your
+organisation allows hardware without attestation. *A file containing a private key is refused before
 anything is sent*, with the reason: the private key belongs on the card or in the keystore that generated it,
 and the moment worth saying so is while it is still only on your own machine.
 
@@ -1558,6 +1566,61 @@ to do). The sentence comes from the certificate management itself, in your own l
   So on such an installation, having registered a mail certificate is *not* the same as being addressed.
   Enrol one, and @encryptedreads describes what you then see.
 ]
+
+== Only attested hardware keys are enrolled <attestedenrolment>
+
+*A reader certificate is accepted only when its key is attested*#idx("Attestation"): the token signs a
+statement that it generated this key itself, with an attestation key its manufacturer put on it, and the
+archive checks that statement before it files anything. A key that was ever outside a token — generated in
+software, or imported onto the card — cannot be attested, so it cannot be enrolled by mistake as if it were
+hardware.
+
+*Which manufacturers count is your installation's decision.* The platform administrator switches on the
+manufacturers' attestation roots the installation trusts (`saconsole attestation-roots`); a fresh installation
+trusts none. A tenant administrator may switch some of them *off* for the tenant, never add one
+(`saconsole certificates attestation-roots`). Where a token cannot attest at all — many cards cannot — an
+administrator may allow *hardware without attestation* for the tenant (`saconsole certificates settings set
+--unattested-hardware allowed`); such certificates are then marked *not attested*.
+
+*Every certificate shows its state* in the enrolment dialog of both clients and in `saconsole certificates
+list`: *attested by* the root's name and the token's serial number; *not attested*; or attested to a root that
+is not trusted here. Only the first addresses you where your organisation requires attestation, and a switch
+takes effect at once: nothing new is sealed to a key whose root was switched off. Documents already sealed to
+it still open with it — nothing is ever re-sealed.
+
+From `saconsole`, the attestation travels as two files the token's own tool exports — the slot's attestation
+certificate and the token's attestation certificate that signed it (for slot 9D: `attest 9d` and `export f9`):
+
+```sh
+saconsole certificates enrol holder.crt --holder anna@example.test \
+    --attestation attestation-9d.pem --attestation-intermediate f9.pem --slot 9d
+```
+
+A manifest for `saconsole certificates import` carries the same two certificates per row, as an `attestation`
+object.
+
+== Your key stopped opening new documents: enrol it again <reenrol>
+
+When your organisation started requiring attested keys, a certificate you had enrolled *before* — without the
+key's attestation — stopped being addressed: documents you could open before still open, but nothing *new* is
+sealed to that key. The enrolment dialog shows it as *not attested — enrol it again from the token*. You do
+not need a new key:
+
++ Insert the token and open the *desktop client*.
++ Open the account menu, *Enrol a certificate…*.
++ Choose *Add a card or token…*, pick the certificate you enrolled before, and confirm. The dialog says that
+  the key's attestation was read from the token.
++ *Enrol*. The list below the form now shows the certificate as *attested by* your token's manufacturer, with
+  the token's serial number, and new documents are sealed to it again.
+
+This needs no administrator where your organisation lets you enrol your own certificates; where it does not,
+an administrator does the same with `saconsole certificates enrol … --attestation …` for you.
+
+*If the dialog says the token offers no attestation for the key,* the key was most likely *imported* onto the
+token rather than generated on it — and a token attests only keys it generated itself. That key cannot be
+attested, ever. An administrator then has a new key generated *on* the token and a certificate issued for it
+(the walk-through above, from step 2), and you enrol that one. Ask before anything is deleted: the old key
+still opens every document that was sealed to it.
 
 == When the certificate expires, and replacing a key
 

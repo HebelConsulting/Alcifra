@@ -21,9 +21,9 @@ public sealed class CertificateSettingsShowCommand(ILogger<CertificateSettingsSh
     {
         using var http = CertificateEndpoint.Client(settings);
         var (resource, _) = await CertificateSettingsSurface.ReadAsync(new SimplArchiveApi(http), cancellationToken);
-        var (selfService, parent) = CertificateSettingsSurface.Current(resource);
-        logger.LogInformation("Self-service enrolment: {SelfService}. Reader-certificate folder parent: {Parent}.",
-            selfService ? "on" : "off", parent?.ToString() ?? "not set");
+        var (selfService, parent, unattested) = CertificateSettingsSurface.Current(resource);
+        logger.LogInformation("Self-service enrolment: {SelfService}. Reader-certificate folder parent: {Parent}. Hardware without attestation: {Unattested}.",
+            selfService ? "on" : "off", parent?.ToString() ?? "not set", unattested ? "allowed" : "refused");
         return 0;
     }
 }
@@ -42,9 +42,15 @@ public sealed class CertificateSettingsSetSettings : TenantSessionSettings
     [Description("Clear the parent.")]
     public bool NoParent { get; init; }
 
+    [CommandOption("--unattested-hardware <allowed|refused>")]
+    [Description("Whether certificates whose key is not attested to a trusted root are accepted (ADR 0963). Refused by default; allowing it admits keys that may be software keys.")]
+    public string? UnattestedHardware { get; init; }
+
     public override Spectre.Console.ValidationResult Validate() =>
         SelfService is not (null or "on" or "off")
             ? Spectre.Console.ValidationResult.Error("--self-service takes on or off.")
+            : UnattestedHardware is not (null or "allowed" or "refused")
+            ? Spectre.Console.ValidationResult.Error("--unattested-hardware takes allowed or refused.")
             : Parent is not null && NoParent
                 ? Spectre.Console.ValidationResult.Error("--parent and --no-parent exclude each other.")
                 : base.Validate();
@@ -65,18 +71,19 @@ public sealed class CertificateSettingsSetCommand(ILogger<CertificateSettingsSet
         using var http = CertificateEndpoint.Client(settings);
         var api = new SimplArchiveApi(http);
         var (resource, etag) = await CertificateSettingsSurface.ReadAsync(api, cancellationToken);
-        var (selfService, parent) = CertificateSettingsSurface.Current(resource);
+        var (selfService, parent, unattested) = CertificateSettingsSurface.Current(resource);
 
         var target = Hypermedia.Href(Hypermedia.LinksOf(resource), "self", "The certificate settings");
         var written = await api.PutWithETagAsync(target, new
         {
             selfServiceEnabled = settings.SelfService is { } value ? value == "on" : selfService,
             parentFolderId = settings.NoParent ? null : settings.Parent ?? parent,
+            unattestedHardwareAllowed = settings.UnattestedHardware is { } allowed ? allowed == "allowed" : unattested,
         }, etag, cancellationToken);
 
-        var (nowSelfService, nowParent) = CertificateSettingsSurface.Current(written);
-        logger.LogInformation("Self-service enrolment: {SelfService}. Reader-certificate folder parent: {Parent}.",
-            nowSelfService ? "on" : "off", nowParent?.ToString() ?? "not set");
+        var (nowSelfService, nowParent, nowUnattested) = CertificateSettingsSurface.Current(written);
+        logger.LogInformation("Self-service enrolment: {SelfService}. Reader-certificate folder parent: {Parent}. Hardware without attestation: {Unattested}.",
+            nowSelfService ? "on" : "off", nowParent?.ToString() ?? "not set", nowUnattested ? "allowed" : "refused");
         return 0;
     }
 }
@@ -101,9 +108,10 @@ internal static class CertificateSettingsSurface
         return await api.GetWithETagAsync(href, cancellationToken);
     }
 
-    internal static (bool SelfService, Guid? Parent) Current(JsonElement resource) => (
+    internal static (bool SelfService, Guid? Parent, bool UnattestedAllowed) Current(JsonElement resource) => (
         resource.TryGetProperty("selfServiceEnabled", out var on) && on.ValueKind == JsonValueKind.True,
         resource.TryGetProperty("parentFolderId", out var parent) && parent.ValueKind == JsonValueKind.String
             ? parent.GetGuid()
-            : null);
+            : null,
+        resource.TryGetProperty("unattestedHardwareAllowed", out var unattested) && unattested.ValueKind == JsonValueKind.True);
 }

@@ -23,6 +23,9 @@ public partial class CardCertificateDialog : Window
     /// <summary>The PEM the user chose, or null if they closed without choosing.</summary>
     public string? ChosenPem { get; private set; }
 
+    /// <summary>The token's attestation of the chosen certificate's key (ADR 0963), or null when it offers none.</summary>
+    public SimplArchive.ApiClient.EnrolledCertificatesClient.KeyAttestation? ChosenAttestation { get; private set; }
+
     // Parameterless ctor for the XAML designer/loader only.
     public CardCertificateDialog()
     {
@@ -34,6 +37,7 @@ public partial class CardCertificateDialog : Window
     {
         _rows.Clear();
         ChosenPem = null;
+        ChosenAttestation = null;
         RegisterButton.IsEnabled = false;
 
         if (CardCertificates.FindModule() is not { } module)
@@ -58,13 +62,15 @@ public partial class CardCertificateDialog : Window
             return;
         }
 
-        foreach (var one in _found)
+        // Only what may be registered is offered; the attestation evidence stays in _found for AttestationFor.
+        foreach (var one in CardCertificates.Choices(_found))
         {
             _rows.Add(new CardCertificateRow(
                 one.Certificate.Subject,
                 $"{Strings.Get("CardDevice")}: {one.TokenLabel} · {one.ObjectLabel}",
                 ConcernText(CardCertificates.Concern(one.Certificate, DateTimeOffset.UtcNow)),
-                one.Pem));
+                one.Pem,
+                CardCertificates.AttestationFor(_found, one)));
         }
 
         CertificateList.ItemsSource = _rows;
@@ -113,6 +119,7 @@ public partial class CardCertificateDialog : Window
         if (CertificateList.SelectedItem is CardCertificateRow row)
         {
             ChosenPem = row.Pem;
+            ChosenAttestation = row.Attestation;
             Close();
         }
     }
@@ -125,7 +132,8 @@ public partial class CardCertificateDialog : Window
 /// Top-level rather than nested inside the dialog because compiled bindings need an <c>x:DataType</c>, and a
 /// nested type is awkward to name from XAML. Nothing else constructs one.
 /// </remarks>
-public sealed record CardCertificateRow(string Subject, string Device, string Concern, string Pem)
+public sealed record CardCertificateRow(
+    string Subject, string Device, string Concern, string Pem, SimplArchive.ApiClient.EnrolledCertificatesClient.KeyAttestation? Attestation = null)
 {
     /// <summary>Whether there is anything to warn about — drives the amber line's visibility.</summary>
     public bool HasConcern => Concern.Length > 0;

@@ -6063,6 +6063,54 @@
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>Esta organización aún no tiene un certificado de recuperación para las exportaciones sin conexión, por lo que no se puede crear ninguna. Pida a un administrador del inquilino que establezca uno.</value>
   </data>
+  <data name="EnrolWebPointer" xml:space="preserve">
+    <value>Los certificados de lector se registran desde el propio token, que demuestra que la clave se generó en él: con el cliente de escritorio (Registrar un certificado, luego Añadir una tarjeta o token…), el teléfono o saconsole. Aquí ve lo que está registrado para usted.</value>
+  </data>
+  <data name="EnrolYourCertificates" xml:space="preserve">
+    <value>Sus certificados registrados</value>
+  </data>
+  <data name="EnrolNoCertificates" xml:space="preserve">
+    <value>No hay ningún certificado de lector registrado para usted.</value>
+  </data>
+  <data name="EnrolAttestedBy" xml:space="preserve">
+    <value>Atestado por {0}</value>
+  </data>
+  <data name="EnrolAttestedToken" xml:space="preserve">
+    <value>token {0}</value>
+  </data>
+  <data name="EnrolRootNotTrusted" xml:space="preserve">
+    <value>Atestado por {0}, que aquí no es de confianza: no se sella nada nuevo para él</value>
+  </data>
+  <data name="EnrolNotAttested" xml:space="preserve">
+    <value>No atestado: no se sella nada nuevo para él. Regístrelo de nuevo desde el token.</value>
+  </data>
+  <data name="EnrolNotAttestedAllowed" xml:space="preserve">
+    <value>No atestado (esta organización admite hardware sin atestación)</value>
+  </data>
+  <data name="EnrolAttestationRead" xml:space="preserve">
+    <value>La atestación de la clave se leyó del token y se envía con ella.</value>
+  </data>
+  <data name="EnrolAttestationMissing" xml:space="preserve">
+    <value>El token no ofrece atestación para esta clave (puede que la clave se haya importado). Solo se acepta donde la organización admite hardware sin atestación.</value>
+  </data>
+  <data name="TenantCertUnattested" xml:space="preserve">
+    <value>Admitir hardware sin atestación</value>
+  </data>
+  <data name="TenantCertUnattestedInfo" xml:space="preserve">
+    <value>Desactivado por defecto: un certificado de lector solo se acepta si su clave está atestada como generada en un token de hardware cuya raíz del fabricante es de confianza para la instalación. Activado, también se aceptan certificados sin dicha atestación, marcados como "no atestado"; tal clave puede ser una clave de software.</value>
+  </data>
+  <data name="ApiErrCertificateNotAttested" xml:space="preserve">
+    <value>Esta organización solo acepta claves atestadas como generadas en un token de hardware. Registre el certificado desde el token con el cliente de escritorio, que lee la atestación.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
+    <value>La atestación de la clave no es válida; el certificado no se registró.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationKeyMismatch" xml:space="preserve">
+    <value>La atestación pertenece a una clave distinta de la de este certificado. Elija el certificado de la ranura de la que se leyó.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationRootNotTrusted" xml:space="preserve">
+    <value>El fabricante de este token no es de confianza para esta instalación u organización. Un administrador decide qué hardware es de confianza.</value>
+  </data>
   <data name="MobStoreHeading" xml:space="preserve">
     <value>En la tienda</value>
   </data>

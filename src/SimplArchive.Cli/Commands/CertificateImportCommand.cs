@@ -97,7 +97,7 @@ public sealed class CertificateImportCommand(ILogger<CertificateImportCommand> l
             {
                 await api.PostAsync(
                     certificates,
-                    new { certificatePem = issued.CertificatePem, label = issued.Label, holder = issued.Holder },
+                    new { certificatePem = issued.CertificatePem, label = issued.Label, holder = issued.Holder, attestation = issued.Attestation },
                     cancellationToken);
 
                 logger.LogInformation("  enrolled {Holder}", issued.Holder);

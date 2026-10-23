@@ -66,6 +66,7 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
         table.AddColumn("serial");
         table.AddColumn("valid until");
         table.AddColumn("state");
+        table.AddColumn("attestation");
 
         foreach (var row in rows)
         {
@@ -73,7 +74,8 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
                 Markup.Escape(row.Label),
                 Markup.Escape(row.Serial.Length > 0 ? row.Serial : "—"),
                 row.NotAfter?.ToString("yyyy-MM-dd") ?? "—",
-                State(row));
+                State(row),
+                Attestation(row));
         }
 
         logger.LogInformation("{Table}", CliLogging.Render(table));
@@ -93,6 +95,14 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
         { FailsPolicy: { Length: > 0 } why } => $"[yellow]fails policy[/]: {Markup.Escape(why)}",
         { Usable: false } => "[red]not usable[/]",
         _ => "[green]usable[/]",
+    };
+
+    /// <summary>What the key's attestation is worth here (ADR 0963): by which root and token, or why not.</summary>
+    internal static string Attestation(Enrolment row) => row.Attestation switch
+    {
+        "attested" => $"[green]attested[/] by {Markup.Escape(row.AttestationRoot)}{(row.DeviceSerial.Length > 0 ? $", token {Markup.Escape(row.DeviceSerial)}" : string.Empty)}",
+        "rootNotTrusted" => $"[yellow]root switched off[/]: {Markup.Escape(row.AttestationRoot)}",
+        _ => "[yellow]not attested[/] — enrol again from the token",
     };
 
     internal static IEnumerable<Enrolment> Rows(JsonElement listing)
@@ -117,7 +127,10 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
                 Moment(row, "notAfter"),
                 Moment(row, "revokedAt"),
                 Text(row, "failsPolicy"),
-                !row.TryGetProperty("usable", out var usable) || usable.GetBoolean());
+                !row.TryGetProperty("usable", out var usable) || usable.GetBoolean(),
+                Text(row, "attestation"),
+                Text(row, "attestationRoot"),
+                Text(row, "deviceSerial"));
         }
     }
 
@@ -138,5 +151,8 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
         DateTimeOffset? NotAfter,
         DateTimeOffset? RevokedAt,
         string FailsPolicy,
-        bool Usable);
+        bool Usable,
+        string Attestation,
+        string AttestationRoot,
+        string DeviceSerial);
 }

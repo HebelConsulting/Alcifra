@@ -1522,8 +1522,8 @@
             },
             {
               "id": "HebelConsulting.CAManagement.Pkcs11",
-              "requestedVersion": "0.8.0",
-              "resolvedVersion": "0.8.0"
+              "requestedVersion": "0.9.0",
+              "resolvedVersion": "0.9.0"
             },
             {
               "id": "Projektanker.Icons.Avalonia",
@@ -1783,8 +1783,8 @@
             },
             {
               "id": "HebelConsulting.CAManagement.Pkcs11",
-              "requestedVersion": "0.8.0",
-              "resolvedVersion": "0.8.0"
+              "requestedVersion": "0.9.0",
+              "resolvedVersion": "0.9.0"
             },
             {
               "id": "Projektanker.Icons.Avalonia",
@@ -3029,7 +3029,7 @@
             },
             {
               "id": "HebelConsulting.CAManagement.Pkcs11",
-              "resolvedVersion": "0.8.0"
+              "resolvedVersion": "0.9.0"
             },
             {
               "id": "Ical.Net",

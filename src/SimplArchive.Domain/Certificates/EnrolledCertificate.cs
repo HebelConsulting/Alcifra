@@ -49,4 +49,12 @@ public sealed class EnrolledCertificate : ITenantScoped
 
     /// <summary>When the certificate was revoked, from the document's Revoked on field: a state, never a deletion.</summary>
     public DateTimeOffset? RevokedAt { get; set; }
+
+    /// <summary>
+    /// The trusted attestation root the certificate's key is attested to (#1790, ADR 0963), or null when it is not
+    /// attested. DERIVED like every column here: verified again from <see cref="CertificateAttestation"/> at every
+    /// projection and rebuild, against every root the installation knows, switched on or not, so switching a root does
+    /// not touch a certificate: the reader answer asks whether this root is trusted NOW.
+    /// </summary>
+    public string? AttestationRootThumbprint { get; set; }
 }

@@ -31,6 +31,31 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         public DateTimeOffset? RevokedAt { get; set; }
         public string? FailsPolicy { get; set; }
         public bool Usable { get; set; }
+
+        /// <summary>"attested", "rootNotTrusted" or "notAttested" (ADR 0963): what the key's attestation is worth here.</summary>
+        public string Attestation { get; set; } = "notAttested";
+
+        /// <summary>The name of the root the key is attested to, where it is.</summary>
+        public string? AttestationRoot { get; set; }
+
+        /// <summary>The token's serial number, as its attestation states it.</summary>
+        public string? DeviceSerial { get; set; }
+    }
+
+    /// <summary>A key's attestation as the enrolling client read it from the token (ADR 0963).</summary>
+    public class AttestationRequest
+    {
+        /// <summary>The attestation format; "piv" is verified today.</summary>
+        public string Format { get; set; } = string.Empty;
+
+        /// <summary>The token's certificate for the key slot, PEM.</summary>
+        public string AttestationCertificatePem { get; set; } = string.Empty;
+
+        /// <summary>The token's attestation certificate that signed it, then any further intermediates, PEM, concatenated.</summary>
+        public string IntermediateCertificatePem { get; set; } = string.Empty;
+
+        /// <summary>The key slot it was read from ("9d").</summary>
+        public string? Slot { get; set; }
     }
 
     public class EnrolRequest
@@ -38,6 +63,9 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         public string CertificatePem { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
         public string? Holder { get; set; }
+
+        /// <summary>The key's attestation; required unless the tenant allows hardware without attestation (ADR 0963).</summary>
+        public AttestationRequest? Attestation { get; set; }
     }
 
     [HttpGet]
@@ -69,8 +97,13 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
     public async Task<IActionResult> Enrol([FromBody] EnrolRequest request, CancellationToken cancellationToken)
     {
         await enrolment.EnsureOfferedAsync(cancellationToken);
-        var enrolled = await enrolment.EnrolAsync(request.CertificatePem, request.Label, request.Holder, cancellationToken);
-        return Created($"/api/documents/{enrolled.DocumentId}", Resource(enrolled));
+        var evidence = request.Attestation is { } a
+            ? new Infrastructure.Certificates.Attestation.AttestationEvidence(a.Format, a.AttestationCertificatePem, a.IntermediateCertificatePem, a.Slot)
+            : null;
+        var (enrolled, created) = await enrolment.EnrolAsync(request.CertificatePem, request.Label, request.Holder, evidence, cancellationToken);
+
+        // An existing enrolment that gained its attestation is not a new resource: 200 with what it now is.
+        return created ? Created($"/api/documents/{enrolled.DocumentId}", Resource(enrolled)) : Ok(Resource(enrolled));
     }
 
     private static EnrolledResource Resource(CertificateEnrolment.Listed row) => new()
@@ -83,6 +116,9 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         RevokedAt = row.RevokedAt,
         FailsPolicy = row.FailsPolicy,
         Usable = row.Usable,
+        Attestation = row.Attestation,
+        AttestationRoot = row.AttestationRoot,
+        DeviceSerial = row.DeviceSerial,
         Links = [new Link("document", $"/api/documents/{row.DocumentId}", "GET")],
     };
 }

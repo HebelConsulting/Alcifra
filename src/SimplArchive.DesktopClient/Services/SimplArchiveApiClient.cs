@@ -18,6 +18,7 @@ public sealed class SimplArchiveApiClient
     private SearchClient? _search;
     private AdminClient? _admin;
     private CertificateSettingsClient? _certificateSettings;
+    private SimplArchive.ApiClient.EnrolledCertificatesClient? _enrolledCertificates;
     private DocumentsClient? _documents;
     private WorkflowClient? _workflow;
     private NotificationsClient? _notifications;
@@ -60,6 +61,9 @@ public sealed class SimplArchiveApiClient
 
     /// <summary>Certificate enrolment's tenant settings (ADR 0936).</summary>
     public CertificateSettingsClient CertificateSettings => _certificateSettings ??= new CertificateSettingsClient(Core);
+
+    // The caller's enrolled reader certificates and their attestation (ADR 0963).
+    public SimplArchive.ApiClient.EnrolledCertificatesClient EnrolledCertificates => _enrolledCertificates ??= new SimplArchive.ApiClient.EnrolledCertificatesClient(Core);
 
     /// <summary>The documents area (#443, the finale).</summary>
     public DocumentsClient Documents => _documents ??= new DocumentsClient(Core, () => Reminders);

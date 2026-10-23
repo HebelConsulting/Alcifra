@@ -198,6 +198,11 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
     // The core's certificate registry (#1790, ADR 0935): derived from Certificate documents, machine-owned.
     public DbSet<SimplArchive.Domain.Certificates.EnrolledCertificate> EnrolledCertificates => Set<SimplArchive.Domain.Certificates.EnrolledCertificate>();
 
+    // Attested enrolment (#1790, ADR 0963): the installation's trusted roots, a tenant's switched-off ones, the evidence.
+    public DbSet<SimplArchive.Domain.Certificates.TrustedAttestationRoot> TrustedAttestationRoots => Set<SimplArchive.Domain.Certificates.TrustedAttestationRoot>();
+    public DbSet<SimplArchive.Domain.Certificates.TenantDisabledAttestationRoot> TenantDisabledAttestationRoots => Set<SimplArchive.Domain.Certificates.TenantDisabledAttestationRoot>();
+    public DbSet<SimplArchive.Domain.Certificates.CertificateAttestation> CertificateAttestations => Set<SimplArchive.Domain.Certificates.CertificateAttestation>();
+
     public DbSet<ResourceBlock> ResourceBlocks => Set<ResourceBlock>();
 
     public DbSet<ResourceAvailability> ResourceAvailability => Set<ResourceAvailability>();

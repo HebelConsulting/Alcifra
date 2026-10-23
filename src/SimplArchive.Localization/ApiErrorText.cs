@@ -67,6 +67,10 @@ public static class ApiErrorText
         "ETAG_MISMATCH" => Strings.Get("ApiErrEtagMismatch"),
         // An offline export with no recovery certificate (ADR 0960): the fix is a tenant administrator's.
         "RECOVERY_CERTIFICATE_REQUIRED" => Strings.Get("ApiErrRecoveryCertificateRequired"),
+        "CERTIFICATE_NOT_ATTESTED" => Strings.Get("ApiErrCertificateNotAttested"),
+        "CERTIFICATE_ATTESTATION_INVALID" => Strings.Get("ApiErrCertificateAttestationInvalid"),
+        "CERTIFICATE_ATTESTATION_KEY_MISMATCH" => Strings.Get("ApiErrCertificateAttestationKeyMismatch"),
+        "CERTIFICATE_ATTESTATION_ROOT_NOT_TRUSTED" => Strings.Get("ApiErrCertificateAttestationRootNotTrusted"),
         "IF_MATCH_REQUIRED" => Strings.Get("ApiErrIfMatchRequired"),
         "STORAGE_QUOTA_EXCEEDED" => Strings.Get("ApiErrStorageQuotaExceeded"),
         "INVALID_WORKFLOW_TRANSITION" => Strings.Get("ApiErrWorkflowTransitionNotAllowed"),

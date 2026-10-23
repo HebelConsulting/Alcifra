@@ -42,6 +42,12 @@ public sealed class CertificateManifest
 
         /// <summary>The serial, for the operator's own reconciliation — not used to enrol.</summary>
         public string Serial { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The key's attestation (ADR 0963), in the enrolment request's own shape: required unless the tenant allows
+        /// hardware without attestation. Re-importing a row that gained one attests the existing enrolment.
+        /// </summary>
+        public AttestationFiles? Attestation { get; set; }
     }
 
     public sealed class RevokedCertificate

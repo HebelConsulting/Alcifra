@@ -150,10 +150,17 @@ public sealed class ProfileClient(ApiCore core)
     /// being assumed here: the core is filling in a form on the module's behalf, and a second module taking
     /// <c>pem</c> instead of <c>certificatePem</c> must need no change on this side.
     /// </remarks>
+    /// <param name="attestation">The key's attestation as read from the token (ADR 0963), sent as <c>attestation</c>.</param>
     public async Task<HttpResponseMessage> EnrolAsync(
-        SelfEnrolment enrolment, string certificatePem, string? label, CancellationToken cancellationToken = default)
+        SelfEnrolment enrolment, string certificatePem, string? label, CancellationToken cancellationToken = default,
+        EnrolledCertificatesClient.KeyAttestation? attestation = null)
     {
-        var body = new Dictionary<string, string?> { [enrolment.Field] = certificatePem };
+        var body = new Dictionary<string, object?> { [enrolment.Field] = certificatePem };
+        if (attestation is not null)
+        {
+            body["attestation"] = attestation;
+        }
+
         if (!string.IsNullOrWhiteSpace(enrolment.LabelField) && !string.IsNullOrWhiteSpace(label))
         {
             body[enrolment.LabelField] = label;

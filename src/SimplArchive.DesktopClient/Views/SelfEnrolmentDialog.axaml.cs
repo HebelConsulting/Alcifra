@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -35,6 +37,7 @@ public partial class SelfEnrolmentDialog : Window
     private readonly SimplArchiveApiClient _api;
     private ProfileClient.SelfEnrolment? _enrolment;
     private string? _pem;
+    private SimplArchive.ApiClient.EnrolledCertificatesClient.KeyAttestation? _attestation;
 
     // Parameterless ctor for the XAML designer/loader only.
     public SelfEnrolmentDialog() : this(null!)
@@ -71,6 +74,7 @@ public partial class SelfEnrolmentDialog : Window
             DisabledText.IsVisible = !_enrolment.Enabled;
             FormPanel.IsVisible = _enrolment.Enabled;
             LabelBox.IsVisible = !string.IsNullOrWhiteSpace(_enrolment.LabelField);
+            await ShowEnrolledAsync();
         }
         catch (Exception)
         {
@@ -79,6 +83,37 @@ public partial class SelfEnrolmentDialog : Window
             // rendering a Window rather than trusting that its strings are the right ones.
             StatusText.Text = Strings.Get("EnrolLoadError");
         }
+    }
+
+    /// <summary>The caller's enrolled certificates with their attestation state (ADR 0963), as the web shows them.</summary>
+    private async Task ShowEnrolledAsync()
+    {
+        IReadOnlyList<SimplArchive.ApiClient.EnrolledCertificatesClient.Enrolled> mine;
+        try
+        {
+            mine = await _api.EnrolledCertificates.GetMineAsync();
+        }
+        catch (Exception e) when (e is HttpRequestException or JsonException)
+        {
+            // The list is a courtesy beside the form: an installation that cannot answer it still lets you enrol.
+            DesktopLog.Warn(e, "Reading the caller's enrolled certificates failed");
+            return;
+        }
+
+        EnrolledPanel.IsVisible = _enrolment?.ModuleId == "core";
+        EnrolledText.Text = mine.Count == 0
+            ? Strings.Get("EnrolNoCertificates")
+            : string.Join(Environment.NewLine, mine.Select(Describe));
+    }
+
+    internal static string Describe(SimplArchive.ApiClient.EnrolledCertificatesClient.Enrolled row)
+    {
+        var (key, namesRoot) = CertificateAttestationText.For(row.Attestation, row.Usable);
+        var state = namesRoot ? string.Format(Strings.Get(key), row.AttestationRoot) : Strings.Get(key);
+        var token = row.DeviceSerial is { Length: > 0 } serial && row.Attestation == "attested"
+            ? $", {string.Format(Strings.Get("EnrolAttestedToken"), serial)}"
+            : string.Empty;
+        return $"{row.Label}: {state}{token}";
     }
 
     private void OnChoose(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
@@ -106,6 +141,7 @@ public partial class SelfEnrolmentDialog : Window
         await stream.CopyToAsync(buffer);
 
         Accept(buffer.ToArray(), files[0].Name);
+        _attestation = null;   // a file carries no attestation; the tenant may still allow it
     });
 
     // From a card or token (PKCS#11): the picker lists the device's certificates, flagging one that cannot receive
@@ -117,6 +153,14 @@ public partial class SelfEnrolmentDialog : Window
         if (picker.ChosenPem is { Length: > 0 } pem)
         {
             Accept(System.Text.Encoding.UTF8.GetBytes(pem), Strings.Get("SmimeAddCard").TrimEnd('…'));
+
+            // The key's attestation, read from the token with the certificate (ADR 0963): what makes the enrolment trusted,
+            // and what lets a key enrolled before attestation was required come back without a new key.
+            _attestation = picker.ChosenAttestation;
+            if (_pem is not null)
+            {
+                StatusText.Text = Strings.Get(_attestation is null ? "EnrolAttestationMissing" : "EnrolAttestationRead");
+            }
         }
     });
 
@@ -192,11 +236,12 @@ public partial class SelfEnrolmentDialog : Window
         EnrolButton.IsEnabled = false;
         StatusText.Text = Strings.Get("EnrolSending");
 
-        using var response = await _api.Profile.EnrolAsync(_enrolment, _pem, LabelBox.Text);
+        using var response = await _api.Profile.EnrolAsync(_enrolment, _pem, LabelBox.Text, attestation: _attestation);
         if (response.IsSuccessStatusCode)
         {
             StatusText.Text = Strings.Get("EnrolDone");
             FormPanel.IsVisible = false;
+            await ShowEnrolledAsync();
             return;
         }
 
@@ -219,6 +264,14 @@ public partial class SelfEnrolmentDialog : Window
         try
         {
             var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+            // The attestation refusals (ADR 0963) are the core's own codes, translated here: their fixes differ (read the
+            // key from the token, choose the right slot, ask an administrator to trust the hardware).
+            if (problem.TryGetProperty("errorCode", out var code) && code.GetString() is { } errorCode
+                && (errorCode.StartsWith("CERTIFICATE_ATTESTATION_", StringComparison.Ordinal) || errorCode == "CERTIFICATE_NOT_ATTESTED"))
+            {
+                return SimplArchive.Localization.ApiErrorText.For(errorCode);
+            }
             if (problem.TryGetProperty("detail", out var detail)
                 && detail.GetString() is { Length: > 0 } said)
             {

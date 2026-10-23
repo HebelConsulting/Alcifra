@@ -21,7 +21,25 @@
                    module enrolling something else must read correctly here with no change. *@
                 <MudText Typo="Typo.subtitle1">@_enrolment.Title</MudText>
 
-                @if (!_enrolment.Enabled)
+                @if (IsCore)
+                {
+                    @* NO ENROLMENT FROM THE WEB for reader certificates (owner decision 2026-10-22, ADR 0963): a browser cannot
+                       read a key's attestation from the token, so it shows what is enrolled and where to enrol. *@
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@Strings.Get("EnrolWebPointer")</MudAlert>
+                    <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("EnrolYourCertificates")</MudText>
+                    @if (_mine.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("EnrolNoCertificates")</MudText>
+                    }
+                    @foreach (var row in _mine)
+                    {
+                        <div class="sa-enrolled-certificate mt-1">
+                            <MudText Typo="Typo.body2"><b>@row.Label</b></MudText>
+                            <MudText Typo="Typo.caption" Class="@(row.Usable ? "mud-text-secondary" : "mud-warning-text")">@Describe(row)</MudText>
+                        </div>
+                    }
+                }
+                else if (!_enrolment.Enabled)
                 {
                     @* DISABLED WITH THE REASON rather than hidden: hiding would be indistinguishable from
                        "this installation does not do this at all", which is exactly the distinction the
@@ -60,8 +78,11 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton Disabled="@(_busy || _pem is null)" Color="Color.Primary" Variant="Variant.Filled"
-                   OnClick="EnrolAsync">@Strings.Get("EnrolSubmit")</MudButton>
+        @if (!IsCore)
+        {
+            <MudButton Disabled="@(_busy || _pem is null)" Color="Color.Primary" Variant="Variant.Filled"
+                       OnClick="EnrolAsync">@Strings.Get("EnrolSubmit")</MudButton>
+        }
         <MudButton OnClick="@(() => Dialog.Close())">@Strings.Get("Close")</MudButton>
     </DialogActions>
 </MudDialog>
@@ -78,6 +99,10 @@
     private Severity _statusSeverity = Severity.Error;
     private bool _busy;
     private bool _failed;
+    private List<EnrolledDto> _mine = [];
+
+    // The core's own reader-certificate enrolment (ADR 0936), which the web shows and does not perform (ADR 0963).
+    private bool IsCore => _enrolment?.ModuleId == "core";
 
     protected override async Task OnInitializedAsync()
     {
@@ -97,6 +122,10 @@
             // for a list of one is a step with no outcome; the resource already carries what a selector
             // would need when a second module appears.
             _enrolment = listing?.Items?.FirstOrDefault();
+            if (IsCore && await ApiRoot.HrefAsync("certificates") is { Length: > 0 } certificates)
+            {
+                _mine = await Http.GetFromJsonAsync<List<EnrolledDto>>(certificates) ?? [];
+            }
         }
         catch (Exception)
         {
@@ -206,6 +235,17 @@
 
         return Strings.Get(response.StatusCode == System.Net.HttpStatusCode.Forbidden ? "EnrolDisabled" : "EnrolFailed");
     }
+
+    private static string Describe(EnrolledDto row)
+    {
+        var (key, namesRoot) = SimplArchive.Presentation.CertificateAttestationText.For(row.Attestation ?? "notAttested", row.Usable);
+        var state = namesRoot ? string.Format(Strings.Get(key), row.AttestationRoot) : Strings.Get(key);
+        return row.Attestation == "attested" && row.DeviceSerial is { Length: > 0 } serial
+            ? $"{state}, {string.Format(Strings.Get("EnrolAttestedToken"), serial)}"
+            : state;
+    }
+
+    private sealed record EnrolledDto(string Label, bool Usable, string? Attestation, string? AttestationRoot, string? DeviceSerial);
 
     private sealed record ListingDto(List<SelfEnrolmentDto>? Items);
 

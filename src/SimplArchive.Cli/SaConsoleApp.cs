@@ -137,6 +137,27 @@ public static class SaConsoleApp
                 });
                 certificates.AddCommand<CertificateImportCommand>("import")
                     .WithDescription("Enrol and revoke in bulk from a CA manifest. Safe to re-run.");
+                certificates.AddBranch("attestation-roots", roots =>
+                {
+                    roots.SetDescription("Which of the installation's attestation roots this tenant trusts; a tenant may only switch some off (ADR 0963).");
+                    roots.AddCommand<CertificateAttestationRootListCommand>("list")
+                        .WithDescription("List the installation's roots and whether each is trusted here.");
+                    roots.AddCommand<CertificateAttestationRootDisableCommand>("disable")
+                        .WithDescription("Switch a root off for this tenant.");
+                    roots.AddCommand<CertificateAttestationRootEnableCommand>("enable")
+                        .WithDescription("Switch a root back on for this tenant.");
+                });
+            });
+
+            // The installation's trusted attestation roots (ADR 0963): a PLATFORM ADMINISTRATOR's surface, no client UI.
+            config.AddBranch("attestation-roots", roots =>
+            {
+                roots.SetDescription("The attestation roots this installation trusts, for a platform administrator (ADR 0963).");
+                roots.AddCommand<AttestationRootListCommand>("list").WithDescription("List the roots, shipped and uploaded.");
+                roots.AddCommand<AttestationRootAddCommand>("add").WithDescription("Upload a root's public certificate (switched off unless --enable).");
+                roots.AddCommand<AttestationRootEnableCommand>("enable").WithDescription("Trust a root.");
+                roots.AddCommand<AttestationRootDisableCommand>("disable").WithDescription("Stop trusting a root; keys attested to it stop addressing anyone.");
+                roots.AddCommand<AttestationRootRenameCommand>("rename").WithDescription("Rename a root.");
             });
 
             // The intray's recovery path (#799). The bytes an overwrite set aside have been preserved since

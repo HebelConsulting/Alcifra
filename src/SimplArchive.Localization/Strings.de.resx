@@ -6063,6 +6063,54 @@
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>Diese Organisation hat noch kein Wiederherstellungszertifikat für Offline-Exporte, deshalb kann keiner erstellt werden. Bitten Sie eine Mandantenadministratorin oder einen Mandantenadministrator, eines festzulegen.</value>
   </data>
+  <data name="EnrolWebPointer" xml:space="preserve">
+    <value>Leserzertifikate werden vom Token selbst registriert, der belegt, dass der Schlüssel auf ihm erzeugt wurde: mit dem Desktop-Client (Zertifikat hinterlegen, dann Karte oder Token hinzufügen…), dem Telefon oder saconsole. Hier sehen Sie, was für Sie registriert ist.</value>
+  </data>
+  <data name="EnrolYourCertificates" xml:space="preserve">
+    <value>Ihre registrierten Zertifikate</value>
+  </data>
+  <data name="EnrolNoCertificates" xml:space="preserve">
+    <value>Für Sie ist kein Leserzertifikat registriert.</value>
+  </data>
+  <data name="EnrolAttestedBy" xml:space="preserve">
+    <value>Bestätigt durch {0}</value>
+  </data>
+  <data name="EnrolAttestedToken" xml:space="preserve">
+    <value>Token {0}</value>
+  </data>
+  <data name="EnrolRootNotTrusted" xml:space="preserve">
+    <value>Bestätigt durch {0}, dem hier nicht vertraut wird: nichts Neues wird dafür versiegelt</value>
+  </data>
+  <data name="EnrolNotAttested" xml:space="preserve">
+    <value>Nicht bestätigt: nichts Neues wird dafür versiegelt. Registrieren Sie ihn erneut vom Token.</value>
+  </data>
+  <data name="EnrolNotAttestedAllowed" xml:space="preserve">
+    <value>Nicht bestätigt (diese Organisation erlaubt Hardware ohne Bestätigung)</value>
+  </data>
+  <data name="EnrolAttestationRead" xml:space="preserve">
+    <value>Die Bestätigung des Schlüssels wurde vom Token gelesen und wird mitgesendet.</value>
+  </data>
+  <data name="EnrolAttestationMissing" xml:space="preserve">
+    <value>Der Token bietet für diesen Schlüssel keine Bestätigung (der Schlüssel wurde möglicherweise importiert). Er wird nur angenommen, wo die Organisation Hardware ohne Bestätigung erlaubt.</value>
+  </data>
+  <data name="TenantCertUnattested" xml:space="preserve">
+    <value>Hardware ohne Bestätigung erlauben</value>
+  </data>
+  <data name="TenantCertUnattestedInfo" xml:space="preserve">
+    <value>Standardmäßig aus: Ein Leserzertifikat wird nur angenommen, wenn sein Schlüssel nachweislich auf einem Hardware-Token erzeugt wurde, dessen Herstellerwurzel die Installation vertraut. Eingeschaltet werden auch Zertifikate ohne diesen Nachweis angenommen und als "nicht bestätigt" markiert; ein solcher Schlüssel kann ein Software-Schlüssel sein.</value>
+  </data>
+  <data name="ApiErrCertificateNotAttested" xml:space="preserve">
+    <value>Diese Organisation nimmt nur Schlüssel an, die nachweislich auf einem Hardware-Token erzeugt wurden. Registrieren Sie das Zertifikat mit dem Desktop-Client vom Token, der die Bestätigung liest.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
+    <value>Die Bestätigung des Schlüssels ist ungültig; das Zertifikat wurde nicht registriert.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationKeyMismatch" xml:space="preserve">
+    <value>Die Bestätigung gehört zu einem anderen Schlüssel als dem dieses Zertifikats. Wählen Sie das Zertifikat des Steckplatzes, aus dem sie gelesen wurde.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationRootNotTrusted" xml:space="preserve">
+    <value>Der Hersteller dieses Tokens wird von dieser Installation oder Organisation nicht als vertrauenswürdig eingestuft. Welche Hardware vertraut wird, entscheidet ein Administrator.</value>
+  </data>
   <data name="MobStoreHeading" xml:space="preserve">
     <value>Im Store</value>
   </data>

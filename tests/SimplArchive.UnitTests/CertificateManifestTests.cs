@@ -25,6 +25,37 @@ public sealed class CertificateManifestTests : IDisposable
 
     public void Dispose() => File.Delete(_path);
 
+    // ADR 0963: a row may carry its key's attestation, in the enrolment request's own shape; a row without one still reads.
+    [Fact]
+    public void A_row_may_carry_the_keys_attestation()
+    {
+        Write("""
+            {
+              "issued": [
+                {
+                  "holder": "anna@acme.test",
+                  "certificatePem": "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----",
+                  "attestation": {
+                    "format": "piv",
+                    "attestationCertificatePem": "-----BEGIN CERTIFICATE-----\nSLOT\n-----END CERTIFICATE-----",
+                    "intermediateCertificatePem": "-----BEGIN CERTIFICATE-----\nF9\n-----END CERTIFICATE-----",
+                    "slot": "9d"
+                  }
+                },
+                { "holder": "tom@acme.test", "certificatePem": "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----" }
+              ]
+            }
+            """);
+
+        var manifest = CertificateManifest.Read(_path);
+
+        var attested = manifest.Issued[0].Attestation!;
+        Assert.Equal(("piv", "9d"), (attested.Format, attested.Slot));
+        Assert.Contains("SLOT", attested.AttestationCertificatePem, StringComparison.Ordinal);
+        Assert.Contains("F9", attested.IntermediateCertificatePem, StringComparison.Ordinal);
+        Assert.Null(manifest.Issued[1].Attestation);
+    }
+
     [Fact]
     public void The_manifest_caconsole_writes_is_read()
     {

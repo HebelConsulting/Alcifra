@@ -21,7 +21,10 @@ namespace SimplArchive.IntegrationTests;
 // that licenses enrolment gets in place of its own. The cases are weighted towards the direction that must never be
 // missed — a certificate that STOPS being addressable (revoked, deleted, re-masked) — because a stale row there is a
 // document sealed to a key its holder has given up.
-public class CertificateRegistryTests
+//
+// These cases are about the projection, so their tenant admits hardware without attestation (ADR 0963): the attestation
+// rules are CertificateRegistryTests.Attestation.cs's subject, against a tenant that does not.
+public partial class CertificateRegistryTests
 {
     private sealed record Seed(SqliteConnection Connection, Guid TenantId, Guid UserId, InMemoryObjectStorage Storage);
 
@@ -29,7 +32,7 @@ public class CertificateRegistryTests
         new(new DbContextOptionsBuilder<SimplArchiveDbContext>().UseSqlite(connection).Options,
             new CurrentTenantAccessor { TenantId = tenantId });
 
-    private static async Task<Seed> SeedAsync()
+    private static async Task<Seed> SeedAsync(bool unattestedAllowed = true)
     {
         var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
@@ -42,7 +45,7 @@ public class CertificateRegistryTests
         var userId = Guid.NewGuid();
         using (var seed = Context(connection))
         {
-            seed.Tenants.Add(new Tenant { Id = tenantId, Name = "T", CreatedAt = DateTimeOffset.UtcNow });
+            seed.Tenants.Add(new Tenant { Id = tenantId, Name = "T", CreatedAt = DateTimeOffset.UtcNow, CertificateUnattestedHardwareAllowed = unattestedAllowed });
             seed.Users.Add(new User { Id = userId, TenantId = tenantId, Email = "alice@example.com", DisplayName = "Alice", CreatedAt = DateTimeOffset.UtcNow });
             await seed.SaveChangesAsync();
         }

@@ -744,10 +744,61 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.ToTable("DavPushSubscriptions");
                 });
 
+            modelBuilder.Entity("SimplArchive.Domain.Certificates.CertificateAttestation", b =>
+                {
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AttestationCertificatePem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceSerial")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("FirmwareVersion")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("IntermediateCertificatePem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slot")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("DocumentId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("CertificateAttestations");
+                });
+
             modelBuilder.Entity("SimplArchive.Domain.Certificates.EnrolledCertificate", b =>
                 {
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("AttestationRootThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
 
                     b.Property<string>("CertificatePem")
                         .IsRequired()
@@ -793,6 +844,70 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.HasIndex("TenantId", "UserId");
 
                     b.ToTable("EnrolledCertificates");
+                });
+
+            modelBuilder.Entity("SimplArchive.Domain.Certificates.TenantDisabledAttestationRoot", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RootId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("TenantId", "RootId");
+
+                    b.HasIndex("RootId");
+
+                    b.ToTable("TenantDisabledAttestationRoots");
+                });
+
+            modelBuilder.Entity("SimplArchive.Domain.Certificates.TrustedAttestationRoot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CatalogueKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CertificatePem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Thumbprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CatalogueKey")
+                        .IsUnique()
+                        .HasFilter("\"CatalogueKey\" IS NOT NULL");
+
+                    b.HasIndex("Thumbprint")
+                        .IsUnique();
+
+                    b.ToTable("TrustedAttestationRoots");
                 });
 
             modelBuilder.Entity("SimplArchive.Domain.Documents.ChatMessage", b =>
@@ -2571,6 +2686,9 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.Property<bool>("CertificateSelfServiceEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("CertificateUnattestedHardwareAllowed")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("CheckoutTtlDays")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -3533,6 +3651,21 @@ namespace SimplArchive.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SimplArchive.Domain.Certificates.CertificateAttestation", b =>
+                {
+                    b.HasOne("SimplArchive.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SimplArchive.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SimplArchive.Domain.Certificates.EnrolledCertificate", b =>
                 {
                     b.HasOne("SimplArchive.Domain.Documents.Document", null)
@@ -3550,6 +3683,21 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.HasOne("SimplArchive.Domain.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SimplArchive.Domain.Certificates.TenantDisabledAttestationRoot", b =>
+                {
+                    b.HasOne("SimplArchive.Domain.Certificates.TrustedAttestationRoot", null)
+                        .WithMany()
+                        .HasForeignKey("RootId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SimplArchive.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

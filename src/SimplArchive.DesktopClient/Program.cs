@@ -129,8 +129,10 @@ internal static class Program
             Services.DesktopLog.Info("module: {Module}", module);
             try
             {
-                var found = Services.CardCertificates.Read(module);
-                Services.DesktopLog.Info("certificates found: {Count}", found.Count);
+                var all = Services.CardCertificates.Read(module);
+                var found = Services.CardCertificates.Choices(all);
+                Services.DesktopLog.Info("certificates found: {Count} (plus {Evidence} attestation certificate(s), not offered)",
+                    found.Count, all.Count - found.Count);
                 foreach (var one in found)
                 {
                     var concern = Services.CardCertificates.Concern(one.Certificate, DateTimeOffset.UtcNow);
@@ -904,7 +906,7 @@ internal static class Program
             return false;
         }
 
-        if (Services.CardCertificates.Read(module).FirstOrDefault() is not { } onCard)
+        if (Services.CardCertificates.Choices(Services.CardCertificates.Read(module)).FirstOrDefault() is not { } onCard)
         {
             Services.DesktopLog.Warn("no certificate on any token in a reader");
             return false;

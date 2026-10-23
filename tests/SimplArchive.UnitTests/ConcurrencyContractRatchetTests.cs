@@ -40,6 +40,7 @@ public partial class ConcurrencyContractRatchetTests
         ["WorkflowState"] = "WorkflowStateVerbs",
         ["Group"] = "GroupVerbs",
         ["TagDefinition"] = "TagDefinitionVerbs",
+        ["TrustedAttestationRoot"] = "TrustedAttestationRootVerbs",
     };
 
     // The DbSet each entity actually lives in. Explicit, because naive pluralisation is WRONG for one of the
@@ -59,6 +60,7 @@ public partial class ConcurrencyContractRatchetTests
         ["WorkflowState"] = "WorkflowStates",
         ["Group"] = "Groups",
         ["TagDefinition"] = "TagDefinitions",
+        ["TrustedAttestationRoot"] = "TrustedAttestationRoots",
     };
 
     // Pairs where the controller only ever CREATES that entity. A create has no prior version to conflict
@@ -156,6 +158,12 @@ public partial class ConcurrencyContractRatchetTests
     // claim is removed rather than left standing unverifiable.
     private static readonly Dictionary<string, string> ReadsOnly = new(StringComparer.Ordinal)
     {
+        ["CertificateAttestationRootsController.cs:TrustedAttestationRoot"] =
+            "Reads only: lists the installation's roots and checks the selected ids exist (ADR 0963). What it writes is the "
+            + "tenant's join rows, under TenantVerbs.",
+        ["AttestationRootsController.cs:Tenant"] =
+            "Reads only: lists the active tenants to record a platform administrator's root change in each (ADR 0963). "
+            + "What it writes is TrustedAttestationRoot, through TrustedAttestationRootVerbs.",
         ["CertificateSettingsController.cs:Document"] =
             "Reads only: the PUT checks that the chosen parent folder exists (ADR 0936). What it writes is two Tenant "
             + "columns, through TenantVerbs.",

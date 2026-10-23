@@ -217,6 +217,16 @@ public static class AuditActions
     public const string CertificateEnrolled = "Certificate.Enrolled";
     public const string CertificatePolicyChanged = "Certificate.PolicyChanged";
 
+    // Attested enrolment (ADR 0963): an enrolment refused (the code and the holder, never the certificate), evidence added
+    // to an enrolment that had none, the tenant's switch for hardware without attestation, its selection of roots, and the
+    // installation's roots (recorded in every active tenant, since every tenant's readers depend on them).
+    public const string CertificateEnrolmentRefused = "Certificate.EnrolmentRefused";
+    public const string CertificateAttestationAdded = "Certificate.AttestationAdded";
+    public const string CertificateUnattestedHardwareChanged = "Certificate.UnattestedHardwareChanged";
+    public const string CertificateAttestationRootsSelected = "Certificate.AttestationRootsSelected";
+    public const string AttestationRootAdded = "AttestationRoot.Added";
+    public const string AttestationRootChanged = "AttestationRoot.Changed";
+
     // Booking (ADRs 0735/0744/0774, issue #1092). Recorded on every entrance, which is the whole point of
     // adding these: a booking made over CalDAV was already recorded as a DOCUMENT write ("Filed over CalDAV")
     // while the same booking made in the app was recorded nowhere, so absence of an event meant "it did not

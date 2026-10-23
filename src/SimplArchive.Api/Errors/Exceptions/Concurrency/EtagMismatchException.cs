@@ -53,4 +53,8 @@ public sealed class EtagMismatchException : ConcurrencyException
 
     public static EtagMismatchException ForPushRegistration() =>
         new("The phone's push registration has been modified since it was last read.");
+
+    // ADR 0963: a trusted attestation root, renamed or switched by a second platform administrator meanwhile.
+    public static EtagMismatchException ForAttestationRoot() =>
+        new("The attestation root has been modified since it was last read.");
 }

@@ -56,3 +56,7 @@ public sealed class TagDefinitionVerbs(SimplArchiveDbContext dbContext)
 /// <summary>The verb contract for <see cref="PhonePushRegistration"/>: one user, several clients (SimplArchiveMobile #20).</summary>
 public sealed class PhonePushRegistrationVerbs(SimplArchiveDbContext dbContext)
     : EntityVerbContract<PhonePushRegistration>(dbContext, EtagMismatchException.ForPushRegistration);
+
+/// <summary>The verb contract for <see cref="Domain.Certificates.TrustedAttestationRoot"/>: renamed and switched (ADR 0963).</summary>
+public sealed class TrustedAttestationRootVerbs(SimplArchiveDbContext dbContext)
+    : EntityVerbContract<Domain.Certificates.TrustedAttestationRoot>(dbContext, EtagMismatchException.ForAttestationRoot);

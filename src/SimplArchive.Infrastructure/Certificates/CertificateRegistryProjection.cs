@@ -65,9 +65,9 @@ public static class CertificateRegistryProjection
         else
         {
             (existing.UserId, existing.CertificatePem, existing.Label, existing.Thumbprint, existing.Serial,
-                existing.NotBefore, existing.NotAfter, existing.RevokedAt) =
+                existing.NotBefore, existing.NotAfter, existing.RevokedAt, existing.AttestationRootThumbprint) =
                 (derived.UserId, derived.CertificatePem, derived.Label, derived.Thumbprint, derived.Serial,
-                    derived.NotBefore, derived.NotAfter, derived.RevokedAt);
+                    derived.NotBefore, derived.NotAfter, derived.RevokedAt, derived.AttestationRootThumbprint);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -153,6 +153,8 @@ public static class CertificateRegistryProjection
             // The one fact not in the certificate: a revocation a person records on the document.
             RevokedAt = DateTimeOffset.TryParse(Field("Revoked on"), CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var revoked) ? revoked : null,
+            // Verified again from the stored evidence every time (ADR 0963): the evidence is the truth, this its reading.
+            AttestationRootThumbprint = await Attestation.AttestationTrust.RootOfAsync(db, documentId, leaf, logger, cancellationToken),
         };
     }
 }

@@ -21,6 +21,18 @@ public sealed class CertificateEnrolSettings : TenantSessionSettings
     [CommandOption("--label")]
     [Description("What the holder calls this key: \"YubiKey 5C\", \"work laptop\".")]
     public string? Label { get; init; }
+
+    [CommandOption("--attestation <file>")]
+    [Description("The key slot's attestation certificate, as the token's tool exports it (ADR 0963). Required unless the tenant allows hardware without attestation.")]
+    public string? Attestation { get; init; }
+
+    [CommandOption("--attestation-intermediate <file>")]
+    [Description("The token's attestation certificate that signed it (the PIV F9 certificate); repeat for further intermediates.")]
+    public string[] AttestationIntermediates { get; init; } = [];
+
+    [CommandOption("--slot <slot>")]
+    [Description("The key slot the certificate is in, e.g. 9d; informational.")]
+    public string? Slot { get; init; }
 }
 
 /// <summary>
@@ -48,6 +60,7 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
         }
 
         var pem = PemOf(await File.ReadAllBytesAsync(settings.File, cancellationToken), settings.File);
+        var attestation = AttestationFiles.Read(settings.Attestation, settings.AttestationIntermediates, settings.Slot);
 
         using var http = CertificateEndpoint.Client(settings);
         var api = new SimplArchiveApi(http);
@@ -57,20 +70,24 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
         {
             var enrolled = await api.PostAsync(
                 certificates,
-                new { certificatePem = pem, label = settings.Label ?? string.Empty, holder = settings.Holder },
+                new { certificatePem = pem, label = settings.Label ?? string.Empty, holder = settings.Holder, attestation },
                 cancellationToken);
 
             var label = enrolled.TryGetProperty("label", out var l) ? l.GetString() : null;
             var serial = enrolled.TryGetProperty("serial", out var s) ? s.GetString() : null;
 
+            var state = enrolled.TryGetProperty("attestation", out var a) ? a.GetString() : null;
             logger.LogInformation(
-                "Enrolled {Certificate} (serial {Serial}). Content addressed to this reader is now enveloped to it as well.",
-                label ?? "the certificate", serial is { Length: > 0 } ? serial : "none");
+                "Enrolled {Certificate} (serial {Serial}), {Attestation}. {Effect}",
+                label ?? "the certificate", serial is { Length: > 0 } ? serial : "none", state ?? "attestation not reported",
+                enrolled.TryGetProperty("usable", out var usable) && usable.ValueKind == System.Text.Json.JsonValueKind.False
+                    ? "It does NOT address its holder here (see saconsole certificates list)."
+                    : "Content addressed to this reader is now enveloped to it as well.");
 
             return 0;
         }
         catch (CliException exception) when (exception.Message.Contains(
-            "ENCRYPTION_CERTIFICATE_ALREADY_ENROLLED", StringComparison.Ordinal))
+            "CERTIFICATE_ALREADY_ENROLLED", StringComparison.Ordinal))   // the core's code and the module's ENCRYPTION_ one
         {
             // NOT a failure worth a non-zero exit on its own terms — the state the caller asked for already
             // obtains. Reported as unchanged, with the server's own sentence, which says WHO holds it when

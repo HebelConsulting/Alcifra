@@ -16,7 +16,7 @@ namespace SimplArchive.EndToEndTests;
 // transaction (ADR 0935), and answered as the reader's certificates. The policy is replaced only under If-Match.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-2")]
-public class CertificateEnrolmentTests
+public partial class CertificateEnrolmentTests
 {
     private const string LicensesVariable = "SIMPLARCHIVE_TESTMODULE_LICENSES_ENROLMENT";
     private const string VerifyKeyVariable = "SIMPLARCHIVE_TESTMODULE_VERIFY_KEY";
@@ -205,16 +205,18 @@ public class CertificateEnrolmentTests
         return await client.SendAsync(request);
     }
 
-    private static Task SetCertificateSettingsAsync(Rig rig, bool selfService, Guid parent) =>
-        SetCertificateSettingsAsync(rig.Admin, selfService, parent);
+    // The enrolment mechanics are tested with hardware without attestation ALLOWED (ADR 0963), so a plain self-signed
+    // certificate is enrolled; the attestation rules are CertificateEnrolmentTests.Attestation.cs's subject.
+    private static Task SetCertificateSettingsAsync(Rig rig, bool selfService, Guid parent, bool unattested = true) =>
+        SetCertificateSettingsAsync(rig.Admin, selfService, parent, unattested);
 
-    private static async Task SetCertificateSettingsAsync(HttpClient client, bool selfService, Guid parent)
+    private static async Task SetCertificateSettingsAsync(HttpClient client, bool selfService, Guid parent, bool unattested = true)
     {
         var href = Links(await TestJson.Get(client, "/api"))["certificateSettings"];
         using var read = await client.GetAsync(href);
         await TestJson.Read(read);
         using var write = await PutWithTagAsync(client, href,
-            new { selfServiceEnabled = selfService, parentFolderId = parent }, read.Headers.ETag!.Tag);
+            new { selfServiceEnabled = selfService, parentFolderId = parent, unattestedHardwareAllowed = unattested }, read.Headers.ETag!.Tag);
         await TestJson.Read(write);
     }
 

@@ -31,6 +31,13 @@
                        Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />
         </StackPanel>
 
+        <!-- What is enrolled for this person, and what each key's attestation is worth here (ADR 0963): a key that is
+             "not attested" seals nothing new, and enrolling it again from the token is the way back. -->
+        <StackPanel x:Name="EnrolledPanel" IsVisible="False" Spacing="4">
+            <TextBlock Text="{loc:Tr EnrolYourCertificates}" FontWeight="SemiBold" FontSize="12" />
+            <TextBlock x:Name="EnrolledText" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+
         <TextBlock x:Name="StatusText" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" />
 
         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">

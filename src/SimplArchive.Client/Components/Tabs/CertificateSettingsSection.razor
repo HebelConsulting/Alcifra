@@ -29,6 +29,12 @@
         }
         <InfoButton Text="@(Strings.Get("TenantCertParentInfo"))" />
     </div>
+    @* Hardware without attestation (ADR 0963): off by default, an administrator's explicit, audited choice. *@
+    <div style="display:flex; align-items:center; gap:4px;" class="mb-4">
+        <MudSwitch T="bool" @bind-Value="_edit.UnattestedHardwareAllowed" Disabled="@(!Editing)" Color="Color.Primary" Class="flex-grow-1"
+                   Label="@Strings.Get("TenantCertUnattested")" />
+        <InfoButton Text="@(Strings.Get("TenantCertUnattestedInfo"))" />
+    </div>
 }
 
 @code {
@@ -88,7 +94,12 @@
 
         using var request = new HttpRequestMessage(HttpMethod.Put, _href)
         {
-            Content = JsonContent.Create(new { selfServiceEnabled = _edit.SelfServiceEnabled, parentFolderId = _edit.ParentFolderId }),
+            Content = JsonContent.Create(new
+            {
+                selfServiceEnabled = _edit.SelfServiceEnabled,
+                parentFolderId = _edit.ParentFolderId,
+                unattestedHardwareAllowed = _edit.UnattestedHardwareAllowed,
+            }),
         };
         if (_etag is not null)
         {
@@ -132,5 +143,6 @@
         public bool SelfServiceEnabled { get; set; }
         public Guid? ParentFolderId { get; set; }
         public string? ParentFolderName { get; set; }
+        public bool UnattestedHardwareAllowed { get; set; }
     }
 }

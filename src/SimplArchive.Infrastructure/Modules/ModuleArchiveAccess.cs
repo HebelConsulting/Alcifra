@@ -102,11 +102,19 @@ internal sealed class ModuleArchiveAccess(
         // Unrevoked certificates in SQL, the validity window in memory: comparing DateTimeOffset in a predicate throws
         // on SQLite (the tests' provider), and a tenant's enrolled set is small.
         var now = DateTimeOffset.UtcNow;
-        var holders = (await dbContext.EnrolledCertificates.AsNoTracking()
+        var enrolled = await dbContext.EnrolledCertificates.AsNoTracking()
                 .Where(c => c.RevokedAt == null)
-                .Select(c => new { c.UserId, c.NotBefore, c.NotAfter })
-                .ToListAsync(cancellationToken))
-            .Where(c => c.NotBefore <= now && c.NotAfter > now)
+                .Select(c => new { c.TenantId, c.UserId, c.NotBefore, c.NotAfter, c.AttestationRootThumbprint })
+                .ToListAsync(cancellationToken);
+        if (enrolled.Count == 0)
+        {
+            return [];
+        }
+
+        // A USABLE key, as the reader answer judges it (ADR 0963): a key not attested to a root trusted here seals nothing.
+        var trust = await Certificates.Attestation.AttestationTrust.ForTenantAsync(dbContext, enrolled[0].TenantId, cancellationToken);
+        var holders = enrolled
+            .Where(c => c.NotBefore <= now && c.NotAfter > now && trust.Addresses(c.AttestationRootThumbprint))
             .Select(c => c.UserId)
             .ToHashSet();
         if (holders.Count == 0)

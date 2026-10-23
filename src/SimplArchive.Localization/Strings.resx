@@ -6063,6 +6063,54 @@
   <data name="ApiErrRecoveryCertificateRequired" xml:space="preserve">
     <value>This organisation has no recovery certificate for offline exports yet, so none can be made. Ask a tenant administrator to set one.</value>
   </data>
+  <data name="EnrolWebPointer" xml:space="preserve">
+    <value>Reader certificates are enrolled from the token itself, which proves the key was made on it: use the desktop client (Enrol a certificate, then Add a card or token…), the phone, or saconsole. Here you see what is enrolled for you.</value>
+  </data>
+  <data name="EnrolYourCertificates" xml:space="preserve">
+    <value>Your enrolled certificates</value>
+  </data>
+  <data name="EnrolNoCertificates" xml:space="preserve">
+    <value>No reader certificate is enrolled for you.</value>
+  </data>
+  <data name="EnrolAttestedBy" xml:space="preserve">
+    <value>Attested by {0}</value>
+  </data>
+  <data name="EnrolAttestedToken" xml:space="preserve">
+    <value>token {0}</value>
+  </data>
+  <data name="EnrolRootNotTrusted" xml:space="preserve">
+    <value>Attested by {0}, which is not trusted here: nothing new is sealed to it</value>
+  </data>
+  <data name="EnrolNotAttested" xml:space="preserve">
+    <value>Not attested: nothing new is sealed to it. Enrol it again from the token.</value>
+  </data>
+  <data name="EnrolNotAttestedAllowed" xml:space="preserve">
+    <value>Not attested (this organisation allows hardware without attestation)</value>
+  </data>
+  <data name="EnrolAttestationRead" xml:space="preserve">
+    <value>The key's attestation was read from the token and is sent with it.</value>
+  </data>
+  <data name="EnrolAttestationMissing" xml:space="preserve">
+    <value>The token offers no attestation for this key (its key may have been imported). It is accepted only where the organisation allows hardware without attestation.</value>
+  </data>
+  <data name="TenantCertUnattested" xml:space="preserve">
+    <value>Allow hardware without attestation</value>
+  </data>
+  <data name="TenantCertUnattestedInfo" xml:space="preserve">
+    <value>Off by default: a reader certificate is accepted only when its key is attested to have been generated on a hardware token whose manufacturer's root the installation trusts. On, certificates without such an attestation are accepted too and marked "not attested"; such a key may be a software key.</value>
+  </data>
+  <data name="ApiErrCertificateNotAttested" xml:space="preserve">
+    <value>This organisation accepts only keys attested to have been made on a hardware token. Enrol the certificate from the token with the desktop client, which reads the attestation.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationInvalid" xml:space="preserve">
+    <value>The key's attestation is not valid, so the certificate was not enrolled.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationKeyMismatch" xml:space="preserve">
+    <value>The attestation belongs to a different key than this certificate's. Choose the certificate of the slot it was read from.</value>
+  </data>
+  <data name="ApiErrCertificateAttestationRootNotTrusted" xml:space="preserve">
+    <value>This token's manufacturer is not trusted by this installation or organisation. An administrator decides which hardware is trusted.</value>
+  </data>
   <data name="MobStoreHeading" xml:space="preserve">
     <value>From the store</value>
   </data>

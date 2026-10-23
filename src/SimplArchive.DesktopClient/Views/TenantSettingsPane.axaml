@@ -319,6 +319,11 @@
                             <Button Content="{loc:Tr TenantCertClear}" Command="{Binding ClearCertificateParentCommand}"
                                     IsVisible="{Binding IsEditingTenantCertificates}" />
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <CheckBox IsChecked="{Binding TenantCertUnattested}" IsEnabled="{Binding IsEditingTenantCertificates}" Content="{loc:Tr TenantCertUnattested}" />
+                            <i:Icon Value="mdi-information-outline" FontSize="14" Foreground="{DynamicResource WbFaint}" VerticalAlignment="Center" Cursor="Help"
+                                    ToolTip.Tip="{loc:Tr TenantCertUnattestedInfo}" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- ==== Audit streaming (SIEM) =============================================== -->
