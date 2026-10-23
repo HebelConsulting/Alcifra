@@ -17,8 +17,14 @@ public sealed class WormLockService : IWormLockService
     private readonly IObjectStorageClient _objectStorage;
     private readonly ILogger<WormLockService> _logger;
 
-    public WormLockService(SimplArchiveDbContext dbContext, IObjectStorageClient objectStorage, ILogger<WormLockService> logger)
+    // Masks exempt from retention and legal hold (a module's declaration, ABI 1.18; the password store's, ADR 0964): their
+    // objects are never locked, because what may not be retained must stay deletable.
+    private readonly IModuleMaskDeclarations _declarations;
+
+    public WormLockService(SimplArchiveDbContext dbContext, IObjectStorageClient objectStorage, ILogger<WormLockService> logger,
+        IModuleMaskDeclarations? declarations = null)
     {
+        _declarations = declarations ?? Modules.ModuleMaskDeclarations.None;
         _dbContext = dbContext;
         _objectStorage = objectStorage;
         _logger = logger;
@@ -32,6 +38,15 @@ public sealed class WormLockService : IWormLockService
             .SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken);
         if (document is null)
         {
+            return;
+        }
+
+        if (document.MaskVersionId != Guid.Empty
+            && await _dbContext.MaskVersions.Where(v => v.Id == document.MaskVersionId).Select(v => (Guid?)v.MaskId)
+                .FirstOrDefaultAsync(cancellationToken) is { } maskId
+            && _declarations.NotRetained.Contains(maskId) && _declarations.NotHeld.Contains(maskId))
+        {
+            _logger.LogTrace("WORM: document {DocumentId} wears a mask exempt from retention and legal hold; nothing is locked.", documentId);
             return;
         }
 

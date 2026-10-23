@@ -80,8 +80,25 @@ public class EffectiveRightsCalculator : IEffectiveRightsCalculator
     /// since the old code returned before walking too.
     /// </para>
     /// </remarks>
-    public async Task<IReadOnlyDictionary<Guid, EffectiveRights>> GetEffectiveRightsForManyAsync(
-        Guid userId, IReadOnlyCollection<Guid> documentIds, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyDictionary<Guid, EffectiveRights>> GetEffectiveRightsForManyAsync(
+        Guid userId, IReadOnlyCollection<Guid> documentIds, CancellationToken cancellationToken = default) =>
+        ComputeForManyAsync(userId, documentIds, grantsOnly: false, cancellationToken);
+
+    /// <summary>
+    /// What the user's explicit ACL grants alone give on a document (ADR 0964): their own and their groups' entries at
+    /// the governing scope, after the deactivation and clearance checks, WITHOUT the tenant-administrator bypass and
+    /// without the access-without-grant and claimant floors.
+    /// </summary>
+    /// <remarks>
+    /// For deciding whom a secret is SEALED to, where being able to read through a bypass must not silently make
+    /// somebody a recipient (owner decision 2026-10-23). The same walk as the effective rights, so the two cannot
+    /// disagree about where a grant applies; only the implicit ways in are left out.
+    /// </remarks>
+    public async Task<EffectiveRights> GetGrantedRightsAsync(Guid userId, Guid documentId, CancellationToken cancellationToken = default) =>
+        (await ComputeForManyAsync(userId, [documentId], grantsOnly: true, cancellationToken))[documentId];
+
+    private async Task<IReadOnlyDictionary<Guid, EffectiveRights>> ComputeForManyAsync(
+        Guid userId, IReadOnlyCollection<Guid> documentIds, bool grantsOnly, CancellationToken cancellationToken)
     {
         var ids = documentIds.Distinct().ToList();
         if (ids.Count == 0)
@@ -127,7 +144,7 @@ public class EffectiveRightsCalculator : IEffectiveRightsCalculator
             var insideForeignPersonalSpace = owner is { } ownerId && ownerId != userId;
 
             // The bypass is narrowed per document, which is exactly why this cannot be hoisted out of the loop.
-            if (isAdmin && !insideForeignPersonalSpace)
+            if (isAdmin && !insideForeignPersonalSpace && !grantsOnly)
             {
                 results[id] = TenantAdminRights;
             }
@@ -193,7 +210,7 @@ public class EffectiveRightsCalculator : IEffectiveRightsCalculator
             var rights = BuildEffectiveRights(
                 entriesByScope.TryGetValue(governingScopes[id], out var entries) ? entries : []);
 
-            if (!rights.CanSee)
+            if (!rights.CanSee && !grantsOnly)
             {
                 holdsAccessWithoutGrant ??=
                     await HoldsAccessWithoutGrantAsync(user.CanAccessWithoutGrant, effectiveGroupIds, cancellationToken);
@@ -208,7 +225,7 @@ public class EffectiveRightsCalculator : IEffectiveRightsCalculator
             // commitment this person made — denying them sight of it would be absurd, and their own calendar
             // has to serve it. Same shape as the right above: a floor applied only where CanSee is missing,
             // never a top-up of rights somebody deliberately granted narrowly.
-            if (!rights.CanSee)
+            if (!rights.CanSee && !grantsOnly)
             {
                 claimedByCaller ??= await ClaimedByCallerAsync(userId, remaining, cancellationToken);
                 if (claimedByCaller.Contains(id))

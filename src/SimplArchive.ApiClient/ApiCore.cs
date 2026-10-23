@@ -196,6 +196,21 @@ public sealed class ApiCore
     /// </summary>
     public static ApiCore FromArchive(SimplArchive.ApiClient.Offline.OfflineResponder responder) => new(responder);
 
+    /// <summary>
+    /// A client over an HttpClient the host already holds, authenticated and addressed (its BaseAddress is the
+    /// installation): an in-process host, or a test driving the real API through its own handler. It publishes itself
+    /// as <see cref="Authenticated"/> for the content funnel, as every session does.
+    /// </summary>
+    public static ApiCore Over(HttpClient http) => new(http);
+
+    private ApiCore(HttpClient http)
+    {
+        _apiRootUrl = http.BaseAddress?.ToString().TrimEnd('/') ?? throw new ArgumentException("The client needs a BaseAddress.", nameof(http));
+        _session = new TokenSession.Holder(new TokenSession(string.Empty, null, DateTimeOffset.MaxValue));
+        Http = http;
+        Authenticated = Http;
+    }
+
     private ApiCore(SimplArchive.ApiClient.Offline.OfflineResponder responder)
     {
         _apiRootUrl = SimplArchive.ApiClient.Offline.OfflineAddress.Root;

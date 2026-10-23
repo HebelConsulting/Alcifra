@@ -285,6 +285,12 @@ public interface IObjectStorageClient
 
     Task DeleteObjectAsync(string objectKey, CancellationToken cancellationToken = default);
 
+    // Deletes the object FOR GOOD (ADR 0964): on a versioned bucket every stored version and delete marker of the key, so
+    // nothing of it stays behind a delete marker. For a superseded password-entry version, whose sealed bytes the owner
+    // decided should not outlive their undo window. Default: the plain delete, which is all an unversioned store has.
+    Task DeleteObjectForGoodAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        DeleteObjectAsync(objectKey, cancellationToken);
+
     // ---- WORM / S3 Object Lock (ADR "WORM / immutable document versions") ----
     // The bucket must be object-lock-enabled (versioning + object lock) for these to have effect.
 

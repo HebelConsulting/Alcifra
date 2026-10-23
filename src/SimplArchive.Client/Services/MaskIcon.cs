@@ -64,6 +64,10 @@ public static class MaskIcon
         ["availability-window"] = (Icons.Material.Filled.AccessTime, Icons.Material.Outlined.AccessTime),
 
         // Item masks — the outline half is never read (an item is not a folder, so it is never empty).
+        // The password store (ADR 0964): a lock for the store, a folder with a star inside one, a key for a secret.
+        ["password-store"] = (Icons.Material.Filled.Lock, Icons.Material.Outlined.Lock),
+        ["password-folder"] = (Icons.Material.Filled.FolderSpecial, Icons.Material.Outlined.FolderSpecial),
+        ["password-entry"] = (Icons.Material.Filled.Key, Icons.Material.Outlined.Key),
         ["email"] = (Icons.Material.Filled.Email, Icons.Material.Outlined.Email),
         ["note"] = (Icons.Material.Filled.StickyNote2, Icons.Material.Outlined.StickyNote2),
         ["contact"] = (Icons.Material.Filled.ContactPage, Icons.Material.Outlined.ContactPage),

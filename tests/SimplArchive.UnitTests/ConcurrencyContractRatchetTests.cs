@@ -82,6 +82,12 @@ public partial class ConcurrencyContractRatchetTests
         ["DocumentChildrenController.cs:Document"] =
             "Creates only: Documents.Add(child) is its single write, and the file assigns no property on an "
             + "existing document. A create has no prior version to conflict with.",
+        ["PasswordFoldersController.cs:Document"] =
+            "Creates only: Documents.Add of a password folder or entry is its single write (ADR 0964); an entry's content "
+            + "is then filed through the versions controller, whose finalize carries the entry's If-Match.",
+        ["PasswordStoresController.cs:Document"] =
+            "Reads only: lists stores and answers recipients and the re-seal list; My Passwords is created by "
+            + "MyPasswordsProvisioner, a create with no prior version to conflict with (ADR 0964).",
         ["NotebookController.cs:Document"] =
             "Creates only: Documents.Add(section) is its single write, same shape as the children endpoint.",
         ["TypedItemsController.cs:Document"] =

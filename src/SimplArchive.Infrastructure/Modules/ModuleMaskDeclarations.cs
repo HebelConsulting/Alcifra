@@ -17,7 +17,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
     /// <summary>The first path segments under <c>tenants/{tenant}/</c> the core itself uses (ObjectKeyPrefixes).</summary>
     private static readonly HashSet<string> Reserved = new(StringComparer.Ordinal)
     {
-        "users", "groups", "mailboxes", "fs", "module-uploads", "audit-worm",
+        "users", "groups", "mailboxes", "fs", "module-uploads", "audit-worm", "passwords",
     };
 
     /// <summary>No module declares anything: what a host without modules, and a test constructing a service, gets.</summary>
@@ -88,6 +88,26 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
                     provisioned.Add(new ProvisionedFolder(loaded.Module.ModuleId, mask.MaskId, folderName));
                 }
             }
+        }
+
+        // The CORE's sealed masks (ADR 0964), declared exactly as a module's would be: a segment of their own, sealed,
+        // rendered and recognised never. Here rather than beside the modules' so every service that honours a module's
+        // declaration (the storage door, renditions, OCR, the search content) honours the core's with no second path.
+        foreach (var (maskId, segment) in Domain.Masks.WellKnownMaskIds.SealedContentMasks)
+        {
+            _segments[maskId] = segment;
+            _sealedSegments.Add(segment);
+            _unrenderedSegments.Add(segment);
+            sealedMasks.Add(maskId);
+            notRendered.Add(maskId);
+        }
+
+        // ...and the password store's masks are kept out of retention and legal hold (ADR 0964): a superseded secret
+        // lives for its undo window and no longer, which a retention schedule or a hold would defeat.
+        foreach (var maskId in Domain.Masks.WellKnownMaskIds.PasswordStoreMasks)
+        {
+            notRetained.Add(maskId);
+            notHeld.Add(maskId);
         }
 
         // A segment is sealed only if EVERY mask storing there is: the door lets a sealed segment's bytes past the strict

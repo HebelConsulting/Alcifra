@@ -20,6 +20,9 @@ public static class PersonalFolders
 
     public const string MyMailbox = "My Mailbox";
 
+    /// <summary>The personal space's password store (ADR 0964): created on first use, its name fixed.</summary>
+    public const string MyPasswords = "My Passwords";
+
     /// <summary>
     /// The folders that cannot be deleted or moved out of the personal space.
     /// </summary>
@@ -29,7 +32,7 @@ public static class PersonalFolders
     /// where a migration puts anything that may not sit at the first level. Provisioning them is worth nothing
     /// if the next click can remove them, and the failure would surface on somebody's phone rather than here.
     /// </remarks>
-    public static readonly IReadOnlyList<string> Protected = [MyDocuments, MyCalendar, MyAddressbook, MyMailbox];
+    public static readonly IReadOnlyList<string> Protected = [MyDocuments, MyCalendar, MyAddressbook, MyMailbox, MyPasswords];
 
     public static bool IsProtected(string? name) =>
         name is not null && Protected.Contains(name, StringComparer.Ordinal);
@@ -63,5 +66,7 @@ public static class PersonalFolders
         WellKnownMaskIds.Calendar,
         WellKnownMaskIds.Addressbook,
         WellKnownMaskIds.Mailbox,
+        // My Passwords (ADR 0964), created on first use rather than provisioned; one per space, its name fixed.
+        WellKnownMaskIds.PasswordStore,
     ];
 }

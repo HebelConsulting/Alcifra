@@ -326,6 +326,16 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec(WellKnownMaskIds.ManualFields.ExpectedDurationOfUse, FieldDataType.Number, IsRequired: false),
         ], cancellationToken);
 
+        // The password store (ADR 0964). The folders are fieldless and type the tree; an entry's every field is inside its
+        // sealed content, its name is in the clear, and its one index field is the server's exposure verdict.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.PasswordStore, "Password Store", [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.PasswordFolder, "Password Folder", [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.PasswordEntry, "Password Entry",
+        [
+            // Set by the server when a certificate the entry was sealed to is revoked (ADR 0964); optional, a date.
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.ExposedSince, FieldDataType.Date, IsRequired: false),
+        ], cancellationToken);
+
         // After every mask exists, because containment is a relation BETWEEN masks: a Notebook's allowed parent
         // is the Mailbox, which is seeded eight lines below it, so doing this per-mask inside the loop above
         // would write a foreign key to a row that does not exist yet.

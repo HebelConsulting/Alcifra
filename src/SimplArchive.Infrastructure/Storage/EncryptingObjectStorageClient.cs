@@ -411,6 +411,9 @@ public sealed class EncryptingObjectStorageClient(
     public Task DeleteObjectAsync(string objectKey, CancellationToken cancellationToken = default) =>
         inner.DeleteObjectAsync(objectKey, cancellationToken);
 
+    public Task DeleteObjectForGoodAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        inner.DeleteObjectForGoodAsync(objectKey, cancellationToken);
+
     public Task SetRetentionAsync(string objectKey, DateTimeOffset retainUntil, WormLockMode mode, CancellationToken cancellationToken = default) =>
         inner.SetRetentionAsync(objectKey, retainUntil, mode, cancellationToken);
 

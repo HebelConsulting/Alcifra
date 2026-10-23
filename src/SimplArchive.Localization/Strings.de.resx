@@ -6225,4 +6225,133 @@
   <data name="ApiErrCertificateNoFolder" xml:space="preserve">
     <value>Es gibt noch keinen Ort für Leserzertifikate: Eine Administratorin muss ihn zuerst in den Einstellungen der Organisation wählen.</value>
   </data>
+  <data name="VersionCommentResealed" xml:space="preserve">
+    <value>Vom System neu versiegelt, nachdem sich die Leser des Passwortspeichers geändert haben.</value>
+  </data>
+  <data name="ApiErrContentNotSealed" xml:space="preserve">
+    <value>Dieser Inhalt muss für seine Leser versiegelt sein; das Hochgeladene ist es nicht und wurde deshalb nicht abgelegt.</value>
+  </data>
+  <data name="ApiErrNotAPasswordStoreItem" xml:space="preserve">
+    <value>Diesen Passwortspeicher, Ordner oder Eintrag gibt es nicht, oder Sie dürfen ihn nicht sehen.</value>
+  </data>
+  <data name="ApiErrInvalidVersionCommentKind" xml:space="preserve">
+    <value>Nur das Neuversiegeln eines Passworteintrags kann einen Systemkommentar tragen.</value>
+  </data>
+  <data name="ApiErrPasswordStoreNotAvailable" xml:space="preserve">
+    <value>Nur ein angemeldeter Benutzer hat einen persönlichen Passwortspeicher.</value>
+  </data>
+  <data name="ApiErrPasswordItemNameRequired" xml:space="preserve">
+    <value>Ein Passwortordner oder -eintrag braucht einen Namen.</value>
+  </data>
+  <data name="WkMaskPasswordStore" xml:space="preserve">
+    <value>Passwortspeicher</value>
+  </data>
+  <data name="WkMaskPasswordFolder" xml:space="preserve">
+    <value>Passwortordner</value>
+  </data>
+  <data name="WkMaskPasswordEntry" xml:space="preserve">
+    <value>Passworteintrag</value>
+  </data>
+  <data name="WkFieldExposedSince" xml:space="preserve">
+    <value>Offengelegt seit</value>
+  </data>
+  <data name="PwMyPasswords" xml:space="preserve">
+    <value>Meine Passwörter</value>
+  </data>
+  <data name="PwPassword" xml:space="preserve">
+    <value>Passwort</value>
+  </data>
+  <data name="PwUserName" xml:space="preserve">
+    <value>Benutzername</value>
+  </data>
+  <data name="PwUrl" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="PwNotes" xml:space="preserve">
+    <value>Notizen</value>
+  </data>
+  <data name="PwHoldToShow" xml:space="preserve">
+    <value>Zum Anzeigen gedrückt halten</value>
+  </data>
+  <data name="PwCopy" xml:space="preserve">
+    <value>Kopieren</value>
+  </data>
+  <data name="PwCopiedSecret" xml:space="preserve">
+    <value>Kopiert. Die Zwischenablage wird in 30 Sekunden geleert.</value>
+  </data>
+  <data name="PwMarkSecret" xml:space="preserve">
+    <value>Wie ein Passwort verbergen</value>
+  </data>
+  <data name="PwGenerate" xml:space="preserve">
+    <value>Passwort erzeugen</value>
+  </data>
+  <data name="PwGenerateLength" xml:space="preserve">
+    <value>Länge</value>
+  </data>
+  <data name="PwGenerateLower" xml:space="preserve">
+    <value>Kleinbuchstaben</value>
+  </data>
+  <data name="PwGenerateUpper" xml:space="preserve">
+    <value>Großbuchstaben</value>
+  </data>
+  <data name="PwGenerateDigits" xml:space="preserve">
+    <value>Ziffern</value>
+  </data>
+  <data name="PwGenerateSymbols" xml:space="preserve">
+    <value>Sonderzeichen</value>
+  </data>
+  <data name="PwGenerateAvoidAmbiguous" xml:space="preserve">
+    <value>Verwechselbare Zeichen vermeiden</value>
+  </data>
+  <data name="PwNewEntry" xml:space="preserve">
+    <value>Neuer Eintrag</value>
+  </data>
+  <data name="PwNewFolder" xml:space="preserve">
+    <value>Neuer Ordner</value>
+  </data>
+  <data name="PwNeedsReseal" xml:space="preserve">
+    <value>Wer diesen Speicher lesen darf, hat sich geändert. Seine Einträge müssen neu versiegelt werden.</value>
+  </data>
+  <data name="PwUrgentReseal" xml:space="preserve">
+    <value>Ein Schlüssel, der diesen Speicher lesen konnte, wurde widerrufen. Versiegeln Sie ihn jetzt neu und ändern Sie die offengelegten Passwörter.</value>
+  </data>
+  <data name="PwReseal" xml:space="preserve">
+    <value>Neu versiegeln</value>
+  </data>
+  <data name="PwResealDone" xml:space="preserve">
+    <value>{0} Einträge neu versiegelt, {1} übersprungen, weil sie inzwischen geändert wurden, {2} konnten nicht geöffnet werden.</value>
+  </data>
+  <data name="PwExposedSince" xml:space="preserve">
+    <value>Offengelegt seit {0}: Ändern Sie dieses Passwort.</value>
+  </data>
+  <data name="PwSpareKey" xml:space="preserve">
+    <value>Nur ein Schlüssel kann Meine Passwörter öffnen. Registrieren Sie einen Ersatzschlüssel, sonst verlieren Sie mit diesem Schlüssel Ihre Einträge.</value>
+  </data>
+  <data name="PwNoRecipients" xml:space="preserve">
+    <value>Niemand, der diesen Speicher liest, hat bisher einen registrierten Hardwareschlüssel; hier kann deshalb nichts gespeichert werden.</value>
+  </data>
+  <data name="PwEntryChanged" xml:space="preserve">
+    <value>Jemand hat diesen Eintrag geändert, seit Sie ihn geöffnet haben. Laden Sie ihn neu und versuchen Sie es erneut.</value>
+  </data>
+  <data name="PwImportGoogle" xml:space="preserve">
+    <value>Aus einem Export des Google Passwortmanagers importieren (CSV)</value>
+  </data>
+  <data name="PwImportDuplicate" xml:space="preserve">
+    <value>'{0}' mit Benutzername '{1}' gibt es hier bereits.</value>
+  </data>
+  <data name="PwImportSkip" xml:space="preserve">
+    <value>Überspringen</value>
+  </data>
+  <data name="PwImportNewVersion" xml:space="preserve">
+    <value>Als neue Version hinzufügen</value>
+  </data>
+  <data name="PwImportKeepBoth" xml:space="preserve">
+    <value>Beide behalten</value>
+  </data>
+  <data name="PwImportDone" xml:space="preserve">
+    <value>{0} Einträge importiert und auf diesem Gerät versiegelt.</value>
+  </data>
+  <data name="PwImportDeleteCsv" xml:space="preserve">
+    <value>Die Exportdatei enthält Ihre Passwörter im Klartext. Jetzt löschen?</value>
+  </data>
 </root>

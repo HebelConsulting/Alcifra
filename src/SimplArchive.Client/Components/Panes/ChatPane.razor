@@ -237,6 +237,8 @@
     private string? VersionCommentText(ChatMessageResponse message) => message.VersionCommentKind switch
     {
         1 => Strings.Get("VersionCommentSearchablePdf"),
+        // A password entry sealed again by a member's client after its store's readers changed (ADR 0964).
+        2 => Strings.Get("VersionCommentResealed"),
         _ => string.IsNullOrWhiteSpace(message.VersionComment) ? null : message.VersionComment,
     };
 

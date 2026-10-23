@@ -78,6 +78,8 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         ["POST api/certificates"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["PUT api/certificate-policy"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["PUT api/certificate-settings"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["GET api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
+        ["HEAD api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
         ["GET api/documents/{documentId:guid}/archive-entries"] = "needs a zip document; the seed files none",
         ["GET api/documents/{documentId:guid}/archive-entries/content"] = "needs a zip document; the seed files none",
         ["GET api/documents/{documentId:guid}/checkout/preview"] = "needs a checked-out document with a renderable working copy; the seed checks out plain text",
@@ -397,6 +399,11 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         // As the user: a saved search shared with nobody but kept, notes, a contact, an appointment, an intray item.
         await TestJson.Post(user, "/api/saved-searches", new { name = "Reach", queryString = "q=reach", shareScope = 0 });
         var personal = (await TestJson.Post(user, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
+        // My Passwords with a folder and an entry (ADR 0964), so the crawler finds the store, folder and entry rels. The
+        // entry stays without content: its content must be sealed, which the crawler has no key for.
+        var myPasswords = await TestJson.Post(user, "/api/password-stores/mine", new { });
+        var pwFolder = await TestJson.Post(user, $"/api/password-folders/{myPasswords.GetProperty("id").GetGuid()}/folders", new { name = "Reach" });
+        await TestJson.Post(user, $"/api/password-folders/{pwFolder.GetProperty("id").GetGuid()}/entries", new { name = "Reach entry" });
         await TestJson.Post(user, "/api/me/imap-access", new { });
         // A phone registered for push (SimplArchiveMobile #20), so the crawl meets a registration row and its self.
         await TestJson.Post(user, "/api/push-registrations",

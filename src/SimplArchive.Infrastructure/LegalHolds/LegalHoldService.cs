@@ -11,14 +11,27 @@ namespace SimplArchive.Infrastructure.LegalHolds;
 public sealed class LegalHoldService : ILegalHoldService
 {
     private readonly SimplArchiveDbContext _dbContext;
+    private readonly IModuleMaskDeclarations _declarations;
 
-    public LegalHoldService(SimplArchiveDbContext dbContext)
+    public LegalHoldService(SimplArchiveDbContext dbContext, IModuleMaskDeclarations? declarations = null)
     {
         _dbContext = dbContext;
+        _declarations = declarations ?? Modules.ModuleMaskDeclarations.None;
     }
 
     public async Task<bool> IsFrozenAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
+        // A mask that cannot be held is not frozen by a hold above it either (ABI 1.18's declaration; the password
+        // store's masks, ADR 0964): a hold on a repository must not keep a superseded secret alive.
+        if (_declarations.NotHeld.Count > 0
+            && await _dbContext.Documents.Where(d => d.Id == documentId)
+                .Select(d => _dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault())
+                .FirstOrDefaultAsync(cancellationToken) is { } maskId
+            && _declarations.NotHeld.Contains(maskId))
+        {
+            return false;
+        }
+
         // Collect the document + its ancestor chain, walking up ParentId.
         var chain = new List<Guid>();
         Guid? current = documentId;

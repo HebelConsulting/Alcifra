@@ -37,11 +37,23 @@ public sealed class SmimeEnvelopeTests
     }
 
     [Fact]
-    public void A_decrypted_entity_that_is_not_a_document_is_refused()
+    public void A_decrypted_entity_that_is_neither_a_document_nor_a_multipart_is_refused()
     {
+        var message = new MessagePart { Message = new MimeMessage { Body = new TextPart("plain") { Text = "a" } } };
+
+        Assert.Throws<EnvelopeNotOpenedException>(() => SmimeEnvelope.Payload(message));
+    }
+
+    [Fact]
+    public void A_decrypted_multipart_is_handed_on_whole_typed_as_itself()
+    {
+        // A password entry (ADR 0964): its fields and passwd.txt, parsed by its reader.
         var multipart = new Multipart("mixed") { new TextPart("plain") { Text = "a" } };
 
-        Assert.Throws<EnvelopeNotOpenedException>(() => SmimeEnvelope.Payload(multipart));
+        var (bytes, contentType) = SmimeEnvelope.Payload(multipart);
+
+        Assert.Equal("multipart/mixed", contentType);
+        Assert.IsType<Multipart>(MimeEntity.Load(new MemoryStream(bytes)));
     }
 
     private static byte[] Envelope(X509Certificate2 recipient, byte[] content, string contentType, string fileName)

@@ -657,6 +657,39 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
         return _internalClient.DeleteObjectAsync(BucketFor(objectKey), objectKey, cancellationToken);
     }
 
+    public async Task DeleteObjectForGoodAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        var bucket = BucketFor(objectKey);
+        var deleted = 0;
+        string? keyMarker = null;
+        string? versionIdMarker = null;
+        ListVersionsResponse response;
+        do
+        {
+            response = await _internalClient.ListVersionsAsync(new ListVersionsRequest
+            {
+                BucketName = bucket,
+                Prefix = objectKey,
+                KeyMarker = keyMarker,
+                VersionIdMarker = versionIdMarker,
+            }, cancellationToken);
+
+            foreach (var version in (response.Versions ?? []).Where(v => v.Key == objectKey && !string.IsNullOrEmpty(v.VersionId) && v.VersionId != "null"))
+            {
+                await _internalClient.DeleteObjectAsync(new DeleteObjectRequest { BucketName = bucket, Key = objectKey, VersionId = version.VersionId }, cancellationToken);
+                deleted++;
+            }
+
+            keyMarker = response.NextKeyMarker;
+            versionIdMarker = response.NextVersionIdMarker;
+        }
+        while (response.IsTruncated == true);
+
+        // An unversioned bucket lists its objects with a "null" version id: the plain delete removes them for good.
+        await _internalClient.DeleteObjectAsync(bucket, objectKey, cancellationToken);
+        _logger.LogDebug("Deleted object {ObjectKey} for good: {Versions} stored version(s) removed.", objectKey, deleted);
+    }
+
     // ---- WORM / S3 Object Lock (ADR "WORM / immutable document versions") ----
 
     public Task SetRetentionAsync(string objectKey, DateTimeOffset retainUntil, SimplArchive.Domain.Tenants.WormLockMode mode, CancellationToken cancellationToken = default)

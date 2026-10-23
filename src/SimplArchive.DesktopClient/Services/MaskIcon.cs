@@ -60,6 +60,10 @@ public static class MaskIcon
         // looked before filling it. Both of these resolve with their partners (DesktopMaskIconTests).
         ["availability"] = "mdi-account-clock",
         ["availability-window"] = "mdi-clock",
+        // The password store (ADR 0964), the web's three glyphs in this set (each has the -outline partner an empty folder needs).
+        ["password-store"] = "mdi-lock",
+        ["password-folder"] = "mdi-folder-key",
+        ["password-entry"] = "mdi-key",
         ["email"] = "mdi-email",
         ["note"] = "mdi-note-text",
         ["contact"] = "mdi-card-account-details",

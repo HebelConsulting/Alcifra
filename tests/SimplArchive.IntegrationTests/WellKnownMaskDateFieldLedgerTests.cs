@@ -40,6 +40,10 @@ public sealed class WellKnownMaskDateFieldLedgerTests
         ["Manual.Warranty expiry"] =
             "The last day of a product's warranty, as its terms state it (ADR 0891) — warranties run to a day, not "
             + "to an instant in a zone.",
+        ["Password Entry.Exposed since"] =
+            "The day a certificate the entry was sealed to was revoked (ADR 0964): the owner decided a date (2026-10-23), "
+            + "because what it asks of a person is \"change this password, it has been exposed since that day\", and a "
+            + "revocation's exact instant is the certificate registry's, not the entry's.",
     };
 
     [Fact]

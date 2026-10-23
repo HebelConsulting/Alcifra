@@ -476,6 +476,7 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
             await EnforceTypedFolderContainmentAsync(document, cancellationToken);
             await DocumentMaskInvariants.EnforceAsync(this, document, cancellationToken);
             await EnforcePersonalSpaceStructureAsync(document, cancellationToken);
+            await PasswordStoreInvariants.EnforceAsync(this, document, cancellationToken);
             await PersonalRootOwner.MaintainAsync(this, document, trackedDocuments, cancellationToken);
         }
     }

@@ -78,6 +78,11 @@ public class ApiExceptionHandler : IExceptionHandler
             // saying why.
             SimplArchive.Infrastructure.Storage.EncryptedObjectWithoutEncryptionServiceException unconfigured =>
                 (unconfigured.ErrorCode, unconfigured.ApiStatusCode, unconfigured.ApiDetail),
+            // The personal space's standing folders refusing a rename, a move or a delete from a path that does not
+            // translate its own save (the rename and move endpoints commit through the document's verb contract): the
+            // same code the translating paths answer, rather than a 500 for a rule the caller can act on (ADR 0964).
+            SimplArchive.Domain.Documents.PersonalSpaceStructureException structure =>
+                ("PERSONAL_SPACE_STRUCTURE", StatusCodes.Status409Conflict, structure.Message),
             _ => ("INTERNAL_ERROR", StatusCodes.Status500InternalServerError, "An unexpected error occurred."),
         };
 

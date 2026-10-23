@@ -30,6 +30,10 @@ public interface IEffectiveRightsCalculator
     Task<IReadOnlyDictionary<Guid, EffectiveRights>> GetEffectiveRightsForManyAsync(
         Guid userId, IReadOnlyCollection<Guid> documentIds, CancellationToken cancellationToken = default);
 
+    // The user's EXPLICIT grants alone (ADR 0964): the same walk without the tenant-administrator bypass and the implicit
+    // floors, for deciding whom a sealed secret is addressed to.
+    Task<EffectiveRights> GetGrantedRightsAsync(Guid userId, Guid documentId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyDictionary<Guid, EffectiveRights>> GetEffectiveRightsForManyForServiceAccountAsync(
         Guid serviceAccountId, IReadOnlyCollection<Guid> documentIds, CancellationToken cancellationToken = default);
 

@@ -30,6 +30,10 @@ public class ImmutableStructuralMaskTests
             // ADR 0780: and the Availability collection, for the same reason — re-type it and the .ics inside
             // stop being windows, so a resource silently stops offering time it is still advertising.
             WellKnownMaskIds.Availability,
+            // ADR 0964: a password store and its folders — re-type one and the sealed entries inside lose the store
+            // that decides who they are sealed to, and could then sit in an ordinary folder as unreadable blobs.
+            WellKnownMaskIds.PasswordStore,
+            WellKnownMaskIds.PasswordFolder,
         ];
 
         Assert.Equal(

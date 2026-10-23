@@ -56,9 +56,20 @@ public static class SmimeEnvelope
         Payload(MimeEntity.Load(new MemoryStream(decrypted)));
 
     /// <summary>The document and its real content type, from the decrypted MIME entity.</summary>
-    /// <remarks>The INNER type is what a caller renders: the outer pkcs7-mime describes only the wrapper.</remarks>
+    /// <remarks>
+    /// The INNER type is what a caller renders: the outer pkcs7-mime describes only the wrapper. A MULTIPART is handed on
+    /// whole, headers and all, typed as itself: a password entry is one (its fields, and <c>passwd.txt</c>, ADR 0964), and
+    /// its reader parses the parts.
+    /// </remarks>
     public static (byte[] Bytes, string ContentType) Payload(MimeEntity decrypted)
     {
+        if (decrypted is Multipart multipart)
+        {
+            using var whole = new MemoryStream();
+            multipart.WriteTo(whole);
+            return (whole.ToArray(), multipart.ContentType.MimeType);
+        }
+
         if (decrypted is not MimePart part || part.Content is null)
         {
             throw new EnvelopeNotOpenedException("the envelope opened but held no document");

@@ -50,6 +50,7 @@ public partial class AuditCoverageRatchetTests
         ["MasksController.cs"] = "DEBT, and the sharpest one left: changing the metadata schema every document is classified against.",
         ["MeController.cs"] = "DEBT: carries profile edits; the credential endpoints beside it are now audited.",
         ["NotificationsController.cs"] = "Marking one's own notifications read is a personal act with no subject but the reader.",
+        ["PasswordStoresController.cs"] = "AUDITED ELSEWHERE: its one write, My Passwords on first use, is recorded by MyPasswordsProvisioner as PasswordStore.Created (ADR 0964).",
         ["PersonalRepositoryController.cs"] = "DEBT: provisions somebody's personal space.",
         ["PlatformAdministratorsController.cs"] = "DEBT, security-relevant: the most privileged principal type in the system.",
         ["SavedSearchesController.cs"] = "A saved search is a personal convenience, visible to nobody else.",

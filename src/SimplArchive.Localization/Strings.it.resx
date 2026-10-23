@@ -6225,4 +6225,133 @@
   <data name="ApiErrCertificateNoFolder" xml:space="preserve">
     <value>Non c'è ancora un posto in cui archiviare i certificati di lettura: un amministratore deve prima sceglierlo nelle impostazioni dell'organizzazione.</value>
   </data>
+  <data name="VersionCommentResealed" xml:space="preserve">
+    <value>Risigillato dal sistema dopo che i lettori dell'archivio password sono cambiati.</value>
+  </data>
+  <data name="ApiErrContentNotSealed" xml:space="preserve">
+    <value>Questo contenuto deve essere sigillato per i suoi lettori; quanto caricato non lo è e non è stato archiviato.</value>
+  </data>
+  <data name="ApiErrNotAPasswordStoreItem" xml:space="preserve">
+    <value>Questo archivio password, cartella o voce non esiste, oppure non puoi vederlo.</value>
+  </data>
+  <data name="ApiErrInvalidVersionCommentKind" xml:space="preserve">
+    <value>Solo la risigillatura di una voce password può portare un commento di sistema.</value>
+  </data>
+  <data name="ApiErrPasswordStoreNotAvailable" xml:space="preserve">
+    <value>Solo un utente connesso ha un archivio password personale.</value>
+  </data>
+  <data name="ApiErrPasswordItemNameRequired" xml:space="preserve">
+    <value>Una cartella o voce password ha bisogno di un nome.</value>
+  </data>
+  <data name="WkMaskPasswordStore" xml:space="preserve">
+    <value>Archivio password</value>
+  </data>
+  <data name="WkMaskPasswordFolder" xml:space="preserve">
+    <value>Cartella password</value>
+  </data>
+  <data name="WkMaskPasswordEntry" xml:space="preserve">
+    <value>Voce password</value>
+  </data>
+  <data name="WkFieldExposedSince" xml:space="preserve">
+    <value>Esposta dal</value>
+  </data>
+  <data name="PwMyPasswords" xml:space="preserve">
+    <value>Le mie password</value>
+  </data>
+  <data name="PwPassword" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="PwUserName" xml:space="preserve">
+    <value>Nome utente</value>
+  </data>
+  <data name="PwUrl" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="PwNotes" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="PwHoldToShow" xml:space="preserve">
+    <value>Tieni premuto per mostrare</value>
+  </data>
+  <data name="PwCopy" xml:space="preserve">
+    <value>Copia</value>
+  </data>
+  <data name="PwCopiedSecret" xml:space="preserve">
+    <value>Copiato. Gli appunti vengono svuotati tra 30 secondi.</value>
+  </data>
+  <data name="PwMarkSecret" xml:space="preserve">
+    <value>Nascondi come una password</value>
+  </data>
+  <data name="PwGenerate" xml:space="preserve">
+    <value>Genera password</value>
+  </data>
+  <data name="PwGenerateLength" xml:space="preserve">
+    <value>Lunghezza</value>
+  </data>
+  <data name="PwGenerateLower" xml:space="preserve">
+    <value>Minuscole</value>
+  </data>
+  <data name="PwGenerateUpper" xml:space="preserve">
+    <value>Maiuscole</value>
+  </data>
+  <data name="PwGenerateDigits" xml:space="preserve">
+    <value>Cifre</value>
+  </data>
+  <data name="PwGenerateSymbols" xml:space="preserve">
+    <value>Simboli</value>
+  </data>
+  <data name="PwGenerateAvoidAmbiguous" xml:space="preserve">
+    <value>Evita caratteri simili</value>
+  </data>
+  <data name="PwNewEntry" xml:space="preserve">
+    <value>Nuova voce</value>
+  </data>
+  <data name="PwNewFolder" xml:space="preserve">
+    <value>Nuova cartella</value>
+  </data>
+  <data name="PwNeedsReseal" xml:space="preserve">
+    <value>Chi può leggere questo archivio è cambiato. Le sue voci vanno risigillate.</value>
+  </data>
+  <data name="PwUrgentReseal" xml:space="preserve">
+    <value>Una chiave che poteva leggere questo archivio è stata revocata. Risigillalo ora e cambia le password esposte.</value>
+  </data>
+  <data name="PwReseal" xml:space="preserve">
+    <value>Risigilla</value>
+  </data>
+  <data name="PwResealDone" xml:space="preserve">
+    <value>{0} voci risigillate, {1} saltate perché modificate nel frattempo, {2} non apribili.</value>
+  </data>
+  <data name="PwExposedSince" xml:space="preserve">
+    <value>Esposta dal {0}: cambia questa password.</value>
+  </data>
+  <data name="PwSpareKey" xml:space="preserve">
+    <value>Solo una chiave può aprire Le mie password. Registra una chiave di riserva, altrimenti perdendo questa perdi le tue voci.</value>
+  </data>
+  <data name="PwNoRecipients" xml:space="preserve">
+    <value>Nessuno dei lettori di questo archivio ha ancora una chiave hardware registrata, quindi qui non si può salvare nulla.</value>
+  </data>
+  <data name="PwEntryChanged" xml:space="preserve">
+    <value>Qualcuno ha modificato questa voce da quando l'hai aperta. Ricaricala e riprova.</value>
+  </data>
+  <data name="PwImportGoogle" xml:space="preserve">
+    <value>Importa da un'esportazione di Google Gestore password (CSV)</value>
+  </data>
+  <data name="PwImportDuplicate" xml:space="preserve">
+    <value>'{0}' con nome utente '{1}' esiste già qui.</value>
+  </data>
+  <data name="PwImportSkip" xml:space="preserve">
+    <value>Salta</value>
+  </data>
+  <data name="PwImportNewVersion" xml:space="preserve">
+    <value>Aggiungi come nuova versione</value>
+  </data>
+  <data name="PwImportKeepBoth" xml:space="preserve">
+    <value>Mantieni entrambe</value>
+  </data>
+  <data name="PwImportDone" xml:space="preserve">
+    <value>{0} voci importate e sigillate su questo dispositivo.</value>
+  </data>
+  <data name="PwImportDeleteCsv" xml:space="preserve">
+    <value>Il file esportato contiene le tue password in chiaro. Eliminarlo ora?</value>
+  </data>
 </root>

@@ -106,4 +106,8 @@ public enum VersionCommentKind
 
     // Written by the searchable-PDF conversion. Comment stays NULL; the clients render the localized sentence.
     SearchablePdfGenerated = 1,
+
+    // A password entry sealed again to its store's current readers after an access change (ADR 0964): a system act
+    // a member's client performs, not that member's edit. Comment stays NULL; the clients render the sentence.
+    ResealedAfterAccessChange = 2,
 }

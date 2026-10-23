@@ -129,8 +129,14 @@ public sealed class OpenSearchDocumentIndexer : IDocumentIndexer
             var versionCreatedBy = version is null ? null
                 : await ResolveCreatorNameAsync(version.CreatedByUserId, version.CreatedByServiceAccountId, cancellationToken);
 
+            // Sealed content (ADRs 0940/0964) is an envelope nobody here can read: its NAME is indexed, its bytes are
+            // not extracted, so the search content of a password entry is empty by construction rather than by luck.
+            var sealedContent = _declarations.SealedContent.Count > 0 && doc.MaskVersionId is { } sealedVersion
+                && await _dbContext.MaskVersions.Where(mv => mv.Id == sealedVersion).Select(mv => (Guid?)mv.MaskId).FirstOrDefaultAsync(cancellationToken) is { } sealedMask
+                && _declarations.SealedContent.Contains(sealedMask);
+
             var content = string.Empty;
-            if (version is not null)
+            if (version is not null && !sealedContent)
             {
                 var existing = await GetIndexedAsync(documentId, cancellationToken);
                 if (existing is { IndexedVersionId: { } indexed } && indexed == version.Id)

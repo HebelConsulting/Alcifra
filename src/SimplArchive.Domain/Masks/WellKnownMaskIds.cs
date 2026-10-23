@@ -277,6 +277,50 @@ public static class WellKnownMaskIds
     /// </summary>
     public static readonly Guid CertificatePolicy = Guid.Parse("E7C21001-E100-E100-E100-E7C21001E7C2");
 
+    /// <summary>The top of a password store (ADR 0964): a folder holding only Password Folders and Password Entries.</summary>
+    /// <remarks>
+    /// May be created anywhere a folder may, so a team keeps a shared store in its repository; in a personal space there
+    /// is exactly one, named <c>My Passwords</c> (<see cref="Documents.PersonalFolders.MyPasswords"/>). Its readers are
+    /// everyone with the rights to read it and an enrolled, attested certificate: every entry beneath it is sealed to them.
+    /// </remarks>
+    public static readonly Guid PasswordStore = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E4D");
+
+    /// <summary>A folder inside a password store (ADR 0964), holding further Password Folders and Password Entries.</summary>
+    public static readonly Guid PasswordFolder = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E4E");
+
+    /// <summary>One secret (ADR 0964): its content is a CMS envelope sealed on the device to the store's readers.</summary>
+    /// <remarks>
+    /// <b>Its content is declared SEALED</b> (<see cref="SealedContentMasks"/>): filed only when the bytes are shaped as a
+    /// CMS envelope, never decrypted by the server, never rendered, recognised or indexed for its text. The name is in the
+    /// clear, everything else is inside the envelope; its one index field, <see cref="PasswordEntryFields.ExposedSince"/>,
+    /// is the server's.
+    /// </remarks>
+    public static readonly Guid PasswordEntry = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E4F");
+
+    /// <summary>
+    /// The CORE's masks whose content is sealed to its readers (ADR 0964), mirroring a module's
+    /// <c>ContentIsSealed</c> (ABI 1.20, ADR 0940): each maps to its content segment, which no other mask shares.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<Guid, string> SealedContentMasks =
+        new Dictionary<Guid, string> { [PasswordEntry] = "passwords" };
+
+    /// <summary>
+    /// The password store's three masks (ADR 0964), EXEMPT from WORM placement, retention and legal hold: an entry keeps
+    /// its previous version only for its undo window, and nothing may hold a superseded secret beyond it.
+    /// </summary>
+    public static readonly IReadOnlySet<Guid> PasswordStoreMasks = new HashSet<Guid> { PasswordStore, PasswordFolder, PasswordEntry };
+
+    /// <summary>The Password Entry mask's one index field (ADR 0964), set and cleared by the server only.</summary>
+    public static class PasswordEntryFields
+    {
+        /// <summary>
+        /// When a certificate the entry was sealed to was revoked: the entry's secret must be treated as exposed since
+        /// then. Set by the server from the envelope's recipients; cleared only when a member files a NEW password,
+        /// never by a re-seal, which keeps the old secret.
+        /// </summary>
+        public const string ExposedSince = "Exposed since";
+    }
+
     /// <summary>
     /// The masks only the CORE assigns (ADR 0891): not offered by any picker, refused by SaveChanges when a document
     /// gains one outside the core's own filing path, refused when one is changed or removed, at most one live per tenant.
@@ -329,6 +373,11 @@ public static class WellKnownMaskIds
         // ...and the offered-time collection holds exactly its windows (ADR 0780), two-directionally
         // for the same reason: a window outside an Availability collection is an offer of nothing.
         new(Availability, "Availability", [(AvailabilityWindow, "Availability window")]),
+        // A password store and its folders hold only folders and entries of the store (ADR 0964), two-directionally:
+        // an entry outside a store has nobody to be sealed to, and a plain document inside one would be a secret
+        // nobody sealed.
+        new(PasswordStore, "Password Store", [(PasswordFolder, "Password Folder"), (PasswordEntry, "Password Entry")]),
+        new(PasswordFolder, "Password Folder", [(PasswordFolder, "Password Folder"), (PasswordEntry, "Password Entry")]),
     ];
 
     /// <summary>How MANY children wearing a given mask a folder admits — a capacity rule, not an admission one.</summary>
@@ -375,6 +424,9 @@ public static class WellKnownMaskIds
         // publish flow files into THE collection, so "which one?" must have exactly one answer.
         new(MeetingRoom, "Meeting room", Availability, "Availability", 1),
 
+        // One password store per personal space, "My Passwords" (ADR 0964): the client follows one rel to it.
+        new(UserFolder, "Personal space", PasswordStore, "Password Store", 1),
+
     ];
 
     /// <summary>
@@ -393,7 +445,7 @@ public static class WellKnownMaskIds
     /// </para>
     /// </remarks>
     public static readonly IReadOnlySet<Guid> FolderMasks =
-        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates };
+        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder };
 
     /// <summary>
     /// The file extensions that make a well-known mask the automatic choice for an upload (#671).
@@ -475,6 +527,10 @@ public static class WellKnownMaskIds
             // three different things at a glance instead of three calendars.
             [Availability] = "availability",
             [AvailabilityWindow] = "availability-window",
+            // A store, a folder in one, and a secret: three things, so three tokens (ADR 0964).
+            [PasswordStore] = "password-store",
+            [PasswordFolder] = "password-folder",
+            [PasswordEntry] = "password-entry",
         };
 
     /// <summary>
@@ -576,7 +632,7 @@ public static class WellKnownMaskIds
         new HashSet<Guid>
         {
             BasicEntry, EMail, Note, Contact, Appointment, Booking, License, Block, AvailabilityWindow,
-            Certificate, Manual, CertificatePolicy,
+            Certificate, Manual, CertificatePolicy, PasswordEntry,
         };
 
     /// <summary>
@@ -807,6 +863,8 @@ public static class WellKnownMaskIds
             [Appointment] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Event UID", "Start", "End" },
             [Booking] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Event UID", "Start", "End" },
             [Contact] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Contact UID" },
+            // The server's own verdict about an entry (ADR 0964): a pane edit could clear an exposure nobody resolved.
+            [PasswordEntry] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { PasswordEntryFields.ExposedSince },
         };
 
     /// <summary>The well-known masks whose documents are bookable resources (ADR 0735).</summary>

@@ -1,0 +1,173 @@
+namespace SimplArchive.Api.PasswordStores;
+
+// The password store's wire shapes (ADR 0964). Plain mutable classes with parameterless constructors, as every resource
+// here: responses negotiate to XML as well as JSON (ADR 0190).
+
+/// <summary>The caller's password stores: My Passwords (when it exists) first, then every shared store they may see.</summary>
+public class PasswordStoreListResource : HypermediaResource
+{
+    public List<PasswordStoreSummary> Stores { get; set; } = [];
+}
+
+/// <summary>One store in the list; its <c>self</c> leads to the store's contents.</summary>
+public class PasswordStoreSummary : HypermediaResource
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>True for the caller's own My Passwords.</summary>
+    public bool IsPersonal { get; set; }
+}
+
+/// <summary>A store or a folder in one, with its direct contents (folders first, then by name).</summary>
+public class PasswordFolderResource : HypermediaResource
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary><c>store</c> or <c>folder</c>.</summary>
+    public string Kind { get; set; } = string.Empty;
+
+    /// <summary>The store this folder belongs to (its own id for a store).</summary>
+    public Guid StoreId { get; set; }
+
+    public bool IsPersonal { get; set; }
+
+    /// <summary>The ETag of the store or folder, also in the response header.</summary>
+    public string ETag { get; set; } = string.Empty;
+
+    /// <summary>
+    /// True when some entry of the STORE is not sealed to exactly its readers' current certificates. Always present; the
+    /// <c>reseal</c> rel rides beside it only for a caller who may re-seal (edit rights on the store).
+    /// </summary>
+    public bool NeedsReseal { get; set; }
+
+    /// <summary>
+    /// True when an entry of the store is still sealed to a REVOKED certificate (ADR 0964): re-seal at once, change the
+    /// secrets, and a phone drops its offline copy of the store.
+    /// </summary>
+    public bool UrgentReseal { get; set; }
+
+    /// <summary>How many certificates the store's entries are sealed to, all readers together: a personal store with one
+    /// is one lost key away from losing its entries, so the app recommends a spare.</summary>
+    public int ReaderCertificateCount { get; set; }
+
+    public List<PasswordItemResource> Items { get; set; } = [];
+}
+
+/// <summary>One row of a folder: a folder or an entry, with the flags that gate its actions (ADR 0719).</summary>
+public class PasswordItemResource : HypermediaResource
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary><c>folder</c> or <c>entry</c>.</summary>
+    public string Kind { get; set; } = string.Empty;
+
+    /// <summary>The ETag a rename, move or delete of this row sends as <c>If-Match</c>.</summary>
+    public string ETag { get; set; } = string.Empty;
+
+    public bool CanEdit { get; set; }
+
+    /// <summary>Whether a PUT of the name to the <c>document</c> rel is allowed.</summary>
+    public bool CanRename { get; set; }
+
+    public bool CanDelete { get; set; }
+
+    public bool CanMove { get; set; }
+}
+
+/// <summary>One entry: what opening, editing and re-sealing it needs. Its ETag is the <c>If-Match</c> of a new version.</summary>
+public class PasswordEntryResource : HypermediaResource
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public Guid StoreId { get; set; }
+
+    public Guid ParentId { get; set; }
+
+    public Guid? CurrentVersionId { get; set; }
+
+    public int? VersionNumber { get; set; }
+
+    /// <summary>The ETag of the document, also in the response header.</summary>
+    public string ETag { get; set; } = string.Empty;
+
+    /// <summary>True when this entry is not sealed to exactly its store's readers' current certificates.</summary>
+    public bool NeedsReseal { get; set; }
+
+    /// <summary>
+    /// The server's "Exposed since" (ADR 0964), <c>yyyy-MM-dd</c>: a certificate the entry was sealed to was revoked then.
+    /// Cleared only by filing a new password. Null when the entry is not exposed.
+    /// </summary>
+    public string? ExposedSince { get; set; }
+
+    public bool CanEdit { get; set; }
+
+    /// <summary>Whether a PUT of the name to the <c>document</c> rel is allowed.</summary>
+    public bool CanRename { get; set; }
+
+    public bool CanDelete { get; set; }
+
+    public bool CanMove { get; set; }
+}
+
+/// <summary>Who a store's entries must be sealed to: every certificate the client seals to, and whose it is.</summary>
+public class PasswordStoreRecipientsResource : HypermediaResource
+{
+    public Guid StoreId { get; set; }
+
+    public List<PasswordStoreRecipient> Certificates { get; set; } = [];
+
+    /// <summary>Readers who may read the store but hold no attested certificate: nothing can be sealed to them yet.</summary>
+    public List<PasswordStoreReaderSummary> ReadersWithoutCertificate { get; set; } = [];
+}
+
+public class PasswordStoreRecipient
+{
+    public Guid UserId { get; set; }
+
+    public string DisplayName { get; set; } = string.Empty;
+
+    /// <summary>The end-entity certificate, PEM.</summary>
+    public string CertificatePem { get; set; } = string.Empty;
+}
+
+public class PasswordStoreReaderSummary
+{
+    public Guid UserId { get; set; }
+
+    public string DisplayName { get; set; } = string.Empty;
+}
+
+/// <summary>The entries of a store a member with edit rights should seal again, each with what its new version needs.</summary>
+public class PasswordStoreResealResource : HypermediaResource
+{
+    public Guid StoreId { get; set; }
+
+    public List<PasswordEntryResource> Entries { get; set; } = [];
+}
+
+/// <summary>The body of a new folder or entry: its name, in the clear.</summary>
+public class CreatePasswordItemRequest
+{
+    public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>A new entry, with its first version pending: PUT the sealed bytes to the upload URL, then PUT the version.</summary>
+public class CreatedPasswordEntryResource : HypermediaResource
+{
+    public Guid Id { get; set; }
+
+    public Guid VersionId { get; set; }
+
+    public Uri UploadUrl { get; set; } = null!;
+
+    /// <summary>Present only on a tenant that encrypts at rest: the client encrypts the upload as for any version (ADR 0818).</summary>
+    public Controllers.DocumentVersionsController.UploadEncryption? Encryption { get; set; }
+}

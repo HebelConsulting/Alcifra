@@ -66,8 +66,12 @@ public class DocumentVersionsController : ControllerBase
         Documents.DocumentVersionAccess versionAccess,
         SimplArchive.Infrastructure.Storage.AtRestKeyService atRestKeys,
         Concurrency.DocumentVerbs documents,
-        Documents.DocumentVersionResourceBuilder versionResources)
+        Documents.DocumentVersionResourceBuilder versionResources,
+        PasswordStores.PasswordEntryVersions sealedVersions,
+        IModuleMaskDeclarations maskDeclarations)
     {
+        _sealedVersions = sealedVersions;
+        _maskDeclarations = maskDeclarations;
         _dbContext = dbContext;
         _documents = documents;
         _versionResources = versionResources;
@@ -108,6 +112,8 @@ public class DocumentVersionsController : ControllerBase
     private readonly DocumentFinalizer _finalizer;
     private readonly Documents.ChatSystemEntryRecorder _chatEntries;
     private readonly Documents.DocumentVersionResourceBuilder _versionResources;
+    private readonly PasswordStores.PasswordEntryVersions _sealedVersions;
+    private readonly IModuleMaskDeclarations _maskDeclarations;
 
     // Plain mutable classes, not records — System.Xml.Serialization.XmlSerializer (ADR "JSON/XML content
     // negotiation") needs a parameterless constructor and settable properties.
@@ -159,7 +165,7 @@ public class DocumentVersionsController : ControllerBase
     {
         var document = await _dbContext.Documents
             .Where(d => d.Id == documentId)
-            .Select(d => new { d.TenantId, d.Name, d.CreatedAt, d.StorageFolderId })
+            .Select(d => new { d.TenantId, d.Name, d.CreatedAt, d.StorageFolderId, d.MaskVersionId })
             .SingleOrDefaultAsync(cancellationToken);
 
         if (document is null)
@@ -204,7 +210,11 @@ public class DocumentVersionsController : ControllerBase
         // 0520) — versions of one year share a folder; the new version's id is the leaf. A backdated filing date
         // (needs CanImport) therefore also drives the bucket year, matching the version's CreatedAt.
         var versionId = Guid.NewGuid();
-        var objectKey = ObjectKeyBuilder.Build(document.TenantId, filedAt, document.StorageFolderId, versionId, fileExtension);
+        // A mask with a content segment of its own (a module's, ABI 1.18; the core's sealed Password Entry, ADR 0964)
+        // keeps its versions there whichever path files them, so the storage door knows them by their key.
+        var objectKey = await SimplArchive.Infrastructure.Modules.ContentSegmentKeys.InSegmentAsync(_dbContext, _maskDeclarations,
+            ObjectKeyBuilder.Build(document.TenantId, filedAt, document.StorageFolderId, versionId, fileExtension),
+            document.MaskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
         var uploadUrl = await _objectStorageClient.GetPresignedUploadUrlAsync(objectKey, PresignedUrlExpiry, cancellationToken);
 
         // Client-side at-rest encryption (ADR 0818/B2): on a gated tenant the response tells the client to
@@ -595,6 +605,14 @@ public class DocumentVersionsController : ControllerBase
         public string? WrappedDek { get; set; }
 
         public string? KekGeneration { get; set; }
+
+        // A system comment kind (ADR 0964): only a password entry's re-seal sends one, ResealedAfterAccessChange (2).
+        // Anything else is refused; omitted or 0 is the ordinary user comment.
+        public int? CommentKind { get; set; }
+
+        // A password entry's edit that files a NEW password (ADR 0964): the one change that clears "Exposed since". A
+        // re-seal keeps the old secret, so it never clears it, whatever this says.
+        public bool? PasswordChanged { get; set; }
     }
 
     [HttpPut("{versionId:guid}")]
@@ -698,7 +716,29 @@ public class DocumentVersionsController : ControllerBase
         // before throwing, so a rejected upload leaves nothing behind. Inside this transaction that cleanup
         // would roll back with the refusal and strand the very row it exists to delete.
         var wasPending = version.Status == DocumentVersionStatus.Pending;
-        await _finalizer.FileAsync(version, cancellationToken);
+
+        // A sealed core document (a Password Entry, ADR 0964): its bytes must be an envelope, and a change of one that
+        // already had content commits under the precondition of what its author saw, so two members re-sealing at
+        // once cannot overwrite each other: the second is refused 412 and skips the entry.
+        var sealedFinalize = await _sealedVersions.GuardAsync(version, request?.CommentKind, Request, cancellationToken);
+        if (sealedFinalize is { Gated: true })
+        {
+            await _documents.MutateAsync(Request, sealedFinalize.Document,
+                apply: async () =>
+                {
+                    if (!sealedFinalize.Reseal && request?.PasswordChanged == true)
+                    {
+                        await _sealedVersions.ClearExposureAsync(documentId, cancellationToken);
+                    }
+
+                    await _finalizer.FileAsync(version, cancellationToken);
+                },
+                gateBeforeApply: true, cancellationToken: cancellationToken);
+        }
+        else
+        {
+            await _finalizer.FileAsync(version, cancellationToken);
+        }
 
         var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned);
 
@@ -709,6 +749,18 @@ public class DocumentVersionsController : ControllerBase
         if (wasPending)
         {
             await _audit.RecordAsync(AuditActions.DocumentVersionAdded, "Document", documentId, documentName, $"Version {version.VersionNumber}", cancellationToken: cancellationToken);
+        }
+
+        if (wasPending && sealedFinalize is not null)
+        {
+            var action = sealedFinalize.FirstVersion ? AuditActions.PasswordEntryCreated
+                : sealedFinalize.Reseal ? AuditActions.PasswordEntryResealed
+                : AuditActions.PasswordEntryChanged;
+            await _audit.RecordAsync(action, "Document", documentId, documentName, $"Version {version.VersionNumber}", cancellationToken: cancellationToken);
+
+            // The history rules at once (ADR 0964): after a re-seal without a revoked key, what came before goes now.
+            await _sealedVersions.ReconcileHistoryAsync(documentId, cancellationToken);
+            _documents.EmitETag(Response, sealedFinalize.Document);
         }
 
         return Ok(await _versionResources.BuildAsync(row, documentName, cancellationToken));

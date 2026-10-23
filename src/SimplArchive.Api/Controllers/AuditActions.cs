@@ -89,6 +89,16 @@ public static class AuditActions
     public const string DocumentImported = "Document.Imported";
     // An offline export (ADR 0927): what one caller may read, onto their device for the offline copy.
     public const string DocumentOfflineExported = "Document.OfflineExported";
+    // The password store (ADR 0964): a personal store created on first use, and every change to an entry's sealed
+    // content — its NAME, never a field or a recipient's key. A deletion is the delete door's own Document.Deleted.
+    public const string PasswordStoreCreated = "PasswordStore.Created";
+    public const string PasswordEntryCreated = "PasswordEntry.Created";
+    public const string PasswordEntryChanged = "PasswordEntry.Changed";
+    public const string PasswordEntryResealed = "PasswordEntry.Resealed";
+    // A revoked certificate can read the entry's current version: the server marked it "Exposed since" (ADR 0964).
+    public const string PasswordEntryExposed = "PasswordEntry.Exposed";
+    // An entry that received no content within a day of its creation, removed by the sweep (ADR 0964).
+    public const string PasswordEntryAbandonedRemoved = "PasswordEntry.AbandonedRemoved";
     // Auto-disposed by the retention sweep (ADR "Retention policies (auto-disposition)"). Also used as a literal
     // in Infrastructure's RetentionService, which can't reference this Api-layer class.
     public const string DocumentRetentionDisposed = "Document.RetentionDisposed";

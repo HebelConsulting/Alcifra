@@ -68,7 +68,8 @@ public class CreatableChildrenTests
     {
         var admits = await AdmitsAsync(WellKnownMaskIds.Folder);
 
-        Assert.Equal(["Folder", "Addressbook", "Calendar", "Mailbox", "Meeting room"], admits.Select(a => a.Name).ToList());
+        // ...six with Password Store (ADR 0964): a team's shared store may be made in any ordinary folder.
+        Assert.Equal(["Folder", "Addressbook", "Calendar", "Mailbox", "Meeting room", "Password Store"], admits.Select(a => a.Name).ToList());
 
         var entry = admits[0];
         Assert.Equal(WellKnownMaskIds.Folder, entry.MaskId);
@@ -87,7 +88,7 @@ public class CreatableChildrenTests
         // table entry of its own. The slug rides along only where it predates ids; the Mailbox arrived after
         // ids were the contract, so it deliberately has none.
         Assert.All(admits, a => Assert.EndsWith("/children", a.Href));
-        Assert.Equal(["folder", "addressbook", "calendar", null, null], admits.Select(a => a.FolderMask).ToList());
+        Assert.Equal(["folder", "addressbook", "calendar", null, null, null], admits.Select(a => a.FolderMask).ToList());
         Assert.All(admits, a => Assert.NotEqual(Guid.Empty, a.MaskId));
     }
 

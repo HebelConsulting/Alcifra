@@ -31,6 +31,11 @@ public static class WellKnownLabels
         ["Date of purchase"] = "WkFieldDateOfPurchase",
         ["Warranty expiry"] = "WkFieldWarrantyExpiry",
         ["Expected duration of use (years)"] = "WkFieldExpectedDurationOfUse",
+        // The password store (ADR 0964).
+        ["Password Store"] = "WkMaskPasswordStore",
+        ["Password Folder"] = "WkMaskPasswordFolder",
+        ["Password Entry"] = "WkMaskPasswordEntry",
+        ["Exposed since"] = "WkFieldExposedSince",
     };
 
     /// <summary>The text to show for a stored mask or field name — translated where it is a known one.</summary>

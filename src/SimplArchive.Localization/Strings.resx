@@ -6225,4 +6225,133 @@
   <data name="ApiErrCertificateNoFolder" xml:space="preserve">
     <value>There is nowhere to file reader certificates yet: an administrator must first choose where they live, in the organisation's settings.</value>
   </data>
+  <data name="VersionCommentResealed" xml:space="preserve">
+    <value>Re-sealed by the system after the password store's readers changed.</value>
+  </data>
+  <data name="ApiErrContentNotSealed" xml:space="preserve">
+    <value>This content must be sealed to its readers, and what was uploaded is not, so it was not filed.</value>
+  </data>
+  <data name="ApiErrNotAPasswordStoreItem" xml:space="preserve">
+    <value>There is no such password store, folder or entry, or you may not see it.</value>
+  </data>
+  <data name="ApiErrInvalidVersionCommentKind" xml:space="preserve">
+    <value>Only a password entry's re-seal can carry a system comment.</value>
+  </data>
+  <data name="ApiErrPasswordStoreNotAvailable" xml:space="preserve">
+    <value>Only a signed-in user has a personal password store.</value>
+  </data>
+  <data name="ApiErrPasswordItemNameRequired" xml:space="preserve">
+    <value>A password folder or entry needs a name.</value>
+  </data>
+  <data name="WkMaskPasswordStore" xml:space="preserve">
+    <value>Password Store</value>
+  </data>
+  <data name="WkMaskPasswordFolder" xml:space="preserve">
+    <value>Password Folder</value>
+  </data>
+  <data name="WkMaskPasswordEntry" xml:space="preserve">
+    <value>Password Entry</value>
+  </data>
+  <data name="WkFieldExposedSince" xml:space="preserve">
+    <value>Exposed since</value>
+  </data>
+  <data name="PwMyPasswords" xml:space="preserve">
+    <value>My Passwords</value>
+  </data>
+  <data name="PwPassword" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="PwUserName" xml:space="preserve">
+    <value>User name</value>
+  </data>
+  <data name="PwUrl" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="PwNotes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="PwHoldToShow" xml:space="preserve">
+    <value>Hold to show</value>
+  </data>
+  <data name="PwCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="PwCopiedSecret" xml:space="preserve">
+    <value>Copied. The clipboard is cleared in 30 seconds.</value>
+  </data>
+  <data name="PwMarkSecret" xml:space="preserve">
+    <value>Hide like a password</value>
+  </data>
+  <data name="PwGenerate" xml:space="preserve">
+    <value>Generate password</value>
+  </data>
+  <data name="PwGenerateLength" xml:space="preserve">
+    <value>Length</value>
+  </data>
+  <data name="PwGenerateLower" xml:space="preserve">
+    <value>Lower case</value>
+  </data>
+  <data name="PwGenerateUpper" xml:space="preserve">
+    <value>Upper case</value>
+  </data>
+  <data name="PwGenerateDigits" xml:space="preserve">
+    <value>Digits</value>
+  </data>
+  <data name="PwGenerateSymbols" xml:space="preserve">
+    <value>Symbols</value>
+  </data>
+  <data name="PwGenerateAvoidAmbiguous" xml:space="preserve">
+    <value>Avoid look-alike characters</value>
+  </data>
+  <data name="PwNewEntry" xml:space="preserve">
+    <value>New entry</value>
+  </data>
+  <data name="PwNewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="PwNeedsReseal" xml:space="preserve">
+    <value>Who may read this store has changed. Its entries need sealing again.</value>
+  </data>
+  <data name="PwUrgentReseal" xml:space="preserve">
+    <value>A key that could read this store was revoked. Re-seal it now and change the exposed passwords.</value>
+  </data>
+  <data name="PwReseal" xml:space="preserve">
+    <value>Re-seal</value>
+  </data>
+  <data name="PwResealDone" xml:space="preserve">
+    <value>{0} entries re-sealed, {1} skipped because they were changed meanwhile, {2} could not be opened.</value>
+  </data>
+  <data name="PwExposedSince" xml:space="preserve">
+    <value>Exposed since {0}: change this password.</value>
+  </data>
+  <data name="PwSpareKey" xml:space="preserve">
+    <value>Only one key can open My Passwords. Enrol a spare key, or losing this one loses your entries.</value>
+  </data>
+  <data name="PwNoRecipients" xml:space="preserve">
+    <value>Nobody who reads this store has an enrolled hardware key yet, so nothing can be saved here.</value>
+  </data>
+  <data name="PwEntryChanged" xml:space="preserve">
+    <value>Somebody changed this entry since you opened it. Reload it and try again.</value>
+  </data>
+  <data name="PwImportGoogle" xml:space="preserve">
+    <value>Import from a Google Password Manager export (CSV)</value>
+  </data>
+  <data name="PwImportDuplicate" xml:space="preserve">
+    <value>'{0}' with user name '{1}' already exists here.</value>
+  </data>
+  <data name="PwImportSkip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="PwImportNewVersion" xml:space="preserve">
+    <value>Add as a new version</value>
+  </data>
+  <data name="PwImportKeepBoth" xml:space="preserve">
+    <value>Keep both</value>
+  </data>
+  <data name="PwImportDone" xml:space="preserve">
+    <value>{0} entries imported and sealed on this device.</value>
+  </data>
+  <data name="PwImportDeleteCsv" xml:space="preserve">
+    <value>The export file holds your passwords in plain text. Delete it now?</value>
+  </data>
 </root>

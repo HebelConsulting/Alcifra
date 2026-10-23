@@ -39,4 +39,9 @@ public sealed class PersonalSpaceStructureException : InvalidOperationException
     public static PersonalSpaceStructureException CannotMove(string documentName) =>
         new($"'{documentName}' cannot be moved out of the personal space: it is one of its standing folders, "
             + "and the calendar, contacts and mail views resolve against it (#596).");
+
+    /// <summary>The personal space's password store is named <c>My Passwords</c>, always (ADR 0964).</summary>
+    public static PersonalSpaceStructureException PasswordStoreNameIsFixed(string documentName) =>
+        new($"'{documentName}' cannot be the personal space's password store: it is always named "
+            + $"'{PersonalFolders.MyPasswords}', and that name cannot be changed (ADR 0964).");
 }

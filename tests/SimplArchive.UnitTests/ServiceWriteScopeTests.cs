@@ -68,6 +68,7 @@ public partial class ServiceWriteScopeTests
         ["TenantProvisioningService.cs"] = Provisioning,
         ["WellKnownMaskSeeder.cs"] = Provisioning,
         ["PersonalRepositoryProvisioner.cs"] = Provisioning,
+        ["MyPasswordsProvisioner.cs"] = Provisioning,
         ["PersonalMailboxProvisioner.cs"] = Provisioning,
         ["ArchiveIdentityMapper.cs"] = Provisioning,
         ["ModulePrincipal.cs"] = Provisioning,

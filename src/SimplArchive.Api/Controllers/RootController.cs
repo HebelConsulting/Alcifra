@@ -128,6 +128,8 @@ public class RootController : ControllerBase
                 new Link("legalHolds", "/api/legal-holds", "GET"),
                 new Link("recycleBin", "/api/recycle-bin", "GET"),
                 new Link("checkouts", "/api/checkouts", "GET"),
+                // The caller's password stores (ADR 0964): My Passwords and the shared stores they may see.
+                new Link("passwordStores", "/api/password-stores", "GET"),
                 // Everything the caller has shared outside the system (ADR 0546) — a top-level collection, so
                 // its href belongs here rather than being composed by each client.
                 new Link("externalLinks", "/api/external-links", "GET"),

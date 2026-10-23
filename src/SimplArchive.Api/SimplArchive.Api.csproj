@@ -140,5 +140,8 @@
     <!-- The unit suite asserts one security-relevant invariant on the IMAP session: that a credential-bearing
          command's arguments are never returned for logging. That rule is worth a test, and a test needs to see it. -->
     <InternalsVisibleTo Include="SimplArchive.UnitTests" />
+    <!-- The password history's claim is tested as two instances acting on one stale read (ADR 0964), which needs
+         its per-item delete; nothing else in the integration suite reaches inside this assembly. -->
+    <InternalsVisibleTo Include="SimplArchive.IntegrationTests" />
   </ItemGroup>
 </Project>
