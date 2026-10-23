@@ -176,7 +176,7 @@ public static class CryptoDemoSeeder
         // repository's grants are exactly what must not be inherited here.
         administration.BreaksInheritance = true;
 
-        await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "CryptoDemo",
+        var seeded = await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "CryptoDemo",
             provisioned.TenantId, grantOn: administration.Id,
             // CanManageRepositories since v0.47.0: the Messenger's kiosk setup creates its repository (ADR 0949).
             rights: account => (account.CanManageModules, account.CanManageRepositories) = (true, true),
@@ -189,6 +189,39 @@ public static class CryptoDemoSeeder
                 entry.CanCreateSubItems = true;
                 entry.CanManagePermissions = true;
             });
+
+        // The "Demo logins" password store (ADR 0966): crypto-seed.sh creates it at the top of the standard repository
+        // (provisioning made the Crypto repository the standard one), breaks its inheritance and grants the four readers.
+        // That needs, ON THE REPOSITORY ROOT, exactly these five rights and nothing more:
+        //   see                 find the repository, and the store again on a re-run;
+        //   create-sub-items    create the store there, and its entries inside it;
+        //   manage-permissions  break the store's inheritance and grant the readers (a grant on a store that still
+        //                       inherits is stored and ignored: rights resolve at the governing scope, ADR 0183);
+        //   read-content,       the rights it grants (read for all four, edit for crypt@ so the administrator can
+        //   edit-content        re-seal), which the escalation cap lets it grant only while it holds them (ADR 0202);
+        //                       edit-content is also what files an entry's sealed version.
+        // Not edit-index-data, delete, move or annotate. It does widen the account's reach from the Administration folder
+        // to the repository (SampleData, the manuals), which no narrower grant avoids: a store created there inherits its
+        // rights from the root until its inheritance is broken, and breaking it needs them.
+        if (seeded)
+        {
+            var clientId = configuration["CryptoDemo:ServiceAccount:ClientId"];
+            var account = dbContext.ServiceAccounts.Local.Single(a => a.OpenIddictApplicationClientId == clientId);
+            dbContext.AclEntries.Add(new AclEntry
+            {
+                Id = DemoId.For(provisioned.TenantId, "acl/repository/crypto-setup"),
+                TenantId = provisioned.TenantId,
+                DocumentId = provisioned.RepositoryId,
+                ServiceAccountId = account.Id,
+                CanSee = true,
+                CanReadContent = true,
+                CanEditContent = true,
+                CanCreateSubItems = true,
+                CanManagePermissions = true,
+                CreatedAt = now,
+            });
+        }
+
         await dbContext.SaveChangesAsync();
     }
 }

@@ -399,4 +399,75 @@ public sealed class PasswordStoreTests
         Assert.Equal("fw1", (await adminClient.OpenAsync(await adminClient.GetEntryAsync(entry.Links.Href("self")!))).Content.Password);
         return 0;
     });
+
+    // saconsole's password commands (ADR 0966), as the kiosk's crypto seed runs them: a service account creates a shared
+    // store, breaks its inheritance, grants a reader, and files an entry sealed on ITS machine; every step re-runs unchanged.
+    [Fact]
+    public Task Saconsole_seeds_a_shared_store_whose_entries_a_reader_opens_and_a_re_run_changes_nothing() => WithEnrolmentAsync(async rig =>
+    {
+        var api = new SimplArchive.Cli.Infrastructure.SimplArchiveApi(rig.Owner);
+        var name = $"Demo logins {Guid.NewGuid():N}";
+
+        var (storeId, created) = await SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateStoreAsync(api, rig.RepoId, name, CancellationToken.None);
+        Assert.True(created);
+        Assert.Equal((storeId, false), await SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateStoreAsync(api, rig.RepoId, name, CancellationToken.None));
+
+        // A child of that name that is not a store is refused, never taken for one.
+        var plain = $"Plain {Guid.NewGuid():N}";
+        await TestJson.Post(rig.Owner, $"/api/documents/{rig.RepoId}/children", new { name = plain });
+        await Assert.ThrowsAsync<SimplArchive.Cli.Infrastructure.CliException>(
+            () => SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateStoreAsync(api, rig.RepoId, plain, CancellationToken.None));
+
+        // Its own grants from now on (Anna's write is copied down), then Bob is granted read on it.
+        Assert.True(await SimplArchive.Cli.Commands.AclBreakInheritanceCommand.BreakAsync(api, storeId, CancellationToken.None));
+        Assert.False(await SimplArchive.Cli.Commands.AclBreakInheritanceCommand.BreakAsync(api, storeId, CancellationToken.None));
+        await TestJson.Put(rig.Owner, $"/api/documents/{storeId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+
+        // The service account seals the entry to the store's readers (Anna and Bob), not to itself: it holds no key.
+        var seeder = new PasswordStoreClient(ApiCore.Over(rig.Owner));
+        var content = PasswordEntryContent.Of("SimplDemo2026!", "admin@demo.example", "https://demo.example");
+        var (entryId, outcome) = await SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateEntryAsync(seeder, storeId, "Demo login: admin@", content, CancellationToken.None);
+        Assert.Equal(SimplArchive.Cli.Commands.PasswordStoreSurface.EntryOutcome.Created, outcome);
+        var again = await SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateEntryAsync(
+            seeder, storeId, "Demo login: admin@", PasswordEntryContent.Of("different"), CancellationToken.None);
+        Assert.Equal((entryId, SimplArchive.Cli.Commands.PasswordStoreSurface.EntryOutcome.Unchanged), again);
+
+        foreach (var reader in new[] { rig.Anna, rig.Bob })
+        {
+            var store = await SimplArchive.Cli.Commands.PasswordStoreSurface.StoreAsync(reader.Client, storeId, CancellationToken.None);
+            Assert.Equal(2, store.ReaderCertificateCount);
+            Assert.False(store.NeedsReseal);
+            var opened = await reader.Client.OpenAsync(await reader.Client.GetEntryAsync(Assert.Single(store.Items).Href));
+            Assert.Equal(1, opened.Entry.VersionNumber);   // the re-run filed no version
+            Assert.Equal("SimplDemo2026!", opened.Content.Password);
+            Assert.Equal("admin@demo.example", opened.Content.UserName);
+            Assert.Equal("https://demo.example", opened.Content.Url);
+        }
+
+        // Bob holds read only on the store: the copied-down write does not reach him, the explicit grant does.
+        Assert.False((await SimplArchive.Cli.Commands.PasswordStoreSurface.StoreAsync(rig.Bob.Client, storeId, CancellationToken.None)).CanCreate);
+        return 0;
+    });
+
+    // With no reader holding a certificate, nothing is created: the refusal names who lacks one (ADR 0966).
+    [Fact]
+    public Task Saconsole_refuses_an_entry_nobody_could_read_and_leaves_no_empty_entry() => WithEnrolmentAsync(async rig =>
+    {
+        var api = new SimplArchive.Cli.Infrastructure.SimplArchiveApi(rig.Owner);
+        var (storeId, _) = await SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateStoreAsync(api, rig.RepoId, $"Nobody {Guid.NewGuid():N}", CancellationToken.None);
+        await SimplArchive.Cli.Commands.AclBreakInheritanceCommand.BreakAsync(api, storeId, CancellationToken.None);
+
+        // Anna's copied-down grant is withdrawn, so the store has no reader with a key; Carol reads it without one.
+        (await rig.Owner.DeleteAsync($"/api/documents/{storeId}/acl-entries/users/{rig.Anna.Id}")).EnsureSuccessStatusCode();
+
+        var carolId = await _factory.SeedUserAsync(rig.TenantId, $"pw-carol-{Guid.NewGuid():N}@e2e.local", "pwstore-1234", "Carol");
+        await TestJson.Put(rig.Owner, $"/api/documents/{storeId}/acl-entries/users/{carolId}", new { canSee = true, canReadContent = true });
+
+        var seeder = new PasswordStoreClient(ApiCore.Over(rig.Owner));
+        var refusal = await Assert.ThrowsAsync<SimplArchive.Cli.Infrastructure.CliException>(() => SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateEntryAsync(
+            seeder, storeId, "Unreadable", PasswordEntryContent.Of("x"), CancellationToken.None));
+        Assert.Contains("Carol", refusal.Message);
+        Assert.Empty((await SimplArchive.Cli.Commands.PasswordStoreSurface.StoreAsync(seeder, storeId, CancellationToken.None)).Items);
+        return 0;
+    });
 }

@@ -37,7 +37,8 @@ configured from a terminal or a script:
 | `module upload` | Upload a file through a module's upload link, such as a package or an app for its feed, found on the installation's root |
 | `repository create` | Create a repository, or find the one of that name; prints its id |
 | `certificates list`, `enrol`, `revoke`, `import` | Manage the reader certificates encrypted content is addressed to, including bulk import from a CA |
-| `acl set`, `grant`, `revoke` | Decide who may do what to a document |
+| `acl set`, `grant`, `revoke`, `break-inheritance` | Decide who may do what to a document; `break-inheritance` makes a document's own grants the ones that apply |
+| `passwords store create`, `show`, `passwords entry create` | Set up a shared password store: create it, then file entries sealed on your machine to every certificate its readers hold. The password is read from stdin only (`printf '%s' "$pw" \| saconsole passwords entry create --store <id> --name … --password-stdin`); a re-run changes nothing |
 | `me certificate`, `intray previous` | A user's own certificate, and recovering intray content |
 
 Every command has `--help`. For example, to fix how phones unlock their offline cache and keep the rest:
@@ -69,5 +70,5 @@ Requires the .NET 10 runtime. Source, documentation and issues: <https://github.
 
 What is meant for a person goes to **stderr**, as plain lines (`warning:` and `error:` mark those levels); add
 `--verbose` for diagnostic detail. **stdout carries only a command's result**: the exports of `login`, the id of
-`repository create` and `tenant standard-repository show`, the one-time password of `tenant create`. So
+`repository create`, `passwords store create` and `entry create` and `tenant standard-repository show`, the entry names of `passwords store show`, the one-time password of `tenant create`. So
 `id=$(saconsole repository create --name Customers)` captures exactly the id, and `2>/dev/null` silences the rest.

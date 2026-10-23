@@ -238,6 +238,29 @@ public static class SaConsoleApp
                     .WithDescription("Add rights to what a principal already holds, leaving the rest alone.");
                 acl.AddCommand<AclRevokeCommand>("revoke")
                     .WithDescription("Take rights away, leaving the rest alone.");
+                acl.AddCommand<AclBreakInheritanceCommand>("break-inheritance")
+                    .WithDescription("Make the document's own grants the ones that apply: the inherited ones are copied onto it first.");
+            });
+
+            // The password store (ADRs 0964/0966): a shared store and its entries, sealed on THIS machine to the store's
+            // readers. Who reads a store is an ordinary grant (acl), not a command of its own.
+            config.AddBranch("passwords", passwords =>
+            {
+                passwords.SetDescription("Password stores: shared stores and their entries, sealed to the readers' certificates.");
+                passwords.AddBranch("store", store =>
+                {
+                    store.SetDescription("A shared password store.");
+                    store.AddCommand<PasswordStoreCreateCommand>("create")
+                        .WithDescription("Create a store in a folder, or find the one of that name there. Prints its id on stdout.");
+                    store.AddCommand<PasswordStoreShowCommand>("show")
+                        .WithDescription("Report a store's sealing state and contents by name; entry names go to stdout. Nothing is opened.");
+                });
+                passwords.AddBranch("entry", entry =>
+                {
+                    entry.SetDescription("An entry of a password store.");
+                    entry.AddCommand<PasswordEntryCreateCommand>("create")
+                        .WithDescription("Create an entry sealed to the store's readers, or leave the one of that name alone. The password comes from stdin only.");
+                });
             });
 
             config.AddBranch("tenant", tenant =>

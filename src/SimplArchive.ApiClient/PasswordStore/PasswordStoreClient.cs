@@ -106,6 +106,23 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
     }
 
     /// <summary>
+    /// Files the FIRST content of an entry whose create was interrupted before its upload finished (it has no content,
+    /// and the history sweep removes it after a day, ADR 0964), sealed to the store's readers. A re-run of a script
+    /// completes what an earlier run began instead of leaving an empty entry behind (ADR 0966).
+    /// </summary>
+    public async Task<PasswordEntryInfo> CompleteEntryAsync(PasswordEntryInfo entry, PasswordEntryContent content, CancellationToken cancellationToken = default)
+    {
+        if (entry.HasContent)
+        {
+            throw new InvalidOperationException($"'{entry.Name}' already has content; a change is a new version (SaveEntryAsync).");
+        }
+
+        var sealedBytes = await SealAsync(entry.Links, content, cancellationToken);
+        await UploadVersionAsync(entry, sealedBytes, ifMatch: null, commentKind: null, passwordChanged: null, cancellationToken);
+        return await GetEntryAsync(entry.Links.Href("self")!, cancellationToken);
+    }
+
+    /// <summary>
     /// Saves an edit as a new version under the ETag of the read that filled the form. A changed password is said, which
     /// is the one change that clears "Exposed since".
     /// </summary>

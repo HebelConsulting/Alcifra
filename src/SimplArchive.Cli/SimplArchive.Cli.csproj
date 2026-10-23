@@ -8,8 +8,8 @@
         <!-- Administering an installation from a terminal (ADR 0822). Shipped as a .NET tool like caconsole,
              so an administrator installs it rather than building this repository. It talks to the Api over
              HTTP and references no APPLICATION project on purpose: it is a CLIENT of the deployed application,
-             not a part of it, and such a reference would quietly make it one. (Its one reference is the shared
-             console logger, a leaf that carries none of the application; see below.) -->
+             not a part of it, and such a reference would quietly make it one. (Its references are the shared
+             console logger and the shared API client, which carry none of the application; see below.) -->
         <IsPackable>true</IsPackable>
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>saconsole</ToolCommandName>
@@ -38,17 +38,22 @@
 
     <ItemGroup>
         <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
-        <!-- The Messenger's open-source client (nuget.org): the backup format lives there once, shared with the phone (ADR 0945). -->
-        <PackageReference Include="SimplArchive.Messenger.Client" Version="0.8.0" />
+        <!-- The Messenger's open-source client (nuget.org): the backup format lives there once, shared with the phone (ADR 0945).
+             The version the shared API client's SealedArchive leaf brings, since this tool references that client (ADR 0966). -->
+        <PackageReference Include="SimplArchive.Messenger.Client" Version="0.13.0" />
         <!-- Output through a logger to stderr (ADR 0906, #1661); commands get their logger by constructor. -->
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
     </ItemGroup>
 
     <ItemGroup>
-        <!-- The one plain stderr logger every console program shares (ADRs 0906/0911). The single project this tool
+        <!-- The one plain stderr logger every console program shares (ADRs 0906/0911). A project this tool
              references, and the exception is deliberate: it is a leaf with one package and no project references,
              so it carries no part of the application into a client of it. PackAsTool bundles its assembly. -->
         <ProjectReference Include="../SimplArchive.ConsoleLogging/SimplArchive.ConsoleLogging.csproj" />
+        <!-- The shared API client the desktop and the phone use (ADR 0917), for the password store (ADR 0966): an entry
+             is sealed on the client to the store's readers, and that sealing lives there ONCE ("moved, not copied").
+             A client library, not an application project: it carries none of the server. -->
+        <ProjectReference Include="../SimplArchive.ApiClient/SimplArchive.ApiClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>

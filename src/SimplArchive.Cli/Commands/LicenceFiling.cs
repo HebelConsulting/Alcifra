@@ -107,7 +107,7 @@ public static class LicenceFiling
     /// The child of that name, or null — every page, following the listing's own <c>next</c> rel. Appending the
     /// page size is following, not composing (ADR 0557): the server owns the path, the client the filter.
     /// </summary>
-    private static async Task<Guid?> FindChildAsync(
+    internal static async Task<Guid?> FindChildAsync(
         SimplArchiveApi api, string childrenHref, string name, CancellationToken cancellationToken)
     {
         for (string? page = $"{childrenHref}?limit=200"; page is not null;)
@@ -181,7 +181,7 @@ public static class LicenceFiling
     /// place this tool may put a value into an advertised href, and it is why <c>--parent</c> takes an id at
     /// all rather than pretending a CLI argument can be a hypermedia link.
     /// </remarks>
-    private static async Task<JsonElement> ResolveAsync(
+    internal static async Task<JsonElement> ResolveAsync(
         SimplArchiveApi api, Hypermedia hypermedia, Guid documentId, CancellationToken cancellationToken)
     {
         var template = await hypermedia.RootHrefAsync("document", cancellationToken);

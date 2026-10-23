@@ -7,13 +7,24 @@ using Spectre.Console.Cli;
 
 namespace SimplArchive.Cli.Commands;
 
-/// <summary>What every <c>acl</c> command needs: which document, which principal, which rights (#1504).</summary>
-public class AclSettings : TenantSessionSettings
+/// <summary>What every <c>acl</c> command needs first: which document.</summary>
+public class AclDocumentSettings : TenantSessionSettings
 {
     [CommandArgument(0, "<document>")]
     [Description("The document, by id.")]
     public required string Document { get; init; }
 
+    public override ValidationResult Validate() => this switch
+    {
+        _ when base.Validate() is { Successful: false } failed => failed,
+        _ when !Guid.TryParse(Document, out _) => ValidationResult.Error($"'{Document}' is not a document id."),
+        _ => ValidationResult.Success(),
+    };
+}
+
+/// <summary>What the grant commands need: which document, which principal, which rights (#1504).</summary>
+public class AclSettings : AclDocumentSettings
+{
     [CommandOption("--user")]
     [Description("The user, by display name.")]
     public string? User { get; init; }
@@ -35,7 +46,6 @@ public class AclSettings : TenantSessionSettings
         _ when base.Validate() is { Successful: false } failed => failed,
         _ when new[] { User, Group, ServiceAccount }.Count(p => !string.IsNullOrWhiteSpace(p)) != 1 =>
             ValidationResult.Error("Name exactly one principal: --user, --group or --service-account."),
-        _ when !Guid.TryParse(Document, out _) => ValidationResult.Error($"'{Document}' is not a document id."),
         _ => ValidationResult.Success(),
     };
 }
