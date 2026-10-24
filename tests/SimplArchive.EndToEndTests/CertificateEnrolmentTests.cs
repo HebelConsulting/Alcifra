@@ -28,6 +28,54 @@ public partial class CertificateEnrolmentTests
     private sealed record Rig(HttpClient Owner, HttpClient Admin, HttpClient Member, Guid TenantId, Guid RepoId)
     {
         public string MemberEmail { get; init; } = string.Empty;
+
+        public string AdminEmail { get; init; } = string.Empty;
+    }
+
+    // `certificates list --holder` promised "only this holder's" while the server ignored the value and listed the
+    // whole tenant. The filter is real now, and what an OMITTED holder means stays the caller's scope: their own, or
+    // the tenant's for an administrator.
+    [Fact]
+    public async Task The_listing_filters_by_holder_and_shows_a_member_only_their_own()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            var root = Links(await TestJson.Get(rig.Admin, "/api"));
+
+            await TestJson.Post(rig.Admin, root["certificates"],
+                new { certificatePem = SelfSigned("admin", rig.AdminEmail), label = "Admin card" });
+            await TestJson.Post(rig.Admin, root["certificates"],
+                new { certificatePem = SelfSigned("member", rig.MemberEmail), label = "Member card", holder = rig.MemberEmail });
+
+            // The holder filter is real: only that holder's row comes back.
+            var forMember = (await TestJson.Get(rig.Admin,
+                    $"{root["certificates"]}?holder={Uri.EscapeDataString(rig.MemberEmail)}"))
+                .EnumerateArray().ToList();
+            Assert.Equal("Member card", Assert.Single(forMember).GetProperty("label").GetString());
+
+            // An administrator who names nobody sees the tenant.
+            Assert.Equal(2, (await TestJson.Get(rig.Admin, root["certificates"])).EnumerateArray().Count());
+
+            // A member asking for somebody else's gets nothing, and their own listing stays their own.
+            Assert.Empty((await TestJson.Get(rig.Member,
+                $"{root["certificates"]}?holder={Uri.EscapeDataString(rig.AdminEmail)}")).EnumerateArray());
+            var own = Assert.Single((await TestJson.Get(rig.Member, root["certificates"])).EnumerateArray().ToList());
+            Assert.Equal("Member card", own.GetProperty("label").GetString());
+
+            // A holder who is not a user here answers nothing rather than everything.
+            Assert.Empty((await TestJson.Get(rig.Admin,
+                $"{root["certificates"]}?holder={Uri.EscapeDataString($"nobody-{Guid.NewGuid():N}@e2e.local")}")).EnumerateArray());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
     }
 
     [Fact]
@@ -473,6 +521,6 @@ public partial class CertificateEnrolmentTests
 
         await TestJson.Put(owner, $"/api/documents/{docId}/versions/{created.GetProperty("id").GetGuid()}", new { });
         await TestJson.Put(admin, "/api/modules/test-module/license", new { licenseDocumentId = docId });
-        return new Rig(owner, admin, member, tenantId, repoId) { MemberEmail = memberEmail };
+        return new Rig(owner, admin, member, tenantId, repoId) { MemberEmail = memberEmail, AdminEmail = adminEmail };
     }
 }

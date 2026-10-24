@@ -62,13 +62,39 @@ public sealed class CertificateEnrolment(
     /// <summary>Whether the caller administers enrolment: enrols for others and sets the policy.</summary>
     public Task<bool> CallerAdministersAsync(CancellationToken cancellationToken) => access.CanAdministerModulesAsync(cancellationToken);
 
-    /// <summary>The caller's certificates, or every one in the tenant for an administrator who asks for them all.</summary>
-    public async Task<IReadOnlyList<Listed>> ListAsync(bool everyone, CancellationToken cancellationToken)
+    /// <summary>
+    /// The certificates a listing shows: the caller's own, a named holder's (an administrator's question), or the whole
+    /// tenant's when an administrator names nobody.
+    /// </summary>
+    /// <param name="holder">
+    /// A holder's e-mail, or null/empty for "mine" (or, for an administrator, "the tenant's"). A holder that is not a
+    /// user here answers nothing rather than refusing: the CLI's <c>--holder</c> promised a filter that the server did
+    /// not implement, and an empty answer is the honest one for somebody who is not enrolled.
+    /// </param>
+    public async Task<IReadOnlyList<Listed>> ListAsync(string? holder, CancellationToken cancellationToken)
     {
-        var userId = access.GetCallerIdentity().UserId;
         var query = dbContext.EnrolledCertificates.AsNoTracking();
-        if (!everyone)
+        if (holder is { Length: > 0 })
         {
+            // Asking for somebody else's certificates is an administrator's question; anyone else gets an empty
+            // answer rather than a refusal, as the module always answered.
+            if (!await CallerAdministersAsync(cancellationToken))
+            {
+                return [];
+            }
+
+            var normalized = holder.Trim().ToUpperInvariant();
+            if (await dbContext.Users.Where(u => u.NormalizedEmail == normalized).Select(u => (Guid?)u.Id)
+                    .FirstOrDefaultAsync(cancellationToken) is not { } holderUserId)
+            {
+                return [];
+            }
+
+            query = query.Where(c => c.UserId == holderUserId);
+        }
+        else if (!await CallerAdministersAsync(cancellationToken))
+        {
+            var userId = access.GetCallerIdentity().UserId;
             query = query.Where(c => c.UserId == userId);
         }
 
@@ -222,7 +248,7 @@ public sealed class CertificateEnrolment(
         await audit.RecordAsync(AuditActions.CertificateAttestationAdded, "Document", existing.DocumentId, existing.Label,
             $"Thumbprint {existing.Thumbprint}, attestation of token {row.DeviceSerial}", cancellationToken: cancellationToken);
         logger.LogInformation("Added the attestation of token {DeviceSerial} to enrolled certificate {Thumbprint}", row.DeviceSerial, existing.Thumbprint);
-        return (await ListAsync(everyone: true, cancellationToken)).Single(l => l.DocumentId == existing.DocumentId);
+        return (await ListAsync(holder: null, cancellationToken)).Single(l => l.DocumentId == existing.DocumentId);
     }
 
     /// <summary>
@@ -275,7 +301,7 @@ public sealed class CertificateEnrolment(
         await audit.RecordAsync(AuditActions.CertificateEnrolled, "Document", document.Id, document.Name,
             auditDetail, cancellationToken: cancellationToken);
         logger.LogInformation("Enrolled certificate {Thumbprint} as document {DocumentId}", thumbprint, document.Id);
-        return (await ListAsync(everyone: true, cancellationToken)).FirstOrDefault(l => l.DocumentId == document.Id)
+        return (await ListAsync(holder: null, cancellationToken)).FirstOrDefault(l => l.DocumentId == document.Id)
             ?? new Listed(document.Id, fields["Label"], thumbprint, fields["Serial"], notAfter, null, false, null);
     }
 

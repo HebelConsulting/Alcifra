@@ -77,15 +77,10 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
     {
         await enrolment.EnsureOfferedAsync(cancellationToken);
 
-        // Asking for somebody else's certificates is an administrator's question; anyone else gets an empty answer
-        // rather than a refusal, as the module answered.
-        var everyone = holder is { Length: > 0 };
-        if (everyone && !await enrolment.CallerAdministersAsync(cancellationToken))
-        {
-            return Ok(Array.Empty<EnrolledResource>());
-        }
-
-        var rows = await enrolment.ListAsync(everyone, cancellationToken);
+        // The holder is HONOURED, not merely a switch for "the tenant's view": `certificates list --holder` promised
+        // "only this holder's" while the server ignored the value and listed everybody. Whether the caller may ask at
+        // all, and what an omitted holder means, are the enrolment's rules — one place, one answer.
+        var rows = await enrolment.ListAsync(holder, cancellationToken);
         return Ok(rows.Select(Resource));
     }
 
