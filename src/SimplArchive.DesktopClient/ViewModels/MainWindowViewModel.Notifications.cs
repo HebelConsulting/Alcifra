@@ -59,6 +59,7 @@ public sealed partial class MainWindowViewModel
             {
                 Status = string.IsNullOrWhiteSpace(n.Title) ? n.Body : n.Title;
                 await LoadNotificationsAsync();
+                MessagesArrived();   // a "new messages" signal reloads the Messages tab's open screens (ADR 0967)
             });
             // Modules' ephemeral events ride the same connection (ADR 0957): the Messages tab's "is typing".
             _realtime.ModuleEventReceived += e => ModuleLiveEvents.Dispatch(e);
@@ -111,6 +112,13 @@ public sealed partial class MainWindowViewModel
             try { await _api.Notifications.MarkNotificationReadAsync(n.Notification); } catch (Exception) { }
             n.IsRead = true;
             if (UnreadNotificationCount > 0) UnreadNotificationCount--;
+        }
+
+        // A "new messages" signal opens its conversation in the Messages tab, as a tapped one does on the phone; one that
+        // is none of the user's conversations (another module's, or left since) falls through to the document path.
+        if (await OpenSignalledConversationAsync(n))
+        {
+            return;
         }
 
         // Follow the row's `parent` (its home folder) and select the document there; a root document has no

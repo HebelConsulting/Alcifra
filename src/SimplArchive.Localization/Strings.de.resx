@@ -5787,11 +5787,47 @@
   <data name="TabMessages" xml:space="preserve">
     <value>Nachrichten</value>
   </data>
+  <data name="MsgLockedClick" xml:space="preserve">
+    <value>Versiegelt — klicken, um sie mit Ihrem Schlüssel zu öffnen.</value>
+  </data>
+  <data name="MsgOpenWithKey" xml:space="preserve">
+    <value>Mit meinem Schlüssel öffnen</value>
+  </data>
+  <data name="MsgKeyMissing" xml:space="preserve">
+    <value>Die Nachrichten bleiben versiegelt: {0}</value>
+  </data>
+  <data name="MsgThreadFailed" xml:space="preserve">
+    <value>Die Unterhaltung konnte nicht gelesen werden: {0}</value>
+  </data>
+  <data name="MsgActFailed" xml:space="preserve">
+    <value>Das hat nicht geklappt: {0}</value>
+  </data>
+  <data name="MsgSendFailed" xml:space="preserve">
+    <value>Die Nachricht wurde nicht gesendet: {0}</value>
+  </data>
+  <data name="MsgSaveEdit" xml:space="preserve">
+    <value>Speichern</value>
+  </data>
+  <data name="MsgAttachFailed" xml:space="preserve">
+    <value>Die Datei konnte nicht angehängt werden: {0}</value>
+  </data>
+  <data name="MsgFileCannotShow" xml:space="preserve">
+    <value>Diese App kann diese Datei nicht anzeigen. «Öffnen mit…» übergibt sie an eine andere Anwendung; dort schützt diese App sie nicht mehr.</value>
+  </data>
+  <data name="MsgSaveAs" xml:space="preserve">
+    <value>Speichern unter…</value>
+  </data>
+  <data name="MsgBackToThread" xml:space="preserve">
+    <value>Zurück zur Unterhaltung</value>
+  </data>
+  <data name="MsgCopyText" xml:space="preserve">
+    <value>Text kopieren</value>
+  </data>
+  <data name="MsgComposerHint" xml:space="preserve">
+    <value>Nachricht — Eingabe sendet, Umschalt+Eingabe beginnt eine neue Zeile</value>
+  </data>
   <data name="MsgBackUpToFile" xml:space="preserve">
     <value>In eine Datei sichern…</value>
-  </data>
-  <data name="MsgReadOnlyHere" xml:space="preserve">
-    <value>Hier lesen; schreiben und antworten auf dem Telefon.</value>
   </data>
   <data name="MobBackupTarget" xml:space="preserve">
     <value>Sichern nach</value>

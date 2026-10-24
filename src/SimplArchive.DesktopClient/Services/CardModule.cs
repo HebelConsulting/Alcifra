@@ -134,6 +134,28 @@ public static class CardModule
         }
     }
 
+    /// <summary>
+    /// Forgets the declined PIN prompts, so the user's own "open it with my key" asks again (ADR 0967). Skipped while
+    /// the module is busy: a read holding the gate is asking already, and waiting for it on the UI thread would wait
+    /// for the very PIN dialog that thread has to show.
+    /// </summary>
+    public static void ForgetDeclines()
+    {
+        if (!Gate.Wait(0))
+        {
+            return;
+        }
+
+        try
+        {
+            CardSession.ForgetDeclinesHeld();
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
     /// <summary>Unloads the module entirely — for shutdown, and when a different module path is chosen.</summary>
     /// <remarks>
     /// Callers hold the gate through <see cref="UseAsync"/>, so this takes it too rather than tearing the

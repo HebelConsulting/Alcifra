@@ -241,7 +241,12 @@ internal static class ScreenshotRenderer
             else if (Environment.GetCommandLineArgs().Contains("--messages"))
             {
                 viewModel.IsLoggedIn = true;
-                viewModel.MessagesTab.PopulateDemoForScreenshot();
+                // --members: a group's members in the right pane; --people: the picker making a new group; --file: a sent text
+                // opened in the app from memory (ADR 0967).
+                var args = Environment.GetCommandLineArgs();
+                viewModel.MessagesTab.PopulateDemoForScreenshot(
+                    args.Contains("--members") ? MessagesPane.Members : args.Contains("--people") ? MessagesPane.People
+                    : args.Contains("--file") ? MessagesPane.File : MessagesPane.Thread);
                 viewModel.SelectedTab = MainWindowViewModel.MessagesTabIndex;
             }
             else if (Environment.GetCommandLineArgs().Contains("--checkout"))

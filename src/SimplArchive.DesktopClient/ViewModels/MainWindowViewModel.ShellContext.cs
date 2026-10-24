@@ -168,6 +168,11 @@ public sealed partial class MainWindowViewModel
         // have the plaintext one blanked too — the same confusion, rarer, and no less wrong.
         _closedByCardRemoval.Clear();
 
+        // The Messenger's conversation keys go with the card too (ADR 0967), not only at sign-out: the thread redraws
+        // sealed and an opened file is let go of, as the phone's sealed-content guard does. Nothing comes back by itself
+        // when the card returns; a click on the sealed thread asks for the key.
+        Safe.Fire(MessagesTab.KeyLeftAsync);
+
         foreach (var preview in PreviewSurfaces.Where(p => p.ContentWasEnveloped))
         {
             // Remembered BEFORE the reset, so the card coming back can put it on screen again (#1453).

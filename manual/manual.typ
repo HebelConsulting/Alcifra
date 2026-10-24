@@ -638,17 +638,50 @@ and answers the question; what the answer *obliges* is the module's rule.
 == Messages on the desktop <desktopmessages>
 
 Where the archive offers the *Messenger*#idx("Messenger"), the workbench shows a *Messages* tab: your conversations
-on the left, the selected one on the right, drawn exactly as on the phone — your own messages on the right, a reply
-quoting what it answers, who has read your latest message. The desktop *reads*: writing and replying stay on the
-phone for now. A message opens with your own key — a key on this computer if you have one, otherwise your card,
-which asks for its PIN once. A photo or file opens in its own application.
+on the left — a group with its number of members, an unread count as a badge — and the selected one on the right,
+drawn and handled exactly as on the phone. A message opens with your own key — a key on this computer if you have
+one, otherwise your card, which asks for its PIN once.
 
 #shot("screenshots/desktop-messages.png",
-  [The Messages tab: conversations on the left; a thread with a reply, a file and a read receipt.])
+  [The Messages tab: a thread with a reply, two files in one message and a read receipt; below it, a reply being
+  written with a file waiting as a chip.])
+
+*Writing.* Type into the field at the bottom: *Enter* sends, *Shift+Enter* starts a new line. While a message is on
+its way it shows as *Sending…* and the field waits, so one click never sends twice. The paper clip adds files — several
+at once — as chips above the field, each with its own ✕; *Send* sends them and your text as *one* message, the text
+as their caption. Right-click a message for what you can do with it: *Reply* (a bar above the field says to whom; ✕ or
+*Esc* takes it back), *Edit* your own message (it moves into the field; *Save* or *Ctrl+S* or *Cmd+S* keeps the change,
+*Esc* leaves it as it was), *Copy text*, *Read by…* in a group, and *Delete for everyone* or *Delete for me*. Who else
+is typing shows beneath the thread; the keyboard button in the ribbon switches that off in both directions. If you have
+scrolled up to read older messages, something new does not pull you down: *New messages ↓* takes you there.
+
+*Files stay in the app.* A photo, a PDF or a plain text opens right here, over the conversation, with find and zoom —
+read from memory, nothing written to the disk. What the desktop cannot show (an office document, a video or a sound)
+can be handed to another application with *Open with…* or saved with *Save as…* — only after a warning that the copy
+leaves the archive's protection, and not at all where your organisation keeps files in the app.
+
+*Sealed stays sealed.* If you cancel the PIN prompt, or no key here opens a conversation, its messages show *sealed*
+rather than not at all; *Open with my key* asks again. A conversation whose newest message stayed sealed is not marked
+read. When you take your card out of the reader, the conversation keys are forgotten with it and the thread shows
+sealed until you open it again.
+
+*Chats and groups.* The ribbon starts a *new chat* or a *new group* (a name and several people); only colleagues with
+an enrolled key are offered, because nothing can be sealed to anyone else. In a group, the people button shows its
+*members*, administrators first: an administrator adds and removes members — each time this computer makes a new key,
+so a newcomer reads from now on and someone removed reads nothing more — and makes others administrators; the last
+administrator cannot step down. *Leave* asks first.
+
+#shot("screenshots/desktop-messages-members.png",
+  [A group's members, administrators first, each with what you may do.])
 
 *Back up* writes all your conversations to a file you choose, sealed exactly as they were delivered — nothing is
 decrypted to make it, so only your own key opens it again. *Restore* brings such a backup back as history to read;
-once everyone from a restored conversation is on this installation, the phone offers to *continue* it.
+once everyone from a restored conversation is on this installation, *Continue here* turns it into a live
+conversation with the history above it. A "New messages" notification in the bell opens its conversation here, and an
+open conversation reads new messages as they arrive.
+
+What the desktop does not do, because a desktop cannot: take a photo with a camera (choose one from a file instead),
+be woken by a push while it is closed, or back up on a schedule in the background.
 
 == On a phone or a tablet
 

@@ -158,6 +158,19 @@ public static class CardSession
     /// </remarks>
     public static void Close() => CardModule.DropSession();
 
+    /// <summary>Whether a PIN prompt was declined and is remembered: what tells a cancelled prompt from a missing key.</summary>
+    /// <remarks>
+    /// The Messages tab reads it after a key would not open (core #1813 follow-up, ADR 0967): a declined prompt is the
+    /// user's decision and shows the thread SEALED with a re-ask action, as the phone does, rather than as a failure.
+    /// </remarks>
+    internal static bool HasDeclined => Declined.Count > 0;
+
+    /// <summary>
+    /// Forgets the declined prompts, so the next read asks for the PIN again — only ever on the user's own ask (a click
+    /// on a sealed message). Run inside the module's gate, by <see cref="CardModule.ForgetDeclines"/>.
+    /// </summary>
+    internal static void ForgetDeclinesHeld() => Declined.Clear();
+
     /// <summary>
     /// Drops the session without touching the gate — for <see cref="CardModule"/>, which already holds it.
     /// </summary>

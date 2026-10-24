@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="using:Projektanker.Icons.Avalonia"
              xmlns:loc="using:SimplArchive.DesktopClient.Localization"
+             xmlns:v="using:SimplArchive.DesktopClient.Views"
              xmlns:vm="using:SimplArchive.DesktopClient.ViewModels"
              x:Class="SimplArchive.DesktopClient.Views.MessagesTab"
              x:DataType="vm:MessagesTabViewModel">
@@ -21,19 +22,49 @@
       <Setter Property="Background" Value="{DynamicResource WbAccentTint}" />
       <Setter Property="HorizontalAlignment" Value="Right" />
     </Style>
-    <Style Selector="TextBlock.placeholder">
+    <Style Selector="Border.bubble.sending">
+      <Setter Property="Opacity" Value="0.6" />
+    </Style>
+    <Style Selector="SelectableTextBlock.placeholder">
       <Setter Property="FontStyle" Value="Italic" />
       <Setter Property="Foreground" Value="{DynamicResource WbMuted}" />
     </Style>
+    <Style Selector="Border.chip">
+      <Setter Property="Background" Value="{DynamicResource WbAccentTint}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource WbBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="10,2,2,2" />
+    </Style>
+    <Style Selector="Border.badge">
+      <Setter Property="Background" Value="{DynamicResource WbAccent}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="MinWidth" Value="20" />
+      <Setter Property="Padding" Value="6,0" />
+    </Style>
+    <Style Selector="Border.paneHeader">
+      <Setter Property="BorderBrush" Value="{DynamicResource WbBorder}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="0,0,0,6" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
   </UserControl.Styles>
 
-  <!-- The Messages tab (core #1813): conversations │ thread. Read here; writing and replying stay on the phone. -->
+  <!-- The Messages tab (core #1813, ADR 0967): conversations │ the conversation — read and written here, as on the
+       phone. The right pane shows the thread, a file opened over it, the people picker or a group's members. -->
   <DockPanel LastChildFill="True" Margin="8">
 
     <Border DockPanel.Dock="Top" Classes="ribbon">
       <StackPanel Orientation="Horizontal" Spacing="4">
         <Button Command="{Binding LoadCommand}" ToolTip.Tip="{loc:Tr RibbonRefresh}" AutomationProperties.Name="{loc:Tr RibbonRefresh}">
           <i:Icon Value="mdi-refresh" FontSize="18" />
+        </Button>
+        <Border Width="1" Background="{DynamicResource WbBorder}" Margin="4,2" />
+        <Button Command="{Binding NewChatCommand}" ToolTip.Tip="{loc:Msg NewChat}" AutomationProperties.Name="{loc:Msg NewChat}">
+          <i:Icon Value="mdi-message-plus-outline" FontSize="18" />
+        </Button>
+        <Button Command="{Binding NewGroupCommand}" ToolTip.Tip="{loc:Msg NewGroup}" AutomationProperties.Name="{loc:Msg NewGroup}">
+          <i:Icon Value="mdi-account-multiple-plus-outline" FontSize="18" />
         </Button>
         <Border Width="1" Background="{DynamicResource WbBorder}" Margin="4,2" />
         <!-- Back up and Restore: sealed files, nothing decrypted; the same library as the phone and saconsole. -->
@@ -43,20 +74,32 @@
         <Button Command="{Binding RestoreCommand}" ToolTip.Tip="{loc:Tr MobBackupRestore}" AutomationProperties.Name="{loc:Tr MobBackupRestore}">
           <i:Icon Value="mdi-backup-restore" FontSize="18" />
         </Button>
+        <!-- "Is typing" both ways (SimplArchiveMessenger #26): a state, so a toggle; only where the server offers it. -->
+        <Border Width="1" Background="{DynamicResource WbBorder}" Margin="4,2" IsVisible="{Binding OffersTypingPreference}" />
+        <ToggleButton IsChecked="{Binding TypingIndicator}" IsVisible="{Binding OffersTypingPreference}"
+                      ToolTip.Tip="{loc:Msg TypingIndicatorHint}" AutomationProperties.Name="{loc:Msg TypingIndicator}">
+          <i:Icon Value="mdi-keyboard-outline" FontSize="18" />
+        </ToggleButton>
       </StackPanel>
     </Border>
 
-    <Grid ColumnDefinitions="260,4,*">
+    <Grid ColumnDefinitions="280,4,*">
 
+      <!-- The conversations: title, what kind it is (a group's member count, history), the unread badge. -->
       <DockPanel Grid.Column="0" LastChildFill="True">
         <TextBlock DockPanel.Dock="Top" Text="{Binding EmptyMessage}" Foreground="{DynamicResource WbMuted}"
                    TextWrapping="Wrap" Margin="2,4,0,0" IsVisible="{Binding EmptyMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-        <ListBox ItemsSource="{Binding Conversations}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0">
+        <ListBox x:Name="ConversationList" ItemsSource="{Binding Conversations}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:MessagesConversationViewModel">
               <DockPanel LastChildFill="True">
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Detail}" Foreground="{DynamicResource WbMuted}" Margin="6,0,0,0" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <Border DockPanel.Dock="Right" Classes="badge" IsVisible="{Binding HasUnread}" VerticalAlignment="Center" Margin="6,0,0,0">
+                  <TextBlock Text="{Binding Unread}" Foreground="{DynamicResource WbOnAccent}" FontSize="12" HorizontalAlignment="Center" />
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Kind}" IsVisible="{Binding HasKind}" FontSize="12" Foreground="{DynamicResource WbMuted}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
               </DockPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
@@ -65,40 +108,263 @@
 
       <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource WbBorder}" />
 
-      <DockPanel Grid.Column="2" LastChildFill="True" Margin="8,0,0,0">
-        <TextBlock DockPanel.Dock="Bottom" Text="{Binding ThreadNote}" Foreground="{DynamicResource WbMuted}"
-                   HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" />
-        <!-- Who else is typing (SimplArchiveMessenger #26): under the thread, above the note. -->
-        <TextBlock DockPanel.Dock="Bottom" Text="{Binding TypingLine}" Foreground="{DynamicResource WbMuted}" FontStyle="Italic"
-                   FontSize="12" Margin="4,4,0,0" TextTrimming="CharacterEllipsis"
-                   IsVisible="{Binding TypingLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-        <ScrollViewer x:Name="Thread">
-          <ItemsControl ItemsSource="{Binding Bubbles}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:MessageBubbleViewModel">
-                <StackPanel>
-                  <Border Classes="bubble" Classes.mine="{Binding IsMine}">
-                    <StackPanel Spacing="3">
-                      <TextBlock Text="{Binding Sender}" FontWeight="SemiBold" Foreground="{DynamicResource WbAccentText}" IsVisible="{Binding HasSender}" />
-                      <Border Background="{DynamicResource WbBorder}" CornerRadius="6" Padding="8,4" IsVisible="{Binding HasQuote}">
-                        <TextBlock Text="{Binding Quote}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource WbMuted}" />
-                      </Border>
-                      <!-- A photo or file: opened in its own application, decrypted here with the reader's key. -->
-                      <Button Content="{Binding FileName}" IsVisible="{Binding HasFile}" Classes="link"
-                              Command="{Binding $parent[ItemsControl].((vm:MessagesTabViewModel)DataContext).OpenFileCommand}"
-                              CommandParameter="{Binding}" />
-                      <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding HasText}" Classes.placeholder="{Binding IsPlaceholder}" />
-                      <TextBlock Text="{Binding Footer}" FontSize="11" Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Right" />
-                    </StackPanel>
-                  </Border>
-                  <TextBlock Text="{Binding Receipt}" FontSize="11" Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Right"
-                             IsVisible="{Binding HasReceipt}" />
+      <Panel Grid.Column="2" Margin="8,0,0,0">
+
+        <TextBlock Text="{Binding SelectConversationLine}" IsVisible="{Binding ShowsNothing}" Foreground="{DynamicResource WbMuted}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" />
+
+        <!-- ═══ The conversation ═══ -->
+        <DockPanel IsVisible="{Binding ShowsThread}" LastChildFill="True">
+          <DockPanel DataContext="{Binding Thread}" x:DataType="vm:MessengerThreadViewModel" LastChildFill="True" IsVisible="{Binding $parent[UserControl].((vm:MessagesTabViewModel)DataContext).Thread, Converter={x:Static ObjectConverters.IsNotNull}}">
+
+            <Border DockPanel.Dock="Top" Classes="paneHeader">
+              <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsGroup}">
+                  <Button Command="{Binding ShowMembersCommand}" ToolTip.Tip="{loc:Msg Members}" AutomationProperties.Name="{loc:Msg Members}">
+                    <i:Icon Value="mdi-account-group-outline" FontSize="18" />
+                  </Button>
+                  <Button Command="{Binding LeaveCommand}" ToolTip.Tip="{loc:Msg Leave}" AutomationProperties.Name="{loc:Msg Leave}">
+                    <i:Icon Value="mdi-exit-run" FontSize="18" />
+                  </Button>
                 </StackPanel>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </ScrollViewer>
-      </DockPanel>
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </Border>
+
+            <!-- History (left or restored) is read, not written: where the composer would be, it says so, and offers to
+                 continue here once everyone is (core #1813). -->
+            <StackPanel DockPanel.Dock="Bottom" IsVisible="{Binding IsHistory}" Spacing="6" Margin="0,8,0,0">
+              <TextBlock Text="{Binding HistoryNote}" Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Center" TextWrapping="Wrap" />
+              <Button Content="{loc:Msg ContinueHere}" Command="{Binding ContinueHereCommand}" IsVisible="{Binding CanContinue}" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!-- The compose bar: the reply's or edit's bar with ✕, the chips, then the field with Attach and Send. -->
+            <StackPanel DockPanel.Dock="Bottom" DataContext="{Binding Composer}" x:DataType="vm:MessengerComposerViewModel"
+                        IsVisible="{Binding $parent[DockPanel].((vm:MessengerThreadViewModel)DataContext).CanWrite}" Spacing="4" Margin="0,6,0,0">
+              <DockPanel LastChildFill="True" IsVisible="{Binding HasBar}">
+                <Button DockPanel.Dock="Right" Command="{Binding CancelBarCommand}" ToolTip.Tip="{loc:Msg Cancel}" AutomationProperties.Name="{loc:Msg Cancel}" Padding="4,2">
+                  <i:Icon Value="mdi-close" FontSize="14" />
+                </Button>
+                <Border BorderBrush="{DynamicResource WbAccent}" BorderThickness="3,0,0,0" Padding="8,2">
+                  <TextBlock Text="{Binding BarLine}" Foreground="{DynamicResource WbMuted}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </Border>
+              </DockPanel>
+              <ItemsControl ItemsSource="{Binding Chips}" IsVisible="{Binding HasChips}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DraftChipViewModel">
+                    <Border Classes="chip" Margin="0,0,6,4">
+                      <StackPanel Orientation="Horizontal" Spacing="2">
+                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" />
+                        <Button Padding="4,0" Background="Transparent" BorderThickness="0" ToolTip.Tip="{Binding RemoveTip}" AutomationProperties.Name="{Binding RemoveTip}"
+                                Command="{Binding $parent[ItemsControl].((vm:MessengerComposerViewModel)DataContext).RemoveChipCommand}" CommandParameter="{Binding}">
+                          <i:Icon Value="mdi-close" FontSize="12" />
+                        </Button>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Left" Command="{Binding AttachCommand}" IsEnabled="{Binding !IsSending}" VerticalAlignment="Bottom" Margin="0,0,4,0"
+                        ToolTip.Tip="{loc:Msg Attach}" AutomationProperties.Name="{loc:Msg Attach}">
+                  <i:Icon Value="mdi-paperclip" FontSize="18" />
+                </Button>
+                <Button DockPanel.Dock="Right" Content="{Binding SendLabel}" Command="{Binding SendCommand}" IsEnabled="{Binding !IsSending}"
+                        Classes="accent" VerticalAlignment="Bottom" Margin="4,0,0,0" />
+                <TextBox x:Name="Compose" Text="{Binding Text}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="160"
+                         IsReadOnly="{Binding IsSending}" Watermark="{loc:Tr MsgComposerHint}" />
+              </DockPanel>
+            </StackPanel>
+
+            <!-- Who else is typing (SimplArchiveMessenger #26): under the thread, above the composer. -->
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding TypingLine}" Foreground="{DynamicResource WbMuted}" FontStyle="Italic"
+                       FontSize="12" Margin="4,4,0,0" TextTrimming="CharacterEllipsis"
+                       IsVisible="{Binding TypingLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <!-- Sealed messages (the key prompt was cancelled, or no key was here): one click asks once more. -->
+            <Button DockPanel.Dock="Top" Content="{loc:Tr MsgOpenWithKey}" Command="{Binding AskForKeyCommand}" IsVisible="{Binding HasSealed}"
+                    HorizontalAlignment="Center" Margin="0,0,0,6" />
+
+            <Grid>
+              <ScrollViewer x:Name="ThreadScroll">
+                <ItemsControl ItemsSource="{Binding Bubbles}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MessageBubbleViewModel">
+                      <StackPanel>
+                        <Border Classes="bubble" Classes.mine="{Binding IsMine}" Classes.sending="{Binding IsSending}">
+                          <Border.ContextMenu>
+                            <ContextMenu IsVisible="{Binding HasActions}">
+                              <MenuItem Header="{loc:Msg Reply}" Command="{Binding Thread.ReplyCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanReply}">
+                                <MenuItem.Icon><i:Icon Value="mdi-reply" /></MenuItem.Icon>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Msg Edit}" Command="{Binding Thread.EditCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanEdit}">
+                                <MenuItem.Icon><i:Icon Value="mdi-pencil-outline" /></MenuItem.Icon>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Tr MsgCopyText}" Command="{Binding Thread.CopyCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanCopy}">
+                                <MenuItem.Icon><i:Icon Value="mdi-content-copy" /></MenuItem.Icon>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Msg WhoRead}" Command="{Binding Thread.ShowReadByCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanShowReadBy}">
+                                <MenuItem.Icon><i:Icon Value="mdi-check-all" /></MenuItem.Icon>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Msg DeleteForEveryone}" Command="{Binding Thread.DeleteForEveryoneCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanDeleteForEveryone}">
+                                <MenuItem.Icon><i:Icon Value="mdi-delete-outline" /></MenuItem.Icon>
+                              </MenuItem>
+                              <MenuItem Header="{loc:Msg DeleteForMe}" Command="{Binding Thread.DeleteForMeCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanDeleteForMe}">
+                                <MenuItem.Icon><i:Icon Value="mdi-eye-off-outline" /></MenuItem.Icon>
+                              </MenuItem>
+                            </ContextMenu>
+                          </Border.ContextMenu>
+                          <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding Sender}" FontWeight="SemiBold" Foreground="{DynamicResource WbAccentText}" IsVisible="{Binding HasSender}" />
+                            <Border Background="{DynamicResource WbBorder}" CornerRadius="6" Padding="8,4" IsVisible="{Binding HasQuote}">
+                              <TextBlock Text="{Binding Quote}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource WbMuted}" />
+                            </Border>
+                            <!-- Every file the message carries, each opened on its own, in the app, from memory. -->
+                            <ItemsControl ItemsSource="{Binding Files}" IsVisible="{Binding HasFiles}">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MessageFileViewModel">
+                                  <Button Content="{Binding Label}" Classes="link" HorizontalAlignment="Left"
+                                          Command="{Binding Bubble.Thread.OpenFileCommand}" CommandParameter="{Binding}" />
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Content="{Binding Text}" IsVisible="{Binding IsLocked}" Classes="link" HorizontalAlignment="Left"
+                                    Command="{Binding Thread.AskForKeyCommand}" />
+                            <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" Classes.placeholder="{Binding IsPlaceholder}">
+                              <SelectableTextBlock.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                  <Binding Path="HasText" />
+                                  <Binding Path="!IsLocked" />
+                                </MultiBinding>
+                              </SelectableTextBlock.IsVisible>
+                            </SelectableTextBlock>
+                            <TextBlock Text="{Binding Footer}" FontSize="11" Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Right" />
+                          </StackPanel>
+                        </Border>
+                        <TextBlock Text="{Binding Receipt}" FontSize="11" Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Right"
+                                   IsVisible="{Binding HasReceipt}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+              <!-- Something arrived below a reader who scrolled up: offered, not jumped to. -->
+              <Button Content="{loc:Msg NewMessagesBelow}" Command="{Binding JumpToNewCommand}" IsVisible="{Binding OffersNew}"
+                      Classes="accent" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,8" CornerRadius="14" />
+            </Grid>
+          </DockPanel>
+        </DockPanel>
+
+        <!-- ═══ A sent file, opened in the app from memory ═══ -->
+        <DockPanel IsVisible="{Binding ShowsFile}" LastChildFill="True">
+          <DockPanel DataContext="{Binding File}" x:DataType="vm:MessengerFileViewModel" LastChildFill="True"
+                     IsVisible="{Binding $parent[UserControl].((vm:MessagesTabViewModel)DataContext).File, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Border DockPanel.Dock="Top" Classes="paneHeader">
+              <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                  <!-- Handing on: never by a click on the file, only here, after a warning, and never where files stay in the app. -->
+                  <Button Content="{loc:Msg OpenWith}" Command="{Binding OpenWithCommand}" IsVisible="{Binding MayLeaveTheApp}" />
+                  <Button Content="{loc:Tr MsgSaveAs}" Command="{Binding SaveAsCommand}" IsVisible="{Binding MayLeaveTheApp}" />
+                  <Button Command="{Binding CloseCommand}" ToolTip.Tip="{loc:Tr MsgBackToThread}" AutomationProperties.Name="{loc:Tr MsgBackToThread}">
+                    <i:Icon Value="mdi-close" FontSize="18" />
+                  </Button>
+                </StackPanel>
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </Border>
+            <Panel>
+              <v:PreviewPane DataContext="{Binding Preview}" IsVisible="{Binding $parent[Panel].((vm:MessengerFileViewModel)DataContext).Shown}" />
+              <TextBlock Text="{Binding NotShownLine}" IsVisible="{Binding !Shown}" TextWrapping="Wrap" MaxWidth="460"
+                         Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" />
+            </Panel>
+          </DockPanel>
+        </DockPanel>
+
+        <!-- ═══ The people picker: a new chat, a new group, a member to add ═══ -->
+        <DockPanel IsVisible="{Binding ShowsPeople}" LastChildFill="True">
+          <DockPanel DataContext="{Binding People}" x:DataType="vm:MessengerPeopleViewModel" LastChildFill="True"
+                     IsVisible="{Binding $parent[UserControl].((vm:MessagesTabViewModel)DataContext).People, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Border DockPanel.Dock="Top" Classes="paneHeader">
+              <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                  <Button Content="{loc:Msg Create}" Command="{Binding CreateGroupCommand}" IsVisible="{Binding IsGroup}" Classes="accent" />
+                  <Button Command="{Binding CancelCommand}" ToolTip.Tip="{loc:Msg Cancel}" AutomationProperties.Name="{loc:Msg Cancel}">
+                    <i:Icon Value="mdi-close" FontSize="18" />
+                  </Button>
+                </StackPanel>
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+              </DockPanel>
+            </Border>
+            <TextBox DockPanel.Dock="Top" Text="{Binding GroupName}" Watermark="{loc:Msg GroupName}" IsVisible="{Binding IsGroup}" Margin="0,0,0,6" />
+            <TextBox DockPanel.Dock="Top" Text="{Binding Term}" Watermark="{loc:Msg Search}" Margin="0,0,0,4" />
+            <TextBlock DockPanel.Dock="Top" Text="{Binding Hint}" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" Margin="2,0,0,6" />
+            <ListBox ItemsSource="{Binding People}" Background="Transparent" BorderThickness="0" SelectionMode="Single">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:MessengerPersonViewModel">
+                  <Button Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                          Command="{Binding $parent[ListBox].((vm:MessengerPeopleViewModel)DataContext).ChooseCommand}" CommandParameter="{Binding}">
+                    <DockPanel LastChildFill="True">
+                      <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChosen}" IsHitTestVisible="False" Margin="0,0,8,0"
+                                IsVisible="{Binding $parent[ListBox].((vm:MessengerPeopleViewModel)DataContext).IsGroup}" />
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" />
+                        <TextBlock Text="{Binding Email}" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+                      </StackPanel>
+                    </DockPanel>
+                  </Button>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </DockPanel>
+
+        <!-- ═══ A group's members: administrators first, each with what the user may do with them ═══ -->
+        <DockPanel IsVisible="{Binding ShowsMembers}" LastChildFill="True">
+          <DockPanel DataContext="{Binding Members}" x:DataType="vm:MessengerMembersViewModel" LastChildFill="True"
+                     IsVisible="{Binding $parent[UserControl].((vm:MessagesTabViewModel)DataContext).Members, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Border DockPanel.Dock="Top" Classes="paneHeader">
+              <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                  <Button Content="{loc:Msg AddMember}" Command="{Binding AddMemberCommand}" IsVisible="{Binding CanAdd}" />
+                  <Button Command="{Binding CloseCommand}" ToolTip.Tip="{loc:Tr MsgBackToThread}" AutomationProperties.Name="{loc:Tr MsgBackToThread}">
+                    <i:Icon Value="mdi-close" FontSize="18" />
+                  </Button>
+                </StackPanel>
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding Members}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MessengerMemberViewModel">
+                  <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="0,0,0,1" Padding="2,6">
+                    <DockPanel LastChildFill="True">
+                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button Content="{loc:Msg MakeAdmin}" IsVisible="{Binding Row.CanMakeAdmin}"
+                                Command="{Binding $parent[ItemsControl].((vm:MessengerMembersViewModel)DataContext).MakeAdminCommand}" CommandParameter="{Binding}" />
+                        <Button Content="{loc:Msg RevokeAdmin}" IsVisible="{Binding Row.CanRevokeAdmin}"
+                                Command="{Binding $parent[ItemsControl].((vm:MessengerMembersViewModel)DataContext).RevokeAdminCommand}" CommandParameter="{Binding}" />
+                        <Button Content="{loc:Msg Remove}" IsVisible="{Binding Row.CanRemove}"
+                                Command="{Binding $parent[ItemsControl].((vm:MessengerMembersViewModel)DataContext).RemoveCommand}" CommandParameter="{Binding}" />
+                        <Button Content="{loc:Msg Leave}" IsVisible="{Binding Row.CanLeave}"
+                                Command="{Binding $parent[ItemsControl].((vm:MessengerMembersViewModel)DataContext).LeaveCommand}" CommandParameter="{Binding}" />
+                      </StackPanel>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" />
+                        <TextBlock Text="{Binding AdminLabel}" IsVisible="{Binding IsAdmin}" FontSize="12" Foreground="{DynamicResource WbAccentText}" />
+                      </StackPanel>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </DockPanel>
+        </DockPanel>
+      </Panel>
     </Grid>
   </DockPanel>
 </UserControl>

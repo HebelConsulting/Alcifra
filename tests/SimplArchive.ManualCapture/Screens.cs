@@ -77,6 +77,8 @@ public static class Screens
         new("messages", ["--messages"], WhyFixture:
             "The test installation runs no Messenger module, and a message opens only with its reader's key: the figure "
             + "is the demo thread, drawn by the same display rules as a real one (core #1813)."),
+        new("messages-members", ["--messages", "--members"], WhyFixture:
+            "As the Messages figure: no Messenger on the test installation, so a group's members are the demo group's (ADR 0967)."),
         // The structured contact editor with the "Advanced: the stored item" disclosure OPEN. Its own window,
         // because neither of the two tabs above can show it — and the disclosure is the part of this feature a
         // reader is least likely to guess at, since its whole point is the properties the form does not show.

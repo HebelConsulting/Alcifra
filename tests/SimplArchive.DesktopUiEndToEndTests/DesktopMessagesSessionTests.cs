@@ -40,7 +40,7 @@ public sealed class DesktopMessagesSessionTests : IDisposable
     public async Task After_a_sign_in_the_tab_talks_through_the_new_session_never_the_one_it_was_discovered_with()
     {
         var current = new SimplArchiveApiClient("token-first");
-        var tab = new MessagesTabViewModel(new TestShell(), () => current, NoLiveEvents.Instance);
+        var tab = new MessagesTabViewModel(new TestShell(), () => current, NoLiveEvents.Instance, () => null);
         await tab.DiscoverAsync();
         Assert.True(tab.IsOffered);
 
@@ -56,7 +56,7 @@ public sealed class DesktopMessagesSessionTests : IDisposable
     public async Task A_session_that_was_reset_is_not_used_again_by_anything_the_tab_does()
     {
         SimplArchiveApiClient? current = new SimplArchiveApiClient("token-first");
-        var tab = new MessagesTabViewModel(new TestShell(), () => current, NoLiveEvents.Instance);
+        var tab = new MessagesTabViewModel(new TestShell(), () => current, NoLiveEvents.Instance, () => null);
         await tab.DiscoverAsync();
 
         tab.Reset();
@@ -77,7 +77,7 @@ public sealed class DesktopMessagesSessionTests : IDisposable
         _archive.RefuseConversations = true;
         var shell = new TestShell();
         var api = new SimplArchiveApiClient("token-first");
-        var tab = new MessagesTabViewModel(shell, () => api, NoLiveEvents.Instance);
+        var tab = new MessagesTabViewModel(shell, () => api, NoLiveEvents.Instance, () => null);
         await tab.DiscoverAsync();
 
         await tab.LoadAsync();   // must not throw

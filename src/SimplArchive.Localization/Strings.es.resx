@@ -5787,11 +5787,47 @@
   <data name="TabMessages" xml:space="preserve">
     <value>Mensajes</value>
   </data>
+  <data name="MsgLockedClick" xml:space="preserve">
+    <value>Sellado — haga clic para abrirlo con su clave.</value>
+  </data>
+  <data name="MsgOpenWithKey" xml:space="preserve">
+    <value>Abrir con mi clave</value>
+  </data>
+  <data name="MsgKeyMissing" xml:space="preserve">
+    <value>Los mensajes siguen sellados: {0}</value>
+  </data>
+  <data name="MsgThreadFailed" xml:space="preserve">
+    <value>No se pudo leer la conversación: {0}</value>
+  </data>
+  <data name="MsgActFailed" xml:space="preserve">
+    <value>No se pudo hacer: {0}</value>
+  </data>
+  <data name="MsgSendFailed" xml:space="preserve">
+    <value>El mensaje no se envió: {0}</value>
+  </data>
+  <data name="MsgSaveEdit" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="MsgAttachFailed" xml:space="preserve">
+    <value>No se pudo adjuntar el archivo: {0}</value>
+  </data>
+  <data name="MsgFileCannotShow" xml:space="preserve">
+    <value>Esta aplicación no puede mostrar este archivo. «Abrir con…» lo pasa a otra aplicación, donde esta aplicación ya no lo protege.</value>
+  </data>
+  <data name="MsgSaveAs" xml:space="preserve">
+    <value>Guardar como…</value>
+  </data>
+  <data name="MsgBackToThread" xml:space="preserve">
+    <value>Volver a la conversación</value>
+  </data>
+  <data name="MsgCopyText" xml:space="preserve">
+    <value>Copiar texto</value>
+  </data>
+  <data name="MsgComposerHint" xml:space="preserve">
+    <value>Mensaje — Intro envía, Mayús+Intro inicia una línea nueva</value>
+  </data>
   <data name="MsgBackUpToFile" xml:space="preserve">
     <value>Copia en un archivo…</value>
-  </data>
-  <data name="MsgReadOnlyHere" xml:space="preserve">
-    <value>Lea aquí; escriba y responda en el teléfono.</value>
   </data>
   <data name="MobBackupTarget" xml:space="preserve">
     <value>Copia en</value>

@@ -358,7 +358,31 @@ public sealed partial class PreviewViewModel : ObservableObject
         }
 
         var (bytes, contentType, enveloped) = await SimplArchiveApiClient.DownloadDetailedAsync(preview.PreviewUrl);
+        await ShowBytesAsync(bytes, contentType, preview.TextLayoutUrl);
 
+        // AFTER the render, because every branch calls Reset() — which clears this, correctly: a reset means
+        // nothing is on display, so nothing enveloped is on display either.
+        ContentWasEnveloped = enveloped;
+    }
+
+    /// <summary>
+    /// Shows content already held IN MEMORY — a Messenger file opened with the reader's key (ADR 0967) — as a photo, a
+    /// PDF's pages or a plain text, with find and zoom as for a document. Nothing of it is written anywhere, and no
+    /// server is asked: there is no text layout to fetch, so find in a PDF reads the bytes themselves.
+    /// </summary>
+    /// <returns>False when the content is none of those, and nothing is shown.</returns>
+    public async Task<bool> ShowContentAsync(byte[] bytes, string contentType)
+    {
+        LastRendered = null;   // nothing a returning card should re-render: the bytes are the Messages tab's to hold
+        (PreviewConverted, _annotationsUrl, AddNoteMode) = (false, null, false);
+        var shown = await ShowBytesAsync(bytes, contentType, textLayoutUrl: null);
+        ContentWasEnveloped = shown;   // opened with the reader's key: what the card's removal discards
+        return shown;
+    }
+
+    // The one rendering of fetched bytes, for a document's preview and for content held in memory alike.
+    private async Task<bool> ShowBytesAsync(byte[] bytes, string contentType, string? textLayoutUrl)
+    {
         switch (PreviewKinds.Of(bytes, contentType))
         {
             case PreviewKind.Image:
@@ -366,8 +390,8 @@ public sealed partial class PreviewViewModel : ObservableObject
                 Reset(null);
                 PreviewPages.Add(new PreviewPageViewModel(image));
                 HasPreviewPages = true;
-                await AttachOverlaysAsync(preview.TextLayoutUrl);
-                break;
+                await AttachOverlaysAsync(textLayoutUrl);
+                return true;
 
             case PreviewKind.Pdf:
                 var pages = await Task.Run(() => PreviewRenderer.RenderPdfPages(bytes));
@@ -382,24 +406,20 @@ public sealed partial class PreviewViewModel : ObservableObject
                 // answer — on a strict tenant it refuses (409, ADR 0829), because word boxes reconstruct the
                 // document through a route that presigns nothing. These are the same bytes the card just
                 // decrypted, and the same extraction the server would have run (#1402).
-                await AttachOverlaysAsync(preview.TextLayoutUrl, pdfBytes: bytes);
-                break;
+                await AttachOverlaysAsync(textLayoutUrl, pdfBytes: bytes);
+                return PreviewPages.Count > 0;
 
             case PreviewKind.Text:
                 Reset(null);
                 PreviewText = Encoding.UTF8.GetString(bytes);
                 CanFindInDocument = true; // the find bar works on text too (#1063)
                 ApplyFindToText();        // a search-seeded or persisted query applies immediately
-                break;
+                return true;
 
             default:
                 Reset("Preview not supported — use Open to view in the native application.");
-                break;
+                return false;
         }
-
-        // AFTER the switch, because every branch calls Reset() — which clears this, correctly: a reset means
-        // nothing is on display, so nothing enveloped is on display either.
-        ContentWasEnveloped = enveloped;
     }
 
     // Attaches both overlays after the pages are built: assigns each page its index, loads the search hit-overlay,

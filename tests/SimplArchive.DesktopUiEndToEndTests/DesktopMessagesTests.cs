@@ -45,7 +45,7 @@ public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
     {
         DesktopClientOptions.ApiBaseUrl = app.BaseUrl;
         var api = new SimplArchiveApiClient(await Ui.GetUserTokenAsync(app.BaseUrl));
-        var tab = new MessagesTabViewModel(new TestShell(), () => api, NoLiveEvents.Instance);
+        var tab = new MessagesTabViewModel(new TestShell(), () => api, NoLiveEvents.Instance, () => null);
 
         await tab.DiscoverAsync();
 
@@ -75,7 +75,7 @@ public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
     public async Task A_failed_act_is_worded_for_that_act_in_the_status_line()
     {
         var shell = new TestShell();
-        var tab = new MessagesTabViewModel(shell, () => null, NoLiveEvents.Instance);
+        var tab = new MessagesTabViewModel(shell, () => null, NoLiveEvents.Instance, () => null);
 
         await tab.Reported("MsgFileOpenFailed", () => throw new HttpRequestException("no key here"));
         await tab.Reported("MsgRestoreFailed", () => throw new IOException("disk full"));
