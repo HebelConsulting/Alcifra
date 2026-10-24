@@ -1749,6 +1749,34 @@ firmware — try it on a spare card before relying on it, rather than discoverin
 holds the only copy of a key. And a card has twenty retired slots, not an unlimited number: they are room for
 a working lifetime of rotations, not a place to keep everything forever.
 
+== A blocked PIN, a blocked PUK, and resetting the token <pinreset>
+
+A hardware key's PIV application protects its keys with two codes: the *PIN*, which you type to open a sealed
+document, and the *PUK*, which exists only to unblock the PIN. Both allow three wrong attempts by default.
+
++ *The PIN is blocked* after the last wrong attempt. Nothing is lost: the PUK sets a new one
+  (`ykman piv access unblock-pin` in this example's management tool, PUK first, then the new PIN).
++ *The PUK is blocked too.* Now only a *reset of the PIV application* is left (`ykman piv reset`). The token
+  allows it only while PIN and PUK are both blocked, and it *erases every PIV key and certificate on it* and
+  restores the factory PIN, PUK and management key. The token is not damaged, and its manufacturer's
+  attestation stays, so a key generated on it afterwards can be attested again (see @attestedenrolment).
++ *The token's other applications are separate.* Passkeys, one-time passwords and others have their own PINs
+  and their own resets; a PIV reset does not touch them, and theirs do not touch PIV.
+
+#note[
+  *What a reset costs in this archive: the key in slot 9D is gone for good.* A key generated afterwards is a
+  *different* key, so everything sealed only to the old one — documents, password entries, conversation keys —
+  can no longer be opened by anybody. The archive cannot help, because it never holds the plaintext. The one
+  protection is a *second enrolled key*: everything is sealed to *all* of a person's enrolled keys, so a spare
+  key keeps opening what the reset one did. Enrol it *before* you need it.
+]
+
+*After a reset*, generate a new key on the token, have its certificate issued and enrol it with its
+attestation (@selfenrolment), then remove the old certificate. Revoking it marks every password entry that key
+could read as _Exposed since…_ — more caution than a reset needs, since the key was destroyed rather than stolen,
+but harmless: the store asks for a re-seal, and changing those passwords clears the mark. Keep the PUK where you would keep a spare house key; it is the only
+way back from a blocked PIN that does not cost the key.
+
 == What a card covers, and what it may not
 
 One certificate is registered, and *two* different things use it: the archive envelopes document content to
