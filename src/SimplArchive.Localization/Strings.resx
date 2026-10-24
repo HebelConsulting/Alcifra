@@ -1111,7 +1111,7 @@
     <value>Exit full screen (Esc)</value>
   </data>
   <data name="PreviewEnvelopedUseDesktop" xml:space="preserve">
-    <value>This archive delivers documents enveloped to your personal key, which a web browser cannot open. Use the SimplArchive desktop client to read this document.</value>
+    <value>This document is sealed. Open it in the desktop or phone app.</value>
   </data>
   <data name="NoPreview" xml:space="preserve">
     <value>No preview available.</value>
@@ -6431,6 +6431,39 @@
   </data>
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>This entry could not be read: what opened is not a password entry.</value>
+  </data>
+  <data name="PvSealedNoKey" xml:space="preserve">
+    <value>This document is sealed. Insert a hardware key that can open it.</value>
+  </data>
+  <data name="PvOpenWithKey" xml:space="preserve">
+    <value>Open with my key</value>
+  </data>
+  <data name="PvFailedNetwork" xml:space="preserve">
+    <value>The preview could not be loaded. Try again in a moment.</value>
+  </data>
+  <data name="PvFailedDamaged" xml:space="preserve">
+    <value>The preview cannot be shown: the sealed document arrived damaged.</value>
+  </data>
+  <data name="PvSealedInsertKey" xml:space="preserve">
+    <value>This document is sealed. Insert your key “{0}”.</value>
+  </data>
+  <data name="PvSealedForOtherKeys" xml:space="preserve">
+    <value>Sealed for other keys.</value>
+  </data>
+  <data name="PvNoneEnrolledAmongThem" xml:space="preserve">
+    <value>None of your enrolled keys is among them.</value>
+  </data>
+  <data name="PvKeyNotEnrolledForYou" xml:space="preserve">
+    <value>This key is not enrolled for you.</value>
+  </data>
+  <data name="PvKeyNotEnrolledForYouHint" xml:space="preserve">
+    <value>Sign in as the key's owner, or use a key enrolled for you.</value>
+  </data>
+  <data name="PvEnrolledKeysUnknown" xml:space="preserve">
+    <value>Your enrolled keys could not be checked.</value>
+  </data>
+  <data name="PvEnrolledKeysUnknownHint" xml:space="preserve">
+    <value>Open the archive online once, then try again.</value>
   </data>
   <data name="PwSelectEntry" xml:space="preserve">
     <value>Select an entry to open it with your key.</value>

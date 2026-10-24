@@ -15,30 +15,39 @@ internal sealed class ConversationKeyOpener : IConversationKeyOpener
     public async Task<byte[]> OpenAsync(byte[] wrappedKey, CancellationToken cancellationToken = default)
     {
         var recipients = EnvelopeRecipients.Of(wrappedKey);
-        if (OpenWithSoftwareKey(wrappedKey, recipients) is { } opened)
+
+        // Only the signed-in user's own keys, software or card, as for a sealed document (ADR 0969).
+        var enrolled = await EnvelopeOpener.SignedIn(cancellationToken);
+        if (enrolled.Keys is null)
+        {
+            throw new EnvelopeStaysSealedException("the keys enrolled for you could not be checked", SealedOutcome.Unknown);
+        }
+
+        bool Admitted(System.Security.Cryptography.X509Certificates.X509Certificate2 certificate) => SealedContent.Admits(certificate, enrolled);
+
+        if (OpenWithSoftwareKey(wrappedKey, recipients, Admitted) is { } opened)
         {
             return opened;
         }
 
-        if (await CardEnvelopeOpener.TryOpenRawAsync(wrappedKey, recipients) is { } fromCard)
+        if (await CardEnvelopeOpener.TryOpenRawAsync(wrappedKey, recipients, Admitted) is { } fromCard)
         {
             return fromCard;
         }
 
-        // The PIN prompt was cancelled: the user's decision, not a failure (ADR 0967). As on the phone, the thread
-        // then shows its messages sealed and asks again only when the user does (the Messenger's KeyPrompt).
-        if (CardSession.HasDeclined)
-        {
-            throw new OperationCanceledException("The key prompt was cancelled.");
-        }
-
-        throw new EnvelopeNotOpenedException(CardEnvelopeOpener.WhatIsMissing());
+        // A cancelled PIN prompt is the user's decision, not a failure (ADR 0967): an OperationCanceledException, after
+        // which the thread shows its messages sealed and asks again only when the user does (the Messenger's KeyPrompt).
+        throw EnvelopeOpener.Refusal(recipients, enrolled);
     }
 
-    // A key in the user's certificate store that the envelope is addressed to; null when none is, or it will not open.
-    private static byte[]? OpenWithSoftwareKey(byte[] cms, IReadOnlyList<(string Issuer, string Serial)> recipients)
+    // A key in the user's certificate store that the envelope is addressed to and that is enrolled for the signed-in user;
+    // null when none is, or it will not open.
+    private static byte[]? OpenWithSoftwareKey(
+        byte[] cms, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<System.Security.Cryptography.X509Certificates.X509Certificate2, bool> admitted)
     {
-        var keys = EnvelopeOpener.Keys();
+        var all = EnvelopeOpener.Keys();
+        var keys = new System.Security.Cryptography.X509Certificates.X509Certificate2Collection(
+            all.Cast<System.Security.Cryptography.X509Certificates.X509Certificate2>().Where(admitted).ToArray());
         if (!keys.Cast<System.Security.Cryptography.X509Certificates.X509Certificate2>().Any(k => EnvelopeRecipients.Matches(k, recipients)))
         {
             return null;

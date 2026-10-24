@@ -20,6 +20,7 @@ public sealed class DesktopMessagesParityTests : IDisposable
 {
     private readonly string _apiBaseUrl = DesktopClientOptions.ApiBaseUrl;
     private readonly Func<X509Certificate2Collection> _keys = EnvelopeOpener.Keys;
+    private readonly Func<CancellationToken, Task<EnrolledKeysAnswer>> _signedIn = EnvelopeOpener.SignedIn;
     private readonly string? _temp = NativeFileOpener.TempDirectoryOverride;
     private readonly string _tempDirectory = Path.Combine(Path.GetTempPath(), $"messages-temp-{Guid.NewGuid():N}");
     private readonly X509Certificate2 _anna = NewCertificate("Anna");
@@ -36,6 +37,8 @@ public sealed class DesktopMessagesParityTests : IDisposable
         _messenger.AddPerson(_ina, "Ina", NewCertificate("Ina"));
         DesktopClientOptions.ApiBaseUrl = _messenger.BaseUrl;
         EnvelopeOpener.Keys = () => [_anna];   // Anna's key is on this machine, as a software key
+        // …and enrolled for Anna, who is signed in: only such a key is used (ADR 0969).
+        EnvelopeOpener.SignedIn = _ => Task.FromResult(new EnrolledKeysAnswer([EnrolledKey.Of(_anna, "Anna's key")]));
         NativeFileOpener.TempDirectoryOverride = _tempDirectory;
     }
 
@@ -44,6 +47,7 @@ public sealed class DesktopMessagesParityTests : IDisposable
         _messenger.Dispose();
         DesktopClientOptions.ApiBaseUrl = _apiBaseUrl;
         EnvelopeOpener.Keys = _keys;
+        EnvelopeOpener.SignedIn = _signedIn;
         NativeFileOpener.TempDirectoryOverride = _temp;
         if (Directory.Exists(_tempDirectory))
         {

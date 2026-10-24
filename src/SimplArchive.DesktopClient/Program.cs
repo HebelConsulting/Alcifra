@@ -950,6 +950,8 @@ internal static class Program
         var leaked = System.Text.Encoding.ASCII.GetString(served).Contains(marker, StringComparison.Ordinal);
         Services.DesktopLog.Info("envelope         : {Bytes} bytes; plaintext present: {Leaked}", served.Length, leaked);
 
+        // A hardware check outside any session: the card's own key is the enrolled one here (ADR 0969).
+        Services.EnvelopeOpener.SignedIn = _ => Task.FromResult(new EnrolledKeysAnswer([EnrolledKey.Of(onCard.Certificate, "card")]));
         try
         {
             var (bytes, contentType) = await Services.EnvelopeOpener.OpenAsync(served, "application/pkcs7-mime");

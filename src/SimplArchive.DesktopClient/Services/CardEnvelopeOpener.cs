@@ -35,7 +35,7 @@ public static class CardEnvelopeOpener
 {
     /// <summary>Opens the envelope with the card, or declines when the card cannot be the recipient.</summary>
     public static async Task<(byte[] Bytes, string ContentType)?> TryOpen(
-        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients)
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         if (enveloped.Content is null)
         {
@@ -44,14 +44,17 @@ public static class CardEnvelopeOpener
 
         // What comes out is the inner MIME entity the server enveloped — a part with the document's real content
         // type and file name, which is the whole reason the funnel returns a type at all.
-        return await TryOpenRawAsync(SmimeEnvelope.Cms(enveloped), recipients) is { } inner ? SmimeEnvelope.Payload(inner) : null;
+        return await TryOpenRawAsync(SmimeEnvelope.Cms(enveloped), recipients, admitted) is { } inner ? SmimeEnvelope.Payload(inner) : null;
     }
 
     /// <summary>
     /// Opens a BARE CMS envelope with the card and hands back its content as it is — not a document, but, say, a
     /// Messenger conversation key or file (core #1813), which the server never wraps in MIME. Null declines.
     /// </summary>
-    public static async Task<byte[]?> TryOpenRawAsync(byte[] cms, IReadOnlyList<(string Issuer, string Serial)> recipients)
+    /// <param name="admitted">Whether a certificate's key may be used: enrolled for the signed-in user (ADR 0969). Asked
+    /// before the session that prompts for the PIN is opened, so somebody else's card is never asked for one.</param>
+    public static async Task<byte[]?> TryOpenRawAsync(
+        byte[] cms, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         // IS THIS CARD EVEN THE ADDRESSEE? Asked first, and asked from PUBLIC data — the envelope names its
         // recipients by issuer and serial, and a token's certificates are readable with no login. Only then is
@@ -66,6 +69,7 @@ public static class CardEnvelopeOpener
         }
 
         var raw = cms;
+        LastSeen = [];   // until this read has looked: a card seen for an earlier read may have left the reader
 
         // ONE gated critical section for everything that touches the card: reading its certificates, opening
         // the logged-in session, and the unwrap. Not three, because C_Initialize is per PROCESS and a decrypt
@@ -80,6 +84,7 @@ public static class CardEnvelopeOpener
                 // learn to click through prompts.
                 var onCard = CardCertificates.ReadFromLibrary(library);
                 CardModule.Observed(onCard.Count > 0);
+                LastSeen = [.. onCard.Select(c => c.Certificate)];
 
                 // EVERY certificate that matched, tried in turn (#1500, owner-decided 2026-09-30). Two cards
                 // may be in the reader and BOTH may be addressees — a reader's card and their laptop are one
@@ -90,9 +95,7 @@ public static class CardEnvelopeOpener
                 // outcome the reader can see, and a prompt whose answer changes nothing in front of one that
                 // does is how people learn to click through prompts. Instead the PIN prompt NAMES the card,
                 // and this moves on.
-                var addressed = onCard
-                    .Where(c => EnvelopeRecipients.Matches(c.Certificate, recipients))
-                    .ToList();
+                var addressed = onCard.Where(c => Selects(c.Certificate, recipients, admitted)).ToList();
 
                 if (addressed.Count == 0)
                 {
@@ -318,6 +321,23 @@ public static class CardEnvelopeOpener
 
         return -1;
     }
+
+    /// <summary>
+    /// Whether a card's certificate is one to open a logged-in session for — which is what asks for the PIN: an addressee
+    /// of the envelope, and enrolled for the signed-in user (ADR 0969). A colleague's card is never asked for its PIN.
+    /// </summary>
+    internal static bool Selects(
+        X509Certificate2 certificate, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted) =>
+        EnvelopeRecipients.Matches(certificate, recipients) && admitted(certificate);
+
+    /// <summary>
+    /// The certificates on the cards the last read found in a reader, empty when it found none (or never looked).
+    /// </summary>
+    /// <remarks>
+    /// What tells "no key present" from "a key present that this envelope is not addressed to" when every opener has
+    /// declined (<see cref="SealedContent.Classify"/>): public data, read without a PIN.
+    /// </remarks>
+    public static IReadOnlyList<X509Certificate2> LastSeen { get; private set; } = [];
 
     /// <summary>Which of card, reader or registered certificate is missing — the message the reader acts on.</summary>
     /// <remarks>

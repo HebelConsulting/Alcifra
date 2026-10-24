@@ -86,6 +86,37 @@ public static class SmimeEnvelope
 /// Its own type because the remedy differs from every other download failure: no key at hand means enrol or present
 /// the key, not retry. Serving the caller the undecrypted bytes would render as a corrupt document and send them
 /// looking for a damaged file.
+/// <para>
+/// Thrown as itself for an envelope that is damaged or otherwise unreadable (a real failure). An envelope left sealed
+/// because no key of the user's opened it is <see cref="EnvelopeStaysSealedException"/>, carrying the state a preview
+/// shows instead of an error (ADR 0969).
+/// </para>
 /// </remarks>
-public sealed class EnvelopeNotOpenedException(string message, Exception? inner = null)
-    : Exception($"This document arrived encrypted and could not be opened: {message}.", inner);
+public class EnvelopeNotOpenedException(string message, Exception? inner = null)
+    : Exception($"This document arrived sealed and could not be opened: {message}.", inner);
+
+/// <summary>A refusal that carries the state a preview shows for it (ADR 0969, <see cref="SealedContent.OutcomeOf"/>).</summary>
+public interface ISealedRefusal
+{
+    SealedOutcome Outcome { get; }
+}
+
+/// <summary>
+/// No key of the signed-in user's opened the envelope (ADR 0969): none at hand, a key at hand not enrolled for the user,
+/// the user's keys unknown, or the envelope sealed for other keys — which of them is <see cref="Outcome"/>.
+/// </summary>
+public sealed class EnvelopeStaysSealedException(string message, SealedOutcome outcome)
+    : EnvelopeNotOpenedException(message), ISealedRefusal
+{
+    public SealedOutcome Outcome { get; } = outcome;
+}
+
+/// <summary>
+/// The key prompt was cancelled — the user's decision, not a failure. An <see cref="OperationCanceledException"/>, as the
+/// hosts' callers expect of a cancelled prompt (ADR 0967), carrying what the preview then shows.
+/// </summary>
+public sealed class KeyPromptCancelledException(SealedOutcome outcome)
+    : OperationCanceledException("The key prompt was cancelled."), ISealedRefusal
+{
+    public SealedOutcome Outcome { get; } = outcome;
+}

@@ -221,6 +221,13 @@ public sealed partial class MainWindowViewModel
                 await surface.RenderAsync(rendered);
             }
         }
+
+        // A card in the reader again is a key change, so a pane showing a sealed document checks it once more: the
+        // card may be the one it is sealed to (2026-10-24).
+        foreach (var surface in PreviewSurfaces)
+        {
+            await surface.RecheckSealedAsync();
+        }
     }
 
     /// <summary>
@@ -275,11 +282,17 @@ public sealed partial class MainWindowViewModel
     }
 
     /// <summary>Hands every preview surface the session's API client, or takes it away at sign-out.</summary>
+    /// <remarks>
+    /// The openers' "whose keys may be used" goes with it (ADR 0969): the signed-in user's enrolled keys for a session,
+    /// nothing at all without one — so a key in the reader is never used for a user who is not signed in.
+    /// </remarks>
     private void SetPreviewApi(SimplArchiveApiClient? api)
     {
         foreach (var preview in PreviewSurfaces)
         {
             preview.Api = api;
         }
+
+        EnvelopeOpener.SignedIn = api is null ? EnvelopeOpener.NoSession : SignedInKeys.For(api.Core).CurrentAsync;
     }
 }

@@ -24,11 +24,15 @@ public class DesktopEnvelopeOpenerTests : IDisposable
 
     private readonly Func<X509Certificate2Collection> _originalKeys = EnvelopeOpener.Keys;
     private readonly IReadOnlyList<EnvelopeOpener.Opener> _originalOpeners = EnvelopeOpener.Openers;
+    private readonly Func<IReadOnlyList<X509Certificate2>> _originalCards = EnvelopeOpener.CardCertificatesSeen;
+    private readonly Func<CancellationToken, Task<EnrolledKeysAnswer>> _originalSignedIn = EnvelopeOpener.SignedIn;
 
     public void Dispose()
     {
         EnvelopeOpener.Keys = _originalKeys;
         EnvelopeOpener.Openers = _originalOpeners;
+        EnvelopeOpener.CardCertificatesSeen = _originalCards;
+        EnvelopeOpener.SignedIn = _originalSignedIn;
     }
 
     [Fact]
@@ -37,6 +41,7 @@ public class DesktopEnvelopeOpenerTests : IDisposable
         var recipient = NewCertificate();
         SoftwareOnly();
         EnvelopeOpener.Keys = () => [recipient];
+        Enrolled(recipient);
 
         var (bytes, contentType) = await EnvelopeOpener.OpenAsync(
             Envelope(recipient, Encoding.ASCII.GetBytes(Marker), "application/pdf", "invoice.pdf"),
@@ -71,12 +76,16 @@ public class DesktopEnvelopeOpenerTests : IDisposable
         // Never a fall back to what arrived. Handing the caller undecrypted CMS would render as a corrupt
         // document and send them looking for a damaged file instead of a missing key.
         var addressee = NewCertificate();
+        var mine = NewCertificate();
         SoftwareOnly();
-        EnvelopeOpener.Keys = () => [NewCertificate()];
+        EnvelopeOpener.Keys = () => [mine];
+        Enrolled(mine);
 
-        var thrown = await Assert.ThrowsAsync<EnvelopeNotOpenedException>(() => EnvelopeOpener.OpenAsync(
+        // The user's own key is here and enrolled, and the envelope names none of the user's keys (ADR 0969).
+        var thrown = await Assert.ThrowsAsync<EnvelopeStaysSealedException>(() => EnvelopeOpener.OpenAsync(
             Envelope(addressee, Encoding.ASCII.GetBytes(Marker), "application/pdf", "invoice.pdf"),
             "application/pkcs7-mime"));
+        Assert.Equal(SealedContentState.SealedForOtherKeys, thrown.Outcome.State);
 
         // The message now names which of the three things is missing (#1353 acceptance 3), and this host has
         // no card in a reader — so it must say so rather than blaming the document.
@@ -90,12 +99,64 @@ public class DesktopEnvelopeOpenerTests : IDisposable
         // looking for their certificate or for a broken file.
         SoftwareOnly();
         EnvelopeOpener.Keys = () => [];
+        var absent = NewCertificate();
+        Enrolled(absent);
 
-        var thrown = await Assert.ThrowsAsync<EnvelopeNotOpenedException>(() => EnvelopeOpener.OpenAsync(
-            Envelope(NewCertificate(), [1, 2, 3], "application/pdf", "x.pdf"), "application/pkcs7-mime"));
+        // No key at hand, sealed to a key enrolled for the user: "sealed", naming the key to insert (ADR 0969).
+        var thrown = await Assert.ThrowsAsync<EnvelopeStaysSealedException>(() => EnvelopeOpener.OpenAsync(
+            Envelope(absent, [1, 2, 3], "application/pdf", "x.pdf"), "application/pkcs7-mime"));
+        Assert.Equal(new SealedOutcome(SealedContentState.Sealed, "Office key"), thrown.Outcome);
 
         Assert.Contains("addressed to", thrown.Message, StringComparison.Ordinal);
     }
+
+    // ---- Only the signed-in user's keys (ADR 0969) --------------------------------------------------------
+
+    [Fact]
+    public async Task A_key_of_somebody_else_in_this_store_is_not_used_even_though_it_could_open_the_envelope()
+    {
+        // The administrator's case: florian's key is on this machine, crypt is signed in, and the envelope is
+        // florian's. The key would open it; it must not be touched.
+        var florians = NewCertificate();
+        var crypts = NewCertificate();
+        SoftwareOnly();
+        EnvelopeOpener.Keys = () => [florians];
+        Enrolled(crypts);
+
+        var thrown = await Assert.ThrowsAsync<EnvelopeStaysSealedException>(() => EnvelopeOpener.OpenAsync(
+            Envelope(florians, Encoding.ASCII.GetBytes(Marker), "application/pdf", "invoice.pdf"), "application/pkcs7-mime"));
+
+        Assert.Equal(SealedOutcome.NotEnrolled, thrown.Outcome);
+    }
+
+    [Fact]
+    public async Task Without_a_session_no_key_is_used_and_it_says_the_enrolled_keys_could_not_be_checked()
+    {
+        var recipient = NewCertificate();
+        SoftwareOnly();
+        EnvelopeOpener.Keys = () => [recipient];
+        EnvelopeOpener.SignedIn = EnvelopeOpener.NoSession;
+
+        var thrown = await Assert.ThrowsAsync<EnvelopeStaysSealedException>(() => EnvelopeOpener.OpenAsync(
+            Envelope(recipient, Encoding.ASCII.GetBytes(Marker), "application/pdf", "invoice.pdf"), "application/pkcs7-mime"));
+
+        Assert.Equal(SealedOutcome.Unknown, thrown.Outcome);
+    }
+
+    [Fact]
+    public void A_card_certificate_that_is_an_addressee_but_not_enrolled_for_the_user_is_not_selected_so_no_PIN_is_asked()
+    {
+        // The card opener opens a logged-in session — the PIN prompt — only for the certificates it selects here.
+        var florians = NewCertificate();
+        var recipients = EnvelopeRecipients.Of(SmimeEnvelope.Unwrap(Envelope(florians, [1], "text/plain", "x.txt")));
+
+        Assert.False(CardEnvelopeOpener.Selects(florians, recipients, _ => false));
+        Assert.True(CardEnvelopeOpener.Selects(florians, recipients, _ => true));
+        Assert.False(CardEnvelopeOpener.Selects(NewCertificate(), recipients, _ => true));   // not an addressee
+    }
+
+    private static void Enrolled(params X509Certificate2[] keys) =>
+        EnvelopeOpener.SignedIn = _ => Task.FromResult(new EnrolledKeysAnswer([.. keys.Select(k => EnrolledKey.Of(k, "Office key"))]));
 
     /// <summary>
     /// Only the software opener, so these tests are about decryption rather than about this host's hardware.
@@ -104,8 +165,11 @@ public class DesktopEnvelopeOpenerTests : IDisposable
     /// Without it, the card opener would run on a developer's machine with a reader and not on CI, which makes
     /// the same assertion mean two different things — the shape that produces a test nobody trusts.
     /// </remarks>
-    private static void SoftwareOnly() =>
+    private static void SoftwareOnly()
+    {
         EnvelopeOpener.Openers = [EnvelopeOpener.Openers[0]];
+        EnvelopeOpener.CardCertificatesSeen = () => [];
+    }
 
     /// <summary>An envelope built the way the server builds one — same library, same shape.</summary>
     private static byte[] Envelope(X509Certificate2 recipient, byte[] content, string contentType, string fileName)

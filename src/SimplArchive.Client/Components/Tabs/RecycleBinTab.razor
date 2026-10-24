@@ -120,7 +120,7 @@
                    to carry its own duplicate host purely to escape the shared one (ADR 0558). *@
                 <PreviewPane @ref="_preview" ShowToolbar="false"
                              Style="flex:1.6 1 0; min-width:0; display:flex; flex-direction:column; position:relative;"
-                             EmptyText="@Strings.Get("NoPreview")"
+                             EmptyText="@(_rbPreviewSealed ? Strings.Get("PreviewEnvelopedUseDesktop") : Strings.Get("NoPreview"))"
                              ConvertedBadgeTooltip="@Strings.Get("RbConvertedPreview")" />
                 <div style="flex:1 1 0; min-width:0; overflow:auto; border-left:1px solid var(--mud-palette-lines-default); padding:8px;">
                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-1">@Strings.Get("RbCommentsHeader")</MudText>
@@ -182,6 +182,8 @@
         await _preview.RenderAsync(url, layout, converted);
     }
 
+    private bool _rbPreviewSealed;
+
     private readonly List<RecycleBinItem> _recycleBinItems = new();
     // Multi-select for bulk restore (ADR "Bulk restore from the recycle bin").
     private readonly HashSet<Guid> _rbChecked = new();
@@ -227,6 +229,7 @@
         _rbMaskName = null;
         _rbIndexData = null;
         _rbComments = new();
+        _rbPreviewSealed = false;
         ClearRbPreview();
         StateHasChanged();
 
@@ -238,7 +241,9 @@
 
             var versions = item.Href("versions") is { } versionsHref ? await Http.GetFromJsonAsync<VersionListResponse>(versionsHref) : null;
             var latest = VersionListResponse.PickCurrent(versions?.Versions?.Where(v => v.Status == "Confirmed").ToList() ?? [], versions?.CurrentVersionId);
-            var previewUrl = latest is null ? null : Http.Absolute(Links.Href(latest.Links, "preview"));
+            var previewUrl = latest is null ? null : Http.Absolute(Links.PlaintextFirst(latest.Links, "preview", latest.ContentIsEnveloped));
+            // Sealed, and no door this browser can read (2026-10-24): the pane says so rather than "no preview".
+            _rbPreviewSealed = latest is { ContentIsEnveloped: true } && previewUrl is null;
             var textLayoutUrl = latest is null ? null : Links.Href(latest.Links, "text-layout");
             await ShowPreviewAsync(previewUrl, textLayoutUrl, latest?.PreviewConverted ?? false);
         }

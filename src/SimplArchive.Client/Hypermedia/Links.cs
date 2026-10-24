@@ -43,17 +43,19 @@ public static class Links
     /// while the desktop always prefers the envelope.
     /// </para>
     /// <para>
-    /// Falling back to the bare rel is the <c>Strict</c> case, where no plaintext pair exists and the honest
-    /// answer really is "use the desktop client" — which the caller then produces, because no URL arrived. So
-    /// the fallback is not a safety net, it is the other tier.
+    /// <b>Never the envelope itself</b> (2026-10-24). On a tenant whose content is enveloped
+    /// (<paramref name="contentIsEnveloped"/>, the version's <c>contentIsEnveloped</c>) the bare rel IS the enveloped
+    /// address, so without a plaintext pair the answer is null and the pane says "this document is sealed, open it in
+    /// the desktop or phone app". It used to fall back to the envelope on the <c>Strict</c> tier, which the pane then
+    /// tried to render: a preview that never finished loading, for a reader who holds a key.
     /// </para>
     /// <para>
     /// Here rather than at the call site so the chain is read ONCE: a preference evaluated in two places is
     /// one that drifts, and the drift shows up as a pane that previews but cannot download.
     /// </para>
     /// </remarks>
-    public static string? PlaintextFirst(List<LinkResponse>? links, string rel) =>
-        Href(links, $"plain-{rel}") ?? Href(links, rel);
+    public static string? PlaintextFirst(List<LinkResponse>? links, string rel, bool contentIsEnveloped) =>
+        Href(links, $"plain-{rel}") ?? (contentIsEnveloped ? null : Href(links, rel));
 
     /// <summary>
     /// A rel → href map for a resource's advertised links, so a caller can carry a row's ADDRESSES rather than

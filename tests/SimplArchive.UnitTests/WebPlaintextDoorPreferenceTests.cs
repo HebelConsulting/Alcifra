@@ -35,8 +35,8 @@ public class WebPlaintextDoorPreferenceTests
             ("plain-download", "http://storage.invalid/blob?sig=1"),
             ("plain-preview", "http://storage.invalid/blob?sig=2&inline"));
 
-        Assert.Equal("http://storage.invalid/blob?sig=1", Links.PlaintextFirst(links, "download"));
-        Assert.Equal("http://storage.invalid/blob?sig=2&inline", Links.PlaintextFirst(links, "preview"));
+        Assert.Equal("http://storage.invalid/blob?sig=1", Links.PlaintextFirst(links, "download", contentIsEnveloped: true));
+        Assert.Equal("http://storage.invalid/blob?sig=2&inline", Links.PlaintextFirst(links, "preview", contentIsEnveloped: true));
     }
 
     [Fact]
@@ -48,22 +48,23 @@ public class WebPlaintextDoorPreferenceTests
             ("download", "http://storage.invalid/blob?sig=1"),
             ("preview", "http://storage.invalid/blob?sig=2&inline"));
 
-        Assert.Equal("http://storage.invalid/blob?sig=1", Links.PlaintextFirst(links, "download"));
-        Assert.Equal("http://storage.invalid/blob?sig=2&inline", Links.PlaintextFirst(links, "preview"));
+        Assert.Equal("http://storage.invalid/blob?sig=1", Links.PlaintextFirst(links, "download", contentIsEnveloped: false));
+        Assert.Equal("http://storage.invalid/blob?sig=2&inline", Links.PlaintextFirst(links, "preview", contentIsEnveloped: false));
     }
 
     [Fact]
-    public void On_a_strict_tenant_the_fallback_is_the_ENVELOPE_so_the_pane_can_say_why()
+    public void On_a_strict_tenant_the_browser_is_never_handed_the_ENVELOPE_so_the_pane_can_say_why()
     {
-        // The deliberate half. Strict advertises no plaintext pair, so this answers the enveloped address —
-        // which the pane cannot render, and that is correct: `contentIsEnveloped` then turns the absence into
-        // "use the desktop client" rather than "no preview available". The two are indistinguishable from the
-        // links alone, which is the whole reason the server states the tier.
+        // Strict advertises no plaintext pair, and the bare rels ARE the enveloped address, which a browser can
+        // neither fetch (it authorizes by header) nor open. It used to be handed that address all the same, and the
+        // pane never finished loading for a reader who holds a key (2026-10-24). Null instead: `contentIsEnveloped`
+        // then turns the absence into "this document is sealed, open it in the desktop or phone app".
         var links = Links_(
             ("download", "/api/documents/d/versions/v/enveloped-content"),
             ("preview", "/api/documents/d/versions/v/enveloped-content?inline=true"));
 
-        Assert.Equal("api/documents/d/versions/v/enveloped-content", Links.PlaintextFirst(links, "download"));
+        Assert.Null(Links.PlaintextFirst(links, "download", contentIsEnveloped: true));
+        Assert.Null(Links.PlaintextFirst(links, "preview", contentIsEnveloped: true));
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public class WebPlaintextDoorPreferenceTests
         // Strict with no reader certificate: neither pair is advertised. A missing rel means "not available to
         // you, here, now" (ADR 0543), so the honest answer is null and the caller hides the affordance — never
         // a guessed address, which is what would turn an absent rel into a 404 nobody can interpret.
-        Assert.Null(Links.PlaintextFirst(Links_(("self", "/api/documents/d/versions/v")), "download"));
-        Assert.Null(Links.PlaintextFirst(null, "preview"));
+        Assert.Null(Links.PlaintextFirst(Links_(("self", "/api/documents/d/versions/v")), "download", contentIsEnveloped: true));
+        Assert.Null(Links.PlaintextFirst(null, "preview", contentIsEnveloped: false));
     }
 }

@@ -78,6 +78,22 @@ public partial class MainWindowViewModel
         {
             Preview.ContentWasEnveloped = true;
         }
+
+        // `--sealed <no-key|insert-key|other-keys|not-enrolled|unknown>`: the preview's plain state for a sealed document this
+        // machine could not open (ADR 0969) — its lock, title, subline and "Open with my key" — here for the same reason
+        // as `--enveloped`.
+        var sealedIndex = Array.IndexOf(Environment.GetCommandLineArgs(), "--sealed");
+        if (sealedIndex >= 0 && sealedIndex + 1 < Environment.GetCommandLineArgs().Length)
+        {
+            Preview.SetSealedForScreenshot(Environment.GetCommandLineArgs()[sealedIndex + 1] switch
+            {
+                "insert-key" => new SealedOutcome(SealedContentState.Sealed, "Office key"),
+                "other-keys" => new SealedOutcome(SealedContentState.SealedForOtherKeys),
+                "not-enrolled" => SealedOutcome.NotEnrolled,
+                "unknown" => SealedOutcome.Unknown,
+                _ => SealedOutcome.NoKey,
+            });
+        }
         // The thread mixes what the product records AUTOMATICALLY (ADR 0545) with what a person typed — which is
         // what a real feed looks like. The fixture previously held only the typed comment, so the manual showed a
         // chat pane that the product no longer produces.

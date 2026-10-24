@@ -15,7 +15,12 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
     /// <summary>One enrolled certificate as the listing shows it.</summary>
     /// <param name="Attestation">"attested", "rootNotTrusted" or "notAttested".</param>
     /// <param name="Usable">Whether it addresses its holder now.</param>
-    public sealed record Enrolled(string Label, string Serial, DateTimeOffset? NotAfter, bool Usable, string Attestation, string? AttestationRoot, string? DeviceSerial);
+    public sealed record Enrolled(string Label, string Serial, DateTimeOffset? NotAfter, bool Usable, string Attestation, string? AttestationRoot, string? DeviceSerial)
+    {
+        /// <summary>The certificate's issuer, which with the serial names it as an envelope recipient does (ADR 0969);
+        /// null from an installation older than that.</summary>
+        public string? Issuer { get; init; }
+    }
 
     /// <summary>The caller's own enrolled certificates; empty where the installation offers no enrolment.</summary>
     public async Task<IReadOnlyList<Enrolled>> GetMineAsync(CancellationToken cancellationToken = default)
@@ -29,6 +34,23 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
         return listing.ValueKind == JsonValueKind.Array ? [.. listing.EnumerateArray().Select(Parse)] : [];
     }
 
+    /// <summary>
+    /// The caller's enrolled certificates as keys an envelope's recipients can be matched against (ADR 0969), or null
+    /// where that cannot be said: no enrolment offered here, or an installation whose listing names no issuer.
+    /// </summary>
+    public async Task<IReadOnlyList<EnrolledKey>?> GetMineForMatchingAsync(CancellationToken cancellationToken = default)
+    {
+        if (!(await core.GetRootLinksAsync(cancellationToken)).ContainsKey("certificates"))
+        {
+            return null;
+        }
+
+        var mine = await GetMineAsync(cancellationToken);
+        return mine.All(e => e.Issuer is { Length: > 0 })
+            ? [.. mine.Select(e => new EnrolledKey(e.Issuer!, e.Serial, e.Label))]
+            : null;
+    }
+
     internal static Enrolled Parse(JsonElement row)
     {
         string? Text(string name) => row.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
@@ -39,6 +61,9 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
             row.TryGetProperty("usable", out var usable) && usable.ValueKind == JsonValueKind.True,
             Text("attestation") ?? "notAttested",
             Text("attestationRoot"),
-            Text("deviceSerial"));
+            Text("deviceSerial"))
+        {
+            Issuer = Text("issuer"),
+        };
     }
 }

@@ -1178,8 +1178,8 @@ of which only one addresses documents to you. @selfenrolment sets out which.
 
 *The desktop client opens these envelopes; the web client cannot.* A browser has no access to the certificate
 store your private key lives in, so on such an installation reading documents is work for the desktop client.
-The web client stays fully usable for everything that is not content — browsing, index data, search results,
-workflow, administration.
+The web client's preview says _This document is sealed. Open it in the desktop or phone app._ and stays fully
+usable for everything that is not content — browsing, index data, search results, workflow, administration.
 
 *Find-in-document follows the same line, and for the same reason.* Highlighting your search words on the page
 needs the words and their positions, and on such an installation the server does not have them — it holds only
@@ -1217,9 +1217,26 @@ folders, index data and search results — none of that is encrypted — and put
 documents again. This protects the document you left on an unattended screen; it does not sign you out, so lock
 your computer as you normally would when you leave it.
 
-If a document cannot be opened, the message says *which* of the three things is missing — smartcard software on
-the computer, a card in a reader, or a certificate matching the document — because the remedy for each is
-somewhere completely different.
+*Only your own keys are used.*#idx("key, enrolled for you") The client opens an envelope only with a key that is
+enrolled for *the user who is signed in*. A colleague's card in the reader — or their certificate on the computer —
+is not used and never asked for its PIN, even where the document is addressed to it: an administrator who may see a
+colleague's sealed items in the archive still cannot read them with the colleague's key. This holds for documents,
+the Messages tab and the Passwords tab alike.
+
+*When a document stays sealed, the preview says why*, in place of the document, with *Open with my key* to try
+again:
+
+- _This document is sealed. Insert your key "…"._ — it is sealed to one of your enrolled keys, named, which is not in
+  the reader. Insert it; putting a card back makes the preview try again by itself. Where several of your keys would
+  do, or you cancelled the PIN prompt, it asks for _a hardware key that can open it_.
+- _Sealed for other keys._ — _None of your enrolled keys is among them._ The document was sealed for keys that are not
+  (or no longer) enrolled for you.
+- _This key is not enrolled for you._ — _Sign in as the key's owner, or use a key enrolled for you._ The key in the
+  reader could open the document, but it belongs to somebody else.
+- _Your enrolled keys could not be checked._ — the client could not find out which keys are enrolled for you, so it
+  uses none.
+
+A document that arrived damaged, or could not be fetched, says so plainly in the same place.
 
 Preparing a card in the first place — putting a key on it, getting a certificate onto it, and registering that
 certificate here — is set out in @cardsetup.

@@ -27,6 +27,10 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         public string Label { get; set; } = string.Empty;
         public string Thumbprint { get; set; } = string.Empty;
         public string Serial { get; set; } = string.Empty;
+
+        /// <summary>The certificate's issuer: with <see cref="Serial"/>, how a sealed envelope names it (ADR 0969).</summary>
+        public string? Issuer { get; set; }
+
         public DateTimeOffset NotAfter { get; set; }
         public DateTimeOffset? RevokedAt { get; set; }
         public string? FailsPolicy { get; set; }
@@ -112,6 +116,7 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         Label = row.Label,
         Thumbprint = row.Thumbprint,
         Serial = row.Serial,
+        Issuer = row.Issuer,
         NotAfter = row.NotAfter,
         RevokedAt = row.RevokedAt,
         FailsPolicy = row.FailsPolicy,

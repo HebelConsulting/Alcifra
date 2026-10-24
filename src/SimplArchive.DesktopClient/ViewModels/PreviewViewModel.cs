@@ -5,6 +5,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SimplArchive.DesktopClient.Services;
+using SimplArchive.Localization;
 using SimplArchive.Presentation;
 
 namespace SimplArchive.DesktopClient.ViewModels;
@@ -334,6 +335,91 @@ public sealed partial class PreviewViewModel : ObservableObject
             return;
         }
 
+        // A sealed document this machine cannot open is a STATE of the pane, not an error (owner, 2026-10-24): it
+        // used to stay on "Loading…" for ever while the reason went to the status line. Which state is the shared
+        // decision (SealedContent), so the phone shows the same document the same way.
+        try
+        {
+            await RenderContentAsync(Api, preview);
+        }
+        catch (Exception e) when (SealedContent.OutcomeOf(e) is { } outcome)
+        {
+            DesktopLog.Debug("The preview stays sealed ({State}): {Reason}", outcome.State, e.Message);
+            ShowSealed(outcome);
+        }
+        catch (EnvelopeNotOpenedException e)
+        {
+            // Labelled as an envelope and not one: a real failure, said in the pane where the document would be.
+            DesktopLog.Warn(e, "A sealed preview arrived damaged");
+            Reset(Strings.Get("PvFailedDamaged"));
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            // Said in the pane too, and passed on: a failed load is what the status line already reports.
+            Reset(Strings.Get("PvFailedNetwork"));
+            throw;
+        }
+    }
+
+    /// <summary>What a sealed document this machine could not open shows, or null when the pane shows anything else.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanOpenSealed))]
+    [NotifyPropertyChangedFor(nameof(SealedState))]
+    [NotifyPropertyChangedFor(nameof(SealedSubline))]
+    private SealedOutcome? _sealed;
+
+    /// <summary>Which sealed state the pane shows, or null.</summary>
+    public SealedContentState? SealedState => Sealed?.State;
+
+    /// <summary>The line under the title: what is known about the user's keys ("None of your enrolled keys is among them").</summary>
+    public string? SealedSubline => Sealed?.Subline;
+
+    /// <summary>
+    /// "Open with my key" in every sealed state (owner, 2026-10-24): as on the phone, where a key held to it cannot be
+    /// noticed arriving — and here it costs one button in an otherwise empty pane, beside the re-check a card's return
+    /// already makes.
+    /// </summary>
+    public bool CanOpenSealed => Sealed is not null;
+
+    private void ShowSealed(SealedOutcome outcome)
+    {
+        Reset(outcome.Title);
+        Sealed = outcome;
+    }
+
+    /// <summary>
+    /// "Open with my key": asks for the key again — the PIN prompt the user cancelled is forgotten, as the Messages tab's
+    /// sealed thread does (ADR 0967) — and reads the same document once more.
+    /// </summary>
+    [RelayCommand]
+    private async Task OpenSealedAsync()
+    {
+        if (LastRendered is not { } preview)
+        {
+            return;
+        }
+
+        CardModule.ForgetDeclines();
+        Reset(Strings.Get("StLoading"));
+        try
+        {
+            await RenderAsync(preview);
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            // Already said in the pane; there is no load around this one to report it.
+            DesktopLog.Warn(e, "Reading the sealed preview again failed");
+        }
+    }
+
+    /// <summary>
+    /// The key changed — a card came back to the reader — so a pane showing a sealed state checks the document again.
+    /// </summary>
+    public Task RecheckSealedAsync() =>
+        Sealed is not null && LastRendered is { } preview ? RenderAsync(preview) : Task.CompletedTask;
+
+    private async Task RenderContentAsync(SimplArchiveApiClient api, Preview preview)
+    {
         PreviewConverted = preview.PreviewConverted;
 
         // Sticky notes are available only when the version resource offered an annotations link AND the view
@@ -349,7 +435,7 @@ public sealed partial class PreviewViewModel : ObservableObject
 
         // Multi-page TIFF: each page is its own image rendition (ADR "Multi-page TIFF preview pages") — load
         // them as separate pages. Null (204) for every other format, which falls through to the single flow.
-        if (preview.PreviewPagesUrl is { } pagesUrl && await Api.Versions.GetPreviewPagesAsync(pagesUrl) is { Count: > 0 } pageUrls)
+        if (preview.PreviewPagesUrl is { } pagesUrl && await api.Versions.GetPreviewPagesAsync(pagesUrl) is { Count: > 0 } pageUrls)
         {
             Reset(null);
             foreach (var url in pageUrls)
@@ -502,6 +588,7 @@ public sealed partial class PreviewViewModel : ObservableObject
         FindCount = 0;
         FindIndex = -1;
         PreviewPlaceholder = placeholder;
+        Sealed = null;
         ContentWasEnveloped = false;
         AnnotationsAvailable = false;
         CanAddNote = false;
@@ -535,6 +622,8 @@ public sealed partial class PreviewViewModel : ObservableObject
         CanFindInDocument = true;
         FindQuery = query;
     }
+
+    public void SetSealedForScreenshot(SealedOutcome outcome) => ShowSealed(outcome);
 
     // Places annotation boxes on the first rendered page (ADR 0502) so the workbench screenshot's desktop preview
     // shows the seeded highlight + sticky note, matching the web capture.

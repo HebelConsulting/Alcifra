@@ -1111,7 +1111,7 @@
     <value>Vollbild verlassen (Esc)</value>
   </data>
   <data name="PreviewEnvelopedUseDesktop" xml:space="preserve">
-    <value>Dieses Archiv liefert Dokumente verschlüsselt an Ihren persönlichen Schlüssel aus; ein Webbrowser kann sie nicht öffnen. Verwenden Sie zum Lesen den SimplArchive-Desktop-Client.</value>
+    <value>Dieses Dokument ist versiegelt. Öffnen Sie es in der Desktop- oder Smartphone-App.</value>
   </data>
   <data name="NoPreview" xml:space="preserve">
     <value>Keine Vorschau verfügbar.</value>
@@ -6431,6 +6431,39 @@
   </data>
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>Dieser Eintrag konnte nicht gelesen werden: Was geöffnet wurde, ist kein Passworteintrag.</value>
+  </data>
+  <data name="PvSealedNoKey" xml:space="preserve">
+    <value>Dieses Dokument ist versiegelt. Stecken Sie einen Hardware-Schlüssel ein, der es öffnen kann.</value>
+  </data>
+  <data name="PvOpenWithKey" xml:space="preserve">
+    <value>Mit meinem Schlüssel öffnen</value>
+  </data>
+  <data name="PvFailedNetwork" xml:space="preserve">
+    <value>Die Vorschau konnte nicht geladen werden. Versuchen Sie es gleich noch einmal.</value>
+  </data>
+  <data name="PvFailedDamaged" xml:space="preserve">
+    <value>Die Vorschau kann nicht angezeigt werden: Das versiegelte Dokument ist beschädigt angekommen.</value>
+  </data>
+  <data name="PvSealedInsertKey" xml:space="preserve">
+    <value>Dieses Dokument ist versiegelt. Stecken Sie Ihren Schlüssel „{0}“ ein.</value>
+  </data>
+  <data name="PvSealedForOtherKeys" xml:space="preserve">
+    <value>Für andere Schlüssel versiegelt.</value>
+  </data>
+  <data name="PvNoneEnrolledAmongThem" xml:space="preserve">
+    <value>Keiner Ihrer eingetragenen Schlüssel gehört dazu.</value>
+  </data>
+  <data name="PvKeyNotEnrolledForYou" xml:space="preserve">
+    <value>Dieser Schlüssel ist nicht für Sie eingetragen.</value>
+  </data>
+  <data name="PvKeyNotEnrolledForYouHint" xml:space="preserve">
+    <value>Melden Sie sich als Inhaber des Schlüssels an, oder verwenden Sie einen für Sie eingetragenen Schlüssel.</value>
+  </data>
+  <data name="PvEnrolledKeysUnknown" xml:space="preserve">
+    <value>Ihre eingetragenen Schlüssel konnten nicht geprüft werden.</value>
+  </data>
+  <data name="PvEnrolledKeysUnknownHint" xml:space="preserve">
+    <value>Öffnen Sie das Archiv einmal online, und versuchen Sie es dann erneut.</value>
   </data>
   <data name="PwSelectEntry" xml:space="preserve">
     <value>Wählen Sie einen Eintrag, um ihn mit Ihrem Schlüssel zu öffnen.</value>

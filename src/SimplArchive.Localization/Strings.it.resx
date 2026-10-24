@@ -1111,7 +1111,7 @@
     <value>Esci dallo schermo intero (Esc)</value>
   </data>
   <data name="PreviewEnvelopedUseDesktop" xml:space="preserve">
-    <value>Questo archivio consegna i documenti cifrati per la vostra chiave personale e un browser web non può aprirli. Per leggere questo documento utilizzate il client desktop SimplArchive.</value>
+    <value>Questo documento è sigillato. Aprilo nell'app desktop o per telefono.</value>
   </data>
   <data name="NoPreview" xml:space="preserve">
     <value>Nessuna anteprima disponibile.</value>
@@ -6431,6 +6431,39 @@
   </data>
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>Questa voce non può essere letta: ciò che è stato aperto non è una voce di password.</value>
+  </data>
+  <data name="PvSealedNoKey" xml:space="preserve">
+    <value>Questo documento è sigillato. Inserisci una chiave hardware in grado di aprirlo.</value>
+  </data>
+  <data name="PvOpenWithKey" xml:space="preserve">
+    <value>Apri con la mia chiave</value>
+  </data>
+  <data name="PvFailedNetwork" xml:space="preserve">
+    <value>Impossibile caricare l'anteprima. Riprova tra un momento.</value>
+  </data>
+  <data name="PvFailedDamaged" xml:space="preserve">
+    <value>Impossibile mostrare l'anteprima: il documento sigillato è arrivato danneggiato.</value>
+  </data>
+  <data name="PvSealedInsertKey" xml:space="preserve">
+    <value>Questo documento è sigillato. Inserisci la tua chiave «{0}».</value>
+  </data>
+  <data name="PvSealedForOtherKeys" xml:space="preserve">
+    <value>Sigillato per altre chiavi.</value>
+  </data>
+  <data name="PvNoneEnrolledAmongThem" xml:space="preserve">
+    <value>Nessuna delle tue chiavi registrate è tra queste.</value>
+  </data>
+  <data name="PvKeyNotEnrolledForYou" xml:space="preserve">
+    <value>Questa chiave non è registrata per te.</value>
+  </data>
+  <data name="PvKeyNotEnrolledForYouHint" xml:space="preserve">
+    <value>Accedi come titolare della chiave oppure usa una chiave registrata per te.</value>
+  </data>
+  <data name="PvEnrolledKeysUnknown" xml:space="preserve">
+    <value>Non è stato possibile verificare le tue chiavi registrate.</value>
+  </data>
+  <data name="PvEnrolledKeysUnknownHint" xml:space="preserve">
+    <value>Apri l'archivio online una volta, poi riprova.</value>
   </data>
   <data name="PwSelectEntry" xml:space="preserve">
     <value>Seleziona una voce per aprirla con la tua chiave.</value>

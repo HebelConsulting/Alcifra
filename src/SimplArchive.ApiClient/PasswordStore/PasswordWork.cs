@@ -104,6 +104,8 @@ public sealed class PasswordWork(ApiCore core, IEnvelopeOpener keys, IEnvelopeOp
     /// </summary>
     public static string? Describe(Exception e) => e switch
     {
+        // A key not enrolled for the user, the user's keys unknown, or sealed for other keys: the shared words (ADR 0969).
+        ISealedRefusal { Outcome: { State: not SealedContentState.Sealed } outcome } => outcome.Text,
         OperationCanceledException => null,
         PasswordEntryChangedException => Strings.Get("PwEntryChanged"),
         PasswordStoreHasNoRecipientsException => Strings.Get("PwNoRecipients"),

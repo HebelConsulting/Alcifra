@@ -34,6 +34,8 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
     private readonly string _apiBaseUrl = DesktopClientOptions.ApiBaseUrl;
     private readonly IReadOnlyList<EnvelopeOpener.Opener> _openers = PasswordKeyOpener.Openers;
     private readonly Func<bool> _declined = PasswordKeyOpener.Declined;
+    private readonly Func<IReadOnlyList<X509Certificate2>> _present = PasswordKeyOpener.Present;
+    private readonly Func<CancellationToken, Task<EnrolledKeysAnswer>> _signedIn = EnvelopeOpener.SignedIn;
     private readonly X509Certificate2 _anna = NewCertificate("Anna");
     private readonly FakePasswordStore _store;
     private readonly TestShell _shell = new();
@@ -45,6 +47,7 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
     private bool _keyPresent = true;
     private bool _promptCancelled;
     private int _keyReads;
+    private int _decrypts;
 
     public DesktopPasswordsTabTests()
     {
@@ -53,13 +56,20 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         DesktopClientOptions.ApiBaseUrl = _store.BaseUrl;
         PasswordKeyOpener.Openers = [OpenWithAnnasKey];
         PasswordKeyOpener.Declined = () => _promptCancelled;
+        PasswordKeyOpener.Present = () => _keyPresent ? [_anna] : [];
+        SignedInAs(_anna);   // Anna is signed in, and the key is hers (ADR 0969)
     }
+
+    private void SignedInAs(X509Certificate2 enrolled) =>
+        EnvelopeOpener.SignedIn = _ => Task.FromResult(new EnrolledKeysAnswer([EnrolledKey.Of(enrolled, "Key")]));
 
     public async ValueTask DisposeAsync()
     {
         DesktopClientOptions.ApiBaseUrl = _apiBaseUrl;
         PasswordKeyOpener.Openers = _openers;
         PasswordKeyOpener.Declined = _declined;
+        PasswordKeyOpener.Present = _present;
+        EnvelopeOpener.SignedIn = _signedIn;
         await _store.DisposeAsync();
     }
 
@@ -272,6 +282,23 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         Assert.NotNull(tab.Preview.PasswordEntry);
     }
 
+    // ADR 0969: an administrator's session with Anna's key in the reader reads nothing of Anna's — the key is not used.
+    [Fact]
+    public async Task An_entry_is_not_opened_with_a_key_enrolled_for_somebody_else()
+    {
+        _store.AddEntry("Code hosting", Seal(CodeHosting));
+        SignedInAs(NewCertificate("Crypt"));
+        var tab = await LoadedTabAsync();
+        await Eventually(() => tab.Items.Any(i => i.Name == "Code hosting"));
+
+        tab.SelectedItem = tab.Items.Single(i => i.Name == "Code hosting");
+        await Eventually(() => tab.Preview.PreviewPlaceholder?.StartsWith(Strings.Get("PvKeyNotEnrolledForYou"), StringComparison.Ordinal) == true);
+
+        Assert.Null(tab.Preview.PasswordEntry);
+        Assert.Equal(0, _decrypts);
+        Assert.Equal($"{Strings.Get("PvKeyNotEnrolledForYou")}\n{Strings.Get("PvKeyNotEnrolledForYouHint")}", tab.Preview.PreviewPlaceholder);
+    }
+
     [Fact]
     public async Task Nothing_of_an_opened_entry_is_written_to_disk()
     {
@@ -337,13 +364,16 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
     }
 
     // The hardware key, held in memory: declines an envelope not addressed to it, as the card does.
-    private Task<(byte[] Bytes, string ContentType)?> OpenWithAnnasKey(ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients)
+    private Task<(byte[] Bytes, string ContentType)?> OpenWithAnnasKey(
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         Interlocked.Increment(ref _keyReads);
-        if (!_keyPresent || !EnvelopeRecipients.Matches(_anna, recipients))
+        if (!_keyPresent || !EnvelopeRecipients.Matches(_anna, recipients) || !admitted(_anna))
         {
             return Task.FromResult<(byte[], string)?>(null);
         }
+
+        Interlocked.Increment(ref _decrypts);
 
         var cms = new EnvelopedCms();
         cms.Decode(SmimeEnvelope.Cms(enveloped));

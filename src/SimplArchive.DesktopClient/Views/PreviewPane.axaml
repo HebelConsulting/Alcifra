@@ -181,9 +181,20 @@
             <!-- An opened password entry (ADR 0968): its fields from memory, found in by the same find box. -->
             <v:PasswordEntryView DataContext="{Binding PasswordEntry}"
                                  IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).PasswordEntry, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
-            <SelectableTextBlock Text="{Binding PreviewPlaceholder}" Foreground="{DynamicResource WbFaint}" TextWrapping="Wrap" MaxWidth="280"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                       IsVisible="{Binding PreviewPlaceholder, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+            <!-- The placeholder, and for a sealed document this machine could not open, its plain state: a lock, the
+                 title, what is known about the user's keys, and "Open with my key" (ADR 0969). -->
+            <StackPanel x:Name="Placeholder" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="280"
+                        IsVisible="{Binding PreviewPlaceholder, Converter={x:Static conv:ObjectConverters.IsNotNull}}">
+                <i:Icon Value="mdi-lock-outline" FontSize="28" Foreground="{DynamicResource WbFaint}" HorizontalAlignment="Center"
+                        IsVisible="{Binding SealedState, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+                <SelectableTextBlock x:Name="PlaceholderText" Text="{Binding PreviewPlaceholder}" Foreground="{DynamicResource WbFaint}" TextWrapping="Wrap"
+                           HorizontalAlignment="Center" TextAlignment="Center" />
+                <TextBlock x:Name="SealedSublineText" Text="{Binding SealedSubline}" Foreground="{DynamicResource WbFaint}" FontSize="12" TextWrapping="Wrap"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           IsVisible="{Binding SealedSubline, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+                <Button x:Name="OpenSealedButton" Content="{loc:Tr PvOpenWithKey}" Command="{Binding OpenSealedCommand}"
+                        IsVisible="{Binding CanOpenSealed}" HorizontalAlignment="Center" />
+            </StackPanel>
             <!-- Sensitivity watermark (ADR "Document watermarking") — repeating diagonal label+viewer, click-through. -->
             <ItemsControl ItemsSource="{Binding WatermarkTiles}" IsVisible="{Binding HasWatermark}" IsHitTestVisible="False" ClipToBounds="True">
                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>

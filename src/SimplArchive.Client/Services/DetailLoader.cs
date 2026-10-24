@@ -135,8 +135,8 @@ public sealed class DetailLoader(
                 annotations.UseCollection(Links.Href(latest.Links, "annotations"));
                 result = result with
                 {
-                    PreviewUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "preview")),
-                    DownloadUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "download")),
+                    PreviewUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "preview", latest.ContentIsEnveloped)),
+                    DownloadUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "download", latest.ContentIsEnveloped)),
                     TextLayoutUrl = Links.Href(latest.Links, "text-layout"),
                     Converted = latest.PreviewConverted,
                     HasVersion = true,

@@ -47,8 +47,12 @@ public static class EnvelopeOpener
     /// <c>ShowDialog</c> would deadlock the very thread that has to draw it. The software opener does no I/O
     /// and simply completes.
     /// </remarks>
+    /// <param name="admitted">
+    /// Whether a key may be used at all: its certificate is enrolled for the signed-in user (ADR 0969). Asked before the
+    /// key is touched, so a token of somebody else's in the reader is never asked for a PIN.
+    /// </param>
     public delegate Task<(byte[] Bytes, string ContentType)?> Opener(
-        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients);
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted);
 
     /// <summary>Where the software private keys come from. Replaced in tests.</summary>
     public static Func<X509Certificate2Collection> Keys { get; set; } = FromUserStore;
@@ -89,9 +93,19 @@ public static class EnvelopeOpener
         // worse, two separate places that could drift on what counts as a match.
         var recipients = EnvelopeRecipients.Of(enveloped);
 
+        // ONLY THE SIGNED-IN USER'S KEYS (ADR 0969): an administrator who may download another user's client-sealed items
+        // must not open them with that user's token in the reader. Unknown enrolled keys refuse every key, before any.
+        var enrolled = await SignedIn(CancellationToken.None);
+        if (enrolled.Keys is null)
+        {
+            throw new EnvelopeStaysSealedException("the keys enrolled for you could not be checked", SealedOutcome.Unknown);
+        }
+
+        bool Admitted(X509Certificate2 certificate) => SealedContent.Admits(certificate, enrolled);
+
         foreach (var opener in Openers)
         {
-            if (await opener(enveloped, recipients) is { } opened)
+            if (await opener(enveloped, recipients, Admitted) is { } opened)
             {
                 return opened;
             }
@@ -100,8 +114,39 @@ public static class EnvelopeOpener
         // Every opener declined, so the remedy depends on WHICH of the three things is missing — and saying
         // "this is not yours" when the reader simply has no reader plugged in sends them to their
         // administrator instead of to their pocket (#1353's acceptance point 3).
-        throw new EnvelopeNotOpenedException(CardEnvelopeOpener.WhatIsMissing());
+        //
+        // And the preview SHOWS which (ADR 0969): it used to say "Loading…" for ever while the reason went to the status
+        // line. Each refusal carries the recipients, so the preview can judge them against the user's whole enrolled set
+        // (SealedContent.ResolveAsync, shared with the phone); what is decided here is only what the keys present say.
+        throw Refusal(recipients, enrolled);
     }
+
+    /// <summary>
+    /// What no admitted key opening an envelope means, for the documents' funnel and the Messages tab alike: a cancelled
+    /// PIN prompt, or the state the shared rule names (<see cref="SealedContent.Judge"/>).
+    /// </summary>
+    internal static Exception Refusal(IReadOnlyList<(string Issuer, string Serial)> recipients, EnrolledKeysAnswer enrolled)
+    {
+        var outcome = SealedContent.Judge(recipients, [.. Keys().Cast<X509Certificate2>(), .. CardCertificatesSeen()], enrolled);
+        return outcome.State == SealedContentState.Sealed && PromptDeclined()
+            ? new KeyPromptCancelledException(outcome)
+            : new EnvelopeStaysSealedException(CardEnvelopeOpener.WhatIsMissing(), outcome);
+    }
+
+    /// <summary>
+    /// The signed-in user's enrolled keys (ADR 0969): set at sign-in to that session's <see cref="SignedInKeys"/>, and
+    /// back to "unknown" at sign-out, so no key is used outside a session. Replaced in tests.
+    /// </summary>
+    public static Func<CancellationToken, Task<EnrolledKeysAnswer>> SignedIn { get; set; } = NoSession;
+
+    /// <summary>No session: nothing is known, so no key is used.</summary>
+    public static Task<EnrolledKeysAnswer> NoSession(CancellationToken cancellationToken) => Task.FromResult(EnrolledKeysAnswer.Unknown);
+
+    /// <summary>The certificates on the cards the last read found in a reader. Replaced in tests.</summary>
+    public static Func<IReadOnlyList<X509Certificate2>> CardCertificatesSeen { get; set; } = () => CardEnvelopeOpener.LastSeen;
+
+    /// <summary>Whether a PIN prompt was cancelled and is remembered (<see cref="CardSession.HasDeclined"/>). Replaced in tests.</summary>
+    public static Func<bool> PromptDeclined { get; set; } = () => CardSession.HasDeclined;
 
     /// <summary>The user's own certificate store — the platform path, proven before any token is involved.</summary>
     /// <remarks>
@@ -134,11 +179,11 @@ public static class EnvelopeOpener
 
     /// <summary>The software opener: MimeKit over the certificates this machine holds with their private keys.</summary>
     private static Task<(byte[] Bytes, string ContentType)?> OpenWithSoftwareKey(
-        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients) =>
-        Task.FromResult(SoftwareKey(enveloped, recipients));
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted) =>
+        Task.FromResult(SoftwareKey(enveloped, recipients, admitted));
 
     private static (byte[] Bytes, string ContentType)? SoftwareKey(
-        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients)
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         // ONLY the certificates this envelope is actually addressed to, decided BEFORE any private key is
         // touched. A CMS envelope names its recipients by issuer and serial in the clear, so "is this mine?"
@@ -150,7 +195,10 @@ public static class EnvelopeOpener
         // document addressed to a CARD raise prompts for unrelated software certificates before the card was
         // ever consulted. Asking the envelope first means a card-addressed document touches the keychain not
         // at all.
-        var candidates = EnvelopeRecipients.AddressedTo(recipients, Keys());
+        //
+        // And only the signed-in user's own (ADR 0969): a certificate in this store that is somebody else's enrolled key
+        // is not touched.
+        var candidates = EnvelopeRecipients.AddressedTo(recipients, Keys()).Where(admitted).ToList();
         if (candidates.Count == 0)
         {
             return null;

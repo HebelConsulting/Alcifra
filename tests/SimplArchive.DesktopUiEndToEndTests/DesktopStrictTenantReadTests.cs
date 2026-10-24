@@ -39,6 +39,12 @@ public class DesktopStrictTenantReadTests
         var reader = await StrictReaderAsync();
 
         DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+
+        // The signed-in user's enrolled keys, asked of the real server as a session asks them (ADR 0969): only a key
+        // in that set is used, so this also proves the reader's certificate is answered as theirs.
+        var session = new SimplArchiveApiClient(reader.Token);
+        var signedIn = EnvelopeOpener.SignedIn;
+        EnvelopeOpener.SignedIn = SignedInKeys.For(session.Core).CurrentAsync;
         ApiCore.Authenticated = Authed(reader.Token);
 
         // The reader's key, as the shipped client would find it in the user's certificate store. Injected
@@ -59,6 +65,7 @@ public class DesktopStrictTenantReadTests
         finally
         {
             EnvelopeOpener.Keys = previous;
+            EnvelopeOpener.SignedIn = signedIn;
             ApiCore.Authenticated = null;
         }
     }

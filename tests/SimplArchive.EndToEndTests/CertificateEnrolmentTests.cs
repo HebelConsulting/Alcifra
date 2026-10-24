@@ -60,6 +60,14 @@ public partial class CertificateEnrolmentTests
             var listed = Assert.Single((await TestJson.Get(rig.Member, root["certificates"])).EnumerateArray().ToList());
             Assert.True(listed.GetProperty("usable").GetBoolean());
 
+            // Issuer and serial: how a sealed envelope names a recipient, so a client tells "sealed to your key that is
+            // not here" from "sealed for other keys", and uses only the user's own keys (ADR 0969).
+            using (var certificate = X509Certificate2.CreateFromPem(pem))
+            {
+                Assert.Equal(certificate.Issuer, listed.GetProperty("issuer").GetString());
+                Assert.Equal(certificate.SerialNumber, listed.GetProperty("serial").GetString(), StringComparer.OrdinalIgnoreCase);
+            }
+
             // The core's registry answers who the member is addressed to.
             var me = Links(await TestJson.Get(rig.Member, "/api/me"));
             var readers = await TestJson.Get(rig.Member, me["readerCertificates"]);

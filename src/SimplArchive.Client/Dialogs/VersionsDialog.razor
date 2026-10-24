@@ -125,8 +125,8 @@
                 // same value, and a document near midnight would otherwise read as two different days
                 // depending on which one you looked at (ADR 0801).
                 v.Id, v.VersionNumber ?? 0, DocumentDateFormat.Display(v.DocumentDate, v.DocumentTime, SessionTimeZone.Current), v.CreatedAt, v.CreatedByName ?? "",
-                Abs(Href(v.Links, "preview")) ?? Abs(Href(v.Links, "download")),
-                Abs(Href(v.Links, "download")),
+                Abs(Links.PlaintextFirst(v.Links, "preview", v.ContentIsEnveloped)) ?? Abs(Links.PlaintextFirst(v.Links, "download", v.ContentIsEnveloped)),
+                Abs(Links.PlaintextFirst(v.Links, "download", v.ContentIsEnveloped)),
                 Href(v.Links, "restore"),
                 v.Id == currentId, v.Comment)).ToList();
         }
@@ -247,6 +247,8 @@
         public string? DocumentDate { get; set; }
         public string? DocumentTime { get; set; }
         public string? Comment { get; set; }
+        // Sealed to the reader's key: the bare rels are then the envelope, which a browser cannot open (2026-10-24).
+        public bool ContentIsEnveloped { get; set; }
         public List<LinkResponse> Links { get; set; } = [];
     }
 }

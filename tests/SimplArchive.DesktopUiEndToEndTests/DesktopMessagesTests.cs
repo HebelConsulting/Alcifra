@@ -15,14 +15,39 @@ namespace SimplArchive.UiEndToEndTests;
 public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
 {
     private readonly Func<X509Certificate2Collection> _originalKeys = EnvelopeOpener.Keys;
+    private readonly Func<CancellationToken, Task<EnrolledKeysAnswer>> _originalSignedIn = EnvelopeOpener.SignedIn;
 
-    public void Dispose() => EnvelopeOpener.Keys = _originalKeys;
+    public void Dispose()
+    {
+        EnvelopeOpener.Keys = _originalKeys;
+        EnvelopeOpener.SignedIn = _originalSignedIn;
+    }
+
+    private static void Enrolled(params X509Certificate2[] keys) =>
+        EnvelopeOpener.SignedIn = _ => Task.FromResult(new EnrolledKeysAnswer([.. keys.Select(k => EnrolledKey.Of(k, "Office key"))]));
+
+    // ADR 0969: the Messages tab opens a conversation key only with a key enrolled for the signed-in user — an
+    // administrator holding a colleague's key on this machine reads nothing of the colleague's conversations.
+    [Fact]
+    public async Task A_conversation_key_sealed_to_somebody_elses_key_on_this_machine_is_not_opened_with_it()
+    {
+        var colleagues = NewCertificate();
+        EnvelopeOpener.Keys = () => [colleagues];
+        Enrolled(NewCertificate());
+        using var publicOnly = X509CertificateLoader.LoadCertificate(colleagues.RawData);
+
+        var refused = await Assert.ThrowsAsync<EnvelopeStaysSealedException>(
+            () => new ConversationKeyOpener().OpenAsync(ConversationKeys.SealTo(ConversationKeys.NewKey(), [publicOnly])));
+
+        Assert.Equal(SealedContentState.KeyNotEnrolledForYou, refused.Outcome.State);
+    }
 
     [Fact]
     public async Task A_conversation_key_sealed_to_a_key_this_machine_holds_opens_with_it()
     {
         var reader = NewCertificate();
         EnvelopeOpener.Keys = () => [reader];
+        Enrolled(reader);
         var key = ConversationKeys.NewKey();
         using var publicOnly = X509CertificateLoader.LoadCertificate(reader.RawData);
 
@@ -34,10 +59,13 @@ public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
     [Fact]
     public async Task A_key_sealed_to_somebody_else_is_refused_saying_what_is_missing()
     {
-        EnvelopeOpener.Keys = () => [NewCertificate()];
+        var mine = NewCertificate();
+        EnvelopeOpener.Keys = () => [mine];
+        Enrolled(mine);
         using var other = X509CertificateLoader.LoadCertificate(NewCertificate().RawData);
 
-        await Assert.ThrowsAsync<EnvelopeNotOpenedException>(() => new ConversationKeyOpener().OpenAsync(ConversationKeys.SealTo(ConversationKeys.NewKey(), [other])));
+        var refused = await Assert.ThrowsAsync<EnvelopeStaysSealedException>(() => new ConversationKeyOpener().OpenAsync(ConversationKeys.SealTo(ConversationKeys.NewKey(), [other])));
+        Assert.Equal(SealedContentState.SealedForOtherKeys, refused.Outcome.State);
     }
 
     [Fact]

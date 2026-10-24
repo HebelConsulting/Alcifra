@@ -4,7 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using MimeKit.Cryptography;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.ApiClient;
 
 /// <summary>
 /// Who a CMS envelope is addressed to — answerable without touching a single private key (#1353, ADR 0832).
@@ -101,7 +101,12 @@ public static class EnvelopeRecipients
     /// distinguished name through the same formatter.
     /// </remarks>
     public static bool Matches(X509Certificate2 certificate, IReadOnlyList<(string Issuer, string Serial)> recipients) =>
+        Matches(certificate.Issuer, certificate.SerialNumber, recipients);
+
+    /// <summary>Whether the certificate named by <paramref name="issuer"/> and <paramref name="serial"/> is a recipient —
+    /// for a certificate known only by those, as the user's enrolled keys are (ADR 0969).</summary>
+    public static bool Matches(string issuer, string serial, IReadOnlyList<(string Issuer, string Serial)> recipients) =>
         recipients.Any(r =>
-            string.Equals(r.Serial, certificate.SerialNumber, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(r.Issuer, certificate.Issuer, StringComparison.Ordinal));
+            string.Equals(r.Serial, serial, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(r.Issuer, issuer, StringComparison.Ordinal));
 }

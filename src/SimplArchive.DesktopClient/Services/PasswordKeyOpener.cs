@@ -22,6 +22,9 @@ internal sealed class PasswordKeyOpener : IEnvelopeOpener
     /// <summary>The openers tried, in order: the card alone. Replaced in tests by a key held in memory.</summary>
     internal static IReadOnlyList<EnvelopeOpener.Opener> Openers { get; set; } = [CardEnvelopeOpener.TryOpen];
 
+    /// <summary>The certificates of the keys at hand — the cards the last read saw; replaced in tests.</summary>
+    internal static Func<IReadOnlyList<System.Security.Cryptography.X509Certificates.X509Certificate2>> Present { get; set; } = () => CardEnvelopeOpener.LastSeen;
+
     /// <summary>Whether the user's last PIN prompt was cancelled; replaced in tests with the card's.</summary>
     internal static Func<bool> Declined { get; set; } = () => CardSession.HasDeclined;
 
@@ -32,19 +35,29 @@ internal sealed class PasswordKeyOpener : IEnvelopeOpener
     {
         var enveloped = SmimeEnvelope.Unwrap(envelope);
         var recipients = EnvelopeRecipients.Of(enveloped);
+
+        // Only a key enrolled for the signed-in user (ADR 0969), as for a sealed document and the Messenger.
+        var enrolled = await EnvelopeOpener.SignedIn(CancellationToken.None);
+        if (enrolled.Keys is null)
+        {
+            throw new EnvelopeStaysSealedException("the keys enrolled for you could not be checked", SealedOutcome.Unknown);
+        }
+
+        bool Admitted(System.Security.Cryptography.X509Certificates.X509Certificate2 certificate) => SealedContent.Admits(certificate, enrolled);
         foreach (var opener in Openers)
         {
-            if (await opener(enveloped, recipients) is { } opened)
+            if (await opener(enveloped, recipients, Admitted) is { } opened)
             {
                 return opened;
             }
         }
 
-        if (Declined())
+        var outcome = SealedContent.Judge(recipients, Present(), enrolled);
+        if (outcome.State == SealedContentState.Sealed && Declined())
         {
-            throw new OperationCanceledException("The key prompt was cancelled.");
+            throw new KeyPromptCancelledException(outcome);
         }
 
-        throw new EnvelopeNotOpenedException(CardEnvelopeOpener.WhatIsMissing());
+        throw new EnvelopeStaysSealedException(CardEnvelopeOpener.WhatIsMissing(), outcome);
     }
 }

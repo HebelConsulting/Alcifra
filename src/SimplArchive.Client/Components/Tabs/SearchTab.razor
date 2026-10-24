@@ -253,7 +253,7 @@
             }
         </div>
         <div class="wb-search-preview" data-pane="search-preview">
-            <PreviewPane @ref="_preview" DataPane="search-preview-inner" EmptyText="@Strings.Get("SearchPreviewEmpty")"
+            <PreviewPane @ref="_preview" DataPane="search-preview-inner" EmptyText="@(_previewSealed ? Strings.Get("PreviewEnvelopedUseDesktop") : Strings.Get("SearchPreviewEmpty"))"
                          AnnotationHost="null" />
         </div>
     </div>
@@ -578,8 +578,12 @@
     // Follows what the ROW advertised (ADR 0555): `versions` → the current version → its `preview` and
     // `text-layout`. Nothing here composes an address, and a hit that advertises no `versions` simply gets no
     // preview — a missing rel means "not available here" (ADR 0543).
+    // The hit's document is sealed and this browser has no door it can read (2026-10-24): the pane says so.
+    private bool _previewSealed;
+
     private async Task RenderPreviewAsync(SearchHit hit)
     {
+        _previewSealed = false;
         try
         {
             if (Links.Href(hit.Links, "versions") is not { } versionsHref)
@@ -599,10 +603,11 @@
             // The point of previewing a HIT rather than a document: seedQuery drives the hit overlay, so the
             // pane opens showing why this document matched instead of merely showing its first page (ADR 0294).
             // The machinery already existed and had no caller until now.
+            _previewSealed = latest.ContentIsEnveloped && Links.PlaintextFirst(latest.Links, "preview", true) is null;
             if (_preview is not null)
             {
                 await _preview.RenderAsync(
-                    Http.Absolute(Links.Href(latest.Links, "preview")),
+                    Http.Absolute(Links.PlaintextFirst(latest.Links, "preview", latest.ContentIsEnveloped)),
                     Links.Href(latest.Links, "text-layout"),
                     latest.PreviewConverted,
                     seedQuery: S.Query);

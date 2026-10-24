@@ -45,7 +45,8 @@ public sealed class CertificateEnrolment(
     /// <param name="DeviceSerial">The token's serial number, as its attestation states it.</param>
     public sealed record Listed(
         Guid DocumentId, string Label, string Thumbprint, string Serial, DateTimeOffset NotAfter, DateTimeOffset? RevokedAt,
-        bool Usable, string? FailsPolicy, string Attestation = "notAttested", string? AttestationRoot = null, string? DeviceSerial = null);
+        bool Usable, string? FailsPolicy, string Attestation = "notAttested", string? AttestationRoot = null, string? DeviceSerial = null,
+        string? Issuer = null);
 
     private Guid TenantId => tenant.TenantId ?? throw new InvalidOperationException("Certificate enrolment needs a current tenant.");
 
@@ -87,7 +88,26 @@ public sealed class CertificateEnrolment(
                 PolicyEnforcement.RefusalForEnrolled(policy, r.CertificatePem),
                 StateName(trust.StateOf(r.AttestationRootThumbprint)),
                 r.AttestationRootThumbprint is { } root ? trust.RootNames.GetValueOrDefault(root) : null,
-                serials.GetValueOrDefault(r.DocumentId) is { Length: > 0 } serial ? serial : null))];
+                serials.GetValueOrDefault(r.DocumentId) is { Length: > 0 } serial ? serial : null,
+                IssuerOf(r.CertificatePem)))];
+    }
+
+    /// <summary>
+    /// The certificate's issuer as .NET formats it — with the serial, how an envelope names its recipient — so a client can
+    /// tell "sealed to a key of yours that is not here" from "sealed for other keys" (ADR 0969). Read from the stored
+    /// certificate at listing time, so no column is needed; null for one that does not parse.
+    /// </summary>
+    private static string? IssuerOf(string certificatePem)
+    {
+        try
+        {
+            using var certificate = X509Certificate2.CreateFromPem(certificatePem);
+            return certificate.Issuer;
+        }
+        catch (CryptographicException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The wire name of an attestation state, as the listing carries it.</summary>
