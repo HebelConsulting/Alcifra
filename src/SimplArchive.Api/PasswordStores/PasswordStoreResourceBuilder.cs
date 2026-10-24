@@ -35,6 +35,9 @@ public sealed class PasswordStoreResourceBuilder(
         var rights = await access.GetCallerRightsAsync(folder.Id, cancellationToken);
         var children = await tree.ChildrenAsync(folder, cancellationToken);
         var childRights = await access.GetCallerRightsForManyAsync([.. children.Select(c => c.Id)], cancellationToken);
+        // One query for the autofill index of every row in the folder (ADR 0973): the sheet a client shows lists
+        // entries and their sites without opening any of them.
+        var index = await PasswordIndexValues.LoadAsync(dbContext, [.. children.Select(c => c.Id)], cancellationToken);
         var store = folder.Kind == PasswordItemKind.Store ? folder : await tree.FindAsync(folder.StoreId, cancellationToken) ?? folder;
         var state = await sealing.StateAsync(store, cancellationToken);
         var needsReseal = state.EntriesNeedingReseal.Count > 0;
@@ -54,7 +57,7 @@ public sealed class PasswordStoreResourceBuilder(
             [
                 .. children
                     .Where(c => childRights.TryGetValue(c.Id, out var r) && r.CanSee)
-                    .Select(c => Row(c, childRights[c.Id])),
+                    .Select(c => Row(c, childRights[c.Id], index.GetValueOrDefault(c.Id))),
             ],
         };
 
@@ -90,6 +93,7 @@ public sealed class PasswordStoreResourceBuilder(
         var rights = await access.GetCallerRightsAsync(entry.Id, cancellationToken);
         var version = await CurrentVersion.ResolveAsync(dbContext.DocumentVersions, entry.Id, entry.CurrentVersionId, cancellationToken);
         var certificates = await readers.CertificatesAsync(entry.StoreId, cancellationToken);
+        var index = (await PasswordIndexValues.LoadAsync(dbContext, [entry.Id], cancellationToken)).GetValueOrDefault(entry.Id);
 
         var resource = new PasswordEntryResource
         {
@@ -102,6 +106,9 @@ public sealed class PasswordStoreResourceBuilder(
             ETag = Tag(entry.ConcurrencyToken),
             NeedsReseal = await sealing.NeedsResealAsync(entry, certificates, cancellationToken),
             ExposedSince = (await PasswordEntryHistory.ExposedSinceAsync(dbContext, entry.Id, cancellationToken))?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            Site = index?.Site,
+            UserName = index?.UserName,
+            App = index?.App,
             CanEdit = rights.CanEditContent,
             CanRename = rights.CanEditIndexData,
             CanDelete = rights.CanDelete,
@@ -137,7 +144,7 @@ public sealed class PasswordStoreResourceBuilder(
         return resource;
     }
 
-    private PasswordItemResource Row(PasswordItem item, EffectiveRights rights)
+    private PasswordItemResource Row(PasswordItem item, EffectiveRights rights, PasswordIndexValues? index)
     {
         var row = new PasswordItemResource
         {
@@ -145,6 +152,10 @@ public sealed class PasswordStoreResourceBuilder(
             Name = item.Name,
             Kind = item.Kind == PasswordItemKind.Folder ? "folder" : "entry",
             ETag = Tag(item.ConcurrencyToken),
+            // An entry's autofill index (ADR 0973); a folder has none.
+            Site = item.Kind == PasswordItemKind.Entry ? index?.Site : null,
+            UserName = item.Kind == PasswordItemKind.Entry ? index?.UserName : null,
+            App = item.Kind == PasswordItemKind.Entry ? index?.App : null,
             CanEdit = rights.CanEditContent,
             CanRename = rights.CanEditIndexData,
             CanDelete = rights.CanDelete,

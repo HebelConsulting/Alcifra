@@ -7,8 +7,13 @@ namespace SimplArchive.ApiClient.PasswordStore;
 public sealed record PasswordStoreInfo(Guid Id, string Name, bool IsPersonal, string Href);
 
 /// <summary>A row of a store or folder: a folder or an entry, with the flags that gate its actions (ADR 0719).</summary>
+/// <param name="Site">An entry's autofill site (ADR 0973), the URL's host: what a fill matches without opening it.
+/// Null for a folder, and for an entry no client has filed since the field existed.</param>
+/// <param name="UserName">An entry's user name (ADR 0973), shown before the key is used; null where none is known.</param>
+/// <param name="App">The Android package name an entry also fills (ADR 0973), or null.</param>
 public sealed record PasswordItemInfo(
-    Guid Id, string Name, bool IsFolder, string ETag, bool CanEdit, bool CanRename, bool CanDelete, bool CanMove, LinkMap Links)
+    Guid Id, string Name, bool IsFolder, string ETag, bool CanEdit, bool CanRename, bool CanDelete, bool CanMove, LinkMap Links,
+    string? Site = null, string? UserName = null, string? App = null)
 {
     /// <summary>The row's own resource: a folder's contents, or an entry.</summary>
     public string Href => Links.Href("self") ?? throw new InvalidOperationException($"'{Name}' advertised no 'self' rel (ADR 0543).");
@@ -41,7 +46,8 @@ public sealed record PasswordFolderInfo(
 /// <param name="ExposedSince">The day a certificate it was sealed to was revoked, or null; cleared only by a new password.</param>
 public sealed record PasswordEntryInfo(
     Guid Id, string Name, Guid StoreId, Guid ParentId, int? VersionNumber, string ETag, bool NeedsReseal, DateOnly? ExposedSince,
-    bool CanEdit, bool CanRename, bool CanDelete, bool CanMove, LinkMap Links)
+    bool CanEdit, bool CanRename, bool CanDelete, bool CanMove, LinkMap Links,
+    string? Site = null, string? UserName = null, string? App = null)
 {
     /// <summary>Whether it has content yet: an entry whose first upload never finished has none.</summary>
     public bool HasContent => Links.Has("content");
@@ -61,7 +67,10 @@ public sealed record PasswordEntryInfo(
         json.GetProperty("canRename").GetBoolean(),
         json.GetProperty("canDelete").GetBoolean(),
         json.GetProperty("canMove").GetBoolean(),
-        LinkMap.From(json) ?? LinkMap.Empty);
+        LinkMap.From(json) ?? LinkMap.Empty,
+        ApiWire.StrOrNull(json, "site"),
+        ApiWire.StrOrNull(json, "userName"),
+        ApiWire.StrOrNull(json, "app"));
 }
 
 /// <summary>An entry opened with the reader's key: its resource as read, and its content.</summary>

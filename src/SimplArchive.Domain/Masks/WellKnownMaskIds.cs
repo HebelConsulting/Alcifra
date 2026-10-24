@@ -310,7 +310,7 @@ public static class WellKnownMaskIds
     /// </summary>
     public static readonly IReadOnlySet<Guid> PasswordStoreMasks = new HashSet<Guid> { PasswordStore, PasswordFolder, PasswordEntry };
 
-    /// <summary>The Password Entry mask's one index field (ADR 0964), set and cleared by the server only.</summary>
+    /// <summary>The Password Entry mask's index fields (ADR 0964, ADR 0973).</summary>
     public static class PasswordEntryFields
     {
         /// <summary>
@@ -319,6 +319,25 @@ public static class WellKnownMaskIds
         /// never by a re-seal, which keeps the old secret.
         /// </summary>
         public const string ExposedSince = "Exposed since";
+
+        /// <summary>
+        /// The site the entry belongs to (ADR 0973), the URL slot's host, lowercased: autofill matches a requesting
+        /// browser or app by it WITHOUT opening the entry. Derived from the sealed content by the client that files or
+        /// re-seals a version, never typed into a form of its own.
+        /// </summary>
+        public const string Site = "Site";
+
+        /// <summary>
+        /// The user name the entry fills (ADR 0973), from the content's user-name slot: the autofill sheet shows it
+        /// before the key is used. Derived with <see cref="Site"/>.
+        /// </summary>
+        public const string UserName = "User name";
+
+        /// <summary>
+        /// An Android package name the entry also fills (ADR 0973), for an app with no verified link to its site: the
+        /// one metadata value a user sets deliberately, as an ordinary field of the entry.
+        /// </summary>
+        public const string App = "App";
     }
 
     /// <summary>

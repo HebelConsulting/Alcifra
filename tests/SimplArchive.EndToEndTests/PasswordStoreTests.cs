@@ -470,4 +470,57 @@ public sealed class PasswordStoreTests
         Assert.Empty((await SimplArchive.Cli.Commands.PasswordStoreSurface.StoreAsync(seeder, storeId, CancellationToken.None)).Items);
         return 0;
     });
+
+    // ADR 0973: the autofill index is derived by the client from the content it seals, rides with the version, comes
+    // back on the entry AND its listing row, follows an edit (an emptied URL clears the site), and is written by any
+    // later version for an entry that predates it.
+    [Fact]
+    public Task An_entry_carries_its_autofill_index_without_being_opened() => WithEnrolmentAsync(async rig =>
+    {
+        var client = rig.Anna.Client;
+        var mine = await client.EnsureMyPasswordsAsync();
+        var content = new PasswordEntryContent("hunter2",
+        [
+            new(PasswordEntryFieldNames.UserName, "anna@example.com"),
+            new(PasswordEntryFieldNames.Url, "https://www.bank.example/login?next=/"),
+            new(PasswordEntryFieldNames.App, "com.bank.app"),
+        ]);
+
+        var entry = await client.CreateEntryAsync(mine, "Online banking", content);
+        Assert.Equal("bank.example", entry.Site);            // host only: no www, no scheme, no path
+        Assert.Equal("anna@example.com", entry.UserName);
+        Assert.Equal("com.bank.app", entry.App);
+
+        // The LISTING carries it too: an autofill sheet is built from the folder, not one request per entry.
+        var row = Assert.Single((await client.GetFolderAsync(mine.Links.Href("self")!)).Items);
+        Assert.Equal(("bank.example", "anna@example.com", "com.bank.app"), (row.Site, row.UserName, row.App));
+
+        // An edit follows: the user name travels with the version, and an emptied URL clears the site.
+        var opened = await client.OpenAsync(entry);
+        var edited = new PasswordEntryContent(content.Password,
+            [new(PasswordEntryFieldNames.UserName, "anna2@example.com")]);
+        var saved = await client.SaveEntryAsync(opened, edited);
+        Assert.Equal("anna2@example.com", saved.UserName);
+        Assert.Null(saved.Site);
+        Assert.Null(saved.App);
+
+        // An entry that predates the index has none; the next version it receives (a save, or a re-seal) writes it,
+        // so old entries become matchable as their owner touches them — never by opening them behind their back.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SimplArchiveDbContext>();
+            var legacy = await db.FieldValues.IgnoreQueryFilters(["TenantFilter"]).Where(v => v.DocumentId == saved.Id).ToListAsync();
+            db.FieldValues.RemoveRange(legacy);
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Null((await client.GetEntryAsync(saved.Links.Href("self")!)).Site);
+        var again = await client.OpenAsync(await client.GetEntryAsync(saved.Links.Href("self")!));
+        var restored = new PasswordEntryContent("newer",
+            [new(PasswordEntryFieldNames.UserName, "anna3@example.com"), new(PasswordEntryFieldNames.Url, "portal.example")]);
+        var refiled = await client.SaveEntryAsync(again, restored);
+        Assert.Equal("portal.example", refiled.Site);   // a scheme-less URL is read as https, host only
+        Assert.Equal("anna3@example.com", refiled.UserName);
+        return 0;
+    });
 }

@@ -1,3 +1,5 @@
+using SimplArchive.Presentation;
+
 namespace SimplArchive.ApiClient.PasswordStore;
 
 /// <summary>One field of an entry besides its password: a name, a value, and whether it is shown like a password.</summary>
@@ -12,6 +14,12 @@ public static class PasswordEntryFieldNames
     public const string Url = "URL";
 
     public const string Notes = "Notes";
+
+    /// <summary>
+    /// An Android package name this entry also fills (ADR 0973): an app with no verified link to its site is matched by
+    /// it. The one metadata value a user sets deliberately, as an ordinary field of the entry.
+    /// </summary>
+    public const string App = "App";
 }
 
 /// <summary>
@@ -25,6 +33,45 @@ public sealed record PasswordEntryContent(string Password, IReadOnlyList<Passwor
     public string? Url => Value(PasswordEntryFieldNames.Url);
 
     public string? Notes => Value(PasswordEntryFieldNames.Notes);
+
+    /// <summary>
+    /// The site this entry belongs to (ADR 0973): the URL slot's host, lowercased and without a leading
+    /// <c>www.</c>, which is what a browser's web domain or an app's verified link is compared against. Null where the
+    /// entry has no URL, or one that names no host.
+    /// </summary>
+    /// <remarks>
+    /// The scheme is optional, as users type it: <c>example.com/login</c> is read as <c>https://example.com/login</c>.
+    /// This is index metadata derived from the content the client already holds in the clear when it files a version —
+    /// it is NOT a second copy of the URL, and the server never sees the content.
+    /// </remarks>
+    public string? Site
+    {
+        get
+        {
+            // The URL SLOT, not one spelling of it: an entry saved with "Website" or "Link" names the same field
+            // (PasswordEntryFieldOrder), and a site that ignored those would silently never match.
+            var url = Fields
+                .FirstOrDefault(f => PasswordEntryFieldOrder.SlotOf(f.Name) == PasswordFieldSlot.Url)?.Value?.Trim();
+            if (string.IsNullOrEmpty(url))
+            {
+                return null;
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Host.Length == 0)
+            {
+                if (!Uri.TryCreate($"https://{url}", UriKind.Absolute, out uri) || uri.Host.Length == 0)
+                {
+                    return null;
+                }
+            }
+
+            var host = uri.Host.ToLowerInvariant();
+            return host.StartsWith("www.", StringComparison.Ordinal) ? host[4..] : host;
+        }
+    }
+
+    /// <summary>The Android package name the entry also fills (ADR 0973), or null.</summary>
+    public string? App => Value(PasswordEntryFieldNames.App);
 
     /// <summary>The first field of that name, compared without case; null when there is none.</summary>
     public string? Value(string fieldName) =>

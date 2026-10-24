@@ -14,6 +14,7 @@ using SimplArchive.Api.Errors.Exceptions.Storage;
 using SimplArchive.Api.Errors.Exceptions.Workflow;
 using SimplArchive.Api.Hypermedia;
 using SimplArchive.Api.Pagination;
+using SimplArchive.Api.PasswordStores;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Masks;
@@ -613,6 +614,11 @@ public class DocumentVersionsController : ControllerBase
         // A password entry's edit that files a NEW password (ADR 0964): the one change that clears "Exposed since". A
         // re-seal keeps the old secret, so it never clears it, whatever this says.
         public bool? PasswordChanged { get; set; }
+
+        // The autofill index the client derived from the content it just sealed (ADR 0973): the entry's site, user name
+        // and an Android package name. Present = these are the values now (an empty string clears one); absent = leave
+        // them as they are, which is what a client that predates the field, or another mask, sends.
+        public PasswordStores.PasswordIndex? Index { get; set; }
     }
 
     [HttpPut("{versionId:guid}")]
@@ -721,6 +727,12 @@ public class DocumentVersionsController : ControllerBase
         // already had content commits under the precondition of what its author saw, so two members re-sealing at
         // once cannot overwrite each other: the second is refused 412 and skips the entry.
         var sealedFinalize = await _sealedVersions.GuardAsync(version, request?.CommentKind, Request, cancellationToken);
+
+        // An index sent for a document that is not a sealed entry would look stored and never be (ADR 0973).
+        if (request?.Index is not null && sealedFinalize is null)
+        {
+            throw new Errors.Exceptions.PasswordStores.NotAPasswordStoreItemException();
+        }
         if (sealedFinalize is { Gated: true })
         {
             await _documents.MutateAsync(Request, sealedFinalize.Document,
@@ -731,12 +743,26 @@ public class DocumentVersionsController : ControllerBase
                         await _sealedVersions.ClearExposureAsync(documentId, cancellationToken);
                     }
 
+                    // The autofill index (ADR 0973), in the SAME transaction as the version it describes. Guarded on a
+                    // Pending version: a re-finalize of a Confirmed one is a no-op and must not rewrite metadata.
+                    if (wasPending)
+                    {
+                        await PasswordIndexWriter.ApplyAsync(_dbContext, documentId, request?.Index, cancellationToken);
+                    }
+
                     await _finalizer.FileAsync(version, cancellationToken);
                 },
                 gateBeforeApply: true, cancellationToken: cancellationToken);
         }
         else
         {
+            // A FIRST version takes this path (Gated is false for it), and an entry's autofill index must be written
+            // with it too — staged before the finalizer's SaveChanges, so both land in the same commit (ADR 0973).
+            if (wasPending)
+            {
+                await PasswordIndexWriter.ApplyAsync(_dbContext, documentId, request?.Index, cancellationToken);
+            }
+
             await _finalizer.FileAsync(version, cancellationToken);
         }
 

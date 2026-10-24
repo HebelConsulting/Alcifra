@@ -78,6 +78,16 @@ public class PasswordItemResource : HypermediaResource
     public bool CanDelete { get; set; }
 
     public bool CanMove { get; set; }
+
+    /// <summary>The entry's site (ADR 0973) for an autofill sheet built from a listing; null for a folder or an entry
+    /// no client has re-filed since the field existed.</summary>
+    public string? Site { get; set; }
+
+    /// <summary>The entry's user name (ADR 0973), or null.</summary>
+    public string? UserName { get; set; }
+
+    /// <summary>The entry's Android package name (ADR 0973), or null.</summary>
+    public string? App { get; set; }
 }
 
 /// <summary>One entry: what opening, editing and re-sealing it needs. Its ETag is the <c>If-Match</c> of a new version.</summary>
@@ -115,9 +125,20 @@ public class PasswordEntryResource : HypermediaResource
     public bool CanDelete { get; set; }
 
     public bool CanMove { get; set; }
-}
 
-/// <summary>Who a store's entries must be sealed to: every certificate the client seals to, and whose it is.</summary>
+    /// <summary>
+    /// The site the entry belongs to (ADR 0973), derived by the client from the URL inside the sealed content: what
+    /// autofill matches a browser's domain against without opening the entry. Null until a client has filed a version
+    /// since the field existed.
+    /// </summary>
+    public string? Site { get; set; }
+
+    /// <summary>The user name the entry fills (ADR 0973), shown in the autofill sheet before the key is used.</summary>
+    public string? UserName { get; set; }
+
+    /// <summary>The Android package name the entry also fills (ADR 0973), where the user set one.</summary>
+    public string? App { get; set; }
+}
 public class PasswordStoreRecipientsResource : HypermediaResource
 {
     public Guid StoreId { get; set; }

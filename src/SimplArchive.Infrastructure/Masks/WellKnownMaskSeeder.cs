@@ -326,14 +326,19 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec(WellKnownMaskIds.ManualFields.ExpectedDurationOfUse, FieldDataType.Number, IsRequired: false),
         ], cancellationToken);
 
-        // The password store (ADR 0964). The folders are fieldless and type the tree; an entry's every field is inside its
-        // sealed content, its name is in the clear, and its one index field is the server's exposure verdict.
+        // The password store (ADR 0964). The folders are fieldless and type the tree; an entry's every secret is inside its
+        // sealed content, its name is in the clear. Its index fields are the server's exposure verdict and — since
+        // autofill (ADR 0973) — the metadata a fill can match WITHOUT opening the entry: derived from the content by the
+        // client that files or re-seals a version, never typed into a form of its own.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.PasswordStore, "Password Store", [], cancellationToken);
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.PasswordFolder, "Password Folder", [], cancellationToken);
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.PasswordEntry, "Password Entry",
         [
             // Set by the server when a certificate the entry was sealed to is revoked (ADR 0964); optional, a date.
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.ExposedSince, FieldDataType.Date, IsRequired: false),
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.Site, FieldDataType.Text, IsRequired: false),
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.UserName, FieldDataType.Text, IsRequired: false),
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.App, FieldDataType.Text, IsRequired: false),
         ], cancellationToken);
 
         // After every mask exists, because containment is a relation BETWEEN masks: a Notebook's allowed parent
