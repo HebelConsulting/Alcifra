@@ -74,11 +74,22 @@ public sealed class TestAttestationHierarchy : IDisposable
     public static TestAttestationHierarchy WithIntermediates(string name = "Test") => new(true, name);
 
     /// <summary>A reader key generated "on the token": its certificate, and the token's attestation of it.</summary>
-    public TestKey NewKey(string subject)
+    /// <param name="subject">The certificate's common name.</param>
+    /// <param name="email">
+    /// The holder's address, as the certificate's e-mail SAN — what enrolment asks for by default since ADR 0971.
+    /// </param>
+    public TestKey NewKey(string subject, string? email = null)
     {
         var key = RSA.Create(2048);
         var request = new CertificateRequest($"CN={subject}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyEncipherment | X509KeyUsageFlags.DigitalSignature, false));
+        if (email is { Length: > 0 })
+        {
+            var san = new SubjectAlternativeNameBuilder();
+            san.AddEmailAddress(email);
+            request.CertificateExtensions.Add(san.Build());
+        }
+
         using var leaf = request.CreateSelfSigned(From, Until);
         return new TestKey(leaf.ExportCertificatePem(), AttestPem(leaf.PublicKey), IntermediatePem, key);
     }

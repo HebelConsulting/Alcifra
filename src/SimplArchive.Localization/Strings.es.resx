@@ -6256,7 +6256,7 @@
     <value>Este certificado no puede registrarse: no cumple las reglas del registro (por ejemplo, ha caducado o su clave no puede recibir documentos sellados).</value>
   </data>
   <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
-    <value>La política de certificados de su organización no acepta este certificado (por ejemplo, por su emisor o su dirección). Un administrador puede indicar qué certificados se aceptan.</value>
+    <value>La política de certificados de su organización no acepta este certificado. Lo más habitual es que la dirección de correo que contiene no sea la de esta cuenta: registre un certificado emitido a su dirección. Si no, la política no acepta su emisor o su clave; un administrador puede indicar qué certificados se aceptan.</value>
   </data>
   <data name="ApiErrCertificateNoHolder" xml:space="preserve">
     <value>Su cuenta no tiene dirección de correo electrónico, así que el certificado no tendría titular. Un administrador puede añadir una.</value>

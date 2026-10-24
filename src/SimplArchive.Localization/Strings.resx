@@ -6256,7 +6256,7 @@
     <value>This certificate cannot be enrolled: it does not meet enrolment's rules (for example, it has expired, or its key cannot receive sealed documents).</value>
   </data>
   <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
-    <value>Your organisation's certificate policy does not accept this certificate (for example, its issuer or its address). An administrator can say which certificates are accepted.</value>
+    <value>Your organisation's certificate policy does not accept this certificate. Most often the e-mail address on it is not this account's own: enrol a certificate issued to your address. Otherwise its issuer or key is not one the policy accepts; an administrator can say which certificates are.</value>
   </data>
   <data name="ApiErrCertificateNoHolder" xml:space="preserve">
     <value>Your account has no e-mail address, so the certificate would have no holder. An administrator can add one.</value>

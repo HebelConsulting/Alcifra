@@ -6256,7 +6256,7 @@
     <value>Questo certificato non può essere registrato: non rispetta le regole della registrazione (ad esempio è scaduto, oppure la sua chiave non può ricevere documenti sigillati).</value>
   </data>
   <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
-    <value>La politica dei certificati della sua organizzazione non accetta questo certificato (ad esempio per l'emittente o l'indirizzo). Un amministratore può dire quali certificati sono accettati.</value>
+    <value>La politica dei certificati della sua organizzazione non accetta questo certificato. Il più delle volte l'indirizzo e-mail che contiene non è quello di questo account: registri un certificato rilasciato al suo indirizzo. Altrimenti la politica non accetta il suo emittente o la sua chiave; un amministratore può dire quali certificati sono accettati.</value>
   </data>
   <data name="ApiErrCertificateNoHolder" xml:space="preserve">
     <value>Il suo account non ha un indirizzo e-mail, quindi il certificato non avrebbe un titolare. Un amministratore può aggiungerne uno.</value>

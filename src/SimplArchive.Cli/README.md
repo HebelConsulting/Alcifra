@@ -37,6 +37,7 @@ configured from a terminal or a script:
 | `module upload` | Upload a file through a module's upload link, such as a package or an app for its feed, found on the installation's root |
 | `repository create` | Create a repository, or find the one of that name; prints its id |
 | `certificates list`, `enrol`, `revoke`, `import` | Manage the reader certificates encrypted content is addressed to, including bulk import from a CA |
+| `certificates policy show`, `set` | What a certificate must meet before it is enrolled; `set --san-must-match-account on\|off` switches the holder's-address rule, on by default (ADR 0971) |
 | `acl set`, `grant`, `revoke`, `break-inheritance` | Decide who may do what to a document; `break-inheritance` makes a document's own grants the ones that apply |
 | `passwords store create`, `show`, `passwords entry create` | Set up a shared password store: create it, then file entries sealed on your machine to every certificate its readers hold. The password is read from stdin only (`printf '%s' "$pw" \| saconsole passwords entry create --store <id> --name … --password-stdin`); a re-run changes nothing |
 | `me certificate`, `intray previous` | A user's own certificate, and recovering intray content |

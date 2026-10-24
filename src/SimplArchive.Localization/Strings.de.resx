@@ -6256,7 +6256,7 @@
     <value>Dieses Zertifikat kann nicht hinterlegt werden: Es erfüllt die Regeln der Hinterlegung nicht (zum Beispiel ist es abgelaufen, oder sein Schlüssel kann keine versiegelten Dokumente empfangen).</value>
   </data>
   <data name="ApiErrCertificatePolicyRefused" xml:space="preserve">
-    <value>Die Zertifikatsrichtlinie Ihrer Organisation nimmt dieses Zertifikat nicht an (zum Beispiel wegen seines Ausstellers oder seiner Adresse). Eine Administratorin kann sagen, welche Zertifikate angenommen werden.</value>
+    <value>Die Zertifikatsrichtlinie Ihrer Organisation nimmt dieses Zertifikat nicht an. Meist ist die E-Mail-Adresse darin nicht die dieses Kontos: Registrieren Sie ein Zertifikat, das auf Ihre Adresse ausgestellt ist. Sonst nimmt die Richtlinie seinen Aussteller oder Schlüssel nicht an; eine Administratorin kann sagen, welche Zertifikate angenommen werden.</value>
   </data>
   <data name="ApiErrCertificateNoHolder" xml:space="preserve">
     <value>Ihr Konto hat keine E-Mail-Adresse, daher hätte das Zertifikat keinen Inhaber. Eine Administratorin kann eine hinzufügen.</value>

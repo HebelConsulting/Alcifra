@@ -25,6 +25,54 @@ public class PolicyEnforcementTests
         Assert.Null(Refusal(CertificatePolicy.Unset, certificate));
     }
 
+    // ADR 0971: the holder's address is the product's DEFAULT, so a tenant that never saved a policy binds a
+    // certificate to its holder. Found live: a certificate saying florian@… could be enrolled for crypt@…, and
+    // crypt's documents were then sealed to a key somebody else holds.
+
+    [Fact]
+    public void An_unset_policy_refuses_a_certificate_carrying_ANOTHER_address()
+    {
+        using var certificate = Certificate(email: "florian@acme.test");
+
+        var refusal = Refusal(CertificatePolicy.Unset, certificate);
+
+        Assert.Contains("florian@acme.test", refusal, StringComparison.Ordinal);
+        Assert.Contains(Holder, refusal, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_unset_policy_refuses_a_certificate_carrying_NO_address()
+    {
+        using var certificate = Certificate(email: string.Empty);
+
+        Assert.Contains("(no address)", Refusal(CertificatePolicy.Unset, certificate), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_tenant_that_OPTED_OUT_admits_a_certificate_carrying_another_address()
+    {
+        using var certificate = Certificate(email: "florian@acme.test");
+
+        Assert.Null(Refusal(new CertificatePolicy { SanMustMatchAccount = false }, certificate));
+    }
+
+    [Fact]
+    public void The_address_comparison_ignores_case()
+    {
+        using var certificate = Certificate(email: "Anna@ACME.test");
+
+        Assert.Null(Refusal(CertificatePolicy.Unset, certificate));
+    }
+
+    [Fact]
+    public void An_unset_policy_does_not_flag_an_ENROLLED_certificate_carrying_another_address()
+    {
+        // Existing enrolments are untouched (ADR 0971): the rule is applied at the door only.
+        using var certificate = Certificate(email: "florian@acme.test");
+
+        Assert.Null(PolicyEnforcement.RefusalForEnrolled(CertificatePolicy.Unset, certificate.ExportCertificatePem()));
+    }
+
     [Fact]
     public void An_issuer_rule_names_the_issuer_it_got()
     {
@@ -156,7 +204,8 @@ public class PolicyEnforcementTests
         // certificates is not a usable anchor on the platform this product actually runs on. Measured on
         // both, 2026-09-30.
         using var certificate = CaCertificate("CN=Acme Corporate CA");
-        var policy = new CertificatePolicy { TrustAnchorPem = certificate.ExportCertificatePem() };
+        // The holder's address is switched off: an authority's own certificate carries none, and this is the anchor's test.
+        var policy = new CertificatePolicy { TrustAnchorPem = certificate.ExportCertificatePem(), SanMustMatchAccount = false };
 
         Assert.Null(PolicyEnforcement.Refusal(
             policy, certificate, "CN=Acme Corporate CA", certificate.ExportCertificatePem()));
@@ -259,9 +308,13 @@ public class PolicyEnforcementTests
         PolicyEnforcement.Refusal(policy, certificate, Holder, certificate.ExportCertificatePem());
 
     /// <summary>An ordinary reader certificate: it can receive an envelope and nothing else.</summary>
+    /// <remarks>
+    /// It carries the holder's address unless told otherwise (an empty <paramref name="email"/> means none), because an
+    /// unset policy asks for it since ADR 0971 and the other rules are tested in isolation.
+    /// </remarks>
     private static X509Certificate2 Certificate(
-        string subject = "CN=anna@acme.test", string? email = null, int keyBits = 2048) =>
-        Build(subject, email, keyBits, certificateAuthority: false);
+        string subject = "CN=anna@acme.test", string? email = Holder, int keyBits = 2048) =>
+        Build(subject, email is { Length: > 0 } ? email : null, keyBits, certificateAuthority: false);
 
     /// <summary>
     /// A certificate that can stand in as a trust ANCHOR — CA basic constraints AND keyCertSign.

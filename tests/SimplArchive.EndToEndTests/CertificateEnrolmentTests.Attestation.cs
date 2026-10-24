@@ -110,7 +110,7 @@ public partial class CertificateEnrolmentTests
             using var stranger = TestAttestationHierarchy.Direct($"Stranger {Guid.NewGuid():N}");
             var platform = await PlatformAsync();
             var root = await AttestationRootSurface.AddAsync(platform, hierarchy.RootPem, null, enabled: true, CancellationToken.None);
-            var key = hierarchy.NewKey("member");
+            var key = hierarchy.NewKey("member", rig.MemberEmail);
 
             using (var none = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = key.CertificatePem, label = "Card" }))
             {
@@ -123,7 +123,7 @@ public partial class CertificateEnrolmentTests
                 Assert.Equal("CERTIFICATE_ATTESTATION_KEY_MISMATCH", await RefusalAsync(other));
             }
 
-            var strangerKey = stranger.NewKey("member");
+            var strangerKey = stranger.NewKey("member", rig.MemberEmail);
             using (var unknown = await rig.Member.PostAsJsonAsync("/api/certificates",
                        new { certificatePem = strangerKey.CertificatePem, label = "Card", attestation = Evidence(strangerKey) }))
             {
@@ -229,7 +229,7 @@ public partial class CertificateEnrolmentTests
             var rig = await RigAsync(vendorKey);
             using var hierarchy = TestAttestationHierarchy.Direct($"Back {Guid.NewGuid():N}");
             await AttestationRootSurface.AddAsync(await PlatformAsync(), hierarchy.RootPem, null, enabled: true, CancellationToken.None);
-            var key = hierarchy.NewKey("member");
+            var key = hierarchy.NewKey("member", rig.MemberEmail);
 
             await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId, unattested: true);
             var plain = await TestJson.Post(rig.Member, "/api/certificates", new { certificatePem = key.CertificatePem, label = "Card" });

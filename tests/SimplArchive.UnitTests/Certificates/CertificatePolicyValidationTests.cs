@@ -128,6 +128,26 @@ public class CertificatePolicyValidationTests
         Assert.Equal(new CertificateRule("subject:2.5.4.10", "^Acme$"), Assert.Single(parsed.Rules));
     }
 
+    [Fact]
+    public void The_holders_address_is_required_unless_the_tenant_says_otherwise()
+    {
+        // ADR 0971: on by default — for a tenant that never saved a policy, and for a stored policy that lacks the
+        // field — and off only where it was stated.
+        Assert.True(CertificatePolicy.Unset.SanMustMatchAccount);
+        Assert.True(new CertificatePolicy().SanMustMatchAccount);
+        Assert.True(CertificatePolicy.FromJson("{\"minimumKeySizeBits\": 3072}").SanMustMatchAccount);
+        Assert.False(CertificatePolicy.FromJson("{\"sanMustMatchAccount\": false}").SanMustMatchAccount);
+    }
+
+    [Fact]
+    public void An_opt_out_is_kept_in_the_stored_form()
+    {
+        var parsed = CertificatePolicy.FromJson(new CertificatePolicy { SanMustMatchAccount = false }.ToJson());
+
+        Assert.False(parsed.SanMustMatchAccount);
+        Assert.False(parsed.IsUnset);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

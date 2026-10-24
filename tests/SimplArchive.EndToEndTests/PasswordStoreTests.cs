@@ -38,6 +38,8 @@ public sealed class PasswordStoreTests
     private sealed record Rig(Guid TenantId, Guid RepoId, HttpClient Owner, HttpClient Admin, Member Anna, Member Bob)
     {
         public Guid AdminId { get; init; }
+
+        public string AdminEmail { get; init; } = string.Empty;
     }
 
     // Opens an envelope the way a host's opener does: the S/MIME step, the reader's key, the shared payload step.
@@ -68,10 +70,14 @@ public sealed class PasswordStoreTests
         }
     }
 
-    private static X509Certificate2 NewKey(string subject)
+    // The holder's address rides as the e-mail SAN: enrolment asks for it by default since ADR 0971.
+    private static X509Certificate2 NewKey(string subject, string email)
     {
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest($"CN={subject}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());
         using var created = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return X509CertificateLoader.LoadPkcs12(created.Export(X509ContentType.Pfx), null);
     }
@@ -139,7 +145,7 @@ public sealed class PasswordStoreTests
             var email = $"pw-{name}-{Guid.NewGuid():N}@e2e.local";
             var id = await _factory.SeedUserAsync(tenantId, email, password, name);
             var http = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
-            var key = NewKey(name);
+            var key = NewKey(name, email);
             await TestJson.Post(http, "/api/certificates", new { certificatePem = key.ExportCertificatePem(), label = $"{name}'s key" });
             return new Member(id, http, key, new PasswordStoreClient(ApiCore.Over(http), new KeyOpener(key)));
         }
@@ -156,7 +162,7 @@ public sealed class PasswordStoreTests
             canDelete = true,
             canMove = true,
         });
-        return new Rig(tenantId, repoId, owner, admin, anna, bob) { AdminId = adminId };
+        return new Rig(tenantId, repoId, owner, admin, anna, bob) { AdminId = adminId, AdminEmail = adminEmail };
     }
 
     private static async Task<PasswordFolderInfo> SharedStoreAsync(Rig rig)
@@ -371,7 +377,7 @@ public sealed class PasswordStoreTests
     public Task A_tenant_administrator_is_sealed_to_only_after_granting_themselves_read() => WithEnrolmentAsync(async rig =>
     {
         // The administrator enrols a key too, and reads the shared store through the bypass.
-        var adminKey = NewKey("Admin");
+        var adminKey = NewKey("Admin", rig.AdminEmail);
         await TestJson.Post(rig.Admin, "/api/certificates", new { certificatePem = adminKey.ExportCertificatePem(), label = "Admin's key" });
         var adminClient = new PasswordStoreClient(ApiCore.Over(rig.Admin), new KeyOpener(adminKey));
         var store = await SharedStoreAsync(rig);

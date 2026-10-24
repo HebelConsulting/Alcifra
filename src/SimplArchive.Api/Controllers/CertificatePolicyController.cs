@@ -80,7 +80,9 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
     {
         public string? IssuerDnPattern { get; set; }
         public string? SubjectCnPattern { get; set; }
-        public bool SanMustMatchAccount { get; set; }
+        // On unless the request says otherwise (ADR 0971): a replacement that leaves the field out keeps the product's
+        // default instead of silently opting the tenant out of it.
+        public bool SanMustMatchAccount { get; set; } = true;
         public int? MinimumKeySizeBits { get; set; }
         public List<string>? PermittedCurves { get; set; }
         public int DefaultMinimumRsaKeySizeBits { get; set; }

@@ -126,6 +126,7 @@ public class KeyStrengthPolicyTests
             "CN=anna@acme.test", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(
             new X509KeyUsageExtension(X509KeyUsageFlags.KeyEncipherment, critical: false));
+        request.CertificateExtensions.Add(HoldersAddress());
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
     }
 
@@ -140,6 +141,15 @@ public class KeyStrengthPolicyTests
     {
         using var key = ECDsa.Create(curve);
         var request = new CertificateRequest("CN=anna@acme.test", key, HashAlgorithmName.SHA256);
+        request.CertificateExtensions.Add(HoldersAddress());
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+    }
+
+    // The holder's own address, which an unset policy asks for since ADR 0971 — so these isolate the strength rule.
+    private static X509Extension HoldersAddress()
+    {
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress("anna@acme.test");
+        return san.Build();
     }
 }

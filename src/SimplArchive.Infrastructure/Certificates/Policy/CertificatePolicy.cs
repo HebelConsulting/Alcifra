@@ -23,9 +23,9 @@ public sealed record CertificateRule(string Element, string Pattern);
 /// rule whose failure message is vaguer.
 /// </para>
 /// <para>
-/// <b>An EMPTY policy admits everything</b>, and that is the shape an unconfigured tenant has. It must be,
-/// because this type is read on a path that already worked before policies existed: a tenant that never
-/// opens the policy surface keeps exactly Encryption Module ADR 0004's cryptographic checks and nothing more.
+/// <b>An unconfigured tenant gets the product's defaults, not nothing</b>: Encryption Module ADR 0004's cryptographic
+/// checks, the key-strength floor (owner-decided 2026-09-30) and the holder's own address on the certificate
+/// (<see cref="SanMustMatchAccount"/>, ADR 0971). What a tenant adds on top is its own.
 /// </para>
 /// </remarks>
 public sealed record CertificatePolicy
@@ -35,7 +35,7 @@ public sealed record CertificatePolicy
     // a policy parsed back from its own stored form never equals the one it came from. Compare ToJson() when
     // identity matters, which is also what a change-detection check would want.
 
-    /// <summary>The policy of a tenant that has not set one — Encryption Module ADR 0004's checks plus the product floor.</summary>
+    /// <summary>The policy of a tenant that has not set one — Encryption Module ADR 0004's checks plus the product's defaults.</summary>
     /// <remarks>
     /// <b>"Unset" no longer means unconstrained</b>, and the distinction is the point: a tenant that has
     /// stated nothing still gets <see cref="DefaultMinimumRsaKeySizeBits"/> and
@@ -50,8 +50,29 @@ public sealed record CertificatePolicy
     /// <summary>A pattern the subject's common name must match.</summary>
     public string? SubjectCnPattern { get; init; }
 
-    /// <summary>Whether an e-mail on the certificate must match the enrolling account's.</summary>
-    public bool SanMustMatchAccount { get; init; }
+    /// <summary>
+    /// Whether the certificate's e-mail address must be the holder's — <b>on unless the tenant says otherwise</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The product's default since ADR 0971</b> (owner-decided 2026-10-24). It used to be off, so a certificate whose
+    /// address was florian@… could be enrolled for crypt@… — by its holder or by an administrator naming a holder —
+    /// and every document addressed to crypt@ was then sealed to a key somebody else holds. Binding a certificate to
+    /// its holder by address is what makes "the reader's certificates" mean the reader's.
+    /// </para>
+    /// <para>
+    /// <b>Switching it off is a deliberate opt-out</b>, for an authority whose certificates carry no e-mail address at
+    /// all. A tenant that never saved a policy has none stored, so it gets the default; a stored policy that lacks the
+    /// field reads as on too (the initialiser runs before the JSON is applied). A policy saved BEFORE the default
+    /// changed carries an explicit <c>false</c> — the field was always serialised — and keeps it: changing what a
+    /// tenant stored is not this default's business.
+    /// </para>
+    /// <para>
+    /// Applied at enrolment only, never to what is already enrolled (see
+    /// <see cref="PolicyEnforcement.RefusalForEnrolled"/>).
+    /// </para>
+    /// </remarks>
+    public bool SanMustMatchAccount { get; init; } = true;
 
     /// <summary>
     /// The smallest acceptable RSA key, in bits — <b>RSA only</b>. Null means the product default.
@@ -121,10 +142,14 @@ public sealed record CertificatePolicy
     /// <summary>Everything the typed constraints do not cover.</summary>
     public IReadOnlyList<CertificateRule> Rules { get; init; } = [];
 
-    /// <summary>True when this policy asks for nothing beyond Encryption Module ADR 0004's own checks.</summary>
+    /// <summary>True when this policy states nothing beyond the product's defaults — what a tenant that never saved one has.</summary>
+    /// <remarks>
+    /// <b>Not "asks for nothing" any more</b>: the defaults include the key-strength floor and, since ADR 0971, the
+    /// holder's address. So an unset policy is no reason to skip enforcement, and nothing uses it as one.
+    /// </remarks>
     [JsonIgnore]
     public bool IsUnset =>
-        IssuerDnPattern is null && SubjectCnPattern is null && !SanMustMatchAccount
+        IssuerDnPattern is null && SubjectCnPattern is null && SanMustMatchAccount
         && MinimumKeySizeBits is null && PermittedCurves.Count == 0 && RequiredExtendedKeyUsages.Count == 0
         && TrustAnchorPem is null && Rules.Count == 0;
 

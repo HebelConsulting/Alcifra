@@ -135,6 +135,14 @@ public static class SaConsoleApp
                     certificateSettings.AddCommand<CertificateSettingsSetCommand>("set")
                         .WithDescription("Change them; what is not named keeps its value.");
                 });
+                certificates.AddBranch("policy", policy =>
+                {
+                    policy.SetDescription("What a certificate must meet before it is enrolled; the holder's e-mail address by default (ADR 0971).");
+                    policy.AddCommand<CertificatePolicyShowCommand>("show")
+                        .WithDescription("Show the policy, defaults included.");
+                    policy.AddCommand<CertificatePolicySetCommand>("set")
+                        .WithDescription("Change it; what is not named keeps its value. Applies to the next enrolment, never to what is enrolled.");
+                });
                 certificates.AddCommand<CertificateImportCommand>("import")
                     .WithDescription("Enrol and revoke in bulk from a CA manifest. Safe to re-run.");
                 certificates.AddBranch("attestation-roots", roots =>

@@ -45,7 +45,7 @@ public partial class CertificateEnrolmentTests
             Assert.Equal("/api/certificates", root["encryption:certificates"]);   // the alias, for one release
 
             // Self-service is off until the tenant switches it on, and the self-enrolment list says so.
-            var pem = SelfSigned("member");
+            var pem = SelfSigned("member", rig.MemberEmail);
             using (var refused = await rig.Member.PostAsJsonAsync(root["certificates"], new { certificatePem = pem, label = "Card" }))
             {
                 Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
@@ -177,13 +177,132 @@ public partial class CertificateEnrolmentTests
             using var setup = _factory.CreateAuthedClient(await _factory.GetTokenAsync(
                 created.GetProperty("clientId").GetString()!, created.GetProperty("clientSecret").GetString()!));
             await SetCertificateSettingsAsync(setup, selfService: false, parent: rig.RepoId);
+            await SetSanMustMatchAccountAsync(setup, true);   // what the Crypto seed states explicitly (ADR 0971)
 
-            var enrolled = await TestJson.Post(setup, "/api/certificates", new { certificatePem = SelfSigned("member"), label = "Card", holder = rig.MemberEmail });
+            var enrolled = await TestJson.Post(setup, "/api/certificates", new { certificatePem = SelfSigned("member", rig.MemberEmail), label = "Card", holder = rig.MemberEmail });
             Assert.Equal("Card", enrolled.GetProperty("label").GetString());
 
             // The member is addressed by it, and the listing for the holder shows it.
             Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
             Assert.Single((await TestJson.Get(setup, $"/api/certificates?holder={Uri.EscapeDataString(rig.MemberEmail)}")).EnumerateArray().ToList());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    // ADR 0971: a certificate is bound to its holder by e-mail unless the tenant opted out. Found live: a certificate
+    // saying florian@… was enrolled for crypt@…, and crypt's documents were sealed to florian's key.
+    [Fact]
+    public async Task A_certificate_carrying_ANOTHER_address_is_refused_by_default_for_its_holder_and_for_a_named_holder()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            var someoneElse = $"someone-else-{Guid.NewGuid():N}@e2e.local";
+            var policy = await TestJson.Get(rig.Member, "/api/certificate-policy");
+            Assert.True(policy.GetProperty("sanMustMatchAccount").GetBoolean());   // what a tenant that never set one is told
+
+            using (var own = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = SelfSigned("member", someoneElse), label = "Card" }))
+            {
+                Assert.Equal(HttpStatusCode.BadRequest, own.StatusCode);
+                var problem = await own.Content.ReadAsStringAsync();
+                Assert.Contains("CERTIFICATE_POLICY_REFUSED", problem, StringComparison.Ordinal);
+                Assert.Contains(someoneElse, problem, StringComparison.Ordinal);       // what it says
+                Assert.Contains(rig.MemberEmail, problem, StringComparison.Ordinal);   // what it wanted
+            }
+
+            // saconsole certificates enrol --holder: the same refusal, as the line the administrator reads.
+            var cli = await Assert.ThrowsAsync<SimplArchive.Cli.Infrastructure.CliException>(() =>
+                new SimplArchive.Cli.Infrastructure.SimplArchiveApi(rig.Admin).PostAsync("/api/certificates",
+                    new { certificatePem = SelfSigned("member", someoneElse), label = "Card", holder = rig.MemberEmail }, CancellationToken.None));
+            Assert.Contains("[CERTIFICATE_POLICY_REFUSED]", cli.Message, StringComparison.Ordinal);
+            Assert.Contains(someoneElse, cli.Message, StringComparison.Ordinal);
+            Assert.Contains(rig.MemberEmail, cli.Message, StringComparison.Ordinal);
+
+            Assert.Empty((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    [Fact]
+    public async Task A_tenant_that_OPTED_OUT_enrols_it_and_switching_back_on_leaves_that_enrolment_alone()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            await SetSanMustMatchAccountAsync(rig.Admin, false);
+
+            var pem = SelfSigned("member", $"pki-without-mail-{Guid.NewGuid():N}@e2e.local");
+            await TestJson.Post(rig.Admin, "/api/certificates", new { certificatePem = pem, label = "Card", holder = rig.MemberEmail });
+
+            // Back on: the rule is applied at the door, never backwards — the enrolment is neither refused nor flagged,
+            // and it still addresses its holder.
+            await SetSanMustMatchAccountAsync(rig.Admin, true);
+            var listed = Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
+            Assert.True(listed.GetProperty("usable").GetBoolean());
+            Assert.True(!listed.TryGetProperty("failsPolicy", out var fails) || fails.ValueKind == JsonValueKind.Null, $"flagged: {fails}");
+            var me = Links(await TestJson.Get(rig.Member, "/api/me"));
+            Assert.Single((await TestJson.Get(rig.Member, me["readerCertificates"])).GetProperty("certificates").EnumerateArray().ToList());
+
+            // And the next one with a foreign address is refused again.
+            using var refused = await rig.Admin.PostAsJsonAsync("/api/certificates",
+                new { certificatePem = SelfSigned("member", $"other-{Guid.NewGuid():N}@e2e.local"), label = "Second", holder = rig.MemberEmail });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    // As `saconsole certificates policy set --san-must-match-account on|off` does it.
+    private static async Task SetSanMustMatchAccountAsync(HttpClient admin, bool on)
+    {
+        var written = await SimplArchive.Cli.Commands.CertificatePolicySurface.SetSanMustMatchAccountAsync(
+            new SimplArchive.Cli.Infrastructure.SimplArchiveApi(admin), on, CancellationToken.None);
+        Assert.Equal(on, written.GetProperty("sanMustMatchAccount").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Saconsole_switches_the_holders_address_rule_and_keeps_every_other_rule()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: false, parent: rig.RepoId);   // the policy is filed beneath it
+            var href = Links(await TestJson.Get(rig.Admin, "/api"))["certificatePolicy"];
+            using (var read = await rig.Admin.GetAsync(href))
+            using (var write = await PutWithTagAsync(rig.Admin, href,
+                       new { minimumKeySizeBits = 3072, issuerDnPattern = "^CN=Acme" }, read.Headers.ETag!.Tag))
+            {
+                Assert.True((await TestJson.Read(write)).GetProperty("sanMustMatchAccount").GetBoolean());   // left out: stays on
+            }
+
+            await SetSanMustMatchAccountAsync(rig.Admin, false);
+
+            var policy = await TestJson.Get(rig.Member, href);
+            Assert.False(policy.GetProperty("sanMustMatchAccount").GetBoolean());
+            Assert.Equal(3072, policy.GetProperty("minimumKeySizeBits").GetInt32());
+            Assert.Equal("^CN=Acme", policy.GetProperty("issuerDnPattern").GetString());
         }
         finally
         {
@@ -240,7 +359,7 @@ public partial class CertificateEnrolmentTests
         {
             var rig = await RigAsync(vendorKey);
             await SetCertificateSettingsAsync(rig, selfService: false, parent: rig.RepoId);
-            var own = SelfSigned("member's own");
+            var own = SelfSigned("member's own", rig.MemberEmail);
             var signerEmail = $"signer-{Guid.NewGuid():N}@e2e.local";
             await _factory.SeedUserAsync(rig.TenantId, signerEmail, "Passw0rd!Passw0rd!", "Signer");
             await SetOwnCertificateAsync(rig.TenantId, rig.MemberEmail, own);
@@ -305,10 +424,14 @@ public partial class CertificateEnrolmentTests
         return certificate.ExportCertificatePem();
     }
 
-    private static string SelfSigned(string subject)
+    // The holder's address rides as the e-mail SAN: enrolment asks for it by default since ADR 0971.
+    private static string SelfSigned(string subject, string email)
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest($"CN={subject}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());
         using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return certificate.ExportCertificatePem();
     }

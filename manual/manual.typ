@@ -1271,7 +1271,8 @@ hardware the operating organisation controls.
 *The Encryption Module*#idx("Encryption Module") manages *certificates at the scale of an organisation*:
 several per person — one per device, so a smartcard in a computer and an identity on a phone can both be
 addressed at once — enrolment *on somebody else's behalf* and in bulk, *revocation*, and a *tenant policy*
-stating what makes a certificate acceptable at all (minimum key sizes, permitted curves). It is also *where a
+stating what makes a certificate acceptable at all (minimum key sizes, permitted curves, the holder's own e-mail
+address on it). It is also *where a
 reader's certificates come from* wherever content is delivered as an envelope.
 
 What may surprise you is what is *not* in either list. *Addressing a document to your own certificate needs
@@ -1670,8 +1671,8 @@ with nothing having to guess which one you are at.
 *A refusal names which of four things happened*, because the remedy differs every time and only one of them
 is yours to act on: enrolment is not open to you here (an administrator's), the certificate is not one the
 product can use at all (a re-issue), your organisation's policy does not accept this one because its key is
-too short or its curve is not on the permitted list (ask for one that is), or it is enrolled already (nothing
-to do). The sentence comes from the certificate management itself, in your own language, rather than a single
+too short, its curve is not on the permitted list or the e-mail address on it is not yours (ask for one that
+is — @holderaddress), or it is enrolled already (nothing to do). The sentence comes from the certificate management itself, in your own language, rather than a single
 "could not enrol" that would send all four to the same place.
 
 #note[
@@ -1718,6 +1719,36 @@ saconsole certificates enrol holder.crt --holder anna@example.test \
 
 A manifest for `saconsole certificates import` carries the same two certificates per row, as an `attestation`
 object.
+
+== A certificate carries its holder's address <holderaddress>
+
+*A reader certificate is enrolled only for the person whose e-mail address it carries*#idx("Certificate policy").
+Documents addressed to you are sealed to the certificates enrolled *for you*, so a certificate issued to a
+colleague's address, enrolled under your name, would make your documents readable with your colleague's key —
+whether you enrolled it yourself or an administrator named you as its holder (`saconsole certificates enrol …
+--holder`). So the address on the certificate (its subject-alternative e-mail, compared without regard to case)
+must be the account's own, and a mismatch is refused with both addresses named:
+
+```text
+This tenant requires a certificate to carry the e-mail address of the account it is enrolled for.
+This one says 'florian@example.test' and the account is 'crypt@example.test'. [CERTIFICATE_POLICY_REFUSED]
+```
+
+The remedy is a certificate issued to the right address. *This is the default for every organisation that has not
+said otherwise.* An authority whose certificates carry no e-mail address at all cannot meet it, and for that case
+— only that case — an administrator can switch the rule off for the tenant:
+
+```sh
+saconsole certificates policy show
+saconsole certificates policy set --san-must-match-account off   # an authority without e-mail addresses
+saconsole certificates policy set --san-must-match-account on    # back to the default
+```
+
+*The rule is applied when a certificate is enrolled, never backwards.* Switching it on does not refuse, flag or
+re-check anything already enrolled; a certificate enrolled while it was off goes on addressing its holder until it
+is revoked. An organisation that saved its own certificate policy before this became the default keeps what it
+saved, which said *off*: `saconsole certificates policy show` says which applies, and `set … on` adopts the
+default.
 
 == Your key stopped opening new documents: enrol it again <reenrol>
 

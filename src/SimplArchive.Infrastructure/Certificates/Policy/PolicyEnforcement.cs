@@ -49,12 +49,11 @@ public static class PolicyEnforcement
             return weak;
         }
 
-        if (policy.IsUnset)
-        {
-            // The rest is the TENANT's additions, and a tenant that never opened the policy surface pays
-            // nothing for the feature existing.
-            return null;
-        }
+        // NO IsUnset SHORT-CIRCUIT. It skipped everything below for a tenant that never saved a policy, which was
+        // right while the rest was only the tenant's additions; since ADR 0971 an unset policy also asks for the
+        // holder's address (SanMustMatchAccount defaults to on), so the short-circuit would have kept the default
+        // from applying to exactly the tenants that rely on it. Every constraint below is guarded by its own field,
+        // so an unset policy still pays nothing for the ones it does not state.
 
         if (policy.IssuerDnPattern is { Length: > 0 } issuer && !Matches(issuer, certificate.Issuer))
         {
@@ -80,8 +79,9 @@ public static class PolicyEnforcement
             if (!string.Equals(onCertificate, accountEmail, StringComparison.OrdinalIgnoreCase))
             {
                 return "This tenant requires a certificate to carry the e-mail address of the account it is "
-                    + $"enrolled for. This one says '{onCertificate ?? "(no address)"}' and the account is "
-                    + $"'{accountEmail}'.";
+                    + $"enrolled for. This one says '{(onCertificate is { Length: > 0 } ? onCertificate : "(no address)")}' and the account is "
+                    + $"'{accountEmail}'. Enrol a certificate issued to that address; a tenant whose certification "
+                    + "authority issues no e-mail addresses can switch this rule off in its certificate policy.";
             }
         }
 
