@@ -46,7 +46,7 @@ public class WebExternalLinkRevokeTests
         await doc.First.WaitForAsync(new() { Timeout = 15000 });
         await doc.First.ClickAsync();
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "External links…" }).First.ClickAsync();
+        await DocumentActionsUi.Ribbon(page, "share").ClickAsync(); // the ribbon's Share by link (ADR 0970)
         var dialog = page.Locator(".mud-dialog").First;
         await dialog.WaitForAsync(new() { Timeout = 10000 });
 

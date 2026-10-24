@@ -1,0 +1,24 @@
+@* The workflow steps the subject's current version advertises (#691), in the fixed draw order (DetailState) —
+   shared by the ⋮ menu's submenu and the ribbon's menu so the two can never list different things (ADR 0970).
+   Labels are the workflow dialog's own. Reject keeps its error colour: it is the destructive one. *@
+@foreach (var rel in Offer.WorkflowSteps)
+{
+    <MudMenuItem Icon="@StepIcon(rel)" IconColor="@(rel == "reject" ? Color.Error : Color.Default)" Disabled="@Offer.Busy"
+                 data-workflow-step="@rel" OnClick="@(() => Host.RunWorkflowStepAsync(rel))">@Strings.Get(DocumentActionOffer.WorkflowStepLabelKey(rel))</MudMenuItem>
+}
+
+@code {
+    [Parameter, EditorRequired] public DocumentActionOffer Offer { get; set; } = DocumentActionOffer.None;
+
+    [Parameter, EditorRequired] public IDocumentActionHost Host { get; set; } = null!;
+
+    private static string StepIcon(string rel) => rel switch
+    {
+        "submit" => Icons.Material.Filled.Send,
+        "approve" => Icons.Material.Filled.Check,
+        "reject" => Icons.Material.Filled.Close,
+        "reassign" => Icons.Material.Filled.SwitchAccount,
+        "release" => Icons.Material.Filled.DoneAll,
+        _ => Icons.Material.Filled.AccountTree,
+    };
+}

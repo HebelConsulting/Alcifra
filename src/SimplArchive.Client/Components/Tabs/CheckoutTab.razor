@@ -81,6 +81,13 @@
                    title="@Strings.Get("IntraySortTitle")" aria-label="@Strings.Get("IntraySortTitle")">
             <MudIcon Icon="@Icons.Material.Filled.Sort" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("IntraySortTitle")</span>
         </MudButton>
+        @* Make searchable (#999) left the details pane for the document actions (ADR 0970): the ARCHIVED version's
+           override, following the make-searchable rel it advertised for the selected row — greyed without it. *@
+        <MudButton Class="wb-rib-btn ml-1" Size="Size.Small" Disabled="@(_ocr?.MakeSearchableHref is null || _ocrBusy || _selectedIds.Count > 1)"
+                   OnClick="MakeSearchableAsync" data-doc-action="make-searchable"
+                   title="@Strings.Get("MakeSearchable")" aria-label="@Strings.Get("MakeSearchable")">
+            <MudIcon Icon="@Icons.Material.Filled.DocumentScanner" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("MakeSearchable")</span>
+        </MudButton>
         <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" Disabled="@(!SelectedRows.Any(r => r.IsModified))"
                    OnClick="CheckInSelectionAsync"
                    title="@Strings.Get("CoCheckIn")" aria-label="@Strings.Get("CoCheckIn")">
@@ -213,20 +220,13 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr>
-                                <td>@Strings.Get("SysOcrStatus")</td>
-                                <td>
-                                    @if (_ocr.Verdict is { } verdict)
-                                    {
-                                        <span class="mud-text-secondary">@OcrVerdictText(verdict)</span>
-                                    }
-                                    @if (_ocr.MakeSearchableHref is not null)
-                                    {
-                                        <MudButton Size="Size.Small" Variant="Variant.Text" Class="ml-1" Disabled="@_ocrBusy"
-                                                   OnClick="MakeSearchableAsync">@Strings.Get("MakeSearchable")</MudButton>
-                                    }
-                                </td>
-                            </tr>
+                            @if (_ocr.Verdict is { } verdict)
+                            {
+                                <tr>
+                                    <td>@Strings.Get("SysOcrStatus")</td>
+                                    <td><span class="mud-text-secondary">@OcrVerdictText(verdict)</span></td>
+                                </tr>
+                            }
                         }
                     </table>
                 </div>
@@ -386,7 +386,7 @@
         _ocrBusy = true;
         try
         {
-            var response = await Http.PostAsync(href.TrimStart('/'), null);
+            var response = await Http.PutAsync(href.TrimStart('/'), null); // PUT, as the rel advertises it
             if (response.IsSuccessStatusCode)
             {
                 Snackbar.Add(Strings.Get("MakeSearchableQueued"), Severity.Success);
@@ -430,7 +430,10 @@
         // — never a composed sub-resource path (ADRs 0543/0557).
         try
         {
-            var document = await Http.GetFromJsonAsync<DocumentSummary>(Href(c, "self"));
+            // The DOCUMENT resource's shape, not a listing row's: on a checked-out document `checkedOut` is an
+            // object where a row has a bool, so reading it as DocumentSummary threw and this pane silently lost
+            // its index data and OCR line for every held document.
+            var document = await Http.GetFromJsonAsync<DocumentLinksResponse>(Href(c, "self"));
             if (Links.Href(document?.Links, "index-data") is { } indexHref)
             {
                 var data = await Http.GetFromJsonAsync<IndexDataResponse>(indexHref);

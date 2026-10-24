@@ -7,7 +7,7 @@ using static Microsoft.Playwright.Assertions;
 
 namespace SimplArchive.UiEndToEndTests;
 
-// The web half of document reminders (ADR "Document reminders"): the detail-pane Remind button opens the
+// The web half of document reminders (ADR "Document reminders"): the row menu's Remind… entry opens the
 // dialog; setting a reminder (the date defaults to tomorrow) persists it, cross-checked against the backend.
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-2")]
@@ -51,7 +51,10 @@ public class WebReminderTests
         await page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = name }).ClickAsync();
 
         // Open the Remind dialog (the date defaults to tomorrow) and set the reminder.
-        await page.Locator("[data-pane='index']").GetByRole(AriaRole.Button, new() { Name = "Remind" }).ClickAsync();
+        // From the row's ⋮ menu, as on the desktop (ADR 0970) — the details pane no longer carries it.
+        await Expect(DocumentActionsUi.DetailPane(page).GetByRole(AriaRole.Button, new() { Name = "Remind" })).ToHaveCountAsync(0);
+        var items = await DocumentActionsUi.OpenRowMenuAsync(page, name);
+        await items.Filter(new() { HasText = "Remind" }).First.ClickAsync();
         var dialog = page.Locator(".mud-dialog");
         await Expect(dialog).ToBeVisibleAsync();
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Set reminder" }).ClickAsync();

@@ -709,7 +709,6 @@ public partial class Home
         // desktop client, and a stale false would report "no preview available" about an enveloped one.
         Detail.SysContentIsEnveloped = false;
         Detail.SysOcrVerdict = null;
-        Detail.MakeSearchableHref = null; // an address must not outlive its subject (ADR 0559)
         Detail.SysOcrCodes = [];
         Detail.Retention = null;
         Detail.Subscribed = false;
@@ -739,33 +738,6 @@ public partial class Home
 
     // #999's Make searchable: post the version's advertised rel; the successor arrives via the worker, so
     // the feedback is "queued" — the versions list the pane already shows is where it lands.
-    private async Task MakeSearchableAsync()
-    {
-        if (Detail.MakeSearchableHref is not { } href)
-        {
-            return;
-        }
-
-        var response = await Http.PostAsync(href.TrimStart('/'), null);
-        if (response.IsSuccessStatusCode)
-        {
-            Snackbar.Add(Strings.Get("MakeSearchableQueued"), Severity.Success);
-        }
-        else
-        {
-            string? code = null; string? module = null; string? moduleDetail = null;
-            try
-            {
-                var problem = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-                code = problem.TryGetProperty("errorCode", out var c) ? c.GetString() : null;
-                module = problem.TryGetProperty("module", out var m) ? m.GetString() : null;
-                moduleDetail = problem.TryGetProperty("detail", out var d) ? d.GetString() : null;
-            }
-            catch (System.Text.Json.JsonException) { }
-            Snackbar.Add(SimplArchive.Localization.ApiErrorText.For(code, module, moduleDetail), Severity.Error);
-        }
-    }
-
     private Task OpenBookingsDialogAsync() =>
         Detail.Links is { } links && links.TryGetValue("bookings", out var href)
             ? Actions.OpenBookingsAsync(Detail.SysName, href)
@@ -793,14 +765,10 @@ public partial class Home
     private async Task OpenWebDavAsync() =>
         await (await DialogService.ShowAsync<Dialogs.WebDavDialog>(Strings.Get("DlgWebDav"))).Result;
 
-    private async Task OpenReminderDialogAsync()
+    // Addressed from the ROW whose ⋮ menu offered it (ADR 0559); the pane's links serve only when they are that row's.
+    private async Task OpenReminderDialogAsync(BrowseNode item)
     {
-        if (_selectedItem is not { } item)
-        {
-            return;
-        }
-
-        var href = Detail.Links?.GetValueOrDefault("reminders")
+        var href = (Detail.Node?.Id == item.Id ? Detail.Links?.GetValueOrDefault("reminders") : null)
             ?? await Browse.FetchRelAsync(item.Id, "reminders");
         await Actions.OpenReminderAsync(item.Id, item.Name, href);
     }

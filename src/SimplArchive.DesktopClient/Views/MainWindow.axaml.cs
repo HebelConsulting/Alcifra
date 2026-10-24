@@ -78,6 +78,7 @@ public partial class MainWindow : Window
                 vm.NameConflictDialog = req => new NameConflictDialog(req).ShowDialog<Services.UploadConflictResolver.NameConflictChoice?>(this);
                 vm.ShowReminderDialog = rvm => new ReminderDialog(rvm).ShowDialog(this);
                 vm.ShowBookingDialog = bvm => new BookingDialog(bvm).ShowDialog(this);
+                vm.RunWorkflowTransitionInView = transition => RunWorkflowTransitionAsync(vm, transition);
 
                 // The picker a module action opens (core ADR 0786). A settable callback rather than a
                 // constructor argument (ADR 0730): the dialog needs a view that does not exist when the
@@ -464,26 +465,19 @@ public partial class MainWindow : Window
         await vm.ReloadTasksAsync();
     });
 
-    // A transition pressed in the detail pane's workflow slot (#691). Split by what the transition NEEDS:
-    // approve/submit/release act; reject needs a reason and reassign a reviewer, so those open the window that
-    // can ask. The web client splits them identically (ADR 0511).
-    internal void OnWorkflowTransition(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    // A workflow step chosen from the context menu or the ribbon (#691, ADR 0970). Split by what the transition
+    // NEEDS: approve/submit/release act; reject needs a reason and reassign a reviewer, so those open the window
+    // that can ask. The web client splits them identically (ADR 0511).
+    private async Task RunWorkflowTransitionAsync(MainWindowViewModel vm, MainWindowViewModel.WorkflowTransitionViewModel transition)
     {
-        if (DataContext is not MainWindowViewModel vm
-            || (sender as Control)?.Tag is not string rel
-            || vm.WorkflowTransitions.FirstOrDefault(t => t.Rel == rel) is not { } transition)
+        if (transition.Rel is "reject" or "reassign")
         {
-            return;
-        }
-
-        if (rel is "reject" or "reassign")
-        {
-            OnStartWorkflow(sender, e);
+            OnStartWorkflow(this, new RoutedEventArgs());
             return;
         }
 
         await vm.PerformWorkflowTransitionAsync(transition.Href);
-    });
+    }
 
     // The Tenant tab's two administration dialogs — bodies in TenantDialogs, which is where they belong and
     // what keeps this file shrinking rather than growing by one open-a-dialog block per feature (ADR 0558).

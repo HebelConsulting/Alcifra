@@ -36,6 +36,11 @@
                      offered `sort` (a signed or non-paged working copy never does, ADR 0543/0554). -->
                 <Button AutomationProperties.AutomationId="checkout-sort" IsEnabled="{Binding SelectedCanSortPages}"
                         Click="OnCheckoutSortPages" ToolTip.Tip="{loc:Tr IntraySortTitle}"><i:Icon Value="mdi-sort" FontSize="18" /></Button>
+                <!-- Make searchable (#999) left the details pane for the document actions (ADR 0970): it is the
+                     ARCHIVED version's override, following the make-searchable rel that version advertised for
+                     the selected row — absent rel, greyed button (ADR 0543). -->
+                <Button AutomationProperties.AutomationId="checkout-make-searchable" IsEnabled="{Binding SelectedCanMakeSearchable}"
+                        Command="{Binding MakeSearchableCommand}" ToolTip.Tip="{loc:Tr MakeSearchable}"><i:Icon Value="mdi-text-recognition" FontSize="18" /></Button>
             </StackPanel>
             <!-- Finish: the two ways a check-out ENDS well — commit the work, or release it unchanged.
                  Check in composes across a multi-selection (N check-ins, one summary), so it routes through

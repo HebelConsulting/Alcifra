@@ -63,32 +63,11 @@
                 @if (Detail.SysHasVersion)
                 {
                 <tr><td>@Strings.Get("SysFileExtension")</td><td class="wb-sys-muted">@Detail.SysFileExtension</td></tr>
-                @* The workflow's state, readable at a glance — and beside it the transitions the SERVER says are
-                   available, one button each, or nothing at all (#691).
-
-                   What used to be here was a permanent button labelled from the status string: Start / Manage /
-                   View. Two things were wrong with it. Most documents never enter a workflow, so a control for a
-                   rare action sat forever in the row people use constantly — and ADR 0550 asks the opposite, that
-                   a slot holds what the current state affords and stands empty otherwise. And "Start" was an
-                   invitation rather than an action: the thing a reviewer actually has to do, approve or reject,
-                   was two clicks away inside a dialog.
-
-                   Now the slot earns its place. Nothing is drawn for a document with no workflow, or one already
-                   Released; a live one shows exactly the transitions this caller may make. The client reproduces
-                   no part of the state machine — it draws the rels it was given (ADR 0543), so a new state needs
-                   no change here. *@
+                @* The workflow's state: a detail, so it stays. The transitions it offers (#691) act on the document
+                   and are in the ribbon and the row's ⋮ menu (owner decision, ADR 0970). *@
                 <tr>
                     <td>@Strings.Get("WorkflowStatus")</td>
-                    <td>
-                        <span class="@(Detail.SysWorkflowStatus is null ? "wb-sys-muted" : "")">@Detail.WorkflowStateName</span>
-                        @foreach (var rel in Detail.OfferedTransitions)
-                        {
-                            <MudButton Size="Size.Small" Variant="Variant.Text" Class="ml-2"
-                                       Color="@(rel == "reject" ? Color.Error : Color.Primary)"
-                                       Disabled="Detail.Busy"
-                                       OnClick="@(() => WorkflowTransition.InvokeAsync(rel))">@Strings.Get(TransitionLabel(rel))</MudButton>
-                        }
-                    </td>
+                    <td><span class="@(Detail.SysWorkflowStatus is null ? "wb-sys-muted" : "")">@Detail.WorkflowStateName</span></td>
                 </tr>
                 <tr>
                     <td>@Strings.Get("VerColDocDate")</td>
@@ -132,11 +111,11 @@
                             }
                         </td>
                     </tr>
-                    @* The persisted verdict + the user's override (#999): the quiet line says why the
-                       automatic OCR did or did not run — ADR 0626's principle in the pane, where the user
-                       who wonders why their scan is unsearchable is actually looking. The button follows
-                       the make-searchable rel the version advertised; absent rel, absent button (ADR 0543). *@
-                    @if (!IsEditing && (Detail.SysOcrVerdict is not null || Detail.MakeSearchableHref is not null))
+                    @* The persisted verdict (#999): the quiet line says why the automatic OCR did or did not
+                       run — ADR 0626's principle in the pane, where the user who wonders why their scan is
+                       unsearchable is actually looking. Its override, Make searchable, acts on the document,
+                       so it is with the document actions in the ribbon and the row's ⋮ menu (ADR 0970). *@
+                    @if (!IsEditing && Detail.SysOcrVerdict is not null)
                     {
                         <tr>
                             <td>@Strings.Get("SysOcrStatus")</td>
@@ -144,11 +123,6 @@
                                 @if (Detail.SysOcrVerdict is { } verdict)
                                 {
                                     <span class="wb-sys-muted">@VerdictText(verdict)</span>
-                                }
-                                @if (Detail.MakeSearchableHref is not null)
-                                {
-                                    <MudButton Size="Size.Small" Variant="Variant.Text" Class="ml-1"
-                                               OnClick="@(() => MakeSearchable.InvokeAsync())">@Strings.Get("MakeSearchable")</MudButton>
                                 }
                             </td>
                         </tr>
@@ -405,13 +379,6 @@
                     }
                 </div>
             }
-            @* The meeting-room booking surface (ADR 0735): present exactly when the resource advertised
-               the bookings rel — the rel's presence is the affordance (ADR 0543). *@
-            @if (Detail.Links?.ContainsKey("bookings") == true)
-            {
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" Class="mt-3"
-                           OnClick="@(() => OpenBookings.InvokeAsync())">@Strings.Get("BookingsButton")</MudButton>
-            }
             @* The Status section (#1062): the machine-derived statuses — currency, training windows, the
                check-in verdict — with the server's per-condition diagnoses under each unmet one. A dispatcher
                sees WHY, not just that; nothing renders for a document with no machine. Diagnosis texts are
@@ -436,32 +403,6 @@
                         </div>
                     </div>
                 }
-            }
-            @* The generic action surface (ADR 0743): server-labeled links render as buttons with no client
-               knowledge of the rel — a module's actions arrive here without a build. Real buttons, not ribbon
-               chips: a form-side surface (the ADR 0491 boundary), and the label is the server's, localized. *@
-            @if (Detail.GenericActions is { Count: > 0 })
-            {
-                <div style="display:flex; flex-wrap:wrap; gap:6px;" class="mt-3">
-                    @foreach (var action in Detail.GenericActions)
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Disabled="@Detail.Busy"
-                                   OnClick="@(() => GenericAction.InvokeAsync(action))">@action.Label</MudButton>
-                    }
-                </div>
-            }
-            @* A module's pick-then-act actions (ADR 0786, #1628): the desktop's buttons, on the web. The click
-               opens the picker; the label is the module's own. *@
-            @if (Detail.ModuleActions is { Count: > 0 })
-            {
-                <div style="display:flex; flex-wrap:wrap; gap:6px;" class="mt-2">
-                    @foreach (var moduleAction in Detail.ModuleActions)
-                    {
-                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Disabled="@Detail.Busy"
-                                   data-module-action="@moduleAction.Rel"
-                                   OnClick="@(() => ModuleAction.InvokeAsync(moduleAction))">@moduleAction.Label</MudButton>
-                    }
-                </div>
             }
         }
 
@@ -514,34 +455,6 @@
         public List<string> Values { get; set; } = [];
     }
 
-    /// <summary>Open the workflow dialog for the shown document — the shell owns the dialog.</summary>
-    [Parameter, EditorRequired]
-    public EventCallback OpenWorkflow { get; set; }
-
-    /// <summary>Invoked with the REL of the transition the user pressed (#691) — the shell performs it.</summary>
-    /// <remarks>
-    /// The rel rather than an enum, because this pane is not allowed to know the state machine: it forwards the
-    /// name the server used, and the shell follows the matching href. A transition added server-side therefore
-    /// reaches the user through here without a client change (ADR 0543).
-    /// </remarks>
-    [Parameter, EditorRequired]
-    public EventCallback<string> WorkflowTransition { get; set; }
-
-    /// <summary>
-    /// The resource key for a transition's button — the workflow DIALOG's own labels, so the same action reads
-    /// identically wherever it is offered. An unrecognised rel falls back to the status label rather than
-    /// rendering a raw rel name at the user.
-    /// </summary>
-    private static string TransitionLabel(string rel) => rel switch
-    {
-        "submit" => "WorkflowSubmit",
-        "approve" => "WorkflowApprove",
-        "reject" => "WorkflowReject",
-        "reassign" => "WorkflowReassign",
-        "release" => "WorkflowRelease",
-        _ => "WorkflowStatus",
-    };
-
     /// <summary>Whether the pane is in edit mode — which swaps the header's actions (ADR 0550).</summary>
     /// <remarks>
     /// Read from <see cref="DetailState"/> rather than taken as a parameter: the pane is disposed on a tab
@@ -551,7 +464,8 @@
     private bool IsEditing => Detail.IsEditing;
 
     /// <summary>
-    /// The per-document actions offered while READING — follow, remind, share, manage access, edit.
+    /// The details' own action offered while READING — the pencil (ADR 0970: every other per-document action is in
+    /// the ribbon and the row's ⋮ menu).
     /// </summary>
     /// <remarks>
     /// Supplied by the shell because every one of them acts on the document rather than on this pane. What the
@@ -598,18 +512,6 @@
     /// selection (#686), so the pane asks rather than navigating.</summary>
     [Parameter, EditorRequired] public EventCallback<Guid> OpenDocument { get; set; }
 
-    /// <summary>A generic action's button was clicked (ADR 0743) — the shell executes it (ADR 0730's rule:
-    /// what the shell supplies is a parameter, and the pane only renders).</summary>
-    [Parameter, EditorRequired] public EventCallback<Hypermedia.LinkResponse> GenericAction { get; set; }
-
-    /// <summary>Invoked with the module action the user pressed (#1628) — the shell opens its picker.</summary>
-    [Parameter, EditorRequired] public EventCallback<Models.ModuleActionDto> ModuleAction { get; set; }
-
-    /// <summary>The Bookings… button was clicked (ADR 0735) — the shell opens the dialog.</summary>
-    [Parameter, EditorRequired] public EventCallback OpenBookings { get; set; }
-
-    /// <summary>Make searchable was clicked (#999) — the shell posts the version's make-searchable rel.</summary>
-    [Parameter, EditorRequired] public EventCallback MakeSearchable { get; set; }
 
     private static string VerdictText(string verdict)
     {

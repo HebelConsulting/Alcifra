@@ -155,7 +155,7 @@ public sealed partial class MainWindowViewModel
     /// </remarks>
     private async Task LoadWorkflowTransitionsAsync(string? status, string versionsHref)
     {
-        WorkflowTransitions.Clear();
+        ClearWorkflowTransitions();
         if (_api is null || status is null or "" or "Draft" or "Released")
         {
             return;
@@ -176,6 +176,8 @@ public sealed partial class MainWindowViewModel
                     WorkflowTransitions.Add(new WorkflowTransitionViewModel(rel, TransitionLabel(rel), href));
                 }
             }
+
+            RebuildWorkflowEntries();
         }
         catch (Exception)
         {

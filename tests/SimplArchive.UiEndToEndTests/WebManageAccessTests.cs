@@ -49,10 +49,10 @@ public class WebManageAccessTests
         await Expect(row).ToBeVisibleAsync();
         await row.ClickAsync();
 
-        // The Manage-access button is shown in the detail pane (the demo admin has CanManagePermissions via the
-        // IsTenantAdmin ACL bypass). Open the dialog.
-        var detail = page.Locator("[data-pane='index']");
-        await detail.GetByRole(AriaRole.Button, new() { Name = "Manage access" }).ClickAsync();
+        // Manage access is on the row's ⋮ menu (the demo admin has CanManagePermissions via the IsTenantAdmin ACL
+        // bypass), as on the desktop; the details pane keeps only the details' own actions (ADR 0970).
+        await Expect(DocumentActionsUi.DetailPane(page).GetByRole(AriaRole.Button, new() { Name = "Manage access" })).ToHaveCountAsync(0);
+        await (await DocumentActionsUi.OpenRowMenuAsync(page, name)).Filter(new() { HasText = "Manage access" }).First.ClickAsync();
 
         var dialog = page.Locator(".mud-dialog");
         await Expect(dialog).ToBeVisibleAsync();
@@ -92,8 +92,7 @@ public class WebManageAccessTests
         await Expect(row).ToBeVisibleAsync();
         await row.ClickAsync();
 
-        var detail = page.Locator("[data-pane='index']");
-        await detail.GetByRole(AriaRole.Button, new() { Name = "Manage access" }).ClickAsync();
+        await (await DocumentActionsUi.OpenRowMenuAsync(page, name)).Filter(new() { HasText = "Manage access" }).First.ClickAsync();
         var dialog = page.Locator(".mud-dialog").First;
         await Expect(dialog).ToBeVisibleAsync();
 
@@ -129,8 +128,7 @@ public class WebManageAccessTests
         await Expect(row).ToBeVisibleAsync();
         await row.ClickAsync();
 
-        var detail = page.Locator("[data-pane='index']");
-        await detail.GetByRole(AriaRole.Button, new() { Name = "Manage access" }).ClickAsync();
+        await (await DocumentActionsUi.OpenRowMenuAsync(page, name)).Filter(new() { HasText = "Manage access" }).First.ClickAsync();
         var dialog = page.Locator(".mud-dialog").First;
         await Expect(dialog).ToBeVisibleAsync();
 

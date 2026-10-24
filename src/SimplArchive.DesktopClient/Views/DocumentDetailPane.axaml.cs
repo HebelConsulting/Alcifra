@@ -47,8 +47,6 @@ public partial class DocumentDetailPane : UserControl
         }
     });
 
-    private void OnWorkflowTransition(object? sender, RoutedEventArgs e) => Window()?.OnWorkflowTransition(sender, e);
-
     private void OnEditOcrLanguages(object? sender, RoutedEventArgs e) => Window()?.OnEditOcrLanguages(sender, e);
 
     // Null in the headless screenshot renders, which host panes without a window.

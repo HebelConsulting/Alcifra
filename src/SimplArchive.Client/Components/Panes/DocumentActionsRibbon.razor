@@ -1,0 +1,54 @@
+@* The document's own actions in the ribbon's Documents group (ADR 0970), matching the desktop's: Follow/Unfollow
+   and Share by link — DISABLED rather than hidden when the subject does not offer them, so the ribbon does not
+   reflow under the cursor (ADR 0550) — then a Workflow step menu and an Actions menu, each present only when the
+   subject carries one, because most documents never do. Icons only on a hover device, label kept on touch (ADR 0873).
+
+   The Actions menu opens from an ordinary ribbon button: MudMenu's ActivatorContent auto-open is unreliable for a
+   custom activator (the UsersGroupsTab / MainLayout precedent), so the button opens it explicitly. *@
+<MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(!Offer.CanFollow)" OnClick="@(() => Host.ToggleFollowAsync())"
+           data-doc-action="follow" title="@FollowLabel" aria-label="@FollowLabel">
+    <MudIcon Icon="@(Offer.Subscribed ? Icons.Material.Filled.Notifications : Icons.Material.Outlined.NotificationsNone)" Size="Size.Small" /><span class="wb-rib-label">@FollowLabel</span>
+</MudButton>
+<MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(!Offer.CanShare)" OnClick="@(() => Host.ShareAsync())"
+           data-doc-action="share" title="@Strings.Get("ExtLinkShare")" aria-label="@Strings.Get("ExtLinkShare")">
+    <MudIcon Icon="@Icons.Material.Filled.AddLink" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("ExtLinkShare")</span>
+</MudButton>
+@if (Offer.WorkflowSteps.Count > 0)
+{
+    <MudButton Class="wb-rib-btn" Size="Size.Small" OnClick="@(e => _steps.OpenMenuAsync(e))"
+               data-doc-action="workflow-steps" title="@Strings.Get("CtxWorkflowSteps")" aria-label="@Strings.Get("CtxWorkflowSteps")">
+        <MudIcon Icon="@Icons.Material.Filled.Verified" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("CtxWorkflowSteps")</span>
+    </MudButton>
+}
+<MudMenu @ref="_steps" Dense="true" AnchorOrigin="Origin.BottomLeft">
+    <ActivatorContent><span style="display:none;"></span></ActivatorContent>
+    <ChildContent>
+        <DocumentWorkflowStepItems Offer="Offer" Host="Host" />
+    </ChildContent>
+</MudMenu>
+@if (Offer.HasServerActions)
+{
+    <MudButton Class="wb-rib-btn" Size="Size.Small" OnClick="@(e => _actions.OpenMenuAsync(e))"
+               data-doc-action="actions" title="@Strings.Get("CtxDocActions")" aria-label="@Strings.Get("CtxDocActions")">
+        <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("CtxDocActions")</span>
+    </MudButton>
+}
+<MudMenu @ref="_actions" Dense="true" AnchorOrigin="Origin.BottomLeft">
+    <ActivatorContent><span style="display:none;"></span></ActivatorContent>
+    <ChildContent>
+        <DocumentServerActionItems Offer="Offer" Host="Host" />
+    </ChildContent>
+</MudMenu>
+
+@code {
+    private MudMenu _actions = null!;
+
+    private MudMenu _steps = null!;
+
+    [Parameter, EditorRequired] public DocumentActionOffer Offer { get; set; } = DocumentActionOffer.None;
+
+    [Parameter, EditorRequired] public IDocumentActionHost Host { get; set; } = null!;
+
+    // The ribbon names the toggle by what it will DO, as the tooltip did in the pane.
+    private string FollowLabel => Strings.Get(Offer.Subscribed ? "UnfollowDoc" : "FollowDoc");
+}

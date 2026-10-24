@@ -453,6 +453,7 @@
                     <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(_selectedItem is null)" OnClick="() => OpenWorkflowAsync(_selectedItem!)" title="@Detail.WorkflowRibbonLabel" aria-label="@Detail.WorkflowRibbonLabel">
                         <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" /><span class="wb-rib-label">@Detail.WorkflowRibbonLabel</span>
                     </MudButton>
+                    <DocumentActionsRibbon Offer="@OfferFor(Detail.Node)" Host="this" />
                     <MudButton Class="wb-rib-btn" Size="Size.Small" OnClick="RefreshAsync" title="@Strings.Get("RibbonRefresh")" aria-label="@Strings.Get("RibbonRefresh")">
                         <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RibbonRefresh")</span>
                     </MudButton>
@@ -711,14 +712,17 @@
                             @if (!node.IsFolder && node.VersionCount > 1)
                             {
                                 <MudMenuItem Icon="@Icons.Material.Filled.History" OnClick="() => OpenVersionsAsync(node)">@Strings.Get("CtxVersions")</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.Difference" OnClick="() => OpenCompareVersionsAsync(node)">@Strings.Get("MwCompareVersions")</MudMenuItem>
                             }
                             @if (!node.IsFolder)
                             {
                                 <MudMenuItem Icon="@Icons.Material.Filled.AccountTree" OnClick="() => OpenWorkflowAsync(node)">@Strings.Get("CtxWorkflow")</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.Alarm" OnClick="() => OpenReminderDialogAsync(node)">@Strings.Get("MwRemind")</MudMenuItem>
                             }
+                            <DocumentActionsMenu Offer="@OfferFor(node)" Host="this" />
                             @if (!node.IsReference && node.CanManagePermissions)
                             {
-                                <MudMenuItem Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(node)">@Strings.Get("MaManageAccess")</MudMenuItem>
+                                <MudMenuItem data-tour="action-manage-access" Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(node)">@Strings.Get("MaManageAccess")</MudMenuItem>
                             }
                             @if (!node.IsReference && node.CanDelete)
                             {
@@ -754,21 +758,18 @@
                            and ⌘S stays a desktop affordance where it works properly. *@
                         @* The index-data pane (ADR 0558). The pane owns the read/edit SWAP — ADR 0550 makes
                            that a property of the transition — while the actions themselves stay the shell's. *@
-                        <IndexDataPane Save="SaveDetailAsync" Cancel="@(() => Editor.Cancel())" OpenWorkflow="@(() => OpenWorkflowAsync(_selectedItem!))" WorkflowTransition="DoWorkflowTransitionAsync"
+                        <IndexDataPane Save="SaveDetailAsync" Cancel="@(() => Editor.Cancel())"
                                        KeyDown="OnDetailKeyDown" EditMaskChanged="@((Guid? m) => Editor.ChangeMaskAsync(m))"
-                                       ToggleOcrCode="@((string c) => Editor.ToggleOcr(c))" SearchByTag="SearchByTagAsync" OpenDocument="@(id => OpenDocumentFromNotificationAsync(id, null))" GenericAction="ExecuteGenericActionAsync" ModuleAction="RunModuleActionAsync" OpenBookings="OpenBookingsDialogAsync" MakeSearchable="MakeSearchableAsync">
+                                       ToggleOcrCode="@((string c) => Editor.ToggleOcr(c))" SearchByTag="SearchByTagAsync" OpenDocument="@(id => OpenDocumentFromNotificationAsync(id, null))">
                             <ReadActions>
-                                @* The per-document action row, extracted to its own component (ADR 0664). The shell
-                                   still decides the row exists and owns what each action DOES; only the markup moved.
-                                   The state is PASSED, not injected — a child whose parameters are only method-group
-                                   EventCallbacks never re-renders, because C# caches those delegates and Blazor then
-                                   sees no parameter change. *@
-                                <DocumentActionsRow Subscribed="Detail.Subscribed" CanShare="@(Detail.ExternalLinksHref is not null)"
-                                                    VersionCount="Detail.VersionCount" CanManagePermissions="Detail.CanManagePermissions"
-                                                    CanEdit="Editor.CanEdit" Busy="Detail.Busy"
-                                                    Follow="ToggleSubscriptionAsync" Remind="OpenReminderDialogAsync"
-                                                    Share="OpenExternalLinksDialogAsync" Compare="OpenCompareVersionsAsync"
-                                                    ManageAccess="@(() => OpenManageAccessForSelectedAsync())" Edit="BeginEditAsync" />
+                                @* Only the details' own action (ADR 0970): every other per-document action is in the ribbon and the row's ⋮ menu. *@
+                                @if (Editor.CanEdit)
+                                {
+                                    <MudTooltip Text="@Strings.Get("Edit")">
+                                        <MudIconButton data-tour="action-edit-index" Size="Size.Small" aria-label="@Strings.Get("Edit")"
+                                                       Icon="@Icons.Material.Filled.Edit" OnClick="BeginEditAsync" Disabled="Detail.Busy" />
+                                    </MudTooltip>
+                                }
                             </ReadActions>
                             <TagAdd>
                                 <MudAutocomplete T="string" @bind-Value="Detail.EditNewTag" SearchFunc="SearchTagCatalog" CoerceValue="true"
@@ -1411,17 +1412,6 @@
     // resource with different rels — the document view is the one that carries the grants. A repository is a
     // document (ADR 0200), but only the server can say at which address, which is why it advertises both.
 
-    // Addressed from the ROW, not from the detail pane's state (ADR 0555). Detail.* describes whatever the pane
-    // last FINISHED loading, and this action can be taken while the load for a freshly-clicked row is still in
-    // flight — in which case Detail.Links still points at the PREVIOUS subject and the dialog opens on the wrong
-    // document. That is not theoretical: clicking a row and then Manage access opened the repository root's
-    // grants often enough to make WebManageAccessTests fail 2 runs in 5. The row is what the user clicked and it
-    // carries its own address, so there is nothing to race.
-    private Task OpenManageAccessForSelectedAsync() =>
-        Actions.OpenManageAccessAsync(
-            _selectedItem!.Id,
-            _selectedItem!.Name,
-            DocumentActions.DocumentAddress(_selectedItem!) ?? Detail.Links?.GetValueOrDefault("self"));
 
 
     private async Task LoadTasksAsync()
@@ -1517,30 +1507,11 @@
         }
     }
 
-    // A workflow transition pressed in the detail pane (#691). Reselect rather than patch the status locally:
+    // A workflow step chosen from the ribbon or a row's ⋮ menu (#691, ADR 0970). Reselect rather than patch the status locally:
     // the transition can move the document out of this listing entirely (status-gating).
     private async Task DoWorkflowTransitionAsync(string rel)
     {
         if (_selectedItem is { } item && await Actions.WorkflowTransitionAsync(item, rel, Detail.WorkflowLinks))
-        {
-            await SelectItemAsync(item);
-        }
-    }
-
-    // Compare two versions of the selected document as an inline text diff (ADR "Document version
-    // comparison"). This line sat above OpenVersionsAsync, forty lines from the method it describes.
-    private async Task OpenCompareVersionsAsync()
-    {
-        if (_selectedItem is not { } item)
-        {
-            return;
-        }
-
-        var parameters = new DialogParameters { ["DocumentId"] = item.Id, ["DocumentName"] = item.Name, ["VersionsHref"] = item.Links?.GetValueOrDefault("versions") };
-        var dialog = await DialogService.ShowAsync<Dialogs.CompareVersionsDialog>(Strings.Get("CvTitle"), parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
-        // A restore (ADR "Version restore") closes the dialog with true — reselect the document so the detail
-        // pane + preview reflect the new current version.
-        if ((await dialog.Result) is { Canceled: false, Data: true })
         {
             await SelectItemAsync(item);
         }

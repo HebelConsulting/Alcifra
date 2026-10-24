@@ -45,15 +45,18 @@ public sealed partial class MainWindowViewModel
         SetDetailMachineStatuses(null);
         SetDetailModuleActions(null);
         _detailLinks = null;
-        OnPropertyChanged(nameof(CanOpenBookings)); // the affordance must not outlive its subject (ADR 0559)
+        _detailExternalLinksHref = null;
+        CanShareDocument = false;
+        CanToggleSubscription = false;
+        RebuildDetailActionEntries(); // the affordances must not outlive their subject (ADR 0559)
         SysDocumentDate = null;
         SysCreatedAt = null;
         SysCreatedBy = string.Empty;
         SysWorkflowStatus = null;
-        WorkflowTransitions.Clear();
+        ClearWorkflowTransitions();
         SysFileExtension = string.Empty;
         SysOcrCandidate = false;
-        SetOcrStatus(null, null); // an address must not outlive its subject (ADR 0559)
+        SetOcrStatus(null);
         SysOcrLanguages = string.Empty;
         SysCurrentVersion = string.Empty;
         _sysOcrCodes = [];
@@ -82,7 +85,7 @@ public sealed partial class MainWindowViewModel
             SetDetailGenericActions(detail.GenericActions);
             SetDetailMachineStatuses(detail.MachineStatuses);
             SetDetailModuleActions(detail.ModuleActions);
-            OnPropertyChanged(nameof(CanOpenBookings));
+            RebuildDetailActionEntries(); // Bookings… follows the links captured above
             _detailDocumentName = detail.Name;
             CanShareDocument = detail.ExternalLinksHref is not null;
             // Folder-only, and read from the resource because a child folder's order is never fetched by the
@@ -95,6 +98,8 @@ public sealed partial class MainWindowViewModel
         Preview.WatermarkText = _detailSensitivityWatermark ? $"{_detailSensitivityName} · {UserDisplayName}" : "";
         // Whether the current user follows this document (ADR "Document subscriptions").
         try { DetailSubscribed = await _api.Reminders.GetSubscriptionAsync(DetailHref("subscription")); } catch (Exception) { DetailSubscribed = false; }
+        // Offered only once the state is known, so the toggle never claims the previous subject's (ADR 0559).
+        CanToggleSubscription = _detailLinks?.Has("subscription") == true;
 
         // Free-form tags (ADR "Document tags").
         DetailTags.Clear();
@@ -125,7 +130,7 @@ public sealed partial class MainWindowViewModel
         SysDocumentTime = fields.DocumentTime;
         DocumentTimeEntry = fields.DocumentTime ?? string.Empty;
         SysOcrCandidate = fields.IsOcrCandidate;
-        SetOcrStatus(fields.OcrVerdict, fields.MakeSearchableHref);
+        SetOcrStatus(fields.OcrVerdict);
 
         if (SysOcrCandidate)
         {

@@ -141,6 +141,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedIsSingleModified));
         OnPropertyChanged(nameof(SelectedCanCompare));
         OnPropertyChanged(nameof(SelectedCanSortPages));
+        OnPropertyChanged(nameof(SelectedCanMakeSearchable));
     }
 
     partial void OnSelectedRowChanged(CheckoutRowViewModel? value) => _ = LoadDetailAsync(value);
@@ -156,6 +157,9 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
     public bool HasOcrLine => OcrLineText.Length > 0;
 
     public bool CanMakeSearchable => _makeSearchableHref is not null;
+
+    /// <summary>The ribbon's Make searchable (ADR 0970): a single-subject verb like Compare, so one row only.</summary>
+    public bool SelectedCanMakeSearchable => Selection.Count == 1 && CanMakeSearchable;
 
     public bool CanEditOcr => _ocrLanguagesHref is not null;
 
@@ -218,6 +222,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
             : string.Empty;
         OnPropertyChanged(nameof(HasOcrLine));
         OnPropertyChanged(nameof(CanMakeSearchable));
+        OnPropertyChanged(nameof(SelectedCanMakeSearchable));
         OnPropertyChanged(nameof(CanEditOcr));
     }
 

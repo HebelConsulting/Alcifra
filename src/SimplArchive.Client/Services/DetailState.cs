@@ -174,9 +174,6 @@ public sealed class DetailState
     /// why the automatic OCR did or did not run (ADR 0626's principle, in the pane).</summary>
     public string? SysOcrVerdict { get; set; }
 
-    /// <summary>The candidate version's make-searchable rel, when advertised (ADR 0543).</summary>
-    public string? MakeSearchableHref { get; set; }
-
     /// <summary>The per-version OCR languages (ADR 0272).</summary>
     public List<string> SysOcrCodes { get; set; } = [];
 

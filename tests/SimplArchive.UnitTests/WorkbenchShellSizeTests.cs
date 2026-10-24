@@ -199,7 +199,9 @@ public class WorkbenchShellSizeTests
     // other branch and a genuinely different decision: a component takes its markup with it but needs the
     // shell's state passed down, which is the callback-bag trade that ADR weighs. That is deferred, not
     // forgotten -- and it is a design decision, so it is the owner's to make rather than a tranche to schedule.
-    private const int Ceiling = 1_730;
+    // 1,730 -> 1,701: the details pane keeps only the details' own actions (ADR 0970). The per-document row went,
+    // and what replaced it in the ribbon and the ⋮ menu is one component line each (DocumentActionsRibbon/Menu).
+    private const int Ceiling = 1_701;
 
     [Fact]
     public void The_workbench_shell_does_not_grow()

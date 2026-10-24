@@ -1,0 +1,23 @@
+@* The "Actions" entries (ADR 0970): Bookings… (ADR 0735) and the server-labeled generic (ADR 0743) and module
+   (ADR 0786) actions, in the order the desktop builds them. Shared by the ⋮ menu's submenu and the ribbon's Actions
+   menu, so the two can never list different things. Each entry carries the action it runs, so running it is
+   addressed from that action's own hrefs (ADR 0559). *@
+@if (Offer.CanBook)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.EventAvailable" OnClick="@(() => Host.OpenBookingsAsync())">@Strings.Get("BookingsButton")</MudMenuItem>
+}
+@foreach (var action in Offer.GenericActions)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.Bolt" Disabled="@Offer.Busy" OnClick="@(() => Host.RunGenericActionAsync(action))">@action.Label</MudMenuItem>
+}
+@foreach (var moduleAction in Offer.ModuleActions)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.Extension" Disabled="@Offer.Busy" data-module-action="@moduleAction.Rel"
+                 OnClick="@(() => Host.RunModuleActionAsync(moduleAction))">@moduleAction.Label</MudMenuItem>
+}
+
+@code {
+    [Parameter, EditorRequired] public DocumentActionOffer Offer { get; set; } = DocumentActionOffer.None;
+
+    [Parameter, EditorRequired] public IDocumentActionHost Host { get; set; } = null!;
+}

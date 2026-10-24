@@ -425,6 +425,57 @@ internal static class ScreenshotRenderer
             Dispatcher.UIThread.RunJobs();
         }
 
+        // `--workflow-steps`: a review in progress on the selected document (#691), as synthetic state — the
+        // transitions the server would advertise to its reviewer, so the ribbon's and the menu's Workflow step
+        // entries can be looked at (ADR 0970). With `--ribbon-workflow` the ribbon's menu is opened.
+        if (Environment.GetCommandLineArgs().Contains("--workflow-steps"))
+        {
+            viewModel.SetWorkflowTransitionsForScreenshot(["approve", "reject", "reassign"]);
+            Dispatcher.UIThread.RunJobs();
+            if (Environment.GetCommandLineArgs().Contains("--ribbon-workflow")
+                && window.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
+                    .FirstOrDefault(b => Avalonia.Automation.AutomationProperties.GetAutomationId(b) == "ribbon-workflow-steps") is { Flyout: { } steps } stepsButton)
+            {
+                steps.ShowAt(stepsButton);
+                Dispatcher.UIThread.RunJobs();
+            }
+        }
+
+        // `--doc-menu`: open the contents list's context menu on the selected document with its Actions submenu
+        // expanded (ADR 0970), so the actions that left the details pane can be looked at where they now live.
+        // Combine with `--module-action` for a server-supplied entry; `--workflow-steps` adds a review in progress.
+        if (Environment.GetCommandLineArgs().Contains("--doc-menu"))
+        {
+            if (window.GetVisualDescendants().OfType<Avalonia.Controls.ListBox>().FirstOrDefault(l => l.Name == "ContentsList")?.ContextMenu is { } menu)
+            {
+                menu.Open();
+                Dispatcher.UIThread.RunJobs();
+                // Opened by its automation id: the generic "has items" walk the tree menu uses found nothing here,
+                // because this submenu's items arrive through a binding after the menu is realised.
+                if (menu.GetLogicalDescendants().OfType<Avalonia.Controls.MenuItem>()
+                        .FirstOrDefault(m => Avalonia.Automation.AutomationProperties.GetAutomationId(m) == "ctx-document-actions") is { } actions)
+                {
+                    actions.IsSubMenuOpen = true;
+                }
+
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+            }
+        }
+
+        // `--ribbon-actions`: open the ribbon's Actions menu (ADR 0970) — with `--module-action`, the
+        // server-supplied entries as the Documents group offers them.
+        if (Environment.GetCommandLineArgs().Contains("--ribbon-actions"))
+        {
+            if (window.GetVisualDescendants().OfType<Avalonia.Controls.Button>()
+                    .FirstOrDefault(b => Avalonia.Automation.AutomationProperties.GetAutomationId(b) == "ribbon-document-actions") is { Flyout: { } flyout } button)
+            {
+                flyout.ShowAt(button);
+                Dispatcher.UIThread.RunJobs();
+            }
+        }
+
         var frame = window.CaptureRenderedFrame();
         frame?.Save(path);
     }

@@ -122,6 +122,28 @@ public partial class WebGuidedTourTests
             missing = stillMissing;
         }
 
+        // And some live on the selected row's ⋮ menu, which exists only while it is open: `action-manage-access`
+        // moved there with the other document actions (ADR 0970), where the desktop's context menu already had it.
+        if (missing.Count > 0)
+        {
+            await page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = rowName! }).First
+                .Locator("button").Last.ClickAsync();
+            var stillMissing = new List<string>();
+            foreach (var anchor in missing)
+            {
+                try
+                {
+                    await page.Locator($"[data-tour='{anchor}']").First.WaitForAsync(new() { Timeout = 5000 });
+                }
+                catch (TimeoutException)
+                {
+                    stillMissing.Add(anchor);
+                }
+            }
+
+            missing = stillMissing;
+        }
+
         Assert.True(missing.Count == 0,
             "The published guided tour names anchors that no longer exist in the app, so a visitor's agent would "
             + "follow it into nothing (issue #414):\n  " + string.Join("\n  ", missing)

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -6432,6 +6432,15 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>This entry could not be read: what opened is not a password entry.</value>
   </data>
+  <data name="CtxFollowDoc" xml:space="preserve">
+    <value>Follow</value>
+  </data>
+  <data name="CtxUnfollowDoc" xml:space="preserve">
+    <value>Unfollow</value>
+  </data>
+  <data name="CtxDocActions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
   <data name="PvSealedNoKey" xml:space="preserve">
     <value>This document is sealed. Insert a hardware key that can open it.</value>
   </data>
@@ -6500,5 +6509,8 @@
   </data>
   <data name="PwEnrolSpareKey" xml:space="preserve">
     <value>Enrol a spare key</value>
+  </data>
+  <data name="CtxWorkflowSteps" xml:space="preserve">
+    <value>Workflow step</value>
   </data>
 </root>

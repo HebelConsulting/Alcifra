@@ -32,7 +32,7 @@
                 <Button IsVisible="{Binding HasImportRight}" Click="OnImport" ToolTip.Tip="{loc:Tr RibbonImport}"><i:Icon Value="mdi-archive-arrow-up-outline" FontSize="18" /></Button>
             </StackPanel>
 
-            <!-- Documents group: operations on the selected document/item (order: Open · Save · Rename · Delete · Upload · Check-out · Workflow). -->
+            <!-- Documents group: operations on the selected document/item (order: Open · Save · Rename · Delete · Upload · Check-out · Workflow · Workflow step · Follow · Share · Actions). -->
             <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
                 <Button Command="{Binding OpenCommand}" ToolTip.Tip="{x:Static vm:MainWindowViewModel.RibbonOpenTip}"><i:Icon Value="mdi-open-in-app" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanSaveAs}" Click="OnSaveAs" ToolTip.Tip="{loc:Tr RibbonSaveAs}"><i:Icon Value="mdi-content-save-outline" FontSize="18" /></Button>
@@ -43,6 +43,48 @@
                 <Button IsEnabled="{Binding CanCheckOut}" Command="{Binding CheckOutSelectedCommand}" ToolTip.Tip="{loc:Tr RibbonCheckOut}"><i:Icon Value="mdi-lock-outline" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanSaveAs}" Click="OnVersions" ToolTip.Tip="{loc:Tr RibbonVersions}"><i:Icon Value="mdi-history" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanStartWorkflow}" Click="OnStartWorkflow" ToolTip.Tip="{Binding WorkflowButtonLabel}"><i:Icon Value="mdi-sitemap-outline" FontSize="18" /></Button>
+                <!-- The document's own actions that are not its details (ADR 0970), moved here and to the
+                     list's context menu out of the details pane. Disabled rather than hidden where the rel is
+                     common, so the group does not reflow under the cursor (ADR 0550); the Workflow step and
+                     Actions menus are hidden instead, because most documents never carry either. -->
+                <Button AutomationProperties.AutomationId="ribbon-follow" IsEnabled="{Binding CanToggleSubscription}" Command="{Binding ToggleSubscriptionCommand}" ToolTip.Tip="{Binding SubscriptionTip}"><i:Icon Value="{Binding SubscriptionIcon}" FontSize="18" /></Button>
+                <Button AutomationProperties.AutomationId="ribbon-share" IsEnabled="{Binding CanShareDocument}" Command="{Binding ShowDocumentExternalLinksCommand}" ToolTip.Tip="{loc:Tr ExtLinkShare}"><i:Icon Value="mdi-link-plus" FontSize="18" /></Button>
+                <Button AutomationProperties.AutomationId="ribbon-workflow-steps" IsVisible="{Binding HasDetailWorkflowEntries}" ToolTip.Tip="{loc:Tr CtxWorkflowSteps}">
+                    <i:Icon Value="mdi-check-decagram-outline" FontSize="18" />
+                    <Button.Flyout>
+                        <MenuFlyout ItemsSource="{Binding DetailWorkflowEntries}">
+                            <MenuFlyout.ItemContainerTheme>
+                                <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vm:TreeMenuEntry">
+                                    <Setter Property="Header" Value="{Binding Header}" />
+                                    <Setter Property="Command" Value="{Binding Command}" />
+                                    <Setter Property="Icon">
+                                        <Template>
+                                            <i:Icon Value="{Binding Icon}" />
+                                        </Template>
+                                    </Setter>
+                                </ControlTheme>
+                            </MenuFlyout.ItemContainerTheme>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button AutomationProperties.AutomationId="ribbon-document-actions" IsVisible="{Binding HasDetailActionEntries}" ToolTip.Tip="{loc:Tr CtxDocActions}">
+                    <i:Icon Value="mdi-lightning-bolt-outline" FontSize="18" />
+                    <Button.Flyout>
+                        <MenuFlyout ItemsSource="{Binding DetailActionEntries}">
+                            <MenuFlyout.ItemContainerTheme>
+                                <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="vm:TreeMenuEntry">
+                                    <Setter Property="Header" Value="{Binding Header}" />
+                                    <Setter Property="Command" Value="{Binding Command}" />
+                                    <Setter Property="Icon">
+                                        <Template>
+                                            <i:Icon Value="{Binding Icon}" />
+                                        </Template>
+                                    </Setter>
+                                </ControlTheme>
+                            </MenuFlyout.ItemContainerTheme>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
             </StackPanel>
 
             <!-- General group: view actions. -->

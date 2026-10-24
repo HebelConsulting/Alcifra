@@ -233,7 +233,7 @@ say: >
 ```yaml
 tracks: [full, desktop]
 anchor: `action-manage-access`
-action: with the document selected, click `action-manage-access`
+action: with the document selected, open its context menu (the row's ⋮ on the web, a right-click on the desktop) and click `action-manage-access`
 goal: show permissions as something granted on the object, inherited down the tree
 expect: `action-manage-access` exists
 say: >

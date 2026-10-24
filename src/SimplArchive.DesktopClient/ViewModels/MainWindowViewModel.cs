@@ -253,10 +253,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
     private List<string> _origTags = [];
 
     // Follow / unfollow the selected document (ADR "Document subscriptions") — set from the detail load; the
-    // toggle glyph + tooltip switch on it.
-    [ObservableProperty][NotifyPropertyChangedFor(nameof(SubscriptionIcon))][NotifyPropertyChangedFor(nameof(SubscriptionTip))] private bool _detailSubscribed;
-    public string SubscriptionIcon => DetailSubscribed ? "mdi-bell" : "mdi-bell-outline";
-    public string SubscriptionTip => DetailSubscribed ? "Unfollow — stop notifications about this document" : "Follow — get notified when this document changes";
+    // toggle's glyph, tooltip and menu label (MainWindowViewModel.DocumentActions) switch on it.
+    [ObservableProperty] private bool _detailSubscribed;
 
     [RelayCommand]
     private async Task ToggleSubscriptionAsync()
@@ -1253,6 +1251,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
         _detailSensitivityWatermark = false;
         DetailSensitivityId = null;
         DetailSubscribed = false;
+        CanToggleSubscription = false;
         DetailTags.Clear();
         HasDetailTags = false;
         IndexFields.Clear();
@@ -1265,7 +1264,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
         SysCreatedAt = null;
         SysCreatedBy = string.Empty;
         SysWorkflowStatus = null;
-        WorkflowTransitions.Clear();
+        ClearWorkflowTransitions();
         SysFileExtension = string.Empty;
         SysOcrCandidate = false;
         SysOcrLanguages = string.Empty;

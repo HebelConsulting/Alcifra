@@ -36,9 +36,11 @@ public class WebBookingTests
         await Expect(row).ToBeVisibleAsync();
         await row.ClickAsync();
 
-        // The rel's presence is the affordance: the button exists because the room's resource advertised
-        // `bookings` (ADR 0543) — a plain folder never shows it.
-        await page.GetByRole(AriaRole.Button, new() { Name = "Bookings…", Exact = true }).ClickAsync();
+        // The rel's presence is the affordance: the entry exists because the room's resource advertised
+        // `bookings` (ADR 0543) — a plain folder never shows it. It is a document action, so it is in the row's
+        // ⋮ menu (Actions ▸) and the ribbon's Actions menu, not in the details pane (ADR 0970).
+        await Expect(DocumentActionsUi.DetailPane(page).GetByRole(AriaRole.Button, new() { Name = "Bookings…" })).ToHaveCountAsync(0);
+        await (await DocumentActionsUi.OpenRibbonActionsAsync(page)).Filter(new() { HasText = "Bookings…" }).First.ClickAsync();
 
         // The dialog's defaults (tomorrow, 09:00–10:00) are a valid slot: Book, and the row appears.
         var dialog = page.Locator(".mud-dialog");

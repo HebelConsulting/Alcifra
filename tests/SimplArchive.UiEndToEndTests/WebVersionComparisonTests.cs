@@ -8,7 +8,7 @@ using static Microsoft.Playwright.Assertions;
 namespace SimplArchive.UiEndToEndTests;
 
 // The web half of version comparison (ADR 0712): a document with two text versions is seeded via the API,
-// then the UI opens "Compare versions" from the detail pane and shows the SIDE-BY-SIDE diff — aligned rows
+// then the UI opens "Compare versions" from the row's ⋮ menu (ADR 0970) and shows the SIDE-BY-SIDE diff — aligned rows
 // from the shared Presentation TextDiff, with the changed words carrying the inline emphasis.
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-3")]
@@ -41,7 +41,7 @@ public class WebVersionComparisonTests
         await Expect(row).ToBeVisibleAsync();
         await row.ClickAsync();
 
-        await page.GetByRole(AriaRole.Button, new() { Name = "Compare versions" }).ClickAsync();
+        await (await DocumentActionsUi.OpenRowMenuAsync(page, name)).Filter(new() { HasText = "Compare versions" }).First.ClickAsync();
         var dialog = page.Locator(".mud-dialog");
         await Expect(dialog).ToBeVisibleAsync();
 

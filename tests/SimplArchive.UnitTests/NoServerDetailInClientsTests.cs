@@ -47,7 +47,8 @@ public partial class NoServerDetailInClientsTests
     // absent.
     private static readonly Dictionary<string, int> LicensedModuleDetailReads = new(StringComparer.Ordinal)
     {
-        ["src/SimplArchive.Client/Pages/Home.Navigation.razor.cs"] = 2,
+        // 2 -> 1: the Repositories tab's Make searchable, the second read, left with the action (ADR 0970).
+        ["src/SimplArchive.Client/Pages/Home.Navigation.razor.cs"] = 1,
         ["src/SimplArchive.ApiClient/ApiCore.cs"] = 1,
         // ADR 0769's proposal-item Detail (the second license above):
         ["src/SimplArchive.Client/Services/DetailEditor.cs"] = 1,

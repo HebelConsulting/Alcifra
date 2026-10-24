@@ -7,8 +7,9 @@ using static Microsoft.Playwright.Assertions;
 
 namespace SimplArchive.UiEndToEndTests;
 
-// The web half of document subscriptions (ADR "Document subscriptions"): the Follow toggle in the detail pane
-// subscribes/unsubscribes the current user, cross-checked against the backend subscription state.
+// The web half of document subscriptions (ADR "Document subscriptions"): the Follow toggle subscribes/unsubscribes
+// the current user, cross-checked against the backend subscription state. Since ADR 0970 it lives in the ribbon's
+// Documents group and the row's ⋮ menu, and no longer in the details pane.
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-2")]
 public class WebSubscriptionTests
@@ -41,9 +42,10 @@ public class WebSubscriptionTests
         await page.GetByText("Demo Repository").First.ClickAsync();
         await page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = name }).ClickAsync();
 
-        var detail = page.Locator("[data-pane='index']");
-        var follow = detail.GetByRole(AriaRole.Button, new() { Name = "Follow" });
-        await Expect(follow).ToBeVisibleAsync();
+        var follow = DocumentActionsUi.Ribbon(page, "follow");
+        await Expect(follow).ToBeEnabledAsync();
+        // The details pane keeps only the details' own actions (ADR 0970).
+        await Expect(DocumentActionsUi.DetailPane(page).GetByRole(AriaRole.Button, new() { Name = "Follow" })).ToHaveCountAsync(0);
 
         // Follow → the backend records the subscription.
         //
@@ -57,5 +59,13 @@ public class WebSubscriptionTests
         // Unfollow → the subscription is removed.
         await follow.ClickAsync();
         await Ui.EventuallyAsync(async () => !await SubscribedAsync(), "the second click should have removed it");
+
+        // The same toggle from the row's ⋮ menu, labelled by what it will do.
+        var items = await DocumentActionsUi.OpenRowMenuAsync(page, name);
+        await items.Filter(new() { HasText = "Follow" }).First.ClickAsync();
+        await Ui.EventuallyAsync(SubscribedAsync, "the menu's Follow should have recorded a subscription");
+        items = await DocumentActionsUi.OpenRowMenuAsync(page, name);
+        await items.Filter(new() { HasText = "Unfollow" }).First.ClickAsync();
+        await Ui.EventuallyAsync(async () => !await SubscribedAsync(), "the menu's Unfollow should have removed it");
     }
 }

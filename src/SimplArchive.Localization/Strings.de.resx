@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -6432,6 +6432,15 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>Dieser Eintrag konnte nicht gelesen werden: Was geöffnet wurde, ist kein Passworteintrag.</value>
   </data>
+  <data name="CtxFollowDoc" xml:space="preserve">
+    <value>Folgen</value>
+  </data>
+  <data name="CtxUnfollowDoc" xml:space="preserve">
+    <value>Nicht mehr folgen</value>
+  </data>
+  <data name="CtxDocActions" xml:space="preserve">
+    <value>Aktionen</value>
+  </data>
   <data name="PvSealedNoKey" xml:space="preserve">
     <value>Dieses Dokument ist versiegelt. Stecken Sie einen Hardware-Schlüssel ein, der es öffnen kann.</value>
   </data>
@@ -6500,5 +6509,8 @@
   </data>
   <data name="PwEnrolSpareKey" xml:space="preserve">
     <value>Ersatzschlüssel registrieren</value>
+  </data>
+  <data name="CtxWorkflowSteps" xml:space="preserve">
+    <value>Workflow-Schritt</value>
   </data>
 </root>

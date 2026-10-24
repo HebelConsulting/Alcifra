@@ -25,9 +25,11 @@ public class WebModuleActionTests(ModuleAppFixture app)
         await page.GotoAsync($"{app.BaseUrl}/go/{dossierId}");
         await Expect(page.Locator(".wb-detail-head")).ToContainTextAsync(dossierName, new() { Timeout = 60000 });
 
-        // The module's button, with its own label.
-        var button = page.Locator("[data-module-action='test-module:issue']");
-        await Expect(button).ToHaveTextAsync("Issue a secret");
+        // The module's action, with its own label, in the ribbon's Actions menu — not in the details pane (ADR 0970).
+        await Expect(DocumentActionsUi.DetailPane(page).Locator("[data-module-action]")).ToHaveCountAsync(0);
+        await DocumentActionsUi.OpenRibbonActionsAsync(page);
+        var button = page.Locator(".mud-popover-open [data-module-action='test-module:issue']");
+        await Expect(button).ToContainTextAsync("Issue a secret");
         await button.ClickAsync();
 
         // The picker: the action's one option comes pre-chosen, so the commit is one click.
@@ -43,6 +45,24 @@ public class WebModuleActionTests(ModuleAppFixture app)
         await Expect(reveal.Locator("img.reveal-scan")).ToHaveAttributeAsync("src", new System.Text.RegularExpressions.Regex("^data:image/png;base64,"));
         await reveal.GetByRole(AriaRole.Button, new() { Name = "Done" }).ClickAsync();
         await Expect(reveal).Not.ToBeVisibleAsync();
+    }
+
+    // The same action from the row's ⋮ menu, under its Actions submenu — the desktop's context menu (ADR 0970). The
+    // picker opening is the proof the entry is wired; committing is the test above.
+    [Fact]
+    public async Task A_module_action_is_offered_in_the_rows_menu_under_Actions()
+    {
+        var dossierName = $"Dossier {Guid.NewGuid():N}"[..20];
+        var dossierId = await ActivatedModuleWithADossierAsync(dossierName);
+
+        var page = await Ui.LoginAsync(app);
+        await page.GotoAsync($"{app.BaseUrl}/go/{dossierId}");
+        await Expect(page.Locator(".wb-detail-head")).ToContainTextAsync(dossierName, new() { Timeout = 60000 });
+        await Expect(DocumentActionsUi.Ribbon(page, "actions")).ToBeVisibleAsync();
+
+        await DocumentActionsUi.OpenRowMenuAsync(page, dossierName);
+        await (await DocumentActionsUi.OpenActionsSubmenuAsync(page, "Issue a secret")).ClickAsync();
+        await Expect(page.Locator(".mud-dialog").GetByText("Issue it?")).ToBeVisibleAsync();
     }
 
     // The test module activated in the demo tenant, and a Test Dossier to act on, through the API as the demo admin.

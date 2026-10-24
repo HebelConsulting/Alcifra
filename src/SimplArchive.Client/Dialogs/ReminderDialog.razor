@@ -49,7 +49,8 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => Dialog.Close())">@Strings.Get("Close")</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(_date is null || _busy)" OnClick="CreateAsync">@Strings.Get("ReminderSet")</MudButton>
+        @* Greyed until the list has answered with its `create` rel: a click before that returned silently. *@
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(_date is null || _busy || _createHref is null)" OnClick="CreateAsync">@Strings.Get("ReminderSet")</MudButton>
     </DialogActions>
 </MudDialog>
 

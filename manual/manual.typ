@@ -554,7 +554,8 @@ with who did it and why.
 
 A *meeting room*#idx("Meeting room")#idx("Booking") is a folder whose type is _Meeting room_ — an administrator
 creates one wherever rooms should live, and whoever may see the folder may see its reservations. Select a room
-and the ribbon offers *Bookings…*: the reservations that exist, and a row to take a new one.
+and its context menu and the ribbon offer *Bookings…* under *Actions*: the reservations that exist, and a row to
+take a new one.
 
 #shot("screenshots/desktop-bookings.png",
   [The Bookings dialog on a room: existing reservations above — a cancelled one stays visible as history — and
@@ -890,11 +891,27 @@ not turn it into a laptop.
   tap away, from the ☰ button.
 - *Laptop or desktop* — the full workbench, with resizable panes that remember their widths.
 
+*What you do to a document is in its context menu and the ribbon.*#idx("Context menu") The detail pane holds only
+what belongs to the details: the pencil that edits them (Save and Cancel take its place while you edit), the tags,
+the arrows that fold the pane away, and what state a review is in. Everything you do *to* the document — *Follow*,
+*Share by link*, *Remind*, *Compare versions*, *Manage access*, the next step of a review (*Approve*, *Reject*, …),
+and whatever a module adds, such as *Bookings…* for a meeting room — is in the document's context menu (a
+right-click on the desktop, the ⋮ at the end of the row on the web) and in the ribbon's document group, beside
+Open, Rename and Check out. The review's steps are grouped under *Workflow step*, what a module adds under
+*Actions*.
+
+#shot("screenshots/desktop-document-menu.png",
+  [A document's context menu in the desktop client: the document's own actions — Follow, Share by link — then
+   *Workflow step*, the next steps of a review in progress, and *Actions*, what a module offers for this document.],
+  width: 75%)
+
 = Metadata & classification
 
 Each document has a *mask* (document type) that defines its *index fields* — typed metadata such as an invoice
 number or a date. Open the *detail* pane's edit toggle to fill them in. A document also carries a *document date*
-and one or more *OCR languages*#idx("OCR") used to make scans searchable.
+and one or more *OCR languages*#idx("OCR") used to make scans searchable. Where the automatic recognition decided a
+scan was not worth converting, the detail pane says why. To overrule it, check the document out: *Make searchable*
+is in the Check-out tab's ribbon.
 
 #note[
   Index fields are validated by the mask — a field marked required must be filled, and format/range rules are
@@ -977,7 +994,7 @@ Everything above assumes the other person has an account. An *external link*#idx
 that opens one document, for anyone who has it, with no sign-in. Use it for the customer who needs the signed
 contract or the auditor who needs one invoice — not as a general-purpose way to move documents around.
 
-*Creating one.* Select the document and open *External links…* from the detail pane. Choose when it should expire
+*Creating one.* Select the document and choose *Share by link* — in its context menu or in the ribbon. Choose when it should expire
 and how many times it may be opened, then create it.
 
 #note[
@@ -1070,7 +1087,9 @@ Sharing outward is the one action that leaves the system, so it is gated twice a
 = Workflow & records
 
 *Approval workflow.*#idx("Approval workflow") Submit a document for review and it moves through a fixed state machine —
-Draft → In Review → Approved / Rejected → Released. Reviewers act on their *Tasks* tab#idx("Tasks") — sortable
+Draft → In Review → Approved / Rejected → Released. The detail pane says which state a document is in; the next
+step you may take — approve, reject, reassign, release — is under *Workflow step* in its context menu and the
+ribbon. Reviewers act on their *Tasks* tab#idx("Tasks") — sortable
 by any column (a click on a header; the default puts the nearest deadline on top, overdue in red first) and
 narrowable through the visible filter row: document and version text, plus an *Overdue only* switch. Reviews can be reassigned,
 and overdue reviews escalate.

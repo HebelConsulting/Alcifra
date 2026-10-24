@@ -1,0 +1,35 @@
+@* The document's own actions in a row's ⋮ menu (ADR 0970), matching the desktop's context menu: Follow/Unfollow,
+   Share by link, a "Workflow step" submenu with the transitions the version offers, and an "Actions" submenu holding Bookings… and every server-labeled generic or
+   module action. They left the details pane, which now holds only the details' own actions.
+
+   Rendered INSIDE the shell's MudMenu, so these are plain MudMenuItems; the submenu is a nested MudMenu with
+   StartIcon (a MudMenuItem wrapping items renders nothing — the shell's "New" submenu learned that first). The
+   Offer is the selection's or None (see DocumentActionOffer), so nothing here can act on a row it was not built
+   for. *@
+@if (Offer.CanFollow)
+{
+    <MudMenuItem Icon="@(Offer.Subscribed ? Icons.Material.Filled.Notifications : Icons.Material.Outlined.NotificationsNone)"
+                 data-doc-action="follow" OnClick="@(() => Host.ToggleFollowAsync())">@Strings.Get(Offer.Subscribed ? "CtxUnfollowDoc" : "CtxFollowDoc")</MudMenuItem>
+}
+@if (Offer.CanShare)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.AddLink" data-doc-action="share" OnClick="@(() => Host.ShareAsync())">@Strings.Get("ExtLinkShare")</MudMenuItem>
+}
+@if (Offer.WorkflowSteps.Count > 0)
+{
+    <MudMenu Label="@Strings.Get("CtxWorkflowSteps")" StartIcon="@Icons.Material.Filled.AccountTree" Dense="true" data-doc-action="workflow-steps">
+        <DocumentWorkflowStepItems Offer="Offer" Host="Host" />
+    </MudMenu>
+}
+@if (Offer.HasServerActions)
+{
+    <MudMenu Label="@Strings.Get("CtxDocActions")" StartIcon="@Icons.Material.Filled.Bolt" Dense="true" data-doc-action="actions">
+        <DocumentServerActionItems Offer="Offer" Host="Host" />
+    </MudMenu>
+}
+
+@code {
+    [Parameter, EditorRequired] public DocumentActionOffer Offer { get; set; } = DocumentActionOffer.None;
+
+    [Parameter, EditorRequired] public IDocumentActionHost Host { get; set; } = null!;
+}

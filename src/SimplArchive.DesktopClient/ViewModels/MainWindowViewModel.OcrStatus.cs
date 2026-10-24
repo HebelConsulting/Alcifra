@@ -1,54 +1,22 @@
-using System;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.Input;
-using SimplArchive.DesktopClient.Services;
 using SimplArchive.Localization;
 
 namespace SimplArchive.DesktopClient.ViewModels;
 
-// The OCR verdict line + Make searchable (#999): the persisted detector verdict rendered where the user who
-// wonders why their scan is unsearchable is actually looking (ADR 0626's principle in the pane), and the
-// override that lets them overrule it — the rel's presence is the affordance (ADR 0543).
+// The OCR verdict line (#999): the persisted detector verdict rendered where the user who wonders why their scan
+// is unsearchable is actually looking (ADR 0626's principle in the pane). Its override, Make searchable, lives
+// only in the Check-out tab's ribbon (owner decision, ADR 0970).
 public partial class MainWindowViewModel
 {
-    private string? _makeSearchableHref;
-
     /// <summary>The verdict line's localized text, empty when the version is unjudged.</summary>
     public string SysOcrVerdictText { get; private set; } = string.Empty;
 
-    public bool HasOcrStatusLine => SysOcrVerdictText.Length > 0 || CanMakeSearchable;
+    // The verdict alone: Make searchable lives only in the Check-out tab's ribbon (ADR 0970).
+    public bool HasOcrStatusLine => SysOcrVerdictText.Length > 0;
 
-    public bool CanMakeSearchable => _makeSearchableHref is not null;
-
-    internal void SetOcrStatus(string? verdict, string? makeSearchableHref)
+    internal void SetOcrStatus(string? verdict)
     {
-        _makeSearchableHref = makeSearchableHref;
         SysOcrVerdictText = SimplArchive.Presentation.DocumentStateText.OcrVerdictKey(verdict) is { } key ? Strings.Get(key) : string.Empty;
         OnPropertyChanged(nameof(SysOcrVerdictText));
         OnPropertyChanged(nameof(HasOcrStatusLine));
-        OnPropertyChanged(nameof(CanMakeSearchable));
-    }
-
-    [RelayCommand]
-    private async Task MakeSearchable()
-    {
-        if (_api is null || _makeSearchableHref is not { } href)
-        {
-            return;
-        }
-
-        try
-        {
-            await _api.Documents.MakeSearchableAsync(href);
-            Status = Strings.Get("MakeSearchableQueued");
-        }
-        catch (ApiActionException e)
-        {
-            ReportError(e.Message);
-        }
-        catch (Exception e)
-        {
-            ReportError(e.Message);
-        }
     }
 }

@@ -33,6 +33,7 @@ public partial class MainWindowViewModel
         }
 
         OnPropertyChanged(nameof(HasDetailModuleActions));
+        RebuildDetailActionEntries();
     }
 
     /// <summary>
@@ -126,6 +127,7 @@ public partial class MainWindowViewModel
         }
 
         OnPropertyChanged(nameof(HasDetailGenericActions));
+        RebuildDetailActionEntries();
     }
 
     /// <summary>Whether a rel is the populate-on-open hook (ADR 0756) — a transition the client also invokes

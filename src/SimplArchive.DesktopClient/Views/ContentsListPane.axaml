@@ -156,6 +156,50 @@
                 <MenuItem Header="{loc:Tr MwRemind}" Command="{Binding RemindCommand}" IsVisible="{Binding CanRemind}">
                     <MenuItem.Icon><i:Icon Value="mdi-alarm" /></MenuItem.Icon>
                 </MenuItem>
+                <!-- The document's own actions that are not its details (ADR 0970): they left the details
+                     pane for here and the ribbon's Documents group. A right-click SELECTS the row first, so
+                     these follow the shell's subject, and each is absent until that subject's detail has
+                     loaded — never the previous row's (ADR 0559). -->
+                <Separator IsVisible="{Binding HasDocumentOwnActions}" />
+                <MenuItem AutomationProperties.AutomationId="ctx-follow" Header="{Binding SubscriptionMenuHeader}" Command="{Binding ToggleSubscriptionCommand}" IsVisible="{Binding CanToggleSubscription}">
+                    <MenuItem.Icon><i:Icon Value="{Binding SubscriptionIcon}" /></MenuItem.Icon>
+                </MenuItem>
+                <MenuItem AutomationProperties.AutomationId="ctx-share" Header="{loc:Tr ExtLinkShare}" Command="{Binding ShowDocumentExternalLinksCommand}" IsVisible="{Binding CanShareDocument}">
+                    <MenuItem.Icon><i:Icon Value="mdi-link-plus" /></MenuItem.Icon>
+                </MenuItem>
+                <!-- The workflow transitions the version advertises (#691), the list the ribbon's Workflow step
+                     menu shows too. The pane keeps the status LINE; the steps are actions on the document. -->
+                <MenuItem AutomationProperties.AutomationId="ctx-workflow-steps" Header="{loc:Tr CtxWorkflowSteps}" ItemsSource="{Binding DetailWorkflowEntries}" IsVisible="{Binding HasDetailWorkflowEntries}">
+                    <MenuItem.Icon><i:Icon Value="mdi-sitemap-outline" /></MenuItem.Icon>
+                    <MenuItem.ItemContainerTheme>
+                        <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <Setter Property="Header" Value="{ReflectionBinding Header}" />
+                            <Setter Property="Command" Value="{ReflectionBinding Command}" />
+                            <Setter Property="Icon">
+                                <Template>
+                                    <i:Icon Value="{ReflectionBinding Icon}" />
+                                </Template>
+                            </Setter>
+                        </ControlTheme>
+                    </MenuItem.ItemContainerTheme>
+                </MenuItem>
+                <!-- Bookings… and the server-labeled generic and module actions: a SUBMENU, because
+                     Avalonia's menu takes literal items or a bound collection, never both. -->
+                <MenuItem AutomationProperties.AutomationId="ctx-document-actions" Header="{loc:Tr CtxDocActions}" ItemsSource="{Binding DetailActionEntries}" IsVisible="{Binding HasDetailActionEntries}">
+                    <MenuItem.Icon><i:Icon Value="mdi-lightning-bolt-outline" /></MenuItem.Icon>
+                    <MenuItem.ItemContainerTheme>
+                        <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <!-- ReflectionBinding: a ControlTheme carries no x:DataType (the tree menu's "New"). -->
+                            <Setter Property="Header" Value="{ReflectionBinding Header}" />
+                            <Setter Property="Command" Value="{ReflectionBinding Command}" />
+                            <Setter Property="Icon">
+                                <Template>
+                                    <i:Icon Value="{ReflectionBinding Icon}" />
+                                </Template>
+                            </Setter>
+                        </ControlTheme>
+                    </MenuItem.ItemContainerTheme>
+                </MenuItem>
                 <Separator IsVisible="{Binding CanCheckOut}" />
                 <MenuItem Header="{loc:Tr CtxCheckOut}" Command="{Binding CheckOutSelectedCommand}" IsVisible="{Binding CanCheckOut}">
                     <MenuItem.Icon><i:Icon Value="mdi-lock-outline" /></MenuItem.Icon>

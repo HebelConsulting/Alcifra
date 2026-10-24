@@ -62,6 +62,9 @@ public partial class MainWindowViewModel
         SysOcrLanguages = "German, French";
         MaskLine = "Mask: Basic Entry · version 1";
         CanEditDetail = true;
+        // The document's own actions the ribbon and the context menu offer (ADR 0970) — what a loaded subject sets.
+        CanShareDocument = true;
+        CanToggleSubscription = true;
         IndexFields.Add(new IndexFieldViewModel { FieldName = "Keywords", Values = "invoice, reviewed" });
         Preview.PreviewConverted = false;
         Preview.Reset("Preview renders here (PDF/image/text).");

@@ -63,6 +63,9 @@ public static class Screens
         new("recycle-bin", ["--recyclebin"], WhyFixture: "Needs soft-deleted documents, which the seed does not leave behind."),
         new("tenant", ["--tenant"], Capture: Capture.Live),
         new("checkout", ["--checkout"], WhyFixture: "Needs a document checked out BY the captured user."),
+        // A document's context menu with the actions that left the details pane (ADR 0970). The module action is
+        // synthetic state, like --module-action's: the test installation runs no module that offers one.
+        new("document-menu", ["--doc-menu", "--module-action", "--workflow-steps"], WhyFixture: "A menu is open only while a user holds it open; the module action needs a module the seed does not run, and the review steps a review in progress."),
         new("server-manager", [], DesktopWindow.Servers, WhyFixture: "A pre-session window over local configuration — no app to capture from."),
         // The sort & rotate dialog over the checked-in sample batch — its mis-rotated page 4 shown mid-fix,
         // which is the figure the manual's page-operations section stands on (#527).

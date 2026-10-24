@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
@@ -6432,6 +6432,15 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>Questa voce non può essere letta: ciò che è stato aperto non è una voce di password.</value>
   </data>
+  <data name="CtxFollowDoc" xml:space="preserve">
+    <value>Segui</value>
+  </data>
+  <data name="CtxUnfollowDoc" xml:space="preserve">
+    <value>Non seguire più</value>
+  </data>
+  <data name="CtxDocActions" xml:space="preserve">
+    <value>Azioni</value>
+  </data>
   <data name="PvSealedNoKey" xml:space="preserve">
     <value>Questo documento è sigillato. Inserisci una chiave hardware in grado di aprirlo.</value>
   </data>
@@ -6500,5 +6509,8 @@
   </data>
   <data name="PwEnrolSpareKey" xml:space="preserve">
     <value>Registra una chiave di riserva</value>
+  </data>
+  <data name="CtxWorkflowSteps" xml:space="preserve">
+    <value>Passo del workflow</value>
   </data>
 </root>

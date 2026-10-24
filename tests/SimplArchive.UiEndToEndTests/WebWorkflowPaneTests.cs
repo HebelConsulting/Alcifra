@@ -7,7 +7,8 @@ using static Microsoft.Playwright.Assertions;
 
 namespace SimplArchive.UiEndToEndTests;
 
-// The detail pane's workflow slot shows the transitions the SERVER advertises, or nothing (#691).
+// The workflow steps the SERVER advertises, or nothing (#691) — offered since ADR 0970 by the ribbon's "Workflow
+// step" menu and the row's ⋮ menu, while the details pane keeps only the status line.
 //
 // What it replaced was a permanent button labelled from the status string — Start / Manage / View — sitting in
 // the row people use constantly for an action most documents never take. The slot now earns its place: empty
@@ -49,42 +50,44 @@ public class WebWorkflowPaneTests
         var row = list.Locator(".wb-list-row").Filter(new() { HasText = name }).First;
         await row.ClickAsync();
 
-        // ── No workflow: the state is stated, and the slot beside it is EMPTY. The absence is the load-bearing
-        //    half — a pane that rendered every transition unconditionally would put Approve on every document
-        //    in the archive and still satisfy a test that only looked at the In Review case. ────────────────
+        // ── No workflow: the state is stated in the pane, and NO step is offered anywhere. The absence is the
+        //    load-bearing half — a client that offered every transition unconditionally would put Approve on
+        //    every document in the archive and still satisfy a test that only looked at the In Review case. ──
         await Expect(pane.GetByText("not started")).ToBeVisibleAsync();
-        foreach (var action in new[] { "Approve", "Reject", "Submit for review", "Release" })
-        {
-            await Expect(pane.GetByRole(AriaRole.Button, new() { Name = action, Exact = true })).ToHaveCountAsync(0);
-        }
+        await Expect(DocumentActionsUi.Ribbon(page, "follow")).ToBeEnabledAsync(); // the detail has landed
+        await Expect(DocumentActionsUi.Ribbon(page, "workflow-steps")).ToHaveCountAsync(0);
 
         // ── Submitted to ourselves, so the signed-in admin is the assigned reviewer and the choice is real.
-        //    Submitting through the API rather than the UI on purpose: starting a workflow stays a context-menu
-        //    action (#691), so the pane is not where that happens. ──────────────────────────────────────────
+        //    Through the API on purpose: STARTING a workflow is the Workflow… dialog's (#691). ─────────────
         var me = (await http.GetFromJsonAsync<JsonElement>("/api/diagnostics/whoami")).GetProperty("userId").GetGuid();
         (await http.PostAsJsonAsync($"/api/documents/{docId}/versions/{versionId}/workflow/submit", new { reviewerId = me }))
             .EnsureSuccessStatusCode();
 
-        await row.ClickAsync(); // reselect so the pane reloads its transitions
+        await row.ClickAsync(); // reselect so the transitions reload
         await Expect(pane.GetByText("In Review")).ToBeVisibleAsync();
 
-        // The reviewer's actual choices, in the pane, rather than two clicks away inside a dialog.
+        // The pane states the state and offers no step (ADR 0970): those are actions on the document.
         foreach (var action in new[] { "Approve", "Reject" })
         {
-            await Expect(pane.GetByRole(AriaRole.Button, new() { Name = action, Exact = true })).ToBeVisibleAsync();
+            await Expect(pane.GetByRole(AriaRole.Button, new() { Name = action, Exact = true })).ToHaveCountAsync(0);
         }
 
-        // ── Approving ACTS. No dialog offering the same button again — that was the old affordance and what
-        //    #691 called an invitation wearing an action's label. ───────────────────────────────────────────
-        await pane.GetByRole(AriaRole.Button, new() { Name = "Approve", Exact = true }).ClickAsync();
+        // ── Approving from the ribbon ACTS. No dialog offering the same button again (#691). ────────────
+        var steps = await DocumentActionsUi.OpenRibbonMenuAsync(page, "workflow-steps");
+        await steps.Filter(new() { HasText = "Approve" }).First.ClickAsync();
 
         await Expect(pane.GetByText("Approved")).ToBeVisibleAsync();
         await Expect(page.Locator(".mud-dialog")).ToHaveCountAsync(0);
 
-        // ...and the slot now offers what the NEW state affords. This is what proves the buttons are re-read
-        // from the server after acting, rather than a fixed set drawn once per document.
-        await Expect(pane.GetByRole(AriaRole.Button, new() { Name = "Release", Exact = true })).ToBeVisibleAsync();
-        await Expect(pane.GetByRole(AriaRole.Button, new() { Name = "Approve", Exact = true })).ToHaveCountAsync(0);
+        // ...and the ribbon now offers what the NEW state affords — re-read from the server after acting.
+        steps = await DocumentActionsUi.OpenRibbonMenuAsync(page, "workflow-steps");
+        await Expect(steps.Filter(new() { HasText = "Release" }).First).ToBeVisibleAsync();
+        await Expect(steps.Filter(new() { HasText = "Approve" })).ToHaveCountAsync(0);
+        await page.Keyboard.PressAsync("Escape");
+
+        // The row's ⋮ menu offers the same list under "Workflow step".
+        await DocumentActionsUi.OpenRowMenuAsync(page, name);
+        await Expect(await DocumentActionsUi.OpenSubmenuAsync(page, "Workflow step", "Release")).ToBeVisibleAsync();
     }
 
     private static async Task<Guid> AddVersionAsync(HttpClient http, Guid docId)
