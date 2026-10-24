@@ -14,8 +14,8 @@ namespace SimplArchive.Api.Provisioning;
 // stack WITHOUT touching the public demo tenant: same shape as DemoDataSeeder (ADR 0214) and
 // InteropTenantSeeder (ADR 0585), a no-op unless the CryptoDemo:* config is present.
 //
-// It seeds the tenant with crypt (the tenant administrator) plus three plain users, florian, thomas and
-// alex — the people whose phones carry the S/MIME identities in the proof of concept — all IMAP/WebDAV-enabled
+// It seeds the tenant with crypt (the founding tenant administrator), florian, thomas and alex as further tenant
+// administrators (owner, 2026-10-24) and tanja and mihaela as regular users — all IMAP/WebDAV-enabled
 // with the one configured password, and a couple of documents in the repository's SampleData folder so a mail client has
 // something to fetch right after every nightly reset. Ids are deterministic (DemoId, #781) for the same
 // reason the demo tenant's are: the kiosk reseeds from scratch nightly, and fresh GUIDs each morning would
@@ -65,7 +65,7 @@ public static class CryptoDemoSeeder
         // (issue #432): the kiosk configures crypt@its-domain and florian/thomas ride along.
         var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "simplarchive.local";
 
-        User MakeUser(string localPart, string displayName)
+        User MakeUser(string localPart, string displayName, bool tenantAdministrator = false)
         {
             var user = new User
             {
@@ -78,28 +78,37 @@ public static class CryptoDemoSeeder
                 // The proof of concept reads DOCUMENTS over IMAP, so the synthetic-message view must be on.
                 ImapShowAllDocuments = true,
             };
+            if (tenantAdministrator)
+            {
+                TenantAdministratorRights.GrantAll(user);
+            }
+
             user.PasswordHash = hasher.HashPassword(user, password);
             return user;
         }
 
-        var florian = MakeUser("florian", "Florian");
-        var thomas = MakeUser("thomas", "Thomas");
-        var alex = MakeUser("alex", "Alex");
-        dbContext.Users.Add(florian);
-        dbContext.Users.Add(thomas);
-        dbContext.Users.Add(alex);
+        // Tenant administrators like crypt (owner, 2026-10-24): they run the tenant together, so each holds every
+        // system right — the bypass then shows them the Administration folder too, which the plain users never see.
+        var florian = MakeUser("florian", "Florian", tenantAdministrator: true);
+        var thomas = MakeUser("thomas", "Thomas", tenantAdministrator: true);
+        var alex = MakeUser("alex", "Alex", tenantAdministrator: true);
+        var tanja = MakeUser("tanja", "Tanja");
+        var mihaela = MakeUser("mihaela", "Mihaela");
+        var people = new[] { ("florian", florian), ("thomas", thomas), ("alex", alex), ("tanja", tanja), ("mihaela", mihaela) };
+        dbContext.Users.AddRange(people.Select(p => p.Item2));
 
         // The admin reads over IMAP too — and a phone signs in with the same password, so the IMAP/WebDAV
-        // credentials are seeded for all three rather than minted per stack (the Interop lesson: a secret
+        // credentials are seeded for everyone rather than minted per stack (the Interop lesson: a secret
         // shown once dies with every `down -v`).
         var admin = await dbContext.Users.SingleAsync(u => u.Id == provisioned.AdministratorId);
         admin.ImapShowAllDocuments = true;
         await dbContext.SaveChangesAsync();
-        await DemoDataSeeder.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, florian.Id, thomas.Id, alex.Id]);
+        await DemoDataSeeder.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)]);
 
-        // Working rights on the root repository for both plain users — enough to see, read and file, so the
-        // phones' IMAP trees show the repository and its documents.
-        foreach (var (slug, user) in new[] { ("florian", florian), ("thomas", thomas), ("alex", alex) })
+        // Working rights on the root repository for every seeded user — enough to see, read and file, so the
+        // phones' IMAP trees show the repository and its documents. The administrators would see it through the
+        // bypass anyway; the grant keeps their rights unchanged should one of them be demoted.
+        foreach (var (slug, user) in people)
         {
             dbContext.AclEntries.Add(new AclEntry
             {
@@ -152,7 +161,7 @@ public static class CryptoDemoSeeder
     // CryptoDemo:ServiceAccount:ClientId/ClientSecret are configured, like every seeded principal.
     //
     // NARROW on purpose. CanManageModules and nothing else at system level, and its grant confined to one
-    // folder that BREAKS inheritance: the repository's grants (florian/thomas/alex) do not reach in, and its
+    // folder that BREAKS inheritance: the repository's grants to the seeded users do not reach in (the administrators see it by their bypass), and its
     // own grant does not reach out to the board minutes. It files the licence here, and the module's
     // "Reader certificates" folder is placed here through the module's parent setting. CanManagePermissions
     // on this folder only is what lets it grant the module's own principal (`Module: Encryption`, created at

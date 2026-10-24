@@ -84,6 +84,24 @@ public class ProvisionedAdminHoldsEverySystemRightTests
             + string.Join("\n", unresolved.Select(u => $"  {u}")));
     }
 
+    // A seed that makes FURTHER administrators (the Crypto demo's florian, thomas and alex) goes through the same one
+    // list as provisioning, so the same reflection holds it to every right.
+    [Fact]
+    public void A_further_administrator_made_by_TenantAdministratorRights_holds_every_right_too()
+    {
+        var user = new User { Email = "second@acme.test", DisplayName = "Second Admin" };
+
+        TenantAdministratorRights.GrantAll(user);
+
+        var missing = typeof(SystemRightsSet).GetProperties()
+            .Where(p => p.PropertyType == typeof(bool))
+            .Where(p => typeof(User).GetProperty(p.Name) is { } q && q.GetValue(user) is false)
+            .Select(p => p.Name)
+            .ToList();
+        Assert.True(user.IsTenantAdmin);
+        Assert.True(missing.Count == 0, $"TenantAdministratorRights.GrantAll leaves out: {string.Join(", ", missing)}");
+    }
+
     private static TenantProvisioningService ServiceFor(SimplArchiveDbContext db) =>
         new(db,
             new WellKnownMaskSeeder(db, NullLogger<WellKnownMaskSeeder>.Instance),
