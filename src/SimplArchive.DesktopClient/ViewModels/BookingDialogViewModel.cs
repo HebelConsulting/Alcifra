@@ -80,13 +80,11 @@ public partial class BookingDialogViewModel : ObservableObject
             return;
         }
 
-        var start = startTime.ToTimeSpan();
-        var end = endTime.ToTimeSpan();
-
-        // Local wall-clock in, real instants out — the offset is this machine's, and the server compares
-        // instants (ADR 0735's [start, end) semantics).
-        var startsAt = new DateTimeOffset(DateOnly.FromDateTime(date), TimeOnly.FromTimeSpan(start), TimeZoneInfo.Local.GetUtcOffset(date));
-        var endsAt = new DateTimeOffset(DateOnly.FromDateTime(date), TimeOnly.FromTimeSpan(end), TimeZoneInfo.Local.GetUtcOffset(date));
+        // Local wall-clock in, real instants out — the zone is this machine's, and the server compares instants
+        // (ADR 0735's [start, end) semantics). Each end is placed with the offset AT its own wall time, not the
+        // date's midnight, which differs on the day the clocks change (#1909).
+        var startsAt = SimplArchive.Presentation.WallClock.At(DateOnly.FromDateTime(date), startTime, TimeZoneInfo.Local);
+        var endsAt = SimplArchive.Presentation.WallClock.At(DateOnly.FromDateTime(date), endTime, TimeZoneInfo.Local);
 
         try
         {

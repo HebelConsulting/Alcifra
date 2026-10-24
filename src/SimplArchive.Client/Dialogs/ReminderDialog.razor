@@ -29,7 +29,7 @@
                 <MudDivider Class="my-2" />
             }
 
-            <MudDatePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Date="_date" Label="@Strings.Get("ReminderDate")" MinDate="DateTime.Today" DateFormat="yyyy-MM-dd" Variant="Variant.Outlined" Class="mb-2" />
+            <MudDatePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Date="_date" Label="@Strings.Get("ReminderDate")" MinDate="_today" DateFormat="yyyy-MM-dd" Variant="Variant.Outlined" Class="mb-2" />
             <MudTimePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Time="_time" Label="@Strings.Get("ReminderTime")" Variant="Variant.Outlined" Class="mb-2" />
             <MudTextField @bind-Value="_note" Label="@Strings.Get("ReminderNote")" Variant="Variant.Outlined" Class="mb-2" />
             <MudSelect T="int" @bind-Value="_recurrence" Label="@Strings.Get("ReminderRepeat")" Variant="Variant.Outlined" Class="mb-2">
@@ -60,8 +60,10 @@
     [Parameter] public Guid DocumentId { get; set; }
     [Parameter] public string DocumentName { get; set; } = string.Empty;
 
-    private DateTime? _date = DateTime.Today.AddDays(1);
-    private TimeSpan? _time = new(9, 0, 0);
+    // Set when the dialog opens (below), not here: "today" belongs to the moment and zone of opening.
+    private DateTime _today;
+    private DateTime? _date;
+    private TimeSpan? _time = ReminderSchedule.DefaultTime.ToTimeSpan();
     private string _note = string.Empty;
     private int _recurrence;
     private Guid _target = Guid.Empty;
@@ -76,7 +78,16 @@
 
     private string? _createHref;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        // Tomorrow as a calendar day in the zone this session shows times in — never "now plus 24 hours" and never
+        // today's offset (#1909, Presentation.ReminderSchedule) — the zone the pending list above is rendered in.
+        var tomorrow = ReminderSchedule.DefaultDate(TimeProvider.System.GetUtcNow(), SessionTimeZone.Current);
+        _today = tomorrow.AddDays(-1).ToDateTime(TimeOnly.MinValue);
+        _date = tomorrow.ToDateTime(TimeOnly.MinValue);
+
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -113,7 +124,10 @@
         _busy = true;
         try
         {
-            var when = new DateTimeOffset(date.Date + (_time ?? TimeSpan.Zero), DateTimeOffset.Now.Offset);
+            // Placed with the offset the session's zone has at THAT wall time. It used to take today's offset,
+            // which is an hour off across a clock change — and, because the default date carried
+            // DateTimeKind.Local, made the constructor throw the whole day before each change (#1909).
+            var when = WallClock.At(DateOnly.FromDateTime(date), TimeOnly.FromTimeSpan(_time ?? TimeSpan.Zero), SessionTimeZone.Current);
             var body = new
             {
                 remindAt = when,

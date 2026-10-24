@@ -5,8 +5,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SimplArchive.ApiClient;
 using SimplArchive.DesktopClient.Services;
 using SimplArchive.Localization;
+using SimplArchive.Presentation;
 
 namespace SimplArchive.DesktopClient.ViewModels;
 
@@ -29,10 +31,12 @@ public partial class ReminderDialogViewModel : ObservableObject
     // The shared labels (Presentation.ReminderRepeat), indexed by the value the server stores; the phone lists the same.
     public string[] RecurrenceOptions { get; } = [.. SimplArchive.Presentation.ReminderRepeat.LabelKeys.Select(Strings.Get)];
 
-    [ObservableProperty] private DateTime? _reminderDate = DateTime.Now.AddDays(1);
+    // Tomorrow as a calendar day in the session's zone, the zone the typed time is read in below (#1909,
+    // Presentation.ReminderSchedule) — the same rule the web and the phone preset.
+    [ObservableProperty] private DateTime? _reminderDate = ReminderSchedule.DefaultDate(TimeProvider.System.GetUtcNow(), SessionTimeZone.Current).ToDateTime(TimeOnly.MinValue);
     // Typed, not spun (#1057): the reminder's time is something the user already knows. Seeded from the
     // 09:00 default the spinner used to show.
-    [ObservableProperty] private string _reminderTimeEntry = "09:00";
+    [ObservableProperty] private string _reminderTimeEntry = ReminderSchedule.DefaultTime.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
     [ObservableProperty] private string _note = string.Empty;
     [ObservableProperty] private int _recurrenceIndex;
     [ObservableProperty] private UserOptionInfo? _selectedTarget;
@@ -119,8 +123,8 @@ public partial class ReminderDialogViewModel : ObservableObject
                 return;
             }
 
-            var local = date.Date + (typed?.ToTimeSpan() ?? TimeSpan.Zero);
-            var when = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local));
+            // In the session's zone (the user's preference, else the machine's), as the default above was made.
+            var when = WallClock.At(DateOnly.FromDateTime(date), typed ?? TimeOnly.MinValue, SessionTimeZone.Current);
             var targetId = SelectedTarget is { } t && t.Id != Guid.Empty ? t.Id : (Guid?)null;
             await _api.Documents.CreateReminderAsync(_remindersHref, when, string.IsNullOrWhiteSpace(Note) ? null : Note, RecurrenceIndex, targetId);
             Note = string.Empty;
