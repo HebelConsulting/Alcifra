@@ -131,7 +131,7 @@ public sealed partial class MainWindowViewModel
     /// A new tab that owns a preview belongs here, and <c>DesktopPreviewWiringTests</c> fails if it is missing.
     /// </remarks>
     internal IReadOnlyList<PreviewViewModel> PreviewSurfaces =>
-        [Preview, Intray.Preview, Search.Preview, RecycleBin.Preview, Checkout.Preview];
+        [Preview, Intray.Preview, Search.Preview, RecycleBin.Preview, Checkout.Preview, PasswordsTab.Preview];
 
     /// <summary>
     /// Throws away everything the card decrypted — called when the card leaves the reader (#1353, ADR 0832).
@@ -172,6 +172,9 @@ public sealed partial class MainWindowViewModel
         // sealed and an opened file is let go of, as the phone's sealed-content guard does. Nothing comes back by itself
         // when the card returns; a click on the sealed thread asks for the key.
         Safe.Fire(MessagesTab.KeyLeftAsync);
+
+        // So do the password entries it opened, and an edit of one (ADR 0968); "Open with key" opens them again.
+        PasswordsTab.KeyLeft(placeholder);
 
         foreach (var preview in PreviewSurfaces.Where(p => p.ContentWasEnveloped))
         {
@@ -257,6 +260,7 @@ public sealed partial class MainWindowViewModel
             Safe.Fire(async () => await previous.DisposeAsync());
         }
 
+        UsePasswordsSession();
         if (IsLoggedIn && _messagesTab is { } messages)
         {
             Safe.Fire(async () =>

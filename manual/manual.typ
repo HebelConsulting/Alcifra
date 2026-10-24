@@ -683,6 +683,57 @@ open conversation reads new messages as they arrive.
 What the desktop does not do, because a desktop cannot: take a photo with a camera (choose one from a file instead),
 be woken by a push while it is closed, or back up on a schedule in the background.
 
+== Passwords on the desktop <desktoppasswords>
+
+Where the archive offers the *password store*#idx("Password store"), the workbench shows a *Passwords* tab — the key
+ring at the end of the tab bar. On the left are your stores: *My Passwords* first (it is created the first time you
+open it), then the shared stores you may read. The middle lists the selected folder's folders and entries; the right
+shows the selected entry in the preview.
+
+#shot("screenshots/desktop-passwords.png",
+  [The Passwords tab: My Passwords with its folders, an entry opened in the preview, and the find box lighting what
+  is visible. The password, the PIN and the recovery codes stay hidden.])
+
+*Opening an entry.* Selecting an entry opens it with your hardware key: the card asks for its PIN once and remembers
+it while the card stays in the reader. Only a hardware key opens an entry, never a key stored on the computer, because
+entries are sealed only to attested hardware keys. If you cancel the PIN prompt, the entry stays sealed and *Open with
+key* asks again. When you take the card out, the entry closes with it.
+
+*Reading it.* The fields come in the same order as on the phone: URL, user name, password, PIN, then everything else.
+The password, the PIN and every field marked secret show dots. Hold the eye button down (or hold the space bar while
+it has the focus) to see the value; it hides again the moment you let go, or when the window goes to the background.
+While a secret is visible, the window is kept out of screenshots and screen sharing, where your system allows it. The
+copy button copies a field; a copied secret is removed from the clipboard after 30 seconds, unless you have copied
+something else since. The find box above the entry finds its name, its labels and its plain values, but never a hidden
+value, so it cannot be used to guess one.
+
+*Changing it.* The pencil beside the entry's name opens the form in the preview's place, with *Save* and *Cancel*
+where the pencil was (*Ctrl+S* or *Cmd+S* saves, *Esc* cancels). The form always offers URL, user name and password;
+*Add field* offers the PIN first, then a field you name yourself, which you can hide like a password. The dice beside
+the password open the generator: type a length, choose the kinds of characters, and tick *Avoid look-alike
+characters* for a password you will type from a screen; *Use this password* puts it into the form. Everything is sealed
+on your computer before it leaves it. If somebody else changed the entry since you opened it, saving says so and
+shows you the entry as it is now.
+
+#shot("screenshots/desktop-passwords-edit.png",
+  [Editing an entry: the secret boxes hidden until their eye is held, the generator open below the password, and
+  Save and Cancel where the pencil was.])
+
+*Organising.* The ribbon creates entries and folders, renames, moves within the same store (an entry is sealed to its
+store's readers, so it never leaves it) and deletes to the recycle bin. When who may read a store has changed, a notice
+above the list says that its entries need sealing again; a member who may edit the store re-seals all of them with
+*Re-seal* and one PIN, and is told how many were re-sealed, how many were skipped because somebody changed them
+meanwhile, and which ones this key could not open. If only one key can open My Passwords, a notice recommends enrolling
+a spare key.
+
+*Importing.* The import button reads the CSV file a password manager exports, on your computer: every row becomes an
+entry, sealed here. Only a row whose name and user name match an entry already in the folder is asked about — skip it,
+add it as a new version, or keep both. Afterwards the desktop offers to delete the export file, because it holds every
+password in plain text.
+
+An entry you come across in the *Repositories* tree shows its fields read-only in the preview, opened with your key
+each time; changing it is the Passwords tab's job.
+
 == On a phone or a tablet
 
 The same address, in the same browser, gives you a layout built for the screen you are holding. There is no

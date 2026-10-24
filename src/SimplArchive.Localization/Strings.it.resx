@@ -6432,4 +6432,40 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>Questa voce non può essere letta: ciò che è stato aperto non è una voce di password.</value>
   </data>
+  <data name="PwSelectEntry" xml:space="preserve">
+    <value>Seleziona una voce per aprirla con la tua chiave.</value>
+  </data>
+  <data name="PwOpening" xml:space="preserve">
+    <value>Apertura con la tua chiave…</value>
+  </data>
+  <data name="PwOpenWithKey" xml:space="preserve">
+    <value>Apri con la chiave</value>
+  </data>
+  <data name="PwNoStores" xml:space="preserve">
+    <value>Qui non è disponibile alcun archivio di password.</value>
+  </data>
+  <data name="PwMove" xml:space="preserve">
+    <value>Sposta all'interno dell'archivio</value>
+  </data>
+  <data name="PwDeleteConfirm" xml:space="preserve">
+    <value>Eliminare '{0}'? Finirà nel cestino.</value>
+  </data>
+  <data name="PwImport" xml:space="preserve">
+    <value>Importa</value>
+  </data>
+  <data name="PwReadOnlyHere" xml:space="preserve">
+    <value>Qui in sola lettura. Modificala nella scheda Password.</value>
+  </data>
+  <data name="PwSaveShortcut" xml:space="preserve">
+    <value>Salva (Cmd/Ctrl+S)</value>
+  </data>
+  <data name="PwCancelShortcut" xml:space="preserve">
+    <value>Annulla (Esc)</value>
+  </data>
+  <data name="PwRemoveField" xml:space="preserve">
+    <value>Rimuovi campo</value>
+  </data>
+  <data name="PwEnrolSpareKey" xml:space="preserve">
+    <value>Registra una chiave di riserva</value>
+  </data>
 </root>

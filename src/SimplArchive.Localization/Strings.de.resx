@@ -6432,4 +6432,40 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>Dieser Eintrag konnte nicht gelesen werden: Was geöffnet wurde, ist kein Passworteintrag.</value>
   </data>
+  <data name="PwSelectEntry" xml:space="preserve">
+    <value>Wählen Sie einen Eintrag, um ihn mit Ihrem Schlüssel zu öffnen.</value>
+  </data>
+  <data name="PwOpening" xml:space="preserve">
+    <value>Wird mit Ihrem Schlüssel geöffnet…</value>
+  </data>
+  <data name="PwOpenWithKey" xml:space="preserve">
+    <value>Mit Schlüssel öffnen</value>
+  </data>
+  <data name="PwNoStores" xml:space="preserve">
+    <value>Hier steht Ihnen kein Passwortspeicher zur Verfügung.</value>
+  </data>
+  <data name="PwMove" xml:space="preserve">
+    <value>Innerhalb des Speichers verschieben</value>
+  </data>
+  <data name="PwDeleteConfirm" xml:space="preserve">
+    <value>'{0}' löschen? Es kommt in den Papierkorb.</value>
+  </data>
+  <data name="PwImport" xml:space="preserve">
+    <value>Importieren</value>
+  </data>
+  <data name="PwReadOnlyHere" xml:space="preserve">
+    <value>Hier nur lesbar. Ändern Sie es im Tab Passwörter.</value>
+  </data>
+  <data name="PwSaveShortcut" xml:space="preserve">
+    <value>Speichern (Cmd/Strg+S)</value>
+  </data>
+  <data name="PwCancelShortcut" xml:space="preserve">
+    <value>Abbrechen (Esc)</value>
+  </data>
+  <data name="PwRemoveField" xml:space="preserve">
+    <value>Feld entfernen</value>
+  </data>
+  <data name="PwEnrolSpareKey" xml:space="preserve">
+    <value>Ersatzschlüssel registrieren</value>
+  </data>
 </root>

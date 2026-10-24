@@ -29,10 +29,12 @@ public partial class MainWindowViewModel
         if (value)
         {
             Services.Safe.Fire(MessagesTab.DiscoverAsync);
+            Services.Safe.Fire(PasswordsTab.DiscoverAsync);   // the Passwords tab likewise (ADR 0968)
         }
         else
         {
             MessagesTab.Reset();
+            PasswordsTab.Reset();
         }
     }
 
@@ -73,6 +75,7 @@ public partial class MainWindowViewModel
     private Task ActivateLaterTabAsync(int tab) => tab switch
     {
         MessagesTabIndex => MessagesTab.LoadAsync(),
+        PasswordsTabIndex => PasswordsTab.LoadAsync(),
         _ => Task.CompletedTask,
     };
 }

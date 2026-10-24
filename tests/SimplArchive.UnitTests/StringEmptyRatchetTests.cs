@@ -54,6 +54,10 @@ public class StringEmptyRatchetTests
         ["src/SimplArchive.DesktopClient/ViewModels/PreviewPageViewModel.cs"] = 1,
         ["src/SimplArchive.DesktopClient/Views/HighlightOverlayDrawing.cs"] = 1,
         ["src/SimplArchive.Theming/ThemeEmitter.cs"] = 1,
+        // Moved from the phone's Mobile.Core with the Passwords screens' rules (ADR 0968): PasswordFormField's
+        // `string name = ""` constructor defaults and PasswordEntryRow's positional `string FieldName = ""` — CS1736.
+        ["src/SimplArchive.ApiClient/PasswordStore/PasswordEntryForm.cs"] = 1,
+        ["src/SimplArchive.ApiClient/PasswordStore/PasswordEntryRows.cs"] = 1,
     };
 
     private static readonly Regex BareEmpty = new(@"=\s*""""(\s*[;,)\]}])", RegexOptions.Compiled);

@@ -77,7 +77,7 @@ public sealed partial class PreviewViewModel : ObservableObject
         string.IsNullOrEmpty(WatermarkText) ? [] : System.Linq.Enumerable.Repeat(WatermarkText, 48).ToArray();
 
     // There is something to preview (pages or text) — gates the preview toolbar (find + full-screen toggle).
-    public bool HasPreview => HasPreviewPages || PreviewText is not null;
+    public bool HasPreview => HasPreviewPages || PreviewText is not null || PasswordEntry is not null;
 
     // In-app full-screen of the preview pane (ADR "Desktop preview full-screen toggle"): the preview covers the
     // ribbon + panes (the bottom tab strip stays reachable). Esc / the toggle / a tab switch exit.
@@ -190,6 +190,10 @@ public sealed partial class PreviewViewModel : ObservableObject
         {
             ApplyFindToText();
         }
+        else if (PasswordEntry is not null)
+        {
+            ApplyFindToEntry();
+        }
         else
         {
             ApplyFindToPages();
@@ -252,6 +256,10 @@ public sealed partial class PreviewViewModel : ObservableObject
         if (PreviewText is not null)
         {
             TextFindStamp++;
+        }
+        else if (PasswordEntry is not null)
+        {
+            PasswordEntry.Activate(FindIndex);
         }
         else
         {
@@ -487,6 +495,7 @@ public sealed partial class PreviewViewModel : ObservableObject
         PreviewPages.Clear();
         HasPreviewPages = false;
         PreviewText = null;
+        ClosePasswordEntry();
         CanFindInDocument = false;
         _findMatches.Clear();
         _textMatches = [];

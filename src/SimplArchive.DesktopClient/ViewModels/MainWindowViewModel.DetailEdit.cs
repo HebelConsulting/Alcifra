@@ -369,5 +369,15 @@ public sealed partial class MainWindowViewModel
 
     // The Repositories/Intray preview render goes through the shared Preview surface (ADR "Desktop recycle bin
     // parity" — the Recycle bin has its own).
-    private async Task LoadPreviewAsync(string versionsHref) => await Preview.RenderAsync(await _api!.Documents.GetPreviewAsync(versionsHref));
+    // A Password Entry shows its fields instead, opened with the key (ADR 0968).
+    private async Task LoadPreviewAsync(string versionsHref)
+    {
+        if (DetailIsPasswordEntry())
+        {
+            await ShowPasswordEntryDocumentAsync(versionsHref);
+            return;
+        }
+
+        await Preview.RenderAsync(await _api!.Documents.GetPreviewAsync(versionsHref));
+    }
 }

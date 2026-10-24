@@ -35,6 +35,13 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- The hand-moved clock and the in-memory clipboard the secret field's unit tests use, compiled here too rather than
+       copied: the Passwords tab's 30-second clearing is tested with the same two (ADR 0968). -->
+  <ItemGroup>
+    <Compile Include="..\SimplArchive.UnitTests\PasswordStore\ManualTime.cs" Link="Shared\ManualTime.cs" />
+    <Compile Include="..\SimplArchive.UnitTests\PasswordStore\FakeClipboard.cs" Link="Shared\FakeClipboard.cs" />
+  </ItemGroup>
+
   <!-- The real API is built (not linked) so the fixture can launch it as a subprocess. The DesktopClient is
        linked so the tests drive its real SimplArchiveApiClient/NativeFileOpener/WithExtension. -->
   <ItemGroup>

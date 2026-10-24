@@ -203,10 +203,10 @@ public partial class PreviewPane : UserControl
         gutter.Children.Add(num);
     }
 
-    // The web pane's mark colors (PreviewPane.razor), so the two clients light the same hits the same way.
-    private static readonly IBrush HitBrush = new SolidColorBrush(Color.Parse("#ffe58a"));
-    private static readonly IBrush ActiveHitBrush = new SolidColorBrush(Color.Parse("#f6a821"));
-    private static readonly IBrush HitForeground = Brushes.Black;
+    // The web pane's mark colors, defined once with the password entry's find (FindRunsText).
+    private static readonly IBrush HitBrush = FindRunsText.HitBrush;
+    private static readonly IBrush ActiveHitBrush = FindRunsText.ActiveHitBrush;
+    private static readonly IBrush HitForeground = FindRunsText.HitForeground;
 
     private void RenderText()
     {

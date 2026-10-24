@@ -6432,4 +6432,40 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>This entry could not be read: what opened is not a password entry.</value>
   </data>
+  <data name="PwSelectEntry" xml:space="preserve">
+    <value>Select an entry to open it with your key.</value>
+  </data>
+  <data name="PwOpening" xml:space="preserve">
+    <value>Opening with your key…</value>
+  </data>
+  <data name="PwOpenWithKey" xml:space="preserve">
+    <value>Open with key</value>
+  </data>
+  <data name="PwNoStores" xml:space="preserve">
+    <value>No password store is available to you here.</value>
+  </data>
+  <data name="PwMove" xml:space="preserve">
+    <value>Move within the store</value>
+  </data>
+  <data name="PwDeleteConfirm" xml:space="preserve">
+    <value>Delete '{0}'? It goes to the recycle bin.</value>
+  </data>
+  <data name="PwImport" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="PwReadOnlyHere" xml:space="preserve">
+    <value>Read-only here. Change it in the Passwords tab.</value>
+  </data>
+  <data name="PwSaveShortcut" xml:space="preserve">
+    <value>Save (Cmd/Ctrl+S)</value>
+  </data>
+  <data name="PwCancelShortcut" xml:space="preserve">
+    <value>Cancel (Esc)</value>
+  </data>
+  <data name="PwRemoveField" xml:space="preserve">
+    <value>Remove field</value>
+  </data>
+  <data name="PwEnrolSpareKey" xml:space="preserve">
+    <value>Enrol a spare key</value>
+  </data>
 </root>

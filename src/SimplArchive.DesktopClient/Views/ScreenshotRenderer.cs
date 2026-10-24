@@ -249,6 +249,13 @@ internal static class ScreenshotRenderer
                     : args.Contains("--file") ? MessagesPane.File : MessagesPane.Thread);
                 viewModel.SelectedTab = MainWindowViewModel.MessagesTabIndex;
             }
+            else if (Environment.GetCommandLineArgs().Contains("--passwords"))
+            {
+                // --edit: the edit form with the generator open; otherwise an opened entry in the preview (ADR 0968).
+                viewModel.IsLoggedIn = true;
+                viewModel.PasswordsTab.PopulateDemoForScreenshot(Environment.GetCommandLineArgs().Contains("--edit") ? PasswordsDemo.Edit : PasswordsDemo.Entry);
+                viewModel.SelectedTab = MainWindowViewModel.PasswordsTabIndex;
+            }
             else if (Environment.GetCommandLineArgs().Contains("--checkout"))
             {
                 viewModel.IsLoggedIn = true;

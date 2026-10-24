@@ -6432,4 +6432,40 @@
   <data name="PwEntryUnreadable" xml:space="preserve">
     <value>No se pudo leer esta entrada: lo que se abrió no es una entrada de contraseña.</value>
   </data>
+  <data name="PwSelectEntry" xml:space="preserve">
+    <value>Selecciona una entrada para abrirla con tu llave.</value>
+  </data>
+  <data name="PwOpening" xml:space="preserve">
+    <value>Abriendo con tu llave…</value>
+  </data>
+  <data name="PwOpenWithKey" xml:space="preserve">
+    <value>Abrir con la llave</value>
+  </data>
+  <data name="PwNoStores" xml:space="preserve">
+    <value>Aquí no tienes ningún almacén de contraseñas.</value>
+  </data>
+  <data name="PwMove" xml:space="preserve">
+    <value>Mover dentro del almacén</value>
+  </data>
+  <data name="PwDeleteConfirm" xml:space="preserve">
+    <value>¿Eliminar '{0}'? Irá a la papelera.</value>
+  </data>
+  <data name="PwImport" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="PwReadOnlyHere" xml:space="preserve">
+    <value>Aquí solo lectura. Cámbiala en la pestaña Contraseñas.</value>
+  </data>
+  <data name="PwSaveShortcut" xml:space="preserve">
+    <value>Guardar (Cmd/Ctrl+S)</value>
+  </data>
+  <data name="PwCancelShortcut" xml:space="preserve">
+    <value>Cancelar (Esc)</value>
+  </data>
+  <data name="PwRemoveField" xml:space="preserve">
+    <value>Quitar campo</value>
+  </data>
+  <data name="PwEnrolSpareKey" xml:space="preserve">
+    <value>Registrar una llave de reserva</value>
+  </data>
 </root>

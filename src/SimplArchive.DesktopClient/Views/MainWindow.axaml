@@ -590,6 +590,12 @@
                 <v:MessagesTab DataContext="{Binding MessagesTab}" />
             </TabItem>
 
+            <!-- Passwords (ADR 0968): the password store, appended last, shown where the installation offers it. -->
+            <TabItem ToolTip.Tip="{loc:Tr PwPasswords}" IsVisible="{Binding PasswordsTab.IsOffered}">
+                <TabItem.Header><i:Icon Value="mdi-key-chain-variant" FontSize="20" /></TabItem.Header>
+                <v:PasswordsTab DataContext="{Binding PasswordsTab}" />
+            </TabItem>
+
         </TabControl>
     </DockPanel>
 </Window>

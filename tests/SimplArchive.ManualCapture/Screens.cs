@@ -79,6 +79,11 @@ public static class Screens
             + "is the demo thread, drawn by the same display rules as a real one (core #1813)."),
         new("messages-members", ["--messages", "--members"], WhyFixture:
             "As the Messages figure: no Messenger on the test installation, so a group's members are the demo group's (ADR 0967)."),
+        new("passwords", ["--passwords"], WhyFixture:
+            "An entry opens only with its reader's attested hardware key, which no capture holds: the figure is the demo "
+            + "entry, its fields set as the key would have opened them (ADR 0968)."),
+        new("passwords-edit", ["--passwords", "--edit"], WhyFixture:
+            "As the Passwords figure: the edit form is filled from the demo entry, with the generator open (ADR 0968)."),
         // The structured contact editor with the "Advanced: the stored item" disclosure OPEN. Its own window,
         // because neither of the two tabs above can show it — and the disclosure is the part of this feature a
         // reader is least likely to guess at, since its whole point is the properties the form does not show.

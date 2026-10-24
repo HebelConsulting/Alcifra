@@ -178,6 +178,9 @@
                     <SelectableTextBlock x:Name="TextPreview" FontFamily="Menlo,Consolas,monospace" FontSize="12" Padding="10" TextWrapping="Wrap" />
                 </ScrollViewer>
             </Grid>
+            <!-- An opened password entry (ADR 0968): its fields from memory, found in by the same find box. -->
+            <v:PasswordEntryView DataContext="{Binding PasswordEntry}"
+                                 IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).PasswordEntry, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
             <SelectableTextBlock Text="{Binding PreviewPlaceholder}" Foreground="{DynamicResource WbFaint}" TextWrapping="Wrap" MaxWidth="280"
                        HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
                        IsVisible="{Binding PreviewPlaceholder, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
