@@ -117,9 +117,20 @@ public sealed class RemindersClient(ApiCore core)
     }
 
     // Sets a reminder; targetUserId null = the caller. Returns nothing on success, throws on a rejected request.
-    public async Task CreateReminderAsync(string remindersHref, DateTimeOffset remindAt, string? note, int recurrence, Guid? targetUserId, CancellationToken cancellationToken = default)
+    // Sends no zone, so a recurring reminder repeats at the same UTC instant; prefer the overload below.
+    public Task CreateReminderAsync(string remindersHref, DateTimeOffset remindAt, string? note, int recurrence, Guid? targetUserId, CancellationToken cancellationToken = default) =>
+        CreateReminderAsync(remindersHref, remindAt, note, recurrence, targetUserId, timeZone: null, cancellationToken);
+
+    /// <summary>Sets a reminder, saying which zone its day and time were typed in.</summary>
+    /// <param name="timeZone">
+    /// The IANA zone the user typed the day and time in — the zone <paramref name="remindAt"/> was placed with
+    /// (<c>SessionTimeZone.IanaId</c>). A recurring reminder then repeats at that WALL time across clock changes
+    /// (ADR 0972, #1911); null keeps the old UTC repetition. An overload, not an optional parameter, so a binary
+    /// built against the five-argument method keeps working.
+    /// </param>
+    public async Task CreateReminderAsync(string remindersHref, DateTimeOffset remindAt, string? note, int recurrence, Guid? targetUserId, string? timeZone, CancellationToken cancellationToken = default)
     {
-        var body = new { remindAt, note, recurrence, targetUserId };
+        var body = new { remindAt, note, recurrence, targetUserId, timeZone };
         using var response = await _core.Http.PostAsJsonAsync(remindersHref, body, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

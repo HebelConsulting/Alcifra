@@ -48,6 +48,9 @@ public class DocumentRemindersController : ControllerBase
         public string RecurrenceName { get; set; } = string.Empty;
         public string CreatedByName { get; set; } = string.Empty;
         public bool Mine { get; set; }
+
+        // The IANA zone the reminder was set in, or null (ADR 0972): where a recurring one keeps its wall time.
+        public string? TimeZone { get; set; }
     }
 
     public class ReminderListResource : HypermediaResource
@@ -72,6 +75,11 @@ public class DocumentRemindersController : ControllerBase
         public string? Note { get; set; }
         public int Recurrence { get; set; }
         public Guid? TargetUserId { get; set; }
+
+        // Optional: the IANA zone the user typed the day and time in (ADR 0972, #1911). A recurring reminder then
+        // repeats at that wall time across clock changes; without it, it repeats at the same UTC instant, as a
+        // client that predates the field always had it.
+        public string? TimeZone { get; set; }
     }
 
     // The caller's reminders on this document — ones they set or are the target of (pending; a fired one-shot
@@ -108,6 +116,7 @@ public class DocumentRemindersController : ControllerBase
                 r.Recurrence,
                 CreatedByName = _dbContext.Users.Where(u => u.Id == r.CreatedByUserId).Select(u => u.DisplayName).FirstOrDefault(),
                 Mine = r.CreatedByUserId == userId || r.UserId == userId,
+                r.TimeZoneId,
             })
             .ToListAsync(cancellationToken);
 
@@ -125,6 +134,7 @@ public class DocumentRemindersController : ControllerBase
                 RecurrenceName = r.Recurrence.ToString(),
                 CreatedByName = r.CreatedByName ?? "Unknown",
                 Mine = r.Mine,
+                TimeZone = r.TimeZoneId,
                 Links = [new Link("cancel", $"/api/documents/{documentId}/reminders/{r.Id}", "DELETE")],
             })],
             Links =
@@ -235,6 +245,8 @@ public class DocumentRemindersController : ControllerBase
             throw new InvalidRecurrenceException();
         }
 
+        var timeZoneId = ValidatedTimeZone(request.TimeZone);
+
         var targetId = request.TargetUserId ?? userId;
         if (targetId != userId)
         {
@@ -255,6 +267,7 @@ public class DocumentRemindersController : ControllerBase
             RemindAt = request.RemindAt,
             Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
             Recurrence = (ReminderRecurrence)request.Recurrence,
+            TimeZoneId = timeZoneId,
             CreatedByUserId = userId,
             CreatedAt = DateTimeOffset.UtcNow,
         };
@@ -273,8 +286,24 @@ public class DocumentRemindersController : ControllerBase
             RecurrenceName = reminder.Recurrence.ToString(),
             CreatedByName = await _dbContext.Users.Where(u => u.Id == userId).Select(u => u.DisplayName).SingleAsync(cancellationToken),
             Mine = true,
+            TimeZone = reminder.TimeZoneId,
             Links = [new Link("cancel", $"/api/documents/{documentId}/reminders/{reminder.Id}", "DELETE")],
         });
+    }
+
+    // Blank is "not sent"; anything else must be a zone the shared list knows (the check the display-zone
+    // preference uses, which declines to judge on a host with no zone database rather than refusing everything).
+    private static string? ValidatedTimeZone(string? requested)
+    {
+        if (string.IsNullOrWhiteSpace(requested))
+        {
+            return null;
+        }
+
+        var zoneId = requested.Trim();
+        return zoneId.Length <= DocumentReminder.TimeZoneIdMaxLength && SimplArchive.Presentation.TimeZoneChoices.Contains(zoneId)
+            ? zoneId
+            : throw new UnknownReminderTimeZoneException(zoneId);
     }
 
     // Cancel a reminder — the creator or the target may cancel it.

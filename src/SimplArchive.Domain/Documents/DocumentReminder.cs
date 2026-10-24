@@ -34,6 +34,14 @@ public class DocumentReminder : ITenantScoped
 
     public ReminderRecurrence Recurrence { get; set; }
 
+    // The IANA zone the reminder was set in (ADR 0972, #1911): a recurring reminder repeats at the same WALL time
+    // there ("09:00 every day"), not the same UTC instant, which drifts an hour at each clock change. Null for a
+    // reminder stored before it existed or set by a client that does not send one; those keep the UTC arithmetic.
+    public string? TimeZoneId { get; set; }
+
+    /// <summary>The column's length — shared by the model configuration and the API's validation.</summary>
+    public const int TimeZoneIdMaxLength = 64;
+
     // Who set it — may differ from UserId when the reminder was assigned to someone else.
     public Guid CreatedByUserId { get; set; }
 

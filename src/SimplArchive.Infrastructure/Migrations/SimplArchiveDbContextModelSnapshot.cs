@@ -1293,6 +1293,10 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("TimeZoneId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 

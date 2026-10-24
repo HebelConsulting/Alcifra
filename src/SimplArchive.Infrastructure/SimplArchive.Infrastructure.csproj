@@ -4,6 +4,10 @@
     <!-- "PDF bytes -> word boxes" lives in a leaf now, because the strict tier made it a CLIENT
          question too (#1402): the desktop computes find-in-document from bytes the card just decrypted. -->
     <ProjectReference Include="..\SimplArchive.TextLayout\SimplArchive.TextLayout.csproj" />
+    <!-- The dependency-free leaf holding "a day and a time placed in a zone" (WallClock): the reminder sweep
+         advances a recurring reminder at the wall time it was set in (#1911), the same placement the clients
+         use when the reminder is typed. One answer, not a server copy of it. -->
+    <ProjectReference Include="..\SimplArchive.Presentation\SimplArchive.Presentation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

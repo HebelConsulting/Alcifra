@@ -126,7 +126,8 @@ public partial class ReminderDialogViewModel : ObservableObject
             // In the session's zone (the user's preference, else the machine's), as the default above was made.
             var when = WallClock.At(DateOnly.FromDateTime(date), typed ?? TimeOnly.MinValue, SessionTimeZone.Current);
             var targetId = SelectedTarget is { } t && t.Id != Guid.Empty ? t.Id : (Guid?)null;
-            await _api.Documents.CreateReminderAsync(_remindersHref, when, string.IsNullOrWhiteSpace(Note) ? null : Note, RecurrenceIndex, targetId);
+            // With the zone it was placed in, so a recurring one repeats at this wall time across clock changes (#1911).
+            await _api.Documents.CreateReminderAsync(_remindersHref, when, string.IsNullOrWhiteSpace(Note) ? null : Note, RecurrenceIndex, targetId, SessionTimeZone.IanaId);
             Note = string.Empty;
             Status = Strings.Get("StReminderSet");
             await ReloadRemindersAsync();

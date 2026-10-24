@@ -17,7 +17,7 @@
                 <DataTemplate x:DataType="api:RemindersClient+ReminderInfo">
                     <Grid ColumnDefinitions="*,Auto" Margin="0,2">
                         <StackPanel Grid.Column="0">
-                            <SelectableTextBlock Text="{Binding RemindAt, StringFormat='{}{0:g}'}" FontSize="12" />
+                            <SelectableTextBlock Text="{Binding RemindAt, Converter={x:Static vm:SessionZoneTimeConverter.Instance}}" FontSize="12" />
                             <SelectableTextBlock Text="{Binding TargetName}" FontSize="11" Foreground="Gray" />
                         </StackPanel>
                         <Button Grid.Column="1" Content="{loc:Tr Cancel}" FontSize="11"

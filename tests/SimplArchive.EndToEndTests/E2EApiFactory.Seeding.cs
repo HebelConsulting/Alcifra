@@ -437,12 +437,17 @@ public sealed partial class E2EApiFactory
 
     // Back-dates a reminder's due time so the next sweep fires it (the API rejects a past RemindAt, so this
     // reaches into the DB directly) — used by the reminders E2E to exercise the sweep without waiting.
-    public async Task BackdateReminderAsync(Guid reminderId)
+    public Task BackdateReminderAsync(Guid reminderId) => BackdateReminderAsync(reminderId, DateTimeOffset.UtcNow.AddMinutes(-1));
+
+    // Makes the reminder due at a chosen past instant — a recurring one's catch-up then starts from there (#1911).
+    public async Task BackdateReminderAsync(Guid reminderId, DateTimeOffset dueAt)
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SimplArchiveDbContext>();
         var reminder = await db.DocumentReminders.IgnoreQueryFilters().SingleAsync(r => r.Id == reminderId);
-        reminder.RemindAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+        // A direct write, so it does not pass the API's UTC-normalising JSON converter: `timestamp with time zone`
+        // takes only UTC (#1911).
+        reminder.RemindAt = dueAt.ToUniversalTime();
         await db.SaveChangesAsync();
     }
 

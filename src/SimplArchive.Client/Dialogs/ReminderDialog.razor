@@ -134,6 +134,9 @@
                 note = _note,
                 recurrence = _recurrence,
                 targetUserId = _target == Guid.Empty ? (Guid?)null : _target,
+                // The zone the day and time were placed in, so a recurring reminder repeats at this wall time
+                // across clock changes rather than at the same UTC instant (#1911, ADR 0972).
+                timeZone = SessionTimeZone.IanaId,
             };
             if (_createHref is null) { return; }
 

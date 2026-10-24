@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Notifications;
 using SimplArchive.Domain.Tenants;
@@ -44,7 +45,7 @@ public class DocumentReminderServiceTests
 
         using (var act = CreateContext(connection))
         {
-            var fired = await new DocumentReminderService(act).SweepAsync();
+            var fired = await new DocumentReminderService(act, NullLogger<DocumentReminderService>.Instance).SweepAsync();
             Assert.Equal(2, fired); // the one-shot + the recurring, not the future one
         }
 
@@ -67,5 +68,61 @@ public class DocumentReminderServiceTests
         // Future: untouched.
         Assert.Null(reminders[future.Id].FiredAt);
         Assert.Equal(future.RemindAt, reminders[future.Id].RemindAt);
+    }
+
+    // #1911: a recurring reminder set in a zone repeats at the same wall time there, across clock changes, while
+    // one without a zone keeps the UTC arithmetic. The start is chosen on the OTHER side of a change from today,
+    // so the catch-up crosses at least one, whichever day this runs on.
+    [Fact]
+    public async Task A_zoned_recurring_reminder_keeps_its_wall_time_and_an_unzoned_one_keeps_utc()
+    {
+        var zurich = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich");
+        var now = DateTimeOffset.UtcNow;
+        // A summer start (07:00Z) unless an unzoned reminder starting there would next land in summer too, where
+        // its UTC arithmetic happens to be right; then a winter one (08:00Z). Judged at the LANDING, not at now:
+        // the day before a change, the two differ.
+        var summer = new DateTimeOffset(now.Year - 1, 7, 15, 9, 0, 0, TimeSpan.FromHours(2));
+        var landing = new DateTimeOffset(now.UtcDateTime.Date + summer.UtcDateTime.TimeOfDay, TimeSpan.Zero);
+        landing = landing > now ? landing : landing.AddDays(1);
+        var start = zurich.IsDaylightSavingTime(landing)
+            ? new DateTimeOffset(now.Year - 1, 1, 15, 9, 0, 0, TimeSpan.FromHours(1))
+            : summer;
+
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        using (var setup = CreateContext(connection)) await setup.Database.EnsureCreatedAsync();
+
+        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = now };
+        var target = new User { Id = Guid.NewGuid(), TenantId = tenant.Id, Email = "t@acme.test", DisplayName = "Target", CreatedAt = now };
+        var doc = new Document { Id = Guid.NewGuid(), TenantId = tenant.Id, Name = "Contract", CreatedByUserId = target.Id, CreatedAt = now };
+        var zoned = new DocumentReminder { Id = Guid.NewGuid(), TenantId = tenant.Id, UserId = target.Id, DocumentId = doc.Id, RemindAt = start, Recurrence = ReminderRecurrence.Daily, TimeZoneId = "Europe/Zurich", CreatedByUserId = target.Id, CreatedAt = start };
+        var unzoned = new DocumentReminder { Id = Guid.NewGuid(), TenantId = tenant.Id, UserId = target.Id, DocumentId = doc.Id, RemindAt = start, Recurrence = ReminderRecurrence.Daily, CreatedByUserId = target.Id, CreatedAt = start };
+
+        using (var seed = CreateContext(connection))
+        {
+            seed.Tenants.Add(tenant);
+            seed.Users.Add(target);
+            seed.Documents.Add(doc);
+            seed.DocumentReminders.AddRange(zoned, unzoned);
+            await seed.SaveChangesAsync();
+        }
+
+        using (var act = CreateContext(connection))
+        {
+            Assert.Equal(2, await new DocumentReminderService(act, NullLogger<DocumentReminderService>.Instance).SweepAsync());
+        }
+
+        using var read = CreateContext(connection);
+        var reminders = await read.DocumentReminders.IgnoreQueryFilters().AsNoTracking().ToDictionaryAsync(r => r.Id);
+
+        Assert.Equal("Europe/Zurich", reminders[zoned.Id].TimeZoneId);
+        Assert.True(reminders[zoned.Id].RemindAt > now);
+        Assert.Equal(new TimeOnly(9, 0), TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(reminders[zoned.Id].RemindAt, zurich).DateTime));
+
+        // The old behaviour, kept for a reminder without a zone: the same UTC time of day as the start, which on
+        // the other side of the change is 08:00 or 10:00 on the wall.
+        Assert.Null(reminders[unzoned.Id].TimeZoneId);
+        Assert.Equal(start.UtcDateTime.TimeOfDay, reminders[unzoned.Id].RemindAt.UtcDateTime.TimeOfDay);
+        Assert.NotEqual(new TimeOnly(9, 0), TimeOnly.FromDateTime(TimeZoneInfo.ConvertTime(reminders[unzoned.Id].RemindAt, zurich).DateTime));
     }
 }

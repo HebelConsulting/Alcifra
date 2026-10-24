@@ -132,6 +132,31 @@ public partial class DisplayZoneRatchetTests
         }
     }
 
+    // A desktop view that formats a bound instant with a date StringFormat prints it in the offset the payload
+    // carried — UTC on Postgres — never on the viewer's clock. The reminder dialog and My Work list did exactly
+    // that while the web converted (#1911); no `.ToLocalTime()` appears, so the scan above cannot see it.
+    [GeneratedRegex(@"StringFormat='?\{\}\{0:(?:[gGdDfFtTuUsoOrR]|[yMdHhms][^}]*)\}")]
+    private static partial Regex DateStringFormat();
+
+    [Fact]
+    public void No_desktop_view_formats_a_bound_instant_in_the_payloads_offset()
+    {
+        var views = Path.Combine(RepoRoot(), "src", "SimplArchive.DesktopClient");
+        var offenders = Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .SelectMany(f => File.ReadAllLines(f)
+                .Where(l => DateStringFormat().IsMatch(l))
+                .Select(l => $"  {Path.GetFileName(f)}: {l.Trim()}"))
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "These bind an instant with a date StringFormat, which prints the offset the server answered with "
+            + "(UTC on Postgres) instead of the session's (#1911):\n" + string.Join("\n", offenders)
+            + "\n\nUse `Converter={x:Static vm:SessionZoneTimeConverter.Instance}`, or a row view-model property "
+            + "that calls `.InZone(SessionTimeZone.Current)`.");
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

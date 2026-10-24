@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
 using SimplArchive.Domain.Notifications;
@@ -17,10 +18,12 @@ public sealed class DocumentReminderService : IDocumentReminderService
     private static readonly string[] TenantFilterOnly = ["TenantFilter"];
 
     private readonly SimplArchiveDbContext _dbContext;
+    private readonly ILogger<DocumentReminderService> _logger;
 
-    public DocumentReminderService(SimplArchiveDbContext dbContext)
+    public DocumentReminderService(SimplArchiveDbContext dbContext, ILogger<DocumentReminderService> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
 
     public async Task<int> SweepAsync(CancellationToken cancellationToken = default)
@@ -137,36 +140,47 @@ public sealed class DocumentReminderService : IDocumentReminderService
             .IgnoreQueryFilters(TenantFilterOnly)
             .Where(r => r.Id == reminder.Id);
 
-        var won = reminder.Recurrence == ReminderRecurrence.None
-            ? await rows.Where(r => r.FiredAt == null)
-                .ExecuteUpdateAsync(set => set.SetProperty(r => r.FiredAt, (DateTimeOffset?)now), cancellationToken)
-            : await rows.Where(r => r.RemindAt == reminder.RemindAt)
-                .ExecuteUpdateAsync(
-                    set => set.SetProperty(
-                        r => r.RemindAt, NextOccurrence(reminder.RemindAt, reminder.Recurrence, now)),
-                    cancellationToken);
+        if (reminder.Recurrence == ReminderRecurrence.None)
+        {
+            return await rows.Where(r => r.FiredAt == null)
+                .ExecuteUpdateAsync(set => set.SetProperty(r => r.FiredAt, (DateTimeOffset?)now), cancellationToken) == 1;
+        }
+
+        // Computed before the statement, from the row this sweep read: the compare-and-swap below is on that same
+        // RemindAt, so a sweep that lost the race never writes its (identical) answer over the winner's.
+        // The occurrence carries its zone's offset; `timestamp with time zone` takes only UTC, and the API's JSON
+        // converter normalizes what arrives through HTTP — this write does not go through it (#1911, #1909's trap).
+        var next = ReminderOccurrence.After(reminder.RemindAt, reminder.Recurrence, ZoneOf(reminder), now).ToUniversalTime();
+        var won = await rows.Where(r => r.RemindAt == reminder.RemindAt)
+            .ExecuteUpdateAsync(set => set.SetProperty(r => r.RemindAt, next), cancellationToken);
 
         return won == 1;
     }
 
-    // The first occurrence strictly after now — fires once and schedules the next future occurrence, skipping
-    // any missed periods rather than firing once per missed period.
-    private static DateTimeOffset NextOccurrence(DateTimeOffset from, ReminderRecurrence recurrence, DateTimeOffset now)
+    // The zone the reminder was set in, or null for the UTC arithmetic (a reminder without one, ADR 0972). A zone
+    // this host cannot resolve — the API refused unknown ones, so this is a host without its zone database or one
+    // whose database dropped the id — is not guessed: it falls back to UTC and SAYS so, because nobody would
+    // otherwise learn why a reminder drifted (ADR 0626).
+    private TimeZoneInfo? ZoneOf(DocumentReminder reminder)
     {
-        var next = Advance(from, recurrence);
-        while (next <= now)
+        if (string.IsNullOrWhiteSpace(reminder.TimeZoneId))
         {
-            next = Advance(next, recurrence);
+            return null;
         }
 
-        return next;
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(reminder.TimeZoneId);
+        }
+        catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            _logger.LogWarning(
+                "Reminder {ReminderId} was set in time zone {TimeZoneId}, which this host cannot resolve, so it is "
+                + "advanced in UTC and will drift an hour at a clock change. Install the IANA time-zone database "
+                + "(the 'tzdata' package on Alpine).",
+                reminder.Id,
+                reminder.TimeZoneId);
+            return null;
+        }
     }
-
-    private static DateTimeOffset Advance(DateTimeOffset value, ReminderRecurrence recurrence) => recurrence switch
-    {
-        ReminderRecurrence.Daily => value.AddDays(1),
-        ReminderRecurrence.Weekly => value.AddDays(7),
-        ReminderRecurrence.Monthly => value.AddMonths(1),
-        _ => throw new ArgumentOutOfRangeException(nameof(recurrence), recurrence, "Not a recurring cadence."),
-    };
 }

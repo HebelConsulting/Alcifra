@@ -16,6 +16,8 @@ public class DocumentReminderConfiguration : IEntityTypeConfiguration<DocumentRe
     {
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Note).HasMaxLength(2000);
+        // An IANA id ("America/Argentina/ComodRivadavia" is the longest in use, 32); 64 leaves room (ADR 0972).
+        builder.Property(r => r.TimeZoneId).HasMaxLength(DocumentReminder.TimeZoneIdMaxLength);
 
         builder.HasIndex(r => new { r.TenantId, r.RemindAt });
         builder.HasIndex(r => new { r.TenantId, r.UserId });
