@@ -6621,4 +6621,25 @@
   <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
     <value>Solo l'autore della versione attuale di questo documento sigillato può cambiare per chi è sigillato.</value>
   </data>
+  <data name="AccountBrowserAutofill" xml:space="preserve">
+    <value>Compilazione automatica del browser…</value>
+  </data>
+  <data name="BrowserAutofillTitle" xml:space="preserve">
+    <value>Compilazione automatica del browser</value>
+  </data>
+  <data name="BrowserAutofillBody" xml:space="preserve">
+    <value>Una estensione del browser può compilare gli accessi dal tuo archivio password. La richiesta indica solo il sito; la voce viene aperta qui, con la tua chiave hardware e il suo PIN.</value>
+  </data>
+  <data name="BrowserAutofillEnable" xml:space="preserve">
+    <value>Attiva la compilazione automatica mentre questo client è in esecuzione</value>
+  </data>
+  <data name="BrowserAutofillIdHint" xml:space="preserve">
+    <value>Carica l'estensione non pacchettizzata (browser-extension/chrome nel repository) e copia l'ID mostrato.</value>
+  </data>
+  <data name="BrowserAutofillIdWatermark" xml:space="preserve">
+    <value>ID dell'estensione</value>
+  </data>
+  <data name="BrowserAutofillScope" xml:space="preserve">
+    <value>Solo l'estensione con questo ID può chiedere; il segreto lascia questa macchina solo verso la pagina che scegli.</value>
+  </data>
 </root>

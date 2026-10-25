@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.HardwareKeys;
 
 /// <summary>
 /// The two primitives a CMS key-agreement recipient needs and .NET does not expose: the X9.63 KDF that turns

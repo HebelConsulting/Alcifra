@@ -6621,4 +6621,25 @@
   <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
     <value>Only the author of this sealed document's current version can change who it is sealed to.</value>
   </data>
+  <data name="AccountBrowserAutofill" xml:space="preserve">
+    <value>Browser autofill…</value>
+  </data>
+  <data name="BrowserAutofillTitle" xml:space="preserve">
+    <value>Browser autofill</value>
+  </data>
+  <data name="BrowserAutofillBody" xml:space="preserve">
+    <value>Let a browser extension fill logins from your password store. A request only names the site; the entry is opened here, with your hardware key and its PIN.</value>
+  </data>
+  <data name="BrowserAutofillEnable" xml:space="preserve">
+    <value>Enable browser autofill while this client is running</value>
+  </data>
+  <data name="BrowserAutofillIdHint" xml:space="preserve">
+    <value>Load the extension unpacked (browser-extension/chrome in the repository) and copy the id it shows.</value>
+  </data>
+  <data name="BrowserAutofillIdWatermark" xml:space="preserve">
+    <value>Extension id</value>
+  </data>
+  <data name="BrowserAutofillScope" xml:space="preserve">
+    <value>Only the extension with this id may ask, and the secret never leaves this machine except into the page you choose.</value>
+  </data>
 </root>

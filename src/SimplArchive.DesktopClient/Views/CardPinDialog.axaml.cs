@@ -15,7 +15,7 @@ public partial class CardPinDialog : Window
     public string? Pin { get; private set; }
 
     public CardPinDialog()
-        : this(new Services.CardBeingUnlocked(string.Empty, string.Empty, string.Empty))
+        : this(new HardwareKeys.CardBeingUnlocked(string.Empty, string.Empty, string.Empty))
     {
     }
 
@@ -24,7 +24,7 @@ public partial class CardPinDialog : Window
     /// The parameterless overload above exists for the designer and for a caller with nothing to say; it
     /// renders no card line rather than an empty one, so a single-card installation looks exactly as before.
     /// </remarks>
-    public CardPinDialog(Services.CardBeingUnlocked card)
+    public CardPinDialog(HardwareKeys.CardBeingUnlocked card)
     {
         InitializeComponent();
 

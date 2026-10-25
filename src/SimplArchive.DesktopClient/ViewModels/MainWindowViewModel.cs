@@ -97,6 +97,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
         // know, and everything else is discovered from it. Fire-and-forget — a workbench that cannot reach the
         // root has larger problems, and the only consequence here is that the affordance stays hidden.
         _ = LoadRootLinksAsync(api);
+
+        // Browser autofill (ADR 0978): the bridge speaks for THIS session, so it is started when one exists and
+        // only if the user switched it on. Stopping is the sign-out hook's job (App.axaml.cs).
+        Services.BrowserAutofill.Apply(api);
     }
 
     private async Task LoadRootLinksAsync(SimplArchiveApiClient api)

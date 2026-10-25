@@ -15,7 +15,7 @@ namespace SimplArchive.UnitTests;
 public class CardCertificatesSeeSessionObjectsTests
 {
     private static string Source() => File.ReadAllText(Path.Combine(
-        RepoPaths.Root(), "src", "SimplArchive.DesktopClient", "Services", "CardCertificates.cs"));
+        RepoPaths.Root(), "src", "SimplArchive.HardwareKeys", "CardCertificates.cs"));
 
     private static IEnumerable<string> Code(string source) => source
         .Split('\n')

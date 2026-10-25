@@ -1,0 +1,16 @@
+using System.ComponentModel;
+using Spectre.Console.Cli;
+
+namespace SimplArchive.Sapass.Commands;
+
+/// <summary>The options every store command shares: which store, and whether to re-read its tree.</summary>
+public class StoreSettings : CommandSettings
+{
+    [CommandOption("-s|--store <NAME>")]
+    [Description("The password store, by name. Defaults to My Passwords.")]
+    public string? Store { get; init; }
+
+    [CommandOption("--refresh")]
+    [Description("Read the tree from the installation instead of the local cache (five minutes by default).")]
+    public bool Refresh { get; init; }
+}

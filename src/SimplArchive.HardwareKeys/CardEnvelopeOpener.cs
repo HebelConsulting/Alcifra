@@ -6,9 +6,10 @@ using System.Security.Cryptography.Xml;
 using CAManagement.Pkcs11.DataStructures;
 using MimeKit;
 using MimeKit.Cryptography;
+using Microsoft.Extensions.Logging;
 using SimplArchive.ApiClient;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.HardwareKeys;
 
 /// <summary>
 /// Opens a CMS envelope with the key on a card, which never leaves it (#1353, ADR 0832).
@@ -116,7 +117,7 @@ public static class CardEnvelopeOpener
                         return opened;
                     }
 
-                    DesktopLog.Debug(
+                    ApiClientSettings.Logger.LogDebug(
                         "Card {Serial} is an addressee but did not open the envelope; trying the next of {Count}.",
                         card.TokenSerial, addressed.Count);
                 }
@@ -168,7 +169,7 @@ public static class CardEnvelopeOpener
                 // The certificate matched by issuer and serial a moment ago, so this cannot normally happen —
                 // it would mean the CMS names the recipient a way EnvelopeRecipients does not read. Declining
                 // lets a later opener try, which is the same answer as "not addressed to this card".
-                DesktopLog.Debug("The envelope's recipients do not name the card certificate that matched it.");
+                ApiClientSettings.Logger.LogDebug("The envelope's recipients do not name the card certificate that matched it.");
                 return null;
             }
 
@@ -179,7 +180,7 @@ public static class CardEnvelopeOpener
             // The card is present and holds a key, and it still could not unwrap this — which means the
             // envelope was addressed to somebody else. DECLINING lets a later opener try; with the card last
             // in the list, the caller then gets the "which of the three is missing" message.
-            DesktopLog.Debug("The card declined to unwrap this envelope: {Reason}", e.Message);
+            ApiClientSettings.Logger.LogDebug("The card declined to unwrap this envelope: {Reason}", e.Message);
             return null;
         }
 
@@ -195,7 +196,7 @@ public static class CardEnvelopeOpener
     /// The same key selection and the same recipient routing as <see cref="Unwrap"/>, through the same methods,
     /// so a key that passes the test is a key the document path opens with.
     /// </remarks>
-    internal static byte[] OpenOnCard(
+    public static byte[] OpenOnCard(
         CAManagement.Pkcs11.Pkcs11Session session, byte[] raw, byte[]? keyId, X509Certificate2 addressedTo)
     {
         var (decrypt, derive) = KeyOperations(session, keyId)
@@ -270,7 +271,7 @@ public static class CardEnvelopeOpener
             }
             else
             {
-                DesktopLog.Debug(
+                ApiClientSettings.Logger.LogDebug(
                     "No private key on the card carries the matched certificate's CKA_ID, so the first of "
                     + "{Count} is used. An unwrap failure after this is likely the wrong key.", keys.Count);
             }
@@ -373,7 +374,7 @@ public static class CardEnvelopeOpener
     /// another producer need not, and the point of the check is the CRYPTO agreeing with a standard
     /// implementation rather than our own framing.
     /// </remarks>
-    internal static byte[] OpenWithAgreement(
+    public static byte[] OpenWithAgreement(
         byte[] raw, Func<byte[], byte[]> deriveSharedSecret, int recipientIndex = 0)
     {
         var envelopedCms = new EnvelopedCms();
@@ -499,7 +500,7 @@ public static class CardEnvelopeOpener
             try
             {
                 var contentKey = KeyAgreementCrypto.UnwrapKey(kek, encryptedKey);
-                DesktopLog.Debug("The envelope's key agreement used the {Spelling} keyInfo encoding.", spelling);
+                ApiClientSettings.Logger.LogDebug("The envelope's key agreement used the {Spelling} keyInfo encoding.", spelling);
                 return contentKey;
             }
             catch (CryptographicException)

@@ -122,6 +122,12 @@ public class NoSecretReachesALogTests
     {
         ["src/SimplArchive.Cli/Commands/TenantCreateCommand.cs"] =
             "the bootstrap password hand-off: generated once, stored nowhere retrievable, and announced as such",
+        ["src/SimplArchive.Sapass/Commands/ShowCommand.cs"] =
+            "the tool's DATA output (ADR 0906): `sapass show` prints the entry's password on stdout — the whole "
+            + "point of the command, pass's contract, and what `sapass show x | head -1` captures (ADR 0964)",
+        ["src/SimplArchive.Sapass/Commands/GenerateCommand.cs"] =
+            "the generated secret's one and only sighting: `sapass generate` prints the password it filed, because "
+            + "it exists nowhere the user can read it afterwards (the stored copy needs the card)",
     };
 
     [Fact]

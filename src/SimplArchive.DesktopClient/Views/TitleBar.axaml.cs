@@ -42,6 +42,8 @@ public partial class TitleBar : UserControl
 
     private void OnManagePasskeys(object? sender, RoutedEventArgs e) => Window()?.OnManagePasskeys(sender, e);
 
+    private void OnBrowserAutofill(object? sender, RoutedEventArgs e) => Window()?.OnBrowserAutofill(sender, e);
+
     private void OnManageWebDav(object? sender, RoutedEventArgs e) => Window()?.OnManageWebDav(sender, e);
 
     private void OnManageImap(object? sender, RoutedEventArgs e) => Window()?.OnManageImap(sender, e);

@@ -61,9 +61,11 @@
     <ProjectReference Include="..\SimplArchive.SelfHosting\SimplArchive.SelfHosting.csproj" />
   </ItemGroup>
 
-  <!-- The shared API client's types (ADR 0917), used here as the desktop's own were. -->
+  <!-- The shared API client's types (ADR 0917), used here as the desktop's own were, and the card's, which moved
+       to a leaf on 2026-10-25 and are still exercised here as they were. -->
   <ItemGroup>
     <Using Include="SimplArchive.ApiClient" />
+    <Using Include="SimplArchive.HardwareKeys" />
   </ItemGroup>
 
   <ItemGroup>

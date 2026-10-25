@@ -50,7 +50,7 @@ public static class Impersonation
         using var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:token-exchange",
-            ["client_id"] = DeviceFlow.ClientId,
+            ["client_id"] = CliIdentity.ClientId,
             ["subject_token"] = subjectToken,
             ["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
             ["requested_subject"] = userId,

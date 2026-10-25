@@ -159,13 +159,13 @@ public static class WindowShots
 
             if (args.Contains("--rows"))
             {
-                Services.CardCertificates.Reader = _ =>
+                HardwareKeys.CardCertificates.Reader = _ =>
                 [
-                    new Services.CardCertificates.Found(
+                    new HardwareKeys.CardCertificates.Found(
                         "Florian Hebel (PIV test)", "862b4a1390bc153e", "Certificate for Key Management",
                         SyntheticCertificate("CN=Florian Hebel, O=Hebel Consulting, C=CH",
                             System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.KeyEncipherment)),
-                    new Services.CardCertificates.Found(
+                    new HardwareKeys.CardCertificates.Found(
                         "Second reader", "0f1e2d3c4b5a6978", "Certificate for Digital Signature",
                         SyntheticCertificate("CN=Florian Hebel (signing), O=Hebel Consulting, C=CH",
                             System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.DigitalSignature)),
@@ -179,7 +179,7 @@ public static class WindowShots
                 // matter — FindModule only asks whether something is there.
                 var stub = Path.Combine(Path.GetTempPath(), "simplarchive-card-screenshot.module");
                 File.WriteAllBytes(stub, []);
-                Services.CardCertificates.ModulePathOverride = stub;
+                HardwareKeys.CardCertificates.ModulePathOverride = stub;
             }
 
             AppBuilder.Configure<App>()

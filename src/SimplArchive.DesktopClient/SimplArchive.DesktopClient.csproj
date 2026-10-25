@@ -78,6 +78,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SimplArchive.ApiClient\SimplArchive.ApiClient.csproj" />
+    <!-- The card code (PKCS#11 module, session, certificates, envelope opener) moved to a leaf on 2026-10-25 so
+         sapass can reach the same key through ONE implementation: C_Initialize is per process, and two copies of
+         the module in one process answer CKR_CRYPTOKI_ALREADY_INITIALIZED (ADR 0832). -->
+    <ProjectReference Include="..\SimplArchive.BrowserHost\SimplArchive.BrowserHost.csproj" />
+    <ProjectReference Include="..\SimplArchive.HardwareKeys\SimplArchive.HardwareKeys.csproj" />
     <ProjectReference Include="..\SimplArchive.Localization\SimplArchive.Localization.csproj" />
     <!-- The design tokens (ADR 0578): the shipped palette for the icon art, and the loader that
          applies a custom theme at startup. -->
@@ -94,9 +99,11 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
     <PackageReference Include="System.Drawing.Common" Version="10.0.13" />
   </ItemGroup>
-  <!-- The shared API client's types (ADR 0917) are used across the desktop like its own were. -->
+  <!-- The shared API client's types (ADR 0917) are used across the desktop like its own were, and the card's types
+       are used across it as they were before the move to the leaf. -->
   <ItemGroup>
     <Using Include="SimplArchive.ApiClient" />
+    <Using Include="SimplArchive.HardwareKeys" />
   </ItemGroup>
 
 </Project>

@@ -20,14 +20,28 @@ public class ApiSettings : CommandSettings
     /// <summary>Environment variable carrying the user access token (set by <c>saconsole login</c>).</summary>
     public const string TokenVariable = "SACONSOLE_TOKEN";
 
+    /// <summary>
+    /// The PRODUCT-LEVEL names, which sapass prints and both tools read FIRST (owner, 2026-10-25): the session
+    /// belongs to the installation, not to one of the two tools. Still printed as the legacy pair above for one
+    /// release, so a kiosk or script that greps for <c>export SACONSOLE_TOKEN=</c> keeps working.
+    /// </summary>
+    public const string NeutralUrlVariable = "SA_URL";
+
+    /// <inheritdoc cref="NeutralUrlVariable"/>
+    public const string NeutralTokenVariable = "SA_TOKEN";
+
     [CommandOption("--url <URL>")]
     [Description("Base URL of the installation, e.g. https://archive.example.com. Defaults to $SACONSOLE_URL.")]
     public string? Url { get; init; }
 
-    /// <summary>The installation to act on — the option if given, else the environment.</summary>
-    public string ResolvedUrl => string.IsNullOrWhiteSpace(Url)
-        ? Environment.GetEnvironmentVariable(UrlVariable) ?? string.Empty
-        : Url;
+    /// <summary>The installation to act on — the option if given, else the environment (product-level name first).</summary>
+    public string ResolvedUrl => !string.IsNullOrWhiteSpace(Url)
+        ? Url
+        : First(NeutralUrlVariable, UrlVariable);
+
+    /// <summary>The first of these environment variables that is set, or the empty string.</summary>
+    protected static string First(params string[] names) =>
+        names.Select(Environment.GetEnvironmentVariable).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? string.Empty;
 
     // Spectre builds settings by reflection and does not enforce `required` — validate explicitly.
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(ResolvedUrl)
@@ -49,7 +63,7 @@ public class ApiSettings : CommandSettings
 public class TenantSessionSettings : ApiSettings
 {
     /// <summary>The access token from the environment — never an option, so it cannot land in shell history.</summary>
-    public string ResolvedToken => Environment.GetEnvironmentVariable(TokenVariable) ?? string.Empty;
+    public string ResolvedToken => First(NeutralTokenVariable, TokenVariable);
 
     public override ValidationResult Validate() => this switch
     {

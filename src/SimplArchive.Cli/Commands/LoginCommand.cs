@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
+using SimplArchive.ApiClient.Login;
 using SimplArchive.Cli.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -112,7 +113,20 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
 
     private static async Task<string> ApproveDeviceCodeAsync(HttpClient http, ILogger logger, CancellationToken cancellationToken)
     {
-        var flow = new DeviceFlow(http);
+        try
+        {
+            return await ApproveAsync(http, logger, cancellationToken);
+        }
+        catch (DeviceFlowException e)
+        {
+            // The shared flow is UI-free and throws its own type; its message is the sentence to show.
+            throw new CliException(e.Message);
+        }
+    }
+
+    private static async Task<string> ApproveAsync(HttpClient http, ILogger logger, CancellationToken cancellationToken)
+    {
+        var flow = new DeviceFlow(http, CliIdentity.ClientId);
 
         var authorization = await flow.RequestAsync(cancellationToken);
 

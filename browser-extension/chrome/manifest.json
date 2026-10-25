@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "SimplArchive autofill",
+  "version": "0.1.0",
+  "description": "Fills logins from your SimplArchive password store, opened with your hardware key.",
+  "permissions": [
+    "nativeMessaging",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "autofill.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

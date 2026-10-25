@@ -39,4 +39,10 @@
     <ProjectReference Include="..\SimplArchive.SealedArchive\SimplArchive.SealedArchive.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The device flow's body classification — is this an answer, or a transient failure the poll must survive? —
+         is asserted directly by SimplArchive.UnitTests. The flow is public; only that seam is internal. -->
+    <InternalsVisibleTo Include="SimplArchive.UnitTests" />
+  </ItemGroup>
+
 </Project>

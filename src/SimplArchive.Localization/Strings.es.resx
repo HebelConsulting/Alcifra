@@ -6621,4 +6621,25 @@
   <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
     <value>Solo el autor de la versión actual de este documento sellado puede cambiar para quién está sellado.</value>
   </data>
+  <data name="AccountBrowserAutofill" xml:space="preserve">
+    <value>Relleno automático del navegador…</value>
+  </data>
+  <data name="BrowserAutofillTitle" xml:space="preserve">
+    <value>Relleno automático del navegador</value>
+  </data>
+  <data name="BrowserAutofillBody" xml:space="preserve">
+    <value>Una extensión del navegador puede rellenar inicios de sesión desde tu almacén de contraseñas. La solicitud solo indica el sitio; la entrada se abre aquí, con tu llave de hardware y su PIN.</value>
+  </data>
+  <data name="BrowserAutofillEnable" xml:space="preserve">
+    <value>Activar el relleno automático mientras este cliente esté en ejecución</value>
+  </data>
+  <data name="BrowserAutofillIdHint" xml:space="preserve">
+    <value>Carga la extensión sin empaquetar (browser-extension/chrome en el repositorio) y copia el ID que muestra.</value>
+  </data>
+  <data name="BrowserAutofillIdWatermark" xml:space="preserve">
+    <value>ID de la extensión</value>
+  </data>
+  <data name="BrowserAutofillScope" xml:space="preserve">
+    <value>Solo la extensión con este ID puede preguntar; el secreto solo sale de esta máquina hacia la página que elijas.</value>
+  </data>
 </root>

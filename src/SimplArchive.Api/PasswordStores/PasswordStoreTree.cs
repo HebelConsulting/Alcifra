@@ -98,6 +98,40 @@ public sealed class PasswordStoreTree(SimplArchiveDbContext dbContext)
         return entries;
     }
 
+    /// <summary>
+    /// Every folder and entry beneath a store or folder, at any depth, as ids — what the flat <c>descendants</c>
+    /// listing pages over (ADR 0207; sapass completion, 2026-10-25).
+    /// </summary>
+    /// <remarks>
+    /// The walk collects the whole id set before the page is read, which is bounded by the store's size rather
+    /// than the archive's: a password store is a personal tree of folders and entries, not a repository. The
+    /// alternative — a recursive CTE — is the raw SQL the provider-agnostic rule forbids (ADR 0542).
+    /// </remarks>
+    public async Task<IReadOnlyList<Guid>> DescendantIdsAsync(PasswordItem root, CancellationToken cancellationToken)
+    {
+        var ids = new List<Guid>();
+        var level = new List<PasswordItem> { root };
+        while (level.Count > 0)
+        {
+            var next = new List<PasswordItem>();
+            foreach (var container in level)
+            {
+                foreach (var child in await ChildrenAsync(container, cancellationToken))
+                {
+                    ids.Add(child.Id);
+                    if (child.Kind == PasswordItemKind.Folder)
+                    {
+                        next.Add(child);
+                    }
+                }
+            }
+
+            level = next;
+        }
+
+        return ids;
+    }
+
     /// <summary>The stores the caller's tenant holds, as ids: a client asks rights of these.</summary>
     public async Task<IReadOnlyList<Guid>> StoreIdsAsync(CancellationToken cancellationToken) =>
         await dbContext.Documents

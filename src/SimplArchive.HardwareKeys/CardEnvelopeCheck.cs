@@ -1,9 +1,12 @@
+using Microsoft.Extensions.Logging;
 using CAManagement.Pkcs11;
 using CAManagement.Pkcs11.Configuration;
 using CAManagement.Pkcs11.DataStructures;
 using CAManagement.Pkcs11.Extensions;
 
-namespace SimplArchive.DesktopClient.Services;
+using SimplArchive.ApiClient;
+
+namespace SimplArchive.HardwareKeys;
 
 /// <summary>
 /// Opens a CMS envelope with the card in the reader, and prints what happened — the verification that needs
@@ -14,23 +17,23 @@ namespace SimplArchive.DesktopClient.Services;
 /// is all that says so, and "the unwrap did not verify" is true of a wrong KDF hash, a wrong key-wrap OID, a
 /// misread shared info and a wrong key alike — so the steps are worth seeing separately.
 /// </remarks>
-internal static class CardEnvelopeCheck
+public static class CardEnvelopeCheck
 {
-    internal static void Run(string envelopePath)
+    public static void Run(string envelopePath)
     {
         var raw = File.ReadAllBytes(envelopePath);
-        DesktopLog.Info("envelope: {Bytes} bytes from {EnvelopePath}", raw.Length, envelopePath);
+        ApiClientSettings.Logger.LogInformation("envelope: {Bytes} bytes from {EnvelopePath}", raw.Length, envelopePath);
 
         // THE KEY-AGREEMENT DETAIL IS PRINTED LATER, once the recipient is known. It used to be read here,
         // at position 0 — which throws on a mixed envelope whose first recipient is a key-transport one, and
         // threw before a single line of diagnosis had been printed (#1500).
         if (CardCertificates.FindModule() is not { } modulePath)
         {
-            DesktopLog.Warn("REFUSED: no PKCS#11 module found.");
+            ApiClientSettings.Logger.LogWarning("REFUSED: no PKCS#11 module found.");
             return;
         }
 
-        DesktopLog.Info("  module           : {Module}", modulePath);
+        ApiClientSettings.Logger.LogInformation("  module           : {Module}", modulePath);
 
         using var library = new Pkcs11Library(new Pkcs11Options { ModulePath = modulePath });
 
@@ -40,10 +43,10 @@ internal static class CardEnvelopeCheck
         // three private keys, took the first, and an ECDH derive against an RSA key threw
         // CKR_KEY_TYPE_INCONSISTENT as an unhandled exception — a crash where a diagnostic is the whole point.
         var recipients = EnvelopeRecipients.Of(raw);
-        DesktopLog.Info("  addressed to     : {Recipients} recipient(s)", recipients.Count);
+        ApiClientSettings.Logger.LogInformation("  addressed to     : {Recipients} recipient(s)", recipients.Count);
 
         var onCard = CardCertificates.ReadFromLibrary(library);
-        DesktopLog.Info("  certificates     : {Certificates} across every slot with a token", onCard.Count);
+        ApiClientSettings.Logger.LogInformation("  certificates     : {Certificates} across every slot with a token", onCard.Count);
 
         // THE CARD THIS CHECK CAN EXERCISE, which is not simply the first that matches. An envelope may
         // address a reader's whole certificate set (ADR 0842) — here a nano by key TRANSPORT and a 5C by key
@@ -59,7 +62,7 @@ internal static class CardEnvelopeCheck
 
         if (agreeing.Count == 0)
         {
-            DesktopLog.Warn("REFUSED: no certificate on any inserted card is one of this envelope's "
+            ApiClientSettings.Logger.LogWarning("REFUSED: no certificate on any inserted card is one of this envelope's "
                 + "recipients. Cards seen: {CardsSeen}",
                 string.Join(", ", onCard.Select(c => $"{c.TokenSerial}/{c.ObjectLabel}")));
             return;
@@ -67,7 +70,7 @@ internal static class CardEnvelopeCheck
 
         foreach (var (card, index) in agreeing)
         {
-            DesktopLog.Info("  candidate        : {TokenSerial} → recipient #{Index} ({RecipientKind})",
+            ApiClientSettings.Logger.LogInformation("  candidate        : {TokenSerial} → recipient #{Index} ({RecipientKind})",
                 card.TokenSerial, index, envelope.RecipientInfos[index].GetType().Name);
         }
 
@@ -75,26 +78,26 @@ internal static class CardEnvelopeCheck
                 envelope.RecipientInfos[m.Index] is System.Security.Cryptography.Pkcs.KeyAgreeRecipientInfo)
             is not { Index: >= 0 } chosen)
         {
-            DesktopLog.Warn("REFUSED: every matching card's recipient is key TRANSPORT (RSA), which this "
+            ApiClientSettings.Logger.LogWarning("REFUSED: every matching card's recipient is key TRANSPORT (RSA), which this "
                 + "check does not cover — use --card-open-test for that path.");
             return;
         }
 
         var addressed = chosen.Card;
 
-        DesktopLog.Info("  matched          : {TokenSerial} / {ObjectLabel}", addressed.TokenSerial, addressed.ObjectLabel);
-        DesktopLog.Info("  subject          : {Subject}", addressed.Certificate.Subject);
+        ApiClientSettings.Logger.LogInformation("  matched          : {TokenSerial} / {ObjectLabel}", addressed.TokenSerial, addressed.ObjectLabel);
+        ApiClientSettings.Logger.LogInformation("  subject          : {Subject}", addressed.Certificate.Subject);
 
         if (OpenOn(library, addressed, raw, chosen.Index) is not { } opened)
         {
             return;
         }
 
-        DesktopLog.Info("OPENED: {Bytes} bytes", opened.Length);
+        ApiClientSettings.Logger.LogInformation("OPENED: {Bytes} bytes", opened.Length);
         // The proof that the unwrap was RIGHT, not merely that it did not throw: the digest of what came out, to compare
         // with `sha256sum` of the file the independent producer enveloped. Never the content: it would land in the
         // rolling log file, and a log holds no payload body (ADR 0626).
-        DesktopLog.Info("content SHA-256: {Sha256}", Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(opened)));
+        ApiClientSettings.Logger.LogInformation("content SHA-256: {Sha256}", Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(opened)));
     }
 
     /// <summary>Logs into the matched card and opens the envelope with the key that certificate names.</summary>
@@ -116,7 +119,7 @@ internal static class CardEnvelopeCheck
             using var login = session.Login(Environment.GetEnvironmentVariable("CARD_PIN") ?? string.Empty);
 
             var keys = session.FindObjects(CK_OBJECT_CLASS.CKO_PRIVATE_KEY);
-            DesktopLog.Info("  private keys     : {Keys} on this card", keys.Count);
+            ApiClientSettings.Logger.LogInformation("  private keys     : {Keys} on this card", keys.Count);
 
             // BY CKA_ID, not the first — a PIV token has four key slots, and on the nano the first is not the
             // key-management one. The certificate names its key; ask it.
@@ -137,24 +140,24 @@ internal static class CardEnvelopeCheck
 
             if (index >= 0)
             {
-                DesktopLog.Info("  key              : matched by CKA_ID at {Index}", index);
+                ApiClientSettings.Logger.LogInformation("  key              : matched by CKA_ID at {Index}", index);
             }
             else
             {
-                DesktopLog.Info("  key              : no CKA_ID match, using the first");
+                ApiClientSettings.Logger.LogInformation("  key              : no CKA_ID match, using the first");
             }
 
             var (point, ukm, kdfScheme, wrapOid) = CardEnvelopeOpener.ReadKeyAgreement(raw, mine);
-            DesktopLog.Info("  originator point : {Bytes} bytes, first byte 0x{FirstByte:X2}", point.Length, point[0]);
-            DesktopLog.Info("  user keying mat. : {UserKeyingMaterial}", ukm is null ? "(absent)" : $"{ukm.Length} bytes");
-            DesktopLog.Info("  kdf scheme       : {KdfScheme}", kdfScheme);
-            DesktopLog.Info("  key wrap         : {KeyWrap}", wrapOid);
+            ApiClientSettings.Logger.LogInformation("  originator point : {Bytes} bytes, first byte 0x{FirstByte:X2}", point.Length, point[0]);
+            ApiClientSettings.Logger.LogInformation("  user keying mat. : {UserKeyingMaterial}", ukm is null ? "(absent)" : $"{ukm.Length} bytes");
+            ApiClientSettings.Logger.LogInformation("  kdf scheme       : {KdfScheme}", kdfScheme);
+            ApiClientSettings.Logger.LogInformation("  key wrap         : {KeyWrap}", wrapOid);
 
             return CardEnvelopeOpener.OpenWithAgreement(
                 raw, point => session.DeriveEcdhSecret(point, keys[index >= 0 ? index : 0]), mine);
         }
 
-        DesktopLog.Warn("REFUSED: the matched card ({TokenSerial}) is no longer in a reader.", addressed.TokenSerial);
+        ApiClientSettings.Logger.LogWarning("REFUSED: the matched card ({TokenSerial}) is no longer in a reader.", addressed.TokenSerial);
         return null;
     }
 }

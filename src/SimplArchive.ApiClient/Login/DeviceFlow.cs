@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace SimplArchive.Cli.Infrastructure;
+namespace SimplArchive.ApiClient.Login;
 
 /// <summary>
 /// The client half of the device authorization grant (RFC 8628, ADR 0823): ask for a code, tell the
@@ -13,10 +13,8 @@ namespace SimplArchive.Cli.Infrastructure;
 /// the machine running the command. Here the tool prints a code and the approval happens in whatever browser
 /// the administrator already has, on whatever machine they are sitting at.
 /// </remarks>
-public sealed class DeviceFlow(HttpClient http)
+public sealed class DeviceFlow(HttpClient http, string clientId)
 {
-    /// <summary>The client id the installation registers for this tool (<c>SaConsoleClientSeeder</c>).</summary>
-    public const string ClientId = "saconsole";
 
     /// <summary>What the device endpoint answered: what to show a person, and what to poll with.</summary>
     public sealed record Authorization(
@@ -31,7 +29,7 @@ public sealed class DeviceFlow(HttpClient http)
     {
         using var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = ClientId,
+            ["client_id"] = clientId,
 
             // "openid" and nothing else. offline_access is deliberately NOT asked for: the installation does
             // not grant this client a refresh token, and a session that cannot outlive its access token is
@@ -45,7 +43,7 @@ public sealed class DeviceFlow(HttpClient http)
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new CliException(DescribeTokenError(body,
+            throw new DeviceFlowException(DescribeTokenError(body,
                 $"The installation refused a device authorization request ({(int)response.StatusCode}). "
                 + "It may be older than the device grant, or not a SimplArchive Api."));
         }
@@ -54,7 +52,7 @@ public sealed class DeviceFlow(HttpClient http)
 
         string Required(string name) => json.TryGetProperty(name, out var v) && v.GetString() is { Length: > 0 } s
             ? s
-            : throw new CliException($"The device endpoint answered without '{name}'.");
+            : throw new DeviceFlowException($"The device endpoint answered without '{name}'.");
 
         // RFC 8628 §3.2 makes `interval` OPTIONAL and says 5 seconds when it is absent. Defaulting to zero
         // instead would hammer the endpoint into the slow_down it is trying to avoid.
@@ -94,7 +92,7 @@ public sealed class DeviceFlow(HttpClient http)
         {
             if (DateTimeOffset.UtcNow >= authorization.ExpiresAt)
             {
-                throw new CliException(
+                throw new DeviceFlowException(
                     "The code expired before it was approved. Run the command again to get a new one.");
             }
 
@@ -105,7 +103,7 @@ public sealed class DeviceFlow(HttpClient http)
             {
                 ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code",
                 ["device_code"] = authorization.DeviceCode,
-                ["client_id"] = ClientId,
+                ["client_id"] = clientId,
             });
 
             using var response = await http.PostAsync("connect/token", form, cancellationToken);
@@ -125,7 +123,7 @@ public sealed class DeviceFlow(HttpClient http)
             {
                 if (response.IsSuccessStatusCode)
                 {
-                    throw new CliException(
+                    throw new DeviceFlowException(
                         "The token endpoint answered success with a body that is not JSON, so there is no "
                         + $"token to read: {Describe(body)}");
                 }
@@ -137,7 +135,7 @@ public sealed class DeviceFlow(HttpClient http)
             {
                 return json.TryGetProperty("access_token", out var token) && token.GetString() is { Length: > 0 } value
                     ? value
-                    : throw new CliException("The token endpoint answered success without an access_token.");
+                    : throw new DeviceFlowException("The token endpoint answered success without an access_token.");
             }
 
             switch (json.TryGetProperty("error", out var error) ? error.GetString() : null)
@@ -150,14 +148,14 @@ public sealed class DeviceFlow(HttpClient http)
                     continue;
 
                 case "access_denied":
-                    throw new CliException("The sign-in was refused. Nothing was granted.");
+                    throw new DeviceFlowException("The sign-in was refused. Nothing was granted.");
 
                 case "expired_token":
-                    throw new CliException(
+                    throw new DeviceFlowException(
                         "The code expired before it was approved. Run the command again to get a new one.");
 
                 default:
-                    throw new CliException(DescribeTokenError(body,
+                    throw new DeviceFlowException(DescribeTokenError(body,
                         $"The installation refused the device code ({(int)response.StatusCode})."));
             }
         }

@@ -1,7 +1,9 @@
 using CAManagement.Pkcs11;
 using CAManagement.Pkcs11.Extensions;
+using Microsoft.Extensions.Logging;
+using SimplArchive.ApiClient;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.HardwareKeys;
 
 /// <summary>
 /// The logged-in session on the user's card, held for as long as the card is in the reader (#1353, ADR 0832).
@@ -88,7 +90,7 @@ public static class CardSession
             {
                 // One unreadable token is not a reason to abandon the others — the same reasoning as the
                 // per-slot guard in CardCertificates.
-                DesktopLog.Warn(e, "Reading a slot's token info while looking for a card failed");
+                ApiClientSettings.Logger.LogWarning(e, "Reading a slot's token info while looking for a card failed");
                 continue;
             }
 
@@ -120,7 +122,7 @@ public static class CardSession
                 // A wrong PIN lands here, and so does a token that vanished between the slot list and the
                 // login. Both mean "no card session"; which of card / reader / certificate is missing is said
                 // by the opener, which has the fuller picture.
-                DesktopLog.Warn(e, "Opening a logged-in card session failed");
+                ApiClientSettings.Logger.LogWarning(e, "Opening a logged-in card session failed");
                 DropHeld();
                 return null;
             }
@@ -128,7 +130,7 @@ public static class CardSession
 
         // The card whose certificate was named is no longer in a reader. Not a failure: it may have been
         // pulled between reading its certificates and asking for the PIN.
-        DesktopLog.Debug("No token with serial {Serial} is present, so no session was opened.", tokenSerial);
+        ApiClientSettings.Logger.LogDebug("No token with serial {Serial} is present, so no session was opened.", tokenSerial);
         return null;
     }
 
@@ -163,7 +165,7 @@ public static class CardSession
     /// The Messages tab reads it after a key would not open (core #1813 follow-up, ADR 0967): a declined prompt is the
     /// user's decision and shows the thread SEALED with a re-ask action, as the phone does, rather than as a failure.
     /// </remarks>
-    internal static bool HasDeclined => Declined.Count > 0;
+    public static bool HasDeclined => Declined.Count > 0;
 
     /// <summary>
     /// Forgets the declined prompts, so the next read asks for the PIN again — only ever on the user's own ask (a click
@@ -178,7 +180,7 @@ public static class CardSession
     /// Swallowing on purpose: this runs on the path where something has already gone wrong (the card was
     /// pulled mid-operation), and a throw here would replace a recoverable state with a crash.
     /// </remarks>
-    internal static void DropHeld()
+    public static void DropHeld()
     {
         foreach (var (_, held) in Sessions)
         {
@@ -189,7 +191,7 @@ public static class CardSession
             }
             catch (Exception e)
             {
-                DesktopLog.Warn(e, "Closing the card session did not complete cleanly");
+                ApiClientSettings.Logger.LogWarning(e, "Closing the card session did not complete cleanly");
             }
         }
 

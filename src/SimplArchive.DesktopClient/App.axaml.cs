@@ -72,7 +72,7 @@ public partial class App : Application
             // Dispatched to the UI thread rather than assumed to be on it: the funnel's await usually resumes
             // there, but "usually" is not a property to build a modal on, and InvokeAsync is a no-op when we
             // are already there.
-            Services.CardSession.PinPrompt = async card => await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+            HardwareKeys.CardSession.PinPrompt = async card => await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
                 async () =>
                 {
                     // WHICH card, because the PIN is per card (#1500): with two tokens in the reader, asking
@@ -102,7 +102,11 @@ public partial class App : Application
             // Signing out drops the card session with everything else: the login it holds is a live capability
             // on the user's own key, and leaving it open past their session would outlive the thing that
             // authorised it.
-            viewModel.LogoutRequested += Services.CardSession.Close;
+            viewModel.LogoutRequested += HardwareKeys.CardSession.Close;
+
+            // And the browser-autofill bridge goes with the session it spoke for: a decrypting endpoint left open
+            // after sign-out would answer for nobody.
+            viewModel.LogoutRequested += Services.BrowserAutofill.Stop;
 
             // And the content funnel's authenticated client goes with it: a client left behind after the
             // session ends is the drift that left tabs holding a stale API client after sign-out.

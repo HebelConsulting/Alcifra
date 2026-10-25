@@ -12,6 +12,7 @@ namespace SimplArchive.UnitTests;
 // `Unexpected SocketException: Connection refused` on STDOUT, where eval would have executed it — and the
 // same handler wrote every other failure there too. It was found by running the binary and reading the two
 // streams separately; every build and every test until then was green.
+[Collection("console")]
 public class SaConsoleStreamTests
 {
     [Theory]

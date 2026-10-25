@@ -161,6 +161,21 @@ public partial class MainWindow
     });
 
     // Passkeys (ADR "Desktop passkey management") — list/remove natively; adding opens the browser ceremony.
+    /// <summary>
+    /// Browser autofill (ADR 0978): the extension's id and the switch. Saving writes the launcher and manifest and
+    /// stores the choice; the bridge is then applied to THIS session, so switching it on takes effect at once and
+    /// a signed-out window starts nothing.
+    /// </summary>
+    internal void OnBrowserAutofill(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        var dialog = new BrowserAutofillDialog();
+        await dialog.ShowDialog(this);
+        if (dialog.Saved && DataContext is MainWindowViewModel viewModel)
+        {
+            Services.BrowserAutofill.Apply(viewModel.Api);
+        }
+    });
+
     internal void OnManagePasskeys(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
         if (DataContext is MainWindowViewModel { Api: { } api })

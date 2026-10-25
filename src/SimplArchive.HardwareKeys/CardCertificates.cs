@@ -8,8 +8,10 @@ using CAManagement.Pkcs11;
 using CAManagement.Pkcs11.Configuration;
 using CAManagement.Pkcs11.DataStructures;
 using CAManagement.Pkcs11.Extensions;
+using Microsoft.Extensions.Logging;
+using SimplArchive.ApiClient;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.HardwareKeys;
 
 /// <summary>
 /// Reads the certificates a PKCS#11 device carries, so one can be registered as the caller's own (#1398).
@@ -289,7 +291,7 @@ public static class CardCertificates
     /// therefore the second half of <c>CKR_CRYPTOKI_ALREADY_INITIALIZED</c> — invisible until a real preview
     /// read the card from several tasks at once.
     /// </remarks>
-    internal static IReadOnlyList<Found> ReadFromLibrary(Pkcs11Library library)
+    public static IReadOnlyList<Found> ReadFromLibrary(Pkcs11Library library)
     {
         var found = new List<Found>();
 
@@ -360,7 +362,7 @@ public static class CardCertificates
             }
             catch (Exception e)
             {
-                DesktopLog.Warn(e, "Reading a slot of the PKCS#11 module failed");
+                ApiClientSettings.Logger.LogWarning(e, "Reading a slot of the PKCS#11 module failed");
             }
         }
 

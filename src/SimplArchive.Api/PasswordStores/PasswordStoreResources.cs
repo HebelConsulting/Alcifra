@@ -192,3 +192,38 @@ public class CreatedPasswordEntryResource : HypermediaResource
     /// <summary>Present only on a tenant that encrypts at rest: the client encrypts the upload as for any version (ADR 0818).</summary>
     public Controllers.DocumentVersionsController.UploadEncryption? Encryption { get; set; }
 }
+
+/// <summary>
+/// Every folder and entry beneath a store or folder, one cursor-paginated page at a time (ADR 0207) — the flat
+/// tree sapass completes and searches over, so one listing answers what the per-folder listing answers in N
+/// requests. Names are in the clear (ADR 0964): nothing here needs the key.
+/// </summary>
+public class PasswordDescendantsResource : HypermediaResource
+{
+    public List<PasswordDescendantResource> Items { get; set; } = [];
+}
+
+/// <summary>One row of the flat listing. <see cref="ParentId"/> lets a client build each row's path from the set it
+/// holds; its <c>self</c> rel is the row's own resource, so a client follows it rather than composing a URL (ADR 0543).</summary>
+public class PasswordDescendantResource : HypermediaResource
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary><c>folder</c> or <c>entry</c>.</summary>
+    public string Kind { get; set; } = string.Empty;
+
+    /// <summary>The containing folder — always present for a descendant, never the store itself.</summary>
+    public Guid ParentId { get; set; }
+
+    /// <summary>The entry's autofill metadata (ADR 0973), in the clear and null when it has none: which site and user
+    /// name it fills. An autofill client matches on these WITHOUT opening anything, which is the point of the index.</summary>
+    public string? Site { get; set; }
+
+    /// <inheritdoc cref="Site"/>
+    public string? UserName { get; set; }
+
+    /// <inheritdoc cref="Site"/>
+    public string? App { get; set; }
+}

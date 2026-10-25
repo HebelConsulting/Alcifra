@@ -34,6 +34,9 @@ public class StringEmptyRatchetTests
         // parameter's default must be a constant expression — the same CS1736 case as every other entry here.
         ["src/SimplArchive.Api/Documents/DocumentFinalizer.cs"] = 1,
         ["src/SimplArchive.Infrastructure/Certificates/Attestation/AttestationEvidence.cs"] = 1,   // a default parameter (CS1736)
+        // BrowserAutofillSettings' `string ExtensionId = ""` (ADR 0978): a positional record parameter's default
+        // must be a constant expression and string.Empty is a static readonly field — the same CS1736 case.
+        ["src/SimplArchive.DesktopClient/Services/BrowserAutofillSettings.cs"] = 1,
         // CreateTarget's `string CollectionKind = ""` in both clients (#1125): the dialogs read the kind to
         // decide whether the candidates differ in MEANING, and therefore whether pre-selecting one would be a
         // guess. The same CS1736 case as every other entry here — a positional record parameter's default must

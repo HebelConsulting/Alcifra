@@ -1,3 +1,4 @@
+using SimplArchive.ApiClient.Login;
 using SimplArchive.Cli.Infrastructure;
 
 namespace SimplArchive.UnitTests;

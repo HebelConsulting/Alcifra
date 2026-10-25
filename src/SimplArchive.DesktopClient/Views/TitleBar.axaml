@@ -113,6 +113,8 @@
                     <MenuItem Header="{loc:Tr AccountEnableTwoFactor}" Click="OnSetUpMfa" IsVisible="{Binding !MfaEnabled}" />
                     <MenuItem Header="{loc:Tr AccountDisableTwoFactor}" Click="OnDisableMfa" IsVisible="{Binding MfaEnabled}" />
                     <MenuItem Header="{loc:Tr AccountPasskeys}" Click="OnManagePasskeys" />
+                    <!-- Off until switched on (ADR 0978): the local endpoint exists only when asked for. -->
+                    <MenuItem Header="{loc:Tr AccountBrowserAutofill}" Click="OnBrowserAutofill" />
                     <MenuItem Header="{loc:Tr AccountWebDav}" Click="OnManageWebDav" />
                     <MenuItem Header="{loc:Tr AccountImap}" Click="OnManageImap" />
                     <MenuItem Header="{loc:Tr AccountSmime}" Click="OnManageSmime" />

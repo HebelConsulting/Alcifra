@@ -39,6 +39,15 @@ public class ConsoleOutputRatchetTests
         ["src/SimplArchive.Cli/Commands/UserCreateCommand.cs"] = 1,   // data output only (ADR 0906): the user's id
         // The one direct write left in the desktop client: DesktopLog's own fallback when logging cannot start.
         ["src/SimplArchive.DesktopClient/Services/DesktopLog.cs"] = 1,
+        // sapass (ADR 0964, 2026-10-25): a pass-like CLI, so its DATA output is stdout by contract — what a script
+        // captures (`sapass show x | head -1`, `eval "$(sapass login …)"`) and what completion reads.
+        ["src/SimplArchive.Sapass/Commands/LoginCommand.cs"] = 2,   // data output only: the two shell exports
+        ["src/SimplArchive.Sapass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
+        ["src/SimplArchive.Sapass/Commands/FindCommand.cs"] = 1,   // data output only: the matching paths
+        ["src/SimplArchive.Sapass/Commands/ShowCommand.cs"] = 2,   // data output only: the password, then the fields
+        ["src/SimplArchive.Sapass/Commands/GenerateCommand.cs"] = 1,   // data output only: the secret it generated
+        ["src/SimplArchive.Sapass/Commands/CompletionCommand.cs"] = 1,   // data output only: the completion script
+        ["src/SimplArchive.Sapass/Infrastructure/Completion.cs"] = 1,   // data output only: candidates a shell captures
     };
 
     /// <summary>

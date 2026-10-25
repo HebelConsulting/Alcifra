@@ -95,9 +95,26 @@ internal static class Program
         // client agrees with the fake.
         //
         // The PIN comes from CARD_PIN so nothing has to be typed and nothing is written down.
+        // The browser launches this with --browser-host-shim (through the launcher its manifest names) and talks the
+        // native-messaging protocol on stdin/stdout. It runs WITHOUT the app: the bridge lives in the running client
+        // (ADR 0978), and this process only relays to it.
+        if (args.Contains("--browser-host-shim"))
+        {
+            var exit = SimplArchive.BrowserHost.BrowserHostShim
+                .RunAsync(Services.BrowserAutofill.ClientName, Console.OpenStandardInput(), Console.OpenStandardOutput())
+                .GetAwaiter().GetResult();
+            if (exit == SimplArchive.BrowserHost.BrowserHostShim.NoRunningClient)
+            {
+                Services.DesktopLog.Warn("The desktop client is not running, so browser autofill has no host to talk to.");
+            }
+
+            Environment.ExitCode = exit;
+            return;
+        }
+
         if (args.Contains("--card-open-test"))
         {
-            Services.CardSession.PinPrompt = _ =>
+            HardwareKeys.CardSession.PinPrompt = _ =>
                 Task.FromResult(Environment.GetEnvironmentVariable("CARD_PIN"));
 
             Environment.Exit(CardOpenSelfTest().GetAwaiter().GetResult() ? 0 : 1);
@@ -114,11 +131,11 @@ internal static class Program
         // the token for private objects, and that is the bug rather than an inconvenience.
         if (args.Contains("--card-test"))
         {
-            var module = Services.CardCertificates.FindModule();
+            var module = HardwareKeys.CardCertificates.FindModule();
             if (module is null)
             {
                 Services.DesktopLog.Warn("no PKCS#11 module found; looked in:");
-                foreach (var candidate in Services.CardCertificates.ModuleCandidates())
+                foreach (var candidate in HardwareKeys.CardCertificates.ModuleCandidates())
                 {
                     Services.DesktopLog.Warn("  {Candidate}", candidate);
                 }
@@ -129,13 +146,13 @@ internal static class Program
             Services.DesktopLog.Info("module: {Module}", module);
             try
             {
-                var all = Services.CardCertificates.Read(module);
-                var found = Services.CardCertificates.Choices(all);
+                var all = HardwareKeys.CardCertificates.Read(module);
+                var found = HardwareKeys.CardCertificates.Choices(all);
                 Services.DesktopLog.Info("certificates found: {Count} (plus {Evidence} attestation certificate(s), not offered)",
                     found.Count, all.Count - found.Count);
                 foreach (var one in found)
                 {
-                    var concern = Services.CardCertificates.Concern(one.Certificate, DateTimeOffset.UtcNow);
+                    var concern = HardwareKeys.CardCertificates.Concern(one.Certificate, DateTimeOffset.UtcNow);
                     Services.DesktopLog.Info("  token '{TokenLabel}' (serial {TokenSerial}) object '{ObjectLabel}'",
                         one.TokenLabel, one.TokenSerial, one.ObjectLabel);
                     Services.DesktopLog.Info("    subject : {Subject}", one.Certificate.Subject);
@@ -773,7 +790,7 @@ internal static class Program
         var cardEnvelopeIndex = Array.IndexOf(args, "--card-envelope-test");
         if (cardEnvelopeIndex >= 0 && cardEnvelopeIndex + 1 < args.Length)
         {
-            Services.CardEnvelopeCheck.Run(args[cardEnvelopeIndex + 1]);
+            HardwareKeys.CardEnvelopeCheck.Run(args[cardEnvelopeIndex + 1]);
             return;
         }
 
@@ -900,13 +917,13 @@ internal static class Program
     /// <summary>Envelopes a marker to the card's own certificate and opens it through the real funnel.</summary>
     private static async Task<bool> CardOpenSelfTest()
     {
-        if (Services.CardCertificates.FindModule() is not { } module)
+        if (HardwareKeys.CardCertificates.FindModule() is not { } module)
         {
             Services.DesktopLog.Warn("no PKCS#11 module found");
             return false;
         }
 
-        if (Services.CardCertificates.Choices(Services.CardCertificates.Read(module)).FirstOrDefault() is not { } onCard)
+        if (HardwareKeys.CardCertificates.Choices(HardwareKeys.CardCertificates.Read(module)).FirstOrDefault() is not { } onCard)
         {
             Services.DesktopLog.Warn("no certificate on any token in a reader");
             return false;
@@ -969,7 +986,7 @@ internal static class Program
         }
         finally
         {
-            Services.CardSession.Close();
+            HardwareKeys.CardSession.Close();
         }
     }
 }

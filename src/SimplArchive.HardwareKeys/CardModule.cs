@@ -1,7 +1,9 @@
 using CAManagement.Pkcs11;
 using CAManagement.Pkcs11.Configuration;
+using Microsoft.Extensions.Logging;
+using SimplArchive.ApiClient;
 
-namespace SimplArchive.DesktopClient.Services;
+namespace SimplArchive.HardwareKeys;
 
 /// <summary>
 /// The one loaded PKCS#11 module in this process, and the gate that serialises access to it (#1353, ADR 0832).
@@ -50,7 +52,7 @@ public static class CardModule
     public static Exception? LastFailure { get; private set; }
 
     /// <summary>Records what a slot query saw, for <see cref="LastSawToken"/>.</summary>
-    internal static void Observed(bool tokenPresent) => LastSawToken = tokenPresent;
+    public static void Observed(bool tokenPresent) => LastSawToken = tokenPresent;
 
     /// <summary>Runs <paramref name="work"/> against the shared module, or answers <paramref name="whenUnavailable"/>.</summary>
     public static async Task<T> UseAsync<T>(Func<Pkcs11Library, Task<T>> work, T whenUnavailable)
@@ -62,7 +64,7 @@ public static class CardModule
         }
         catch (Exception e)
         {
-            DesktopLog.Warn(e, "A card operation failed");
+            ApiClientSettings.Logger.LogWarning(e, "A card operation failed");
             LastFailure = e;
             return whenUnavailable;
         }
@@ -98,7 +100,7 @@ public static class CardModule
         }
         catch (Exception e)
         {
-            DesktopLog.Warn(e, "A card presence check failed");
+            ApiClientSettings.Logger.LogWarning(e, "A card presence check failed");
             return whenBusyOrUnavailable;
         }
         finally
@@ -207,7 +209,7 @@ public static class CardModule
         }
         catch (Exception e)
         {
-            DesktopLog.Warn(e, "Unloading the PKCS#11 module did not complete cleanly");
+            ApiClientSettings.Logger.LogWarning(e, "Unloading the PKCS#11 module did not complete cleanly");
         }
         finally
         {

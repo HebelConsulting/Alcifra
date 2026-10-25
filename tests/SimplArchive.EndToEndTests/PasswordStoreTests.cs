@@ -24,7 +24,7 @@ namespace SimplArchive.EndToEndTests;
 // the offline export carrying entries exactly as sealed, and a revoked key marking what it could read.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-2")]
-public sealed class PasswordStoreTests
+public sealed partial class PasswordStoreTests
 {
     private const string LicensesVariable = "SIMPLARCHIVE_TESTMODULE_LICENSES_ENROLMENT";
     private const string VerifyKeyVariable = "SIMPLARCHIVE_TESTMODULE_VERIFY_KEY";
@@ -171,6 +171,44 @@ public sealed class PasswordStoreTests
         var (stores, _) = await rig.Anna.Client.ListStoresAsync();
         return await rig.Anna.Client.GetFolderAsync(stores.Single(s => s.Id == created.GetProperty("id").GetGuid()).Href);
     }
+
+    // The flat listing (ADR 0207): one cursor-paginated stream of every folder and entry beneath a store, for the
+    // clients that complete and search over the whole tree rather than browsing it (sapass, 2026-10-25).
+    [Fact]
+    public Task The_flat_listing_returns_every_folder_and_entry_beneath_a_store_a_page_at_a_time() => WithEnrolmentAsync(async rig =>
+    {
+        var client = rig.Anna.Client;
+        var store = await SharedStoreAsync(rig);
+
+        var mail = await client.CreateFolderAsync(store, "Mail");
+        var github = await client.CreateFolderAsync(store, "Github");
+        await client.CreateFolderAsync(mail, "Banking");
+        await client.CreateEntryAsync(github, "login", PasswordEntryContent.Of("pw", "anna"));
+
+        var seen = new Dictionary<string, Guid>(StringComparer.Ordinal);
+        var url = store.Links.Href("descendants")
+            ?? throw new InvalidOperationException("the store resource offers no 'descendants' rel");
+        var pages = 0;
+        while (url is not null)
+        {
+            var page = await TestJson.Get(rig.Anna.Http, $"{url}{(url.Contains('?', StringComparison.Ordinal) ? '&' : '?')}limit=2");
+            pages++;
+            foreach (var item in page.GetProperty("items").EnumerateArray())
+            {
+                seen[item.GetProperty("name").GetString()!] = item.GetProperty("parentId").GetGuid();
+            }
+
+            url = page.GetProperty("links").EnumerateArray()
+                .Where(l => l.GetProperty("rel").GetString() == "next")
+                .Select(l => l.GetProperty("href").GetString())
+                .FirstOrDefault();
+        }
+
+        Assert.Equal(["Banking", "Github", "Mail", "login"], seen.Keys.Order(StringComparer.Ordinal));
+        Assert.True(pages > 1, "four rows two at a time must page, or the cursor is not doing anything");
+        Assert.Equal(mail.Id, seen["Banking"]);   // a nested folder names its real parent, which is how a client builds paths
+        return 0;
+    });
 
     [Fact]
     public Task My_Passwords_holds_folders_and_entries_sealed_on_the_device_and_opened_with_the_key() => WithEnrolmentAsync(async rig =>

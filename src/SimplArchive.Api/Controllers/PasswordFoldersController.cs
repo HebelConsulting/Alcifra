@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Documents;
 using SimplArchive.Api.Errors.Exceptions.Documents;
 using SimplArchive.Api.Errors.Exceptions.PasswordStores;
+using SimplArchive.Api.Pagination;
 using SimplArchive.Api.PasswordStores;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
@@ -120,6 +121,88 @@ public class PasswordFoldersController(
         await queue.EnqueueAsync(child.Id, cancellationToken);
         await audit.RecordAsync(AuditActions.DocumentCreated, "Document", child.Id, child.Name, cancellationToken: cancellationToken);
         return child;
+    }
+
+    /// <summary>
+    /// Every folder and entry beneath this store or folder, at any depth, as a cursor-paginated page (ADR 0207) —
+    /// the flat tree sapass's completion, <c>ls</c> and <c>find</c> read instead of walking folder by folder.
+    /// </summary>
+    /// <remarks>
+    /// Rows the caller may not see are omitted, exactly as the folder listing omits them; the page itself advances
+    /// by what was fetched, so an omitted row never stalls the cursor.
+    /// </remarks>
+    [HttpGet("descendants")]
+    public async Task<IActionResult> Descendants(Guid folderId, [FromQuery] string? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
+    {
+        var folder = await VisibleFolderAsync(folderId, cancellationToken);
+        var pageSize = PageSize.Resolve(limit);
+        var ids = await tree.DescendantIdsAsync(folder, cancellationToken);
+
+        var rows = dbContext.Documents
+            .Where(d => ids.Contains(d.Id))
+            .Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.ParentId,
+                d.CreatedAt,
+                MaskId = dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault(),
+            });
+
+        if (Cursor.TryDecode(cursor, out var cursorAt, out var cursorId))
+        {
+            rows = rows.Where(d => d.CreatedAt > cursorAt || (d.CreatedAt == cursorAt && d.Id > cursorId));
+        }
+
+        var fetched = await rows
+            .OrderBy(d => d.CreatedAt).ThenBy(d => d.Id)
+            .Take(pageSize + 1)
+            .ToListAsync(cancellationToken);
+        var (page, hasMore) = Cursor.Split(fetched, pageSize);
+
+        var rights = await access.GetCallerRightsForManyAsync([.. page.Select(r => r.Id)], cancellationToken);
+        // The autofill metadata for the page in ONE query (ADR 0973): a browser host matches a site against these
+        // without opening a single entry, which is what makes an autofill sheet possible without the key.
+        var index = await PasswordIndexValues.LoadAsync(dbContext, [.. page.Select(r => r.Id)], cancellationToken);
+        var resource = new PasswordDescendantsResource
+        {
+            Items = [.. page
+                .Where(r => rights.TryGetValue(r.Id, out var right) && right.CanSee)
+                .Select(r =>
+                {
+                    var isFolder = PasswordStoreTree.KindOf(r.MaskId) == PasswordItemKind.Folder;
+                    var row = new PasswordDescendantResource
+                    {
+                        Id = r.Id,
+                        Name = r.Name,
+                        // Descendants of a store or folder always have a parent; the store itself is the floor.
+                        ParentId = r.ParentId ?? folder.Id,
+                        Kind = isFolder ? "folder" : "entry",
+                        Site = index.GetValueOrDefault(r.Id)?.Site,
+                        UserName = index.GetValueOrDefault(r.Id)?.UserName,
+                        App = index.GetValueOrDefault(r.Id)?.App,
+                    };
+                    row.Links.Add(new Link("self",
+                        isFolder ? PasswordStoreResourceBuilder.FolderHref(r.Id) : PasswordStoreResourceBuilder.EntryHref(r.Id), "GET"));
+                    return row;
+                })],
+        };
+
+        resource.Links.Add(new Link("self", $"/api/password-folders/{folder.Id}/descendants", "GET"));
+        if (hasMore)
+        {
+            resource.Links.Add(new Link("next",
+                $"/api/password-folders/{folder.Id}/descendants?cursor={Cursor.Encode(page[^1].CreatedAt, page[^1].Id)}&limit={pageSize}", "GET"));
+        }
+
+        return Ok(resource);
+    }
+
+    [HttpHead("descendants")]
+    public async Task<IActionResult> DescendantsHead(Guid folderId, CancellationToken cancellationToken)
+    {
+        await VisibleFolderAsync(folderId, cancellationToken);
+        return NoContent();
     }
 
     private async Task<PasswordItem> VisibleFolderAsync(Guid folderId, CancellationToken cancellationToken) =>

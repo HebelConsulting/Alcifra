@@ -20,8 +20,9 @@ namespace SimplArchive.UnitTests;
 // other card tests. So this asserts the shape of the source instead, which is the part a person changes.
 public partial class CardModuleSingleInitialiserTests
 {
-    // THE one initialiser. Everything that needs the card goes through this class's gate.
-    private const string TheModule = "Services/CardModule.cs";
+    // THE one initialiser. Everything that needs the card goes through this class's gate. Root-relative since
+    // 2026-10-25, when the card code moved to its own leaf project (sapass reaches the same key through it).
+    private const string TheModule = "src/SimplArchive.HardwareKeys/CardModule.cs";
 
     // Sites that construct a library of their own and are safe ANYWAY, each with the reason — and the reason
     // has to be about WHEN THE CODE RUNS, not about what the file is called. A diagnostic is safe because it
@@ -30,7 +31,7 @@ public partial class CardModuleSingleInitialiserTests
     // This list may only get shorter. A new entry needs the same scrutiny as a new initialiser.
     private static readonly Dictionary<string, string> OwnProcess = new(StringComparer.Ordinal)
     {
-        ["Services/CardEnvelopeCheck.cs"] =
+        ["src/SimplArchive.HardwareKeys/CardEnvelopeCheck.cs"] =
             "The --card-envelope-test diagnostic. Invoked from Program's argument handling, which returns "
             + "without building the app, so CardModule is never loaded in that process.",
     };
@@ -38,10 +39,11 @@ public partial class CardModuleSingleInitialiserTests
     [Fact]
     public void Nothing_but_the_module_initialises_pkcs11_unless_it_owns_its_process()
     {
-        var (_, desktop) = Paths();
+        var (root, sources) = Paths();
         var offenders = new List<string>();
 
-        foreach (var file in Directory.EnumerateFiles(desktop, "*.cs", SearchOption.AllDirectories)
+        foreach (var file in sources
+            .SelectMany(dir => Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             .Where(NotGenerated)
             .OrderBy(f => f, StringComparer.Ordinal))
         {
@@ -50,7 +52,7 @@ public partial class CardModuleSingleInitialiserTests
                 continue;
             }
 
-            var relative = Path.GetRelativePath(desktop, file).Replace(Path.DirectorySeparatorChar, '/');
+            var relative = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
             if (relative != TheModule && !OwnProcess.ContainsKey(relative))
             {
                 offenders.Add($"  {relative}");
@@ -69,7 +71,7 @@ public partial class CardModuleSingleInitialiserTests
     [Fact]
     public void An_own_process_exemption_is_reachable_only_from_the_command_line()
     {
-        var (_, desktop) = Paths();
+        var (root, sources) = Paths();
         var contradicted = new List<string>();
 
         // The exemption's reason is "it owns its process", and what makes that true is that nothing in the
@@ -79,12 +81,13 @@ public partial class CardModuleSingleInitialiserTests
         foreach (var (relative, _) in OwnProcess)
         {
             var type = Path.GetFileNameWithoutExtension(relative);
-            var callers = Directory.EnumerateFiles(desktop, "*.cs", SearchOption.AllDirectories)
+            var callers = sources
+                .SelectMany(dir => Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
                 .Where(NotGenerated)
                 .Where(f => !Path.GetFileName(f).Equals($"{type}.cs", StringComparison.Ordinal))
                 .Where(f => Regex.IsMatch(File.ReadAllText(f), $@"\b{Regex.Escape(type)}\b"))
-                .Select(f => Path.GetRelativePath(desktop, f).Replace(Path.DirectorySeparatorChar, '/'))
-                .Where(f => f != "Program.cs")
+                .Select(f => Path.GetRelativePath(root, f).Replace(Path.DirectorySeparatorChar, '/'))
+                .Where(f => f != "src/SimplArchive.DesktopClient/Program.cs")
                 .ToList();
 
             if (callers.Count > 0)
@@ -106,8 +109,8 @@ public partial class CardModuleSingleInitialiserTests
         // The anti-vacuous half, and it earns its place: this guard's whole content is a pattern over source,
         // so a renamed type or a reformatted constructor would make both tests above pass while watching
         // nothing at all.
-        var (_, desktop) = Paths();
-        var module = Path.Combine(desktop, TheModule.Replace('/', Path.DirectorySeparatorChar));
+        var (root, _) = Paths();
+        var module = Path.Combine(root, TheModule.Replace('/', Path.DirectorySeparatorChar));
 
         Assert.True(File.Exists(module),
             $"{TheModule} has moved, so this guard is no longer watching the one sanctioned initialiser.");
@@ -116,10 +119,16 @@ public partial class CardModuleSingleInitialiserTests
             + "whatever the rest of the client does. Update the pattern, not this assertion.");
     }
 
-    private static (string Root, string Desktop) Paths()
+    // Both projects a card can be opened from: the desktop and the leaf the card code lives in. Scanning only
+    // the desktop would pass while watching nothing, which is the way this guard fails silently.
+    private static (string Root, IReadOnlyList<string> Sources) Paths()
     {
         var root = RepoPaths.Root();
-        return (root, Path.Combine(root, "src", "SimplArchive.DesktopClient"));
+        return (root,
+        [
+            Path.Combine(root, "src", "SimplArchive.DesktopClient"),
+            Path.Combine(root, "src", "SimplArchive.HardwareKeys"),
+        ]);
     }
 
     private static bool NotGenerated(string file) =>

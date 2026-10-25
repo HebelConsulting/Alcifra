@@ -48,6 +48,8 @@
     <ProjectReference Include="..\..\src\SimplArchive.Domain\SimplArchive.Domain.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.Application\SimplArchive.Application.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.Client\SimplArchive.Client.csproj" />
+    <ProjectReference Include="..\..\src\SimplArchive.BrowserHost\SimplArchive.BrowserHost.csproj" />
+    <ProjectReference Include="..\..\src\SimplArchive.Sapass\SimplArchive.Sapass.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.Presentation\SimplArchive.Presentation.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.ApiClient\SimplArchive.ApiClient.csproj" />
     <!-- Referenced so the architecture tests can inspect these assemblies (layer + convention rules). -->

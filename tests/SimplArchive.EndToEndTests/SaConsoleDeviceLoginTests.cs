@@ -1,9 +1,9 @@
+using SimplArchive.ApiClient.Login;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.WebUtilities;
-using SimplArchive.Cli.Infrastructure;
 
 namespace SimplArchive.EndToEndTests;
 
@@ -30,7 +30,7 @@ public class SaConsoleDeviceLoginTests
         var userId = await _factory.SeedUserAsync(tenantId, email, "cli-1234", "CLI Admin");
 
         using var transport = _factory.CreateClient();
-        var flow = new DeviceFlow(transport);
+        var flow = new DeviceFlow(transport, "saconsole");
 
         // 1. The tool asks for a code, exactly as `saconsole login` does.
         var authorization = await flow.RequestAsync(CancellationToken.None);
@@ -71,7 +71,7 @@ public class SaConsoleDeviceLoginTests
         await _factory.SeedUserAsync(tenantId, email, "cli-1234", "Refusing CLI Admin");
 
         using var transport = _factory.CreateClient();
-        var flow = new DeviceFlow(transport);
+        var flow = new DeviceFlow(transport, "saconsole");
         var authorization = await flow.RequestAsync(CancellationToken.None);
 
         var refusal = Task.Run(async () =>
@@ -81,7 +81,7 @@ public class SaConsoleDeviceLoginTests
 
         // access_denied must STOP the loop. A client that treated it as another "keep waiting" would poll a
         // dead code until it expired, and pester somebody who had already answered.
-        var error = await Assert.ThrowsAsync<CliException>(
+        var error = await Assert.ThrowsAsync<DeviceFlowException>(
             () => flow.PollAsync(authorization, _ => { }, CancellationToken.None));
         await refusal;
 

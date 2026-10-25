@@ -62,6 +62,53 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
     public async Task<PasswordFolderInfo> GetFolderAsync(string href, CancellationToken cancellationToken = default) =>
         Folder(await GetAsync(href, cancellationToken));
 
+    /// <summary>
+    /// One page of the store's flat descendants listing (ADR 0207), and the href of the next page — the whole tree in
+    /// a few requests, for a client that completes or searches over it rather than browsing folder by folder.
+    /// </summary>
+    /// <param name="href">The <c>descendants</c> rel a store or folder advertised.</param>
+    public async Task<(IReadOnlyList<PasswordDescendantInfo> Items, string? Next)> DescendantsPageAsync(
+        string href, CancellationToken cancellationToken = default)
+    {
+        var json = await GetAsync(href, cancellationToken);
+        var items = json.GetProperty("items").EnumerateArray()
+            .Select(i => new PasswordDescendantInfo(
+                i.GetProperty("id").GetGuid(),
+                i.GetProperty("name").GetString() ?? string.Empty,
+                i.GetProperty("kind").GetString() == "folder",
+                i.GetProperty("parentId").GetGuid(),
+                ApiCore.RequireRel(i, "self", "A descendant row"),
+                ApiWire.StrOrNull(i, "site"),
+                ApiWire.StrOrNull(i, "userName"),
+                ApiWire.StrOrNull(i, "app")))
+            .ToList();
+        var next = json.GetProperty("links").EnumerateArray()
+            .Where(l => l.GetProperty("rel").GetString() == "next")
+            .Select(l => l.GetProperty("href").GetString())
+            .FirstOrDefault();
+        return (items, next);
+    }
+
+    /// <summary>
+    /// EVERY descendant of a store or folder, following the listing's <c>next</c> rels — the whole tree in one call
+    /// for a client that completes, searches or matches over it (ADR 0207; the paging stays the server's).
+    /// </summary>
+    /// <param name="href">The <c>descendants</c> rel a store or folder advertised.</param>
+    public async Task<IReadOnlyList<PasswordDescendantInfo>> AllDescendantsAsync(
+        string href, CancellationToken cancellationToken = default)
+    {
+        var all = new List<PasswordDescendantInfo>();
+        string? next = href;
+        while (next is not null)
+        {
+            var (page, following) = await DescendantsPageAsync(next, cancellationToken);
+            all.AddRange(page);
+            next = following;
+        }
+
+        return all;
+    }
+
     /// <summary>An entry's resource, by the href its row advertised; its ETag is what the next change sends.</summary>
     public async Task<PasswordEntryInfo> GetEntryAsync(string href, CancellationToken cancellationToken = default) =>
         PasswordEntryInfo.From(await GetAsync(href, cancellationToken));

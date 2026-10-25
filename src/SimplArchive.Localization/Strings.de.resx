@@ -6621,4 +6621,25 @@
   <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
     <value>Nur der Autor der aktuellen Version dieses versiegelten Dokuments kann ändern, für wen es versiegelt ist.</value>
   </data>
+  <data name="AccountBrowserAutofill" xml:space="preserve">
+    <value>Browser-Autofill…</value>
+  </data>
+  <data name="BrowserAutofillTitle" xml:space="preserve">
+    <value>Browser-Autofill</value>
+  </data>
+  <data name="BrowserAutofillBody" xml:space="preserve">
+    <value>Eine Browser-Erweiterung darf Anmeldungen aus Ihrem Passwortspeicher einsetzen. Eine Anfrage nennt nur die Website; der Eintrag wird hier mit Ihrem Hardware-Schlüssel und dessen PIN geöffnet.</value>
+  </data>
+  <data name="BrowserAutofillEnable" xml:space="preserve">
+    <value>Browser-Autofill aktivieren, solange dieser Client läuft</value>
+  </data>
+  <data name="BrowserAutofillIdHint" xml:space="preserve">
+    <value>Laden Sie die Erweiterung entpackt (browser-extension/chrome im Repository) und kopieren Sie die angezeigte ID.</value>
+  </data>
+  <data name="BrowserAutofillIdWatermark" xml:space="preserve">
+    <value>Erweiterungs-ID</value>
+  </data>
+  <data name="BrowserAutofillScope" xml:space="preserve">
+    <value>Nur die Erweiterung mit dieser ID darf anfragen; das Geheimnis verlässt diesen Rechner nur in die von Ihnen gewählte Seite.</value>
+  </data>
 </root>

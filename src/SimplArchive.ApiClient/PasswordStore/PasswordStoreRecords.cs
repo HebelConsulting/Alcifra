@@ -95,3 +95,9 @@ public sealed class PasswordEntryChangedException(string name)
 /// <summary>The store's readers hold no certificate a secret could be sealed to, so nothing can be saved there yet.</summary>
 public sealed class PasswordStoreHasNoRecipientsException()
     : Exception("Nobody who reads this password store has an enrolled hardware key yet, so nothing can be sealed to it.");
+
+/// <summary>One row of a store's flat descendants listing: its id and name, folder or entry, its parent, and its own
+/// resource address (the <c>self</c> rel the server advertised — followed, never composed, ADR 0543).</summary>
+public sealed record PasswordDescendantInfo(
+    Guid Id, string Name, bool IsFolder, Guid ParentId, string Href,
+    string? Site = null, string? UserName = null, string? App = null);

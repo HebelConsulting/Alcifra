@@ -41,6 +41,41 @@ public static class DesktopLog
 
     private static ILogger _logger = Serilog.Core.Logger.None;
 
+    /// <summary>
+    /// The log as a <see cref="Microsoft.Extensions.Logging.ILogger"/>, for a shared helper that takes one (the
+    /// browser-host registration, whose sentences belong where every other diagnostic goes).
+    /// </summary>
+    public static Microsoft.Extensions.Logging.ILogger Logger { get; } = new Adapter();
+
+    private sealed class Adapter : Microsoft.Extensions.Logging.ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId,
+            TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            // The adapter exists to route messages into the SAME file a support conversation reads; the level maps
+            // onto Serilog's, and a message written with no template is still a message.
+            // "{Message}" and NOT the text as a template: the shared helper already formatted it, and Serilog would
+            // parse any brace in it as another placeholder — a path or a name is free to contain one.
+            var message = formatter(state, exception);
+            if (exception is not null)
+            {
+                Warn(exception, "{Message}", message);
+            }
+            else if (logLevel >= Microsoft.Extensions.Logging.LogLevel.Warning)
+            {
+                Warn("{Message}", message);
+            }
+            else
+            {
+                Info("{Message}", message);
+            }
+        }
+    }
+
     /// <summary>The folder the log files live in — what Help ▸ Show log folder opens.</summary>
     public static string Directory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SimplArchive", "logs");

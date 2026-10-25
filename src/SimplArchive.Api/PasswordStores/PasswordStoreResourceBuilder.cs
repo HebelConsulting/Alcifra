@@ -64,6 +64,9 @@ public sealed class PasswordStoreResourceBuilder(
         resource.Links.Add(new Link("self", FolderHref(folder.Id), "GET"));
         resource.Links.Add(new Link("document", $"/api/documents/{folder.Id}", "GET"));
         resource.Links.Add(new Link("password-store-recipients", StoreHref(folder.StoreId, "recipients"), "GET"));
+        // The flat, paginated tree beneath this store or folder (ADR 0207): one listing for completion and search,
+        // rather than one request per folder (sapass, 2026-10-25).
+        resource.Links.Add(new Link("descendants", $"{FolderHref(folder.Id)}/descendants", "GET"));
         if (folder.Kind == PasswordItemKind.Folder)
         {
             resource.Links.Add(new Link("store", FolderHref(folder.StoreId), "GET"));

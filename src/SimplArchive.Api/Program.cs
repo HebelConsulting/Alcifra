@@ -667,10 +667,9 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // The desktop client (seeded and healed) and saconsole, each in its own file to keep this one under 1000 lines.
-    await SimplArchive.Api.Provisioning.DesktopClientSeeder.SeedAsync(applicationManager);
-    await SimplArchive.Api.Provisioning.MobileClientSeeder.SeedAsync(applicationManager);
-    await SimplArchive.Api.Provisioning.SaConsoleClientSeeder.SeedAsync(applicationManager);
+    // The public clients (desktop, mobile, both CLIs), each registered in its own file; the sequence lives beside
+    // them so this file stays under the line guard.
+    await SimplArchive.Api.Provisioning.PublicClientsSeed.SeedAsync(applicationManager);
 
     // Env-driven idempotent bootstrap of the first PlatformAdministrator — the deployment-level chicken/egg
     // (a PlatformAdministrator can only be created by another PlatformAdministrator) needs one seeded out of
