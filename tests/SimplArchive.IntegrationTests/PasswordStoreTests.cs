@@ -235,7 +235,7 @@ public sealed class PasswordStoreTests : IDisposable
         return (entry, await db.DocumentVersions.AsNoTracking().SingleAsync(v => v.DocumentId == entry && v.Status == DocumentVersionStatus.Pending));
     }
 
-    private PasswordEntryVersions Versions(SimplArchiveDbContext db) => new(db, _storage, new NoModuleScopeFactory(db), NullLogger<PasswordEntryVersions>.Instance);
+    private PasswordEntryVersions Versions(SimplArchiveDbContext db) => new(db, _storage, new NoModuleScopeFactory(db), new SimplArchive.Infrastructure.Persistence.CurrentUserAccessor(), NullLogger<PasswordEntryVersions>.Instance);
 
     [Fact]
     public async Task Plaintext_filed_as_a_password_entry_is_refused_and_leaves_nothing_behind()
@@ -254,19 +254,33 @@ public sealed class PasswordStoreTests : IDisposable
     public async Task An_envelope_is_filed_and_a_change_of_an_entry_with_content_requires_what_its_author_saw()
     {
         using var reader = Certificate("reader");
-        var (_, pending) = await PendingAsync(Sealed(reader), withEarlierVersion: true);
-        using var db = Ctx();
-        var version = await db.DocumentVersions.SingleAsync(v => v.Id == pending.Id);
 
-        await Assert.ThrowsAsync<IfMatchRequiredException>(() => Versions(db).GuardAsync(version, null, new DefaultHttpContext().Request, CancellationToken.None));
+        // Without the precondition: refused, and — like every other refusal of a sealed version — nothing is left
+        // behind. The pending row and its object go, so a client that forgot If-Match cannot fill the document's
+        // history or the bucket one attempt at a time.
+        var (entry, ungated) = await PendingAsync(Sealed(reader), withEarlierVersion: true);
+        using (var refused = Ctx())
+        {
+            var version = await refused.DocumentVersions.SingleAsync(v => v.Id == ungated.Id);
+            await Assert.ThrowsAsync<IfMatchRequiredException>(
+                () => Versions(refused).GuardAsync(version, null, new DefaultHttpContext().Request, CancellationToken.None));
+            Assert.False(await refused.DocumentVersions.AnyAsync(v => v.Id == ungated.Id));
+        }
+
+        Assert.False(_storage.Objects.ContainsKey(ungated.ObjectKey));
+
+        // With it, a re-seal is accepted — on a fresh pending version, because the refused one no longer exists.
+        var pending = await VersionAsync(entry, Sealed(reader), DateTimeOffset.UtcNow, 2, status: DocumentVersionStatus.Pending);
+        using var db = Ctx();
+        var accepted = await db.DocumentVersions.SingleAsync(v => v.Id == pending);
 
         var request = new DefaultHttpContext().Request;
         request.Headers.IfMatch = $"\"{Guid.NewGuid()}\"";
-        var guarded = await Versions(db).GuardAsync(version, (int)VersionCommentKind.ResealedAfterAccessChange, request, CancellationToken.None);
+        var guarded = await Versions(db).GuardAsync(accepted, (int)VersionCommentKind.ResealedAfterAccessChange, request, CancellationToken.None);
         Assert.NotNull(guarded);
         Assert.True(guarded.Gated);
         Assert.True(guarded.Reseal);
-        Assert.Equal(VersionCommentKind.ResealedAfterAccessChange, version.CommentKind);
+        Assert.Equal(VersionCommentKind.ResealedAfterAccessChange, accepted.CommentKind);
     }
 
     [Fact]

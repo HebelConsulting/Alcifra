@@ -337,10 +337,17 @@ public class MasksController : ControllerBase
             mask.FileExtensions = [.. extensions.Where(e => e.MaskId == mask.Id).Select(e => e.Extension).Order()];
             // A mask no person may create is not one a picker offers either: the certificate policy is filed only by
             // enrolment (ADR 0936). Every other member of that set is already excluded above.
+            //
+            // A SEALED mask is never offered either (ADR 0975): the picker assigns a mask to a document whose
+            // content ALREADY EXISTS, and it cannot produce sealed content — switching a plaintext document to
+            // "Sealed document" would leave its confirmed plaintext version under a mask that declares the content
+            // sealed, and every door would then serve it typed as an S/MIME envelope that it is not. Password Entry
+            // was already excluded through its typed-folder rule; this makes the reason true of the class.
             mask.IsFreelyAssignable = !mask.IsFolderMask
                 && mask.FileExtensions.Count == 0
                 && !WellKnownMaskIds.AdmittingFolders.ContainsKey(mask.Id)
-                && !WellKnownMaskIds.NotUserCreatable.Contains(mask.Id);
+                && !WellKnownMaskIds.NotUserCreatable.Contains(mask.Id)
+                && !WellKnownMaskIds.SealedContentMasks.ContainsKey(mask.Id);
             mask.Links = [new Link("self", $"/api/masks/{mask.Id}", "GET")];
 
             // NO create rel here, deliberately. Creating a typed folder needs a PARENT, which this resource does

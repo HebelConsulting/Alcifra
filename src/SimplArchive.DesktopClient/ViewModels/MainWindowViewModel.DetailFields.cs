@@ -47,6 +47,8 @@ public sealed partial class MainWindowViewModel
         _detailLinks = null;
         _detailExternalLinksHref = null;
         CanShareDocument = false;
+        CanChangeAudience = false;
+        _detailDocumentETag = null;
         CanToggleSubscription = false;
         RebuildDetailActionEntries(); // the affordances must not outlive their subject (ADR 0559)
         SysDocumentDate = null;
@@ -88,12 +90,16 @@ public sealed partial class MainWindowViewModel
             RebuildDetailActionEntries(); // Bookings… follows the links captured above
             _detailDocumentName = detail.Name;
             CanShareDocument = detail.ExternalLinksHref is not null;
+            // "Change audience…" is the author's act (ADR 0975); the server answers whether it is, and the ETag of
+            // THIS read is the precondition the re-seal carries (ADR 0794: never a re-read just before writing).
+            CanChangeAudience = detail.CanChangeAudience;
+            _detailDocumentETag = detail.ETag;
             // Folder-only, and read from the resource because a child folder's order is never fetched by the
             // parent's listing that opened this pane (issue #408).
             _detailSortOrder = detail.ContentsSortOrder;
             OnPropertyChanged(nameof(DetailSortText));
         }
-        catch (Exception) { _detailSensitivityName = string.Empty; _detailSensitivityColor = null; _detailSensitivityWatermark = false; DetailSensitivityId = null; _detailExternalLinksHref = null; CanShareDocument = false; }
+        catch (Exception) { _detailSensitivityName = string.Empty; _detailSensitivityColor = null; _detailSensitivityWatermark = false; DetailSensitivityId = null; _detailExternalLinksHref = null; CanShareDocument = false; CanChangeAudience = false; _detailDocumentETag = null; }
         // Sensitivity watermark on the preview (ADR "Document watermarking") — when the label's watermark flag is set.
         Preview.WatermarkText = _detailSensitivityWatermark ? $"{_detailSensitivityName} · {UserDisplayName}" : "";
         // Whether the current user follows this document (ADR "Document subscriptions").

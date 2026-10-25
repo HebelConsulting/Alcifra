@@ -38,6 +38,7 @@ public partial class AuditCoverageRatchetTests
         ["AuthorizationController.cs"] = "The OIDC authorize endpoint; the sign-in it results in is recorded as Auth.LoggedIn.",
         ["CertificateDescriptionsController.cs"] = "NOT A MUTATION: it is a POST only because a certificate does not fit in a URL and must not appear in one. Nothing is stored, nothing is decided, and the answer is derived from the request alone — the same body always yields the same description. The act it informs, creating an enveloped external link, IS audited, and names the same certificate.",
         ["CertificatePolicyController.cs"] = "AUDITED ELSEWHERE: at CertificateEnrolment, the one door a policy change passes through, recorded after the commit as Certificate.PolicyChanged (ADR 0936).",
+        ["ReaderDirectoryController.cs"] = "NOT A MUTATION: its POST validates a pasted certificate with its attestation chain (ADR 0976) and answers whether the core admits that key. Nothing is stored and nothing changes; the act it informs — sealing a document to that certificate — happens on the device and never reaches this server.",
         ["CertificatesController.cs"] = "AUDITED ELSEWHERE: at CertificateEnrolment, the one door an enrolment passes through, recorded after the commit as Certificate.Enrolled (ADR 0936).",
         ["CheckoutPagesController.cs"] = "Renders the check-out page; the acts it posts to are audited by their own controllers.",
         ["DavCollectionColorController.cs"] = "A per-user calendar colour. A display preference is not an audit event.",

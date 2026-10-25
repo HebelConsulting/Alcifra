@@ -74,6 +74,9 @@ public static class ApiErrorText
         "PASSWORD_STORE_NOT_AVAILABLE" => Strings.Get("ApiErrPasswordStoreNotAvailable"),
         "PASSWORD_ITEM_NAME_REQUIRED" => Strings.Get("ApiErrPasswordItemNameRequired"),
         "CERTIFICATE_NOT_ATTESTED" => Strings.Get("ApiErrCertificateNotAttested"),
+        "INVALID_RECIPIENT_CERTIFICATE" => Strings.Get("ApiErrInvalidRecipientCertificate"),
+        // "Change audience…" refused from somebody who did not file the current version (ADR 0975).
+        "AUDIENCE_CHANGE_REQUIRES_AUTHOR" => Strings.Get("ApiErrAudienceChangeRequiresAuthor"),
         "CERTIFICATE_ATTESTATION_INVALID" => Strings.Get("ApiErrCertificateAttestationInvalid"),
         "CERTIFICATE_ATTESTATION_KEY_MISMATCH" => Strings.Get("ApiErrCertificateAttestationKeyMismatch"),
         "CERTIFICATE_ATTESTATION_ROOT_NOT_TRUSTED" => Strings.Get("ApiErrCertificateAttestationRootNotTrusted"),

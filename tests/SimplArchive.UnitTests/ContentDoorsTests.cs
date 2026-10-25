@@ -43,6 +43,33 @@ public class ContentDoorsTests
     }
 
     [Fact]
+    public void A_sealed_document_gets_the_one_door_that_serves_its_envelope_on_every_tier()
+    {
+        // A sealed document's content IS the CMS envelope (ADR 0975). The server holds no key for it, so there
+        // is nothing for the enveloped route to do, and no plaintext variant to withhold: the stored bytes are
+        // served as what they are. One door on every combination — including the two that refuse plaintext
+        // doors, because these bytes are not plaintext, which is also why the storage door admits a shaped
+        // envelope past the strict tier (ADR 0940).
+        foreach (var delivers in new[] { false, true })
+        {
+            foreach (var certificate in new[] { false, true })
+            {
+                foreach (var refuses in new[] { false, true })
+                {
+                    var doors = ContentDoors.For(delivers, certificate, refuses, servesSealedContent: true);
+
+                    Assert.False(doors.Enveloped);
+                    Assert.True(doors.Plaintext);
+                    // The single pair keeps the plain names: there is no envelope door to stand beside, so a
+                    // client that follows `download` follows the only door there is (ADR 0543/0865).
+                    Assert.Equal("download", doors.DownloadRel);
+                    Assert.Equal("preview", doors.PreviewRel);
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void The_plaintext_pair_is_named_plain_only_when_it_stands_BESIDE_the_envelope()
     {
         // The naming is the compatibility half of ADR 0865: `download` keeps pointing at the enveloped route

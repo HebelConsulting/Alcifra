@@ -358,8 +358,11 @@ public class DocumentVersionsController : ControllerBase
 
         // Comparing two of these versions — the client appends ?from=&to= to this advertised address.
         // WITHHELD where that endpoint refuses, exactly as `text-layout` is: a comparison IS both versions'
-        // plain text (#1485, ADR 0861; ADRs 0857/0543).
-        if (!await _strictEnvelopes.RefusesPlaintextDoorsAsync(cancellationToken))
+        // plain text (#1485, ADR 0861; ADRs 0857/0543). A sealed document has no served text at all: its words
+        // are inside the envelope (ADR 0975), so the comparison would be two empty sides reported as "no
+        // differences" — the worst available answer.
+        if (!await _strictEnvelopes.RefusesPlaintextDoorsAsync(cancellationToken)
+            && !await _versionResources.ServesContentAsEnvelopeAsync(documentId, cancellationToken))
         {
             links.Add(new Link("compare", $"/api/documents/{documentId}/versions/compare", "GET"));
         }

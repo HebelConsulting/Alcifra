@@ -53,6 +53,11 @@ public interface IObjectStorageClient
     // downloadFileName (optional): overrides the filename the browser saves the download as, via the S3
     // response-content-disposition parameter (signed into the URL) — see ADR "Download filename from Short
     // Description". When null, the object key's own last segment is used, as before.
+    // contentType (optional): overrides the response Content-Type via the S3 response-content-type parameter,
+    // exactly as the preview call below does. A SEALED document needs it (ADR 0975): its stored bytes ARE a CMS
+    // envelope, and the clients' one content funnel decides whether to open a response by the type it was
+    // SERVED — so serving the envelope as the object's upload type would hand the device ciphertext it never
+    // decrypts. The stored type is the uploader's guess and cannot be relied on for that question.
     /// <remarks>
     /// <b>NULL means this installation will not serve these bytes as plaintext</b> — the strict encryption
     /// tier (#1376, ADR 0825), where content leaves only as a CMS envelope addressed to the reader's card.
@@ -64,7 +69,7 @@ public interface IObjectStorageClient
     /// than a convention, because twenty files reach content: a nullable return turns "did this caller
     /// handle it?" from a review question into a build error.
     /// </remarks>
-    Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, CancellationToken cancellationToken = default);
+    Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, string? contentType = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// A short-lived URL to an object's STORED bytes — its ciphertext — for the encryption service to fetch

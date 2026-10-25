@@ -6522,4 +6522,103 @@
   <data name="CtxWorkflowSteps" xml:space="preserve">
     <value>Passo del workflow</value>
   </data>
+
+  <data name="AudienceTitle" xml:space="preserve">
+    <value>Sigilla per…</value>
+  </data>
+  <data name="AudienceBody" xml:space="preserve">
+    <value>Solo le persone e i certificati scelti possono leggere questo documento. Il contenuto viene sigillato su questo dispositivo; il server lo memorizza senza possedere alcuna chiave.</value>
+  </data>
+  <data name="AudienceSearch" xml:space="preserve">
+    <value>Cerca persone</value>
+  </data>
+  <data name="AudienceFind" xml:space="preserve">
+    <value>Cerca</value>
+  </data>
+  <data name="AudienceAddFile" xml:space="preserve">
+    <value>Aggiungi file di certificato…</value>
+  </data>
+  <data name="AudienceSeal" xml:space="preserve">
+    <value>Sigilla</value>
+  </data>
+  <data name="AudienceFromFiles" xml:space="preserve">
+    <value>Certificati aggiunti</value>
+  </data>
+  <data name="AudienceLoading" xml:space="preserve">
+    <value>Lettura di chi può ricevere il sigillo…</value>
+  </data>
+  <data name="AudienceUnavailable" xml:space="preserve">
+    <value>Questa installazione non offre un elenco dei lettori.</value>
+  </data>
+  <data name="AudiencePeople" xml:space="preserve">
+    <value>È possibile sigillare per {0} persone.</value>
+  </data>
+  <data name="AudienceNone" xml:space="preserve">
+    <value>Nessuno qui ha ancora un certificato di lettura.</value>
+  </data>
+  <data name="AudienceFileNeedsChain" xml:space="preserve">
+    <value>Il file deve contenere il certificato e la sua catena di attestazione, in questo ordine: certificato, certificato di attestazione, intermedio.</value>
+  </data>
+  <data name="AudienceFileRefused" xml:space="preserve">
+    <value>Non è possibile sigillare per questo certificato.</value>
+  </data>
+  <data name="AudienceFileAdded" xml:space="preserve">
+    <value>{0} aggiunto.</value>
+  </data>
+  <data name="RibbonNewSealed" xml:space="preserve">
+    <value>Nuovo documento sigillato…</value>
+  </data>
+  <data name="SdPickFile" xml:space="preserve">
+    <value>Sigilla un documento per un destinatario</value>
+  </data>
+  <data name="StSealingFile" xml:space="preserve">
+    <value>Sigillo di '{0}'…</value>
+  </data>
+  <data name="StSealedFiled" xml:space="preserve">
+    <value>'{0}' archiviato e sigillato per i destinatari.</value>
+  </data>
+  <data name="StErrSealed" xml:space="preserve">
+    <value>Non è stato possibile sigillare e archiviare '{0}': {1}</value>
+  </data>
+  <data name="StErrSealedNoFolder" xml:space="preserve">
+    <value>Aprire prima la cartella in cui archiviare il documento.</value>
+  </data>
+  <data name="ApiErrInvalidRecipientCertificate" xml:space="preserve">
+    <value>Non è un certificato destinatario utilizzabile: deve essere codificato PEM e contenere una chiave RSA o a curva ellittica.</value>
+  </data>
+
+  <data name="EnrolExportChain" xml:space="preserve">
+    <value>Esporta il certificato con l'attestazione…</value>
+  </data>
+  <data name="EnrolExportChainHint" xml:space="preserve">
+    <value>Scrive il certificato, il suo certificato di attestazione e quello del token, in quest'ordine — il file che serve a un'altra persona per sigillare un documento per questa chiave.</value>
+  </data>
+  <data name="EnrolExported" xml:space="preserve">
+    <value>Salvato. Chi vuole sigillare un documento per te ha bisogno di questo file.</value>
+  </data>
+
+  <data name="RibbonChangeAudience" xml:space="preserve">
+    <value>Cambia destinatari…</value>
+  </data>
+  <data name="StResealingDoc" xml:space="preserve">
+    <value>Nuovo sigillo per '{0}'…</value>
+  </data>
+  <data name="StResealedDoc" xml:space="preserve">
+    <value>'{0}' è ora sigillato per i nuovi destinatari.</value>
+  </data>
+  <data name="StErrReseal" xml:space="preserve">
+    <value>Non è stato possibile risigillare '{0}': {1}</value>
+  </data>
+  <data name="StErrResealNotAudience" xml:space="preserve">
+    <value>Solo chi può aprire questo documento — cioè chi appartiene ai destinatari attuali — può modificarlo.</value>
+  </data>
+  <data name="StErrResealNoSubject" xml:space="preserve">
+    <value>Seleziona prima un documento sigillato.</value>
+  </data>
+  <data name="StErrResealNoContent" xml:space="preserve">
+    <value>Questo documento non offre alcun contenuto da risigillare.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
+    <value>Solo l'autore della versione attuale di questo documento sigillato può cambiare per chi è sigillato.</value>
+  </data>
 </root>

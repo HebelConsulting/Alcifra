@@ -17,6 +17,10 @@ public partial class RepositoriesRibbon : UserControl
 
     private void OnNewFolder(object? sender, RoutedEventArgs e) => Window()?.OnNewFolder(sender, e);
 
+    private void OnNewSealedDocument(object? sender, RoutedEventArgs e) => Window()?.OnNewSealedDocument(sender, e);
+
+    private void OnChangeAudience(object? sender, RoutedEventArgs e) => Window()?.OnChangeAudience(sender, e);
+
     private void OnRename(object? sender, RoutedEventArgs e) => Window()?.OnRename(sender, e);
 
     private void OnDelete(object? sender, RoutedEventArgs e) => Window()?.OnDelete(sender, e);

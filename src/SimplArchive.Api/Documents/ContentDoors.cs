@@ -46,6 +46,16 @@ public readonly record struct ContentDoors(bool Enveloped, bool Plaintext)
     /// rel that is always present and sometimes fails is the lying affordance ADR 0543 forbids.
     /// </param>
     /// <param name="refusesPlaintextDoors">No door of this tenant's may serve readable bytes.</param>
-    public static ContentDoors For(bool deliversEnvelopes, bool hasReaderCertificate, bool refusesPlaintextDoors) =>
-        new(Enveloped: deliversEnvelopes && hasReaderCertificate, Plaintext: !refusesPlaintextDoors);
+    /// <param name="servesSealedContent">
+    /// The content IS a CMS envelope already — a Sealed document (ADR 0975). The server holds no key for it, so
+    /// there is nothing for the enveloped route to do, and the one presigned door serves the envelope itself.
+    /// That is one door on every tier, including the two that refuse plaintext: <b>these bytes are not
+    /// plaintext</b>, and the storage door admits a shaped envelope past the strict tier for exactly that reason
+    /// (ADR 0940). Asking the refusing question here would withhold the only door the document has.
+    /// </param>
+    public static ContentDoors For(bool deliversEnvelopes, bool hasReaderCertificate, bool refusesPlaintextDoors,
+        bool servesSealedContent = false) =>
+        servesSealedContent
+            ? new(Enveloped: false, Plaintext: true)
+            : new(Enveloped: deliversEnvelopes && hasReaderCertificate, Plaintext: !refusesPlaintextDoors);
 }

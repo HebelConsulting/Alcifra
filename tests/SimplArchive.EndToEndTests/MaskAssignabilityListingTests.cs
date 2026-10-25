@@ -85,12 +85,18 @@ public class MaskAssignabilityListingTests
         //
         // Manual joined with ADR 0891: SimplArchive files its own manuals wearing it, and a person keeps a third-party
         // product's manual the same way — wherever they file it, which is why its folder's exclusivity is one-way.
+        //
+        // The Sealed document mask (ADR 0975) is deliberately ABSENT: a picker assigns a mask to a document whose
+        // content already exists and cannot produce sealed content, so switching a plaintext document to it would
+        // leave a plaintext confirmed version under a mask that declares the content sealed. It does not change the
+        // set below because Password Entry was already excluded through its typed-folder rule; this makes the reason
+        // true of the class rather than a property of one mask's placement.
         Assert.Equal(["Basic Entry", "Certificate", "License", "Manual"], assignable);
 
         // And the ones that must never be offered, named individually so a regression says which.
         // Meeting room types a folder; the Booking mask is placement-constrained to rooms AND created by the
         // booking flow, never a picker (ADR 0735) — both would be over-offering, the bug this test exists for.
-        foreach (var refused in new[] { "Addressbook", "Calendar", "Notebook", "Section", "Mailbox", "Contact", "Appointment", "eMail", "Note", "Folder", "Meeting room", "Booking", "SimplArchive Documentation", "Reader certificates", "Certificate policy" })
+        foreach (var refused in new[] { "Addressbook", "Calendar", "Notebook", "Section", "Mailbox", "Contact", "Appointment", "eMail", "Note", "Folder", "Meeting room", "Booking", "SimplArchive Documentation", "Reader certificates", "Certificate policy", "Sealed document" })
         {
             Assert.False(
                 masks[refused].GetProperty("isFreelyAssignable").GetBoolean(),

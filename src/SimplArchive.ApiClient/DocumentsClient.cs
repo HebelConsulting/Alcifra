@@ -179,7 +179,10 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
     public sealed record DocumentDetailInfo(string Name, DocumentSensitivityInfo Sensitivity, string? ExternalLinksHref, int ContentsSortOrder,
         LinkMap? Links = null, IReadOnlyList<GenericActionInfo>? GenericActions = null,
         IReadOnlyList<MachineStatusInfo>? MachineStatuses = null,
-        IReadOnlyList<ModuleActionInfo>? ModuleActions = null)
+        IReadOnlyList<ModuleActionInfo>? ModuleActions = null,
+        // Whether this caller may change a sealed document's audience (ADR 0975), and the ETag of the read that
+        // said so — the precondition a re-seal must carry (ADR 0794: the tag of what the user SAW, never a re-read).
+        bool CanChangeAudience = false, string? ETag = null)
     {
         /// <summary>The advertised href for <paramref name="rel"/>; throws rather than composing one.</summary>
         public string Href(string rel) =>
@@ -192,7 +195,12 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
 
     public async Task<DocumentDetailInfo> GetDocumentDetailAsync(string documentSelfHref, CancellationToken cancellationToken = default)
     {
-        var json = await _core.Http.GetFromJsonAsync<JsonElement>(documentSelfHref, cancellationToken);
+        // SendAsync rather than GetFromJsonAsync: the document resource's ETag is half this read's answer (a re-seal
+        // carries it as its precondition, ADR 0794), and a typed GET throws the headers away.
+        using var response = await _core.Http.GetAsync(documentSelfHref, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var eTag = response.Headers.ETag?.Tag;
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
 
         return new DocumentDetailInfo(
             json.TryGetProperty("name", out var name) ? name.GetString() ?? "" : "",
@@ -209,7 +217,9 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
             ApiCore.ParseLinks(json),
             ParseGenericActions(json),
             ParseMachineStatuses(json),
-            ParseModuleActions(json));
+            ParseModuleActions(json),
+            json.TryGetProperty("canChangeAudience", out var audience) && audience.ValueKind == JsonValueKind.True,
+            eTag);
     }
 
     /// <summary>A machine-derived status with its diagnoses (#1062) — what the detail pane's Status section

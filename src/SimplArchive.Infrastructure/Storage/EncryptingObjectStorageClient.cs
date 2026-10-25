@@ -238,10 +238,10 @@ public sealed class EncryptingObjectStorageClient(
         return await inner.GetPresignedCiphertextUrlAsync(objectKey, expiry, cancellationToken);
     }
 
-    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, CancellationToken cancellationToken = default) =>
+    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, string? contentType = null, CancellationToken cancellationToken = default) =>
         await RefusedByStrictTierAsync(objectKey, cancellationToken) ? null
-        : await SwapIfEncryptedAsync(objectKey, expiry, downloadFileName, contentType: null, inline: false, cancellationToken)
-            ?? await inner.GetPresignedDownloadUrlAsync(objectKey, expiry, downloadFileName, cancellationToken);
+        : await SwapIfEncryptedAsync(objectKey, expiry, downloadFileName, contentType, inline: false, cancellationToken)
+            ?? await inner.GetPresignedDownloadUrlAsync(objectKey, expiry, downloadFileName, contentType, cancellationToken);
 
     public async Task<Uri?> GetPresignedPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default) =>
         await RefusedByStrictTierAsync(objectKey, cancellationToken) ? null

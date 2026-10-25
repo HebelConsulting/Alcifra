@@ -175,6 +175,19 @@ public class DocumentsController : ControllerBase
         /// </remarks>
         public bool CanCreateChildren { get; set; }
 
+        /// <summary>
+        /// Whether the caller may invite a CHANGED AUDIENCE to this sealed document — "Change audience…" (ADR 0975).
+        /// </summary>
+        /// <remarks>
+        /// True only on a Sealed document whose current version the caller filed, while the content is neither checked
+        /// out nor under a legal hold and the caller holds <c>CanEditContent</c> — the conditions under which the
+        /// re-seal's version upload would succeed. A capability flag rather than a rel (ADR 0719): there is no
+        /// endpoint behind it, because the content is opened and re-sealed on the DEVICE and only the resulting
+        /// version reaches the API. The server still refuses the reseal comment kind from anybody but the author,
+        /// so this flag and that refusal are one judgement, stated twice for two different readers.
+        /// </remarks>
+        public bool CanChangeAudience { get; set; }
+
         // True when this item ignores its ancestors' ACL and uses only its own grants (ADR "Document ACL
         // inheritance resolution") — the read-only inheritance indicator in the Manage-access dialog.
         public bool BreaksInheritance { get; set; }
@@ -262,11 +275,14 @@ public class DocumentsController : ControllerBase
         // The latest confirmed version's object key answers BOTH questions in one query: whether this is a
         // folder (no confirmed version) and whether it is a zip (issue #416). Both clients decided the latter by
         // string-comparing a file extension they carried around — an inference a rel should make for them.
-        var latestKey = await _dbContext.DocumentVersions
+        // Its CREATOR rides along for the sealed document's "Change audience…" flag (ADR 0975): which version is
+        // current is the same ordering the versions listing uses, asked once here rather than twice.
+        var latest = await _dbContext.DocumentVersions
             .Where(v => v.DocumentId == documentId && v.Status == DocumentVersionStatus.Confirmed)
             .OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id)
-            .Select(v => v.ObjectKey)
+            .Select(v => new { v.ObjectKey, v.CreatedByUserId })
             .FirstOrDefaultAsync(cancellationToken);
+        var latestKey = latest?.ObjectKey;
 
         // A folder by its mask, not by "has no file" (#1708): a file-less record is a document and gets a document's
         // rels. The archive test below still reads the file, which is what it is about.
@@ -288,6 +304,16 @@ public class DocumentsController : ControllerBase
             ? await _dbContext.MaskVersions.Where(v => v.Id == mvId).Select(v => (Guid?)v.MaskId).SingleOrDefaultAsync(cancellationToken)
             : null;
 
+        // "Change audience…" is the author's act (ADR 0975), and every condition the version upload would enforce is
+        // asked HERE so the flag cannot promise a click that refuses: the sealed document, filed by this caller, with
+        // content editing allowed and the item neither checked out nor under a hold.
+        var canChangeAudience = maskId == WellKnownMaskIds.SealedDocument
+            && latest?.CreatedByUserId is { } author
+            && author == _access.GetCallerIdentity().UserId
+            && rights.CanEditContent
+            && checkedOut is null
+            && !onLegalHold;
+
         return Ok(new DocumentResource
         {
             Id = documentId,
@@ -303,6 +329,7 @@ public class DocumentsController : ControllerBase
             CanDelete = rights.CanDelete,
             CanEditIndexData = rights.CanEditIndexData,
             CanCreateChildren = canCreateChildren,
+            CanChangeAudience = canChangeAudience,
             BreaksInheritance = document.BreaksInheritance,
             ContentsSortOrder = document.ContentsSortOrder,
             MachineStatuses = [.. await _machineStatuses.EvaluateAsync(documentId, maskId, DateTimeOffset.UtcNow, cancellationToken)],

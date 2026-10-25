@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Hypermedia;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
+using SimplArchive.Domain.Masks;
 using SimplArchive.Domain.Workflow;
 using SimplArchive.Api.Controllers;
 using SimplArchive.Infrastructure.Persistence;
@@ -42,6 +43,46 @@ public sealed class DocumentVersionResourceBuilder(
     // so it wants to be short; fifteen minutes survives a slow render without leaving a usable URL in a log.
     private static readonly TimeSpan PresignedUrlExpiry = TimeSpan.FromMinutes(15);
 
+    // What a sealed document's content is SERVED as (ADR 0975). The clients' one content funnel decides whether
+    // to open a response by the type it was served, so the envelope has to say what it is — the stored object
+    // carries whatever the uploader sent, which is a guess and never the contract.
+    private const string SealedContentType = "application/pkcs7-mime";
+
+    // Whether a document's content arrives as an envelope, answered once per request: a version LIST asks this
+    // for every row and the answer belongs to the DOCUMENT (the mask is assigned on the document, not per
+    // version). Cached per builder, which is scoped — one request.
+    private readonly Dictionary<Guid, bool> _servesContentAsEnvelope = [];
+
+    /// <summary>
+    /// Whether this document's content IS a CMS envelope — a Sealed document (ADR 0975) — so the ordinary content
+    /// funnel on the device is what opens it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Only the Sealed Document, not every sealed mask.</b> A Password Entry is also sealed
+    /// (<see cref="WellKnownMaskIds.SealedContentMasks"/>), but its STORE client opens the envelope itself from
+    /// opaque bytes (ADR 0964) — typing those bytes as an envelope would make the funnel open them first and the
+    /// store open them again. Two masks, two doorways, on purpose.
+    /// </para>
+    /// <para>
+    /// Read through the SOFT-DELETED filter too: the recycle bin previews a deleted document's versions (ADR
+    /// "Recycle bin tab"), and the mask decides how its content is served there as well.
+    /// </para>
+    /// </remarks>
+    public async Task<bool> ServesContentAsEnvelopeAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        if (_servesContentAsEnvelope.TryGetValue(documentId, out var known))
+        {
+            return known;
+        }
+
+        var maskId = await dbContext.Documents.IgnoreQueryFilters(["SoftDeleteFilter"])
+            .Where(d => d.Id == documentId)
+            .Select(d => dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => v.MaskId).FirstOrDefault())
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return _servesContentAsEnvelope[documentId] = maskId == WellKnownMaskIds.SealedDocument;
+    }
 
     public async Task<DocumentVersionResource> BuildAsync(VersionRow version, string documentName, CancellationToken cancellationToken)
     {
@@ -51,6 +92,11 @@ public sealed class DocumentVersionResourceBuilder(
         // a pending version too and the answer — does this TENANT envelope? — is the same either way.
         var enveloping = false;
         var previewConverted = false;
+
+        // A SEALED document's content is the envelope itself, so there is nothing for the server to envelope:
+        // it holds no key for it (ADR 0975). The stored bytes are served as the S/MIME message they are, and
+        // both clients' one content funnel opens it on the device.
+        var sealedContent = await ServesContentAsEnvelopeAsync(version.DocumentId, cancellationToken);
 
         if (version.Status == DocumentVersionStatus.Confirmed)
         {
@@ -79,12 +125,13 @@ public sealed class DocumentVersionResourceBuilder(
             // the enveloped route at all (it authorizes by header, and the content funnel sends no bearer), so
             // the measured symptom was five 401s and no preview, on the one tier whose definition is that its
             // ordinary doors keep serving.
-            enveloping = await envelopes.AppliesAsync(cancellationToken);
+            enveloping = !sealedContent && await envelopes.AppliesAsync(cancellationToken);
             var doors = ContentDoors.For(
                 deliversEnvelopes: enveloping,
                 hasReaderCertificate: enveloping
                     && (await envelopes.ReaderCertificatePemsAsync(cancellationToken)).Count > 0,
-                refusesPlaintextDoors: await envelopes.RefusesPlaintextDoorsAsync(cancellationToken));
+                refusesPlaintextDoors: await envelopes.RefusesPlaintextDoorsAsync(cancellationToken),
+                servesSealedContent: sealedContent);
 
             if (doors.Enveloped)
             {
@@ -128,7 +175,8 @@ public sealed class DocumentVersionResourceBuilder(
                 // Through OmittableLinks: without an encryption service an object encrypted at rest refuses its
                 // presign, and this resource drops the link rather than failing (ADR 0953).
                 && await omittable.OrOmittedAsync(
-                    storage.GetPresignedDownloadUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken),
+                    storage.GetPresignedDownloadUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName,
+                        contentType: sealedContent ? SealedContentType : null, cancellationToken),
                     doors.DownloadRel) is { } downloadUrl)
             {
                 links.Add(new Link(doors.DownloadRel, downloadUrl.ToString(), "GET"));
@@ -145,15 +193,28 @@ public sealed class DocumentVersionResourceBuilder(
             // and not the bytes. On a permissive tenant BOTH are advertised, so this one becomes
             // `plain-preview` and the two resolutions are both paid; they ask the same display-object
             // question, so the badge cannot disagree between them.
-            if (doors.Plaintext
-                && await omittable.OrOmittedAsync(
-                    previews.GetPreviewUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken),
-                    doors.PreviewRel) is { } preview)
+            // A sealed document's preview is the ENVELOPE ITSELF, not a rendition: the content is never rendered
+            // (a sealed segment is unrendered by declaration, ADR 0937/0964), and what a reader sees is produced on
+            // the device by opening it. So it is presigned directly rather than through the preview service, which
+            // would answer null by design — and the S/MIME type rides on the URL for the same reason the download's
+            // does (ADR 0975).
+            if (doors.Plaintext)
             {
-                links.Add(new Link(doors.PreviewRel, preview.Url.ToString(), "GET"));
-                if (!doors.Enveloped)
+                // The TASK, not an awaited result: OrOmittedLinks catches the refusal a presign throws when the
+                // object is encrypted at rest and no service can unwrap it (ADR 0953). Awaiting it here would
+                // throw before the guard sees it and take the whole version resource down with a 503 — which is
+                // exactly what the refused-presign test caught on the sealed path.
+                var preview = sealedContent
+                    ? SealedPreviewAsync(version, downloadFileName, cancellationToken)
+                    : previews.GetPreviewUrlAsync(version.ObjectKey, PresignedUrlExpiry, downloadFileName, cancellationToken);
+
+                if (await omittable.OrOmittedAsync(preview, doors.PreviewRel) is { } shown)
                 {
-                    previewConverted = preview.IsConverted;
+                    links.Add(new Link(doors.PreviewRel, shown.Url.ToString(), "GET"));
+                    if (!doors.Enveloped)
+                    {
+                        previewConverted = shown.IsConverted;
+                    }
                 }
             }
 
@@ -179,7 +240,10 @@ public sealed class DocumentVersionResourceBuilder(
             // Read from `doors` rather than asked again (ADR 0865): this overlay IS a plaintext door, so it
             // is the same predicate as the pair above, and one answer serving both is what stops the two
             // drifting into disagreement about the same tenant.
-            if (doors.Plaintext)
+            // A sealed document's words are inside the envelope, so there is no layout for the server to give
+            // (ADR 0975): the rel is withheld rather than advertised and then answering 204 — which would read as
+            // "this document has no text". The desktop computes the layout from the bytes it decrypted.
+            if (doors.Plaintext && !sealedContent)
             {
                 links.Add(new Link("text-layout", $"/api/documents/{version.DocumentId}/versions/{version.Id}/text-layout", "GET"));
             }
@@ -242,10 +306,23 @@ public sealed class DocumentVersionResourceBuilder(
             IsSigned = version.IsSigned == true,
             // Stated rather than left to be inferred from the absent rels (#1352): a strict tenant's version
             // looks exactly like one whose rendition failed, and "no preview available" is the wrong
-            // explanation for a browser that cannot open an envelope by construction.
-            ContentIsEnveloped = enveloping,
+            // explanation for a browser that cannot open an envelope by construction. A sealed document says
+            // so on every tier for the same reason: its one door serves an envelope the browser cannot open.
+            ContentIsEnveloped = enveloping || sealedContent,
             Links = links,
         };
+    }
+
+    /// <summary>
+    /// A sealed document's preview: the stored envelope, presigned directly and typed as what it is (ADR 0975).
+    /// Returned as a TASK so the caller's <c>OmittableLinks</c> sees a presign refusal, not an exception from
+    /// awaiting it first (ADR 0953).
+    /// </summary>
+    private async Task<DocumentPreview?> SealedPreviewAsync(VersionRow version, string downloadFileName, CancellationToken cancellationToken)
+    {
+        var url = await storage.GetPresignedPreviewUrlAsync(
+            version.ObjectKey, PresignedUrlExpiry, downloadFileName, SealedContentType, cancellationToken);
+        return url is null ? null : new DocumentPreview(url, IsConverted: false);
     }
 
     private async Task<string> ResolveCreatorNameAsync(Guid? userId, Guid? serviceAccountId, CancellationToken cancellationToken)

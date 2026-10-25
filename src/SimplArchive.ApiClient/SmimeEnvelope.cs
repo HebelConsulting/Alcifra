@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using MimeKit;
 using MimeKit.Cryptography;
 
@@ -30,9 +32,32 @@ public static class SmimeEnvelope
         {
         }
 
+        // A SERVED ENVELOPE MAY BE THE BARE CMS ITSELF (ADR 0975). A sealed document is stored as bare
+        // EnvelopedData — the core's shape check reads the DER header at the door, so an S/MIME wrapper would be
+        // refused there — and a strict tenant hands a shaped sealed object through unchanged. Wrapping it here
+        // keeps ONE opener for both producers, instead of a second reading of the wire format in every host.
+        if (IsBareEnvelopedData(served))
+        {
+            return new ApplicationPkcs7Mime(SecureMimeType.EnvelopedData, new MemoryStream(served));
+        }
+
         // Labelled as an envelope and shaped like something else. Refused rather than guessed at: handing the
         // caller bytes we could not open would make a decryption failure look like a corrupt document.
         throw new EnvelopeNotOpenedException("the response was labelled as an envelope but does not contain one");
+    }
+
+    /// <summary>Whether these bytes decode as a bare CMS <c>EnvelopedData</c> structure.</summary>
+    private static bool IsBareEnvelopedData(byte[] bytes)
+    {
+        try
+        {
+            new EnvelopedCms().Decode(bytes);
+            return true;
+        }
+        catch (Exception e) when (e is CryptographicException or ArgumentException or FormatException)
+        {
+            return false;
+        }
     }
 
     /// <summary>The bare CMS <c>EnvelopedData</c> inside the S/MIME part; empty when it carries no content.</summary>

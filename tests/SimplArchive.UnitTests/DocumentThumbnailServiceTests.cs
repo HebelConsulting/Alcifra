@@ -186,7 +186,7 @@ public class DocumentThumbnailServiceTests
         public Task<Uri?> GetPresignedPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default) =>
             Task.FromResult<Uri?>(new Uri($"http://storage.test/{objectKey}"));
 
-        public Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, CancellationToken cancellationToken = default) =>
+        public Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default) =>
             Task.FromResult<Uri?>(new Uri($"http://storage.test/{objectKey}"));
 
 

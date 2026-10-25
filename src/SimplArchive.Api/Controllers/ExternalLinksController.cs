@@ -128,7 +128,7 @@ public class ExternalLinksController : ControllerBase
 
         // A strict tenant cannot be shared this way: the link is anonymous, so there is no certificate to
         // envelope to, and the URL IS this response — so it refuses rather than returning an empty one (#1376).
-        var url = await _objectStorage.GetPresignedDownloadUrlAsync(objectKey, PresignedUrlExpiry, null, cancellationToken)
+        var url = await _objectStorage.GetPresignedDownloadUrlAsync(objectKey, PresignedUrlExpiry, null, cancellationToken: cancellationToken)
             ?? throw new Errors.Exceptions.ExternalLinks.ExternalLinkCannotServePlaintextException();
 
         return Ok(new ExternalLinkRedemptionResource
@@ -193,7 +193,7 @@ public class ExternalLinksController : ControllerBase
         // on the presigned URL, derived from the extension. Without this the Open button silently behaved as a
         // second Download button, which is exactly what it looked like in the browser.
         var url = download
-            ? await _objectStorage.GetPresignedDownloadUrlAsync(objectKey, PresignedUrlExpiry, fileName, cancellationToken)
+            ? await _objectStorage.GetPresignedDownloadUrlAsync(objectKey, PresignedUrlExpiry, fileName, cancellationToken: cancellationToken)
             : await _objectStorage.GetPresignedPreviewUrlAsync(
                 objectKey, PresignedUrlExpiry, fileName,
                 WebDav.ContentTypes.ForExtension(Path.GetExtension(objectKey)), cancellationToken);

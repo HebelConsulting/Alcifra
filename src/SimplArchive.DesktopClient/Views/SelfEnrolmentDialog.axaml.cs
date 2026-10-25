@@ -142,6 +142,7 @@ public partial class SelfEnrolmentDialog : Window
 
         Accept(buffer.ToArray(), files[0].Name);
         _attestation = null;   // a file carries no attestation; the tenant may still allow it
+        ExportButton.IsEnabled = false;   // ...and nothing can be exported for sealing without the chain
     });
 
     // From a card or token (PKCS#11): the picker lists the device's certificates, flagging one that cannot receive
@@ -157,11 +158,48 @@ public partial class SelfEnrolmentDialog : Window
             // The key's attestation, read from the token with the certificate (ADR 0963): what makes the enrolment trusted,
             // and what lets a key enrolled before attestation was required come back without a new key.
             _attestation = picker.ChosenAttestation;
+            ExportButton.IsEnabled = _pem is not null && _attestation is not null;
             if (_pem is not null)
             {
                 StatusText.Text = Strings.Get(_attestation is null ? "EnrolAttestationMissing" : "EnrolAttestationRead");
             }
         }
+    });
+
+    /// <summary>
+    /// Writes the certificate with its attestation chain — the file somebody else imports to seal a document to this key
+    /// (ADR 0976). The ORDER is the contract the audience picker reads: certificate, its attestation certificate, the
+    /// token's. A file without the chain would be refused there, and rightly: the leaf alone proves nothing about where
+    /// its key lives.
+    /// </summary>
+    private void OnExportChain(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (_pem is not { Length: > 0 } pem || _attestation is not { } attestation)
+        {
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Strings.Get("EnrolExportChain"),
+            SuggestedFileName = "certificate-with-attestation.pem",
+            DefaultExtension = "pem",
+            FileTypeChoices = [new FilePickerFileType("PEM") { Patterns = ["*.pem"] }],
+        });
+        if (file is null)
+        {
+            return;
+        }
+
+        var bundle = string.Join("\n",
+            pem.Trim(), attestation.AttestationCertificatePem.Trim(), attestation.IntermediateCertificatePem.Trim());
+        await using (var stream = await file.OpenWriteAsync())
+        await using (var writer = new System.IO.StreamWriter(stream, new System.Text.UTF8Encoding(false)))
+        {
+            await writer.WriteAsync(bundle + "\n");
+        }
+
+        StatusText.Text = Strings.Get("EnrolExported");
     });
 
     /// <summary>
@@ -202,6 +240,7 @@ public partial class SelfEnrolmentDialog : Window
                 _pem = null;
                 ChosenText.IsVisible = false;
                 EnrolButton.IsEnabled = false;
+                ExportButton.IsEnabled = false;
                 return;
             }
         }

@@ -6522,4 +6522,103 @@
   <data name="CtxWorkflowSteps" xml:space="preserve">
     <value>Workflow-Schritt</value>
   </data>
+
+  <data name="AudienceTitle" xml:space="preserve">
+    <value>Versiegeln für…</value>
+  </data>
+  <data name="AudienceBody" xml:space="preserve">
+    <value>Nur die gewählten Personen und Zertifikate können dieses Dokument lesen. Der Inhalt wird auf diesem Gerät versiegelt; der Server speichert ihn und hält keinen Schlüssel.</value>
+  </data>
+  <data name="AudienceSearch" xml:space="preserve">
+    <value>Personen suchen</value>
+  </data>
+  <data name="AudienceFind" xml:space="preserve">
+    <value>Suchen</value>
+  </data>
+  <data name="AudienceAddFile" xml:space="preserve">
+    <value>Zertifikatsdatei hinzufügen…</value>
+  </data>
+  <data name="AudienceSeal" xml:space="preserve">
+    <value>Versiegeln</value>
+  </data>
+  <data name="AudienceFromFiles" xml:space="preserve">
+    <value>Hinzugefügte Zertifikate</value>
+  </data>
+  <data name="AudienceLoading" xml:space="preserve">
+    <value>Es wird gelesen, für wen versiegelt werden kann…</value>
+  </data>
+  <data name="AudienceUnavailable" xml:space="preserve">
+    <value>Diese Installation bietet kein Leserverzeichnis an.</value>
+  </data>
+  <data name="AudiencePeople" xml:space="preserve">
+    <value>Für {0} Personen kann versiegelt werden.</value>
+  </data>
+  <data name="AudienceNone" xml:space="preserve">
+    <value>Hier hat noch niemand ein Leserzertifikat hinterlegt.</value>
+  </data>
+  <data name="AudienceFileNeedsChain" xml:space="preserve">
+    <value>Die Datei muss das Zertifikat und seine Attestierungskette enthalten, in dieser Reihenfolge: Zertifikat, Attestierungszertifikat, Zwischenzertifikat.</value>
+  </data>
+  <data name="AudienceFileRefused" xml:space="preserve">
+    <value>Auf dieses Zertifikat kann nicht versiegelt werden.</value>
+  </data>
+  <data name="AudienceFileAdded" xml:space="preserve">
+    <value>{0} hinzugefügt.</value>
+  </data>
+  <data name="RibbonNewSealed" xml:space="preserve">
+    <value>Neues versiegeltes Dokument…</value>
+  </data>
+  <data name="SdPickFile" xml:space="preserve">
+    <value>Dokument für einen Empfängerkreis versiegeln</value>
+  </data>
+  <data name="StSealingFile" xml:space="preserve">
+    <value>'{0}' wird versiegelt…</value>
+  </data>
+  <data name="StSealedFiled" xml:space="preserve">
+    <value>'{0}' abgelegt und für den Empfängerkreis versiegelt.</value>
+  </data>
+  <data name="StErrSealed" xml:space="preserve">
+    <value>'{0}' konnte nicht versiegelt und abgelegt werden: {1}</value>
+  </data>
+  <data name="StErrSealedNoFolder" xml:space="preserve">
+    <value>Öffnen Sie zuerst den Ordner, in dem das Dokument abgelegt werden soll.</value>
+  </data>
+  <data name="ApiErrInvalidRecipientCertificate" xml:space="preserve">
+    <value>Das ist kein brauchbares Empfängerzertifikat: Es muss PEM-kodiert sein und einen RSA- oder Elliptische-Kurven-Schlüssel enthalten.</value>
+  </data>
+
+  <data name="EnrolExportChain" xml:space="preserve">
+    <value>Zertifikat mit Attestierung exportieren…</value>
+  </data>
+  <data name="EnrolExportChainHint" xml:space="preserve">
+    <value>Schreibt das Zertifikat, sein Attestierungszertifikat und das des Tokens in dieser Reihenfolge — die Datei, die jemand anderes braucht, um ein Dokument für diesen Schlüssel zu versiegeln.</value>
+  </data>
+  <data name="EnrolExported" xml:space="preserve">
+    <value>Gespeichert. Wer ein Dokument für Sie versiegeln möchte, braucht diese Datei.</value>
+  </data>
+
+  <data name="RibbonChangeAudience" xml:space="preserve">
+    <value>Empfängerkreis ändern…</value>
+  </data>
+  <data name="StResealingDoc" xml:space="preserve">
+    <value>'{0}' wird neu versiegelt…</value>
+  </data>
+  <data name="StResealedDoc" xml:space="preserve">
+    <value>'{0}' ist jetzt für den neuen Empfängerkreis versiegelt.</value>
+  </data>
+  <data name="StErrReseal" xml:space="preserve">
+    <value>'{0}' konnte nicht neu versiegelt werden: {1}</value>
+  </data>
+  <data name="StErrResealNotAudience" xml:space="preserve">
+    <value>Nur wer dieses Dokument öffnen kann — also zum aktuellen Empfängerkreis gehört — kann es ändern.</value>
+  </data>
+  <data name="StErrResealNoSubject" xml:space="preserve">
+    <value>Wählen Sie zuerst ein versiegeltes Dokument aus.</value>
+  </data>
+  <data name="StErrResealNoContent" xml:space="preserve">
+    <value>Dieses Dokument bietet keinen Inhalt zum Neuversiegeln an.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
+    <value>Nur der Autor der aktuellen Version dieses versiegelten Dokuments kann ändern, für wen es versiegelt ist.</value>
+  </data>
 </root>

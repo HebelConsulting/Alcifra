@@ -31,6 +31,13 @@ public partial class MainWindowViewModel
     /// state has been read — before that the toggle would claim a state it does not know.</summary>
     [ObservableProperty] private bool _canToggleSubscription;
 
+    /// <summary>
+    /// Whether "Change audience…" is on offer (ADR 0975): the server says this caller filed the current version of a
+    /// sealed document it may still change. The server decides authorship — the ribbon must not try to guess it from a
+    /// name — and it refuses a re-seal from anybody else even when a caller asks directly.
+    /// </summary>
+    [ObservableProperty] private bool _canChangeAudience;
+
     /// <summary>The context menu's short label; the ribbon's tooltip is <see cref="SubscriptionTip"/>.</summary>
     public string SubscriptionMenuHeader => Strings.Get(DetailSubscribed ? "CtxUnfollowDoc" : "CtxFollowDoc");
 
@@ -54,7 +61,7 @@ public partial class MainWindowViewModel
     public Func<WorkflowTransitionViewModel, Task>? RunWorkflowTransitionInView { get; set; }
 
     /// <summary>Whether any of the actions below is on offer — the context menu's separator above them.</summary>
-    public bool HasDocumentOwnActions => CanToggleSubscription || CanShareDocument || HasDetailActionEntries || HasDetailWorkflowEntries;
+    public bool HasDocumentOwnActions => CanToggleSubscription || CanShareDocument || CanChangeAudience || HasDetailActionEntries || HasDetailWorkflowEntries;
 
     /// <summary>Empties the offered transitions with their menu entries — the subject changed (ADR 0559).</summary>
     private void ClearWorkflowTransitions()
@@ -104,6 +111,8 @@ public partial class MainWindowViewModel
     partial void OnCanToggleSubscriptionChanged(bool value) => OnPropertyChanged(nameof(HasDocumentOwnActions));
 
     partial void OnCanShareDocumentChanged(bool value) => OnPropertyChanged(nameof(HasDocumentOwnActions));
+
+    partial void OnCanChangeAudienceChanged(bool value) => OnPropertyChanged(nameof(HasDocumentOwnActions));
 
     partial void OnDetailSubscribedChanged(bool value)
     {

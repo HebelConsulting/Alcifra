@@ -47,10 +47,10 @@ public sealed class EncryptedObjectPresignGuard(
 {
     // ---- Presigned READS: the guarded doors ----------------------------------------------------------------
 
-    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, CancellationToken cancellationToken = default)
+    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, string? contentType = null, CancellationToken cancellationToken = default)
     {
         await RefuseIfEncryptedAsync(objectKey, cancellationToken);
-        return await inner.GetPresignedDownloadUrlAsync(objectKey, expiry, downloadFileName, cancellationToken);
+        return await inner.GetPresignedDownloadUrlAsync(objectKey, expiry, downloadFileName, contentType, cancellationToken);
     }
 
     public async Task<Uri?> GetPresignedPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default)

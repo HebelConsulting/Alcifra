@@ -341,6 +341,14 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.App, FieldDataType.Text, IsRequired: false),
         ], cancellationToken);
 
+        // A sealed document (owner decision 2026-10-24): the content is a CMS envelope sealed on the device to an
+        // audience of certificates; the ACL decides who SEES it, the envelope who READS it. One field records the
+        // author's choice to hide the name — the real one then lives inside the envelope.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.SealedDocument, "Sealed document",
+        [
+            new FieldSpec(WellKnownMaskIds.SealedDocumentFields.NameHidden, FieldDataType.Boolean, IsRequired: false),
+        ], cancellationToken);
+
         // After every mask exists, because containment is a relation BETWEEN masks: a Notebook's allowed parent
         // is the Mailbox, which is seeded eight lines below it, so doing this per-mask inside the loop above
         // would write a foreign key to a row that does not exist yet.

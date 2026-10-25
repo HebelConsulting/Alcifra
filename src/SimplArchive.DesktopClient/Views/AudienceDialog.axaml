@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:SimplArchive.DesktopClient.Localization"
+        xmlns:views="using:SimplArchive.DesktopClient.Views"
+        x:Class="SimplArchive.DesktopClient.Views.AudienceDialog"
+        Title="{loc:Tr AudienceTitle}" Width="640" Height="560" MinWidth="520" MinHeight="460"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="18">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Text="{loc:Tr AudienceBody}" />
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,12,0,10">
+            <TextBox x:Name="SearchBox" Width="300" Watermark="{loc:Tr AudienceSearch}" KeyDown="OnSearchKeyDown" />
+            <Button Content="{loc:Tr AudienceFind}" Click="OnSearch" />
+            <Button Content="{loc:Tr AudienceAddFile}" Click="OnAddFile" />
+        </StackPanel>
+
+        <TextBlock x:Name="StatusText" DockPanel.Dock="Bottom" Foreground="{DynamicResource WbMuted}" FontSize="12"
+                   TextWrapping="Wrap" Margin="0,8,0,0" />
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="SealButton" Content="{loc:Tr AudienceSeal}" IsEnabled="False" Click="OnSeal" />
+            <Button Content="{loc:Tr Close}" Click="OnClose" IsCancel="True" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="2*,*" ColumnSpacing="12">
+            <!-- Every reader the tenant can address, with the keys each one holds. Multi-select: an audience is a
+                 SET, and a person with two keys is addressed on both (ADR 0842). -->
+            <ListBox x:Name="ReaderList" Grid.Column="0" SelectionMode="Multiple, Toggle" SelectionChanged="OnSelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="views:ReaderRow">
+                        <StackPanel Margin="2" Spacing="2">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{DynamicResource WbMuted}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Text="{loc:Tr AudienceFromFiles}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <ListBox x:Name="FileList">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="views:FileCertificateRow">
+                            <TextBlock Text="{Binding Subject}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</Window>

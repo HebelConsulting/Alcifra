@@ -19,6 +19,7 @@ public sealed class SimplArchiveApiClient
     private AdminClient? _admin;
     private CertificateSettingsClient? _certificateSettings;
     private SimplArchive.ApiClient.EnrolledCertificatesClient? _enrolledCertificates;
+    private ReaderDirectoryClient? _readerDirectory;
     private DocumentsClient? _documents;
     private WorkflowClient? _workflow;
     private NotificationsClient? _notifications;
@@ -80,6 +81,9 @@ public sealed class SimplArchiveApiClient
 
     // The caller's enrolled reader certificates and their attestation (ADR 0963).
     public SimplArchive.ApiClient.EnrolledCertificatesClient EnrolledCertificates => _enrolledCertificates ??= new SimplArchive.ApiClient.EnrolledCertificatesClient(Core);
+
+    /// <summary>Who an audience can be sealed to (ADR 0976): the tenant's readers and the decision on a pasted chain.</summary>
+    public ReaderDirectoryClient ReaderDirectory => _readerDirectory ??= new ReaderDirectoryClient(Core);
 
     /// <summary>The documents area (#443, the finale).</summary>
     public DocumentsClient Documents => _documents ??= new DocumentsClient(Core, () => Reminders);

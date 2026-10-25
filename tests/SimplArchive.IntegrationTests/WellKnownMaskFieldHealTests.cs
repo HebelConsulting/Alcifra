@@ -140,7 +140,9 @@ public class WellKnownMaskFieldHealTests
             // 25 → 27 with SimplArchive Documentation + Manual (ADR 0891) — the manuals folder and what it holds.
             var maskCount = await db.Masks.IgnoreQueryFilters().CountAsync(m => m.TenantId == _tenantId);
             // 29 → 32 with Password Store, Password Folder and Password Entry (ADR 0964).
-            Assert.Equal(32, maskCount); // + SimplArchive Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
+            // 32 → 33 with Sealed document (owner decision 2026-10-24) — content sealed to an audience, the name
+            // hidden at the author's choice.
+            Assert.Equal(33, maskCount); // + SimplArchive Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
             Assert.Equal(maskCount, await db.MaskVersions.IgnoreQueryFilters().CountAsync(v => v.TenantId == _tenantId));
         }
     }

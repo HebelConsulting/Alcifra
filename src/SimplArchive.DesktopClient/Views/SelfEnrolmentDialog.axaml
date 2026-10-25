@@ -26,6 +26,11 @@
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <Button x:Name="ChooseButton" Content="{loc:Tr EnrolChoose}" Click="OnChoose" />
                 <Button x:Name="CardButton" Content="{loc:Tr SmimeAddCard}" Click="OnFromCard" />
+                <!-- The bundle somebody else needs to SEAL a document to this key (ADR 0976): the certificate, its
+                     attestation certificate and the token's, in that order. Offered only where a token supplied
+                     the chain — a certificate from a file carries none. -->
+                <Button x:Name="ExportButton" Content="{loc:Tr EnrolExportChain}" IsEnabled="False"
+                        ToolTip.Tip="{loc:Tr EnrolExportChainHint}" Click="OnExportChain" />
             </StackPanel>
             <TextBlock x:Name="ChosenText" IsVisible="False" FontSize="12"
                        Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />

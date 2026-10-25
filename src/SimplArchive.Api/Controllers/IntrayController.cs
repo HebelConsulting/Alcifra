@@ -236,7 +236,7 @@ public class IntrayController : ControllerBase
             // Dropped, not failed, when the item is encrypted and no service can unwrap it (ADR 0953): one such
             // item must not take the whole intray listing with it.
             var download = await _omittable.OrOmittedAsync(
-                _objectStorageClient.GetPresignedDownloadUrlAsync(storageObject.Key, PresignedUrlExpiry, name, cancellationToken),
+                _objectStorageClient.GetPresignedDownloadUrlAsync(storageObject.Key, PresignedUrlExpiry, name, cancellationToken: cancellationToken),
                 "download");
 
             items.Add(new IntrayItemResource

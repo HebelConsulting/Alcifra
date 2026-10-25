@@ -40,6 +40,9 @@
                 <Button IsEnabled="{Binding HasSelectedItem}" Click="OnRename" ToolTip.Tip="{loc:Tr RibbonRename}"><i:Icon Value="mdi-rename-box" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding HasSelectedItem}" Click="OnDelete" ToolTip.Tip="{loc:Tr RibbonDelete}"><i:Icon Value="mdi-delete" FontSize="18" /></Button>
                 <Button IsEnabled="False" ToolTip.Tip="{loc:Tr RibbonUpload}"><i:Icon Value="mdi-upload" FontSize="18" /></Button>
+                <!-- A sealed document is filed by this action, never by a drop: its content must be sealed on the
+                     device to an audience the user chooses first (ADR 0975). -->
+                <Button IsEnabled="{Binding CanCreateFolder}" AutomationProperties.AutomationId="ribbon-new-sealed" Click="OnNewSealedDocument" ToolTip.Tip="{loc:Tr RibbonNewSealed}"><i:Icon Value="mdi-lock-plus" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanCheckOut}" Command="{Binding CheckOutSelectedCommand}" ToolTip.Tip="{loc:Tr RibbonCheckOut}"><i:Icon Value="mdi-lock-outline" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanSaveAs}" Click="OnVersions" ToolTip.Tip="{loc:Tr RibbonVersions}"><i:Icon Value="mdi-history" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanStartWorkflow}" Click="OnStartWorkflow" ToolTip.Tip="{Binding WorkflowButtonLabel}"><i:Icon Value="mdi-sitemap-outline" FontSize="18" /></Button>
@@ -49,6 +52,9 @@
                      Actions menus are hidden instead, because most documents never carry either. -->
                 <Button AutomationProperties.AutomationId="ribbon-follow" IsEnabled="{Binding CanToggleSubscription}" Command="{Binding ToggleSubscriptionCommand}" ToolTip.Tip="{Binding SubscriptionTip}"><i:Icon Value="{Binding SubscriptionIcon}" FontSize="18" /></Button>
                 <Button AutomationProperties.AutomationId="ribbon-share" IsEnabled="{Binding CanShareDocument}" Command="{Binding ShowDocumentExternalLinksCommand}" ToolTip.Tip="{loc:Tr ExtLinkShare}"><i:Icon Value="mdi-link-plus" FontSize="18" /></Button>
+                <!-- The author's act on a sealed document (ADR 0975): visible only where the SERVER says this caller
+                     filed the current version and may still change it. -->
+                <Button AutomationProperties.AutomationId="ribbon-change-audience" IsVisible="{Binding CanChangeAudience}" Click="OnChangeAudience" ToolTip.Tip="{loc:Tr RibbonChangeAudience}"><i:Icon Value="mdi-lock-reset" FontSize="18" /></Button>
                 <Button AutomationProperties.AutomationId="ribbon-workflow-steps" IsVisible="{Binding HasDetailWorkflowEntries}" ToolTip.Tip="{loc:Tr CtxWorkflowSteps}">
                     <i:Icon Value="mdi-check-decagram-outline" FontSize="18" />
                     <Button.Flyout>

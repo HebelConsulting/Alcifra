@@ -111,6 +111,36 @@ public static class WindowShots
             return true;
         }
 
+        // Headless render of the sealed-document audience picker (ADRs 0975/0976): `--audience-screenshot <out.png>`.
+        // A Window like the card picker below, reachable only from the New-sealed-document action, so nothing else can
+        // load it. `--rows` injects two readers and a certificate from a file so the POPULATED layout is checked.
+        var audienceShotIndex = Array.IndexOf(args, "--audience-screenshot");
+        if (audienceShotIndex >= 0 && audienceShotIndex + 1 < args.Length)
+        {
+            var audienceLangIndex = Array.IndexOf(args, "--lang");
+            if (audienceLangIndex >= 0 && audienceLangIndex + 1 < args.Length)
+            {
+                SimplArchive.Localization.Culture.Apply(args[audienceLangIndex + 1]);
+            }
+
+            AppBuilder.Configure<App>()
+                .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+                .UseSkia()
+                .WithInterFont()
+                .SetupWithoutStarting();
+
+            var audience = new Views.AudienceDialog();
+            if (args.Contains("--rows"))
+            {
+                audience.FillForShot();
+            }
+
+            audience.Show();
+            Dispatcher.UIThread.RunJobs();
+            audience.CaptureRenderedFrame()?.Save(args[audienceShotIndex + 1]);
+            return true;
+        }
+
         // Headless render of the card-certificate picker (#1398, ADR 0831): `--card-screenshot <out.png>`.
         //
         // The only way to LOOK at this window. It is a Window, so no VM-level test renders it, and the

@@ -7,6 +7,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using System.Security.Cryptography.X509Certificates;
 using SimplArchive.DesktopClient.Services;
 using SimplArchive.DesktopClient.ViewModels;
 using SimplArchive.Localization;
@@ -136,6 +137,74 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(name))
         {
             await vm.CreateFolderAsync(name);
+        }
+    });
+
+    // A SEALED document (ADR 0975): one file, sealed here to an audience the user picks. The file picker and the
+    // audience dialog are the view's business; the view model owns the folder, the sealing and the upload.
+    internal void OnNewSealedDocument(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is not MainWindowViewModel { Api: { } api } vm)
+        {
+            return;
+        }
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("SdPickFile"),
+            AllowMultiple = false,
+        });
+        if (files.Count != 1)
+        {
+            return;
+        }
+
+        var audience = await new AudienceDialog(api).ShowDialog<IReadOnlyList<X509Certificate2>?>(this);
+        if (audience is not { Count: > 0 })
+        {
+            return;
+        }
+
+        try
+        {
+            await vm.CreateSealedDocumentAsync(files[0], audience);
+        }
+        finally
+        {
+            // The certificates are this handler's: the dialog built them from the directory's PEMs.
+            foreach (var certificate in audience)
+            {
+                certificate.Dispose();
+            }
+        }
+    });
+
+    // "Change audience…" (ADR 0975): the author opens the current content with their own key and the device seals it to
+    // the new set. The ribbon only shows it where the server said this caller may — and the server refuses the re-seal
+    // from anybody else, so a composed request gets the same answer.
+    internal void OnChangeAudience(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is not MainWindowViewModel { Api: { } api } vm)
+        {
+            return;
+        }
+
+        var audience = await new AudienceDialog(api).ShowDialog<IReadOnlyList<X509Certificate2>?>(this);
+        if (audience is not { Count: > 0 })
+        {
+            return;
+        }
+
+        try
+        {
+            await vm.ChangeAudienceAsync(audience);
+        }
+        finally
+        {
+            foreach (var certificate in audience)
+            {
+                certificate.Dispose();
+            }
         }
     });
 

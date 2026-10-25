@@ -6522,4 +6522,103 @@
   <data name="CtxWorkflowSteps" xml:space="preserve">
     <value>Workflow step</value>
   </data>
+
+  <data name="AudienceTitle" xml:space="preserve">
+    <value>Seal to…</value>
+  </data>
+  <data name="AudienceBody" xml:space="preserve">
+    <value>Only the people and certificates you choose can read this document. The content is sealed on this device; the server stores it and never holds a key.</value>
+  </data>
+  <data name="AudienceSearch" xml:space="preserve">
+    <value>Search people</value>
+  </data>
+  <data name="AudienceFind" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="AudienceAddFile" xml:space="preserve">
+    <value>Add certificate file…</value>
+  </data>
+  <data name="AudienceSeal" xml:space="preserve">
+    <value>Seal</value>
+  </data>
+  <data name="AudienceFromFiles" xml:space="preserve">
+    <value>Added certificates</value>
+  </data>
+  <data name="AudienceLoading" xml:space="preserve">
+    <value>Reading who can be sealed to…</value>
+  </data>
+  <data name="AudienceUnavailable" xml:space="preserve">
+    <value>This installation does not offer a reader directory.</value>
+  </data>
+  <data name="AudiencePeople" xml:space="preserve">
+    <value>{0} people can be sealed to.</value>
+  </data>
+  <data name="AudienceNone" xml:space="preserve">
+    <value>No one here holds a reader certificate yet.</value>
+  </data>
+  <data name="AudienceFileNeedsChain" xml:space="preserve">
+    <value>The file must hold the certificate and its attestation chain, in this order: certificate, attestation certificate, intermediate.</value>
+  </data>
+  <data name="AudienceFileRefused" xml:space="preserve">
+    <value>That certificate cannot be sealed to.</value>
+  </data>
+  <data name="AudienceFileAdded" xml:space="preserve">
+    <value>Added {0}.</value>
+  </data>
+  <data name="RibbonNewSealed" xml:space="preserve">
+    <value>New sealed document…</value>
+  </data>
+  <data name="SdPickFile" xml:space="preserve">
+    <value>Seal a document to an audience</value>
+  </data>
+  <data name="StSealingFile" xml:space="preserve">
+    <value>Sealing '{0}'…</value>
+  </data>
+  <data name="StSealedFiled" xml:space="preserve">
+    <value>'{0}' filed, sealed to its audience.</value>
+  </data>
+  <data name="StErrSealed" xml:space="preserve">
+    <value>'{0}' could not be sealed and filed: {1}</value>
+  </data>
+  <data name="StErrSealedNoFolder" xml:space="preserve">
+    <value>Open the folder the document should be filed in first.</value>
+  </data>
+  <data name="ApiErrInvalidRecipientCertificate" xml:space="preserve">
+    <value>That is not a usable recipient certificate: it must be PEM-encoded and hold an RSA or elliptic-curve key.</value>
+  </data>
+
+  <data name="EnrolExportChain" xml:space="preserve">
+    <value>Export certificate with its attestation…</value>
+  </data>
+  <data name="EnrolExportChainHint" xml:space="preserve">
+    <value>Writes the certificate, its attestation certificate and the token's, in that order — the file somebody else needs to seal a document to this key.</value>
+  </data>
+  <data name="EnrolExported" xml:space="preserve">
+    <value>Saved. Whoever seals a document to you needs this file.</value>
+  </data>
+
+  <data name="RibbonChangeAudience" xml:space="preserve">
+    <value>Change audience…</value>
+  </data>
+  <data name="StResealingDoc" xml:space="preserve">
+    <value>Re-sealing '{0}'…</value>
+  </data>
+  <data name="StResealedDoc" xml:space="preserve">
+    <value>'{0}' is now sealed to its new audience.</value>
+  </data>
+  <data name="StErrReseal" xml:space="preserve">
+    <value>'{0}' could not be re-sealed: {1}</value>
+  </data>
+  <data name="StErrResealNotAudience" xml:space="preserve">
+    <value>Only someone who can open this document — a member of its current audience — can change it.</value>
+  </data>
+  <data name="StErrResealNoSubject" xml:space="preserve">
+    <value>Select a sealed document first.</value>
+  </data>
+  <data name="StErrResealNoContent" xml:space="preserve">
+    <value>This document advertises no content to re-seal.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
+    <value>Only the author of this sealed document's current version can change who it is sealed to.</value>
+  </data>
 </root>

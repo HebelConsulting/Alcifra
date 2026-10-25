@@ -639,7 +639,17 @@ public class DocumentChildrenController : ControllerBase
             // provisioning owns, is refused here — which is what stops a caller asking for a Mailbox or a
             // Repository by id now that ids are on the wire. Containment is asked separately below, so the
             // refusal a caller gets names the right reason.
-            if (!rules.IsUserCreatable(requestedMaskId) || !rules.IsFolderMask(requestedMaskId))
+            //
+            // A SEALED mask is the one ITEM mask a caller may name (ADR 0975): its content is an opaque CMS
+            // envelope, so classification can never decide what the document is — the caller's assertion is
+            // the only source of truth, and without it a Sealed document has no create door at all. Narrower
+            // than "every sealed mask": one CONFINED to a typed folder (Password Entry, inside a store or a
+            // password folder) keeps its family's own door, which also does that family's work — the mask id
+            // aside, filing an entry through here would skip the store's rules.
+            var sealedAndUnconfined = WellKnownMaskIds.SealedContentMasks.ContainsKey(requestedMaskId)
+                && !WellKnownMaskIds.AdmittingFolders.ContainsKey(requestedMaskId);
+            if (!rules.IsUserCreatable(requestedMaskId)
+                || !(rules.IsFolderMask(requestedMaskId) || sealedAndUnconfined))
             {
                 throw new InvalidFolderMaskException(requestedMaskId.ToString());
             }

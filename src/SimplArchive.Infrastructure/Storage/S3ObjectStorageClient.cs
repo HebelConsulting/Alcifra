@@ -238,8 +238,8 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 
     // This implementation never answers null — it always has a URL to give. The nullable return belongs to
     // the INTERFACE, where the encrypting decorator uses it to refuse on a strict tenant (#1376).
-    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, CancellationToken cancellationToken = default)
-        => await GetPresignedUrlAsync(objectKey, HttpVerb.GET, expiry, Disposition("attachment", downloadFileName), contentType: null, cancellationToken);
+    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, string? contentType = null, CancellationToken cancellationToken = default)
+        => await GetPresignedUrlAsync(objectKey, HttpVerb.GET, expiry, Disposition("attachment", downloadFileName), contentType, cancellationToken);
 
     public async Task<Uri?> GetPresignedPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default)
         => await GetPresignedUrlAsync(objectKey, HttpVerb.GET, expiry, Disposition("inline", fileName), contentType, cancellationToken);

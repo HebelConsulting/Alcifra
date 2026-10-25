@@ -6522,4 +6522,103 @@
   <data name="CtxWorkflowSteps" xml:space="preserve">
     <value>Paso del flujo de trabajo</value>
   </data>
+
+  <data name="AudienceTitle" xml:space="preserve">
+    <value>Sellar para…</value>
+  </data>
+  <data name="AudienceBody" xml:space="preserve">
+    <value>Solo las personas y los certificados elegidos pueden leer este documento. El contenido se sella en este dispositivo; el servidor lo almacena y nunca posee una clave.</value>
+  </data>
+  <data name="AudienceSearch" xml:space="preserve">
+    <value>Buscar personas</value>
+  </data>
+  <data name="AudienceFind" xml:space="preserve">
+    <value>Buscar</value>
+  </data>
+  <data name="AudienceAddFile" xml:space="preserve">
+    <value>Añadir archivo de certificado…</value>
+  </data>
+  <data name="AudienceSeal" xml:space="preserve">
+    <value>Sellar</value>
+  </data>
+  <data name="AudienceFromFiles" xml:space="preserve">
+    <value>Certificados añadidos</value>
+  </data>
+  <data name="AudienceLoading" xml:space="preserve">
+    <value>Leyendo para quién se puede sellar…</value>
+  </data>
+  <data name="AudienceUnavailable" xml:space="preserve">
+    <value>Esta instalación no ofrece un directorio de lectores.</value>
+  </data>
+  <data name="AudiencePeople" xml:space="preserve">
+    <value>Se puede sellar para {0} personas.</value>
+  </data>
+  <data name="AudienceNone" xml:space="preserve">
+    <value>Nadie aquí tiene todavía un certificado de lectura.</value>
+  </data>
+  <data name="AudienceFileNeedsChain" xml:space="preserve">
+    <value>El archivo debe contener el certificado y su cadena de atestación, en este orden: certificado, certificado de atestación, intermedio.</value>
+  </data>
+  <data name="AudienceFileRefused" xml:space="preserve">
+    <value>No se puede sellar para ese certificado.</value>
+  </data>
+  <data name="AudienceFileAdded" xml:space="preserve">
+    <value>{0} añadido.</value>
+  </data>
+  <data name="RibbonNewSealed" xml:space="preserve">
+    <value>Nuevo documento sellado…</value>
+  </data>
+  <data name="SdPickFile" xml:space="preserve">
+    <value>Sellar un documento para un destinatario</value>
+  </data>
+  <data name="StSealingFile" xml:space="preserve">
+    <value>Sellando '{0}'…</value>
+  </data>
+  <data name="StSealedFiled" xml:space="preserve">
+    <value>'{0}' archivado y sellado para sus destinatarios.</value>
+  </data>
+  <data name="StErrSealed" xml:space="preserve">
+    <value>No se pudo sellar y archivar '{0}': {1}</value>
+  </data>
+  <data name="StErrSealedNoFolder" xml:space="preserve">
+    <value>Abra primero la carpeta en la que debe archivarse el documento.</value>
+  </data>
+  <data name="ApiErrInvalidRecipientCertificate" xml:space="preserve">
+    <value>No es un certificado de destinatario utilizable: debe estar codificado en PEM y contener una clave RSA o de curva elíptica.</value>
+  </data>
+
+  <data name="EnrolExportChain" xml:space="preserve">
+    <value>Exportar el certificado con su atestación…</value>
+  </data>
+  <data name="EnrolExportChainHint" xml:space="preserve">
+    <value>Escribe el certificado, su certificado de atestación y el del token, en ese orden: el archivo que otra persona necesita para sellar un documento para esta clave.</value>
+  </data>
+  <data name="EnrolExported" xml:space="preserve">
+    <value>Guardado. Quien quiera sellar un documento para usted necesita este archivo.</value>
+  </data>
+
+  <data name="RibbonChangeAudience" xml:space="preserve">
+    <value>Cambiar destinatarios…</value>
+  </data>
+  <data name="StResealingDoc" xml:space="preserve">
+    <value>Volviendo a sellar '{0}'…</value>
+  </data>
+  <data name="StResealedDoc" xml:space="preserve">
+    <value>'{0}' está ahora sellado para sus nuevos destinatarios.</value>
+  </data>
+  <data name="StErrReseal" xml:space="preserve">
+    <value>No se pudo volver a sellar '{0}': {1}</value>
+  </data>
+  <data name="StErrResealNotAudience" xml:space="preserve">
+    <value>Solo quien puede abrir este documento —es decir, quien pertenece a sus destinatarios actuales— puede cambiarlo.</value>
+  </data>
+  <data name="StErrResealNoSubject" xml:space="preserve">
+    <value>Seleccione primero un documento sellado.</value>
+  </data>
+  <data name="StErrResealNoContent" xml:space="preserve">
+    <value>Este documento no ofrece contenido que volver a sellar.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
+    <value>Solo el autor de la versión actual de este documento sellado puede cambiar para quién está sellado.</value>
+  </data>
 </root>

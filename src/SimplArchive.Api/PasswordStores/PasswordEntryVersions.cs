@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Concurrency;
+using SimplArchive.Api.Errors.Exceptions.Concurrency;
 using SimplArchive.Api.Errors.Exceptions.PasswordStores;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
@@ -29,7 +30,8 @@ public sealed record SealedVersionFinalize(Document Document, bool FirstVersion,
 /// The serving half is the storage door's, which checks the stored bytes again on the strict tier (ADR 0940).
 /// </remarks>
 public sealed class PasswordEntryVersions(
-    SimplArchiveDbContext dbContext, IObjectStorageClient storage, IServiceProvider services, ILogger<PasswordEntryVersions> logger)
+    SimplArchiveDbContext dbContext, IObjectStorageClient storage, IServiceProvider services,
+    ICurrentUserAccessor currentUser, ILogger<PasswordEntryVersions> logger)
 {
     /// <summary>
     /// What the finalize of <paramref name="version"/> must honour, or null when its document's mask is not a sealed core
@@ -69,15 +71,46 @@ public sealed class PasswordEntryVersions(
             logger.LogWarning(
                 "Refused version {VersionId} of password entry {DocumentId}: its content is not shaped as a CMS envelope, so it was "
                 + "removed rather than filed as a sealed secret", version.Id, document.Id);
-            await storage.DeleteObjectAsync(version.ObjectKey, cancellationToken);
-            dbContext.DocumentVersions.Remove(version);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await DiscardAsync(version, cancellationToken);
             throw new ContentNotSealedException();
+        }
+
+        if (reseal && sealedMask == WellKnownMaskIds.SealedDocument)
+        {
+            // "CHANGE AUDIENCE…" IS THE AUTHOR'S ACT (ADR 0975), and the server is where that is decided. A re-seal
+            // hands the content to a NEW audience, so it must be the act of whoever filed the version being
+            // re-sealed — otherwise a reader who can open the content could pass it on. A Password Entry's re-seal is
+            // a different act (a reader re-addressing the store after a revocation, ADR 0964) and stays open to its
+            // readers, which is why this check names the Sealed DOCUMENT.
+            var currentAuthor = await dbContext.DocumentVersions
+                .Where(v => v.DocumentId == document.Id && v.Status == DocumentVersionStatus.Confirmed)
+                .OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id)
+                .Select(v => v.CreatedByUserId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (currentUser.UserId is not { } caller || currentAuthor != caller)
+            {
+                // Leaves nothing behind, as the shape refusal does: a caller who may not change the audience must not be
+                // able to fill the document's history — or the bucket — by asking.
+                await DiscardAsync(version, cancellationToken);
+                throw new AudienceChangeRequiresTheAuthorException();
+            }
         }
 
         if (!firstVersion)
         {
-            ConcurrencyHeaders.RequireIfMatch(request);
+            // A MISSING precondition is a refusal like the others, and leaves nothing behind like the others: without
+            // the cleanup, a caller that simply forgot If-Match would fill the document's history and the bucket one
+            // pending version at a time — the shape refusal's own rule, applied to the one refusal that is thrown by a
+            // helper rather than here.
+            try
+            {
+                ConcurrencyHeaders.RequireIfMatch(request);
+            }
+            catch (IfMatchRequiredException)
+            {
+                await DiscardAsync(version, cancellationToken);
+                throw;
+            }
         }
 
         if (reseal)
@@ -87,6 +120,17 @@ public sealed class PasswordEntryVersions(
         }
 
         return new SealedVersionFinalize(document, firstVersion, reseal);
+    }
+
+    /// <summary>
+    /// Removes a refused pending version and its uploaded object, committed before the refusal surfaces — a caller
+    /// whose version was refused must not be able to fill the document's history or the bucket by asking again.
+    /// </summary>
+    private async Task DiscardAsync(DocumentVersion version, CancellationToken cancellationToken)
+    {
+        await storage.DeleteObjectAsync(version.ObjectKey, cancellationToken);
+        dbContext.DocumentVersions.Remove(version);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>Removes the entry's "Exposed since" (ADR 0964), in the caller's unit of work: a new password was filed.</summary>

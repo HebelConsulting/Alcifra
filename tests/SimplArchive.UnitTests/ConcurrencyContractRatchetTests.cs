@@ -173,6 +173,10 @@ public partial class ConcurrencyContractRatchetTests
         ["CertificateSettingsController.cs:Document"] =
             "Reads only: the PUT checks that the chosen parent folder exists (ADR 0936). What it writes is two Tenant "
             + "columns, through TenantVerbs.",
+        ["ReaderDirectoryController.cs:User"] =
+            "Reads only: lists the tenant's readers and projects their display names, then asks ReaderCertificateSet "
+            + "what each is addressed by (ADR 0976). Its POST validates a pasted certificate and stores nothing, so it "
+            + "names no column on any tracked row.",
         // ---- Surfaced by the #1270 detector change -------------------------------------------------------
         // These fourteen were never watched before: the old detector needed the ENTITY'S NAME as a whole word
         // somewhere in the file, and in each of these the DbSet is used without the bare word appearing. Every

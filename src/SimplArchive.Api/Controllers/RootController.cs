@@ -225,6 +225,18 @@ public class RootController : ControllerBase
             }
         }
 
+        // Who an audience can be sealed to (ADR 0976): every signed-in caller may read the tenant's reader directory,
+        // because choosing the audience of a sealed document is an author's act and a name alone cannot be sealed to.
+        // Advertised regardless of whether enrolment is offered: a certificate already on a reader's column still
+        // addresses them, and an empty directory is the honest answer for a tenant where nobody holds a key.
+        if (tenantAccessor.TenantId is not null)
+        {
+            resource.Links.Add(new Link("readerDirectory", "/api/reader-directory", "GET"));
+            // The decision on a certificate pasted with its attestation chain — its own address because it is its own
+            // resource (nothing is created), and advertised here so no client composes the path (ADR 0543).
+            resource.Links.Add(new Link("readerDirectoryValidation", "/api/reader-directory/validation", "POST"));
+        }
+
         // Certificate enrolment, owned by the core (ADR 0936): advertised only while an active module licenses it, so a
         // missing rel keeps meaning "not available to you here". The Encryption Module's old rel names ride along as
         // aliases of the same core addresses until the release after next, unless an older module still serves them.
