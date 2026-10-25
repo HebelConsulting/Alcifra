@@ -326,7 +326,8 @@ public partial class ConcurrencyContractRatchetTests
             + "WebAuthnCredential rows; no user column is touched.",
         ["TokenController.cs:User"] =
             "Reads only: resolves the subject at login, and the ACTOR and TARGET of an impersonation exchange "
-            + "(RFC 8693) to check both are active. A token endpoint authenticates; it writes no principal.",
+            + "(RFC 8693) to check both are active, and the user of an autofill session exchange (ADR 0981). A token "
+            + "endpoint authenticates; it writes no principal.",
         ["GroupsController.cs:User"] =
             "Reads only: an AnyAsync existence check before adding a membership, a DisplayName projection for "
             + "the rows, and a join listing a group's members. Memberships are their own entity.",

@@ -8,6 +8,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation;
 using SimplArchive.Api.Authentication;
+using SimplArchive.Api.Provisioning;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Auth;
 using SimplArchive.Domain.Audit;
@@ -107,9 +108,15 @@ public class TokenController : ControllerBase
             return await HandleRefreshAsync();
         }
 
+        // Two different exchanges share the RFC 8693 grant, told apart by the CALLING client: the autofill client's is
+        // a new session for the same user (ADR 0981), every other client's is impersonation (ADR 0354). The client
+        // permission decides which may send the grant at all; this only routes, so neither branch reads the other's
+        // parameters.
         if (request.GrantType == ImpersonationConstants.TokenExchangeGrantType)
         {
-            return await HandleImpersonationAsync(request);
+            return request.ClientId == AutofillClientSeeder.ClientId
+                ? await HandleAutofillSessionAsync(request)
+                : await HandleImpersonationAsync(request);
         }
 
         if (!request.IsClientCredentialsGrantType())
@@ -324,6 +331,106 @@ public class TokenController : ControllerBase
             AuditActions.ImpersonationStarted, "User", targetUserId, target.DisplayName);
 
         return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Opens the autofill extension's own session (ADR 0981): the mobile app's access token is exchanged for a NEW
+    /// authorization of <see cref="AutofillClientSeeder.ClientId"/> for the same user, so the extension renews in its
+    /// own process and never presents the app's rotating refresh token.
+    /// </summary>
+    /// <remarks>
+    /// The subject token is validated by the same service the API uses on every request, entry validation included,
+    /// so a revoked app token opens nothing. The identity is rebuilt from the database exactly as an interactive
+    /// sign-in builds it, never copied from the subject token, and carries no authorization id: OpenIddict therefore
+    /// creates a new authorization for the refresh token, which is what keeps the two sessions independent.
+    /// </remarks>
+    private async Task<IActionResult> HandleAutofillSessionAsync(OpenIddictRequest request)
+    {
+        if (request.GetParameter(ImpersonationConstants.RequestedSubjectParameter) is not null)
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidRequest, "An autofill session is the caller's own; 'requested_subject' is not accepted.");
+        }
+
+        var subjectToken = request.GetParameter(OpenIddictConstants.Parameters.SubjectToken)?.ToString();
+        if (string.IsNullOrEmpty(subjectToken))
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidRequest, "A 'subject_token' is required.");
+        }
+
+        ClaimsPrincipal subject;
+        try
+        {
+            subject = await _validation.ValidateAccessTokenAsync(subjectToken);
+        }
+        catch
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidGrant, "The subject token is invalid.");
+        }
+
+        var tokenRefusal = AutofillSession.RefusalForToken(
+            subject.GetClaim(OpenIddictConstants.Claims.ClientId),
+            isUser: subject.GetClaim(UserClaimTypes.IsUser) == "true",
+            isImpersonating: subject.GetClaim(ImpersonationConstants.ImpersonatedByClaim) is not null);
+        if (tokenRefusal is not null
+            || !Guid.TryParse(subject.GetClaim(OpenIddictConstants.Claims.Subject), out var userId)
+            || !Guid.TryParse(subject.GetClaim(ServiceAccountClaimTypes.TenantId), out var tenantId))
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidGrant, tokenRefusal ?? "the subject token names no user or tenant");
+        }
+
+        // The tenant is not known on the token endpoint, so the lookup names it itself (as the refresh branch does).
+        var user = await _dbContext.Users
+            .IgnoreQueryFilters(["TenantFilter"])
+            .Where(u => u.Id == userId && u.TenantId == tenantId)
+            .Join(
+                _dbContext.Tenants.IgnoreQueryFilters(),
+                u => u.TenantId,
+                t => t.Id,
+                (u, t) => new { u.Email, u.DisplayName, u.IsActive, TenantStatus = t.Status })
+            .SingleOrDefaultAsync();
+
+        var accountRefusal = AutofillSession.RefusalForAccount(
+            user is not null, user?.IsActive ?? false, user?.TenantStatus ?? SimplArchive.Domain.Tenants.TenantStatus.Active);
+        if (accountRefusal is not null)
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidGrant, accountRefusal);
+        }
+
+        // The same claims, scopes and destinations as an interactive sign-in (AuthorizationController).
+        var identity = new ClaimsIdentity("openiddict", OpenIddictConstants.Claims.Name, OpenIddictConstants.Claims.Role);
+        identity.SetClaim(OpenIddictConstants.Claims.Subject, userId.ToString());
+        identity.SetClaim(OpenIddictConstants.Claims.Email, user!.Email);
+        identity.SetClaim(ServiceAccountClaimTypes.TenantId, tenantId.ToString());
+        identity.SetClaim(UserClaimTypes.IsUser, "true");
+        var principal = new ClaimsPrincipal(identity);
+        principal.SetScopes(request.GetScopes());
+        principal.SetDestinations(claim => claim.Type switch
+        {
+            OpenIddictConstants.Claims.Subject or OpenIddictConstants.Claims.Email =>
+                [OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken],
+            _ => [OpenIddictConstants.Destinations.AccessToken],
+        });
+
+        _tenantAccessor.TenantId = tenantId;
+        await _audit.RecordForActorAsync(AuditActorType.User, userId, user.DisplayName, tenantId,
+            AuditActions.AutofillSessionStarted, "User", userId, user.DisplayName);
+        _logger.LogInformation("Opened an autofill session for user {UserId}", userId);
+
+        return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>A refused autofill session exchange: the caller holds a valid app token, so it is told why.</summary>
+    /// <remarks>Warning because a refusal names something the extension cannot repair by itself (a deactivated user, a
+    /// token from the wrong client), and the reason is logged; the subject token never is.</remarks>
+    private BadRequestObjectResult AutofillError(string error, string description)
+    {
+        _logger.LogWarning("Autofill session exchange refused ({Error}): {Reason}", error, description);
+
+        return BadRequest(new OpenIddictResponse
+        {
+            Error = error,
+            ErrorDescription = description,
+        });
     }
 
     /// <summary>

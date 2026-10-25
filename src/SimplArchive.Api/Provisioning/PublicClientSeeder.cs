@@ -2,7 +2,8 @@ using OpenIddict.Abstractions;
 
 namespace SimplArchive.Api.Provisioning;
 
-/// <summary>A native app's public client: Authorization Code + PKCE, implicit consent, and what it may do.</summary>
+/// <summary>A native app's public client: Authorization Code + PKCE, implicit consent, and what it may do. A client that
+/// never signs in interactively (the autofill extension's, ADR 0981) has no redirect URI.</summary>
 public sealed record PublicClientRegistration(string ClientId, IReadOnlyList<string> Permissions, IReadOnlyList<string> RedirectUris);
 
 /// <summary>

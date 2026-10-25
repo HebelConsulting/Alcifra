@@ -43,4 +43,22 @@ public class NativeClientSeederTests
         healed.RedirectUris.Remove(new Uri("dev.simplarchive.mobile:/operator-added"));
         await applications.UpdateAsync((await applications.FindByClientIdAsync(MobileClientSeeder.ClientId))!, healed);
     }
+
+    // ADR 0981: the autofill extension's client is seeded at startup as a public client with no redirect URI — it is
+    // never signed in interactively, only reached by the mobile app's token exchange.
+    [Fact]
+    public async Task The_autofill_client_is_seeded_public_without_a_redirect()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+        var autofill = await applications.FindByClientIdAsync(AutofillClientSeeder.ClientId);
+        Assert.NotNull(autofill);
+
+        var descriptor = new OpenIddictApplicationDescriptor();
+        await applications.PopulateAsync(descriptor, autofill);
+        Assert.Equal(OpenIddictConstants.ClientTypes.Public, descriptor.ClientType);
+        Assert.Empty(descriptor.RedirectUris);
+        Assert.DoesNotContain(OpenIddictConstants.Permissions.Endpoints.Authorization, descriptor.Permissions);
+        Assert.Contains(OpenIddictConstants.Permissions.Prefixes.GrantType + SimplArchive.Auth.ImpersonationConstants.TokenExchangeGrantType, descriptor.Permissions);
+    }
 }
