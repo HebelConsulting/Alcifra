@@ -38,6 +38,26 @@ public class SearchFacetsTests
             return ids.Contains(docA) && ids.Contains(docB) && ids.Contains(docC);
         }, "all three docs indexed");
 
+        // AND UNTIL THE FACETS THE ASSERTIONS BELOW READ ARE THERE (#1903). A document becomes findable by its
+        // TEXT before the field a facet counts is visible to that same query, so the unconditional read below
+        // could see a bucket that was still arriving — which is how this test failed once in CI, at
+        // `documentTypes` → 0 instead of 1, on a PR that touched no server code, and passed on a re-run.
+        // The sibling test below already waits for its own facet for exactly this reason; this one now does the
+        // same, so it waits for what it asserts instead of for less. If the facet never arrives, the poll fails
+        // with this message rather than an assertion three lines later.
+        await PollAsync(async () =>
+        {
+            var search = await TestJson.Get(owner, $"/api/search?q={word}");
+            if (!search.TryGetProperty("facets", out var facets) || facets.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            return BucketCountIfPresent(facets, "documentTypes", type1) == 2
+                && BucketCountIfPresent(facets, "documentTypes", type2) == 1
+                && BucketCountIfPresent(facets, "years", "2021") == 3;
+        }, "all three docs' type and year facets populated");
+
         // The broad search's facets: document type (mask1 → 2, mask2 → 1), the 2021 year (all three), created-by.
         var facets = (await TestJson.Get(owner, $"/api/search?q={word}")).GetProperty("facets");
         Assert.Equal(2, BucketCount(facets, "documentTypes", type1));
@@ -121,6 +141,16 @@ public class SearchFacetsTests
     private static long BucketCount(JsonElement facets, string group, string value) =>
         facets.GetProperty(group).EnumerateArray().Where(b => b.GetProperty("value").GetString() == value)
             .Select(b => b.GetProperty("count").GetInt64()).FirstOrDefault();
+
+    /// <summary>The same count, but 0 where the group or the bucket is not there yet — what a POLL needs, since an
+    /// absent facet is "not arrived", not a broken response. The assertions above keep the strict
+    /// <see cref="BucketCount"/>, whose exception names the group it could not find.</summary>
+    private static long BucketCountIfPresent(JsonElement facets, string group, string value) =>
+        facets.TryGetProperty(group, out var buckets) && buckets.ValueKind == JsonValueKind.Array
+            ? buckets.EnumerateArray()
+                .Where(b => b.TryGetProperty("value", out var v) && v.GetString() == value)
+                .Select(b => b.GetProperty("count").GetInt64()).FirstOrDefault()
+            : 0;
 
     private static async Task<string> MaskNameAsync(HttpClient owner, Guid maskId) =>
         (await TestJson.Get(owner, "/api/masks")).GetProperty("masks").EnumerateArray()
