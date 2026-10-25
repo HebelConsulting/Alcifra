@@ -38,16 +38,7 @@ public static class HostRegistration
         string browser, string clientName, string extensionId, string launcher, ILogger logger)
     {
         var hostName = HostNameFor(clientName);
-
-        var manifest = new
-        {
-            name = hostName,
-            description = $"SimplArchive password store autofill ({clientName})",
-            path = launcher,
-            type = "stdio",
-            allowed_origins = new[] { $"chrome-extension://{extensionId}/" },
-        };
-        var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
+        var json = Manifest(clientName, extensionId, launcher);
 
         if (OperatingSystem.IsWindows())
         {
@@ -70,6 +61,22 @@ public static class HostRegistration
         logger.LogInformation("Registered the {Client} autofill host for {Browser}: {Manifest}", clientName, browser, target);
         return new HostRegistrationResult(browser, target, launcher);
     }
+
+    /// <summary>
+    /// The native-messaging manifest for one client: its host name, the launcher the browser spawns, and the ONE
+    /// extension origin allowed to talk to it. Public so the extension's end-to-end test registers exactly what an
+    /// installation registers, into a throwaway browser profile.
+    /// </summary>
+    public static string Manifest(string clientName, string extensionId, string launcher) => JsonSerializer.Serialize(
+        new
+        {
+            name = HostNameFor(clientName),
+            description = $"SimplArchive password store autofill ({clientName})",
+            path = launcher,
+            type = "stdio",
+            allowed_origins = new[] { $"chrome-extension://{extensionId}/" },
+        },
+        new JsonSerializerOptions { WriteIndented = true });
 
     /// <summary>Writes the launcher a shim needs: a script that runs <paramref name="command"/> with no arguments.</summary>
     /// <param name="path">Where the launcher lives; the manifest names this path.</param>

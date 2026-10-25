@@ -184,6 +184,14 @@ jobs:
         run: dotnet test tests/SimplArchive.UnitTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
       - name: Integration tests
         run: dotnet test tests/SimplArchive.IntegrationTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/integration
+      # The browser extension end to end (ADR 0980), in the test library's own Chromium: the installed branded
+      # browser ignores --load-extension, so it cannot load an unpacked extension. The fixture would install the
+      # browser itself; doing it as its own step names a download failure as one. No --with-deps: the image already
+      # carries a branded browser, whose libraries are the same set.
+      - name: Install the extension tests' browser
+        run: pwsh tests/SimplArchive.BrowserExtensionTests/bin/Debug/net10.0/playwright.ps1 install chromium --no-shell
+      - name: Browser extension tests
+        run: dotnet test tests/SimplArchive.BrowserExtensionTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/extension
       # Merge the two cobertura files into one report (ReportGenerator, pinned in .config/dotnet-tools.json). The
       # GitHub-flavoured markdown summary is appended to the job summary; the HTML report is uploaded as an
       # artifact below. Informational only — `continue-on-error` so a report hiccup never fails the build, and

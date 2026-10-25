@@ -182,6 +182,71 @@
     document.body.appendChild(bridge);
   }
 
+  // Keep-alive (ADR 0980). The browser stops an idle extension service worker after about 30 seconds, and a
+  // message sent to a stopped worker is DROPPED when the page navigates away before the worker has started — so the
+  // login a submit hands over would be lost and never offered for saving. While a password field holds a value the
+  // worker is pinged below that limit, so it is running when the submit comes. It stops as soon as no password field
+  // holds a value, when the page is hidden or left, and after a cap, so an abandoned form cannot keep the worker
+  // alive forever. The ping carries nothing and the worker stores nothing.
+  const KEEP_ALIVE_MS = 20 * 1000;
+  const KEEP_ALIVE_CAP_MS = 10 * 60 * 1000;
+  let keepAlive = null;
+  let keepAliveSince = 0;
+
+  function passwordHeld() {
+    return Array.from(document.querySelectorAll('input[type="password"]')).some((input) => input.value.length > 0);
+  }
+
+  function ping() {
+    if (!passwordHeld() || Date.now() - keepAliveSince > KEEP_ALIVE_CAP_MS) {
+      stopKeepAlive();
+      return;
+    }
+    chrome.runtime.sendMessage({ type: "keep-alive" }, () => void chrome.runtime.lastError);
+  }
+
+  function startKeepAlive() {
+    if (keepAlive !== null) {
+      return;
+    }
+    keepAliveSince = Date.now();
+    keepAlive = setInterval(ping, KEEP_ALIVE_MS);
+    ping();
+  }
+
+  function stopKeepAlive() {
+    if (keepAlive !== null) {
+      clearInterval(keepAlive);
+      keepAlive = null;
+    }
+  }
+
+  document.addEventListener("input", (event) => {
+    if (event.target instanceof HTMLInputElement && event.target.type === "password") {
+      if (passwordHeld()) {
+        startKeepAlive();
+      } else {
+        stopKeepAlive();
+      }
+    }
+  }, true);
+  // A hidden or left page stops pinging; coming back to a form that still holds a password resumes it, so a login
+  // typed before switching away is still delivered when it is submitted on return.
+  function resumeIfHeld() {
+    if (passwordHeld()) {
+      startKeepAlive();
+    }
+  }
+  window.addEventListener("pagehide", stopKeepAlive);
+  window.addEventListener("pageshow", resumeIfHeld);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      stopKeepAlive();
+    } else {
+      resumeIfHeld();
+    }
+  });
+
   document.addEventListener("focusin", (event) => {
     const field = event.target;
     if (field instanceof HTMLInputElement && field.type === "password") {

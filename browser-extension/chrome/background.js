@@ -101,6 +101,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     case "remember-save": return answer(remember(message.save));
     case "pending-save": return answer(pending(message.site));
     case "forget-save": return answer(forget(message.site));
+    // The page's keep-alive (ADR 0980): receiving it is the whole point, as it resets the worker's idle timer.
+    case "keep-alive": sendResponse({ ok: true }); return false;
     default: sendResponse({ ok: false, error: `Unknown message type '${message.type}'.` }); return false;
   }
 });
