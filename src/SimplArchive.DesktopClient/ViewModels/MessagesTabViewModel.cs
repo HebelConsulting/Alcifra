@@ -436,6 +436,66 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Messages a person from elsewhere in the window — the details pane's "Created by" row (ADR 0974). Finds or
+    /// creates the one-to-one conversation and shows it; false when the Messenger is not offered here or the person
+    /// is not among its people (no enrolled key, so nothing could be sealed to them).
+    /// </summary>
+    public async Task<bool> MessageAsync(Guid personId, string displayName)
+    {
+        if (!IsOffered)
+        {
+            await DiscoverAsync();   // the Messages tab may never have been opened: discovery is the tab's, run here
+        }
+
+        if (Current is not { } session)
+        {
+            return false;
+        }
+
+        try
+        {
+            var list = _list ?? await session.Api.ConversationsAsync();
+            var person = (await session.Api.PeopleAsync(displayName)).Items.FirstOrDefault(p => p.Id == personId);
+            if (person is null)
+            {
+                return false;   // not offered by the people search: no enrolled key (the module's rule)
+            }
+
+            ShowConversation(await session.StartDirectAsync(list, person));
+            _list ??= list;
+            return true;
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Failed(e);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Whether the Messenger could reach <paramref name="personId"/>: they are among the people its search offers —
+    /// i.e. they hold an enrolled key. The details pane's action is disabled with a tooltip when this is false
+    /// (ADR 0974); a lookup, never a guess from a name.
+    /// </summary>
+    public async Task<bool> HasKeyAsync(Guid personId, string displayName)
+    {
+        if (Current is not { } session)
+        {
+            return false;
+        }
+
+        try
+        {
+            return (await session.Api.PeopleAsync(displayName)).Items.Any(p => p.Id == personId);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            DesktopLog.Debug("Messages: the people search failed ({Reason}); the person is treated as unreachable", e.Message);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// A "new messages" notification was clicked: its conversation opens here. False when it is none of the user's
     /// conversations (another module's signal, or one they left since), so the bell does what it does for any other entry.
     /// </summary>

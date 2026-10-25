@@ -19,7 +19,11 @@ public sealed partial class DocumentsClient
         // a flag named for TIFFs that also means PDFs is the next reader's trap (the issue's own warning).
         bool IsOcrCandidate, string? OcrLanguages, string FileExtension, string? DocumentDateHref = null, string? WorkflowStatus = null,
         // The candidate version's persisted verdict (null while unjudged) and its make-searchable rel (#999).
-        string? OcrVerdict = null, string? MakeSearchableHref = null);
+        string? OcrVerdict = null, string? MakeSearchableHref = null,
+        // The creator's USER id where the creator was a person (null for a service account): what a client acts ON,
+        // rather than the name it shows — the details pane's "Message" (ADR 0974). Last with a default, so a caller
+        // built against the older record still compiles.
+        Guid? CreatedByUserId = null);
 
     public async Task<SystemFields?> GetSystemFieldsAsync(string versionsHref, CancellationToken cancellationToken = default)
     {
@@ -84,7 +88,8 @@ public sealed partial class DocumentsClient
             Str(cur, "fileExtension"),
             ApiCore.RelHref(cur, "document-date"), ApiWire.StrOrNull(cur, "workflowStatus"),
             tiff is { } tv ? ApiWire.StrOrNull(tv, "ocrVerdict") : null,
-            tiff is { } tl ? ApiCore.RelHref(tl, "make-searchable") : null);
+            tiff is { } tl ? ApiCore.RelHref(tl, "make-searchable") : null,
+            cur.TryGetProperty("createdByUserId", out var cbu) && cbu.ValueKind == JsonValueKind.String ? cbu.GetGuid() : null);
     }
 
     // Sets the document's OCR-language override (ordered codes) and re-runs the searchable-PDF conversion.

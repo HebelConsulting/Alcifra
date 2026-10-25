@@ -450,6 +450,24 @@ public sealed class DesktopMessagesParityTests : IDisposable
         Assert.Equal([conversation], named);
     }
 
+    // ADR 0974: a person from the details pane is messaged by ID — the same one-to-one the picker makes — and a
+    // person the Messenger cannot reach (no enrolled key) is reported as not reachable, so the pane can disable the
+    // action instead of silently doing nothing.
+    [Fact]
+    public async Task A_person_is_messaged_from_their_id_and_one_without_a_key_is_not_reachable()
+    {
+        var tab = NewTab();
+        await tab.DiscoverAsync();
+        Assert.True(tab.IsOffered);
+
+        Assert.True(await tab.HasKeyAsync(_tom, "Tom"));                    // Tom holds an enrolled key
+        Assert.False(await tab.HasKeyAsync(Guid.NewGuid(), "Tom"));         // a stranger does not
+
+        Assert.True(await tab.MessageAsync(_tom, "Tom"));
+        Assert.Contains(_messenger.Requests, r => r.Method == "POST" && r.Path == "/m/direct");
+        Assert.False(await tab.MessageAsync(Guid.NewGuid(), "Nobody"));
+    }
+
     private MessagesTabViewModel NewTab()
     {
         var api = new SimplArchiveApiClient("token");

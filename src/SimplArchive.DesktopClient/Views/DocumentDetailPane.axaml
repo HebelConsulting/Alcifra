@@ -118,7 +118,17 @@
                     <SelectableTextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SysCreated}" VerticalAlignment="Center" Margin="0,2" />
 
                     <TextBlock Grid.Row="6" Grid.Column="0" Text="{loc:Tr SysCreatedBy}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
-                    <SelectableTextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SysCreatedBy}" VerticalAlignment="Center" Margin="0,2" />
+                    <!-- A person, so the row carries the one action that acts on THEM: Message, opening the
+                         Messenger's one-to-one chat (ADR 0974). The tooltip sits on the wrapper because a disabled
+                         button gets no pointer events, and the wrapper is what keeps the reason visible. -->
+                    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,2"
+                                ToolTip.Tip="{Binding MessageCreatedByHint}">
+                        <Button Padding="0" FontSize="12" Background="Transparent" BorderThickness="0"
+                                Foreground="{DynamicResource WbAccent}"
+                                Command="{Binding MessageCreatedByCommand}"
+                                IsEnabled="{Binding CanMessageCreatedBy}"
+                                Content="{Binding SysCreatedBy}" />
+                    </StackPanel>
 
                     <!-- The document's current (latest confirmed) version number, directly below Created by
                          (ADR "Mask-pane current-version line"). -->

@@ -31,6 +31,10 @@ public class DocumentVersionResource : HypermediaResource
     // The creator's display name (User.DisplayName / ServiceAccount.Name) — a read-only system field.
     public string CreatedByName { get; set; } = string.Empty;
 
+    // The creator's USER id, where the creator was a person (null for a service account): what a client needs to act
+    // ON the person rather than show the name — the details pane's "Message" (ADR 0974).
+    public Guid? CreatedByUserId { get; set; }
+
     // The issuing date ("yyyy-MM-dd") — a string on the wire (XmlSerializer doesn't support DateOnly).
     public string DocumentDate { get; set; } = string.Empty;
 

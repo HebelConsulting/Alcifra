@@ -121,7 +121,11 @@ public sealed partial class MainWindowViewModel
         _sysDocumentDateHref = fields.DocumentDateHref;
         SysCurrentVersion = fields.CurrentVersionNumber.ToString();
         SysCreatedAt = fields.CreatedAt;
+        _sysCreatedByUserId = fields.CreatedByUserId;
         SysCreatedBy = fields.CreatedByName;
+        // Whether "Message" can act on the creator (ADR 0974): the Messenger's people search answers, so the disabled
+        // state is there before the click.
+        await RefreshCanMessageCreatedByAsync();
         SysWorkflowStatus = fields.WorkflowStatus;
         // The transitions the detail pane may offer (#691) — skipped for the states that offer nothing.
         await LoadWorkflowTransitionsAsync(fields.WorkflowStatus, versionsHref);

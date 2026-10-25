@@ -232,6 +232,7 @@ public sealed class DocumentVersionResourceBuilder(
             PreviewConverted = previewConverted,
             CreatedAt = version.CreatedAt,
             CreatedByName = await ResolveCreatorNameAsync(version.CreatedByUserId, version.CreatedByServiceAccountId, cancellationToken),
+            CreatedByUserId = version.CreatedByUserId,
             DocumentDate = version.DocumentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             DocumentTime = version.DocumentTime?.ToString("HH:mm", CultureInfo.InvariantCulture),
             OcrLanguages = version.OcrLanguages,

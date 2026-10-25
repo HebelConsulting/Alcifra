@@ -987,6 +987,15 @@
   <data name="SysCreatedBy" xml:space="preserve">
     <value>Erstellt von</value>
   </data>
+  <data name="DpMessageHint" xml:space="preserve">
+    <value>{0} im Messenger anschreiben</value>
+  </data>
+  <data name="DpMessageNoKey" xml:space="preserve">
+    <value>{0} hat keinen hinterlegten Schlüssel – der Messenger kann diese Person nicht erreichen.</value>
+  </data>
+  <data name="DpMessengerUnavailable" xml:space="preserve">
+    <value>Der Messenger ist hier nicht verfügbar.</value>
+  </data>
   <data name="SysCurrentVersion" xml:space="preserve">
     <value>Aktuelle Version</value>
   </data>

@@ -987,6 +987,15 @@
   <data name="SysCreatedBy" xml:space="preserve">
     <value>Creato da</value>
   </data>
+  <data name="DpMessageHint" xml:space="preserve">
+    <value>Scrivi a {0} nel Messenger</value>
+  </data>
+  <data name="DpMessageNoKey" xml:space="preserve">
+    <value>{0} non ha una chiave registrata, quindi il Messenger non può raggiungerlo.</value>
+  </data>
+  <data name="DpMessengerUnavailable" xml:space="preserve">
+    <value>Il Messenger non è disponibile qui.</value>
+  </data>
   <data name="SysCurrentVersion" xml:space="preserve">
     <value>Versione corrente</value>
   </data>
