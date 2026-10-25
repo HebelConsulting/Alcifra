@@ -1,4 +1,8 @@
-# Publishes saconsole (the administrative CLI, ADR 0822) to GitHub Packages AND nuget.org — PUBLIC repo only.
+# Publishes the two .NET tools — saconsole (the administrative CLI, ADR 0822) and sapass (the password-store CLI,
+# ADR 0977) — to GitHub Packages AND nuget.org — PUBLIC repo only.
+#
+# ONE workflow for both, on purpose: the nuget.org trusted-publishing policy pins this FILE, so a second tool in a
+# second workflow would need a second policy on nuget.org. The file keeps its old name for the same reason.
 #
 # Triggered on a v* tag and name-gated to HebelConsulting/SimplArchive, exactly like the Docker and desktop
 # publishes: release tags are created DIRECTLY on the public repo (the mirror does not mirror tags), so the
@@ -25,7 +29,7 @@
 #
 # This file must NOT join publish/publish-public.sh's withheld set: it is useless in the private repo and is
 # the whole point in the mirror.
-name: Publish saconsole
+name: Publish saconsole and sapass
 
 on:
   push:
@@ -66,10 +70,11 @@ jobs:
           echo "publishing saconsole $version"
 
       - name: Pack
-        run: >-
-          dotnet pack src/SimplArchive.Cli/SimplArchive.Cli.csproj
-          -c Release -o dist/nuget --nologo
-          -p:Version=${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          for project in src/SimplArchive.Cli/SimplArchive.Cli.csproj src/SimplArchive.Sapass/SimplArchive.Sapass.csproj; do
+            dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version=${{ steps.version.outputs.value }}
+          done
 
       - name: Push to GitHub Packages
         run: >-
@@ -93,5 +98,5 @@ jobs:
 
       - name: Report
         run: |
-          echo "::notice::saconsole ${{ steps.version.outputs.value }} pushed to GitHub Packages and nuget.org."
-          echo "::notice::Install with: dotnet tool install --global SimplArchive.Cli"
+          echo "::notice::saconsole and sapass ${{ steps.version.outputs.value }} pushed to GitHub Packages and nuget.org."
+          echo "::notice::Install with: dotnet tool install --global SimplArchive.Cli (or SimplArchive.Sapass)"

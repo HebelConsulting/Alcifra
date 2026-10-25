@@ -12,7 +12,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>sapass</ToolCommandName>
     <PackageId>SimplArchive.Sapass</PackageId>
-    <Description>sapass — a pass-like store of passwords and secrets, sealed on your machine and opened only with your hardware key: list, search and read entries from the terminal.</Description>
+    <Description>sapass — a pass-like store of passwords and secrets, sealed on your machine and opened only with your hardware key: list, search, read, add, generate, edit and re-seal entries from the terminal, and serve the browser autofill.</Description>
     <PackageProjectUrl>https://github.com/HebelConsulting/SimplArchive</PackageProjectUrl>
     <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
