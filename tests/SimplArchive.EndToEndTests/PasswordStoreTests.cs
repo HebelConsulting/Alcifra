@@ -489,7 +489,7 @@ public sealed partial class PasswordStoreTests
         }
 
         // Bob holds read only on the store: the copied-down write does not reach him, the explicit grant does.
-        Assert.False((await SimplArchive.Cli.Commands.PasswordStoreSurface.StoreAsync(rig.Bob.Client, storeId, CancellationToken.None)).CanCreate);
+        Assert.False((await SimplArchive.Cli.Commands.PasswordStoreSurface.StoreAsync(rig.Bob.Client, storeId, CancellationToken.None)).CanCreateEntries);
         return 0;
     });
 

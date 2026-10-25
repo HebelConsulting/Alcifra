@@ -20,8 +20,9 @@ public sealed partial class PasswordStoreTests
         var catalog = new StoreCatalog(session);
 
         // "Mail/Banking" does not exist: the writer creates the folders its path names, then files the secret.
+        var team = await EntryWriter.StoreForNewEntryAsync(session, "Team", CancellationToken.None);
         var entry = await EntryWriter.CreateAsync(
-            session, "Team", "Mail/Banking/login",
+            session, team, "Mail/Banking/login",
             PasswordEntryContent.Of("hunter2", "anna", "https://bank.example"), refresh: true, CancellationToken.None);
 
         var rows = await catalog.RowsAsync(await catalog.StoreAsync("Team", CancellationToken.None), refresh: true, CancellationToken.None);
@@ -36,7 +37,7 @@ public sealed partial class PasswordStoreTests
 
         // Creating NEVER replaces: the same path again is refused by name, and the stored secret is untouched.
         var refused = await Assert.ThrowsAsync<SapassException>(() => EntryWriter.CreateAsync(
-            session, "Team", "Mail/Banking/login",
+            session, team, "Mail/Banking/login",
             PasswordEntryContent.Of("different", "anna"), refresh: true, CancellationToken.None));
         Assert.Contains("already exists", refused.Message);
         Assert.Equal("hunter2", (await rig.Anna.Client.OpenAsync(

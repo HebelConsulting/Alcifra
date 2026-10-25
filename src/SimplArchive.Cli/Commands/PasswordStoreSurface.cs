@@ -103,13 +103,16 @@ public static class PasswordStoreSurface
             return ((await Translated(() => client.CompleteEntryAsync(entry, content, cancellationToken))).Id, EntryOutcome.Completed);
         }
 
-        if (!store.CanCreate)
+        // The store says whether a new entry is offered, and why not (ADR 0982); the right alone is not enough.
+        if (!store.CanCreateEntries)
         {
-            throw new CliException(
-                $"The signed-in principal may not create entries in '{store.Name}' (it lacks the right to create sub-items there).");
+            await RequireRecipientsAsync(client, store, cancellationToken);   // names the readers without a key, where that is why
+            throw new CliException(store.NewEntryUnavailable == NewEntryUnavailability.None
+                ? $"The signed-in principal may not create entries in '{store.Name}' (it lacks the right to create sub-items there)."
+                : new PasswordEntryCreationWithheldException(store.Name, store.NewEntryUnavailable).Message);
         }
 
-        await RequireRecipientsAsync(client, store, cancellationToken);
+        await RequireRecipientsAsync(client, store, cancellationToken);   // a server from before ADR 0982 offers the rel regardless
         return ((await Translated(() => client.CreateEntryAsync(store, name, content, cancellationToken))).Id, EntryOutcome.Created);
     }
 
@@ -155,7 +158,7 @@ public static class PasswordStoreSurface
         {
             return await call();
         }
-        catch (PasswordStoreHasNoRecipientsException e)
+        catch (Exception e) when (e is PasswordStoreHasNoRecipientsException or PasswordEntryCreationWithheldException)
         {
             throw new CliException(e.Message);
         }

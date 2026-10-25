@@ -73,6 +73,10 @@ public static class ApiErrorText
         "INVALID_VERSION_COMMENT_KIND" => Strings.Get("ApiErrInvalidVersionCommentKind"),
         "PASSWORD_STORE_NOT_AVAILABLE" => Strings.Get("ApiErrPasswordStoreNotAvailable"),
         "PASSWORD_ITEM_NAME_REQUIRED" => Strings.Get("ApiErrPasswordItemNameRequired"),
+        // The same sentences the store's notice shows beside the withheld New entry (ADR 0982).
+        "PASSWORD_ENTRY_ENROLMENT_REQUIRED" => Strings.Get("PwEnrolmentRequired"),
+        "PASSWORD_ENTRY_NOT_A_READER" => Strings.Get("PwNotAReader"),
+        "PASSWORD_STORE_NO_READER_CERTIFICATES" => Strings.Get("PwNoRecipients"),
         "CERTIFICATE_NOT_ATTESTED" => Strings.Get("ApiErrCertificateNotAttested"),
         "INVALID_RECIPIENT_CERTIFICATE" => Strings.Get("ApiErrInvalidRecipientCertificate"),
         // "Change audience…" refused from somebody who did not file the current version (ADR 0975).

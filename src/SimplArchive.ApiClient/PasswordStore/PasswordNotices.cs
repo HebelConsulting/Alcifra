@@ -13,6 +13,9 @@ public enum PasswordNoticeAction
 
     /// <summary>Enrol a spare key (the key enrolment page).</summary>
     EnrolSpareKey,
+
+    /// <summary>Enrol a first key, without which no new entry can be sealed to the user (ADR 0982; the key enrolment page).</summary>
+    EnrolKey,
 }
 
 /// <summary>A sentence shown above a store's contents or an entry, and what it offers.</summary>
@@ -43,13 +46,30 @@ public static class PasswordNotices
             notices.Add(new PasswordNotice(Strings.Get("PwSpareKey"), Urgent: false, PasswordNoticeAction.EnrolSpareKey));
         }
 
-        if (folder.CanCreate && folder.ReaderCertificateCount == 0)
+        if (WhyNoNewEntry(folder) is { } why)
         {
-            notices.Add(new PasswordNotice(Strings.Get("PwNoRecipients"), Urgent: false));
+            notices.Add(new PasswordNotice(why, Urgent: false,
+                folder.NewEntryUnavailable == NewEntryUnavailability.EnrolmentRequired ? PasswordNoticeAction.EnrolKey : PasswordNoticeAction.None));
         }
 
         return notices;
     }
+
+    /// <summary>
+    /// Why New entry is unavailable here, in the user's language, or null when it is available or the user may not create
+    /// here at all (ADR 0982): the server withholds the rel and says why; every client shows the same sentence.
+    /// </summary>
+    public static string? WhyNoNewEntry(PasswordFolderInfo folder) => WhyNoNewEntry(folder.NewEntryUnavailable);
+
+    /// <summary>The sentence for one reason (a refusal carries it too); null for <see cref="NewEntryUnavailability.None"/>.</summary>
+    public static string? WhyNoNewEntry(NewEntryUnavailability reason) => reason switch
+    {
+        NewEntryUnavailability.EnrolmentRequired => Strings.Get("PwEnrolmentRequired"),
+        NewEntryUnavailability.NotAReader => Strings.Get("PwNotAReader"),
+        NewEntryUnavailability.NoReaderCertificates => Strings.Get("PwNoRecipients"),
+        NewEntryUnavailability.Unknown => Strings.Get("PwNewEntryUnavailable"),
+        _ => null,
+    };
 
     /// <summary>"Exposed since …: change this password", or nothing.</summary>
     public static PasswordNotice? For(PasswordEntryInfo entry) => entry.ExposedSince is { } day

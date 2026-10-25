@@ -63,7 +63,7 @@ public sealed class PasswordStoreActions(PasswordsTabViewModel tab)
 
     public async Task NewFolderAsync(PasswordFolderInfo folder)
     {
-        if (tab.Work is not { } work || !folder.CanCreate || Dialogs.AskName is not { } ask
+        if (tab.Work is not { } work || !folder.CanCreateFolders || Dialogs.AskName is not { } ask
             || await ask(Strings.Get("PwNewFolder"), Strings.Get("Name"), string.Empty) is not { Length: > 0 } name)
         {
             return;
@@ -110,7 +110,7 @@ public sealed class PasswordStoreActions(PasswordsTabViewModel tab)
     /// </summary>
     public async Task ImportAsync(PasswordFolderInfo folder)
     {
-        if (tab.Work is not { } work || !folder.CanCreate || Dialogs.PickExport is not { } pick || await pick() is not { } export)
+        if (tab.Work is not { } work || !folder.CanCreateEntries || Dialogs.PickExport is not { } pick || await pick() is not { } export)
         {
             return;
         }

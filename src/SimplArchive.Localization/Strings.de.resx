@@ -6378,6 +6378,18 @@
   <data name="PwNoRecipients" xml:space="preserve">
     <value>Niemand, der diesen Speicher liest, hat bisher einen registrierten Hardwareschlüssel; hier kann deshalb nichts gespeichert werden.</value>
   </data>
+  <data name="PwEnrolmentRequired" xml:space="preserve">
+    <value>Neue Einträge werden für Ihren Hardwareschlüssel versiegelt, und Sie haben noch keinen registriert; Sie könnten nicht öffnen, was Sie speichern. Registrieren Sie zuerst einen Schlüssel.</value>
+  </data>
+  <data name="PwNotAReader" xml:space="preserve">
+    <value>Sie dürfen diesen Speicher verwalten, lesen ihn aber nicht; ein neuer Eintrag würde deshalb nicht für Sie versiegelt. Erteilen Sie sich Leserechte, um Einträge hinzuzufügen.</value>
+  </data>
+  <data name="PwNewEntryUnavailable" xml:space="preserve">
+    <value>Hier können keine neuen Einträge hinzugefügt werden.</value>
+  </data>
+  <data name="PwEnrolKey" xml:space="preserve">
+    <value>Schlüssel registrieren</value>
+  </data>
   <data name="PwEntryChanged" xml:space="preserve">
     <value>Jemand hat diesen Eintrag geändert, seit Sie ihn geöffnet haben. Laden Sie ihn neu und versuchen Sie es erneut.</value>
   </data>

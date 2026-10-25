@@ -52,7 +52,7 @@ public partial class PasswordsTab : UserControl
         dialogs.PickExport = PickExportAsync;
         dialogs.AskConflict = AskConflictAsync;
         dialogs.DeleteFile = DeleteFileAsync;
-        dialogs.EnrolSpareKey = EnrolSpareKeyAsync;
+        dialogs.EnrolKey = EnrolKeyAsync;
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
@@ -164,7 +164,7 @@ public partial class PasswordsTab : UserControl
         }
     }
 
-    private async Task EnrolSpareKeyAsync()
+    private async Task EnrolKeyAsync()
     {
         if (Owner is { } owner && _tab?.CurrentApi is { } api)
         {

@@ -54,6 +54,16 @@ public class PasswordFolderResource : HypermediaResource
     /// is one lost key away from losing its entries, so the app recommends a spare.</summary>
     public int ReaderCertificateCount { get; set; }
 
+    /// <summary>
+    /// Why the <c>password-entries</c> rel is withheld from a caller who may create here (ADR 0982), so a client can say
+    /// so instead of merely greying the action out. The REL decides availability; this only explains its absence.
+    /// <c>enrolment-required</c>: you read the store but hold no enrolled hardware key an entry could be sealed to.
+    /// <c>not-a-reader</c>: you may create here but do not read the store (an administrator through the bypass), so
+    /// nothing would be sealed to you. <c>no-reader-certificates</c>: a service account, and none of the store's readers
+    /// holds a key. Null when entries may be created, and when the caller may not create here at all.
+    /// </summary>
+    public string? NewEntryUnavailableReason { get; set; }
+
     public List<PasswordItemResource> Items { get; set; } = [];
 }
 

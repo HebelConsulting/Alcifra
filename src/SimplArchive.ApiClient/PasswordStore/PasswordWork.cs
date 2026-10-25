@@ -109,6 +109,7 @@ public sealed class PasswordWork(ApiCore core, IEnvelopeOpener keys, IEnvelopeOp
         OperationCanceledException => null,
         PasswordEntryChangedException => Strings.Get("PwEntryChanged"),
         PasswordStoreHasNoRecipientsException => Strings.Get("PwNoRecipients"),
+        PasswordEntryCreationWithheldException withheld => PasswordNotices.WhyNoNewEntry(withheld.Reason) ?? Strings.Get("PwNewEntryUnavailable"),
         DocumentNameTakenException taken => string.Format(CultureInfo.CurrentCulture, Strings.Get("StNameTaken"), taken.FileName),
         PasswordEntryUnreadableException => Strings.Get("PwEntryUnreadable"),
         HttpRequestException { StatusCode: HttpStatusCode.PreconditionFailed } => Strings.Get("PwEntryChanged"),

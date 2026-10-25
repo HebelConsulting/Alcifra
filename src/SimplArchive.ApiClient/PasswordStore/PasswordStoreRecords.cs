@@ -24,12 +24,32 @@ public sealed record PasswordItemInfo(
 /// <param name="UrgentReseal">Some entry is still sealed to a REVOKED certificate: re-seal and change it now; a phone drops
 /// its offline copy of the store.</param>
 /// <param name="ReaderCertificateCount">How many certificates the store's entries are sealed to, all readers together.</param>
+/// <param name="NewEntryUnavailableReason">The server's reason for withholding the <c>password-entries</c> rel from a
+/// caller who may create here (ADR 0982), as sent; read it as <see cref="NewEntryUnavailable"/>.</param>
 public sealed record PasswordFolderInfo(
     Guid Id, string Name, bool IsStore, Guid StoreId, bool IsPersonal, bool NeedsReseal, bool UrgentReseal, int ReaderCertificateCount,
-    string ETag, IReadOnlyList<PasswordItemInfo> Items, LinkMap Links)
+    string ETag, IReadOnlyList<PasswordItemInfo> Items, LinkMap Links, string? NewEntryUnavailableReason = null)
 {
-    /// <summary>Whether entries and folders may be created here (the create rels are advertised).</summary>
-    public bool CanCreate => Links.Has("password-entries");
+    /// <summary>
+    /// Whether a new entry may be created here: the <c>password-entries</c> rel is advertised, which the server does only
+    /// where the caller may create AND what they save can be sealed so they can read it back (ADR 0982).
+    /// </summary>
+    public bool CanCreateEntries => Links.Has("password-entries");
+
+    /// <summary>Whether a folder may be created here (the <c>password-folders</c> rel; folders are not sealed).</summary>
+    public bool CanCreateFolders => Links.Has("password-folders");
+
+    /// <summary>Why <see cref="CanCreateEntries"/> is false for a caller who may create here; None when it is true, or when
+    /// the caller may not create here at all.</summary>
+    public NewEntryUnavailability NewEntryUnavailable => NewEntryUnavailableReason switch
+    {
+        _ when CanCreateEntries => NewEntryUnavailability.None,
+        null => NewEntryUnavailability.None,
+        "enrolment-required" => NewEntryUnavailability.EnrolmentRequired,
+        "not-a-reader" => NewEntryUnavailability.NotAReader,
+        "no-reader-certificates" => NewEntryUnavailability.NoReaderCertificates,
+        _ => NewEntryUnavailability.Unknown,
+    };
 
     /// <summary>Whether the caller is the one to re-seal (the <c>reseal</c> rel rides only for a member with edit rights).</summary>
     public bool CanReseal => Links.Has("reseal");
@@ -39,6 +59,25 @@ public sealed record PasswordFolderInfo(
     /// spare key (owner decision 2026-10-23).
     /// </summary>
     public bool RecommendsSpareKey => IsStore && IsPersonal && ReaderCertificateCount == 1;
+}
+
+/// <summary>Why the server withholds new entries from a caller who may create in a store (ADR 0982).</summary>
+public enum NewEntryUnavailability
+{
+    /// <summary>Entries may be created, or the caller may not create here at all (the rights say so, not a key).</summary>
+    None,
+
+    /// <summary>The caller reads the store but holds no enrolled hardware key an entry could be sealed to.</summary>
+    EnrolmentRequired,
+
+    /// <summary>The caller may create here but does not read the store (an administrator through the bypass).</summary>
+    NotAReader,
+
+    /// <summary>A service account, and none of the store's readers holds an enrolled key.</summary>
+    NoReaderCertificates,
+
+    /// <summary>A reason this client does not know yet: the rel is withheld all the same.</summary>
+    Unknown,
 }
 
 /// <summary>One entry: what opening, editing and re-sealing it needs.</summary>
@@ -95,6 +134,25 @@ public sealed class PasswordEntryChangedException(string name)
 /// <summary>The store's readers hold no certificate a secret could be sealed to, so nothing can be saved there yet.</summary>
 public sealed class PasswordStoreHasNoRecipientsException()
     : Exception("Nobody who reads this password store has an enrolled hardware key yet, so nothing can be sealed to it.");
+
+/// <summary>
+/// A new entry was asked for where the server withholds the <c>password-entries</c> rel (ADR 0982): refused before any
+/// secret is sealed or sent. <see cref="Reason"/> says why, for a client to explain.
+/// </summary>
+public sealed class PasswordEntryCreationWithheldException(string folderName, NewEntryUnavailability reason)
+    : Exception(reason switch
+    {
+        NewEntryUnavailability.EnrolmentRequired =>
+            $"You have no enrolled hardware key a new entry in '{folderName}' could be sealed to, so you could not open it. Enrol a hardware key first.",
+        NewEntryUnavailability.NotAReader =>
+            $"You are not a reader of the store '{folderName}' belongs to, so a new entry would not be sealed to you. Grant yourself read access first.",
+        NewEntryUnavailability.NoReaderCertificates =>
+            $"Nobody who reads the store '{folderName}' belongs to has an enrolled hardware key yet, so nothing can be sealed there.",
+        _ => $"New entries may not be created in '{folderName}'.",
+    })
+{
+    public NewEntryUnavailability Reason { get; } = reason;
+}
 
 /// <summary>One row of a store's flat descendants listing: its id and name, folder or entry, its parent, and its own
 /// resource address (the <c>self</c> rel the server advertised — followed, never composed, ADR 0543).</summary>

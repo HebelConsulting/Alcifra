@@ -91,8 +91,22 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
     /// <summary>An entry is selected but not open (the PIN prompt was cancelled, or the key left): open it again.</summary>
     public bool CanOpenWithKey => !IsEditing && !EntryOpen && HasSelectedEntry;
 
-    /// <summary>The folder on show may hold new entries and folders (its create rels).</summary>
-    public bool CanCreate => SelectedNode?.Folder?.CanCreate == true;
+    /// <summary>
+    /// The folder on show offers new entries (its <c>password-entries</c> rel): the server sends it only where the user may
+    /// create AND what they save can be sealed to a key they hold (ADR 0982). Import creates entries, so it follows too.
+    /// </summary>
+    public bool CanCreateEntry => SelectedNode?.Folder?.CanCreateEntries == true;
+
+    /// <summary>The folder on show offers new folders (its <c>password-folders</c> rel; folders are not sealed).</summary>
+    public bool CanCreateFolder => SelectedNode?.Folder?.CanCreateFolders == true;
+
+    /// <summary>
+    /// New entry's tooltip: what it does, or — while the server withholds it — why (ADR 0982), so the reason sits on the
+    /// disabled button the user reached for, as well as in the folder's notice.
+    /// </summary>
+    public string NewEntryHint => SelectedNode?.Folder is { } folder && PasswordNotices.WhyNoNewEntry(folder) is { } why
+        ? why
+        : Strings.Get("PwNewEntry");
 
     public bool CanReseal => SelectedNode?.Folder?.CanReseal == true;
 
@@ -214,7 +228,9 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
         SelectedItem = null;
         Items.Clear();
         Notices.Clear();
-        OnPropertyChanged(nameof(CanCreate));
+        OnPropertyChanged(nameof(CanCreateEntry));
+        OnPropertyChanged(nameof(CanCreateFolder));
+        OnPropertyChanged(nameof(NewEntryHint));
         OnPropertyChanged(nameof(CanReseal));
         if (value is not null)
         {
@@ -251,7 +267,9 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
             Notices.Add(new PasswordNoticeViewModel(notice));
         }
 
-        OnPropertyChanged(nameof(CanCreate));
+        OnPropertyChanged(nameof(CanCreateEntry));
+        OnPropertyChanged(nameof(CanCreateFolder));
+        OnPropertyChanged(nameof(NewEntryHint));
         OnPropertyChanged(nameof(CanReseal));
         if (select is { } id)
         {
@@ -361,7 +379,7 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
     [RelayCommand]
     private void NewEntry()
     {
-        if (CanCreate && Work is { } work && SelectedNode?.Folder is { } folder)
+        if (CanCreateEntry && Work is { } work && SelectedNode?.Folder is { } folder)
         {
             SelectedItem = null;
             Editor = PasswordEntryEditorViewModel.Create(work.Client, folder, Screens, (saved, failure) => EditDoneAsync(null, saved, failure));
@@ -433,14 +451,25 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
     [RelayCommand]
     private Task ImportAsync() => SelectedNode?.Folder is { } folder ? Actions.ImportAsync(folder) : Task.CompletedTask;
 
-    /// <summary>A notice's own button: re-seal, or enrol a spare key.</summary>
+    /// <summary>A notice's own button: re-seal, enrol a spare key, or enrol a first key (then read the folder again, so
+    /// New entry appears once the server can seal to the new key).</summary>
     [RelayCommand]
     private Task NoticeActionAsync(PasswordNoticeViewModel? notice) => notice?.Notice.Action switch
     {
         PasswordNoticeAction.Reseal => ResealAsync(),
-        PasswordNoticeAction.EnrolSpareKey => Dialogs.EnrolSpareKey?.Invoke() ?? Task.CompletedTask,
+        PasswordNoticeAction.EnrolSpareKey => Dialogs.EnrolKey?.Invoke() ?? Task.CompletedTask,
+        PasswordNoticeAction.EnrolKey => EnrolThenReloadAsync(),
         _ => Task.CompletedTask,
     };
+
+    private async Task EnrolThenReloadAsync()
+    {
+        if (Dialogs.EnrolKey is { } enrol)
+        {
+            await enrol();
+            await ReloadFolderAsync();
+        }
+    }
 
     /// <summary>
     /// The key left the machine: what it opened is closed — the entry on show and an edit of it — as the phone's
@@ -484,6 +513,6 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
     }
 
     internal static bool IsReported(Exception e) => e is HttpRequestException or InvalidOperationException or EnvelopeNotOpenedException
-        or PasswordEntryUnreadableException or PasswordEntryChangedException or PasswordStoreHasNoRecipientsException or DocumentNameTakenException
+        or PasswordEntryUnreadableException or PasswordEntryChangedException or PasswordStoreHasNoRecipientsException or PasswordEntryCreationWithheldException or DocumentNameTakenException
         or OperationCanceledException or SessionEndedException or System.Text.Json.JsonException or ApiActionException;
 }

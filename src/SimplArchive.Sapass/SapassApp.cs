@@ -1,3 +1,4 @@
+using SimplArchive.ApiClient.PasswordStore;
 using Microsoft.Extensions.Logging;
 using SimplArchive.ApiClient;
 using SimplArchive.BrowserHost;
@@ -100,6 +101,10 @@ public static class SapassApp
                 log.LogError("{Message}", e.Message);
                 return 1;
             case DeviceFlowException e:
+                log.LogError("{Message}", e.Message);
+                return 1;
+            case Exception e when e is PasswordEntryCreationWithheldException or PasswordStoreHasNoRecipientsException:
+                // The shared client's refusals carry their sentence (ADR 0982): a state of the store, not a bug.
                 log.LogError("{Message}", e.Message);
                 return 1;
             case CommandRuntimeException e:

@@ -12,6 +12,7 @@ public static class PasswordStoreServices
             .AddScoped<PasswordStoreReaders>()
             .AddScoped<PasswordStoreSealing>()
             .AddScoped<PasswordStoreResourceBuilder>()
+            .AddScoped<PasswordEntryCreation>()
             .AddScoped<PasswordEntryVersions>()
             .AddScoped<MyPasswordsProvisioner>()
             .AddScoped<PasswordEntryHistory>()

@@ -189,7 +189,7 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
     {
         _store.MineExists = false;   // My Passwords is created on first use
         var tab = await LoadedTabAsync();
-        await Eventually(() => tab.CanCreate);
+        await Eventually(() => tab.CanCreateEntry);
 
         tab.NewEntryCommand.Execute(null);
         var editor = tab.Editor!;
@@ -205,6 +205,41 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         Assert.Equal(0x30, stored.Content![0]);   // a bare CMS envelope reached the server, never the fields
         Assert.Equal([("User name", false), ("PIN", true)], Open(stored.Content).Fields.Select(f => (f.Name, f.IsSecret)));
         Assert.True(_store.MineExists);
+    }
+
+    // ADR 0982: the server withholds New entry from a user without an enrolled key and says why. The tab follows the
+    // rel (New entry and Import disabled, New folder still offered), the disabled button's tooltip and the folder's
+    // notice give the reason, and the notice offers the enrolment — after which the folder is read again.
+    [Fact]
+    public async Task New_entry_is_withheld_with_its_reason_until_a_key_is_enrolled_while_new_folder_stays()
+    {
+        _store.MineExists = true;
+        _store.NewEntryUnavailableReason = "enrolment-required";
+        var enrolled = 0;
+        var tab = await LoadedTabAsync();
+        tab.Dialogs.EnrolKey = () =>
+        {
+            enrolled++;
+            _store.NewEntryUnavailableReason = null;   // the key is enrolled: the server offers entries again
+            return Task.CompletedTask;
+        };
+        await Eventually(() => tab.CanCreateFolder);
+
+        Assert.False(tab.CanCreateEntry);
+        Assert.Equal(Strings.Get("PwEnrolmentRequired"), tab.NewEntryHint);
+        var notice = Assert.Single(tab.Notices, n => n.Notice.Action == PasswordNoticeAction.EnrolKey);
+        Assert.Equal(Strings.Get("PwEnrolmentRequired"), notice.Text);
+        Assert.Equal(Strings.Get("PwEnrolKey"), notice.ActionLabel);
+
+        tab.NewEntryCommand.Execute(null);
+        Assert.Null(tab.Editor);   // no form to type a secret into that could not be saved
+        Assert.DoesNotContain(_store.Requests, r => r.Method == "POST" && r.Path.EndsWith("/entries", StringComparison.Ordinal));
+
+        await tab.NoticeActionCommand.ExecuteAsync(notice);
+        await Eventually(() => tab.CanCreateEntry);
+        Assert.Equal(1, enrolled);
+        Assert.Equal(Strings.Get("PwNewEntry"), tab.NewEntryHint);
+        Assert.DoesNotContain(tab.Notices, n => n.Notice.Action == PasswordNoticeAction.EnrolKey);
     }
 
     [Fact]
@@ -245,7 +280,7 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         tab.Dialogs.Inform = (_, _) => Task.CompletedTask;
         tab.Dialogs.Confirm = (_, message, _) => Task.FromResult(message == Strings.Get("PwImportDeleteCsv"));
         tab.Dialogs.DeleteFile = path => { File.Delete(path); return Task.FromResult(true); };
-        await Eventually(() => tab.CanCreate);
+        await Eventually(() => tab.CanCreateEntry);
 
         await tab.ImportCommand.ExecuteAsync(null);
 

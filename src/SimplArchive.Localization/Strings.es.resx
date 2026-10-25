@@ -6378,6 +6378,18 @@
   <data name="PwNoRecipients" xml:space="preserve">
     <value>Nadie que lea este almacén tiene aún una llave de hardware registrada, así que aquí no se puede guardar nada.</value>
   </data>
+  <data name="PwEnrolmentRequired" xml:space="preserve">
+    <value>Las nuevas entradas se sellan para su llave de hardware y aún no ha registrado ninguna, así que no podría abrir lo que guarde. Registre primero una llave.</value>
+  </data>
+  <data name="PwNotAReader" xml:space="preserve">
+    <value>Puede administrar este almacén pero no leerlo, así que una nueva entrada no se sellaría para usted. Concédase permiso de lectura para añadir entradas.</value>
+  </data>
+  <data name="PwNewEntryUnavailable" xml:space="preserve">
+    <value>Aquí no se pueden añadir entradas nuevas.</value>
+  </data>
+  <data name="PwEnrolKey" xml:space="preserve">
+    <value>Registrar una llave</value>
+  </data>
   <data name="PwEntryChanged" xml:space="preserve">
     <value>Alguien cambió esta entrada desde que la abrió. Vuelva a cargarla e inténtelo de nuevo.</value>
   </data>

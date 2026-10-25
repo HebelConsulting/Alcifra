@@ -27,6 +27,7 @@ public class PasswordFoldersController(
     DocumentAccessService access,
     PasswordStoreTree tree,
     PasswordStoreResourceBuilder resources,
+    PasswordEntryCreation entryCreation,
     IDocumentIndexQueue queue,
     IAuditRecorder audit) : ControllerBase
 {
@@ -63,12 +64,15 @@ public class PasswordFoldersController(
 
     /// <summary>
     /// A new Password Entry, still without content: its <c>versions</c> rel takes the sealed bytes like any first version
-    /// (POST, PUT to the upload URL, PUT the version), and the finalize refuses bytes that are not an envelope.
+    /// (POST, PUT to the upload URL, PUT the version), and the finalize refuses bytes that are not an envelope. Refused
+    /// before anything is written when the caller could not have the entry sealed honestly (ADR 0982): the same rule
+    /// that withholds the <c>password-entries</c> rel.
     /// </summary>
     [HttpPost("entries")]
     public async Task<IActionResult> CreateEntry(Guid folderId, [FromBody] CreatePasswordItemRequest request, CancellationToken cancellationToken)
     {
-        var child = await CreateAsync(folderId, request, WellKnownMaskIds.PasswordEntry, cancellationToken);
+        var child = await CreateAsync(folderId, request, WellKnownMaskIds.PasswordEntry, cancellationToken,
+            beforeWrite: folder => entryCreation.RequireAsync(folder.StoreId, cancellationToken));
         if (child is null)
         {
             return Forbid();
@@ -79,8 +83,10 @@ public class PasswordFoldersController(
         return Created(PasswordStoreResourceBuilder.EntryHref(created.Id), await resources.EntryAsync(created, cancellationToken));
     }
 
-    // The one create both kinds share: a document of the store's mask, by name, under this store or folder.
-    private async Task<Document?> CreateAsync(Guid folderId, CreatePasswordItemRequest request, Guid maskId, CancellationToken cancellationToken)
+    // The one create both kinds share: a document of the store's mask, by name, under this store or folder. What differs
+    // per kind before the write (an entry's sealing check, ADR 0982) is passed in.
+    private async Task<Document?> CreateAsync(
+        Guid folderId, CreatePasswordItemRequest request, Guid maskId, CancellationToken cancellationToken, Func<PasswordItem, Task>? beforeWrite = null)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
@@ -91,6 +97,11 @@ public class PasswordFoldersController(
         if (!(await access.GetCallerRightsAsync(folder.Id, cancellationToken)).CanCreateSubItems)
         {
             return null;
+        }
+
+        if (beforeWrite is not null)
+        {
+            await beforeWrite(folder);
         }
 
         var tenantId = await dbContext.Documents.Where(d => d.Id == folder.Id).Select(d => d.TenantId).SingleAsync(cancellationToken);

@@ -3,7 +3,12 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SimplArchive.Api.Documents;
+using SimplArchive.Domain.Documents;
+using SimplArchive.Domain.Masks;
+using SimplArchive.Infrastructure.Persistence;
 
 namespace SimplArchive.EndToEndTests;
 
@@ -78,6 +83,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         ["POST api/certificates"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["PUT api/certificate-policy"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["PUT api/certificate-settings"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
+        ["POST api/password-folders/{folderId:guid}/entries"] = "advertised only to a reader holding an enrolled key (ADR 0982); no module licenses enrolment in this tenant — PasswordStoreTests follows the rel",
         ["GET api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
         ["HEAD api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
         ["GET api/documents/{documentId:guid}/archive-entries"] = "needs a zip document; the seed files none",
@@ -346,6 +352,25 @@ public class ApiReachabilityTests(E2EApiFactory factory)
     /// contacts and appointments in a personal space; an intray item; a group, a saved search, a label, a mail domain, a
     /// deactivated user and a deleted document. Built by composed URLs on purpose: this is setup, not the crawl.
     /// </summary>
+    private async Task SeedPasswordEntryAsync(Guid folderId, string name, Guid userId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SimplArchiveDbContext>();
+        var folder = await db.Documents.IgnoreQueryFilters(["TenantFilter"]).SingleAsync(d => d.Id == folderId);
+        db.Documents.Add(new Document
+        {
+            Id = Guid.NewGuid(),
+            TenantId = folder.TenantId,
+            ParentId = folder.Id,
+            Name = name,
+            MaskVersionId = await FolderMask.CurrentVersionIdAsync(db, folder.TenantId, WellKnownMaskIds.PasswordEntry, CancellationToken.None)
+                ?? throw new InvalidOperationException("The Password Entry mask was not seeded."),
+            CreatedByUserId = userId,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+        await db.SaveChangesAsync();
+    }
+
     private async Task SeedArchiveAsync(HttpClient owner, HttpClient admin, HttpClient user, Guid userId)
     {
         var repo = (await TestJson.Post(owner, "/api/repositories", new { name = $"Reach {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
@@ -400,10 +425,12 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         await TestJson.Post(user, "/api/saved-searches", new { name = "Reach", queryString = "q=reach", shareScope = 0 });
         var personal = (await TestJson.Post(user, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
         // My Passwords with a folder and an entry (ADR 0964), so the crawler finds the store, folder and entry rels. The
-        // entry stays without content: its content must be sealed, which the crawler has no key for.
+        // entry stays without content: its content must be sealed, which the crawler has no key for. It is filed
+        // straight into the database, because the rel that creates one is offered only to a reader holding an enrolled
+        // key (ADR 0982), and this tenant licenses no enrolment.
         var myPasswords = await TestJson.Post(user, "/api/password-stores/mine", new { });
         var pwFolder = await TestJson.Post(user, $"/api/password-folders/{myPasswords.GetProperty("id").GetGuid()}/folders", new { name = "Reach" });
-        await TestJson.Post(user, $"/api/password-folders/{pwFolder.GetProperty("id").GetGuid()}/entries", new { name = "Reach entry" });
+        await SeedPasswordEntryAsync(pwFolder.GetProperty("id").GetGuid(), "Reach entry", userId);
         await TestJson.Post(user, "/api/me/imap-access", new { });
         // A phone registered for push (SimplArchiveMobile #20), so the crawl meets a registration row and its self.
         await TestJson.Post(user, "/api/push-registrations",

@@ -6378,6 +6378,18 @@
   <data name="PwNoRecipients" xml:space="preserve">
     <value>Nessuno dei lettori di questo archivio ha ancora una chiave hardware registrata, quindi qui non si può salvare nulla.</value>
   </data>
+  <data name="PwEnrolmentRequired" xml:space="preserve">
+    <value>Le nuove voci sono sigillate per la tua chiave hardware e non ne hai ancora registrata una, quindi non potresti aprire ciò che salvi. Registra prima una chiave.</value>
+  </data>
+  <data name="PwNotAReader" xml:space="preserve">
+    <value>Puoi gestire questo archivio ma non leggerlo, quindi una nuova voce non sarebbe sigillata per te. Concediti il diritto di lettura per aggiungere voci.</value>
+  </data>
+  <data name="PwNewEntryUnavailable" xml:space="preserve">
+    <value>Qui non si possono aggiungere nuove voci.</value>
+  </data>
+  <data name="PwEnrolKey" xml:space="preserve">
+    <value>Registra una chiave</value>
+  </data>
   <data name="PwEntryChanged" xml:space="preserve">
     <value>Qualcuno ha modificato questa voce da quando l'hai aperta. Ricaricala e riprova.</value>
   </data>

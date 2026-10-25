@@ -39,11 +39,13 @@ public sealed class InsertCommand(ILogger<InsertCommand> logger) : AsyncCommand<
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, InsertSettings settings, CancellationToken cancellationToken)
     {
+        // The store is asked FIRST (ADR 0982): a store that offers no new entry is refused before a secret exists.
+        using var session = Session.FromEnvironment();
+        var store = await EntryWriter.StoreForNewEntryAsync(session, settings.Store, cancellationToken);
         var password = await PasswordInput.ReadAsync(cancellationToken);
 
-        using var session = Session.FromEnvironment();
         var content = PasswordEntryContent.Of(password, settings.UserName, settings.EntryUrl);
-        var entry = await EntryWriter.CreateAsync(session, settings.Store, settings.Entry, content, settings.Refresh, cancellationToken);
+        var entry = await EntryWriter.CreateAsync(session, store, settings.Entry, content, settings.Refresh, cancellationToken);
 
         logger.LogInformation("Filed {Entry}, sealed to the store's readers.", entry.Name);
         return 0;

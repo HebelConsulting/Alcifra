@@ -13,11 +13,37 @@ namespace SimplArchive.Sapass.Infrastructure;
 /// </remarks>
 internal static class EntryWriter
 {
+    /// <summary>
+    /// The store a new entry goes into, refused when it offers none (ADR 0982) — called BEFORE the secret is read or
+    /// generated, so nobody types a password that cannot be saved.
+    /// </summary>
+    /// <exception cref="SapassException">The store does not offer new entries to the signed-in user, with why.</exception>
+    public static async Task<PasswordFolderInfo> StoreForNewEntryAsync(Session session, string? storeName, CancellationToken cancellationToken)
+    {
+        var store = await new StoreCatalog(session).StoreAsync(storeName, cancellationToken);
+        return store.CanCreateEntries
+            ? store
+            : throw new SapassException(Refusal(store));
+    }
+
+    /// <summary>Why <paramref name="store"/> offers no new entry, as the sentence the tool prints.</summary>
+    internal static string Refusal(PasswordFolderInfo store) => store.NewEntryUnavailable switch
+    {
+        NewEntryUnavailability.EnrolmentRequired =>
+            $"Enrol a hardware key first: new entries in '{store.Name}' are sealed to the readers' enrolled keys, and you have none, "
+            + "so you could not open what you save. Enrol one (self-enrolment in the desktop client, or ask an administrator), then try again.",
+        NewEntryUnavailability.NotAReader =>
+            $"You are not a reader of '{store.Name}', so a new entry would not be sealed to you. Grant yourself read access to it first.",
+        NewEntryUnavailability.None =>
+            $"You may not create entries in '{store.Name}' (the right to create there is missing).",
+        _ => new PasswordEntryCreationWithheldException(store.Name, store.NewEntryUnavailable).Message,
+    };
+
+    /// <summary>A new entry at <paramref name="path"/> in <paramref name="store"/> (see <see cref="StoreForNewEntryAsync"/>).</summary>
     public static async Task<PasswordEntryInfo> CreateAsync(
-        Session session, string? storeName, string path, PasswordEntryContent content, bool refresh, CancellationToken cancellationToken)
+        Session session, PasswordFolderInfo store, string path, PasswordEntryContent content, bool refresh, CancellationToken cancellationToken)
     {
         var catalog = new StoreCatalog(session);
-        var store = await catalog.StoreAsync(storeName, cancellationToken);
         var rows = await catalog.RowsAsync(store, refresh, cancellationToken);
 
         var (folderPath, name) = Passwords.Split(path);

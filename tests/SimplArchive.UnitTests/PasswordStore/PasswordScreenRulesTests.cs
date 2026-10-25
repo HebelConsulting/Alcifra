@@ -165,7 +165,59 @@ public sealed class PasswordScreenRulesTests
     {
         Assert.Equal(PasswordNoticeAction.EnrolSpareKey, PasswordNotices.For(Folder(certificates: 1, personal: true)).Single().Action);
         Assert.Empty(PasswordNotices.For(Folder(certificates: 2, personal: true)));
-        Assert.Equal(Strings.Get("PwNoRecipients"), PasswordNotices.For(Folder(certificates: 0, personal: false)).Single().Text);
+        Assert.Equal(Strings.Get("PwNoRecipients"),
+            PasswordNotices.For(Folder(certificates: 0, personal: false, withheld: "no-reader-certificates")).Single().Text);
+    }
+
+    // ADR 0982: the server withholds New entry and says why; every client shows the same sentence, and only the missing
+    // enrolment offers an action. The rel decides: a reason beside an advertised rel is ignored, and a reason this client
+    // does not know still explains the withheld rel generically.
+    [Theory]
+    [InlineData("enrolment-required", NewEntryUnavailability.EnrolmentRequired, "PwEnrolmentRequired", PasswordNoticeAction.EnrolKey)]
+    [InlineData("not-a-reader", NewEntryUnavailability.NotAReader, "PwNotAReader", PasswordNoticeAction.None)]
+    [InlineData("no-reader-certificates", NewEntryUnavailability.NoReaderCertificates, "PwNoRecipients", PasswordNoticeAction.None)]
+    [InlineData("something-newer", NewEntryUnavailability.Unknown, "PwNewEntryUnavailable", PasswordNoticeAction.None)]
+    public void A_withheld_new_entry_says_why(string reason, NewEntryUnavailability expected, string key, PasswordNoticeAction action)
+    {
+        var folder = Folder(certificates: 1, personal: false, withheld: reason);
+
+        Assert.False(folder.CanCreateEntries);
+        Assert.True(folder.CanCreateFolders);
+        Assert.Equal(expected, folder.NewEntryUnavailable);
+        Assert.Equal(Strings.Get(key), PasswordNotices.WhyNoNewEntry(folder));
+        var notice = PasswordNotices.For(folder).Single();
+        Assert.Equal((Strings.Get(key), action), (notice.Text, notice.Action));
+    }
+
+    [Fact]
+    public void An_offered_new_entry_has_no_reason_and_no_notice()
+    {
+        var folder = Folder(personal: false);
+
+        Assert.True(folder.CanCreateEntries);
+        Assert.Equal(NewEntryUnavailability.None, folder.NewEntryUnavailable);
+        Assert.Null(PasswordNotices.WhyNoNewEntry(folder));
+        Assert.Empty(PasswordNotices.For(folder));
+    }
+
+    [Fact]
+    public async Task Creating_an_entry_where_the_rel_is_withheld_refuses_before_sealing_or_sending()
+    {
+        using var http = new HttpClient(new RefusingHandler()) { BaseAddress = new Uri("http://localhost/") };
+        var client = new PasswordStoreClient(ApiCore.Over(http));
+
+        var refused = await Assert.ThrowsAsync<PasswordEntryCreationWithheldException>(() =>
+            client.CreateEntryAsync(Folder(withheld: "enrolment-required"), "Bank", PasswordEntryContent.Of("pw")));
+
+        Assert.Equal(NewEntryUnavailability.EnrolmentRequired, refused.Reason);
+        Assert.Contains("Enrol a hardware key", refused.Message);
+    }
+
+    // Every request fails the test: the refusal must come before the client asks the server anything.
+    private sealed class RefusingHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            throw new InvalidOperationException($"No request was expected, but {request.Method} {request.RequestUri} was sent.");
     }
 
     [Fact]
@@ -184,14 +236,20 @@ public sealed class PasswordScreenRulesTests
         Assert.False(PasswordEntryDocument.Is(null));
     }
 
-    private static PasswordFolderInfo Folder(bool needsReseal = false, bool urgent = false, int certificates = 2, bool mayReseal = false, bool personal = false)
+    private static PasswordFolderInfo Folder(
+        bool needsReseal = false, bool urgent = false, int certificates = 2, bool mayReseal = false, bool personal = false, string? withheld = null)
     {
-        var links = new Dictionary<string, string> { ["self"] = "api/password-folders/x", ["password-entries"] = "api/x/entries" };
+        var links = new Dictionary<string, string> { ["self"] = "api/password-folders/x", ["password-folders"] = "api/x/folders" };
+        if (withheld is null)
+        {
+            links["password-entries"] = "api/x/entries";
+        }
+
         if (mayReseal)
         {
             links["reseal"] = "api/x/reseal";
         }
 
-        return new PasswordFolderInfo(Guid.NewGuid(), "Store", true, Guid.NewGuid(), personal, needsReseal, urgent, certificates, "\"1\"", [], LinkMap.FromHrefs(links));
+        return new PasswordFolderInfo(Guid.NewGuid(), "Store", true, Guid.NewGuid(), personal, needsReseal, urgent, certificates, "\"1\"", [], LinkMap.FromHrefs(links), withheld);
     }
 }

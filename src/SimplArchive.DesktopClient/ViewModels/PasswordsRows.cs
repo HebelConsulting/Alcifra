@@ -91,6 +91,7 @@ public sealed class PasswordNoticeViewModel(PasswordNotice notice)
     {
         PasswordNoticeAction.Reseal => Strings.Get("PwReseal"),
         PasswordNoticeAction.EnrolSpareKey => Strings.Get("PwEnrolSpareKey"),
+        PasswordNoticeAction.EnrolKey => Strings.Get("PwEnrolKey"),
         _ => string.Empty,
     };
 
@@ -133,8 +134,8 @@ public sealed class PasswordDialogs
     /// <summary>Deletes the picked export itself; false where it could not be.</summary>
     public Func<string, Task<bool>>? DeleteFile { get; set; }
 
-    /// <summary>Enrols a spare key (the self-enrolment dialog).</summary>
-    public Func<Task>? EnrolSpareKey { get; set; }
+    /// <summary>Enrols a key, a first or a spare one (the self-enrolment dialog).</summary>
+    public Func<Task>? EnrolKey { get; set; }
 
     internal async Task<bool> ConfirmAsync(string title, string message, string confirm) => Confirm is not null && await Confirm(title, message, confirm);
 

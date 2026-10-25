@@ -15,6 +15,7 @@ public sealed class PasswordStoreResourceBuilder(
     PasswordStoreTree tree,
     PasswordStoreReaders readers,
     PasswordStoreSealing sealing,
+    PasswordEntryCreation entryCreation,
     IObjectStorageClient storage,
     OmittableLinks omittable,
     ICurrentUserAccessor currentUser)
@@ -41,6 +42,8 @@ public sealed class PasswordStoreResourceBuilder(
         var store = folder.Kind == PasswordItemKind.Store ? folder : await tree.FindAsync(folder.StoreId, cancellationToken) ?? folder;
         var state = await sealing.StateAsync(store, cancellationToken);
         var needsReseal = state.EntriesNeedingReseal.Count > 0;
+        // Entries are offered only where what is saved can be sealed honestly (ADR 0982); folders are not sealed.
+        var entriesUnavailable = rights.CanCreateSubItems ? await entryCreation.UnavailableReasonAsync(folder.StoreId, cancellationToken) : null;
 
         var resource = new PasswordFolderResource
         {
@@ -53,6 +56,7 @@ public sealed class PasswordStoreResourceBuilder(
             NeedsReseal = needsReseal,
             UrgentReseal = state.Urgent,
             ReaderCertificateCount = (await readers.CertificatesAsync(folder.StoreId, cancellationToken)).Count,
+            NewEntryUnavailableReason = entriesUnavailable,
             Items =
             [
                 .. children
@@ -78,7 +82,11 @@ public sealed class PasswordStoreResourceBuilder(
 
         if (rights.CanCreateSubItems)
         {
-            resource.Links.Add(new Link("password-entries", $"{FolderHref(folder.Id)}/entries", "POST"));
+            if (entriesUnavailable is null)
+            {
+                resource.Links.Add(new Link("password-entries", $"{FolderHref(folder.Id)}/entries", "POST"));
+            }
+
             resource.Links.Add(new Link("password-folders", $"{FolderHref(folder.Id)}/folders", "POST"));
         }
 

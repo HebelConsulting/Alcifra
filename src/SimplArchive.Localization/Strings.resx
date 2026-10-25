@@ -6378,6 +6378,18 @@
   <data name="PwNoRecipients" xml:space="preserve">
     <value>Nobody who reads this store has an enrolled hardware key yet, so nothing can be saved here.</value>
   </data>
+  <data name="PwEnrolmentRequired" xml:space="preserve">
+    <value>New entries are sealed to your hardware key, and you have not enrolled one yet, so you could not open what you save. Enrol a key first.</value>
+  </data>
+  <data name="PwNotAReader" xml:space="preserve">
+    <value>You may manage this store but do not read it, so a new entry would not be sealed to you. Grant yourself read access to add entries.</value>
+  </data>
+  <data name="PwNewEntryUnavailable" xml:space="preserve">
+    <value>New entries cannot be added here.</value>
+  </data>
+  <data name="PwEnrolKey" xml:space="preserve">
+    <value>Enrol a key</value>
+  </data>
   <data name="PwEntryChanged" xml:space="preserve">
     <value>Somebody changed this entry since you opened it. Reload it and try again.</value>
   </data>

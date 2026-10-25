@@ -49,6 +49,12 @@ internal sealed class FakePasswordStore : IAsyncDisposable
     /// <summary>The store says it needs re-sealing, and offers the re-seal to this caller.</summary>
     public bool NeedsReseal { get; set; }
 
+    /// <summary>
+    /// Why new entries are withheld (ADR 0982): when set, the folders send no <c>password-entries</c> rel and say this
+    /// reason, and a POST of an entry is refused as the server refuses it; null offers entries.
+    /// </summary>
+    public string? NewEntryUnavailableReason { get; set; }
+
     /// <summary>Called before a version is finalized: a test plays "somebody else saved meanwhile".</summary>
     public Action<Item>? BeforeFinalize { get; set; }
 
@@ -186,6 +192,8 @@ internal sealed class FakePasswordStore : IAsyncDisposable
                 return (200, Folder(StoreId), null);
             case ("GET", ["api", "password-folders", var id]):
                 return (200, Folder(Guid.Parse(id)), null);
+            case ("POST", ["api", "password-folders", _, "entries"]) when NewEntryUnavailableReason is not null:
+                return (403, new { errorCode = "PASSWORD_ENTRY_ENROLMENT_REQUIRED" }, null);
             case ("POST", ["api", "password-folders", var id, "entries" or "folders"]):
                 var name = JsonDocument.Parse(body).RootElement.GetProperty("name").GetString()!;
                 var parent = Guid.Parse(id);
@@ -266,9 +274,13 @@ internal sealed class FakePasswordStore : IAsyncDisposable
         {
             Link("self", $"/api/password-folders/{id}"),
             Link("password-store-recipients", $"/api/password-stores/{StoreId}/recipients"),
-            Link("password-entries", $"/api/password-folders/{id}/entries", "POST"),
             Link("password-folders", $"/api/password-folders/{id}/folders", "POST"),
         };
+        if (NewEntryUnavailableReason is null)
+        {
+            links.Add(Link("password-entries", $"/api/password-folders/{id}/entries", "POST"));
+        }
+
         if (!isStore)
         {
             links.Add(Link("store", $"/api/password-folders/{StoreId}"));
@@ -290,6 +302,7 @@ internal sealed class FakePasswordStore : IAsyncDisposable
             needsReseal = NeedsReseal,
             urgentReseal = false,
             readerCertificateCount = Readers.Count,
+            newEntryUnavailableReason = NewEntryUnavailableReason,
             items = Live().Where(i => i.ParentId == id).OrderBy(i => i.Name).Select(i => new
             {
                 id = i.Id,

@@ -137,8 +137,15 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
     }
 
     /// <summary>A new entry in <paramref name="folder"/>, sealed to the store's readers.</summary>
+    /// <exception cref="PasswordEntryCreationWithheldException">The folder does not offer new entries to this caller
+    /// (ADR 0982); nothing was sealed or sent.</exception>
     public async Task<PasswordEntryInfo> CreateEntryAsync(PasswordFolderInfo folder, string name, PasswordEntryContent content, CancellationToken cancellationToken = default)
     {
+        if (!folder.CanCreateEntries)
+        {
+            throw new PasswordEntryCreationWithheldException(folder.Name, folder.NewEntryUnavailable);
+        }
+
         var sealedBytes = await SealAsync(folder.Links, content, cancellationToken);
         using var response = await core.SendRelAsync(folder.Links, "password-entries", new { name }, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Conflict)
@@ -388,5 +395,6 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 ApiWire.StrOrNull(i, "userName"),
                 ApiWire.StrOrNull(i, "app"))),
         ],
-        LinkMap.From(json) ?? LinkMap.Empty);
+        LinkMap.From(json) ?? LinkMap.Empty,
+        ApiWire.StrOrNull(json, "newEntryUnavailableReason"));
 }
