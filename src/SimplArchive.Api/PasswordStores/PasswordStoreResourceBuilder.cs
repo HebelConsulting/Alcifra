@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Documents;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Infrastructure.Persistence;
@@ -45,10 +46,16 @@ public sealed class PasswordStoreResourceBuilder(
         // Entries are offered only where what is saved can be sealed honestly (ADR 0982); folders are not sealed.
         var entriesUnavailable = rights.CanCreateSubItems ? await entryCreation.UnavailableReasonAsync(folder.StoreId, cancellationToken) : null;
 
+        // A store reads as it does in the store list (ADR 0619); a folder sits inside a store and keeps its own name.
+        var parentName = folder.Kind == PasswordItemKind.Store && folder.ParentId is { } storeParent
+            ? await dbContext.Documents.Where(d => d.Id == storeParent).Select(d => d.Name).FirstOrDefaultAsync(cancellationToken)
+            : null;
+
         var resource = new PasswordFolderResource
         {
             Id = folder.Id,
             Name = folder.Name,
+            DisplayName = ParentQualifiedName.For(parentName, folder.Name),
             Kind = folder.Kind == PasswordItemKind.Store ? "store" : "folder",
             StoreId = folder.StoreId,
             IsPersonal = IsPersonal(folder),

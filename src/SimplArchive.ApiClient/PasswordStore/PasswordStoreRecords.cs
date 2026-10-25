@@ -4,7 +4,14 @@ using System.Text.Json;
 namespace SimplArchive.ApiClient.PasswordStore;
 
 /// <summary>A store in the caller's list (ADR 0964); <see cref="Href"/> leads to its contents.</summary>
-public sealed record PasswordStoreInfo(Guid Id, string Name, bool IsPersonal, string Href);
+/// <param name="Name">The store document's own name.</param>
+/// <param name="DisplayName">The name qualified by its parent's, <c>Parent / Name</c> (ADR 0619), as the server sends it;
+/// null from a server older than the field.</param>
+public sealed record PasswordStoreInfo(Guid Id, string Name, bool IsPersonal, string Href, string? DisplayName = null)
+{
+    /// <summary>What a list shows: <see cref="DisplayName"/>, else <see cref="Name"/> (an older server).</summary>
+    public string Label => string.IsNullOrEmpty(DisplayName) ? Name : DisplayName;
+}
 
 /// <summary>A row of a store or folder: a folder or an entry, with the flags that gate its actions (ADR 0719).</summary>
 /// <param name="Site">An entry's autofill site (ADR 0973), the URL's host: what a fill matches without opening it.
@@ -28,8 +35,12 @@ public sealed record PasswordItemInfo(
 /// caller who may create here (ADR 0982), as sent; read it as <see cref="NewEntryUnavailable"/>.</param>
 public sealed record PasswordFolderInfo(
     Guid Id, string Name, bool IsStore, Guid StoreId, bool IsPersonal, bool NeedsReseal, bool UrgentReseal, int ReaderCertificateCount,
-    string ETag, IReadOnlyList<PasswordItemInfo> Items, LinkMap Links, string? NewEntryUnavailableReason = null)
+    string ETag, IReadOnlyList<PasswordItemInfo> Items, LinkMap Links, string? NewEntryUnavailableReason = null, string? DisplayName = null)
 {
+    /// <summary>What a header shows: a store as the store list shows it, <c>Parent / Name</c> (ADR 0619); a folder's
+    /// own name, and <see cref="Name"/> from a server older than the field.</summary>
+    public string Label => string.IsNullOrEmpty(DisplayName) ? Name : DisplayName;
+
     /// <summary>
     /// Whether a new entry may be created here: the <c>password-entries</c> rel is advertised, which the server does only
     /// where the caller may create AND what they save can be sealed so they can read it back (ADR 0982).

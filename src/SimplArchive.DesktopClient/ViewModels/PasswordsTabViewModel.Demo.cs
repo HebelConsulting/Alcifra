@@ -30,9 +30,11 @@ public sealed partial class PasswordsTabViewModel
         var banking = Row("Banking", folder: true);
         var codeHosting = Row("Code hosting", folder: false);
         var items = new List<PasswordItemInfo> { banking, Row("Work", folder: true), codeHosting, Row("Mail server", folder: false), Row("Wi-Fi office", folder: false) };
-        var mine = new PasswordNodeViewModel("My Passwords", isStore: true, isPersonal: true, "demo/mine", null, null);
-        mine.Read(new PasswordFolderInfo(storeId, "My Passwords", true, storeId, true, false, false, 1, "\"1\"", items, Links("demo/mine")));
-        var team = new PasswordNodeViewModel("Operations", isStore: true, isPersonal: false, "demo/ops", null, null);
+        // Stores read parent-qualified, as the server lists them (ADR 0619): the personal space is named after its owner.
+        var mine = new PasswordNodeViewModel("Anna Berger / My Passwords", isStore: true, isPersonal: true, "demo/mine", null, null);
+        mine.Read(new PasswordFolderInfo(storeId, "My Passwords", true, storeId, true, false, false, 1, "\"1\"", items, Links("demo/mine"),
+            DisplayName: "Anna Berger / My Passwords"));
+        var team = new PasswordNodeViewModel("IT / Operations", isStore: true, isPersonal: false, "demo/ops", null, null);
         Nodes.Clear();
         mine.IsExpanded = true;
         Nodes.Add(mine);

@@ -16,6 +16,10 @@ public class PasswordStoreSummary : HypermediaResource
 
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>What a list shows: the name qualified by the parent's, <c>Parent / Name</c> (ADR 0619), so two stores
+    /// of one name — two users' My Passwords — can be told apart. <see cref="Name"/> stays the document's own name.</summary>
+    public string DisplayName { get; set; } = string.Empty;
+
     /// <summary>True for the caller's own My Passwords.</summary>
     public bool IsPersonal { get; set; }
 }
@@ -26,6 +30,9 @@ public class PasswordFolderResource : HypermediaResource
     public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>A store's name as the store list shows it, <c>Parent / Name</c> (ADR 0619); a folder's own name.</summary>
+    public string DisplayName { get; set; } = string.Empty;
 
     /// <summary><c>store</c> or <c>folder</c>.</summary>
     public string Kind { get; set; } = string.Empty;

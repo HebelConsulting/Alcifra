@@ -5,6 +5,9 @@ using SimplArchive.Localization;
 namespace SimplArchive.ApiClient.PasswordStore;
 
 /// <summary>A store row of the Passwords page or tab: a store, or My Passwords before it exists (it is created when first opened).</summary>
+/// <param name="Name">What the row shows: the store's parent-qualified name (ADR 0619, <see cref="PasswordStoreInfo.Label"/>),
+/// so an administrator's own My Passwords and another user's
+/// (seen through the personal-space x-ray, ADR 0670) are told apart.</param>
 /// <param name="Href">The store's contents; null for My Passwords not yet created.</param>
 public sealed record PasswordStoreRow(string Name, bool IsPersonal, string? Href);
 
@@ -42,18 +45,18 @@ public sealed class PasswordStoreList(PasswordStoreClient client)
         return Rows(stores, offersMyPasswords);
     }
 
-    /// <summary>My Passwords first (or the row that creates it), then every other store by name.</summary>
+    /// <summary>My Passwords first (or the row that creates it), then every other store by its parent-qualified name.</summary>
     public static IReadOnlyList<PasswordStoreRow> Rows(IReadOnlyList<PasswordStoreInfo> stores, bool offersMyPasswords)
     {
         var personal = stores.FirstOrDefault(s => s.IsPersonal) is { } mine
-            ? [new PasswordStoreRow(mine.Name, true, mine.Href)]
+            ? [new PasswordStoreRow(mine.Label, true, mine.Href)]
             : offersMyPasswords ? new[] { new PasswordStoreRow(Strings.Get("PwMyPasswords"), true, null) } : [];
         return
         [
             .. personal,
             .. stores.Where(s => !s.IsPersonal)
-                .OrderBy(s => s.Name, StringComparer.Create(CultureInfo.CurrentCulture, ignoreCase: true))
-                .Select(s => new PasswordStoreRow(s.Name, false, s.Href)),
+                .OrderBy(s => s.Label, StringComparer.Create(CultureInfo.CurrentCulture, ignoreCase: true))
+                .Select(s => new PasswordStoreRow(s.Label, false, s.Href)),
         ];
     }
 

@@ -41,6 +41,12 @@ internal sealed class FakePasswordStore : IAsyncDisposable
     /// <summary>Whether My Passwords exists yet: created by the <c>my-passwords</c> rel.</summary>
     public bool MineExists { get; set; }
 
+    /// <summary>My Passwords as the server lists it, parent-qualified by the personal space's name (ADR 0619).</summary>
+    public const string MineDisplayName = "Anna Berger / My Passwords";
+
+    /// <summary>Another user's My Passwords, listed (an administrator's x-ray, ADR 0670) but never opened here.</summary>
+    public (Guid Id, string DisplayName)? OthersMyPasswords { get; set; }
+
     public List<X509Certificate2> Readers { get; }
 
     /// <summary>Every folder and entry of My Passwords, by id.</summary>
@@ -184,7 +190,18 @@ internal sealed class FakePasswordStore : IAsyncDisposable
             case ("GET", ["api", "password-stores"]):
                 return (200, new
                 {
-                    stores = MineExists ? new[] { new { id = StoreId, name = "My Passwords", isPersonal = true, links = new[] { Link("self", $"/api/password-folders/{StoreId}") } } } : [],
+                    stores = new[]
+                    {
+                        MineExists ? (StoreId, MineDisplayName, true) : ((Guid, string, bool)?)null,
+                        OthersMyPasswords is { } other ? (other.Id, other.DisplayName, false) : null,
+                    }.OfType<(Guid Id, string DisplayName, bool IsPersonal)>().Select(s => new
+                    {
+                        id = s.Id,
+                        name = "My Passwords",
+                        displayName = s.DisplayName,
+                        isPersonal = s.IsPersonal,
+                        links = new[] { Link("self", $"/api/password-folders/{s.Id}") },
+                    }),
                     links = MineExists ? Array.Empty<object>() : [Link("my-passwords", "/api/password-stores/mine", "POST")],
                 }, null);
             case ("POST", ["api", "password-stores", "mine"]):
@@ -295,6 +312,7 @@ internal sealed class FakePasswordStore : IAsyncDisposable
         {
             id,
             name = isStore ? "My Passwords" : Items[id].Name,
+            displayName = isStore ? MineDisplayName : Items[id].Name,
             kind = isStore ? "store" : "folder",
             storeId = StoreId,
             isPersonal = true,

@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SimplArchive.Api.Documents;
 using SimplArchive.Api.Hypermedia;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Documents;
@@ -223,7 +224,7 @@ public class DavCollectionsController : ControllerBase
             {
                 Id = candidate.Id,
                 Name = candidate.Name,
-                DisplayName = parent is null ? candidate.Name : $"{parent.Name} / {candidate.Name}",
+                DisplayName = ParentQualifiedName.For(parent?.Name, candidate.Name),
                 Kind = kindByMaskVersion.GetValueOrDefault(candidate.MaskVersionId, "calendar"),
                 CollectionKind = collectionKindByMaskVersion.GetValueOrDefault(candidate.MaskVersionId, string.Empty),
                 Color = overrides.GetValueOrDefault(candidate.Id)

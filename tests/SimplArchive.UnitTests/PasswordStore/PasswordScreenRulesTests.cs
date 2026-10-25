@@ -147,6 +147,22 @@ public sealed class PasswordScreenRulesTests
         Assert.Null(rows[0].Href);   // created when first opened
     }
 
+    // ADR 0619: a row shows the server's parent-qualified name, so an administrator's own My Passwords and another
+    // user's (the personal-space x-ray, ADR 0670) are told apart; an older server sends none and the plain name is shown.
+    [Fact]
+    public void A_store_row_shows_the_parent_qualified_name_and_the_plain_name_from_an_older_server()
+    {
+        var mine = new PasswordStoreInfo(Guid.NewGuid(), "My Passwords", true, "api/password-folders/m", "Store Admin / My Passwords");
+        var annas = new PasswordStoreInfo(Guid.NewGuid(), "My Passwords", false, "api/password-folders/a", "Anna Berger / My Passwords");
+        var team = new PasswordStoreInfo(Guid.NewGuid(), "Team", false, "api/password-folders/t", "Operations / Team");
+        var older = new PasswordStoreInfo(Guid.NewGuid(), "Archive", false, "api/password-folders/o");
+
+        var rows = PasswordStoreList.Rows([team, older, annas, mine], offersMyPasswords: true);
+
+        Assert.Equal(["Store Admin / My Passwords", "Anna Berger / My Passwords", "Archive", "Operations / Team"], rows.Select(r => r.Name));
+        Assert.True(rows[0].IsPersonal);
+    }
+
     [Theory]
     [InlineData(true, true, "PwUrgentReseal", true)]
     [InlineData(true, false, "PwUrgentReseal", false)]

@@ -44,7 +44,8 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 s.GetProperty("id").GetGuid(),
                 s.GetProperty("name").GetString() ?? string.Empty,
                 s.GetProperty("isPersonal").GetBoolean(),
-                ApiCore.RequireRel(s, "self", "A password store")))
+                ApiCore.RequireRel(s, "self", "A password store"),
+                ApiWire.StrOrNull(s, "displayName")))
             .ToList();
         return (stores, ApiCore.RelHref(json, "my-passwords") is not null);
     }
@@ -396,5 +397,6 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 ApiWire.StrOrNull(i, "app"))),
         ],
         LinkMap.From(json) ?? LinkMap.Empty,
-        ApiWire.StrOrNull(json, "newEntryUnavailableReason"));
+        ApiWire.StrOrNull(json, "newEntryUnavailableReason"),
+        ApiWire.StrOrNull(json, "displayName"));
 }

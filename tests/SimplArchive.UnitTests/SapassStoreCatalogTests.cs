@@ -166,4 +166,47 @@ public class SapassEntryTextTests
     {
         Assert.Throws<SapassException>(() => EntryText.Parse("\nUser name: anna\n", Previous));
     }
+
+    // --store by name (ADR 0619): the full "Parent / Name" always, the plain name while it is unique, the caller's own
+    // store where the plain name is shared with another user's, and otherwise a refusal naming the full names.
+    private static readonly PasswordStoreInfo MyOwn = new(Guid.NewGuid(), "My Passwords", true, "f/mine", "Store Admin / My Passwords");
+    private static readonly PasswordStoreInfo Annas = new(Guid.NewGuid(), "My Passwords", false, "f/anna", "Anna Berger / My Passwords");
+    private static readonly PasswordStoreInfo OpsTeam = new(Guid.NewGuid(), "Team", false, "f/ops", "Operations / Team");
+    private static readonly PasswordStoreInfo DevTeam = new(Guid.NewGuid(), "Team", false, "f/dev", "Development / Team");
+    private static readonly PasswordStoreInfo Vault = new(Guid.NewGuid(), "Vault", false, "f/vault", "Finance / Vault");
+    private static readonly PasswordStoreInfo[] Stores = [MyOwn, Annas, OpsTeam, DevTeam, Vault];
+
+    [Fact]
+    public void A_store_is_found_by_its_full_name_or_its_unique_plain_name()
+    {
+        Assert.Same(Annas, StoreCatalog.Resolve(Stores, "Anna Berger / My Passwords"));
+        Assert.Same(DevTeam, StoreCatalog.Resolve(Stores, "Development / Team"));
+        Assert.Same(Vault, StoreCatalog.Resolve(Stores, "Vault"));
+    }
+
+    [Fact]
+    public void A_plain_name_shared_with_the_callers_own_store_means_their_own() =>
+        Assert.Same(MyOwn, StoreCatalog.Resolve(Stores, "My Passwords"));
+
+    [Fact]
+    public void An_ambiguous_plain_name_is_refused_with_the_full_names_to_choose_from()
+    {
+        var refused = Assert.Throws<SapassException>(() => StoreCatalog.Resolve(Stores, "Team"));
+        Assert.Contains("'Operations / Team'", refused.Message);
+        Assert.Contains("'Development / Team'", refused.Message);
+        Assert.Contains("--store", refused.Message);
+    }
+
+    [Fact]
+    public void An_unknown_name_lists_every_store_by_its_full_name() =>
+        Assert.Contains("'Anna Berger / My Passwords'", Assert.Throws<SapassException>(() => StoreCatalog.Resolve(Stores, "Nope")).Message);
+
+    [Fact]
+    public void Completion_offers_a_plain_name_while_it_is_unique_and_the_full_name_where_it_repeats()
+    {
+        var names = StoreCatalog.CompletionNames(Stores, offersMyPasswords: true);
+
+        Assert.Equal(["My Passwords", "Anna Berger / My Passwords", "Operations / Team", "Development / Team", "Vault"], names);
+        Assert.All(names, n => StoreCatalog.Resolve(Stores, n));   // every candidate is one --store accepts
+    }
 }

@@ -88,11 +88,7 @@ internal static class Completion
     {
         using var session = Session.FromEnvironment();
         var (stores, offersMyPasswords) = await session.Passwords.ListStoresAsync(cancellationToken);
-        return
-        [
-            .. offersMyPasswords ? ["My Passwords"] : Array.Empty<string>(),
-            .. stores.Where(s => !s.IsPersonal).Select(s => s.Name),
-        ];
+        return StoreCatalog.CompletionNames(stores, offersMyPasswords);
     }
 
     private static async Task<IReadOnlyList<string>> PathNamesAsync(string? storeName, string partial, CancellationToken cancellationToken)

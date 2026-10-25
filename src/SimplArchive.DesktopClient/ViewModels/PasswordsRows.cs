@@ -101,7 +101,7 @@ public sealed class PasswordNoticeViewModel(PasswordNotice notice)
 /// <summary>A folder a password item can move to, indented under its parent (ADR 0968): within the item's own store.</summary>
 public sealed record PasswordFolderChoice(PasswordFolderInfo Folder, int Depth)
 {
-    public string Label => $"{new string(' ', Depth * 4)}{Folder.Name}";
+    public string Label => $"{new string(' ', Depth * 4)}{Folder.Label}";
 }
 
 /// <summary>An export picked for import: its name, its text, and where it is, so it can be deleted afterwards.</summary>

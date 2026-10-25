@@ -7,7 +7,7 @@ namespace SimplArchive.Sapass.Commands;
 public class StoreSettings : CommandSettings
 {
     [CommandOption("-s|--store <NAME>")]
-    [Description("The password store, by name. Defaults to My Passwords.")]
+    [Description("The password store, by name, or by its full 'Parent / Name' where names repeat. Defaults to My Passwords.")]
     public string? Store { get; init; }
 
     [CommandOption("--refresh")]

@@ -37,9 +37,17 @@ public class PasswordStoresController(
         var visible = ids.Where(id => rights.TryGetValue(id, out var r) && r.CanSee).ToList();
         var rows = await dbContext.Documents
             .Where(d => visible.Contains(d.Id))
-            .Select(d => new { d.Id, d.Name, d.PersonalRootOwnerId })
+            .Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.PersonalRootOwnerId,
+                ParentName = dbContext.Documents.Where(p => p.Id == d.ParentId).Select(p => p.Name).FirstOrDefault(),
+            })
             .ToListAsync(cancellationToken);
 
+        // Parent-qualified (ADR 0619), so an administrator who sees another user's My Passwords (the personal-space
+        // x-ray, ADR 0670) tells it from their own: "Anna Berger / My Passwords". The caller's own store stays first.
         var me = currentUser.UserId;
         var resource = new PasswordStoreListResource
         {
@@ -47,11 +55,12 @@ public class PasswordStoresController(
             [
                 .. rows
                     .OrderBy(r => r.PersonalRootOwnerId == me && me is not null ? 0 : 1)
-                    .ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase)
+                    .ThenBy(r => ParentQualifiedName.For(r.ParentName, r.Name), StringComparer.CurrentCultureIgnoreCase)
                     .Select(r => new PasswordStoreSummary
                     {
                         Id = r.Id,
                         Name = r.Name,
+                        DisplayName = ParentQualifiedName.For(r.ParentName, r.Name),
                         IsPersonal = me is not null && r.PersonalRootOwnerId == me,
                         Links = [new Link("self", PasswordStoreResourceBuilder.FolderHref(r.Id), "GET")],
                     }),

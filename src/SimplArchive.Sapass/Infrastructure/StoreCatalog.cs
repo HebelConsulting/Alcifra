@@ -29,11 +29,50 @@ internal sealed class StoreCatalog(Session session)
         }
 
         var (stores, _) = await session.Passwords.ListStoresAsync(cancellationToken);
-        var summary = stores.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.Ordinal))
-            ?? throw new SapassException(
-                $"No password store named '{name}'. The stores you may see: {string.Join(", ", stores.Select(s => s.Name))}.");
-        return await session.Passwords.GetFolderAsync(summary.Href, cancellationToken);
+        return await session.Passwords.GetFolderAsync(Resolve(stores, name).Href, cancellationToken);
     }
+
+    /// <summary>
+    /// The store <paramref name="name"/> means: its full, parent-qualified name (<c>Anna Berger / My Passwords</c>,
+    /// ADR 0619), or its plain name while that names one store. Where the plain name is shared — an administrator sees
+    /// other users' My Passwords (the personal-space x-ray, ADR 0670) — the caller's OWN store wins, as with no <c>--store</c>;
+    /// otherwise the tool refuses and lists the full names to choose from, rather than picking one.
+    /// </summary>
+    internal static PasswordStoreInfo Resolve(IReadOnlyList<PasswordStoreInfo> stores, string name)
+    {
+        if (stores.Where(s => string.Equals(s.Label, name, StringComparison.Ordinal)).ToList() is [var exact])
+        {
+            return exact;
+        }
+
+        var named = stores.Where(s => string.Equals(s.Name, name, StringComparison.Ordinal)).ToList();
+        return named switch
+        {
+            [var only] => only,
+            [] => throw new SapassException(
+                $"No password store named '{name}'. The stores you may see: {string.Join(", ", stores.Select(s => $"'{s.Label}'"))}."),
+            _ when named.Count(s => s.IsPersonal) == 1 => named.Single(s => s.IsPersonal),
+            _ => throw new SapassException(
+                $"'{name}' names {named.Count} password stores: {string.Join(", ", named.Select(s => $"'{s.Label}'"))}. Give the full name with --store."),
+        };
+    }
+
+    /// <summary>
+    /// What <c>--store</c> completes to: My Passwords for the caller's own, then each other store by its plain name while
+    /// that is unique, else by its full name — every candidate one <see cref="Resolve"/> accepts.
+    /// </summary>
+    internal static IReadOnlyList<string> CompletionNames(IReadOnlyList<PasswordStoreInfo> stores, bool offersMyPasswords)
+    {
+        var shared = stores.GroupBy(s => s.Name, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.Ordinal);
+        return
+        [
+            .. offersMyPasswords || stores.Any(s => s.IsPersonal) ? [PersonalFolderName] : Array.Empty<string>(),
+            .. stores.Where(s => !s.IsPersonal).Select(s => shared.Contains(s.Name) ? s.Label : s.Name),
+        ];
+    }
+
+    // The caller's own store's name, which resolves to it even where other users' share it (see Resolve).
+    private const string PersonalFolderName = "My Passwords";
 
     /// <summary>Every folder and entry beneath the store, with its path, from the cache unless stale or refreshed.</summary>
     public async Task<IReadOnlyList<PasswordTreeEntry>> RowsAsync(PasswordFolderInfo store, bool refresh, CancellationToken cancellationToken)

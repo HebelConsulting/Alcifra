@@ -334,6 +334,20 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         Assert.Equal($"{Strings.Get("PvKeyNotEnrolledForYou")}\n{Strings.Get("PvKeyNotEnrolledForYouHint")}", tab.Preview.PreviewPlaceholder);
     }
 
+    // ADR 0619: an administrator's own My Passwords and another user's (seen through the personal-space x-ray, ADR 0670)
+    // read as their parent (the personal space, named after its owner) slash their name — the key icon on the own one, the server's order.
+    [Fact]
+    public async Task Two_My_Passwords_are_told_apart_by_their_parent_qualified_names()
+    {
+        _store.MineExists = true;
+        _store.OthersMyPasswords = (Guid.NewGuid(), "Bob Keller / My Passwords");
+
+        var tab = await LoadedTabAsync();
+
+        Assert.Equal([(FakePasswordStore.MineDisplayName, true), ("Bob Keller / My Passwords", false)], tab.Nodes.Select(n => (n.Name, n.IsPersonal)));
+        Assert.Equal(FakePasswordStore.MineDisplayName, tab.SelectedNode!.Folder!.Label);
+    }
+
     [Fact]
     public async Task Nothing_of_an_opened_entry_is_written_to_disk()
     {
