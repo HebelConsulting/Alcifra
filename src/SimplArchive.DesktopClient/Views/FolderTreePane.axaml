@@ -117,6 +117,9 @@
                                 Classes.wbFolderEmpty="{Binding UsesEmptyFolderBrush}"
                                 Classes.wbMutedGlyph="{Binding UsesMutedBrush}" />
                         <TextBlock Text="{Binding Name}" />
+                        <!-- A store the caller sees but cannot decrypt (ADR 0983). -->
+                        <i:Icon Value="mdi-lock-alert-outline" Foreground="#c62828" FontSize="12" VerticalAlignment="Center"
+                                IsVisible="{Binding NotEncryptedForMe}" ToolTip.Tip="{loc:Tr AudSignNotYou}" />
                     </StackPanel>
                 </Border>
             </TreeDataTemplate>

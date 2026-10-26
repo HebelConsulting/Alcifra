@@ -251,7 +251,7 @@ public static class SaConsoleApp
             });
 
             // The password store (ADRs 0964/0966): a shared store and its entries, sealed on THIS machine to the store's
-            // readers. Who reads a store is an ordinary grant (acl), not a command of its own.
+            // audience (ADR 0983). Who may read it is an ordinary grant (acl); who it is encrypted for is its audience.
             config.AddBranch("passwords", passwords =>
             {
                 passwords.SetDescription("Password stores: shared stores and their entries, sealed to the readers' certificates.");
@@ -262,6 +262,16 @@ public static class SaConsoleApp
                         .WithDescription("Create a store in a folder, or find the one of that name there. Prints its id on stdout.");
                     store.AddCommand<PasswordStoreShowCommand>("show")
                         .WithDescription("Report a store's sealing state and contents by name; entry names go to stdout. Nothing is opened.");
+                    store.AddBranch("audience", audience =>
+                    {
+                        audience.SetDescription("Who a store is encrypted for (ADR 0983); once people manage it, they change it in sapass or the clients.");
+                        audience.AddCommand<PasswordStoreAudienceShowCommand>("show")
+                            .WithDescription("List the store's audience, one member per line on stdout, with their role.");
+                        audience.AddCommand<PasswordStoreAudienceSetCommand>("set")
+                            .WithDescription("Replace the audience of a store nobody manages yet (a seed's), by name; run before filing entries.");
+                        audience.AddCommand<PasswordStoreAudienceAppointCommand>("appoint")
+                            .WithDescription("Appoint a manager to a store left without one: a tenant administrator's act, signed in as a person.");
+                    });
                 });
                 passwords.AddBranch("entry", entry =>
                 {

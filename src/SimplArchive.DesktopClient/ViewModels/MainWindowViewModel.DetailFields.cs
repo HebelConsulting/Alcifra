@@ -48,6 +48,7 @@ public sealed partial class MainWindowViewModel
         _detailExternalLinksHref = null;
         CanShareDocument = false;
         CanChangeAudience = false;
+        HasDetailAudience = false;
         _detailDocumentETag = null;
         CanToggleSubscription = false;
         RebuildDetailActionEntries(); // the affordances must not outlive their subject (ADR 0559)
@@ -93,13 +94,14 @@ public sealed partial class MainWindowViewModel
             // "Change audience…" is the author's act (ADR 0975); the server answers whether it is, and the ETag of
             // THIS read is the precondition the re-seal carries (ADR 0794: never a re-read just before writing).
             CanChangeAudience = detail.CanChangeAudience;
+            HasDetailAudience = detail.Links?.Has("audience") == true;
             _detailDocumentETag = detail.ETag;
             // Folder-only, and read from the resource because a child folder's order is never fetched by the
             // parent's listing that opened this pane (issue #408).
             _detailSortOrder = detail.ContentsSortOrder;
             OnPropertyChanged(nameof(DetailSortText));
         }
-        catch (Exception) { _detailSensitivityName = string.Empty; _detailSensitivityColor = null; _detailSensitivityWatermark = false; DetailSensitivityId = null; _detailExternalLinksHref = null; CanShareDocument = false; CanChangeAudience = false; _detailDocumentETag = null; }
+        catch (Exception) { _detailSensitivityName = string.Empty; _detailSensitivityColor = null; _detailSensitivityWatermark = false; DetailSensitivityId = null; _detailExternalLinksHref = null; CanShareDocument = false; CanChangeAudience = false; HasDetailAudience = false; _detailDocumentETag = null; }
         // Sensitivity watermark on the preview (ADR "Document watermarking") — when the label's watermark flag is set.
         Preview.WatermarkText = _detailSensitivityWatermark ? $"{_detailSensitivityName} · {UserDisplayName}" : "";
         // Whether the current user follows this document (ADR "Document subscriptions").

@@ -89,7 +89,9 @@ public record BrowseNode(Guid Id, string Name, bool HasChildren, bool HasVersion
     // one falls back to the same default, so an older client meeting a newer token is never worse off.
     string? Icon = null,
     // What the SERVER says this row is, from its mask (#1708); null for a row built here or from an older server.
-    bool? Folder = null)
+    bool? Folder = null,
+    // Whether the caller can decrypt it, for encrypted content (ADR 0983): marked before it is opened.
+    string? EncryptedForCaller = null)
 {
     // A folder by its mask, as the listing says (#1708). "Has no file version" is only the fallback: it read a
     // file-less record (a push key, a credential) as an empty folder, so its index data never showed.
@@ -115,6 +117,15 @@ public record BrowseNode(Guid Id, string Name, bool HasChildren, bool HasVersion
     public string DisplayName => CheckedOut && !string.IsNullOrEmpty(CheckedOutByName) ? $"[{CheckedOutByName}] {Name}" : Name;
 
     public bool CheckedOutByOther => CheckedOut && !CheckedOutByMe;
+
+    /// <summary>"Not encrypted for you": the caller sees it but is not in its audience (ADR 0983).</summary>
+    public bool NotEncryptedForMe => EncryptedForCaller == "not-you";
+
+    /// <summary>"Not yet encrypted for you": in the audience, waiting for a member's re-seal.</summary>
+    public bool NotYetEncryptedForMe => EncryptedForCaller == "not-yet-you";
+
+    /// <summary>Encrypted content with an audience to show (a store, a password folder or entry, a Sealed document).</summary>
+    public bool HasAudience => EncryptedForCaller is not null;
 
     public IReadOnlyList<string> TagList => Tags ?? [];
 }

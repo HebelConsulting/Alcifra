@@ -216,6 +216,26 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
         SendWithTagAsync(HttpMethod.Delete, Require(links, "document", name), eTag, null, name, cancellationToken);
 
     /// <summary>
+    /// Changes who a store is encrypted for, and re-seals it in the same act (ADR 0983): the audience is saved under the
+    /// tag of the read that filled the editor, then every entry that no longer matches is opened with the host's key and
+    /// sealed to the new audience. Somebody removed reads nothing from the moment the audience is saved — the server
+    /// withholds the envelopes — so the re-seal is what catches the rest up, not what protects the secret.
+    /// </summary>
+    /// <param name="store">The store, or a folder or entry's store: its <c>audience</c> and <c>self</c> rels.</param>
+    /// <returns>The audience as saved, and the re-seal's outcome (null when nothing needed one, or this caller may not).</returns>
+    public async Task<(ContentAudienceInfo Audience, PasswordResealOutcome? Resealed)> ChangeAudienceAsync(
+        PasswordFolderInfo store, ContentAudienceInfo seen, IReadOnlyList<AudienceChange> members, CancellationToken cancellationToken = default)
+    {
+        var saved = await new ContentAudienceClient(core).SaveAsync(seen, members, cancellationToken);
+        var storeHref = store.IsStore ? Require(store.Links, "self", store.Name) : Require(store.Links, "store", store.Name);
+        var fresh = await GetFolderAsync(storeHref, cancellationToken);
+        var outcome = fresh.NeedsReseal && fresh.CanReseal ? await ResealAsync(fresh, cancellationToken) : null;
+        ApiClientSettings.Logger.LogInformation("Changed the audience of password store {StoreId}; re-sealed {Count} entr(ies)",
+            fresh.Id, outcome?.Resealed.Count ?? 0);
+        return (saved, outcome);
+    }
+
+    /// <summary>
     /// Re-seals every entry the store lists as needing it (ADR 0964): each opened with the host's key (one PIN, held by
     /// the host for the session where it may), sealed to the current readers, and filed as a system version under its
     /// own ETag. An entry somebody changed meanwhile (412) is skipped; one this key cannot open is reported.
@@ -223,11 +243,68 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
     public async Task<PasswordResealOutcome> ResealAsync(PasswordFolderInfo store, CancellationToken cancellationToken = default)
     {
         var list = await GetAsync(Require(store.Links, "reseal", store.Name), cancellationToken);
-        var recipients = Certificates(await GetRecipientsAsync(store.Links, cancellationToken));
+        var outcome = await ResealEntriesAsync(list.GetProperty("entries").EnumerateArray().Select(PasswordEntryInfo.From).ToList(),
+            Certificates(await GetRecipientsAsync(store.Links, cancellationToken)), cancellationToken);
+        ApiClientSettings.Logger.LogInformation("Re-sealed password store {StoreId}: {Resealed} entr(ies), {Skipped} changed meanwhile, {Failed} not opened",
+            store.StoreId, outcome.Resealed.Count, outcome.SkippedChanged.Count, outcome.Failed.Count);
+        return outcome;
+    }
+
+    /// <summary>
+    /// Moves an entry or a folder into <paramref name="target"/>, which may be in ANOTHER store (ADR 0983): the server
+    /// re-parents it — only for somebody in both stores' audiences — and the moved entries are then sealed again to the
+    /// target store's audience in the same act, with the host's key. Moving FIRST is the safe order: from that moment the
+    /// server serves the envelopes only to the target's audience, so a re-seal that fails leaves the ordinary
+    /// "needs re-seal" state for any member with edit rights to finish — never a secret readable by the wrong people.
+    /// </summary>
+    /// <returns>The re-seal's outcome; null for a move inside one store, which needs none.</returns>
+    public async Task<PasswordResealOutcome?> MoveIntoAsync(
+        PasswordItemInfo item, Guid fromStoreId, PasswordFolderInfo target, CancellationToken cancellationToken = default)
+    {
+        await MoveAsync(item.Links, item.Name, item.ETag, target, cancellationToken);
+        if (target.StoreId == fromStoreId)
+        {
+            return null;
+        }
+
+        // The moved entries, as the server now answers them (their store, and so their recipients, has changed).
+        var entries = new List<PasswordEntryInfo>();
+        if (item.IsFolder)
+        {
+            var folder = await GetFolderAsync(item.Href, cancellationToken);
+            for (string? page = Require(folder.Links, "descendants", folder.Name); page is not null;)
+            {
+                var (rows, next) = await DescendantsPageAsync(page, cancellationToken);
+                foreach (var row in rows.Where(r => !r.IsFolder))
+                {
+                    entries.Add(await GetEntryAsync(row.Href, cancellationToken));
+                }
+
+                page = next;
+            }
+        }
+        else
+        {
+            entries.Add(await GetEntryAsync(item.Href, cancellationToken));
+        }
+
+        var store = target.IsStore ? target : await GetFolderAsync(Require(target.Links, "store", target.Name), cancellationToken);
+        var outcome = await ResealEntriesAsync([.. entries.Where(e => e.NeedsReseal)],
+            Certificates(await GetRecipientsAsync(store.Links, cancellationToken)), cancellationToken);
+        ApiClientSettings.Logger.LogInformation("Moved {Item} into password store {StoreId}: {Resealed} entr(ies) sealed to its audience, {Failed} not opened",
+            item.Id, store.StoreId, outcome.Resealed.Count, outcome.Failed.Count);
+        return outcome;
+    }
+
+    // Each entry opened with the host's key and filed again as a system re-seal, sealed to `recipients`, under its own
+    // ETag: one somebody changed meanwhile (412) is skipped, one this key cannot open is reported by name.
+    private async Task<PasswordResealOutcome> ResealEntriesAsync(
+        IReadOnlyList<PasswordEntryInfo> entries, IReadOnlyList<X509Certificate2> recipients, CancellationToken cancellationToken)
+    {
         var resealed = new List<string>();
         var skipped = new List<string>();
         var failed = new List<(string, string)>();
-        foreach (var entry in list.GetProperty("entries").EnumerateArray().Select(PasswordEntryInfo.From))
+        foreach (var entry in entries)
         {
             try
             {
@@ -240,14 +317,12 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
             {
                 skipped.Add(entry.Name);
             }
-            catch (Exception e) when (e is EnvelopeNotOpenedException or PasswordEntryUnreadableException or InvalidOperationException)
+            catch (Exception e) when (e is EnvelopeNotOpenedException or PasswordEntryUnreadableException or InvalidOperationException or ApiActionException)
             {
                 failed.Add((entry.Name, e.Message));
             }
         }
 
-        ApiClientSettings.Logger.LogInformation("Re-sealed password store {StoreId}: {Resealed} entr(ies), {Skipped} changed meanwhile, {Failed} not opened",
-            store.StoreId, resealed.Count, skipped.Count, failed.Count);
         return new PasswordResealOutcome(resealed, skipped, failed);
     }
 

@@ -132,6 +132,15 @@
                     {
                         <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Error" title="@Strings.Get("CoLockedOther")" />
                     }
+                    @* Encrypted content the caller can see but not open (ADR 0983), said before it is opened. *@
+                    @if (node.NotEncryptedForMe)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.NoEncryption" Size="Size.Small" Color="Color.Error" title="@Strings.Get("AudSignNotYou")" />
+                    }
+                    else if (node.NotYetEncryptedForMe)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.LockClock" Size="Size.Small" Color="Color.Warning" title="@Strings.Get("AudSignNotYet")" />
+                    }
                     @if (!string.IsNullOrEmpty(node.SensitivityLabelName))
                     {
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="ma-0"

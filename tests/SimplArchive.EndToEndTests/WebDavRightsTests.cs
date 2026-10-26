@@ -132,4 +132,49 @@ public class WebDavRightsTests
         Assert.Contains(archive.DocName, names);
         Assert.DoesNotContain(archive.HiddenName, names);
     }
+
+    // The verbs that already asked rights before #1935, proven rather than read: an outsider who knows a path cannot
+    // overwrite the document, delete it, create a folder beside it, or learn its properties.
+    [Fact]
+    public async Task An_outsider_who_knows_a_path_can_neither_write_delete_create_nor_inspect()
+    {
+        var archive = await ArchiveAsync();
+        var folder = $"/SimplArchive/{archive.RepoName}/{archive.FolderName}";
+        var path = $"{folder}/{archive.DocName}.txt";
+        var (_, outsider) = await PersonAsync(archive, rightsOnRepository: null);
+
+        using (var dav = _factory.CreateClient())
+        {
+            var put = new HttpRequestMessage(HttpMethod.Put, path) { Headers = { Authorization = outsider }, Content = new StringContent("overwritten") };
+            Assert.False((await dav.SendAsync(put)).IsSuccessStatusCode);
+        }
+
+        Assert.False((await SendAsync("DELETE", path, outsider)).IsSuccessStatusCode);
+        Assert.False((await SendAsync("MKCOL", $"{folder}/planted{Guid.NewGuid().ToString("N")[..6]}", outsider)).IsSuccessStatusCode);
+
+        using (var dav = _factory.CreateClient())
+        {
+            var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), path) { Headers = { Authorization = outsider } };
+            propfind.Headers.Add("Depth", "0");
+            var answer = await dav.SendAsync(propfind);
+            Assert.DoesNotContain(archive.DocName, await answer.Content.ReadAsStringAsync());
+        }
+
+        // Nothing changed: the content, the document and the folder's children are as they were.
+        using var plain = new HttpClient();
+        var download = (await TestJson.Get(archive.Owner, $"/api/documents/{archive.DocId}/versions")).GetProperty("versions").EnumerateArray().Single()
+            .GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "download").GetProperty("href").GetString()!;
+        Assert.Equal("secret", await plain.GetStringAsync(download));
+        var children = (await TestJson.Get(archive.Owner, $"/api/documents/{archive.FolderId}/children")).GetProperty("children").EnumerateArray()
+            .Select(c => c.GetProperty("name").GetString()).ToList();
+        Assert.Equal(2, children.Count);
+
+        // The control: the same PUT from somebody with edit rights is accepted, so the refusals above are the rights'
+        // doing and not a request this mount refuses from anybody.
+        var (_, editor) = await PersonAsync(archive, new { canSee = true, canReadContent = true, canEditContent = true });
+        using var editorDav = _factory.CreateClient();
+        var allowed = new HttpRequestMessage(HttpMethod.Put, path) { Headers = { Authorization = editor }, Content = new StringContent("edited") };
+        var accepted = await editorDav.SendAsync(allowed);
+        Assert.True(accepted.IsSuccessStatusCode, $"editor PUT: {(int)accepted.StatusCode}");
+    }
 }

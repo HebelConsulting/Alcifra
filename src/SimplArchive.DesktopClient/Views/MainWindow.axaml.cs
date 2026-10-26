@@ -7,7 +7,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using System.Security.Cryptography.X509Certificates;
+using SimplArchive.ApiClient;
 using SimplArchive.DesktopClient.Services;
 using SimplArchive.DesktopClient.ViewModels;
 using SimplArchive.Localization;
@@ -140,11 +140,13 @@ public partial class MainWindow : Window
         }
     });
 
-    // A SEALED document (ADR 0975): one file, sealed here to an audience the user picks. The file picker and the
-    // audience dialog are the view's business; the view model owns the folder, the sealing and the upload.
+    // A SEALED document (ADR 0983): one file, filed to an AUDIENCE of people and groups declared first. The file picker
+    // and the audience editor are the view's business; the view model owns the folder, the sealing and the upload. The
+    // document is created before the editor opens — its candidates are the readers of the new document — and taken back
+    // out when the user cancels.
     internal void OnNewSealedDocument(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
-        if (DataContext is not MainWindowViewModel { Api: { } api } vm)
+        if (DataContext is not MainWindowViewModel vm)
         {
             return;
         }
@@ -154,57 +156,35 @@ public partial class MainWindow : Window
             Title = Strings.Get("SdPickFile"),
             AllowMultiple = false,
         });
-        if (files.Count != 1)
+        if (files.Count != 1 || await vm.BeginSealedDocumentAsync(files[0]) is not { } draft)
         {
             return;
         }
 
-        var audience = await new AudienceDialog(api).ShowDialog<IReadOnlyList<X509Certificate2>?>(this);
-        if (audience is not { Count: > 0 })
+        var audience = await new ContentAudienceDialog(draft.Audience, draft.Name).ShowDialog<IReadOnlyList<AudienceChange>?>(this);
+        if (audience is null)
         {
+            await vm.AbandonSealedDocumentAsync(draft);
             return;
         }
 
-        try
-        {
-            await vm.CreateSealedDocumentAsync(files[0], audience);
-        }
-        finally
-        {
-            // The certificates are this handler's: the dialog built them from the directory's PEMs.
-            foreach (var certificate in audience)
-            {
-                certificate.Dispose();
-            }
-        }
+        await vm.CompleteSealedDocumentAsync(draft, files[0], audience);
     });
 
-    // "Change audience…" (ADR 0975): the author opens the current content with their own key and the device seals it to
-    // the new set. The ribbon only shows it where the server said this caller may — and the server refuses the re-seal
-    // from anybody else, so a composed request gets the same answer.
+    // "Encrypted for…" (ADR 0983): the audience of the item in the details pane — a Sealed document, or a store's item —
+    // edited by its managers and re-sealed in the same act; read-only for everybody else. The ribbon shows it where the
+    // details carry an audience; the server refuses a change from anybody but a manager all the same.
     internal void OnChangeAudience(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
-        if (DataContext is not MainWindowViewModel { Api: { } api } vm)
+        if (DataContext is not MainWindowViewModel vm || await vm.LoadDetailAudienceAsync() is not { } seen)
         {
             return;
         }
 
-        var audience = await new AudienceDialog(api).ShowDialog<IReadOnlyList<X509Certificate2>?>(this);
-        if (audience is not { Count: > 0 })
+        var audience = await new ContentAudienceDialog(seen, vm.DetailDocumentName).ShowDialog<IReadOnlyList<AudienceChange>?>(this);
+        if (audience is not null)
         {
-            return;
-        }
-
-        try
-        {
-            await vm.ChangeAudienceAsync(audience);
-        }
-        finally
-        {
-            foreach (var certificate in audience)
-            {
-                certificate.Dispose();
-            }
+            await vm.SaveAudienceAsync(seen, audience);
         }
     });
 

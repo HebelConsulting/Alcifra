@@ -53,7 +53,13 @@ public partial class PasswordsTab : UserControl
         dialogs.AskConflict = AskConflictAsync;
         dialogs.DeleteFile = DeleteFileAsync;
         dialogs.EnrolKey = EnrolKeyAsync;
+        dialogs.EditAudience = EditAudienceAsync;
     }
+
+    private async Task<IReadOnlyList<SimplArchive.ApiClient.AudienceChange>?> EditAudienceAsync(SimplArchive.ApiClient.ContentAudienceInfo audience, string subject) =>
+        Owner is { } owner
+            ? await new ContentAudienceDialog(audience, subject).ShowDialog<IReadOnlyList<SimplArchive.ApiClient.AudienceChange>?>(owner)
+            : null;
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {

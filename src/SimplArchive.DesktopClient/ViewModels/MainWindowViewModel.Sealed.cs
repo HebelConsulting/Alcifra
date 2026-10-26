@@ -1,44 +1,64 @@
-using System.Security.Cryptography.X509Certificates;
 using Avalonia.Platform.Storage;
 using SimplArchive.ApiClient;
+using SimplArchive.ApiClient.PasswordStore;
 using SimplArchive.Localization;
 
 namespace SimplArchive.DesktopClient.ViewModels;
 
-// Filing a SEALED document (ADR 0975): the file is sealed ON THIS DEVICE to an audience of certificates, and only the
-// envelope ever reaches the server — which stores it without a key and serves it as the S/MIME message it is.
-//
-// The other half of this subject is "Change audience…" (a new version sealed to a different set), which needs the
-// author check ADR 0975 states and lands with #1917's `createdByUserId`.
+// Encrypted content from the Repositories tab (ADR 0983, superseding ADR 0975's certificate picking): a Sealed document
+// is filed to an AUDIENCE of people and groups declared first, and its audience — or a store's — is changed by its
+// managers and re-sealed in the same act. The dialogs are the view's (ADR 0730); this partial owns the folder, the
+// sealing and the requests.
 public sealed partial class MainWindowViewModel
 {
     /// <summary>
-    /// Seals <paramref name="file"/> to <paramref name="audience"/> and files it in the open folder; answers whether it
-    /// was filed.
+    /// Begins a Sealed document for <paramref name="file"/> in the open folder: creates it (the caller is its first
+    /// manager) and answers its draft, whose audience the view's editor picks from; null when nothing was begun.
     /// </summary>
-    /// <remarks>
-    /// The audience comes from the caller, which is where the dialog lives (ADR 0730: the view supplies what it alone can
-    /// ask for). This method owns the folder — the same <c>children</c> address, resolved once, that a dropped file
-    /// uses — so a ribbon action and a drop cannot disagree about where a document goes.
-    /// </remarks>
-    public async Task<bool> CreateSealedDocumentAsync(IStorageFile file, IReadOnlyList<X509Certificate2> audience)
+    public async Task<SealedDocumentDraft?> BeginSealedDocumentAsync(IStorageFile file)
     {
-        if (_api is null || _currentFolderId is not { } folderId || _currentFolderLinks?.Href("children") is not { } childrenHref)
+        if (_api is null || _currentFolderLinks?.Href("children") is not { } childrenHref)
         {
             ReportError(Strings.Get("StErrSealedNoFolder"));
-            return false;
+            return null;
         }
 
-        if (audience.Count == 0)
-        {
-            return false;
-        }
-
-        // A sealed document's name is the stem; the envelope's extension rides on the version (ADR "Extension off
-        // Document.Name"). The real name (with its extension) is carried INSIDE the envelope, so opening it on a
-        // device still knows what the file is called.
+        // A sealed document's name is the stem; the envelope's extension rides on the version, and the real name (with
+        // its extension) travels INSIDE the envelope, so opening it on a device still knows what the file is called.
         var name = Path.GetFileNameWithoutExtension(file.Name);
-        Status = string.Format(Strings.Get("StSealingFile"), name);
+        try
+        {
+            return await _api.Documents.BeginSealedDocumentAsync(childrenHref, name);
+        }
+        catch (ApiActionException e)
+        {
+            ReportError(e.Message);
+            return null;
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrSealed"), name, e.Message));
+            return null;
+        }
+    }
+
+    /// <summary>Takes a begun Sealed document back out: the user cancelled the audience.</summary>
+    public Task AbandonSealedDocumentAsync(SealedDocumentDraft draft) =>
+        _api?.Documents.AbandonSealedDocumentAsync(draft) ?? Task.CompletedTask;
+
+    /// <summary>
+    /// Finishes a begun Sealed document: declares <paramref name="audience"/>, seals <paramref name="file"/> on this device
+    /// to the audience's certificates as the server answers them, and files it; answers whether it was filed.
+    /// </summary>
+    public async Task<bool> CompleteSealedDocumentAsync(SealedDocumentDraft draft, IStorageFile file, IReadOnlyList<AudienceChange> audience)
+    {
+        if (_api is null || _currentFolderId is not { } folderId)
+        {
+            await AbandonSealedDocumentAsync(draft);
+            return false;
+        }
+
+        Status = string.Format(Strings.Get("StSealingFile"), draft.Name);
         try
         {
             byte[] bytes;
@@ -49,10 +69,14 @@ public sealed partial class MainWindowViewModel
                 bytes = buffer.ToArray();
             }
 
-            var contentType = DocumentsClient.GuessContentType(file.Name);
             // Sealing is CPU work over the whole document; off the UI thread so a large file is not a frozen window.
-            var sealedBytes = await Task.Run(() => SealedDocument.Seal(bytes, contentType, audience, file.Name));
-            await _api.Documents.UploadSealedDocumentAsync(childrenHref, name, sealedBytes);
+            await Task.Run(() => _api.Documents.CompleteSealedDocumentAsync(
+                draft, audience, bytes, DocumentsClient.GuessContentType(file.Name), file.Name));
+        }
+        catch (SealedDocumentAudienceRequiredException)
+        {
+            ReportError(Strings.Get("AudNobodyHasAKey"));
+            return false;
         }
         catch (ApiActionException e)
         {
@@ -61,55 +85,76 @@ public sealed partial class MainWindowViewModel
         }
         catch (Exception e)
         {
-            ReportError(string.Format(Strings.Get("StErrSealed"), name, e.Message));
+            ReportError(string.Format(Strings.Get("StErrSealed"), draft.Name, e.Message));
             return false;
         }
 
-        Status = string.Format(Strings.Get("StSealedFiled"), name);
+        Status = string.Format(Strings.Get("StSealedFiled"), draft.Name);
         await LoadFolderContentsAsync(folderId);
         return true;
     }
 
-    // The DOCUMENT's ETag from the read that filled the pane (ADR 0794): a re-seal carries it as its precondition, and a
-    // fresh read just before writing would assert about a version the author never saw.
+    /// <summary>The name of the item the details pane shows, for a dialog's heading.</summary>
+    public string DetailDocumentName => _detailDocumentName ?? string.Empty;
+
+    // The DOCUMENT's ETag from the read that filled the pane (ADR 0794): the audience is saved under the tag its own read
+    // carried, and the re-seal under the one that save answered.
     private string? _detailDocumentETag;
 
-    /// <summary>
-    /// Files the current content again, sealed to a NEW audience (ADR 0975). The author's key opens what is there and this
-    /// device seals it again; the server sees only the new envelope — and refuses the act from anybody but the author.
-    /// </summary>
-    /// <remarks>
-    /// The content is opened through the one content funnel, so the audience that opens it is exactly the key a reader
-    /// uses. An author who is not themselves in the audience cannot re-seal: there is nothing they could open, and this
-    /// says so rather than failing as a decrypt error.
-    /// </remarks>
-    public async Task<bool> ChangeAudienceAsync(IReadOnlyList<X509Certificate2> audience)
+    /// <summary>The audience of the item the details pane shows (a Sealed document, or a store's item); null when it has none.</summary>
+    public async Task<ContentAudienceInfo?> LoadDetailAudienceAsync()
     {
-        if (_api is null || audience.Count == 0)
+        if (_api is null || _detailLinks?.Href("audience") is not { } href)
         {
-            return false;
+            return null;
         }
 
-        if (_detailDocumentETag is not { Length: > 0 } eTag || string.IsNullOrEmpty(_detailDocumentName))
-        {
-            ReportError(Strings.Get("StErrResealNoSubject"));
-            return false;
-        }
-
-        var name = _detailDocumentName;
-        Status = string.Format(Strings.Get("StResealingDoc"), name);
         try
         {
-            var versionsHref = DetailHref("versions");
-            var preview = await _api.Documents.GetPreviewAsync(versionsHref);
-            var contentUrl = preview.DownloadUrl ?? preview.PreviewUrl
-                ?? throw new ApiActionException(Strings.Get("StErrResealNoContent"));
+            return await new ContentAudienceClient(_api.Core).GetAsync(href);
+        }
+        catch (Exception e) when (e is ApiActionException or HttpRequestException)
+        {
+            ReportError(e.Message);
+            return null;
+        }
+    }
 
-            // Opened by the author's own key — the funnel asks for the card only when the envelope names it.
-            var (bytes, contentType) = await ApiCore.GetContentAsync(contentUrl);
-            var sealedBytes = await Task.Run(() => SealedDocument.Seal(bytes, contentType, audience, name));
+    /// <summary>
+    /// Saves a changed audience and re-seals in the same act (ADR 0983): a Sealed document is opened with the caller's key
+    /// and sealed to the new audience; a store's entries are re-sealed by the store client. An administrator appointing a
+    /// manager only saves — they hold no key, and the next member's re-seal catches a new member up.
+    /// </summary>
+    public async Task<bool> SaveAudienceAsync(ContentAudienceInfo seen, IReadOnlyList<AudienceChange> audience)
+    {
+        if (_api is null)
+        {
+            return false;
+        }
 
-            await _api.Documents.ResealAsync(versionsHref, eTag, name, sealedBytes);
+        var name = _detailDocumentName ?? string.Empty;
+        Status = string.Format(Strings.Get("AudSaving"), name);
+        try
+        {
+            if (!seen.CanManage)
+            {
+                await new ContentAudienceClient(_api.Core).SaveAsync(seen, audience);
+            }
+            else if (seen.IsStore)
+            {
+                var passwords = new PasswordStoreClient(_api.Core);
+                var (stores, _) = await passwords.ListStoresAsync();
+                var store = await passwords.GetFolderAsync(stores.Single(s => s.Id == seen.DocumentId).Href);
+                var (_, resealed) = await passwords.ChangeAudienceAsync(store, seen, audience);
+                if (resealed is { Failed.Count: > 0 } failed)
+                {
+                    ReportError(string.Format(Strings.Get("AudResealFailed"), failed.Failed.Count));
+                }
+            }
+            else
+            {
+                await _api.Documents.ChangeSealedAudienceAsync(seen, audience, DetailHref("versions"), name);
+            }
         }
         catch (EnvelopeStaysSealedException)
         {
@@ -132,7 +177,7 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
-        Status = string.Format(Strings.Get("StResealedDoc"), name);
+        Status = string.Format(Strings.Get("AudSaved"), name);
         await RefreshCommand.ExecuteAsync(null);
         return true;
     }

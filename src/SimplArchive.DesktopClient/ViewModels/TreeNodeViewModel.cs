@@ -16,8 +16,10 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     private bool _loaded;
 
     public TreeNodeViewModel(Guid id, string name, bool hasSubfolders, Func<TreeNodeViewModel, Task<IEnumerable<TreeNodeViewModel>>>? loadChildren, bool isReference = false, bool isPersonal = false, string? syntheticIcon = null, string? personalKind = null, bool hasReferences = false, bool hasChildren = true, LinkMap? links = null, IReadOnlyList<SimplArchive.ApiClient.CreatableChild>? admits = null, string? icon = null,
-        bool canDelete = false, bool canEditIndexData = false, bool canMove = false, bool canManagePermissions = false, bool canCreateChildren = false)
+        bool canDelete = false, bool canEditIndexData = false, bool canMove = false, bool canManagePermissions = false, bool canCreateChildren = false,
+        SimplArchive.ApiClient.EncryptedFor encryptedFor = SimplArchive.ApiClient.EncryptedFor.NotEncryptedContent)
     {
+        EncryptedFor = encryptedFor;
         Id = id;
         Name = name;
         _loadChildren = loadChildren;
@@ -104,6 +106,11 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     /// </summary>
     public string DocumentSelfHref =>
         Links is not null && Links.Href("document") is { } doc ? doc : Href("self");
+
+    // A store or password folder the caller can see but not decrypt (ADR 0983), marked in the tree as in the list.
+    public SimplArchive.ApiClient.EncryptedFor EncryptedFor { get; }
+
+    public bool NotEncryptedForMe => EncryptedFor == SimplArchive.ApiClient.EncryptedFor.NotYou;
 
     public Guid Id { get; }
 

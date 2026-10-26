@@ -84,4 +84,21 @@ public static class PasswordNotices
             ? done
             : $"{done}\n{string.Format(CultureInfo.CurrentCulture, Strings.Get("PwResealFailed"), string.Join(", ", outcome.Failed.Select(f => f.Name)))}";
     }
+
+    /// <summary>What an audience change did (ADR 0983): who it is encrypted for now, the re-seal, and who holds no key yet.</summary>
+    public static string DescribeAudience(ContentAudienceInfo saved, PasswordResealOutcome? resealed)
+    {
+        var lines = new List<string> { string.Format(CultureInfo.CurrentCulture, Strings.Get("AudSavedCount"), saved.Recipients.Count) };
+        if (resealed is not null)
+        {
+            lines.Add(Describe(resealed));
+        }
+
+        if (saved.WithoutCertificate.Count > 0)
+        {
+            lines.Add(string.Format(CultureInfo.CurrentCulture, Strings.Get("AudWithoutKey"), string.Join(", ", saved.WithoutCertificate.Select(r => r.DisplayName))));
+        }
+
+        return string.Join("\n", lines);
+    }
 }

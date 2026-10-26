@@ -688,7 +688,7 @@ be woken by a push while it is closed, or back up on a schedule in the backgroun
 
 Where the archive offers the *password store*#idx("Password store"), the workbench shows a *Passwords* tab — the key
 ring at the end of the tab bar. On the left are your stores: *My Passwords* first (it is created the first time you
-open it), then the shared stores you may read. The middle lists the selected folder's folders and entries; the right
+open it), then the shared stores you can decrypt. The middle lists the selected folder's folders and entries; the right
 shows the selected entry in the preview.
 
 #shot("screenshots/desktop-passwords.png",
@@ -720,12 +720,23 @@ shows you the entry as it is now.
   [Editing an entry: the secret boxes hidden until their eye is held, the generator open below the password, and
   Save and Cancel where the pencil was.])
 
-*Organising.* The ribbon creates entries and folders, renames, moves within the same store (an entry is sealed to its
-store's readers, so it never leaves it) and deletes to the recycle bin. When who may read a store has changed, a notice
-above the list says that its entries need sealing again; a member who may edit the store re-seals all of them with
-*Re-seal* and one PIN, and is told how many were re-sealed, how many were skipped because somebody changed them
-meanwhile, and which ones this key could not open. If only one key can open My Passwords, a notice recommends enrolling
-a spare key.
+*Organising.* The ribbon creates entries and folders, renames, moves and deletes to the recycle bin. An entry moves
+into another store only if you can decrypt both, because it is sealed again for the new store's audience on the way.
+When a store's audience or a member's key has changed, a notice above the list says that its entries need sealing
+again; a member who may edit the store re-seals all of them with *Re-seal* and one PIN, and is told how many were
+re-sealed, how many were skipped because somebody changed them meanwhile, and which ones this key could not open. If
+only one key can open My Passwords, a notice recommends enrolling a spare key.
+
+*Who can decrypt a store.*#idx("Audience") Being allowed to see a shared store is not the same as being able to decrypt
+it. A store is encrypted for its *audience*: the people and groups its *managers* chose from among those who may read
+it. Whoever creates a store is its first manager. *Encrypted for…* on the ribbon shows the audience to everybody who
+can see the store; a manager adds a reader or a group, removes somebody, or makes another person a manager, and *Save
+and re-seal* seals the store for the new audience with one PIN in the same step. Somebody removed can no longer fetch
+even the entries that were sealed to them, from the moment you save. A store must keep at least one manager; if every
+manager has left, a tenant administrator may appoint a new one from among its readers. My Passwords is always yours
+alone. In the *Repositories* tab, a store or an entry you can see but not decrypt is marked *Not encrypted for you*,
+and one you were just added to is marked *Not yet encrypted for you* until a member's next re-seal. A sealed document
+works the same way: whoever files it chooses its audience, and *Encrypted for…* changes it.
 
 *Importing.* The import button reads the CSV file a password manager exports, on your computer: every row becomes an
 entry, sealed here. Only a row whose name and user name match an entry already in the folder is asked about — skip it,

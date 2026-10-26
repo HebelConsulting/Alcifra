@@ -1,3 +1,4 @@
+using SimplArchive.ApiClient;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using SimplArchive.ApiClient.PasswordStore;
@@ -98,7 +99,8 @@ public sealed class PasswordNoticeViewModel(PasswordNotice notice)
     public string Icon => Urgent ? "mdi-alert-outline" : "mdi-information-outline";
 }
 
-/// <summary>A folder a password item can move to, indented under its parent (ADR 0968): within the item's own store.</summary>
+/// <summary>A folder a password item can move to, indented under its parent (ADR 0968): in any store the caller can
+/// decrypt, its store at depth 0 (ADR 0983).</summary>
 public sealed record PasswordFolderChoice(PasswordFolderInfo Folder, int Depth)
 {
     public string Label => $"{new string(' ', Depth * 4)}{Folder.Label}";
@@ -136,6 +138,10 @@ public sealed class PasswordDialogs
 
     /// <summary>Enrols a key, a first or a spare one (the self-enrolment dialog).</summary>
     public Func<Task>? EnrolKey { get; set; }
+
+    /// <summary>The audience editor (ADR 0983): the audience and the store's label in, the whole audience to save out;
+    /// null when cancelled or when only read.</summary>
+    public Func<ContentAudienceInfo, string, Task<IReadOnlyList<AudienceChange>?>>? EditAudience { get; set; }
 
     internal async Task<bool> ConfirmAsync(string title, string message, string confirm) => Confirm is not null && await Confirm(title, message, confirm);
 

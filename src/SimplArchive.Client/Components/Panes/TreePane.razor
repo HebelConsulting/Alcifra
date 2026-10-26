@@ -48,6 +48,11 @@
                         <BodyContent Context="rowCtx">
                             <div class="wb-tree-row">
                                 <p class="mud-typography mud-typography-body1 mud-treeview-item-label">@item.Text</p>
+                                @if (item.Value is { NotEncryptedForMe: true })
+                                {
+                                    @* A store the caller sees but cannot decrypt (ADR 0983). *@
+                                    <MudIcon Icon="@Icons.Material.Outlined.NoEncryption" Size="Size.Small" Color="Color.Error" title="@Strings.Get("AudSignNotYou")" />
+                                }
                                 @if (IsMenuNode(item.Value))
                                 {
                                     <MudIconButton Class="wb-tree-menu-btn" Icon="@Icons.Material.Filled.MoreVert"

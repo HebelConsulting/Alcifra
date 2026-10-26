@@ -38,6 +38,10 @@ public partial class MainWindowViewModel
     /// </summary>
     [ObservableProperty] private bool _canChangeAudience;
 
+    // The item in the details pane is encrypted content with an audience (ADR 0983): "Encrypted for…" opens it — to
+    // change for a manager, to read for everybody else.
+    [ObservableProperty] private bool _hasDetailAudience;
+
     /// <summary>The context menu's short label; the ribbon's tooltip is <see cref="SubscriptionTip"/>.</summary>
     public string SubscriptionMenuHeader => Strings.Get(DetailSubscribed ? "CtxUnfollowDoc" : "CtxFollowDoc");
 
@@ -61,7 +65,7 @@ public partial class MainWindowViewModel
     public Func<WorkflowTransitionViewModel, Task>? RunWorkflowTransitionInView { get; set; }
 
     /// <summary>Whether any of the actions below is on offer — the context menu's separator above them.</summary>
-    public bool HasDocumentOwnActions => CanToggleSubscription || CanShareDocument || CanChangeAudience || HasDetailActionEntries || HasDetailWorkflowEntries;
+    public bool HasDocumentOwnActions => CanToggleSubscription || CanShareDocument || CanChangeAudience || HasDetailAudience || HasDetailActionEntries || HasDetailWorkflowEntries;
 
     /// <summary>Empties the offered transitions with their menu entries — the subject changed (ADR 0559).</summary>
     private void ClearWorkflowTransitions()
@@ -113,6 +117,8 @@ public partial class MainWindowViewModel
     partial void OnCanShareDocumentChanged(bool value) => OnPropertyChanged(nameof(HasDocumentOwnActions));
 
     partial void OnCanChangeAudienceChanged(bool value) => OnPropertyChanged(nameof(HasDocumentOwnActions));
+
+    partial void OnHasDetailAudienceChanged(bool value) => OnPropertyChanged(nameof(HasDocumentOwnActions));
 
     partial void OnDetailSubscribedChanged(bool value)
     {

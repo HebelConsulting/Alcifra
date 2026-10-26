@@ -6535,48 +6535,6 @@
     <value>Paso del flujo de trabajo</value>
   </data>
 
-  <data name="AudienceTitle" xml:space="preserve">
-    <value>Sellar para…</value>
-  </data>
-  <data name="AudienceBody" xml:space="preserve">
-    <value>Solo las personas y los certificados elegidos pueden leer este documento. El contenido se sella en este dispositivo; el servidor lo almacena y nunca posee una clave.</value>
-  </data>
-  <data name="AudienceSearch" xml:space="preserve">
-    <value>Buscar personas</value>
-  </data>
-  <data name="AudienceFind" xml:space="preserve">
-    <value>Buscar</value>
-  </data>
-  <data name="AudienceAddFile" xml:space="preserve">
-    <value>Añadir archivo de certificado…</value>
-  </data>
-  <data name="AudienceSeal" xml:space="preserve">
-    <value>Sellar</value>
-  </data>
-  <data name="AudienceFromFiles" xml:space="preserve">
-    <value>Certificados añadidos</value>
-  </data>
-  <data name="AudienceLoading" xml:space="preserve">
-    <value>Leyendo para quién se puede sellar…</value>
-  </data>
-  <data name="AudienceUnavailable" xml:space="preserve">
-    <value>Esta instalación no ofrece un directorio de lectores.</value>
-  </data>
-  <data name="AudiencePeople" xml:space="preserve">
-    <value>Se puede sellar para {0} personas.</value>
-  </data>
-  <data name="AudienceNone" xml:space="preserve">
-    <value>Nadie aquí tiene todavía un certificado de lectura.</value>
-  </data>
-  <data name="AudienceFileNeedsChain" xml:space="preserve">
-    <value>El archivo debe contener el certificado y su cadena de atestación, en este orden: certificado, certificado de atestación, intermedio.</value>
-  </data>
-  <data name="AudienceFileRefused" xml:space="preserve">
-    <value>No se puede sellar para ese certificado.</value>
-  </data>
-  <data name="AudienceFileAdded" xml:space="preserve">
-    <value>{0} añadido.</value>
-  </data>
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>Nuevo documento sellado…</value>
   </data>
@@ -6609,9 +6567,6 @@
     <value>Guardado. Quien quiera sellar un documento para usted necesita este archivo.</value>
   </data>
 
-  <data name="RibbonChangeAudience" xml:space="preserve">
-    <value>Cambiar destinatarios…</value>
-  </data>
   <data name="StResealingDoc" xml:space="preserve">
     <value>Volviendo a sellar '{0}'…</value>
   </data>
@@ -6671,5 +6626,95 @@
   </data>
   <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
     <value>Para moverlo a otro almacén de contraseñas debe formar parte de la audiencia de ambos, para poder cifrarlo para el nuevo.</value>
+  </data>
+  <data name="AudTitle" xml:space="preserve">
+    <value>Cifrado para</value>
+  </data>
+  <data name="AudRibbon" xml:space="preserve">
+    <value>Cifrado para…</value>
+  </data>
+  <data name="AudPersonal" xml:space="preserve">
+    <value>Está en un espacio personal: solo su propietario puede descifrarlo, y eso no se puede cambiar.</value>
+  </data>
+  <data name="AudManaging" xml:space="preserve">
+    <value>Usted administra quién puede descifrarlo. Al guardar se vuelve a sellar con su clave en el mismo paso.</value>
+  </data>
+  <data name="AudAppointing" xml:space="preserve">
+    <value>Ya nadie lo administra. Como administrador puede nombrar un administrador entre sus lectores; aquí no se puede cambiar nada más.</value>
+  </data>
+  <data name="AudReadOnly" xml:space="preserve">
+    <value>Solo sus administradores pueden cambiar quién puede descifrarlo.</value>
+  </data>
+  <data name="AudNotInEffect" xml:space="preserve">
+    <value>Ya sin permiso de lectura: no descifra nada</value>
+  </data>
+  <data name="AudNeedsManager" xml:space="preserve">
+    <value>Mantenga al menos una persona como administrador.</value>
+  </data>
+  <data name="AudPickReader" xml:space="preserve">
+    <value>Añadir un lector…</value>
+  </data>
+  <data name="AudAdd" xml:space="preserve">
+    <value>Añadir</value>
+  </data>
+  <data name="AudMissingReader" xml:space="preserve">
+    <value>¿Falta alguien? Solo se pueden añadir personas y grupos que puedan leerlo: conceda primero permiso de lectura.</value>
+  </data>
+  <data name="AudSave" xml:space="preserve">
+    <value>Guardar y volver a sellar</value>
+  </data>
+  <data name="AudManager" xml:space="preserve">
+    <value>Administrador</value>
+  </data>
+  <data name="AudRemove" xml:space="preserve">
+    <value>Quitar</value>
+  </data>
+  <data name="AudSignNotYou" xml:space="preserve">
+    <value>No cifrado para usted</value>
+  </data>
+  <data name="AudSignNotYet" xml:space="preserve">
+    <value>Aún no cifrado para usted: el próximo resellado de un miembro le incluirá</value>
+  </data>
+  <data name="AudNobodyHasAKey" xml:space="preserve">
+    <value>Nadie de la audiencia tiene aún una clave de hardware registrada, así que no se pudo sellar nada. Registre primero una clave.</value>
+  </data>
+  <data name="AudSaving" xml:space="preserve">
+    <value>Guardando para quién está cifrado '{0}'…</value>
+  </data>
+  <data name="AudSaved" xml:space="preserve">
+    <value>Guardado para quién está cifrado '{0}', y vuelto a sellar.</value>
+  </data>
+  <data name="AudResealFailed" xml:space="preserve">
+    <value>{0} entradas no se pudieron abrir con su clave y no se volvieron a sellar.</value>
+  </data>
+  <data name="AudAppointed" xml:space="preserve">
+    <value>El administrador está nombrado. Un miembro con clave vuelve a sellar el almacén para los nuevos miembros.</value>
+  </data>
+  <data name="AudSavedCount" xml:space="preserve">
+    <value>Ahora cifrado para {0} personas.</value>
+  </data>
+  <data name="AudWithoutKey" xml:space="preserve">
+    <value>Aún sin clave de hardware registrada, así que no sellado para: {0}.</value>
+  </data>
+  <data name="AudLoadFailed" xml:space="preserve">
+    <value>No se pudo leer para quién está cifrado.</value>
+  </data>
+  <data name="AudManagingWeb" xml:space="preserve">
+    <value>Usted administra quién puede descifrarlo.</value>
+  </data>
+  <data name="AudWebNoReseal" xml:space="preserve">
+    <value>Un navegador no tiene clave: para quien se quita, guardar surte efecto al instante, y para quien se añade un miembro lo vuelve a sellar la próxima vez que lo abra en la app de escritorio o del teléfono.</value>
+  </data>
+  <data name="AudSaveWeb" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="AudChangedMeanwhile" xml:space="preserve">
+    <value>Alguien cambió entretanto para quién está cifrado: cierre y vuelva a abrir.</value>
+  </data>
+  <data name="AudSaveFailed" xml:space="preserve">
+    <value>No se pudo guardar para quién está cifrado.</value>
+  </data>
+  <data name="AudSavedWeb" xml:space="preserve">
+    <value>Guardado. Para quien se añadió, un miembro lo vuelve a sellar en la app de escritorio o del teléfono.</value>
   </data>
 </root>

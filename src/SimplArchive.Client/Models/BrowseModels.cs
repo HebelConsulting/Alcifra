@@ -44,6 +44,9 @@ public record DocumentSummary
     public bool HasSubfolders { get; set; }
     public bool HasReferences { get; set; }
     public bool OnLegalHold { get; set; }
+
+    // Encrypted content only (ADR 0983): "you", "not-you" or "not-yet-you"; null on every other row.
+    public string? EncryptedForCaller { get; set; }
     public bool CheckedOut { get; set; }
     public bool CheckedOutByMe { get; set; }
     public string CheckedOutByName { get; set; } = string.Empty;

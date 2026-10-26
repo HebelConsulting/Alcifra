@@ -80,6 +80,15 @@ public sealed class NodeViewModel
 
     public bool OnLegalHold { get; init; }
 
+    // Whether the caller can decrypt this row, for encrypted content (ADR 0983): marked before it is opened.
+    public SimplArchive.ApiClient.EncryptedFor EncryptedFor { get; init; }
+
+    /// <summary>"Not encrypted for you": the caller sees it but is not in its audience.</summary>
+    public bool NotEncryptedForMe => EncryptedFor == SimplArchive.ApiClient.EncryptedFor.NotYou;
+
+    /// <summary>"Not yet encrypted for you": in the audience, waiting for a member's re-seal.</summary>
+    public bool NotYetEncryptedForMe => EncryptedFor == SimplArchive.ApiClient.EncryptedFor.NotYetYou;
+
     // Check-out state (ADR "Document check-out / check-in"): CheckedOut drives a lock glyph, CheckedOutByMe
     // colours it (mine vs someone else's) and gates the check-out vs override actions.
     public bool CheckedOut { get; init; }

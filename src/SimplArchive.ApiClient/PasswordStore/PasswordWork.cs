@@ -23,6 +23,9 @@ public sealed class PasswordWork(ApiCore core, IEnvelopeOpener keys, IEnvelopeOp
 {
     private readonly PasswordStoreClient _skipping = new(core, skipping ?? keys);
 
+    /// <summary>The connection, for the clients beside the store's own (the audience, ADR 0983).</summary>
+    public ApiCore Core { get; } = core;
+
     /// <summary>The shared client, opening with the host's key.</summary>
     public PasswordStoreClient Client { get; } = new(core, keys);
 

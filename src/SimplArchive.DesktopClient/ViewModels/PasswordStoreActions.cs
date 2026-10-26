@@ -44,9 +44,16 @@ public sealed class PasswordStoreActions(PasswordsTabViewModel tab)
             return;
         }
 
-        if (await pick(choices) is { } target && target.Id != tab.SelectedNode?.Folder?.Id)
+        if (await pick(choices) is { } target && target.Id != tab.SelectedNode?.Folder?.Id && tab.SelectedNode?.Folder is { } from)
         {
-            await ActAsync(() => work.Client.MoveAsync(row.Item.Links, row.Name, row.Item.ETag, target), select: null);
+            // Into another store, the moved entries are sealed to its audience in the same act (one PIN, ADR 0983).
+            PasswordResealOutcome? resealed = null;
+            PasswordKeyOpener.UserAsked();
+            await ActAsync(async () => resealed = await work.Client.MoveIntoAsync(row.Item, from.StoreId, target), select: null);
+            if (resealed is { Failed.Count: > 0 } or { SkippedChanged.Count: > 0 })
+            {
+                await Dialogs.InformAsync(Strings.Get("PwMove"), PasswordNotices.Describe(resealed));
+            }
         }
     }
 
@@ -95,6 +102,49 @@ public sealed class PasswordStoreActions(PasswordsTabViewModel tab)
                 ?? throw new InvalidOperationException($"'{folder.Name}' advertised no 'store' rel (ADR 0543)."));
             var outcome = await work.ResealAsync(store);
             await Dialogs.InformAsync(Strings.Get("PwReseal"), PasswordNotices.Describe(outcome));
+        }
+        catch (Exception e) when (PasswordsTabViewModel.IsReported(e))
+        {
+            tab.Failed(e);
+        }
+
+        await tab.ReloadFolderAsync();
+    }
+
+    /// <summary>
+    /// Shows who the store is encrypted for, and lets a manager change it (ADR 0983): the view's editor answers the whole
+    /// audience, which is saved and re-sealed with ONE PIN in the same act. An administrator appointing a manager only
+    /// saves — they hold no key, and the next member's re-seal catches a new member up.
+    /// </summary>
+    public async Task AudienceAsync(PasswordFolderInfo folder)
+    {
+        if (tab.Work is not { } work || Dialogs.EditAudience is not { } edit)
+        {
+            return;
+        }
+
+        try
+        {
+            var store = folder.IsStore ? folder : await work.Client.GetFolderAsync(folder.Links.Href("store")
+                ?? throw new InvalidOperationException($"'{folder.Name}' advertised no 'store' rel (ADR 0543)."));
+            var audiences = new ContentAudienceClient(work.Core);
+            var seen = await audiences.GetAsync(store.Links);
+            if (await edit(seen, store.Label) is not { } changed)
+            {
+                return;
+            }
+
+            if (!seen.CanManage)
+            {
+                await audiences.SaveAsync(seen, changed);
+                await Dialogs.InformAsync(Strings.Get("AudTitle"), Strings.Get("AudAppointed"));
+            }
+            else
+            {
+                PasswordKeyOpener.UserAsked();
+                var (saved, resealed) = await work.Client.ChangeAudienceAsync(store, seen, changed);
+                await Dialogs.InformAsync(Strings.Get("AudTitle"), PasswordNotices.DescribeAudience(saved, resealed));
+            }
         }
         catch (Exception e) when (PasswordsTabViewModel.IsReported(e))
         {
@@ -166,16 +216,27 @@ public sealed class PasswordStoreActions(PasswordsTabViewModel tab)
     }
 
     // Every folder of the store, indented, except the row itself and what is inside it (a folder cannot move into itself).
+    // Every store the caller can decrypt (the stores this tab lists, ADR 0983) with its folders, wherever the caller may
+    // create: an item may move into another store, and is sealed to that store's audience on the way. The moving folder
+    // and everything beneath it are left out, so nothing is offered a place inside itself.
     private static async Task<IReadOnlyList<PasswordFolderChoice>> FoldersOfAsync(PasswordWork work, PasswordNodeViewModel store, PasswordItemRowViewModel moving)
     {
         var choices = new List<PasswordFolderChoice>();
-        var root = store.Href is { } href ? await work.Client.GetFolderAsync(href) : await work.Client.EnsureMyPasswordsAsync();
-        await WalkAsync(root, 0);
+        var (stores, _) = await work.Client.ListStoresAsync();
+        foreach (var listed in stores)
+        {
+            await WalkAsync(await work.Client.GetFolderAsync(listed.Href), 0);
+        }
+
         return choices;
 
         async Task WalkAsync(PasswordFolderInfo folder, int depth)
         {
-            choices.Add(new PasswordFolderChoice(folder, depth));
+            if (folder.CanCreateFolders)
+            {
+                choices.Add(new PasswordFolderChoice(folder, depth));
+            }
+
             foreach (var child in folder.Items.Where(i => i.IsFolder && i.Id != moving.Item.Id))
             {
                 await WalkAsync(await work.Client.GetFolderAsync(child.Href), depth + 1);

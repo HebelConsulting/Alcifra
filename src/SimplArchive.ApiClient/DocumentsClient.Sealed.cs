@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -91,6 +92,139 @@ public sealed partial class DocumentsClient
         await VersionFailedAsync(finalized, name, cancellationToken);
     }
 
+    /// <summary>
+    /// Begins a new Sealed document (ADR 0983): creates it — the caller is its first manager — and reads its audience,
+    /// so the people to add can be picked from the readers the server offers for it. Finish it with
+    /// <see cref="CompleteSealedDocumentAsync"/>, or take it back out with <see cref="AbandonSealedDocumentAsync"/>.
+    /// </summary>
+    public async Task<SealedDocumentDraft> BeginSealedDocumentAsync(string childrenHref, string name, CancellationToken cancellationToken = default)
+    {
+        using var createResponse = await _core.Http.PostAsJsonAsync(childrenHref, new { name, maskId = SealedDocument.MaskId }, cancellationToken);
+        if (createResponse.StatusCode == HttpStatusCode.Conflict)
+        {
+            throw new DocumentNameTakenException(name);
+        }
+
+        if (createResponse.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new ApiActionException($"'{name}': you don't have permission to upload here.");
+        }
+
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        using var read = await _core.Http.GetAsync(ApiCore.RequireRel(created, "self", "The created document"), cancellationToken);
+        await ApiCore.ThrowIfProblemAsync(read, $"'{name}' could not be read back.", cancellationToken);
+        var document = await read.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        var draft = new SealedDocumentDraft(created.GetProperty("id").GetGuid(), name,
+            ApiCore.RequireRel(created, "versions", "The created document"), ApiCore.RequireRel(created, "self", "The created document"),
+            read.Headers.ETag?.Tag, null!);
+        try
+        {
+            return draft with { Audience = await new ContentAudienceClient(_core).GetAsync(LinkMap.From(document) ?? LinkMap.Empty, cancellationToken) };
+        }
+        catch
+        {
+            await AbandonSealedDocumentAsync(draft, cancellationToken);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Finishes a begun Sealed document: <paramref name="members"/> join its audience, and the content is sealed on this
+    /// device to the audience's certificates as the server answers them — never to certificates picked by hand. On any
+    /// failure the document is taken back out rather than left as a name with nothing behind it.
+    /// </summary>
+    /// <exception cref="SealedDocumentAudienceRequiredException">Nobody in the audience holds a certificate.</exception>
+    public async Task<Guid> CompleteSealedDocumentAsync(
+        SealedDocumentDraft draft, IReadOnlyList<AudienceChange> members, byte[] content, string contentType, string? fileName,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var audience = draft.Audience;
+            if (members.Count > 0)
+            {
+                audience = await new ContentAudienceClient(_core).SaveAsync(audience, members, cancellationToken);
+                draft = draft with { ETag = audience.ETag };   // the save moved the document's tag
+            }
+
+            if (audience.Certificates() is not { Count: > 0 } certificates)
+            {
+                throw new SealedDocumentAudienceRequiredException();
+            }
+
+            var sealedBytes = SealedDocument.Seal(content, contentType, certificates, fileName);
+            using var versionResponse = await _core.Http.PostAsJsonAsync(draft.VersionsHref, new { fileExtension = SealedDocument.FileExtension }, cancellationToken);
+            await VersionFailedAsync(versionResponse, draft.Name, cancellationToken);
+            var version = await versionResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            await PutEnvelopeAsync(version, sealedBytes, cancellationToken);
+            using var finalize = new HttpRequestMessage(HttpMethod.Put, ApiCore.RequireRel(version, "self", "The pending version")) { Content = JsonContent.Create(new { }) };
+            using var finalized = await _core.Http.SendAsync(finalize, cancellationToken);
+            await VersionFailedAsync(finalized, draft.Name, cancellationToken);
+            return draft.Id;
+        }
+        catch
+        {
+            await AbandonSealedDocumentAsync(draft, cancellationToken);
+            throw;
+        }
+    }
+
+    /// <summary>Takes a begun Sealed document back out (the user cancelled, or its filing failed). Never throws.</summary>
+    public async Task AbandonSealedDocumentAsync(SealedDocumentDraft draft, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var delete = new HttpRequestMessage(HttpMethod.Delete, draft.SelfHref);
+            if (draft.ETag is not null)
+            {
+                delete.Headers.TryAddWithoutValidation("If-Match", draft.ETag);
+            }
+
+            using var _ = await _core.Http.SendAsync(delete, cancellationToken);
+        }
+        catch (Exception e) when (e is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            ApiClientSettings.Logger.LogWarning(e, "A sealed document left without content could not be removed again");
+        }
+    }
+
+    /// <summary>Files a new Sealed document in one call: begin, declare, seal, upload (what a script or a test needs).</summary>
+    public async Task<Guid> CreateSealedDocumentAsync(
+        string childrenHref, string name, byte[] content, string contentType, string? fileName,
+        IReadOnlyList<AudienceCandidateInfo> members, CancellationToken cancellationToken = default)
+    {
+        var draft = await BeginSealedDocumentAsync(childrenHref, name, cancellationToken);
+        var rows = members.Count == 0 ? [] : (IReadOnlyList<AudienceChange>)[.. draft.Audience.Members.Select(AudienceChange.Of), .. members.Select(AudienceChange.Of)];
+        return await CompleteSealedDocumentAsync(draft, rows, content, contentType, fileName, cancellationToken);
+    }
+
+    /// <summary>
+    /// Changes who a Sealed document is encrypted for, and re-seals it in the same act (ADR 0983): the current content is
+    /// opened FIRST with the caller's key (a manager who cannot open it learns so before anything changes), then the
+    /// audience is saved under the tag of the read that filled the editor, then the content is sealed to the audience as
+    /// saved and filed as a re-seal under the document's new tag.
+    /// </summary>
+    /// <param name="versionsHref">The document's <c>versions</c> rel.</param>
+    /// <param name="name">The document's name, carried inside the envelope.</param>
+    public async Task<ContentAudienceInfo> ChangeSealedAudienceAsync(
+        ContentAudienceInfo seen, IReadOnlyList<AudienceChange> members, string versionsHref, string name, CancellationToken cancellationToken = default)
+    {
+        var preview = await GetPreviewAsync(versionsHref, cancellationToken);
+        var contentUrl = preview.DownloadUrl ?? preview.PreviewUrl
+            ?? throw new ApiActionException($"'{name}' has no content you may open, so it cannot be sealed again.");
+        var (bytes, contentType) = await ApiCore.GetContentAsync(contentUrl, cancellationToken);
+
+        var saved = await new ContentAudienceClient(_core).SaveAsync(seen, members, cancellationToken);
+        if (saved.Certificates() is not { Count: > 0 } certificates)
+        {
+            throw new SealedDocumentAudienceRequiredException();
+        }
+
+        await ResealAsync(versionsHref, saved.ETag, name, SealedDocument.Seal(bytes, contentType, certificates, name), cancellationToken);
+        return saved;
+    }
+
     /// <summary>Uploads the envelope to the pending version's presigned address, encrypting at rest where the server says so.</summary>
     private static async Task PutEnvelopeAsync(JsonElement version, byte[] sealedBytes, CancellationToken cancellationToken)
     {
@@ -114,3 +248,9 @@ public sealed partial class DocumentsClient
         response.EnsureSuccessStatusCode();
     }
 }
+
+/// <summary>
+/// A Sealed document created but not yet filed (ADR 0983): its addresses, its tag, and its audience — the caller as its
+/// first manager, and the readers who may be added — for the editor to pick from.
+/// </summary>
+public sealed record SealedDocumentDraft(Guid Id, string Name, string VersionsHref, string SelfHref, string? ETag, ContentAudienceInfo Audience);

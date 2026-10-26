@@ -110,6 +110,9 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
 
     public bool CanReseal => SelectedNode?.Folder?.CanReseal == true;
 
+    /// <summary>The selected store or folder has an audience to show (ADR 0983): every shared store and personal one.</summary>
+    public bool HasAudience => SelectedNode?.Folder?.Links.Has("audience") == true;
+
     /// <summary>The signed-in client, for a dialog the view opens on the tab's behalf (the spare key's enrolment).</summary>
     public SimplArchiveApiClient? CurrentApi => _api();
 
@@ -232,6 +235,7 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
         OnPropertyChanged(nameof(CanCreateFolder));
         OnPropertyChanged(nameof(NewEntryHint));
         OnPropertyChanged(nameof(CanReseal));
+        OnPropertyChanged(nameof(HasAudience));
         if (value is not null)
         {
             Safe.Fire(() => ShowFolderAsync(value));
@@ -271,6 +275,7 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
         OnPropertyChanged(nameof(CanCreateFolder));
         OnPropertyChanged(nameof(NewEntryHint));
         OnPropertyChanged(nameof(CanReseal));
+        OnPropertyChanged(nameof(HasAudience));
         if (select is { } id)
         {
             SelectedItem = Items.FirstOrDefault(i => i.Item.Id == id);
@@ -447,6 +452,9 @@ public sealed partial class PasswordsTabViewModel : ObservableObject
 
     [RelayCommand]
     private Task ResealAsync() => SelectedNode?.Folder is { } folder ? Actions.ResealAsync(folder) : Task.CompletedTask;
+
+    [RelayCommand]
+    private Task AudienceAsync() => SelectedNode?.Folder is { } folder ? Actions.AudienceAsync(folder) : Task.CompletedTask;
 
     [RelayCommand]
     private Task ImportAsync() => SelectedNode?.Folder is { } folder ? Actions.ImportAsync(folder) : Task.CompletedTask;

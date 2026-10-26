@@ -6535,48 +6535,6 @@
     <value>Workflow step</value>
   </data>
 
-  <data name="AudienceTitle" xml:space="preserve">
-    <value>Seal to…</value>
-  </data>
-  <data name="AudienceBody" xml:space="preserve">
-    <value>Only the people and certificates you choose can read this document. The content is sealed on this device; the server stores it and never holds a key.</value>
-  </data>
-  <data name="AudienceSearch" xml:space="preserve">
-    <value>Search people</value>
-  </data>
-  <data name="AudienceFind" xml:space="preserve">
-    <value>Search</value>
-  </data>
-  <data name="AudienceAddFile" xml:space="preserve">
-    <value>Add certificate file…</value>
-  </data>
-  <data name="AudienceSeal" xml:space="preserve">
-    <value>Seal</value>
-  </data>
-  <data name="AudienceFromFiles" xml:space="preserve">
-    <value>Added certificates</value>
-  </data>
-  <data name="AudienceLoading" xml:space="preserve">
-    <value>Reading who can be sealed to…</value>
-  </data>
-  <data name="AudienceUnavailable" xml:space="preserve">
-    <value>This installation does not offer a reader directory.</value>
-  </data>
-  <data name="AudiencePeople" xml:space="preserve">
-    <value>{0} people can be sealed to.</value>
-  </data>
-  <data name="AudienceNone" xml:space="preserve">
-    <value>No one here holds a reader certificate yet.</value>
-  </data>
-  <data name="AudienceFileNeedsChain" xml:space="preserve">
-    <value>The file must hold the certificate and its attestation chain, in this order: certificate, attestation certificate, intermediate.</value>
-  </data>
-  <data name="AudienceFileRefused" xml:space="preserve">
-    <value>That certificate cannot be sealed to.</value>
-  </data>
-  <data name="AudienceFileAdded" xml:space="preserve">
-    <value>Added {0}.</value>
-  </data>
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>New sealed document…</value>
   </data>
@@ -6609,9 +6567,6 @@
     <value>Saved. Whoever seals a document to you needs this file.</value>
   </data>
 
-  <data name="RibbonChangeAudience" xml:space="preserve">
-    <value>Change audience…</value>
-  </data>
   <data name="StResealingDoc" xml:space="preserve">
     <value>Re-sealing '{0}'…</value>
   </data>
@@ -6671,5 +6626,95 @@
   </data>
   <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
     <value>Moving this into another password store needs you to be in both stores' audiences, so you can encrypt it for the new one.</value>
+  </data>
+  <data name="AudTitle" xml:space="preserve">
+    <value>Encrypted for</value>
+  </data>
+  <data name="AudRibbon" xml:space="preserve">
+    <value>Encrypted for…</value>
+  </data>
+  <data name="AudPersonal" xml:space="preserve">
+    <value>This is in a personal space: only its owner can decrypt it, and that cannot be changed.</value>
+  </data>
+  <data name="AudManaging" xml:space="preserve">
+    <value>You manage who can decrypt this. Saving re-seals it with your key in the same step.</value>
+  </data>
+  <data name="AudAppointing" xml:space="preserve">
+    <value>Nobody manages this any more. As an administrator you may appoint a manager from among its readers; nothing else can be changed here.</value>
+  </data>
+  <data name="AudReadOnly" xml:space="preserve">
+    <value>Only its managers can change who can decrypt this.</value>
+  </data>
+  <data name="AudNotInEffect" xml:space="preserve">
+    <value>No read access any more: decrypts nothing</value>
+  </data>
+  <data name="AudNeedsManager" xml:space="preserve">
+    <value>Keep at least one person as manager.</value>
+  </data>
+  <data name="AudPickReader" xml:space="preserve">
+    <value>Add a reader…</value>
+  </data>
+  <data name="AudAdd" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="AudMissingReader" xml:space="preserve">
+    <value>Someone missing? Only people and groups who can read this can be added: grant read access first.</value>
+  </data>
+  <data name="AudSave" xml:space="preserve">
+    <value>Save and re-seal</value>
+  </data>
+  <data name="AudManager" xml:space="preserve">
+    <value>Manager</value>
+  </data>
+  <data name="AudRemove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="AudSignNotYou" xml:space="preserve">
+    <value>Not encrypted for you</value>
+  </data>
+  <data name="AudSignNotYet" xml:space="preserve">
+    <value>Not yet encrypted for you: a member's next re-seal includes you</value>
+  </data>
+  <data name="AudNobodyHasAKey" xml:space="preserve">
+    <value>Nobody in the audience has an enrolled hardware key yet, so nothing could be sealed. Enrol a key first.</value>
+  </data>
+  <data name="AudSaving" xml:space="preserve">
+    <value>Saving who '{0}' is encrypted for…</value>
+  </data>
+  <data name="AudSaved" xml:space="preserve">
+    <value>Saved who '{0}' is encrypted for, and re-sealed it.</value>
+  </data>
+  <data name="AudResealFailed" xml:space="preserve">
+    <value>{0} entr(ies) could not be opened with your key and were not sealed again.</value>
+  </data>
+  <data name="AudAppointed" xml:space="preserve">
+    <value>The manager is appointed. A member with a key re-seals the store for any new member.</value>
+  </data>
+  <data name="AudSavedCount" xml:space="preserve">
+    <value>Now encrypted for {0} people.</value>
+  </data>
+  <data name="AudWithoutKey" xml:space="preserve">
+    <value>No enrolled hardware key yet, so not sealed to: {0}.</value>
+  </data>
+  <data name="AudLoadFailed" xml:space="preserve">
+    <value>Who this is encrypted for could not be read.</value>
+  </data>
+  <data name="AudManagingWeb" xml:space="preserve">
+    <value>You manage who can decrypt this.</value>
+  </data>
+  <data name="AudWebNoReseal" xml:space="preserve">
+    <value>A browser holds no key: saving here takes effect at once for anyone removed, and a member re-seals it for anyone added the next time they open it in the desktop or phone app.</value>
+  </data>
+  <data name="AudSaveWeb" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="AudChangedMeanwhile" xml:space="preserve">
+    <value>Somebody changed who this is encrypted for meanwhile — close and open it again.</value>
+  </data>
+  <data name="AudSaveFailed" xml:space="preserve">
+    <value>Who this is encrypted for could not be saved.</value>
+  </data>
+  <data name="AudSavedWeb" xml:space="preserve">
+    <value>Saved. A member re-seals it for anyone added in the desktop or phone app.</value>
   </data>
 </root>

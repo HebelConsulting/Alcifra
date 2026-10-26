@@ -322,6 +322,35 @@ public sealed class DocumentActions(HttpClient http, IDialogService dialogs, ISn
         return true;
     }
 
+    /// <summary>
+    /// Opens who a row is encrypted for (ADR 0983): the row's document resource names its <c>audience</c> (a listing row
+    /// does not carry it), and the dialog edits it for a manager and shows it to everybody else.
+    /// </summary>
+    public async Task<bool> OpenAudienceAsync(BrowseNode node)
+    {
+        if (DocumentAddress(node) is not { } address)
+        {
+            return false;
+        }
+
+        var document = await http.GetFromJsonAsync<System.Text.Json.JsonElement>(address);
+        var href = document.TryGetProperty("links", out var links)
+            ? links.EnumerateArray().FirstOrDefault(l => l.GetProperty("rel").GetString() == "audience") is { ValueKind: System.Text.Json.JsonValueKind.Object } link
+                ? link.GetProperty("href").GetString()
+                : null
+            : null;
+        if (href is null)
+        {
+            snackbar.Add(Strings.Get("AudLoadFailed"), Severity.Warning);
+            return false;
+        }
+
+        var parameters = new DialogParameters { ["AudienceHref"] = href, ["Name"] = node.Name };
+        var dialog = await dialogs.ShowAsync<ContentAudienceDialog>(Strings.Get("AudTitle"), parameters, new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
+        // Saved: the caller refreshes, so the row's sign follows the new audience.
+        return await dialog.Result is { Canceled: false };
+    }
+
     /// <summary>Opens the manage-access dialog for a row.</summary>
     public Task OpenManageAccessAsync(BrowseNode node) =>
         OpenManageAccessAsync(node.Id, node.Name, DocumentAddress(node));

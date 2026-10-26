@@ -172,7 +172,8 @@ public sealed partial class MainWindowViewModel
             .Where(c => c.IsFolder)
             .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
             .Select(c => new TreeNodeViewModel(c.Id, c.Name, c.HasSubfolders, LoadTreeChildrenAsync, links: c.Links, hasReferences: c.HasReferences, hasChildren: c.HasChildren, admits: c.Admits, icon: c.Icon,
-                canDelete: c.CanDelete, canEditIndexData: c.CanEditIndexData, canMove: c.CanMove, canManagePermissions: c.CanManagePermissions, canCreateChildren: c.CanCreateChildren));
+                canDelete: c.CanDelete, canEditIndexData: c.CanEditIndexData, canMove: c.CanMove, canManagePermissions: c.CanManagePermissions, canCreateChildren: c.CanCreateChildren,
+                encryptedFor: c.EncryptedFor));
 
         // Shortcuts, or none where the folder advertises none — see TreeReferenceNodes for why that is not the
         // same question as `children` above, and for the crash it stopped being (#735).

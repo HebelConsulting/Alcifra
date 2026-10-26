@@ -42,6 +42,24 @@ public sealed record AclRights(
 /// space-separated (ABI 0.23) — a NOTAM briefing's "LSZH LSAS EDGG".</param>
 public sealed record CreatableChild(Guid MaskId, string Name, bool Folder, string Href, string? FolderMask, string Prompt, string? Icon = null, string? NameValuesHref = null, bool NameValuesAreMultiple = false);
 
+/// <summary>
+/// Whether the caller can decrypt a row of encrypted content (ADR 0983), as the listing's <c>encryptedForCaller</c> says.
+/// </summary>
+public enum EncryptedFor
+{
+    /// <summary>Not encrypted content: nothing to mark.</summary>
+    NotEncryptedContent,
+
+    /// <summary>The caller is in its audience and its current version is sealed to them.</summary>
+    You,
+
+    /// <summary>The caller is not in its audience: "not encrypted for you".</summary>
+    NotYou,
+
+    /// <summary>The caller is in its audience, but the current version is not sealed to them yet: "not yet encrypted for you".</summary>
+    NotYetYou,
+}
+
 public sealed record Node(Guid Id, string Name, bool HasChildren, bool HasVersions, bool HasSubfolders, bool HasReferences, bool OnLegalHold = false, bool CheckedOut = false, bool CheckedOutByMe = false, string CheckedOutByName = "",
     string DocumentType = "", DateOnly? DocumentDate = null, TimeOnly? DocumentTime = null, long? SizeBytes = null, IReadOnlyList<string>? Tags = null, string SensitivityLabelName = "", string? SensitivityLabelColor = null, int VersionCount = 0,
     // Who filed the current version, falling back to who created the document (#768) — the owner column.
@@ -73,7 +91,10 @@ public sealed record Node(Guid Id, string Name, bool HasChildren, bool HasVersio
     // ADR 0719). The rel answered the mask rule only; this answers the rights too.
     bool CanCreateChildren = false,
     // What the SERVER says this row is, from its mask (#1708); null when the server predates the flag.
-    bool? Folder = null)
+    bool? Folder = null,
+    // Whether this caller can decrypt it, for encrypted content only (ADR 0983): the Repositories tab marks what it
+    // can see but not open, before it is opened.
+    EncryptedFor EncryptedFor = EncryptedFor.NotEncryptedContent)
 {
     /// <summary>Whether the row is a folder: the server's answer from the mask (#1708), else the old inference
     /// "has no file version", which reads a file-less record (a push key, a credential) as an empty folder.</summary>

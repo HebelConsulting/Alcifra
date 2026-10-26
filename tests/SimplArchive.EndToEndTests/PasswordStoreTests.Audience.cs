@@ -163,6 +163,56 @@ public sealed partial class PasswordStoreTests
         return 0;
     });
 
+    // The shared client's "change the audience" (ADR 0983): one save, then the re-seal in the same act, so the new
+    // member opens what was there before they joined, and the editor's stale read is refused by name.
+    [Fact]
+    public Task The_client_saves_an_audience_and_re_seals_in_the_same_act() => WithEnrolmentAsync(async rig =>
+    {
+        var store = await SharedStoreAsync(rig);
+        await rig.Anna.Client.CreateEntryAsync(store, "Wiki", PasswordEntryContent.Of("w1", "team"));
+        await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+
+        var audiences = new SimplArchive.ApiClient.ContentAudienceClient(SimplArchive.ApiClient.ApiCore.Over(rig.Anna.Http));
+        var seen = await audiences.GetAsync(store.Links);
+        var bob = Assert.Single(seen.Candidates, c => c.UserId == rig.Bob.Id);
+        var (saved, resealed) = await rig.Anna.Client.ChangeAudienceAsync(store, seen,
+            [.. seen.Members.Select(SimplArchive.ApiClient.AudienceChange.Of), SimplArchive.ApiClient.AudienceChange.Of(bob)]);
+
+        Assert.Contains(saved.Recipients, r => r.UserId == rig.Bob.Id);
+        Assert.Equal(["Wiki"], resealed!.Resealed);
+        var row = Assert.Single((await rig.Bob.Client.GetFolderAsync(store.Links.Href("self")!)).Items);
+        Assert.Equal("w1", (await rig.Bob.Client.OpenAsync(await rig.Bob.Client.GetEntryAsync(row.Href))).Content.Password);
+
+        // The read that filled the editor is stale now: a second save from it is refused, never applied blind.
+        await Assert.ThrowsAsync<SimplArchive.ApiClient.AudienceChangedException>(() => audiences.SaveAsync(seen, [.. seen.Members.Select(SimplArchive.ApiClient.AudienceChange.Of)]));
+        return 0;
+    });
+
+    // A Sealed document is filed to its DECLARED audience (ADR 0983): the filer and the members they chose, sealed to
+    // the certificates the server answers for them — the envelope's recipients are exactly theirs.
+    [Fact]
+    public Task A_sealed_document_is_filed_to_the_audience_it_declares() => WithEnrolmentAsync(async rig =>
+    {
+        await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+        var documents = new SimplArchive.ApiClient.DocumentsClient(SimplArchive.ApiClient.ApiCore.Over(rig.Anna.Http), () => throw new InvalidOperationException("no reminders here"));
+        var repository = await TestJson.Get(rig.Anna.Http, $"/api/documents/{rig.RepoId}");
+        var childrenHref = Links(repository)["children"];
+
+        var bob = new SimplArchive.ApiClient.AudienceCandidateInfo(rig.Bob.Id, null, "Bob");
+        var id = await documents.CreateSealedDocumentAsync(childrenHref, $"Board pack {Guid.NewGuid():N}", "minutes"u8.ToArray(), "text/plain", "minutes.txt", [bob]);
+
+        var audience = await TestJson.Get(rig.Anna.Http, $"/api/documents/{id}/audience");
+        Assert.Equal(new[] { rig.Anna.Id, rig.Bob.Id }.Order(), audience.GetProperty("recipients").EnumerateArray().Select(r => r.GetProperty("userId").GetGuid()).Order());
+        var download = (await TestJson.Get(rig.Anna.Http, $"/api/documents/{id}/versions")).GetProperty("versions").EnumerateArray().Single()
+            .GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "download").GetProperty("href").GetString()!;
+        using var plain = new HttpClient();
+        var recipients = SimplArchive.SealedArchive.CmsRecipients.Of(await plain.GetByteArrayAsync(download));
+        Assert.Equal(2, recipients.Count);
+        Assert.Contains(recipients, r => r.Is(rig.Anna.Key));
+        Assert.Contains(recipients, r => r.Is(rig.Bob.Key));
+        return 0;
+    });
+
     // Unattended seeding (owner, 2026-10-26): the service account that created a store writes its whole audience while no
     // person manages it — the nightly demo seed's case — and loses that say as soon as the audience names a manager.
     [Fact]
@@ -179,6 +229,42 @@ public sealed partial class PasswordStoreTests
         // Anna manages it now: the seed's say is over.
         Assert.False((await TestJson.Get(rig.Owner, $"/api/documents/{storeId}/audience")).GetProperty("canManage").GetBoolean());
         Assert.Contains("AUDIENCE_CHANGE_REQUIRES_MANAGER", (await PutAudienceAsync(rig.Owner, storeId, [new { userId = rig.Bob.Id, isManager = true }])).Body);
+        return 0;
+    });
+
+    // A move into another store from the Passwords tab (owner, 2026-10-26): the shared client moves the entry — or a
+    // whole folder — and seals what moved to the TARGET's audience in the same act, so the target's member opens it.
+    [Fact]
+    public Task An_entry_and_a_folder_move_into_another_store_and_are_sealed_to_its_audience() => WithEnrolmentAsync(async rig =>
+    {
+        var anna = rig.Anna.Client;
+        var from = await SharedStoreAsync(rig);
+        var otherId = (await TestJson.Post(rig.Anna.Http, $"/api/documents/{rig.RepoId}/children", new { name = "Ops", maskId = WellKnownMaskIds.PasswordStore }))
+            .GetProperty("id").GetGuid();
+        await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+        await DeclareAudienceAsync(rig.Anna.Http, otherId, (rig.Anna.Id, true), (rig.Bob.Id, false));
+        var to = await anna.GetFolderAsync((await anna.ListStoresAsync()).Stores.Single(s => s.Id == otherId).Href);
+
+        await anna.CreateEntryAsync(from, "Router", PasswordEntryContent.Of("r1", "admin"));
+        var vault = await anna.CreateFolderAsync(from, "Vault");
+        await anna.CreateEntryAsync(vault, "Safe", PasswordEntryContent.Of("s1", "ops"));
+        var rows = (await anna.GetFolderAsync(from.Links.Href("self")!)).Items;
+
+        var entryOutcome = await anna.MoveIntoAsync(rows.Single(r => r.Name == "Router"), from.StoreId, to);
+        var folderOutcome = await anna.MoveIntoAsync(rows.Single(r => r.Name == "Vault"), from.StoreId, to);
+        Assert.Equal(["Router"], entryOutcome!.Resealed);
+        Assert.Equal(["Safe"], folderOutcome!.Resealed);
+
+        // Bob reads only the target store, and opens both — the moved entry and the one inside the moved folder.
+        var bobs = await rig.Bob.Client.GetFolderAsync(to.Links.Href("self")!);
+        Assert.False(bobs.NeedsReseal);
+        Assert.Equal("r1", (await rig.Bob.Client.OpenAsync(await rig.Bob.Client.GetEntryAsync(bobs.Items.Single(i => i.Name == "Router").Href))).Content.Password);
+        var bobsVault = await rig.Bob.Client.GetFolderAsync(bobs.Items.Single(i => i.Name == "Vault").Href);
+        Assert.Equal("s1", (await rig.Bob.Client.OpenAsync(await rig.Bob.Client.GetEntryAsync(Assert.Single(bobsVault.Items).Href))).Content.Password);
+
+        // Within one store a move needs no re-seal.
+        var stay = await anna.CreateFolderAsync(to, "Stay");
+        Assert.Null(await anna.MoveIntoAsync((await anna.GetFolderAsync(to.Links.Href("self")!)).Items.Single(i => i.Name == "Router"), to.StoreId, stay));
         return 0;
     });
 

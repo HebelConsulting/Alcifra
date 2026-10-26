@@ -32,6 +32,7 @@ public class ConsoleOutputRatchetTests
         ["src/SimplArchive.Cli/Commands/LoginCommand.cs"] = 2,   // data output only (ADR 0906)
         ["src/SimplArchive.Cli/Commands/ModuleUploadCommand.cs"] = 1,   // data output only (ADR 0906): the module's filing answer
         ["src/SimplArchive.Cli/Commands/PasswordCommands.cs"] = 3,   // data output only (ADR 0906): the store's id, its entry names, the entry's id
+        ["src/SimplArchive.Cli/Commands/PasswordStoreAudienceCommands.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)
         ["src/SimplArchive.Cli/Commands/RecoveryCertificateCommands.cs"] = 1,   // data output only (ADR 0906): `show --pem`
         ["src/SimplArchive.Cli/Commands/RepositoryCreateCommand.cs"] = 1,   // data output only (ADR 0906)
         ["src/SimplArchive.Cli/Commands/StandardRepositoryCommands.cs"] = 1,   // data output: the id (#1661; was an uncounted console.WriteLine)
@@ -43,6 +44,7 @@ public class ConsoleOutputRatchetTests
         // captures (`sapass show x | head -1`, `eval "$(sapass login …)"`) and what completion reads.
         ["src/SimplArchive.Sapass/Commands/LoginCommand.cs"] = 2,   // data output only: the two shell exports
         ["src/SimplArchive.Sapass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
+        ["src/SimplArchive.Sapass/Commands/AudienceCommand.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)
         ["src/SimplArchive.Sapass/Commands/FindCommand.cs"] = 1,   // data output only: the matching paths
         ["src/SimplArchive.Sapass/Commands/ShowCommand.cs"] = 2,   // data output only: the password, then the fields
         ["src/SimplArchive.Sapass/Commands/GenerateCommand.cs"] = 1,   // data output only: the secret it generated

@@ -111,9 +111,10 @@ public static class WindowShots
             return true;
         }
 
-        // Headless render of the sealed-document audience picker (ADRs 0975/0976): `--audience-screenshot <out.png>`.
-        // A Window like the card picker below, reachable only from the New-sealed-document action, so nothing else can
-        // load it. `--rows` injects two readers and a certificate from a file so the POPULATED layout is checked.
+        // Headless render of the audience editor (ADR 0983): `--audience-screenshot <out.png>`. A Window reached from
+        // "Encrypted for…" and New sealed document, so nothing else can load it headless. `--rows` fills it with a
+        // manager, a member, a group, one member no longer in effect and two readers to add, so the POPULATED layout is
+        // checked.
         var audienceShotIndex = Array.IndexOf(args, "--audience-screenshot");
         if (audienceShotIndex >= 0 && audienceShotIndex + 1 < args.Length)
         {
@@ -129,7 +130,7 @@ public static class WindowShots
                 .WithInterFont()
                 .SetupWithoutStarting();
 
-            var audience = new Views.AudienceDialog();
+            var audience = new Views.ContentAudienceDialog();
             if (args.Contains("--rows"))
             {
                 audience.FillForShot();

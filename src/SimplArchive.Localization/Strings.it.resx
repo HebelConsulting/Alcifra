@@ -6535,48 +6535,6 @@
     <value>Passo del workflow</value>
   </data>
 
-  <data name="AudienceTitle" xml:space="preserve">
-    <value>Sigilla per…</value>
-  </data>
-  <data name="AudienceBody" xml:space="preserve">
-    <value>Solo le persone e i certificati scelti possono leggere questo documento. Il contenuto viene sigillato su questo dispositivo; il server lo memorizza senza possedere alcuna chiave.</value>
-  </data>
-  <data name="AudienceSearch" xml:space="preserve">
-    <value>Cerca persone</value>
-  </data>
-  <data name="AudienceFind" xml:space="preserve">
-    <value>Cerca</value>
-  </data>
-  <data name="AudienceAddFile" xml:space="preserve">
-    <value>Aggiungi file di certificato…</value>
-  </data>
-  <data name="AudienceSeal" xml:space="preserve">
-    <value>Sigilla</value>
-  </data>
-  <data name="AudienceFromFiles" xml:space="preserve">
-    <value>Certificati aggiunti</value>
-  </data>
-  <data name="AudienceLoading" xml:space="preserve">
-    <value>Lettura di chi può ricevere il sigillo…</value>
-  </data>
-  <data name="AudienceUnavailable" xml:space="preserve">
-    <value>Questa installazione non offre un elenco dei lettori.</value>
-  </data>
-  <data name="AudiencePeople" xml:space="preserve">
-    <value>È possibile sigillare per {0} persone.</value>
-  </data>
-  <data name="AudienceNone" xml:space="preserve">
-    <value>Nessuno qui ha ancora un certificato di lettura.</value>
-  </data>
-  <data name="AudienceFileNeedsChain" xml:space="preserve">
-    <value>Il file deve contenere il certificato e la sua catena di attestazione, in questo ordine: certificato, certificato di attestazione, intermedio.</value>
-  </data>
-  <data name="AudienceFileRefused" xml:space="preserve">
-    <value>Non è possibile sigillare per questo certificato.</value>
-  </data>
-  <data name="AudienceFileAdded" xml:space="preserve">
-    <value>{0} aggiunto.</value>
-  </data>
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>Nuovo documento sigillato…</value>
   </data>
@@ -6609,9 +6567,6 @@
     <value>Salvato. Chi vuole sigillare un documento per te ha bisogno di questo file.</value>
   </data>
 
-  <data name="RibbonChangeAudience" xml:space="preserve">
-    <value>Cambia destinatari…</value>
-  </data>
   <data name="StResealingDoc" xml:space="preserve">
     <value>Nuovo sigillo per '{0}'…</value>
   </data>
@@ -6671,5 +6626,95 @@
   </data>
   <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
     <value>Per spostarlo in un altro archivio di password devi far parte del pubblico di entrambi, così da poterlo cifrare per il nuovo.</value>
+  </data>
+  <data name="AudTitle" xml:space="preserve">
+    <value>Cifrato per</value>
+  </data>
+  <data name="AudRibbon" xml:space="preserve">
+    <value>Cifrato per…</value>
+  </data>
+  <data name="AudPersonal" xml:space="preserve">
+    <value>Si trova in uno spazio personale: solo il proprietario può decifrarlo, e non si può cambiare.</value>
+  </data>
+  <data name="AudManaging" xml:space="preserve">
+    <value>Gestisci chi può decifrarlo. Il salvataggio lo risigilla con la tua chiave nello stesso passaggio.</value>
+  </data>
+  <data name="AudAppointing" xml:space="preserve">
+    <value>Nessuno lo gestisce più. Come amministratore puoi nominare un gestore tra i lettori; nient'altro si può cambiare qui.</value>
+  </data>
+  <data name="AudReadOnly" xml:space="preserve">
+    <value>Solo i suoi gestori possono cambiare chi può decifrarlo.</value>
+  </data>
+  <data name="AudNotInEffect" xml:space="preserve">
+    <value>Nessun diritto di lettura: non decifra nulla</value>
+  </data>
+  <data name="AudNeedsManager" xml:space="preserve">
+    <value>Mantieni almeno una persona come gestore.</value>
+  </data>
+  <data name="AudPickReader" xml:space="preserve">
+    <value>Aggiungi un lettore…</value>
+  </data>
+  <data name="AudAdd" xml:space="preserve">
+    <value>Aggiungi</value>
+  </data>
+  <data name="AudMissingReader" xml:space="preserve">
+    <value>Manca qualcuno? Si possono aggiungere solo persone e gruppi che possono leggerlo: concedi prima il diritto di lettura.</value>
+  </data>
+  <data name="AudSave" xml:space="preserve">
+    <value>Salva e risigilla</value>
+  </data>
+  <data name="AudManager" xml:space="preserve">
+    <value>Gestore</value>
+  </data>
+  <data name="AudRemove" xml:space="preserve">
+    <value>Rimuovi</value>
+  </data>
+  <data name="AudSignNotYou" xml:space="preserve">
+    <value>Non cifrato per te</value>
+  </data>
+  <data name="AudSignNotYet" xml:space="preserve">
+    <value>Non ancora cifrato per te: il prossimo risigillo di un membro ti includerà</value>
+  </data>
+  <data name="AudNobodyHasAKey" xml:space="preserve">
+    <value>Nessuno nel pubblico ha ancora una chiave hardware registrata, quindi non si è potuto sigillare nulla. Registra prima una chiave.</value>
+  </data>
+  <data name="AudSaving" xml:space="preserve">
+    <value>Salvataggio di per chi è cifrato '{0}'…</value>
+  </data>
+  <data name="AudSaved" xml:space="preserve">
+    <value>Salvato per chi è cifrato '{0}', e risigillato.</value>
+  </data>
+  <data name="AudResealFailed" xml:space="preserve">
+    <value>{0} voci non si sono potute aprire con la tua chiave e non sono state risigillate.</value>
+  </data>
+  <data name="AudAppointed" xml:space="preserve">
+    <value>Il gestore è nominato. Un membro con una chiave risigilla l'archivio per i nuovi membri.</value>
+  </data>
+  <data name="AudSavedCount" xml:space="preserve">
+    <value>Ora cifrato per {0} persone.</value>
+  </data>
+  <data name="AudWithoutKey" xml:space="preserve">
+    <value>Nessuna chiave hardware registrata, quindi non sigillato per: {0}.</value>
+  </data>
+  <data name="AudLoadFailed" xml:space="preserve">
+    <value>Non è stato possibile leggere per chi è cifrato.</value>
+  </data>
+  <data name="AudManagingWeb" xml:space="preserve">
+    <value>Gestisci chi può decifrarlo.</value>
+  </data>
+  <data name="AudWebNoReseal" xml:space="preserve">
+    <value>Un browser non ha chiavi: per chi viene rimosso il salvataggio vale subito, e per chi viene aggiunto un membro risigilla alla prossima apertura nell'app desktop o telefono.</value>
+  </data>
+  <data name="AudSaveWeb" xml:space="preserve">
+    <value>Salva</value>
+  </data>
+  <data name="AudChangedMeanwhile" xml:space="preserve">
+    <value>Qualcuno ha cambiato nel frattempo per chi è cifrato: chiudi e riapri.</value>
+  </data>
+  <data name="AudSaveFailed" xml:space="preserve">
+    <value>Non è stato possibile salvare per chi è cifrato.</value>
+  </data>
+  <data name="AudSavedWeb" xml:space="preserve">
+    <value>Salvato. Per chi è stato aggiunto, un membro risigilla nell'app desktop o telefono.</value>
   </data>
 </root>

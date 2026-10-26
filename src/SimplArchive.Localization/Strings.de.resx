@@ -6535,48 +6535,6 @@
     <value>Workflow-Schritt</value>
   </data>
 
-  <data name="AudienceTitle" xml:space="preserve">
-    <value>Versiegeln für…</value>
-  </data>
-  <data name="AudienceBody" xml:space="preserve">
-    <value>Nur die gewählten Personen und Zertifikate können dieses Dokument lesen. Der Inhalt wird auf diesem Gerät versiegelt; der Server speichert ihn und hält keinen Schlüssel.</value>
-  </data>
-  <data name="AudienceSearch" xml:space="preserve">
-    <value>Personen suchen</value>
-  </data>
-  <data name="AudienceFind" xml:space="preserve">
-    <value>Suchen</value>
-  </data>
-  <data name="AudienceAddFile" xml:space="preserve">
-    <value>Zertifikatsdatei hinzufügen…</value>
-  </data>
-  <data name="AudienceSeal" xml:space="preserve">
-    <value>Versiegeln</value>
-  </data>
-  <data name="AudienceFromFiles" xml:space="preserve">
-    <value>Hinzugefügte Zertifikate</value>
-  </data>
-  <data name="AudienceLoading" xml:space="preserve">
-    <value>Es wird gelesen, für wen versiegelt werden kann…</value>
-  </data>
-  <data name="AudienceUnavailable" xml:space="preserve">
-    <value>Diese Installation bietet kein Leserverzeichnis an.</value>
-  </data>
-  <data name="AudiencePeople" xml:space="preserve">
-    <value>Für {0} Personen kann versiegelt werden.</value>
-  </data>
-  <data name="AudienceNone" xml:space="preserve">
-    <value>Hier hat noch niemand ein Leserzertifikat hinterlegt.</value>
-  </data>
-  <data name="AudienceFileNeedsChain" xml:space="preserve">
-    <value>Die Datei muss das Zertifikat und seine Attestierungskette enthalten, in dieser Reihenfolge: Zertifikat, Attestierungszertifikat, Zwischenzertifikat.</value>
-  </data>
-  <data name="AudienceFileRefused" xml:space="preserve">
-    <value>Auf dieses Zertifikat kann nicht versiegelt werden.</value>
-  </data>
-  <data name="AudienceFileAdded" xml:space="preserve">
-    <value>{0} hinzugefügt.</value>
-  </data>
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>Neues versiegeltes Dokument…</value>
   </data>
@@ -6609,9 +6567,6 @@
     <value>Gespeichert. Wer ein Dokument für Sie versiegeln möchte, braucht diese Datei.</value>
   </data>
 
-  <data name="RibbonChangeAudience" xml:space="preserve">
-    <value>Empfängerkreis ändern…</value>
-  </data>
   <data name="StResealingDoc" xml:space="preserve">
     <value>'{0}' wird neu versiegelt…</value>
   </data>
@@ -6671,5 +6626,95 @@
   </data>
   <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
     <value>Zum Verschieben in einen anderen Passwortspeicher müssen Sie zu beiden Zielgruppen gehören, damit Sie es für den neuen verschlüsseln können.</value>
+  </data>
+  <data name="AudTitle" xml:space="preserve">
+    <value>Verschlüsselt für</value>
+  </data>
+  <data name="AudRibbon" xml:space="preserve">
+    <value>Verschlüsselt für…</value>
+  </data>
+  <data name="AudPersonal" xml:space="preserve">
+    <value>Dies liegt in einem persönlichen Bereich: Nur sein Besitzer kann es entschlüsseln, und das lässt sich nicht ändern.</value>
+  </data>
+  <data name="AudManaging" xml:space="preserve">
+    <value>Sie verwalten, wer dies entschlüsseln kann. Beim Speichern wird es im selben Schritt mit Ihrem Schlüssel neu versiegelt.</value>
+  </data>
+  <data name="AudAppointing" xml:space="preserve">
+    <value>Niemand verwaltet dies mehr. Als Administrator dürfen Sie einen Verwalter aus den Lesenden ernennen; sonst lässt sich hier nichts ändern.</value>
+  </data>
+  <data name="AudReadOnly" xml:space="preserve">
+    <value>Nur seine Verwalter können ändern, wer dies entschlüsseln kann.</value>
+  </data>
+  <data name="AudNotInEffect" xml:space="preserve">
+    <value>Kein Leserecht mehr: entschlüsselt nichts</value>
+  </data>
+  <data name="AudNeedsManager" xml:space="preserve">
+    <value>Behalten Sie mindestens eine Person als Verwalter.</value>
+  </data>
+  <data name="AudPickReader" xml:space="preserve">
+    <value>Lesende Person hinzufügen…</value>
+  </data>
+  <data name="AudAdd" xml:space="preserve">
+    <value>Hinzufügen</value>
+  </data>
+  <data name="AudMissingReader" xml:space="preserve">
+    <value>Fehlt jemand? Nur Personen und Gruppen mit Leserecht können hinzugefügt werden: erteilen Sie zuerst Leserechte.</value>
+  </data>
+  <data name="AudSave" xml:space="preserve">
+    <value>Speichern und neu versiegeln</value>
+  </data>
+  <data name="AudManager" xml:space="preserve">
+    <value>Verwalter</value>
+  </data>
+  <data name="AudRemove" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="AudSignNotYou" xml:space="preserve">
+    <value>Nicht für Sie verschlüsselt</value>
+  </data>
+  <data name="AudSignNotYet" xml:space="preserve">
+    <value>Noch nicht für Sie verschlüsselt: Die nächste Neuversiegelung eines Mitglieds schließt Sie ein</value>
+  </data>
+  <data name="AudNobodyHasAKey" xml:space="preserve">
+    <value>Niemand in der Zielgruppe hat bisher einen registrierten Hardware-Schlüssel, daher konnte nichts versiegelt werden. Registrieren Sie zuerst einen Schlüssel.</value>
+  </data>
+  <data name="AudSaving" xml:space="preserve">
+    <value>Speichere, für wen „{0}“ verschlüsselt ist…</value>
+  </data>
+  <data name="AudSaved" xml:space="preserve">
+    <value>Gespeichert, für wen „{0}“ verschlüsselt ist, und neu versiegelt.</value>
+  </data>
+  <data name="AudResealFailed" xml:space="preserve">
+    <value>{0} Einträge ließen sich mit Ihrem Schlüssel nicht öffnen und wurden nicht neu versiegelt.</value>
+  </data>
+  <data name="AudAppointed" xml:space="preserve">
+    <value>Der Verwalter ist ernannt. Ein Mitglied mit Schlüssel versiegelt den Speicher für neue Mitglieder neu.</value>
+  </data>
+  <data name="AudSavedCount" xml:space="preserve">
+    <value>Jetzt für {0} Personen verschlüsselt.</value>
+  </data>
+  <data name="AudWithoutKey" xml:space="preserve">
+    <value>Noch kein registrierter Hardware-Schlüssel, daher nicht versiegelt für: {0}.</value>
+  </data>
+  <data name="AudLoadFailed" xml:space="preserve">
+    <value>Für wen dies verschlüsselt ist, konnte nicht gelesen werden.</value>
+  </data>
+  <data name="AudManagingWeb" xml:space="preserve">
+    <value>Sie verwalten, wer dies entschlüsseln kann.</value>
+  </data>
+  <data name="AudWebNoReseal" xml:space="preserve">
+    <value>Ein Browser hat keinen Schlüssel: Für Entfernte gilt das Speichern sofort, und für Hinzugefügte versiegelt ein Mitglied neu, sobald es dies in der Desktop- oder Telefon-App öffnet.</value>
+  </data>
+  <data name="AudSaveWeb" xml:space="preserve">
+    <value>Speichern</value>
+  </data>
+  <data name="AudChangedMeanwhile" xml:space="preserve">
+    <value>Jemand hat inzwischen geändert, für wen dies verschlüsselt ist – schließen und erneut öffnen.</value>
+  </data>
+  <data name="AudSaveFailed" xml:space="preserve">
+    <value>Für wen dies verschlüsselt ist, konnte nicht gespeichert werden.</value>
+  </data>
+  <data name="AudSavedWeb" xml:space="preserve">
+    <value>Gespeichert. Für Hinzugefügte versiegelt ein Mitglied in der Desktop- oder Telefon-App neu.</value>
   </data>
 </root>

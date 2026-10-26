@@ -583,10 +583,8 @@
                             <MudDivider />
                             @* Manage access had TWO answers for one action: ungated here, flag-gated in the
                                detail pane (ADR 0511's split-surface drift). The pane's answer was the right one. *@
-                            @if (tn.CanManagePermissions)
-                            {
-                                <MudMenuItem Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(tn)">@Strings.Get("MaManageAccess")</MudMenuItem>
-                            }
+                            @if (tn.CanManagePermissions) { <MudMenuItem Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(tn)">@Strings.Get("MaManageAccess")</MudMenuItem> }
+                            @if (tn.HasAudience) { <MudMenuItem Icon="@Icons.Material.Outlined.Key" OnClick="() => RunAndRefreshAsync(Actions.OpenAudienceAsync(tn))">@Strings.Get("AudRibbon")</MudMenuItem> }
                             @if (_canLegalHold)
                             {
                                 <MudMenuItem Icon="@Icons.Material.Filled.Gavel" OnClick="() => RunAndRefreshAsync(Actions.PlaceLegalHoldAsync(tn))">@Strings.Get("CtxPlaceLegalHold")</MudMenuItem>
@@ -720,10 +718,8 @@
                                 <MudMenuItem Icon="@Icons.Material.Filled.Alarm" OnClick="() => OpenReminderDialogAsync(node)">@Strings.Get("MwRemind")</MudMenuItem>
                             }
                             <DocumentActionsMenu Offer="@OfferFor(node)" Host="this" />
-                            @if (!node.IsReference && node.CanManagePermissions)
-                            {
-                                <MudMenuItem data-tour="action-manage-access" Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(node)">@Strings.Get("MaManageAccess")</MudMenuItem>
-                            }
+                            @if (!node.IsReference && node.CanManagePermissions) { <MudMenuItem data-tour="action-manage-access" Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(node)">@Strings.Get("MaManageAccess")</MudMenuItem> }
+                            @if (!node.IsReference && node.HasAudience) { <MudMenuItem data-test="action-audience" Icon="@Icons.Material.Outlined.Key" OnClick="() => RunAndRefreshAsync(Actions.OpenAudienceAsync(node))">@Strings.Get("AudRibbon")</MudMenuItem> }
                             @if (!node.IsReference && node.CanDelete)
                             {
                                 <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="() => DeleteRowAsync(node)">@Strings.Get("UgDelete")</MudMenuItem>

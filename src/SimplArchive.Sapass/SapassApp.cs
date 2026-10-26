@@ -78,6 +78,8 @@ public static class SapassApp
                 .WithDescription("Delete an entry (the archive's own delete rules apply).");
             config.AddCommand<ResealCommand>("reseal")
                 .WithDescription("Seal a store's entries again to its readers' current certificates.");
+            config.AddCommand<AudienceCommand>("audience")
+                .WithDescription("Show or change who a store is encrypted for, and re-seal it.");
             config.AddCommand<CompletionCommand>("completion")
                 .WithDescription("Print the shell completion script (bash, zsh, fish).");
             config.AddBranch("browser", browser =>

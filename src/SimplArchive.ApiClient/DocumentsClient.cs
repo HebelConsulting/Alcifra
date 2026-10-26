@@ -693,7 +693,18 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
         item.TryGetProperty("canMove", out var cm) && cm.ValueKind == JsonValueKind.True,
         item.TryGetProperty("canManagePermissions", out var cmp) && cmp.ValueKind == JsonValueKind.True,
         item.TryGetProperty("canCreateChildren", out var ccc) && ccc.ValueKind == JsonValueKind.True,
-        RowFlags.IsFolderOf(item));
+        RowFlags.IsFolderOf(item),
+        EncryptedForOf(item));
+
+    // The row's sign for encrypted content (ADR 0983); an absent or unknown value marks nothing.
+    internal static EncryptedFor EncryptedForOf(JsonElement item) =>
+        (item.TryGetProperty("encryptedForCaller", out var e) && e.ValueKind == JsonValueKind.String ? e.GetString() : null) switch
+        {
+            "you" => EncryptedFor.You,
+            "not-you" => EncryptedFor.NotYou,
+            "not-yet-you" => EncryptedFor.NotYetYou,
+            _ => EncryptedFor.NotEncryptedContent,
+        };
 
     // What this folder will accept, with the address for each (#673). An absent or empty array means the
     // client offers no creates here — the same reading as a missing rel: not available to you, here, now.
