@@ -225,6 +225,24 @@ internal static class WebDavMoveCopy
             return;
         }
 
+        // MOVE BY RIGHTS, the ones the REST door asks (#1935): moving needs CanMove on the item and CanCreateSubItems on
+        // the new parent, renaming needs CanEditIndexData. Absent to whoever may not see it.
+        var itemRights = await WebDavMiddleware.RightsAsync(services, user, document.Id);
+        var reparented = destParentDoc.Id != document.ParentId;
+        var renamed = !string.Equals(newName, document.Name, StringComparison.Ordinal);
+        if (!itemRights.CanSee)
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if ((reparented && (!itemRights.CanMove || !(await WebDavMiddleware.RightsAsync(services, user, destParentDoc.Id)).CanCreateSubItems))
+            || (renamed && !itemRights.CanEditIndexData))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         // Dragging a message out of the mounted inbox files it, so the bytes move too (#633). A refused
         // crossing is a 409, the same answer the client gets for any placement this server will not make.
         try
@@ -331,7 +349,7 @@ internal static class WebDavMoveCopy
         var finalizer = services.GetRequiredService<DocumentFinalizer>();
         try
         {
-            await CopyDocumentAsync(db, storage, finalizer, user, sourceDoc.Id, destParentDoc.Id, Path.GetFileNameWithoutExtension(destSegments[^1]), context.RequestAborted);
+            await CopyDocumentAsync(db, storage, finalizer, user, id => WebDavMiddleware.RightsAsync(services, user, id), sourceDoc.Id, destParentDoc.Id, Path.GetFileNameWithoutExtension(destSegments[^1]), context.RequestAborted);
         }
         catch (InvalidOperationException)
         {
@@ -344,7 +362,7 @@ internal static class WebDavMoveCopy
 
     // Recursively copies a document under destParentId: a file → a new Document + a copy of its current version
     // blob (finalized like an upload); a folder → a new folder + recursed children (keeping their names).
-    private static async Task CopyDocumentAsync(SimplArchiveDbContext db, IObjectStorageClient storage, DocumentFinalizer finalizer, User user, Guid sourceId, Guid destParentId, string newName, CancellationToken ct)
+    private static async Task CopyDocumentAsync(SimplArchiveDbContext db, IObjectStorageClient storage, DocumentFinalizer finalizer, User user, Func<Guid, Task<EffectiveRights>> rights, Guid sourceId, Guid destParentId, string newName, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
         // Copy the source's current version honoring the CurrentVersionId pointer (issue #265), else latest confirmed.
@@ -366,10 +384,15 @@ internal static class WebDavMoveCopy
             db.Documents.Add(folder);
             await db.SaveChangesAsync(ct);
 
+            // Only what the caller may read is copied (#1935): a folder's own rights do not reach a child that broke
+            // inheritance, and a copy is a new document the caller then owns — copying such a child would launder it.
             var children = await db.Documents.Where(d => d.ParentId == sourceId).Select(d => new { d.Id, d.Name }).ToListAsync(ct);
             foreach (var child in children)
             {
-                await CopyDocumentAsync(db, storage, finalizer, user, child.Id, folder.Id, child.Name, ct);
+                if ((await rights(child.Id)).CanReadContent)
+                {
+                    await CopyDocumentAsync(db, storage, finalizer, user, rights, child.Id, folder.Id, child.Name, ct);
+                }
             }
 
             return;

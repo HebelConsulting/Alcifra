@@ -275,6 +275,16 @@ internal static class WebDavReads
             return;
         }
 
+        // READ BY RIGHTS, as the REST door reads (#1935). Resolution walks names, not rights — PROPFIND filters what it
+        // LISTS, which made this gap invisible from a mounted drive — so a path somebody merely knew used to stream the
+        // document to them. Absent to whoever may not see it, as in a listing; refused to whoever sees but may not read.
+        if (node.Document is { } document
+            && await WebDavMiddleware.RightsAsync(services, user, document.Id) is { CanReadContent: false } rights)
+        {
+            context.Response.StatusCode = rights.CanSee ? StatusCodes.Status403Forbidden : StatusCodes.Status404NotFound;
+            return;
+        }
+
         // A document the CALLER has checked out serves their WORKING COPY, not the last checked-in version
         // (#762). The mount then behaves like a filesystem: what you saved is what you read back. Without this,
         // every save over WebDAV — which is a working copy by design (ADR 0562) — would read back as the
