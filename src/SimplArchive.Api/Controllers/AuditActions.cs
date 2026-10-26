@@ -95,6 +95,10 @@ public static class AuditActions
     public const string PasswordEntryCreated = "PasswordEntry.Created";
     public const string PasswordEntryChanged = "PasswordEntry.Changed";
     public const string PasswordEntryResealed = "PasswordEntry.Resealed";
+    // Encrypted content's audience (ADR 0983): a manager changed who is meant to decrypt a store or a Sealed document,
+    // or a tenant administrator appointed a manager to one left without any. Names and counts, never a certificate.
+    public const string ContentAudienceChanged = "ContentAudience.Changed";
+    public const string ContentAudienceManagerAppointed = "ContentAudience.ManagerAppointed";
     // A revoked certificate can read the entry's current version: the server marked it "Exposed since" (ADR 0964).
     public const string PasswordEntryExposed = "PasswordEntry.Exposed";
     // An entry that received no content within a day of its creation, removed by the sweep (ADR 0964).

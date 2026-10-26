@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SimplArchive.Api.Concurrency;
+using SimplArchive.Api.Errors.Exceptions.Audience;
 using SimplArchive.Api.Errors.Exceptions.Concurrency;
 using SimplArchive.Api.Errors.Exceptions.PasswordStores;
 using SimplArchive.Application.Abstractions;
@@ -77,22 +78,20 @@ public sealed class PasswordEntryVersions(
 
         if (reseal && sealedMask == WellKnownMaskIds.SealedDocument)
         {
-            // "CHANGE AUDIENCE…" IS THE AUTHOR'S ACT (ADR 0975), and the server is where that is decided. A re-seal
-            // hands the content to a NEW audience, so it must be the act of whoever filed the version being
-            // re-sealed — otherwise a reader who can open the content could pass it on. A Password Entry's re-seal is
-            // a different act (a reader re-addressing the store after a revocation, ADR 0964) and stays open to its
-            // readers, which is why this check names the Sealed DOCUMENT.
-            var currentAuthor = await dbContext.DocumentVersions
-                .Where(v => v.DocumentId == document.Id && v.Status == DocumentVersionStatus.Confirmed)
-                .OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id)
-                .Select(v => v.CreatedByUserId)
-                .FirstOrDefaultAsync(cancellationToken);
-            if (currentUser.UserId is not { } caller || currentAuthor != caller)
+            // A RE-SEAL OF A SEALED DOCUMENT IS AN AUDIENCE MANAGER'S ACT (ADR 0983, replacing ADR 0975's author check),
+            // and the server is where that is decided: a re-seal hands the content to the declared audience, so it must
+            // be the act of somebody who may declare it — otherwise a reader who can open the content could pass it on.
+            // A Password Entry's re-seal stays open to the store's members with edit rights (ADR 0964): a new
+            // certificate or a group change needs one too, and it seals only to the audience the managers declared.
+            // Resolved per call, as the history is: the audience needs services this class must not construct.
+            var audience = services.GetRequiredService<SimplArchive.Api.Audience.ContentAudience>();
+            if (await audience.RootOfAsync(document.Id, cancellationToken) is not { } root
+                || !await audience.IsManagerAsync(root, currentUser.UserId, cancellationToken))
             {
                 // Leaves nothing behind, as the shape refusal does: a caller who may not change the audience must not be
                 // able to fill the document's history — or the bucket — by asking.
                 await DiscardAsync(version, cancellationToken);
-                throw new AudienceChangeRequiresTheAuthorException();
+                throw new AudienceChangeRequiresManagerException();
             }
         }
 

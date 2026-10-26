@@ -15,8 +15,11 @@ namespace SimplArchive.Api.Documents;
 /// addressed to the caller's certificates, written in place of the content. Null elsewhere.</param>
 /// <param name="Seal">With the module's "seal index data and chat": those two files, sealed to the caller's
 /// certificates as one S/MIME artefact. Null when they travel as they are.</param>
+/// <param name="Withholds">Whether a document's content must stay out because it is encrypted content the caller is not
+/// in the audience of (ADR 0983): the document's metadata travels, its versions' content does not.</param>
 public sealed record OfflineExportAudience(
     Guid? UserId,
     Func<IReadOnlyCollection<Guid>, CancellationToken, Task<IReadOnlyDictionary<Guid, EffectiveRights>>> RightsForMany,
     Func<Domain.Documents.DocumentVersion, CancellationToken, Task<byte[]>>? Envelope = null,
-    Func<byte[], byte[]>? Seal = null);
+    Func<byte[], byte[]>? Seal = null,
+    Func<Guid, CancellationToken, Task<bool>>? Withholds = null);

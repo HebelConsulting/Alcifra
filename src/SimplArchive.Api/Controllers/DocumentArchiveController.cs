@@ -33,14 +33,19 @@ public class DocumentArchiveController : ControllerBase
     private readonly ICurrentServiceAccountAccessor _currentServiceAccountAccessor;
     private readonly ICurrentUserAccessor _currentUserAccessor;
 
+    // Encrypted content goes only to its audience (ADR 0983).
+    private readonly Audience.ContentAudience _audience;
+
     public DocumentArchiveController(
         SimplArchiveDbContext dbContext,
         IEffectiveRightsCalculator effectiveRightsCalculator,
         IObjectStorageClient objectStorageClient,
         IArchiveReader archiveReader,
         ICurrentServiceAccountAccessor currentServiceAccountAccessor,
-        ICurrentUserAccessor currentUserAccessor)
+        ICurrentUserAccessor currentUserAccessor,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _dbContext = dbContext;
         _effectiveRightsCalculator = effectiveRightsCalculator;
         _objectStorageClient = objectStorageClient;
@@ -264,6 +269,11 @@ public class DocumentArchiveController : ControllerBase
     // DocumentVersionsController — see ADR "Document-scope authorization retrofit for User".
     private async Task<bool> CanReadContentAsync(Guid documentId, CancellationToken cancellationToken)
     {
+        if (await _audience.WithholdsFromCallerAsync(documentId, cancellationToken))
+        {
+            return false;
+        }
+
         if (_currentServiceAccountAccessor.ServiceAccountId is { } serviceAccountId)
         {
             return (await _effectiveRightsCalculator.GetEffectiveRightsForServiceAccountAsync(serviceAccountId, documentId, cancellationToken)).CanReadContent;

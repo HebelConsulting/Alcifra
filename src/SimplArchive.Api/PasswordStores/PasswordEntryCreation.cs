@@ -9,7 +9,7 @@ namespace SimplArchive.Api.PasswordStores;
 /// </summary>
 /// <remarks>
 /// <para>
-/// An entry's content is sealed to the store's readers' attested certificates (ADR 0964), so the offer is honest only
+/// An entry's content is sealed to the attested certificates of the store's effective audience (ADRs 0964, 0983), so the offer is honest only
 /// when what is saved can be read back: a PERSON must be one of those readers and hold a certificate. A SERVICE ACCOUNT
 /// holds no key and never reads (saconsole's seeding, ADR 0966); it seals to the readers, so its offer is honest as long
 /// as some reader holds a certificate.
@@ -25,8 +25,9 @@ public static class NewEntryUnavailableReasons
     public const string EnrolmentRequired = "enrolment-required";
 
     /// <summary>
-    /// A person who may create here without being one of the store's readers (typically a tenant administrator through
-    /// the bypass, which makes nobody a reader, ADR 0964): nothing they saved would be sealed to them.
+    /// A person who may create here without being in the store's effective audience (ADR 0983): a reader the managers
+    /// did not add, or a tenant administrator through the bypass, which makes nobody a member. Nothing they saved would
+    /// be sealed to them. The wire value keeps its released name, so a released client still recognises it.
     /// </summary>
     public const string NotAReader = "not-a-reader";
 

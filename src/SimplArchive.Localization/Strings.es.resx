@@ -6382,7 +6382,7 @@
     <value>Las nuevas entradas se sellan para su llave de hardware y aún no ha registrado ninguna, así que no podría abrir lo que guarde. Registre primero una llave.</value>
   </data>
   <data name="PwNotAReader" xml:space="preserve">
-    <value>Puede administrar este almacén pero no leerlo, así que una nueva entrada no se sellaría para usted. Concédase permiso de lectura para añadir entradas.</value>
+    <value>No forma parte de la audiencia de este almacén, así que una nueva entrada no se cifraría para usted. Pida a uno de sus administradores de audiencia que le añada.</value>
   </data>
   <data name="PwNewEntryUnavailable" xml:space="preserve">
     <value>Aquí no se pueden añadir entradas nuevas.</value>
@@ -6630,9 +6630,6 @@
   <data name="StErrResealNoContent" xml:space="preserve">
     <value>Este documento no ofrece contenido que volver a sellar.</value>
   </data>
-  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
-    <value>Solo el autor de la versión actual de este documento sellado puede cambiar para quién está sellado.</value>
-  </data>
   <data name="AccountBrowserAutofill" xml:space="preserve">
     <value>Relleno automático del navegador…</value>
   </data>
@@ -6653,5 +6650,26 @@
   </data>
   <data name="BrowserAutofillScope" xml:space="preserve">
     <value>Solo la extensión con este ID puede preguntar; el secreto solo sale de esta máquina hacia la página que elijas.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresManager" xml:space="preserve">
+    <value>Solo un administrador de la audiencia puede cambiar para quién está cifrado.</value>
+  </data>
+  <data name="ApiErrAudienceMemberNotAReader" xml:space="preserve">
+    <value>Solo las personas y grupos que pueden leerlo pueden formar parte de la audiencia. Conceda primero permiso de lectura.</value>
+  </data>
+  <data name="ApiErrAudienceManagerMustBeAUser" xml:space="preserve">
+    <value>Un administrador de la audiencia debe ser una persona, no un grupo.</value>
+  </data>
+  <data name="ApiErrAudienceNeedsAManager" xml:space="preserve">
+    <value>La audiencia debe conservar al menos un administrador que pueda leerla.</value>
+  </data>
+  <data name="ApiErrAudienceFixedInPersonalSpace" xml:space="preserve">
+    <value>Está en un espacio personal: solo su propietario puede descifrarlo y su audiencia no se puede cambiar.</value>
+  </data>
+  <data name="ApiErrAudienceAdministratorMayOnlyAppoint" xml:space="preserve">
+    <value>Sin administradores de audiencia, un administrador solo puede nombrar a uno entre los lectores.</value>
+  </data>
+  <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
+    <value>Para moverlo a otro almacén de contraseñas debe formar parte de la audiencia de ambos, para poder cifrarlo para el nuevo.</value>
   </data>
 </root>

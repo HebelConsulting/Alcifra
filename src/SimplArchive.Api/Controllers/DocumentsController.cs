@@ -54,8 +54,10 @@ public class DocumentsController : ControllerBase
         Documents.DocumentResourceLinks resourceLinks,
         Documents.MachineStatusEvaluator machineStatuses,
         Documents.ModuleActionEvaluator moduleActions,
-        Concurrency.DocumentVerbs documents)
+        Concurrency.DocumentVerbs documents,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _currentTenantAccessor = currentTenantAccessor;
         _documents = documents;
         _mover = mover;
@@ -72,6 +74,7 @@ public class DocumentsController : ControllerBase
     }
 
     private readonly IAuditRecorder _audit;
+    private readonly Audience.ContentAudience _audience;
     private readonly ILegalHoldService _legalHold;
     private readonly IUserSystemRightsResolver _userSystemRights;
 
@@ -275,14 +278,11 @@ public class DocumentsController : ControllerBase
         // The latest confirmed version's object key answers BOTH questions in one query: whether this is a
         // folder (no confirmed version) and whether it is a zip (issue #416). Both clients decided the latter by
         // string-comparing a file extension they carried around — an inference a rel should make for them.
-        // Its CREATOR rides along for the sealed document's "Change audience…" flag (ADR 0975): which version is
-        // current is the same ordering the versions listing uses, asked once here rather than twice.
-        var latest = await _dbContext.DocumentVersions
+        var latestKey = await _dbContext.DocumentVersions
             .Where(v => v.DocumentId == documentId && v.Status == DocumentVersionStatus.Confirmed)
             .OrderByDescending(v => v.CreatedAt).ThenByDescending(v => v.Id)
-            .Select(v => new { v.ObjectKey, v.CreatedByUserId })
+            .Select(v => v.ObjectKey)
             .FirstOrDefaultAsync(cancellationToken);
-        var latestKey = latest?.ObjectKey;
 
         // A folder by its mask, not by "has no file" (#1708): a file-less record is a document and gets a document's
         // rels. The archive test below still reads the file, which is what it is about.
@@ -304,15 +304,21 @@ public class DocumentsController : ControllerBase
             ? await _dbContext.MaskVersions.Where(v => v.Id == mvId).Select(v => (Guid?)v.MaskId).SingleOrDefaultAsync(cancellationToken)
             : null;
 
-        // "Change audience…" is the author's act (ADR 0975), and every condition the version upload would enforce is
-        // asked HERE so the flag cannot promise a click that refuses: the sealed document, filed by this caller, with
-        // content editing allowed and the item neither checked out nor under a hold.
+        // "Change audience…" is an AUDIENCE MANAGER's act (ADR 0983, replacing ADR 0975's author rule), and every
+        // condition the version upload would enforce is asked HERE so the flag cannot promise a click that refuses:
+        // the sealed document, an effective manager as the caller, content editing allowed, neither checked out nor
+        // under a hold. The audience itself is reached by its own rel, for whoever may see the document.
+        var audienceRoot = await _audience.RootOfAsync(documentId, cancellationToken);
         var canChangeAudience = maskId == WellKnownMaskIds.SealedDocument
-            && latest?.CreatedByUserId is { } author
-            && author == _access.GetCallerIdentity().UserId
+            && audienceRoot is { IsPersonal: false }
+            && await _audience.IsManagerAsync(audienceRoot, _access.GetCallerIdentity().UserId, cancellationToken)
             && rights.CanEditContent
             && checkedOut is null
             && !onLegalHold;
+        if (audienceRoot is not null)
+        {
+            links.Add(new Link("audience", $"/api/documents/{audienceRoot.DocumentId}/audience", "GET"));
+        }
 
         return Ok(new DocumentResource
         {
@@ -603,6 +609,12 @@ public class DocumentsController : ControllerBase
         if (!itemRights.CanMove || !targetRights.CanCreateSubItems)
         {
             return Forbid();
+        }
+
+        // Into another password store only for somebody in both audiences, whose client re-seals it (ADR 0983).
+        if (!await _audience.MayMoveAsync(documentId, request.ParentId, cancellationToken))
+        {
+            throw new Errors.Exceptions.Audience.MoveRequiresBothAudiencesException();
         }
 
         // Moving a root document (a repository, ParentId == null) into a folder demotes the repository — a structural

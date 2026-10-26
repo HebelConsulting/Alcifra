@@ -585,6 +585,7 @@ using (var scope = app.Services.CreateScope())
             services.GetRequiredService<ILoggerFactory>().CreateLogger("SimplArchive.Infrastructure.Modules.ModuleMaskBackfill"));
 
         await SimplArchive.Api.Documents.ModulePersonalFolders.EnsureEverywhereAsync(services);   // ABI 1.18, ADR 0937
+        await SimplArchive.Api.Audience.ContentAudienceBackfill.FillEverywhereAsync(services);   // ADR 0983, inside the seed lock
 
     }
 

@@ -33,7 +33,7 @@ internal static class EntryWriter
             $"Enrol a hardware key first: new entries in '{store.Name}' are sealed to the readers' enrolled keys, and you have none, "
             + "so you could not open what you save. Enrol one (self-enrolment in the desktop client, or ask an administrator), then try again.",
         NewEntryUnavailability.NotAReader =>
-            $"You are not a reader of '{store.Name}', so a new entry would not be sealed to you. Grant yourself read access to it first.",
+            $"You are not in the audience of '{store.Name}', so a new entry would not be encrypted for you. Ask one of its audience managers to add you.",
         NewEntryUnavailability.None =>
             $"You may not create entries in '{store.Name}' (the right to create there is missing).",
         _ => new PasswordEntryCreationWithheldException(store.Name, store.NewEntryUnavailable).Message,

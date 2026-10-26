@@ -252,7 +252,9 @@ internal static class WebDavReads
 
         if (WebDavMiddleware.IsSpecialPath(context, segments))
         {
-            if (segments.Count != 3 || await WebDavUserAreas.ResolveSpecialFileAsync(storage, db, user, segments[1], segments[2], segments) is not { } file)
+            // A check-out of encrypted content serves only while its holder is in the audience (ADR 0983).
+            if (segments.Count != 3 || await WebDavUserAreas.ResolveSpecialFileAsync(storage, db, user, segments[1], segments[2], segments) is not { } file
+                || await services.GetRequiredService<Audience.ContentAudience>().WithholdsFromCallerAsync(file.DocumentId, context.RequestAborted))
             {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
@@ -282,6 +284,14 @@ internal static class WebDavReads
             && await WebDavMiddleware.RightsAsync(services, user, document.Id) is { CanReadContent: false } rights)
         {
             context.Response.StatusCode = rights.CanSee ? StatusCodes.Status403Forbidden : StatusCodes.Status404NotFound;
+            return;
+        }
+
+        // Encrypted content only to its audience (ADR 0983): absent to everybody else, as a document they cannot see is.
+        if (node.Document is { } encrypted
+            && await services.GetRequiredService<Audience.ContentAudience>().WithholdsFromCallerAsync(encrypted.Id, context.RequestAborted))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
         }
 

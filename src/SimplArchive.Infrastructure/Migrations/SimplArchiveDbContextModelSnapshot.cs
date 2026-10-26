@@ -996,6 +996,54 @@ namespace SimplArchive.Infrastructure.Migrations
                     b.ToTable("ChatMessageMentions");
                 });
 
+            modelBuilder.Entity("SimplArchive.Domain.Documents.ContentAudienceMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsManager")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "DocumentId", "GroupId")
+                        .IsUnique()
+                        .HasFilter("\"GroupId\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "DocumentId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"UserId\" IS NOT NULL");
+
+                    b.ToTable("ContentAudienceMembers", t =>
+                        {
+                            t.HasCheckConstraint("CK_ContentAudienceMembers_ExactlyOnePrincipal", "(CASE WHEN \"UserId\" IS NOT NULL THEN 1 ELSE 0 END + CASE WHEN \"GroupId\" IS NOT NULL THEN 1 ELSE 0 END) = 1");
+
+                            t.HasCheckConstraint("CK_ContentAudienceMembers_ManagerIsAUser", "NOT \"IsManager\" OR \"UserId\" IS NOT NULL");
+                        });
+                });
+
             modelBuilder.Entity("SimplArchive.Domain.Documents.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3760,6 +3808,31 @@ namespace SimplArchive.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SimplArchive.Domain.Documents.ContentAudienceMember", b =>
+                {
+                    b.HasOne("SimplArchive.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SimplArchive.Domain.Groups.Group", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("SimplArchive.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SimplArchive.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("SimplArchive.Domain.Documents.Document", b =>

@@ -65,8 +65,11 @@ public class SealedDocumentTests
     [Fact]
     public async Task A_sealed_document_is_served_as_the_envelope_it_is_and_offers_no_text_door()
     {
-        var (clientId, secret, _) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
-        using var api = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
+        // A PERSON files it, and so is its first audience manager and member (ADR 0983): the content goes only to them.
+        var tenantId = await _factory.SeedTenantNamedAsync($"SD{Guid.NewGuid():N}"[..20]);
+        var filerEmail = $"filer-{Guid.NewGuid():N}@e2e.local";
+        await _factory.SeedUserAsync(tenantId, filerEmail, "sd-1234", "Filer Person", canManageRepositories: true);
+        using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(filerEmail, "sd-1234"));
 
         var repoId = (await TestJson.Post(api, "/api/repositories", new { name = $"SD {Guid.NewGuid():N}" }))
             .GetProperty("id").GetGuid();
@@ -107,16 +110,33 @@ public class SealedDocumentTests
             Assert.Equal(envelope, await download.Content.ReadAsByteArrayAsync());
         }
 
-        using var preview = await plain.GetAsync(links["preview"]);
-        preview.EnsureSuccessStatusCode();
-        Assert.Equal("application/pkcs7-mime", preview.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(envelope, await preview.Content.ReadAsByteArrayAsync());
+        using (var preview = await plain.GetAsync(links["preview"]))
+        {
+            preview.EnsureSuccessStatusCode();
+            Assert.Equal("application/pkcs7-mime", preview.Content.Headers.ContentType?.MediaType);
+            Assert.Equal(envelope, await preview.Content.ReadAsByteArrayAsync());
+        }
+
+        // A reader OUTSIDE the audience sees the version — the ACL decides who sees the history — but no content door.
+        var readerEmail = $"outside-{Guid.NewGuid():N}@e2e.local";
+        var readerId = await _factory.SeedUserAsync(tenantId, readerEmail, "sd-1234", "Outside Reader");
+        (await api.PutAsJsonAsync($"/api/documents/{repoId}/acl-entries/users/{readerId}", new { canSee = true, canReadContent = true }))
+            .EnsureSuccessStatusCode();
+        using var reader = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(readerEmail, "sd-1234"));
+        var seen = (await TestJson.Get(reader, $"/api/documents/{docId}/versions")).GetProperty("versions").EnumerateArray().Single();
+        var readerRels = seen.GetProperty("links").EnumerateArray().Select(l => l.GetProperty("rel").GetString()).ToList();
+        Assert.DoesNotContain("download", readerRels);
+        Assert.DoesNotContain("preview", readerRels);
+        var row = (await TestJson.Get(reader, $"/api/documents/{repoId}/children")).GetProperty("children").EnumerateArray()
+            .Single(c => c.GetProperty("id").GetGuid() == docId);
+        Assert.Equal("not-you", row.GetProperty("encryptedForCaller").GetString());
     }
 
-    // "Change audience…" is the AUTHOR's act (ADR 0975), decided by the server: the document resource says whether this
-    // caller may, and the finalize refuses the re-seal kind from anybody else even when the caller composes the request.
+    // A re-seal is an AUDIENCE MANAGER's act (ADR 0983, replacing ADR 0975's author rule), decided by the server: the
+    // document resource says whether this caller may, and the finalize refuses the re-seal kind from anybody else even
+    // when the caller composes the request. The filer is the first manager; a manager makes another.
     [Fact]
-    public async Task Only_the_author_of_the_current_version_may_change_the_audience()
+    public async Task Only_an_audience_manager_may_re_seal_and_the_filer_is_the_first()
     {
         var tenantId = await _factory.SeedTenantNamedAsync($"SD{Guid.NewGuid():N}"[..20]);
 
@@ -134,12 +154,8 @@ public class SealedDocumentTests
             new { name = "Board minutes", maskId = WellKnownMaskIds.SealedDocument })).GetProperty("id").GetGuid();
 
         // The reader may see and edit the document's content — so the only thing standing between them and a re-seal
-        // is AUTHORSHIP, which is exactly what this test is about.
-        //
-        // The grant is made on the REPOSITORY, which is this document's GOVERNING ACL SCOPE (ADR 0183): a document
-        // that does not break inheritance is governed by the nearest ancestor that does, so an entry written on the
-        // document itself is accepted by the endpoint and never read by the calculator. (That silent no-op is a real
-        // trap for a direct caller and is tracked separately; this test grants where the model reads.)
+        // is being a MANAGER, which is exactly what this test is about. Granted on the REPOSITORY, the document's
+        // governing ACL scope (ADR 0183).
         (await author.PutAsJsonAsync($"/api/documents/{repoId}/acl-entries/users/{readerId}",
             new { canSee = true, canReadContent = true, canEditContent = true })).EnsureSuccessStatusCode();
 
@@ -147,28 +163,45 @@ public class SealedDocumentTests
         Assert.True((await FileAsync(author, docId, Envelope("first audience", certificate), ifMatch: null)).Status
             is >= HttpStatusCode.OK and < HttpStatusCode.Ambiguous);
 
-        // The document resource answers the affordance for each caller; its ETag is the precondition a re-seal carries.
-        using var authorRead = await author.GetAsync($"/api/documents/{docId}");
-        var authorBody = await authorRead.Content.ReadAsStringAsync();
-        Assert.True(authorRead.IsSuccessStatusCode, $"document read: {(int)authorRead.StatusCode} {authorBody}");
-        var authorTag = authorRead.Headers.ETag!.Tag;
-        Assert.True(JsonDocument.Parse(authorBody).RootElement.GetProperty("canChangeAudience").GetBoolean());
-
-        using var readerRead = await reader.GetAsync($"/api/documents/{docId}");
-        var readerBody = await readerRead.Content.ReadAsStringAsync();
-        Assert.True(readerRead.IsSuccessStatusCode, $"document read as a reader: {(int)readerRead.StatusCode} {readerBody}");
-        Assert.False(JsonDocument.Parse(readerBody).RootElement.GetProperty("canChangeAudience").GetBoolean());
+        var (authorBody, authorTag) = await ReadAsync(author, docId);
+        Assert.True(authorBody.GetProperty("canChangeAudience").GetBoolean());
+        var (readerBody, _) = await ReadAsync(reader, docId);
+        Assert.False(readerBody.GetProperty("canChangeAudience").GetBoolean());
 
         // A composed request gets the server's answer, not the toolbar's: 403, by name.
         var refused = await ResealAsync(reader, docId, Envelope("a new audience", certificate), authorTag);
         Assert.Equal(HttpStatusCode.Forbidden, refused.Status);
-        Assert.Contains("AUDIENCE_CHANGE_REQUIRES_AUTHOR", refused.Body);
+        Assert.Contains("AUDIENCE_CHANGE_REQUIRES_MANAGER", refused.Body);
 
-        // The author's own re-seal is filed.
-        var filed = await ResealAsync(author, docId, Envelope("a new audience", certificate), authorTag);
+        // The filer manages; making the reader a manager too is one PUT under the document's tag.
+        var audience = await TestJson.Get(author, $"/api/documents/{docId}/audience");
+        Assert.Equal(authorTag, audience.GetProperty("eTag").GetString());
+        Assert.Contains(audience.GetProperty("candidates").EnumerateArray(), c => c.GetProperty("userId").GetString() == readerId.ToString());
+        var authorId = audience.GetProperty("members").EnumerateArray().Single().GetProperty("userId").GetGuid();
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/api/documents/{docId}/audience")
+        {
+            Content = JsonContent.Create(new { members = new object[] { new { userId = authorId, isManager = true }, new { userId = readerId, isManager = true } } }),
+        })
+        {
+            put.Headers.TryAddWithoutValidation("If-Match", authorTag);
+            using var answered = await author.SendAsync(put);
+            Assert.True(answered.IsSuccessStatusCode, $"audience PUT: {(int)answered.StatusCode} {await answered.Content.ReadAsStringAsync()}");
+        }
+
+        var (nowReader, readerTag) = await ReadAsync(reader, docId);
+        Assert.True(nowReader.GetProperty("canChangeAudience").GetBoolean());
+        var filed = await ResealAsync(reader, docId, Envelope("a new audience", certificate), readerTag);
         Assert.True(filed.Status is >= HttpStatusCode.OK and < HttpStatusCode.Ambiguous, $"re-seal: {filed.Status} {filed.Body}");
         Assert.Equal(2, (await TestJson.Get(author, $"/api/documents/{docId}/versions")).GetProperty("versions")
             .EnumerateArray().Count());
+    }
+
+    private static async Task<(JsonElement Body, string ETag)> ReadAsync(HttpClient api, Guid documentId)
+    {
+        using var read = await api.GetAsync($"/api/documents/{documentId}");
+        var body = await read.Content.ReadAsStringAsync();
+        Assert.True(read.IsSuccessStatusCode, $"document read: {(int)read.StatusCode} {body}");
+        return (JsonDocument.Parse(body).RootElement.Clone(), read.Headers.ETag!.Tag);
     }
 
     // What a client files: the CLIENT's own sealer, so the bytes under test are the ones the desktop and phone

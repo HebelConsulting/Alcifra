@@ -6382,7 +6382,7 @@
     <value>Le nuove voci sono sigillate per la tua chiave hardware e non ne hai ancora registrata una, quindi non potresti aprire ciò che salvi. Registra prima una chiave.</value>
   </data>
   <data name="PwNotAReader" xml:space="preserve">
-    <value>Puoi gestire questo archivio ma non leggerlo, quindi una nuova voce non sarebbe sigillata per te. Concediti il diritto di lettura per aggiungere voci.</value>
+    <value>Non fai parte del pubblico di questo archivio, quindi una nuova voce non sarebbe cifrata per te. Chiedi a uno dei suoi gestori del pubblico di aggiungerti.</value>
   </data>
   <data name="PwNewEntryUnavailable" xml:space="preserve">
     <value>Qui non si possono aggiungere nuove voci.</value>
@@ -6630,9 +6630,6 @@
   <data name="StErrResealNoContent" xml:space="preserve">
     <value>Questo documento non offre alcun contenuto da risigillare.</value>
   </data>
-  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
-    <value>Solo l'autore della versione attuale di questo documento sigillato può cambiare per chi è sigillato.</value>
-  </data>
   <data name="AccountBrowserAutofill" xml:space="preserve">
     <value>Compilazione automatica del browser…</value>
   </data>
@@ -6653,5 +6650,26 @@
   </data>
   <data name="BrowserAutofillScope" xml:space="preserve">
     <value>Solo l'estensione con questo ID può chiedere; il segreto lascia questa macchina solo verso la pagina che scegli.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresManager" xml:space="preserve">
+    <value>Solo un gestore del pubblico può cambiare per chi è cifrato.</value>
+  </data>
+  <data name="ApiErrAudienceMemberNotAReader" xml:space="preserve">
+    <value>Solo persone e gruppi che possono leggerlo possono far parte del pubblico. Concedi prima il diritto di lettura.</value>
+  </data>
+  <data name="ApiErrAudienceManagerMustBeAUser" xml:space="preserve">
+    <value>Un gestore del pubblico deve essere una persona, non un gruppo.</value>
+  </data>
+  <data name="ApiErrAudienceNeedsAManager" xml:space="preserve">
+    <value>Il pubblico deve mantenere almeno un gestore che possa leggerlo.</value>
+  </data>
+  <data name="ApiErrAudienceFixedInPersonalSpace" xml:space="preserve">
+    <value>Si trova in uno spazio personale: solo il proprietario può decifrarlo e il pubblico non si può cambiare.</value>
+  </data>
+  <data name="ApiErrAudienceAdministratorMayOnlyAppoint" xml:space="preserve">
+    <value>Senza gestori del pubblico rimasti, un amministratore può solo nominare un gestore tra i lettori.</value>
+  </data>
+  <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
+    <value>Per spostarlo in un altro archivio di password devi far parte del pubblico di entrambi, così da poterlo cifrare per il nuovo.</value>
   </data>
 </root>

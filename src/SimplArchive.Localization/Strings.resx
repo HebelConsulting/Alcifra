@@ -6382,7 +6382,7 @@
     <value>New entries are sealed to your hardware key, and you have not enrolled one yet, so you could not open what you save. Enrol a key first.</value>
   </data>
   <data name="PwNotAReader" xml:space="preserve">
-    <value>You may manage this store but do not read it, so a new entry would not be sealed to you. Grant yourself read access to add entries.</value>
+    <value>You are not in this store's audience, so a new entry would not be encrypted for you. Ask one of its audience managers to add you.</value>
   </data>
   <data name="PwNewEntryUnavailable" xml:space="preserve">
     <value>New entries cannot be added here.</value>
@@ -6630,9 +6630,6 @@
   <data name="StErrResealNoContent" xml:space="preserve">
     <value>This document advertises no content to re-seal.</value>
   </data>
-  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
-    <value>Only the author of this sealed document's current version can change who it is sealed to.</value>
-  </data>
   <data name="AccountBrowserAutofill" xml:space="preserve">
     <value>Browser autofill…</value>
   </data>
@@ -6653,5 +6650,26 @@
   </data>
   <data name="BrowserAutofillScope" xml:space="preserve">
     <value>Only the extension with this id may ask, and the secret never leaves this machine except into the page you choose.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresManager" xml:space="preserve">
+    <value>Only an audience manager can change who this is encrypted for.</value>
+  </data>
+  <data name="ApiErrAudienceMemberNotAReader" xml:space="preserve">
+    <value>Only people and groups who can read this can be in its audience. Grant read access first.</value>
+  </data>
+  <data name="ApiErrAudienceManagerMustBeAUser" xml:space="preserve">
+    <value>An audience manager must be a person, not a group.</value>
+  </data>
+  <data name="ApiErrAudienceNeedsAManager" xml:space="preserve">
+    <value>The audience must keep at least one manager who can read it.</value>
+  </data>
+  <data name="ApiErrAudienceFixedInPersonalSpace" xml:space="preserve">
+    <value>This is in a personal space, so only its owner can decrypt it; its audience cannot be changed.</value>
+  </data>
+  <data name="ApiErrAudienceAdministratorMayOnlyAppoint" xml:space="preserve">
+    <value>With no audience manager left, an administrator may only appoint a manager from among the readers.</value>
+  </data>
+  <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
+    <value>Moving this into another password store needs you to be in both stores' audiences, so you can encrypt it for the new one.</value>
   </data>
 </root>

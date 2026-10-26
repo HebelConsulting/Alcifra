@@ -122,7 +122,9 @@ public sealed class RepositoryExporter
             // What the caller may read of a version (ADR 0300): content rights, and a gated version only for editors and
             // its assigned reviewer.
             var r = rights.GetValueOrDefault(document.Id);
-            bool Readable(DocumentVersion v) => r is { CanReadContent: true } && (r.CanEditContent || !gated.Contains(v.Id) || reviewing.Contains(v.Id));
+            // Encrypted content only to its audience (ADR 0983): withheld, the document is metadata only.
+            var withheld = audience?.Withholds is { } withholds && await withholds(document.Id, cancellationToken);
+            bool Readable(DocumentVersion v) => !withheld && r is { CanReadContent: true } && (r.CanEditContent || !gated.Contains(v.Id) || reviewing.Contains(v.Id));
             if (filters.Versions == ExportVersionSelection.EveryReadableForCaller)
             {
                 // A road copy (ADR 0961): every version the caller may read, oldest first.

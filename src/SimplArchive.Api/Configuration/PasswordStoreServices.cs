@@ -9,6 +9,9 @@ public static class PasswordStoreServices
         services
             .AddSingleton<SealedRecipientCache>()
             .AddScoped<PasswordStoreTree>()
+            .AddScoped<SimplArchive.Api.Audience.ContentAudience>()
+            .AddScoped<SimplArchive.Api.Audience.EncryptedForCaller>()
+            .AddScoped<SimplArchive.Api.Audience.ContentAudienceBackfill>()
             .AddScoped<PasswordStoreReaders>()
             .AddScoped<PasswordStoreSealing>()
             .AddScoped<PasswordStoreResourceBuilder>()

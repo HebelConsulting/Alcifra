@@ -60,6 +60,9 @@ public class IntrayController : ControllerBase
     private readonly IntrayScopeResolver _scopes;
     private readonly Infrastructure.Storage.OmittableLinks _omittable;
 
+    // Encrypted content is copied out only by its audience (ADR 0983): a copy would leave the sealed segment.
+    private readonly Audience.ContentAudience _audience;
+
     public IntrayController(
         SimplArchiveDbContext dbContext,
         IObjectStorageClient objectStorageClient,
@@ -75,8 +78,10 @@ public class IntrayController : ControllerBase
         IAuditRecorder audit,
         IUserSystemRightsResolver userSystemRights,
         IntrayScopeResolver scopes,
-        Infrastructure.Storage.OmittableLinks omittable)
+        Infrastructure.Storage.OmittableLinks omittable,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _omittable = omittable;
         _dbContext = dbContext;
         _objectStorageClient = objectStorageClient;
@@ -397,7 +402,8 @@ public class IntrayController : ControllerBase
 
         // Reading the source is the only right required: nothing is created in the repository, and what lands in
         // the intray is the caller's own staged copy.
-        if (!(await _effectiveRightsCalculator.GetEffectiveRightsAsync(userId, document.Id, cancellationToken)).CanReadContent)
+        if (!(await _effectiveRightsCalculator.GetEffectiveRightsAsync(userId, document.Id, cancellationToken)).CanReadContent
+            || await _audience.WithholdsFromCallerAsync(document.Id, cancellationToken))
         {
             return Forbid();
         }

@@ -26,6 +26,7 @@ public class PasswordStoresController(
     PasswordStoreSealing sealing,
     PasswordStoreResourceBuilder resources,
     MyPasswordsProvisioner myPasswords,
+    SimplArchive.Api.Audience.ContentAudience audience,
     ICurrentUserAccessor currentUser,
     ICurrentTenantAccessor currentTenant) : ControllerBase
 {
@@ -34,7 +35,22 @@ public class PasswordStoresController(
     {
         var ids = await tree.StoreIdsAsync(cancellationToken);
         var rights = await access.GetCallerRightsForManyAsync(ids, cancellationToken);
-        var visible = ids.Where(id => rights.TryGetValue(id, out var r) && r.CanSee).ToList();
+        // A PERSON is listed only the stores they can DECRYPT (ADR 0983): the Passwords tab, its tile and sapass list a
+        // store only to a member of its effective audience. A manager outside it, or an administrator appointing one,
+        // reaches the store from the Repositories tab, where it is marked "not encrypted for you". A service account is
+        // never a member — it holds no key — and lists every store it may see, because what it does there is seal TO the
+        // audience (saconsole's seeding, ADR 0966), never read.
+        var visible = new List<Guid>();
+        foreach (var id in ids.Where(id => rights.TryGetValue(id, out var r) && r.CanSee))
+        {
+            if (currentUser.UserId is null
+                || (await audience.RootOfAsync(id, cancellationToken) is { } root
+                    && await audience.IsMemberAsync(root, currentUser.UserId, cancellationToken)))
+            {
+                visible.Add(id);
+            }
+        }
+
         var rows = await dbContext.Documents
             .Where(d => visible.Contains(d.Id))
             .Select(d => new

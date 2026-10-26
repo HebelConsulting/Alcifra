@@ -40,7 +40,8 @@ public class DocumentOfflineExportController(
     ICurrentTenantAccessor currentTenant,
     IAuditRecorder audit,
     Infrastructure.Modules.ModuleOfflineExportPolicy modulePolicy,
-    Infrastructure.Encryption.SmimeMessageEnveloper enveloper) : ControllerBase
+    Infrastructure.Encryption.SmimeMessageEnveloper enveloper,
+    Audience.ContentAudience contentAudience) : ControllerBase
 {
     [HttpGet("offline-export")]
     public async Task<IActionResult> OfflineExport(Guid documentId, CancellationToken cancellationToken)
@@ -80,7 +81,7 @@ public class DocumentOfflineExportController(
             new RepositoryExportFilters(null, null, null, null, ExportVersionSelection.CurrentForCaller, null),
             includePermissions: false,
             Response.Body,
-            new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync, envelope, seal),
+            new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync, envelope, seal, contentAudience.WithholdsFromCallerAsync),
             cancellationToken);
         await audit.RecordAsync(AuditActions.DocumentOfflineExported, "Document", anchor.Value.Id, anchor.Value.Name, "Offline export", cancellationToken: cancellationToken);
         return new EmptyResult();

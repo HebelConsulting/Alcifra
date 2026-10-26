@@ -532,10 +532,13 @@ internal static class ImapMailboxes
         var messages = new List<ImapMessageEntry>();
         var resolvedVersions = new Dictionary<Guid, DocumentVersion>();
         var served = new List<Document>();
+        var audience = scope.ServiceProvider.GetRequiredService<Audience.ContentAudience>();
         foreach (var doc in docs)
         {
             var version = await CurrentVersion.ResolveAsync(db.DocumentVersions, doc.Id, doc.CurrentVersionId);
-            if (version is null)
+            // Encrypted content is served only to its audience (ADR 0983); with "show all documents" a sealed one would
+            // otherwise arrive as a synthetic message.
+            if (version is null || await audience.WithholdsFromCallerAsync(doc.Id, CancellationToken.None))
             {
                 continue;
             }

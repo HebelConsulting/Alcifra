@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using SimplArchive.Api.Audience;
 using SimplArchive.Api.Certificates;
 using SimplArchive.Api.Documents;
 using SimplArchive.Api.Errors.Exceptions.Concurrency;
@@ -26,7 +27,7 @@ namespace SimplArchive.IntegrationTests;
 // The password store's rules at the one door every write uses, and its history and compromise sweep (ADR 0964):
 // containment, one My Passwords per personal space under its fixed name, the sealed-shape check at filing, the 24-hour
 // undo window, the claim two instances share, and the revoked-certificate workflow.
-public sealed class PasswordStoreTests : IDisposable
+public sealed partial class PasswordStoreTests : IDisposable
 {
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _userId = Guid.NewGuid();
@@ -139,17 +140,20 @@ public sealed class PasswordStoreTests : IDisposable
         await db.SaveChangesAsync();
     }
 
-    private static PasswordStoreReaders Readers(SimplArchiveDbContext db) =>
+    // The audience a store's entries are sealed to (ADR 0983), as the API composes it, for the caller given.
+    private static ContentAudience Audience(SimplArchiveDbContext db, Guid? caller = null) =>
         new(db, new EffectiveRightsCalculator(db),
-            new ReaderCertificateSet(db, new ModuleReaderCertificates(db, new NoModuleScopeFactory(db), NullLogger<ModuleReaderCertificates>.Instance), NullLogger<ReaderCertificateSet>.Instance),
-            NullLogger<PasswordStoreReaders>.Instance);
+            new ReaderCertificateSet(db, new ModuleReaderCertificates(db, new LicensingModules(), NullLogger<ModuleReaderCertificates>.Instance), NullLogger<ReaderCertificateSet>.Instance),
+            new PasswordStoreTree(db), new CurrentUserAccessor { UserId = caller }, NullLogger<ContentAudience>.Instance);
+
+    private static PasswordStoreReaders Readers(SimplArchiveDbContext db) => new(Audience(db));
 
     private PasswordEntryHistory History(SimplArchiveDbContext db)
     {
-        var readers = Readers(db);
-        var sealing = new PasswordStoreSealing(db, _storage, new PasswordStoreTree(db), readers, new SealedRecipientCache(), NullLogger<PasswordStoreSealing>.Instance);
+        var audience = Audience(db);
+        var sealing = new PasswordStoreSealing(db, _storage, new PasswordStoreTree(db), new PasswordStoreReaders(audience), new SealedRecipientCache(), NullLogger<PasswordStoreSealing>.Instance);
         return new PasswordEntryHistory(db, _storage, new SimplArchive.Infrastructure.Storage.StorageQuotaService(db, NullLogger<SimplArchive.Infrastructure.Storage.StorageQuotaService>.Instance),
-            sealing, NoOpAuditRecorder.Instance, NoOpDocumentIndexQueue.Instance, NullLogger<PasswordEntryHistory>.Instance);
+            sealing, audience, NoOpAuditRecorder.Instance, NoOpDocumentIndexQueue.Instance, NullLogger<PasswordEntryHistory>.Instance);
     }
 
     private async Task<string?> ExposedSinceAsync(Guid entryId)
@@ -459,36 +463,4 @@ public sealed class PasswordStoreTests : IDisposable
         Assert.False(await db.Documents.AnyAsync(d => d.Id == abandoned));
     }
 
-    // ---- Readers from explicit grants only ----
-
-    [Fact]
-    public async Task A_tenant_administrator_is_a_reader_only_through_an_explicit_grant()
-    {
-        var (repository, store) = await StoreAsync();
-        var adminId = Guid.NewGuid();
-        using (var db = Ctx())
-        {
-            db.Users.Add(new User { Id = adminId, TenantId = _tenantId, Email = "admin@t.test", DisplayName = "Admin", IsTenantAdmin = true, CreatedAt = DateTimeOffset.UtcNow });
-            db.AclEntries.Add(new SimplArchive.Domain.Acl.AclEntry { Id = Guid.NewGuid(), TenantId = _tenantId, DocumentId = repository, UserId = _userId, CanSee = true, CanReadContent = true, CreatedAt = DateTimeOffset.UtcNow });
-            await db.SaveChangesAsync();
-        }
-
-        using (var db = Ctx())
-        {
-            // The bypass lets the administrator read; it does not make them somebody entries are sealed to.
-            Assert.True((await new EffectiveRightsCalculator(db).GetEffectiveRightsAsync(adminId, store)).CanReadContent);
-            Assert.Equal([_userId], (await Readers(db).ForStoreAsync(store, CancellationToken.None)).Select(r => r.UserId));
-        }
-
-        using (var db = Ctx())
-        {
-            db.AclEntries.Add(new SimplArchive.Domain.Acl.AclEntry { Id = Guid.NewGuid(), TenantId = _tenantId, DocumentId = repository, UserId = adminId, CanSee = true, CanReadContent = true, CreatedAt = DateTimeOffset.UtcNow });
-            await db.SaveChangesAsync();
-        }
-
-        using (var db = Ctx())
-        {
-            Assert.Equal(new[] { _userId, adminId }.Order(), (await Readers(db).ForStoreAsync(store, CancellationToken.None)).Select(r => r.UserId).Order());
-        }
-    }
 }

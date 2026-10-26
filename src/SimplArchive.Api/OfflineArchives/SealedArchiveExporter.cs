@@ -42,6 +42,7 @@ public sealed class SealedArchiveExporter(
     IObjectStorageClient storage,
     ICurrentUserAccessor currentUser,
     ICurrentTenantAccessor currentTenant,
+    Audience.ContentAudience audience,
     ILogger<SealedArchiveExporter> logger)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -69,7 +70,7 @@ public sealed class SealedArchiveExporter(
         // The payload in the export layout, through the one producer of it, into a file that is gone when we are done.
         await using var payload = new FileStream(Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose);
         await exporter.ExportAsync(anchor.Id, new RepositoryExportFilters(null, null, null, null, ExportVersionSelection.EveryReadableForCaller, null),
-            includePermissions: false, payload, new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync), cancellationToken);
+            includePermissions: false, payload, new OfflineExportAudience(currentUser.UserId, access.GetCallerRightsForManyAsync, Withholds: audience.WithholdsFromCallerAsync), cancellationToken);
         payload.Position = 0;
 
         await using var writer = new SealedArchiveWriter(output);

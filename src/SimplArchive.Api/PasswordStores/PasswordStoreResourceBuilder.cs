@@ -19,6 +19,7 @@ public sealed class PasswordStoreResourceBuilder(
     PasswordEntryCreation entryCreation,
     IObjectStorageClient storage,
     OmittableLinks omittable,
+    SimplArchive.Api.Audience.ContentAudience audience,
     ICurrentUserAccessor currentUser)
 {
     private static readonly TimeSpan ContentLinkExpiry = TimeSpan.FromMinutes(15);
@@ -75,6 +76,8 @@ public sealed class PasswordStoreResourceBuilder(
         resource.Links.Add(new Link("self", FolderHref(folder.Id), "GET"));
         resource.Links.Add(new Link("document", $"/api/documents/{folder.Id}", "GET"));
         resource.Links.Add(new Link("password-store-recipients", StoreHref(folder.StoreId, "recipients"), "GET"));
+        // Who the store is encrypted for and who may change that (ADR 0983): declared on the store, for everything beneath.
+        resource.Links.Add(new Link("audience", $"/api/documents/{folder.StoreId}/audience", "GET"));
         // The flat, paginated tree beneath this store or folder (ADR 0207): one listing for completion and search,
         // rather than one request per folder (sapass, 2026-10-25).
         resource.Links.Add(new Link("descendants", $"{FolderHref(folder.Id)}/descendants", "GET"));
@@ -140,8 +143,12 @@ public sealed class PasswordStoreResourceBuilder(
         resource.Links.Add(new Link("password-store-recipients", StoreHref(entry.StoreId, "recipients"), "GET"));
 
         // The sealed bytes as stored, typed as opaque bytes so no client's content funnel mistakes them for a
-        // strict-tier S/MIME delivery: the password store client opens them itself (ADR 0964).
+        // strict-tier S/MIME delivery: the password store client opens them itself (ADR 0964). Only to a member of the
+        // store's effective audience (ADR 0983): somebody removed from it can no longer fetch even what was once sealed
+        // to them, from the moment the audience changed — before the re-seal has caught up.
         if (rights.CanReadContent && version is not null
+            && await audience.RootOfAsync(entry.StoreId, cancellationToken) is { } root
+            && await audience.IsMemberAsync(root, currentUser.UserId, cancellationToken)
             && await omittable.OrOmittedAsync(
                 storage.GetPresignedPreviewUrlAsync(version.ObjectKey, ContentLinkExpiry, $"{entry.Name}.p7m", "application/octet-stream", cancellationToken),
                 "content") is { } content)

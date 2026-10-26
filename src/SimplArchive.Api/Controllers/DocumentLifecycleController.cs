@@ -42,6 +42,10 @@ public class DocumentLifecycleController : ControllerBase
     private readonly IWormLockService _wormLock;
     private readonly Documents.MailboxAddressClaims _mailboxAddressClaims;
 
+    // A check-out hands its holder the content (the check-out list, the WebDAV Check-out folder), so encrypted content
+    // is checked out only by its audience (ADR 0983).
+    private readonly Audience.ContentAudience _audience;
+
     public DocumentLifecycleController(
         IObjectStorageClient objectStorage,
         IUserSystemRightsResolver userSystemRights,
@@ -55,8 +59,10 @@ public class DocumentLifecycleController : ControllerBase
         IDocumentIndexQueue queue,
         IWormLockService wormLock,
         Documents.MailboxAddressClaims mailboxAddressClaims,
-        Concurrency.DocumentVerbs documents)
+        Concurrency.DocumentVerbs documents,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _objectStorage = objectStorage;
         _userSystemRights = userSystemRights;
         _currentUserAccessor = currentUserAccessor;
@@ -90,7 +96,8 @@ public class DocumentLifecycleController : ControllerBase
             return NotFound();
         }
 
-        if (!(await _access.GetCallerRightsAsync(documentId, cancellationToken)).CanEditContent)
+        if (!(await _access.GetCallerRightsAsync(documentId, cancellationToken)).CanEditContent
+            || await _audience.WithholdsFromCallerAsync(documentId, cancellationToken))
         {
             return Forbid();
         }

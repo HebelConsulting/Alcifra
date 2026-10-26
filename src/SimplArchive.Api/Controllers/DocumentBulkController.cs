@@ -67,8 +67,10 @@ public class DocumentBulkController : ControllerBase
         IUserSystemRightsResolver userSystemRights,
         Documents.DocumentMover mover,
         SimplArchive.Application.Abstractions.IObjectStorageClient objectStorage,
-        Documents.DocumentAccessService access)
+        Documents.DocumentAccessService access,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _objectStorage = objectStorage;
         _mover = mover;
         _dbContext = dbContext;
@@ -80,6 +82,9 @@ public class DocumentBulkController : ControllerBase
         _userSystemRights = userSystemRights;
         _access = access;
     }
+
+    // A folder or entry leaves its password store only for somebody in both audiences (ADR 0983).
+    private readonly Audience.ContentAudience _audience;
 
     public class BulkExportRequest
     {
@@ -241,7 +246,8 @@ public class DocumentBulkController : ControllerBase
                 || (document.ParentId is null && !hasManageRepositories)
                 || await _legalHold.IsFrozenAsync(id, cancellationToken)
                 || await IsCheckedOutByOtherAsync(id, cancellationToken)
-                || await IsAncestorOrSelfAsync(id, request.ParentId, cancellationToken))
+                || await IsAncestorOrSelfAsync(id, request.ParentId, cancellationToken)
+                || !await _audience.MayMoveAsync(id, request.ParentId, cancellationToken))
             {
                 skipped++;
                 continue;

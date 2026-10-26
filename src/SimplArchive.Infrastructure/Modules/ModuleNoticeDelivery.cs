@@ -1,3 +1,4 @@
+using SimplArchive.Domain.Masks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SimplArchive.Application.Abstractions;
@@ -79,6 +80,13 @@ public sealed class ModuleNoticeDelivery(
         var document = await dbContext.Documents.Where(d => d.Id == documentId)
             .Select(d => new { d.Name, d.CurrentVersionId }).SingleOrDefaultAsync(cancellationToken)
             ?? throw new ArgumentException($"The attachment document {documentId} does not exist.", nameof(documentId));
+        // Encrypted content goes only to its audience (ADR 0983), and a mail goes to whoever the module names.
+        if (await dbContext.Documents.Where(d => d.Id == documentId).AnyAsync(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId
+                && (v.MaskId == WellKnownMaskIds.PasswordEntry || v.MaskId == WellKnownMaskIds.SealedDocument)), cancellationToken))
+        {
+            throw new ArgumentException($"The attachment document {documentId} is encrypted content, which is never attached to a notice.", nameof(documentId));
+        }
+
         var version = await CurrentVersion.ResolveAsync(dbContext.DocumentVersions, documentId, document.CurrentVersionId, cancellationToken)
             ?? throw new ArgumentException($"The attachment document {documentId} has no content.", nameof(documentId));
         var extension = Path.GetExtension(version.ObjectKey);

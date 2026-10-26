@@ -12,6 +12,7 @@ using SimplArchive.Application.Abstractions;
 using SimplArchive.Domain.Notifications;
 using SimplArchive.Domain.Acl;
 using SimplArchive.Domain.Documents;
+using SimplArchive.Infrastructure.Acl;
 using SimplArchive.Infrastructure.Persistence;
 
 namespace SimplArchive.Api.Controllers;
@@ -647,7 +648,7 @@ public class AclEntriesController : ControllerBase
 
                 // Membership flows down: a grant on group G reaches every user who is a member of G or any of
                 // its ancestors (ADR "Document ACL inheritance resolution" / group expansion).
-                foreach (var memberId in await UsersEffectivelyInGroupAsync(groupId, cancellationToken))
+                foreach (var memberId in await GroupMembershipExpansion.GetUsersEffectivelyInGroupAsync(_dbContext, groupId, cancellationToken))
                 {
                     MergeUser(memberId, grant, "group", groupName);
                 }
@@ -725,34 +726,6 @@ public class AclEntriesController : ControllerBase
         CanManagePermissions = r.CanManagePermissions,
     };
 
-    // Users who effectively belong to a group: direct members of it or any of its ancestors (membership flows
-    // down). One query per ancestor level, then a single membership query.
-    private async Task<List<Guid>> UsersEffectivelyInGroupAsync(Guid groupId, CancellationToken cancellationToken)
-    {
-        var groupIds = new List<Guid> { groupId };
-        var currentId = (Guid?)groupId;
-
-        while (currentId is { } id)
-        {
-            var parentId = await _dbContext.Groups.Where(g => g.Id == id).Select(g => g.ParentGroupId).SingleOrDefaultAsync(cancellationToken);
-            if (parentId is { } pid && !groupIds.Contains(pid))
-            {
-                groupIds.Add(pid);
-                currentId = pid;
-            }
-            else
-            {
-                currentId = null;
-            }
-        }
-
-        return await _dbContext.GroupMemberships
-            .Where(m => groupIds.Contains(m.GroupId))
-            .Select(m => m.UserId)
-            .Distinct()
-            .ToListAsync(cancellationToken);
-    }
-
     // All users who effectively hold IsTenantAdmin: own flag, or membership of any IsTenantAdmin group.
     private async Task<HashSet<Guid>> TenantAdminUserIdsAsync(CancellationToken cancellationToken)
     {
@@ -761,7 +734,7 @@ public class AclEntriesController : ControllerBase
         var adminGroupIds = await _dbContext.Groups.Where(g => g.IsTenantAdmin).Select(g => g.Id).ToListAsync(cancellationToken);
         foreach (var groupId in adminGroupIds)
         {
-            foreach (var memberId in await UsersEffectivelyInGroupAsync(groupId, cancellationToken))
+            foreach (var memberId in await GroupMembershipExpansion.GetUsersEffectivelyInGroupAsync(_dbContext, groupId, cancellationToken))
             {
                 admins.Add(memberId);
             }

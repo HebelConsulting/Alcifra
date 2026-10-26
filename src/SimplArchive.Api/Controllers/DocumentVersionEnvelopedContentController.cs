@@ -34,7 +34,8 @@ public class DocumentVersionEnvelopedContentController(
     SimplArchiveDbContext dbContext,
     DocumentAccessService access,
     IDocumentPreviewService previews,
-    StrictEnvelopeDelivery envelopes) : ControllerBase
+    StrictEnvelopeDelivery envelopes,
+    Audience.ContentAudience audience) : ControllerBase
 {
     /// <summary>The version's content, enveloped. <c>inline</c> asks for what a viewer opens rather than saves.</summary>
     /// <remarks>
@@ -64,7 +65,9 @@ public class DocumentVersionEnvelopedContentController(
             return NotFound();
         }
 
-        if (!await access.CanReadContentAsync(documentId, cancellationToken))
+        // Encrypted content goes only to its audience (ADR 0983), on this door as on every other.
+        if (!await access.CanReadContentAsync(documentId, cancellationToken)
+            || await audience.WithholdsFromCallerAsync(documentId, cancellationToken))
         {
             return Forbid();
         }
@@ -124,7 +127,9 @@ public class DocumentVersionEnvelopedContentController(
             return NotFound();
         }
 
-        if (!await access.CanReadContentAsync(documentId, cancellationToken))
+        // Encrypted content goes only to its audience (ADR 0983), on this door as on every other.
+        if (!await access.CanReadContentAsync(documentId, cancellationToken)
+            || await audience.WithholdsFromCallerAsync(documentId, cancellationToken))
         {
             return Forbid();
         }

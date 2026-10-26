@@ -35,6 +35,9 @@ public class DocumentExternalLinksController : ControllerBase
     private readonly SimplArchive.Infrastructure.Encryption.EncryptionModes _encryptionModes;
     private readonly TimeProvider _clock;
 
+    // Encrypted content is handed out only by its audience (ADR 0983).
+    private readonly Audience.ContentAudience _audience;
+
     public DocumentExternalLinksController(
         SimplArchiveDbContext dbContext,
         IEffectiveRightsCalculator rights,
@@ -46,8 +49,10 @@ public class DocumentExternalLinksController : ControllerBase
         IDocumentThumbnailService thumbnails,
         SimplArchive.Infrastructure.Encryption.EncryptionModes encryptionModes,
         ILogger<DocumentExternalLinksController> logger,
-        TimeProvider clock)
+        TimeProvider clock,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _logger = logger;
         _dbContext = dbContext;
         _rights = rights;
@@ -541,7 +546,8 @@ public class DocumentExternalLinksController : ControllerBase
     // with no person behind it cannot be stored, not merely refused here.
     private async Task<bool> CanCreateAsync(Guid documentId, CancellationToken cancellationToken)
     {
-        if (!(await GetRightsAsync(documentId, cancellationToken)).CanReadContent)
+        if (!(await GetRightsAsync(documentId, cancellationToken)).CanReadContent
+            || await _audience.WithholdsFromCallerAsync(documentId, cancellationToken))
         {
             return false;
         }

@@ -21,7 +21,8 @@ public sealed partial class PasswordStoreTests
     public Task A_reader_without_an_enrolled_key_is_offered_folders_but_not_entries_and_told_why() => WithEnrolmentAsync(async rig =>
     {
         var team = await SharedStoreAsync(rig);
-        var (carolEmail, carol, carolToken) = await KeylessReaderAsync(rig);
+        var (carolId, carolEmail, carol, carolToken) = await KeylessReaderAsync(rig);
+        await DeclareAudienceAsync(rig.Anna.Http, team.Id, (rig.Anna.Id, true), (carolId, false));
 
         // Anna holds a key: the rel rides, and no reason.
         var annas = await TestJson.Get(rig.Anna.Http, team.Links.Href("self")!);
@@ -73,8 +74,8 @@ public sealed partial class PasswordStoreTests
         return 0;
     });
 
-    // An administrator reads a store through the bypass, which makes nobody a reader (ADR 0964): New entry is withheld
-    // as "not-a-reader" — even with a key — because nothing they saved would be sealed to them.
+    // An administrator reads a store through the bypass, which makes nobody a member (ADRs 0964, 0983): New entry is
+    // withheld as "not-a-reader" — even with a key — because nothing they saved would be sealed to them.
     [Fact]
     public Task An_administrator_who_is_no_reader_is_not_offered_entries_even_with_a_key() => WithEnrolmentAsync(async rig =>
     {
@@ -119,7 +120,7 @@ public sealed partial class PasswordStoreTests
     });
 
     // A user who reads the repository (and so every store in it) and may create there, with no key enrolled.
-    private async Task<(string Email, HttpClient Http, string Token)> KeylessReaderAsync(Rig rig)
+    private async Task<(Guid Id, string Email, HttpClient Http, string Token)> KeylessReaderAsync(Rig rig)
     {
         var email = $"pw-carol-{Guid.NewGuid():N}@e2e.local";
         var id = await _factory.SeedUserAsync(rig.TenantId, email, "pwstore-1234", "Carol");
@@ -130,7 +131,7 @@ public sealed partial class PasswordStoreTests
             canCreateSubItems = true,
         });
         var token = await _factory.GetUserTokenAsync(email, "pwstore-1234");
-        return (email, _factory.CreateAuthedClient(token), token);
+        return (id, email, _factory.CreateAuthedClient(token), token);
     }
 
     private async Task<bool> AnyDocumentNamedAsync(string name)

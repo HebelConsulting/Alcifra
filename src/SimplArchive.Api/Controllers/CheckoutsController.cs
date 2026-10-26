@@ -41,6 +41,7 @@ public class CheckoutsController : ControllerBase
     private readonly IDocumentPreviewService _documentPreviewService;
     private readonly Documents.StrictEnvelopeDelivery _strictEnvelopes;
     private readonly Infrastructure.Storage.OmittableLinks _omittable;
+    private readonly Audience.ContentAudience _audience;
 
     public CheckoutsController(
         SimplArchiveDbContext dbContext,
@@ -55,8 +56,10 @@ public class CheckoutsController : ControllerBase
         IDocumentPreviewService documentPreviewService,
         Documents.StrictEnvelopeDelivery strictEnvelopes,
         Concurrency.DocumentVerbs documents,
-        Infrastructure.Storage.OmittableLinks omittable)
+        Infrastructure.Storage.OmittableLinks omittable,
+        Audience.ContentAudience audience)
     {
+        _audience = audience;
         _omittable = omittable;
         _dbContext = dbContext;
         _documents = documents;
@@ -282,7 +285,8 @@ public class CheckoutsController : ControllerBase
 
             // Null on a strict tenant (#1376): the check-out still exists and still reports its state, it
             // simply carries no plaintext URL to fetch the working copy from.
-            var downloadUrl = version is null
+            // Nor to a holder who has since left an encrypted item's audience (ADR 0983).
+            var downloadUrl = version is null || await _audience.WithholdsFromCallerAsync(d.Id, cancellationToken)
                 ? null
                 // Dropped, not failed, when the object is encrypted and no service can unwrap it (ADR 0953).
                 : (await _omittable.OrOmittedAsync(

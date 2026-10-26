@@ -27,6 +27,12 @@ namespace SimplArchive.Api.PasswordStores;
 /// version is sealed to no revoked certificate (a member re-sealed it), its superseded versions are deleted AT ONCE.
 /// </para>
 /// <para>
+/// <b>Leaving the audience</b> (ADR 0983). Once an entry's current version is sealed only to its store's effective
+/// audience (a member re-sealed it after somebody was removed), every superseded version sealed to a certificate OUTSIDE
+/// that audience is deleted AT ONCE, as for a revoked certificate: the person removed must not keep a day's worth of
+/// secrets their own key still opens.
+/// </para>
+/// <para>
 /// <b>Abandoned creates.</b> An entry still without confirmed content a day after it was created (its first upload never
 /// finished) is removed, by name in the audit trail.
 /// </para>
@@ -42,6 +48,7 @@ public sealed class PasswordEntryHistory(
     IObjectStorageClient storage,
     IStorageQuotaService quota,
     PasswordStoreSealing sealing,
+    SimplArchive.Api.Audience.ContentAudience audience,
     IAuditRecorder audit,
     IDocumentIndexQueue indexQueue,
     ILogger<PasswordEntryHistory> logger)
@@ -114,15 +121,22 @@ public sealed class PasswordEntryHistory(
         var immediately = exposed && exposedAt is null;
         var superseded = await dbContext.DocumentVersions.AsNoTracking()
             .Where(v => v.DocumentId == entryId && v.Status == DocumentVersionStatus.Confirmed && v.Id != current.Id)
-            .Select(v => new { v.Id, v.ObjectKey, v.CreatedAt, v.SizeBytes })
             .ToListAsync(cancellationToken);
+
+        // Re-sealed to the audience after somebody left it: a superseded version they could still open goes now too.
+        var audienceCertificates = await AudienceCertificatesAsync(entryId, cancellationToken);
+        var currentWithinAudience = audienceCertificates.Count > 0
+            && recipients.All(r => audienceCertificates.Any(r.Is));
 
         var deleted = 0;
         foreach (var version in superseded)
         {
+            var leftAudience = currentWithinAudience
+                && (await sealing.RecipientsAsync(version, cancellationToken)).Any(r => !audienceCertificates.Any(r.Is));
+            var atOnce = immediately || leftAudience;
             var dueAt = (version.CreatedAt > current.CreatedAt ? version.CreatedAt : current.CreatedAt) + UndoWindow;
-            if ((immediately || now >= dueAt)
-                && await DeleteVersionAsync(version.Id, entryId, version.ObjectKey, version.SizeBytes, document.TenantId, immediately, cancellationToken))
+            if ((atOnce || now >= dueAt)
+                && await DeleteVersionAsync(version.Id, entryId, version.ObjectKey, version.SizeBytes, document.TenantId, atOnce, cancellationToken))
             {
                 deleted++;
             }
@@ -130,6 +144,16 @@ public sealed class PasswordEntryHistory(
 
         return new Outcome(marked ? 1 : 0, deleted);
     }
+
+    /// <summary>The certificates of the entry's store's effective audience, all members together.</summary>
+    private async Task<IReadOnlyList<System.Security.Cryptography.X509Certificates.X509Certificate2>> AudienceCertificatesAsync(
+        Guid entryId, CancellationToken cancellationToken) =>
+        await audience.RootOfAsync(entryId, cancellationToken) is { } root
+            ? [.. (await audience.EffectiveAsync(root, cancellationToken))
+                .SelectMany(m => m.CertificatePems)
+                .Distinct(StringComparer.Ordinal)
+                .Select(pem => System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(pem))]
+            : [];
 
     /// <summary>The entry's exposure date, or null when it is not marked.</summary>
     public static async Task<DateOnly?> ExposedSinceAsync(SimplArchiveDbContext dbContext, Guid entryId, CancellationToken cancellationToken)
@@ -288,7 +312,7 @@ public sealed class PasswordEntryHistory(
         }
 
         logger.LogDebug("Deleted superseded version {VersionId} of password entry {DocumentId} for good ({Why})",
-            versionId, entryId, compromise ? "re-sealed after a revocation" : "its undo window ended");
+            versionId, entryId, compromise ? "re-sealed after a revocation or an audience change" : "its undo window ended");
         return true;
     }
 }

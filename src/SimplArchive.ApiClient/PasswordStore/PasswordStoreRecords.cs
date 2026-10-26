@@ -100,7 +100,11 @@ public sealed record PasswordEntryInfo(
     string? Site = null, string? UserName = null, string? App = null)
 {
     /// <summary>Whether it has content yet: an entry whose first upload never finished has none.</summary>
-    public bool HasContent => Links.Has("content");
+    /// <remarks>
+    /// Asked of the confirmed version, not of the <c>content</c> rel: that rel rides only to the store's audience (ADR
+    /// 0983), so a service account seeding the store — never a member — would take every filled entry for an empty one.
+    /// </remarks>
+    public bool HasContent => VersionNumber is not null;
 
     internal static PasswordEntryInfo From(JsonElement json) => new(
         json.GetProperty("id").GetGuid(),
@@ -156,7 +160,7 @@ public sealed class PasswordEntryCreationWithheldException(string folderName, Ne
         NewEntryUnavailability.EnrolmentRequired =>
             $"You have no enrolled hardware key a new entry in '{folderName}' could be sealed to, so you could not open it. Enrol a hardware key first.",
         NewEntryUnavailability.NotAReader =>
-            $"You are not a reader of the store '{folderName}' belongs to, so a new entry would not be sealed to you. Grant yourself read access first.",
+            $"You are not in the audience of the store '{folderName}' belongs to, so a new entry would not be encrypted for you. Ask one of its audience managers to add you.",
         NewEntryUnavailability.NoReaderCertificates =>
             $"Nobody who reads the store '{folderName}' belongs to has an enrolled hardware key yet, so nothing can be sealed there.",
         _ => $"New entries may not be created in '{folderName}'.",

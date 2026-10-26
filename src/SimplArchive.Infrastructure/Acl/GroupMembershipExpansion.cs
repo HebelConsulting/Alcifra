@@ -57,4 +57,35 @@ public static class GroupMembershipExpansion
 
         return effectiveGroupIds;
     }
+
+    // Users who effectively belong to a group: direct members of it or any of its ANCESTORS (membership flows down, so
+    // a member of a parent group belongs to the child). The inverse of GetEffectiveGroupIdsForUserAsync. One query per
+    // ancestor level, then a single membership query. Moved here from AclEntriesController so the grant check and the
+    // encrypted-content audience (ADR 0983) expand a group the same way.
+    public static async Task<List<Guid>> GetUsersEffectivelyInGroupAsync(
+        SimplArchiveDbContext dbContext, Guid groupId, CancellationToken cancellationToken)
+    {
+        var groupIds = new List<Guid> { groupId };
+        var currentId = (Guid?)groupId;
+
+        while (currentId is { } id)
+        {
+            var parentId = await dbContext.Groups.Where(g => g.Id == id).Select(g => g.ParentGroupId).SingleOrDefaultAsync(cancellationToken);
+            if (parentId is { } pid && !groupIds.Contains(pid))
+            {
+                groupIds.Add(pid);
+                currentId = pid;
+            }
+            else
+            {
+                currentId = null;
+            }
+        }
+
+        return await dbContext.GroupMemberships
+            .Where(m => groupIds.Contains(m.GroupId))
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
 }

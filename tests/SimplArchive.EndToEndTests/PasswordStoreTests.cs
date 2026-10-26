@@ -165,6 +165,21 @@ public sealed partial class PasswordStoreTests
         return new Rig(tenantId, repoId, owner, admin, anna, bob) { AdminId = adminId, AdminEmail = adminEmail };
     }
 
+    // Who a store is encrypted for (ADR 0983): its manager — Anna, who created it, or an administrator appointing one to
+    // a store left without any — declares the whole audience in one PUT under the store's tag.
+    private static async Task DeclareAudienceAsync(HttpClient manager, Guid storeId, params (Guid UserId, bool Manager)[] members)
+    {
+        using var read = await manager.GetAsync($"/api/documents/{storeId}/audience");
+        Assert.True(read.IsSuccessStatusCode, $"audience read: {(int)read.StatusCode} {await read.Content.ReadAsStringAsync()}");
+        using var put = new HttpRequestMessage(HttpMethod.Put, $"/api/documents/{storeId}/audience")
+        {
+            Content = JsonContent.Create(new { members = members.Select(m => new { userId = m.UserId, isManager = m.Manager }) }),
+        };
+        put.Headers.TryAddWithoutValidation("If-Match", read.Headers.ETag!.Tag);
+        using var answer = await manager.SendAsync(put);
+        Assert.True(answer.IsSuccessStatusCode, $"audience PUT: {(int)answer.StatusCode} {await answer.Content.ReadAsStringAsync()}");
+    }
+
     private static async Task<PasswordFolderInfo> SharedStoreAsync(Rig rig)
     {
         var created = await TestJson.Post(rig.Anna.Http, $"/api/documents/{rig.RepoId}/children", new { name = "Team", maskId = WellKnownMaskIds.PasswordStore });
@@ -281,8 +296,12 @@ public sealed partial class PasswordStoreTests
         var changed = await anna.CreateEntryAsync(store, "Router", PasswordEntryContent.Of("r1", "admin"));
         Assert.False((await anna.GetFolderAsync(store.Links.Href("self")!)).NeedsReseal);
 
-        // Bob joins: the entries are not sealed to him yet.
+        // Bob may read, but the store is encrypted for its audience (ADR 0983): nothing changes until Anna adds him.
         await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+        Assert.False((await anna.GetFolderAsync(store.Links.Href("self")!)).NeedsReseal);
+
+        // Bob joins the audience: the entries are not sealed to him yet.
+        await DeclareAudienceAsync(rig.Anna.Http, store.Id, (rig.Anna.Id, true), (rig.Bob.Id, false));
         var stale = await anna.GetFolderAsync(store.Links.Href("self")!);
         Assert.True(stale.NeedsReseal);
         Assert.True(stale.CanReseal);
@@ -362,6 +381,7 @@ public sealed partial class PasswordStoreTests
         var client = rig.Anna.Client;
         var store = await SharedStoreAsync(rig);
         await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true, canEditContent = true });
+        await DeclareAudienceAsync(rig.Anna.Http, store.Id, (rig.Anna.Id, true), (rig.Bob.Id, false));
         var entry = await client.CreateEntryAsync(store, "Vault", PasswordEntryContent.Of("v1", "ops"));
 
         // Anna's key is revoked in the registry (a state on its row, never a deletion), and the sweep runs.
@@ -412,7 +432,7 @@ public sealed partial class PasswordStoreTests
     });
 
     [Fact]
-    public Task A_tenant_administrator_is_sealed_to_only_after_granting_themselves_read() => WithEnrolmentAsync(async rig =>
+    public Task A_tenant_administrator_is_sealed_to_only_once_granted_read_and_added_to_the_audience() => WithEnrolmentAsync(async rig =>
     {
         // The administrator enrols a key too, and reads the shared store through the bypass.
         var adminKey = NewKey("Admin", rig.AdminEmail);
@@ -426,9 +446,10 @@ public sealed partial class PasswordStoreTests
         Assert.DoesNotContain(recipients.Certificates, c => c.UserId == rig.AdminId);
         Assert.DoesNotContain(recipients.ReadersWithoutCertificate, r => r.UserId == rig.AdminId);
         Assert.False((await rig.Anna.Client.GetFolderAsync(store.Links.Href("self")!)).NeedsReseal);
-        await Assert.ThrowsAsync<EnvelopeNotOpenedException>(async () => await adminClient.OpenAsync(await adminClient.GetEntryAsync(entry.Links.Href("self")!)));
+        // Outside the audience, the administrator is not even handed the envelope (ADR 0983).
+        Assert.Null((await adminClient.GetEntryAsync(entry.Links.Href("self")!)).Links.Href("content"));
 
-        // The administrator grants themselves read: audited, and now a reader the next re-seal includes.
+        // The administrator grants themselves read: audited, and a reader — but not yet somebody the store is sealed to.
         await TestJson.Put(rig.Admin, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.AdminId}", new { canSee = true, canReadContent = true });
         using (var scope = _factory.Services.CreateScope())
         {
@@ -436,6 +457,9 @@ public sealed partial class PasswordStoreTests
             Assert.True(await db.AuditEvents.IgnoreQueryFilters().AnyAsync(e => e.TenantId == rig.TenantId && e.Action == "Acl.Granted" && e.TargetId == rig.RepoId));
         }
 
+        // Reading is not decrypting (ADR 0983): only once the store's manager adds them is the administrator sealed to.
+        Assert.DoesNotContain((await rig.Anna.Client.GetRecipientsAsync(store.Links)).Certificates, c => c.UserId == rig.AdminId);
+        await DeclareAudienceAsync(rig.Anna.Http, store.Id, (rig.Anna.Id, true), (rig.AdminId, false));
         Assert.Contains((await rig.Anna.Client.GetRecipientsAsync(store.Links)).Certificates, c => c.UserId == rig.AdminId);
         var stale = await rig.Anna.Client.GetFolderAsync(store.Links.Href("self")!);
         Assert.True(stale.NeedsReseal);
@@ -467,7 +491,12 @@ public sealed partial class PasswordStoreTests
         Assert.False(await SimplArchive.Cli.Commands.AclBreakInheritanceCommand.BreakAsync(api, storeId, CancellationToken.None));
         await TestJson.Put(rig.Owner, $"/api/documents/{storeId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
 
-        // The service account seals the entry to the store's readers (Anna and Bob), not to itself: it holds no key.
+        // A store a service account creates starts with the readers it inherited (Anna) and NO manager (ADR 0983): a
+        // tenant administrator appoints one from the readers, and that manager adds Bob.
+        await DeclareAudienceAsync(rig.Admin, storeId, (rig.Anna.Id, true));
+        await DeclareAudienceAsync(rig.Anna.Http, storeId, (rig.Anna.Id, true), (rig.Bob.Id, false));
+
+        // The service account seals the entry to the store's audience (Anna and Bob), not to itself: it holds no key.
         var seeder = new PasswordStoreClient(ApiCore.Over(rig.Owner));
         var content = PasswordEntryContent.Of("SimplDemo2026!", "admin@demo.example", "https://demo.example");
         var (entryId, outcome) = await SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateEntryAsync(seeder, storeId, "Demo login: admin@", content, CancellationToken.None);
@@ -506,6 +535,9 @@ public sealed partial class PasswordStoreTests
 
         var carolId = await _factory.SeedUserAsync(rig.TenantId, $"pw-carol-{Guid.NewGuid():N}@e2e.local", "pwstore-1234", "Carol");
         await TestJson.Put(rig.Owner, $"/api/documents/{storeId}/acl-entries/users/{carolId}", new { canSee = true, canReadContent = true });
+
+        // No manager (a service account created it): the administrator appoints Carol, a reader, and so a member.
+        await DeclareAudienceAsync(rig.Admin, storeId, (rig.Anna.Id, false), (carolId, true));
 
         var seeder = new PasswordStoreClient(ApiCore.Over(rig.Owner));
         var refusal = await Assert.ThrowsAsync<SimplArchive.Cli.Infrastructure.CliException>(() => SimplArchive.Cli.Commands.PasswordStoreSurface.FindOrCreateEntryAsync(

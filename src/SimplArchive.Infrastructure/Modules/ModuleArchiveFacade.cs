@@ -240,7 +240,7 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
     /// </summary>
     public async Task<Uri?> GetDocumentContentUrlAsync(Guid documentId, TimeSpan ttl, CancellationToken cancellationToken = default)
     {
-        if (!await ModuleMaySeeAsync(documentId, cancellationToken))
+        if (!await ModuleMaySeeAsync(documentId, cancellationToken) || await IsAudienceContentAsync(documentId, cancellationToken))
         {
             return null;
         }
@@ -270,11 +270,22 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
         return url;
     }
 
+    /// <summary>
+    /// Whether the document is the core's ENCRYPTED CONTENT — a Password Entry or a Sealed document — which goes only to
+    /// its audience (ADR 0983). A module's principal holds no key and is never a member, so it reads such content as
+    /// nonexistent; a module's own sealed masks are its business and are not asked about here.
+    /// </summary>
+    private Task<bool> IsAudienceContentAsync(Guid documentId, CancellationToken cancellationToken) =>
+        _dbContext.Documents
+            .Where(d => d.Id == documentId)
+            .AnyAsync(d => _dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId
+                && (v.MaskId == WellKnownMaskIds.PasswordEntry || v.MaskId == WellKnownMaskIds.SealedDocument)), cancellationToken);
+
     public async Task<byte[]?> GetDocumentContentAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
         // Same consent gate as the field reads (ADR 0736): a module reads content only of a document its
         // principal may see; ungranted reads as nonexistent.
-        if (!await ModuleMaySeeAsync(documentId, cancellationToken))
+        if (!await ModuleMaySeeAsync(documentId, cancellationToken) || await IsAudienceContentAsync(documentId, cancellationToken))
         {
             return null;
         }

@@ -317,7 +317,10 @@ internal static class WebDavMoveCopy
             return;
         }
 
-        if (!(await WebDavMiddleware.RightsAsync(services, user, sourceDoc.Id)).CanReadContent)
+        // A copy leaves the sealed segment and the audience behind, so encrypted content is not copied by anybody outside
+        // the audience (ADR 0983); the copy itself stays the CMS envelope it was.
+        if (!(await WebDavMiddleware.RightsAsync(services, user, sourceDoc.Id)).CanReadContent
+            || await services.GetRequiredService<Audience.ContentAudience>().WithholdsFromCallerAsync(sourceDoc.Id, context.RequestAborted))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;

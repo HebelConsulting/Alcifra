@@ -55,6 +55,10 @@ public class DocumentChildrenController : ControllerBase
     // index-data path shares rather than a copy of it.
     private readonly Documents.IndexDataWriter _indexData;
 
+    // A new store or Sealed document gets its first audience in the same commit (ADR 0983).
+    private readonly Audience.ContentAudience _audience;
+    private readonly Audience.EncryptedForCaller _encryptedFor;
+
     public DocumentChildrenController(
         ICurrentUserAccessor currentUserAccessor,
         SimplArchiveDbContext dbContext,
@@ -67,9 +71,13 @@ public class DocumentChildrenController : ControllerBase
         IReadOnlyList<Infrastructure.Modules.ModuleLoader.LoadedModule> modules,
         IDavCollectionKindRegistry davKinds,
         ILogger<DocumentChildrenController> logger,
-        Documents.IndexDataWriter indexData)
+        Documents.IndexDataWriter indexData,
+        Audience.ContentAudience audience,
+        Audience.EncryptedForCaller encryptedFor)
     {
         _indexData = indexData;
+        _audience = audience;
+        _encryptedFor = encryptedFor;
         _modules = modules;
         _logger = logger;
         _davKinds = davKinds;
@@ -112,6 +120,12 @@ public class DocumentChildrenController : ControllerBase
         /// <summary>May the caller create a plain child inside this row? (#854)</summary>
         /// <remarks>Policy AND right — see <c>ICarriesRowCapabilities.CanCreateChildren</c>.</remarks>
         public bool CanCreateChildren { get; set; }
+
+        /// <summary>
+        /// For encrypted content only (ADR 0983): <c>you</c>, <c>not-you</c> ("not encrypted for you") or
+        /// <c>not-yet-you</c> ("not yet encrypted for you"); null on every other row. See <c>EncryptedForCaller</c>.
+        /// </summary>
+        public string? EncryptedForCaller { get; set; }
 
 
         public Guid Id { get; set; }
@@ -443,6 +457,8 @@ public class DocumentChildrenController : ControllerBase
         // Stamped from the SAME rights batch the visibility filter read (ADR 0765) — a second resolution
         // would repeat the page's whole rights walk for an answer already in hand.
         Hypermedia.RowCapabilities.Stamp(children, r => r.Id, r => admitsPlainChild[r.Id], rightsByRow);
+        var encryptedFor = await _encryptedFor.ForRowsAsync(page.Select(d => (d.Id, d.MaskId)), cancellationToken);
+        children.ForEach(c => c.EncryptedForCaller = encryptedFor.GetValueOrDefault(c.Id));
 
         // The FOLDER's own rights, which the per-row batch above does not cover — it answers the children, and
         // this answers their parent. One document's worth of work on a read that already does several queries,
@@ -615,7 +631,7 @@ public class DocumentChildrenController : ControllerBase
     {
         var parent = await _dbContext.Documents
             .Where(d => d.Id == documentId)
-            .Select(d => new { d.TenantId, d.MaskVersionId })
+            .Select(d => new { d.TenantId, d.MaskVersionId, d.PersonalRootOwnerId })
             .SingleOrDefaultAsync(cancellationToken);
 
         if (parent is null)
@@ -735,6 +751,11 @@ public class DocumentChildrenController : ControllerBase
         };
 
         _dbContext.Documents.Add(child);
+        if (Audience.ContentAudience.DeclaredBy(folderMaskId) is not null)
+        {
+            // The creator becomes the first audience manager, in the same commit (ADR 0983).
+            await _audience.SeedForNewAsync(child.Id, parent.TenantId, documentId, parent.PersonalRootOwnerId, createdByUserId, cancellationToken);
+        }
 
         if (request.Fields is { Count: > 0 } fields)
         {

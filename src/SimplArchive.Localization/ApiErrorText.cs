@@ -79,8 +79,14 @@ public static class ApiErrorText
         "PASSWORD_STORE_NO_READER_CERTIFICATES" => Strings.Get("PwNoRecipients"),
         "CERTIFICATE_NOT_ATTESTED" => Strings.Get("ApiErrCertificateNotAttested"),
         "INVALID_RECIPIENT_CERTIFICATE" => Strings.Get("ApiErrInvalidRecipientCertificate"),
-        // "Change audience…" refused from somebody who did not file the current version (ADR 0975).
-        "AUDIENCE_CHANGE_REQUIRES_AUTHOR" => Strings.Get("ApiErrAudienceChangeRequiresAuthor"),
+        // Encrypted content's audience (ADR 0983): its managers' rules, and the cross-store move that re-seals.
+        "AUDIENCE_CHANGE_REQUIRES_MANAGER" => Strings.Get("ApiErrAudienceChangeRequiresManager"),
+        "AUDIENCE_MEMBER_NOT_A_READER" => Strings.Get("ApiErrAudienceMemberNotAReader"),
+        "AUDIENCE_MANAGER_MUST_BE_A_USER" => Strings.Get("ApiErrAudienceManagerMustBeAUser"),
+        "AUDIENCE_NEEDS_A_MANAGER" => Strings.Get("ApiErrAudienceNeedsAManager"),
+        "AUDIENCE_FIXED_IN_PERSONAL_SPACE" => Strings.Get("ApiErrAudienceFixedInPersonalSpace"),
+        "AUDIENCE_ADMINISTRATOR_MAY_ONLY_APPOINT" => Strings.Get("ApiErrAudienceAdministratorMayOnlyAppoint"),
+        "MOVE_REQUIRES_BOTH_AUDIENCES" => Strings.Get("ApiErrMoveRequiresBothAudiences"),
         "CERTIFICATE_ATTESTATION_INVALID" => Strings.Get("ApiErrCertificateAttestationInvalid"),
         "CERTIFICATE_ATTESTATION_KEY_MISMATCH" => Strings.Get("ApiErrCertificateAttestationKeyMismatch"),
         "CERTIFICATE_ATTESTATION_ROOT_NOT_TRUSTED" => Strings.Get("ApiErrCertificateAttestationRootNotTrusted"),

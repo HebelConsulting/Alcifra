@@ -37,7 +37,8 @@ public sealed class DocumentVersionResourceBuilder(
     IDocumentPreviewService previews,
     IObjectStorageClient storage,
     StrictEnvelopeDelivery envelopes,
-    SimplArchive.Infrastructure.Storage.OmittableLinks omittable)
+    SimplArchive.Infrastructure.Storage.OmittableLinks omittable,
+    Audience.ContentAudience audience)
 {
     // The same window the upload URL uses. A presigned link is handed to a browser that is about to follow it,
     // so it wants to be short; fifteen minutes survives a slow render without leaving a usable URL in a log.
@@ -98,6 +99,12 @@ public sealed class DocumentVersionResourceBuilder(
         // both clients' one content funnel opens it on the device.
         var sealedContent = await ServesContentAsEnvelopeAsync(version.DocumentId, cancellationToken);
 
+        // CIPHERTEXT ONLY TO THE AUDIENCE (ADR 0983), for EVERY version of a Sealed document or a Password Entry: the
+        // old envelopes stay as they are (history, retention, WORM), but somebody removed from the audience can no
+        // longer fetch even what was sealed to them. The version itself still lists — the ACL decides who sees the
+        // history — without a content rel to follow.
+        var contentWithheld = await audience.WithholdsFromCallerAsync(version.DocumentId, cancellationToken);
+
         if (version.Status == DocumentVersionStatus.Confirmed)
         {
             // Name the download after Document.Name but with the *version object's* extension, so a version
@@ -133,7 +140,7 @@ public sealed class DocumentVersionResourceBuilder(
                 refusesPlaintextDoors: await envelopes.RefusesPlaintextDoorsAsync(cancellationToken),
                 servesSealedContent: sealedContent);
 
-            if (doors.Enveloped)
+            if (doors.Enveloped && !contentWithheld)
             {
                 var enveloped = $"/api/documents/{version.DocumentId}/versions/{version.Id}/enveloped-content";
                 links.Add(new Link("download", enveloped, "GET"));
@@ -171,7 +178,7 @@ public sealed class DocumentVersionResourceBuilder(
             // failing — ADR 0543: a missing rel means "not available to you, here, now", and the client
             // disables the affordance instead of trying. The document's metadata still renders, which is the
             // whole reason the seam answers null rather than throwing.
-            if (doors.Plaintext
+            if (doors.Plaintext && !contentWithheld
                 // Through OmittableLinks: without an encryption service an object encrypted at rest refuses its
                 // presign, and this resource drops the link rather than failing (ADR 0953).
                 && await omittable.OrOmittedAsync(
@@ -198,7 +205,7 @@ public sealed class DocumentVersionResourceBuilder(
             // the device by opening it. So it is presigned directly rather than through the preview service, which
             // would answer null by design — and the S/MIME type rides on the URL for the same reason the download's
             // does (ADR 0975).
-            if (doors.Plaintext)
+            if (doors.Plaintext && !contentWithheld)
             {
                 // The TASK, not an awaited result: OrOmittedLinks catches the refusal a presign throws when the
                 // object is encrypted at rest and no service can unwrap it (ADR 0953). Awaiting it here would
@@ -250,7 +257,10 @@ public sealed class DocumentVersionResourceBuilder(
 
             // Ordered per-page image URLs for a multi-page TIFF (ADR "Multi-page TIFF preview pages"). Static
             // link; the endpoint returns 204 for every other format (the client then uses the single `preview`).
-            links.Add(new Link("preview-pages", $"/api/documents/{version.DocumentId}/versions/{version.Id}/preview-pages", "GET"));
+            if (!contentWithheld)
+            {
+                links.Add(new Link("preview-pages", $"/api/documents/{version.DocumentId}/versions/{version.Id}/preview-pages", "GET"));
+            }
 
             // The version's approval workflow (ADR "Workflow / document state model", 0009). Static link — the
             // endpoint resolves the current status + valid-transition links on demand. The STATUS itself rides

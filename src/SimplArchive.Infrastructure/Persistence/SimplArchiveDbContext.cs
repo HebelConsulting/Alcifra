@@ -156,6 +156,8 @@ public partial class SimplArchiveDbContext : DbContext, IDataProtectionKeyContex
 
     public DbSet<SimplArchive.Domain.Search.SavedSearchShare> SavedSearchShares => Set<SimplArchive.Domain.Search.SavedSearchShare>();
 
+    public DbSet<SimplArchive.Domain.Documents.ContentAudienceMember> ContentAudienceMembers => Set<SimplArchive.Domain.Documents.ContentAudienceMember>();
+
     public DbSet<SimplArchive.Domain.Documents.SensitivityLabelDefinition> SensitivityLabelDefinitions => Set<SimplArchive.Domain.Documents.SensitivityLabelDefinition>();
 
     public DbSet<Group> Groups => Set<Group>();

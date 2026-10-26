@@ -6382,7 +6382,7 @@
     <value>Neue Einträge werden für Ihren Hardwareschlüssel versiegelt, und Sie haben noch keinen registriert; Sie könnten nicht öffnen, was Sie speichern. Registrieren Sie zuerst einen Schlüssel.</value>
   </data>
   <data name="PwNotAReader" xml:space="preserve">
-    <value>Sie dürfen diesen Speicher verwalten, lesen ihn aber nicht; ein neuer Eintrag würde deshalb nicht für Sie versiegelt. Erteilen Sie sich Leserechte, um Einträge hinzuzufügen.</value>
+    <value>Sie gehören nicht zur Zielgruppe dieses Speichers; ein neuer Eintrag würde deshalb nicht für Sie verschlüsselt. Bitten Sie einen seiner Zielgruppen-Verwalter, Sie hinzuzufügen.</value>
   </data>
   <data name="PwNewEntryUnavailable" xml:space="preserve">
     <value>Hier können keine neuen Einträge hinzugefügt werden.</value>
@@ -6630,9 +6630,6 @@
   <data name="StErrResealNoContent" xml:space="preserve">
     <value>Dieses Dokument bietet keinen Inhalt zum Neuversiegeln an.</value>
   </data>
-  <data name="ApiErrAudienceChangeRequiresAuthor" xml:space="preserve">
-    <value>Nur der Autor der aktuellen Version dieses versiegelten Dokuments kann ändern, für wen es versiegelt ist.</value>
-  </data>
   <data name="AccountBrowserAutofill" xml:space="preserve">
     <value>Browser-Autofill…</value>
   </data>
@@ -6653,5 +6650,26 @@
   </data>
   <data name="BrowserAutofillScope" xml:space="preserve">
     <value>Nur die Erweiterung mit dieser ID darf anfragen; das Geheimnis verlässt diesen Rechner nur in die von Ihnen gewählte Seite.</value>
+  </data>
+  <data name="ApiErrAudienceChangeRequiresManager" xml:space="preserve">
+    <value>Nur ein Zielgruppen-Verwalter kann ändern, für wen dies verschlüsselt ist.</value>
+  </data>
+  <data name="ApiErrAudienceMemberNotAReader" xml:space="preserve">
+    <value>Nur Personen und Gruppen mit Leserecht können zur Zielgruppe gehören. Erteilen Sie zuerst Leserechte.</value>
+  </data>
+  <data name="ApiErrAudienceManagerMustBeAUser" xml:space="preserve">
+    <value>Ein Zielgruppen-Verwalter muss eine Person sein, keine Gruppe.</value>
+  </data>
+  <data name="ApiErrAudienceNeedsAManager" xml:space="preserve">
+    <value>Die Zielgruppe muss mindestens einen Verwalter mit Leserecht behalten.</value>
+  </data>
+  <data name="ApiErrAudienceFixedInPersonalSpace" xml:space="preserve">
+    <value>Dies liegt in einem persönlichen Bereich; nur sein Besitzer kann es entschlüsseln, die Zielgruppe ist nicht änderbar.</value>
+  </data>
+  <data name="ApiErrAudienceAdministratorMayOnlyAppoint" xml:space="preserve">
+    <value>Ohne verbleibenden Zielgruppen-Verwalter darf ein Administrator nur einen Verwalter aus den Lesenden ernennen.</value>
+  </data>
+  <data name="ApiErrMoveRequiresBothAudiences" xml:space="preserve">
+    <value>Zum Verschieben in einen anderen Passwortspeicher müssen Sie zu beiden Zielgruppen gehören, damit Sie es für den neuen verschlüsseln können.</value>
   </data>
 </root>
