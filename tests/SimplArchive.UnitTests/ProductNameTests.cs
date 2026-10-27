@@ -53,4 +53,29 @@ public class ProductNameTests
             $"These texts spell the product's name out instead of saying {Strings.ProductToken}, so a rename misses them:\n  "
             + string.Join("\n  ", literal));
     }
+
+    // The shared client libraries the desktop and the phone show text from: a C# literal naming the product escapes the
+    // resource check above (the key test's report said "SimplArchive hardware key test" after the rename, Mobile #187).
+    // Comments, dotted identifiers ("SimplArchive.ApiClient") and the X-SimplArchive- header names are not texts.
+    [Theory]
+    [InlineData("SimplArchive.ApiClient")]
+    [InlineData("SimplArchive.Presentation")]
+    [InlineData("SimplArchive.SealedArchive")]
+    [InlineData("SimplArchive.TextLayout")]
+    public void No_shared_client_literal_spells_the_product_name_out(string project)
+    {
+        var root = RepoPaths.Root();
+        var spelled = Directory.EnumerateFiles(Path.Combine(root, "src", project), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .SelectMany(f => File.ReadAllLines(f).Select((line, i) => (File: Path.GetRelativePath(root, f), Line: i + 1, Text: line)))
+            .Where(l => !l.Text.TrimStart().StartsWith("//", StringComparison.Ordinal) && Literal.IsMatch(l.Text))
+            .Where(l => !l.Text.Contains("LogWarning", StringComparison.Ordinal) && !l.Text.Contains("LogInformation", StringComparison.Ordinal))
+            .Select(l => $"{l.File}:{l.Line}")
+            .ToList();
+
+        Assert.True(spelled.Count == 0,
+            $"These literals spell the product's name out; use Strings.ProductName:\n  {string.Join("\n  ", spelled)}");
+    }
+
+    private static readonly Regex Literal = new(@"""[^""]*\b(SimplArchive|Alcifra)\b(?!\.[A-Za-z])(?!-)[^""]*""", RegexOptions.Compiled);
 }

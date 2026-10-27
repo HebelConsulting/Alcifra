@@ -33,7 +33,7 @@ public sealed class KeyTestReportTests : ApiClientSettingsTest
             Assert.Contains(expected, text, StringComparison.Ordinal);
         }
 
-        Assert.StartsWith("SimplArchive hardware key test, ", text, StringComparison.Ordinal);
+        Assert.StartsWith($"{SimplArchive.Localization.Strings.ProductName} hardware key test, ", text, StringComparison.Ordinal);
         Assert.Contains("Result: FAILED at \"Unlock the key with its PIN\"", text, StringComparison.Ordinal);
     }
 

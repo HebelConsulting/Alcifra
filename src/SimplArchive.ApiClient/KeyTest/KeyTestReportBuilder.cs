@@ -86,7 +86,7 @@ public sealed class KeyTestReportBuilder(TimeProvider? time = null)
 
     public KeyTestReport Build() => new(
         _time.GetUtcNow(),
-        _environment ?? KeyTestEnvironment.ThisMachine("SimplArchive", "unknown", null, []),
+        _environment ?? KeyTestEnvironment.ThisMachine(SimplArchive.Localization.Strings.ProductName, "unknown", null, []),
         _keys.ToList(),
         _steps.ToList(),
         _archive);

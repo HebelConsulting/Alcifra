@@ -65,7 +65,7 @@ public static class ServerIdentity
                 ? new ServerCheck(ServerCheckOutcome.NotSimplArchive, $"HTTP {(int)resp.StatusCode}")
                 : LooksLikeApiRoot(await resp.Content.ReadAsStringAsync(cancellationToken))
                     ? new ServerCheck(ServerCheckOutcome.Found)
-                    : new ServerCheck(ServerCheckOutcome.NotSimplArchive, "the answer is not a SimplArchive API root");
+                    : new ServerCheck(ServerCheckOutcome.NotSimplArchive, $"the answer is not a {SimplArchive.Localization.Strings.ProductName} API root");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

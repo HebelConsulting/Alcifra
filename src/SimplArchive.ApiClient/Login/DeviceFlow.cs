@@ -45,7 +45,7 @@ public sealed class DeviceFlow(HttpClient http, string clientId)
         {
             throw new DeviceFlowException(DescribeTokenError(body,
                 $"The installation refused a device authorization request ({(int)response.StatusCode}). "
-                + "It may be older than the device grant, or not a SimplArchive Api."));
+                + $"It may be older than the device grant, or not a {SimplArchive.Localization.Strings.ProductName} Api."));
         }
 
         var json = JsonDocument.Parse(body).RootElement;

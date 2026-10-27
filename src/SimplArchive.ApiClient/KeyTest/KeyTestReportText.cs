@@ -29,7 +29,7 @@ public static class KeyTestReportText
     public static string Render(KeyTestReport report, bool includeArchive = true)
     {
         var text = new StringBuilder();
-        Line(text, $"SimplArchive hardware key test, {Stamp(report.At)}");
+        Line(text, $"{SimplArchive.Localization.Strings.ProductName} hardware key test, {Stamp(report.At)}");
         Line(text, $"Result: {Verdict(report)}");
 
         Section(text, "Environment");
