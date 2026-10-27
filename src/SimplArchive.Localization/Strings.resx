@@ -6408,6 +6408,18 @@
   <data name="PwImportKeepBoth" xml:space="preserve">
     <value>Keep both</value>
   </data>
+  <data name="PwAutofillAlreadySaved" xml:space="preserve">
+    <value>This password is already saved in “{0}”.</value>
+  </data>
+  <data name="PwAutofillUpdateAsk" xml:space="preserve">
+    <value>The password you typed differs from the one saved in “{0}”. Update it?</value>
+  </data>
+  <data name="PwAutofillUpdate" xml:space="preserve">
+    <value>Update password</value>
+  </data>
+  <data name="PwAutofillUpdated" xml:space="preserve">
+    <value>The password of “{0}” was updated.</value>
+  </data>
   <data name="PwImportDone" xml:space="preserve">
     <value>{0} entries imported and sealed on this device.</value>
   </data>
