@@ -13,7 +13,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="LogonTitle" xml:space="preserve">
-    <value>Iniciar sesión — SimplArchive</value>
+    <value>Iniciar sesión — {Product}</value>
   </data>
   <data name="LogonUsername" xml:space="preserve">
     <value>Nombre de usuario (correo electrónico)</value>
@@ -202,10 +202,10 @@
     <value>Comprobando…</value>
   </data>
   <data name="SmFound" xml:space="preserve">
-    <value>SimplArchive encontrado</value>
+    <value>{Product} encontrado</value>
   </data>
   <data name="SmNotSimplArchive" xml:space="preserve">
-    <value>Esta dirección no responde como SimplArchive.</value>
+    <value>Esta dirección no responde como {Product}.</value>
   </data>
   <data name="SmUnreachable" xml:space="preserve">
     <value>No se puede acceder al servidor.</value>
@@ -262,7 +262,7 @@
     <value>Mostrar carpeta de registros</value>
   </data>
   <data name="AboutHeading" xml:space="preserve">
-    <value>Acerca de SimplArchive</value>
+    <value>Acerca de {Product}</value>
   </data>
   <data name="AboutVersion" xml:space="preserve">
     <value>Versión</value>
@@ -274,7 +274,7 @@
     <value>Prueba la app de escritorio</value>
   </data>
   <data name="DesktopNoticeBody" xml:space="preserve">
-    <value>SimplArchive también tiene una app de escritorio que hace lo que un navegador no puede — abrir un documento en su aplicación nativa y arrastrar documentos a tu gestor de archivos, con vistas previas más rápidas.</value>
+    <value>{Product} también tiene una app de escritorio que hace lo que un navegador no puede — abrir un documento en su aplicación nativa y arrastrar documentos a tu gestor de archivos, con vistas previas más rápidas.</value>
   </data>
   <data name="DesktopNoticeDownload" xml:space="preserve">
     <value>Descargar la app de escritorio</value>
@@ -2131,7 +2131,7 @@
     <value>Confidencialidad: {0}</value>
   </data>
   <data name="LoginPageTitle" xml:space="preserve">
-    <value>Iniciar sesión · SimplArchive</value>
+    <value>Iniciar sesión · {Product}</value>
   </data>
   <data name="LoginSaveRecoveryTitle" xml:space="preserve">
     <value>Guarda tus códigos de recuperación</value>
@@ -2614,16 +2614,16 @@
     <value>Abrir sus documentos montados</value>
   </data>
   <data name="MwWebDavMounting" xml:space="preserve">
-    <value>Montando SimplArchive…</value>
+    <value>Montando {Product}…</value>
   </data>
   <data name="MwWebDavOpening" xml:space="preserve">
-    <value>Abriendo SimplArchive…</value>
+    <value>Abriendo {Product}…</value>
   </data>
   <data name="MwWebDavMounted" xml:space="preserve">
-    <value>SimplArchive está montado.</value>
+    <value>{Product} está montado.</value>
   </data>
   <data name="MwWebDavMountFailed" xml:space="preserve">
-    <value>No se pudo montar SimplArchive: {0}</value>
+    <value>No se pudo montar {Product}: {0}</value>
   </data>
   <data name="WdRegenerate" xml:space="preserve">
     <value>Regenerar contraseña</value>
@@ -4858,13 +4858,13 @@
     <value>Ir al enlace</value>
   </data>
   <data name="GoToLinkPrompt" xml:space="preserve">
-    <value>Pegue un enlace de SimplArchive — el documento se abre en su carpeta, seleccionado.</value>
+    <value>Pegue un enlace de {Product} — el documento se abre en su carpeta, seleccionado.</value>
   </data>
   <data name="GoToLinkGo" xml:space="preserve">
     <value>Ir</value>
   </data>
   <data name="DeepLinkInvalid" xml:space="preserve">
-    <value>Eso no es un enlace de SimplArchive.</value>
+    <value>Eso no es un enlace de {Product}.</value>
   </data>
   <data name="RibbonGoToDocument" xml:space="preserve">
     <value>Ir al documento</value>
@@ -5338,7 +5338,7 @@
     <value>Repositorio</value>
   </data>
   <data name="TenantStandardRepositoryInfo" xml:space="preserve">
-    <value>Dónde archiva SimplArchive lo que aporta — sus manuales, en la carpeta 'SimplArchive Manuals'. Al elegir otro repositorio la carpeta se mueve con él. El repositorio estándar no se puede eliminar.</value>
+    <value>Dónde archiva {Product} lo que aporta — sus manuales, en la carpeta 'SimplArchive Manuals'. Al elegir otro repositorio la carpeta se mueve con él. El repositorio estándar no se puede eliminar.</value>
   </data>
   <data name="ApiErrStandardRepositoryCannotBeDeleted" xml:space="preserve">
     <value>Este es el repositorio estándar del inquilino y no se puede eliminar. Primero convierta otro repositorio en el estándar en la configuración del inquilino.</value>
@@ -5347,7 +5347,7 @@
     <value>El repositorio estándar debe ser uno de los repositorios compartidos de este inquilino — no un espacio personal ni estar en la papelera.</value>
   </data>
   <data name="ApiErrCoreOwnedMask" xml:space="preserve">
-    <value>Solo SimplArchive asigna el tipo 'SimplArchive Documentation', a la única carpeta donde archiva sus manuales. Use una carpeta normal.</value>
+    <value>Solo {Product} asigna el tipo 'SimplArchive Documentation', a la única carpeta donde archiva sus manuales. Use una carpeta normal.</value>
   </data>
   <data name="WkMaskDocumentation" xml:space="preserve">
     <value>Documentación de SimplArchive</value>
@@ -5461,7 +5461,7 @@
     <value>Abriendo la llave conectada…</value>
   </data>
   <data name="MobShareTitle" xml:space="preserve">
-    <value>Archivar en SimplArchive</value>
+    <value>Archivar en {Product}</value>
   </data>
   <data name="MobShareIntray" xml:space="preserve">
     <value>En mi entrada</value>
@@ -5479,10 +5479,10 @@
     <value>Inicie sesión para archivar lo compartido.</value>
   </data>
   <data name="MobShareHandedOver" xml:space="preserve">
-    <value>Guardado para SimplArchive. Abra SimplArchive para archivarlo.</value>
+    <value>Guardado para {Product}. Abra {Product} para archivarlo.</value>
   </data>
   <data name="MobShareHandOverFailed" xml:space="preserve">
-    <value>No se pudo pasar a SimplArchive.</value>
+    <value>No se pudo pasar a {Product}.</value>
   </data>
   <data name="MobShareFilingAs" xml:space="preserve">
     <value>Archivar como: {0}</value>
@@ -5926,10 +5926,10 @@
     <value>Apunta la cámara al código QR de la licencia.</value>
   </data>
   <data name="MobCameraReason" xml:space="preserve">
-    <value>SimplArchive usa la cámara para tomar fotos que archivas y para escanear el código QR de una licencia.</value>
+    <value>La cámara toma las fotos que archivas y escanea el código QR de una licencia.</value>
   </data>
   <data name="MobCameraDenied" xml:space="preserve">
-    <value>La cámara no está permitida. Permítela para SimplArchive en los ajustes del sistema para escanear una licencia.</value>
+    <value>La cámara no está permitida. Permítela para {Product} en los ajustes del sistema para escanear una licencia.</value>
   </data>
   <data name="MobCameraUnavailable" xml:space="preserve">
     <value>Este dispositivo no tiene una cámara que pueda escanear un código QR.</value>
@@ -5983,7 +5983,7 @@
     <value>Probando…</value>
   </data>
   <data name="KtWorks" xml:space="preserve">
-    <value>Tu llave de hardware funciona con SimplArchive.</value>
+    <value>Tu llave de hardware funciona con {Product}.</value>
   </data>
   <data name="KtNotCompleted" xml:space="preserve">
     <value>La prueba no terminó: no se introdujo ningún PIN.</value>
@@ -6037,7 +6037,7 @@
     <value>Compartir informe</value>
   </data>
   <data name="KtDoesNotWork" xml:space="preserve">
-    <value>Tu llave de hardware no funciona con SimplArchive.</value>
+    <value>Tu llave de hardware no funciona con {Product}.</value>
   </data>
   <data name="KtWhyNoLibrary" xml:space="preserve">
     <value>No se pudo usar ninguna biblioteca PKCS#11: instala el software de tarjeta inteligente de la llave y vuelve a ejecutar la prueba.</value>

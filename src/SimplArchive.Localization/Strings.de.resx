@@ -13,7 +13,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="LogonTitle" xml:space="preserve">
-    <value>Anmelden — SimplArchive</value>
+    <value>Anmelden — {Product}</value>
   </data>
   <data name="LogonUsername" xml:space="preserve">
     <value>Benutzername (E-Mail)</value>
@@ -202,10 +202,10 @@
     <value>Wird geprüft…</value>
   </data>
   <data name="SmFound" xml:space="preserve">
-    <value>SimplArchive gefunden</value>
+    <value>{Product} gefunden</value>
   </data>
   <data name="SmNotSimplArchive" xml:space="preserve">
-    <value>Diese Adresse antwortet nicht als SimplArchive.</value>
+    <value>Diese Adresse antwortet nicht als {Product}.</value>
   </data>
   <data name="SmUnreachable" xml:space="preserve">
     <value>Der Server ist nicht erreichbar.</value>
@@ -262,7 +262,7 @@
     <value>Protokollordner anzeigen</value>
   </data>
   <data name="AboutHeading" xml:space="preserve">
-    <value>Über SimplArchive</value>
+    <value>Über {Product}</value>
   </data>
   <data name="AboutVersion" xml:space="preserve">
     <value>Version</value>
@@ -274,7 +274,7 @@
     <value>Die Desktop-App ausprobieren</value>
   </data>
   <data name="DesktopNoticeBody" xml:space="preserve">
-    <value>SimplArchive gibt es auch als Desktop-App, die kann, was ein Browser nicht kann — ein Dokument in seiner nativen Anwendung öffnen und Dokumente in Ihren Dateimanager herausziehen, mit schnelleren Vorschauen.</value>
+    <value>{Product} gibt es auch als Desktop-App, die kann, was ein Browser nicht kann — ein Dokument in seiner nativen Anwendung öffnen und Dokumente in Ihren Dateimanager herausziehen, mit schnelleren Vorschauen.</value>
   </data>
   <data name="DesktopNoticeDownload" xml:space="preserve">
     <value>Desktop-App herunterladen</value>
@@ -2131,7 +2131,7 @@
     <value>Vertraulichkeit: {0}</value>
   </data>
   <data name="LoginPageTitle" xml:space="preserve">
-    <value>Anmelden · SimplArchive</value>
+    <value>Anmelden · {Product}</value>
   </data>
   <data name="LoginSaveRecoveryTitle" xml:space="preserve">
     <value>Wiederherstellungscodes speichern</value>
@@ -2614,16 +2614,16 @@
     <value>Ihre eingebundenen Dokumente öffnen</value>
   </data>
   <data name="MwWebDavMounting" xml:space="preserve">
-    <value>SimplArchive wird eingebunden…</value>
+    <value>{Product} wird eingebunden…</value>
   </data>
   <data name="MwWebDavOpening" xml:space="preserve">
-    <value>SimplArchive wird geöffnet…</value>
+    <value>{Product} wird geöffnet…</value>
   </data>
   <data name="MwWebDavMounted" xml:space="preserve">
-    <value>SimplArchive ist eingebunden.</value>
+    <value>{Product} ist eingebunden.</value>
   </data>
   <data name="MwWebDavMountFailed" xml:space="preserve">
-    <value>SimplArchive konnte nicht eingebunden werden: {0}</value>
+    <value>{Product} konnte nicht eingebunden werden: {0}</value>
   </data>
   <data name="WdRegenerate" xml:space="preserve">
     <value>Passwort neu generieren</value>
@@ -4858,13 +4858,13 @@
     <value>Link öffnen</value>
   </data>
   <data name="GoToLinkPrompt" xml:space="preserve">
-    <value>Fügen Sie einen SimplArchive-Link ein — das Dokument öffnet sich ausgewählt in seinem Ordner.</value>
+    <value>Fügen Sie einen {Product}-Link ein — das Dokument öffnet sich ausgewählt in seinem Ordner.</value>
   </data>
   <data name="GoToLinkGo" xml:space="preserve">
     <value>Öffnen</value>
   </data>
   <data name="DeepLinkInvalid" xml:space="preserve">
-    <value>Das ist kein SimplArchive-Link.</value>
+    <value>Das ist kein {Product}-Link.</value>
   </data>
   <data name="RibbonGoToDocument" xml:space="preserve">
     <value>Zum Dokument springen</value>
@@ -5338,7 +5338,7 @@
     <value>Ablage</value>
   </data>
   <data name="TenantStandardRepositoryInfo" xml:space="preserve">
-    <value>Wohin SimplArchive ablegt, was es mitbringt — seine Handbücher im Ordner 'SimplArchive Manuals'. Wählen Sie eine andere Ablage, wird dieser Ordner mitverschoben. Die Standardablage kann nicht gelöscht werden.</value>
+    <value>Wohin {Product} ablegt, was es mitbringt — seine Handbücher im Ordner 'SimplArchive Manuals'. Wählen Sie eine andere Ablage, wird dieser Ordner mitverschoben. Die Standardablage kann nicht gelöscht werden.</value>
   </data>
   <data name="ApiErrStandardRepositoryCannotBeDeleted" xml:space="preserve">
     <value>Dies ist die Standardablage des Mandanten und kann nicht gelöscht werden. Machen Sie zuerst in den Mandanteneinstellungen eine andere Ablage zur Standardablage.</value>
@@ -5347,7 +5347,7 @@
     <value>Die Standardablage muss eine der gemeinsamen Ablagen dieses Mandanten sein — kein persönlicher Bereich und nicht im Papierkorb.</value>
   </data>
   <data name="ApiErrCoreOwnedMask" xml:space="preserve">
-    <value>Nur SimplArchive selbst vergibt den Typ 'SimplArchive Documentation', an den einen Ordner, in den es seine Handbücher ablegt. Verwenden Sie einen gewöhnlichen Ordner.</value>
+    <value>Nur {Product} selbst vergibt den Typ 'SimplArchive Documentation', an den einen Ordner, in den es seine Handbücher ablegt. Verwenden Sie einen gewöhnlichen Ordner.</value>
   </data>
   <data name="WkMaskDocumentation" xml:space="preserve">
     <value>SimplArchive-Dokumentation</value>
@@ -5461,7 +5461,7 @@
     <value>Der eingesteckte Schlüssel wird geöffnet…</value>
   </data>
   <data name="MobShareTitle" xml:space="preserve">
-    <value>In SimplArchive ablegen</value>
+    <value>In {Product} ablegen</value>
   </data>
   <data name="MobShareIntray" xml:space="preserve">
     <value>In meinen Eingangskorb</value>
@@ -5479,10 +5479,10 @@
     <value>Melden Sie sich an, um das Geteilte abzulegen.</value>
   </data>
   <data name="MobShareHandedOver" xml:space="preserve">
-    <value>Für SimplArchive gesichert. Öffnen Sie SimplArchive, um es abzulegen.</value>
+    <value>Für {Product} gesichert. Öffnen Sie {Product}, um es abzulegen.</value>
   </data>
   <data name="MobShareHandOverFailed" xml:space="preserve">
-    <value>Das konnte nicht an SimplArchive übergeben werden.</value>
+    <value>Das konnte nicht an {Product} übergeben werden.</value>
   </data>
   <data name="MobShareFilingAs" xml:space="preserve">
     <value>Ablegen als: {0}</value>
@@ -5926,10 +5926,10 @@
     <value>Richten Sie die Kamera auf den QR-Code der Lizenz.</value>
   </data>
   <data name="MobCameraReason" xml:space="preserve">
-    <value>SimplArchive verwendet die Kamera, um Fotos zum Ablegen aufzunehmen und den QR-Code einer Lizenz zu scannen.</value>
+    <value>Die Kamera nimmt die Fotos auf, die Sie ablegen, und scannt den QR-Code einer Lizenz.</value>
   </data>
   <data name="MobCameraDenied" xml:space="preserve">
-    <value>Die Kamera ist nicht erlaubt. Erlauben Sie sie für SimplArchive in den Systemeinstellungen, um eine Lizenz zu scannen.</value>
+    <value>Die Kamera ist nicht erlaubt. Erlauben Sie sie für {Product} in den Systemeinstellungen, um eine Lizenz zu scannen.</value>
   </data>
   <data name="MobCameraUnavailable" xml:space="preserve">
     <value>Dieses Gerät hat keine Kamera, die einen QR-Code scannen kann.</value>
@@ -5983,7 +5983,7 @@
     <value>Wird getestet…</value>
   </data>
   <data name="KtWorks" xml:space="preserve">
-    <value>Ihr Hardware-Schlüssel funktioniert mit SimplArchive.</value>
+    <value>Ihr Hardware-Schlüssel funktioniert mit {Product}.</value>
   </data>
   <data name="KtNotCompleted" xml:space="preserve">
     <value>Der Test wurde nicht abgeschlossen: Es wurde keine PIN eingegeben.</value>
@@ -6037,7 +6037,7 @@
     <value>Bericht teilen</value>
   </data>
   <data name="KtDoesNotWork" xml:space="preserve">
-    <value>Ihr Hardware-Schlüssel funktioniert nicht mit SimplArchive.</value>
+    <value>Ihr Hardware-Schlüssel funktioniert nicht mit {Product}.</value>
   </data>
   <data name="KtWhyNoLibrary" xml:space="preserve">
     <value>Es konnte keine PKCS#11-Bibliothek verwendet werden: Installieren Sie die Smartcard-Software des Schlüssels und führen Sie den Test erneut aus.</value>

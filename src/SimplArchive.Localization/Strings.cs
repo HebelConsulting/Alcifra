@@ -12,10 +12,25 @@ public static class Strings
     private static readonly ResourceManager Manager =
         new("SimplArchive.Localization.Strings", typeof(Strings).Assembly);
 
+    /// <summary>The product's name as the texts have it unless a host sets another (core #1117, Mobile #187).</summary>
+    public const string DefaultProductName = "Alcifra";
+
+    /// <summary>The placeholder a text uses where it names the product.</summary>
+    public const string ProductToken = "{Product}";
+
+    /// <summary>
+    /// The product's name in every text that names it (written <see cref="ProductToken"/> in the resources): ONE value, so
+    /// the name, and later its casing, changes in one place. A host sets it once at startup (the phone from its build);
+    /// unset, it is <see cref="DefaultProductName"/>. Stored names (the manuals folder, the documentation mask) and
+    /// identifiers (a header name) are not texts and keep their spelling.
+    /// </summary>
+    public static string ProductName { get; set; } = DefaultProductName;
+
     public static string Get(string key) => Get(key, CultureInfo.CurrentUICulture);
 
     // An explicit-culture overload so a test can resolve a language without mutating global culture state.
-    public static string Get(string key, CultureInfo culture) => Manager.GetString(key, culture) ?? key;
+    public static string Get(string key, CultureInfo culture) =>
+        (Manager.GetString(key, culture) ?? key).Replace(ProductToken, ProductName, StringComparison.Ordinal);
 
     // Every resource key (from the invariant/English set) — lets a test assert full translation coverage.
     public static IEnumerable<string> AllKeys()
