@@ -30,6 +30,17 @@ public sealed class PasswordScreenRulesTests
         Assert.True(rows[^1].IsMultiline);
     }
 
+    // #1949: the URL's row opens in the browser; no other row does, and a URL marked secret is no link.
+    [Fact]
+    public void Only_the_urls_row_is_a_link()
+    {
+        var rows = PasswordEntryRows.Of(Entry);
+
+        Assert.Equal([new Uri("https://example.com")], rows.Where(r => r.Link is not null).Select(r => r.Link));
+        Assert.Null(PasswordEntryRows.Of(new PasswordEntryContent("pw", [new PasswordEntryField(PasswordEntryFieldNames.Url, "https://example.com", IsSecret: true)]))
+            .Single(r => r.FieldName == PasswordEntryFieldNames.Url).Link);
+    }
+
     [Fact]
     public void An_entry_without_a_slot_skips_it_and_an_ordinary_field_named_like_the_password_keeps_its_place_after_it()
     {

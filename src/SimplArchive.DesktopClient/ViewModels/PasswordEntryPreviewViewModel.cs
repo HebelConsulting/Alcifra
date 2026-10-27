@@ -52,6 +52,18 @@ public sealed partial class SecretFieldViewModel : ObservableObject, IHoldToReve
 
     public bool IsMultiline => _field.Row.IsMultiline;
 
+    /// <summary>The value opens in the browser (the URL's row, core #1949).</summary>
+    public bool IsLink => _field.Row.Link is not null;
+
+    [RelayCommand]
+    private void OpenLink()
+    {
+        if (_field.Row.Link is { } link)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(link.ToString()) { UseShellExecute = true });
+        }
+    }
+
     /// <summary>What is drawn now: the value, or the mask while a secret is not held.</summary>
     public string Display => _field.Display;
 

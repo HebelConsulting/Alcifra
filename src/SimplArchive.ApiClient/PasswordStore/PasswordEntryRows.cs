@@ -11,6 +11,9 @@ public sealed record PasswordEntryRow(string Label, string Value, SecretFieldPre
     string FieldName = "")
 {
     public bool IsSecret => Presentation.IsSecret;
+
+    /// <summary>Where the row opens in the browser, or null (core #1949): the URL's row, by <see cref="WebLinks.Typed"/>.</summary>
+    public Uri? Link { get; init; }
 }
 
 /// <summary>
@@ -42,9 +45,16 @@ public static class PasswordEntryRows
 
     // A field named like the password but stored as an ordinary one ("Password: …" in the body) is shown under its own name
     // after the real one, never in its place.
-    private static PasswordEntryRow Row(PasswordEntryField field) =>
-        new(Label(field.Name), field.Value, SecretFields.ForField(field.Name, field.IsSecret),
-            IsMultiline: IsNotes(field.Name) || field.Value.Contains('\n'), FieldName: field.Name);
+    private static PasswordEntryRow Row(PasswordEntryField field)
+    {
+        var presentation = SecretFields.ForField(field.Name, field.IsSecret);
+        return new(Label(field.Name), field.Value, presentation,
+            IsMultiline: IsNotes(field.Name) || field.Value.Contains('\n'), FieldName: field.Name)
+        {
+            // The URL opens in the browser (core #1949); a URL marked secret stays hidden and is no link.
+            Link = PasswordEntryFieldOrder.SlotOf(field.Name) == PasswordFieldSlot.Url && !presentation.IsSecret ? WebLinks.Typed(field.Value) : null,
+        };
+    }
 
     private static bool IsNotes(string name) => string.Equals(name.Trim(), PasswordEntryFieldNames.Notes, StringComparison.OrdinalIgnoreCase);
 }

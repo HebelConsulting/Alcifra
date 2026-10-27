@@ -54,9 +54,8 @@ public sealed partial class IndexFieldViewModel
     private void OpenUrl(string? url)
     {
         // Only what the field's own validation admits (absolute http/https, core ADR 0755) — and re-checked
-        // here, because a link that shells out is a link worth double-checking.
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        // here, because a link that shells out is a link worth double-checking. The shared rule (#1949).
+        if (SimplArchive.Presentation.WebLinks.Absolute(url) is { } uri)
         {
             Process.Start(new ProcessStartInfo(uri.ToString()) { UseShellExecute = true });
         }
