@@ -23,6 +23,7 @@ public sealed class ProfileClient(ApiCore core)
     private LinkMap? _meLinks;
     private string? _myEmail;
     private string? _myTimeZoneId;
+    private IReadOnlyList<EnrolledKey>? _myEnrolledKeys;
     private readonly SemaphoreSlim _meGate = new(1, 1);
 
     /// <summary>
@@ -51,6 +52,16 @@ public sealed class ProfileClient(ApiCore core)
     {
         await MeHrefAsync("self", cancellationToken);
         return _myTimeZoneId;
+    }
+
+    /// <summary>
+    /// The certificates enrolled for the caller, as envelopes name recipients (ADR 0969, #1943) — from the same "me"
+    /// read; null where the installation does not carry them (older than #1943).
+    /// </summary>
+    public async Task<IReadOnlyList<EnrolledKey>?> MyEnrolledKeysAsync(CancellationToken cancellationToken = default)
+    {
+        await MeHrefAsync("self", cancellationToken);
+        return _myEnrolledKeys;
     }
 
     /// <summary>Stores the caller's display-zone preference; a blank id clears it back to "follow my device".</summary>
@@ -197,6 +208,15 @@ public sealed class ProfileClient(ApiCore core)
                     // is a real answer here — it means "follow my device", which only this side can resolve.
                     _myTimeZoneId = me.TryGetProperty("displayTimeZoneId", out var zone) && zone.ValueKind is JsonValueKind.String
                         ? zone.GetString()
+                        : null;
+
+                    // The caller's own enrolled keys ride along too (#1943): absent on an older installation, which the
+                    // null says, so the caller can tell "none enrolled" from "not told".
+                    _myEnrolledKeys = me.TryGetProperty("enrolledKeys", out var keys) && keys.ValueKind is JsonValueKind.Array
+                        ? [.. keys.EnumerateArray().Select(k => new EnrolledKey(
+                            ApiWire.StrOrNull(k, "issuer") ?? string.Empty,
+                            ApiWire.StrOrNull(k, "serial") ?? string.Empty,
+                            ApiWire.StrOrNull(k, "label") ?? string.Empty))]
                         : null;
                 }
             }

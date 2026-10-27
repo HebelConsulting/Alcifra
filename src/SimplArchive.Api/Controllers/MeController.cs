@@ -37,6 +37,7 @@ public class MeController : ControllerBase
     private readonly ICurrentUserAccessor _currentUser;
     private readonly SimplArchiveDbContext _dbContext;
     private readonly Concurrency.UserVerbs _users;
+    private readonly SimplArchive.Api.Certificates.CertificateEnrolment _enrolment;
 
     private readonly IReadOnlyList<SimplArchive.Infrastructure.Modules.ModuleLoader.LoadedModule> _modules;
 
@@ -44,11 +45,13 @@ public class MeController : ControllerBase
         ICurrentUserAccessor currentUser,
         SimplArchiveDbContext dbContext,
         Concurrency.UserVerbs users,
+        SimplArchive.Api.Certificates.CertificateEnrolment enrolment,
         IReadOnlyList<SimplArchive.Infrastructure.Modules.ModuleLoader.LoadedModule> modules)
     {
         _currentUser = currentUser;
         _dbContext = dbContext;
         _users = users;
+        _enrolment = enrolment;
         _modules = modules;
     }
 
@@ -105,6 +108,24 @@ public class MeController : ControllerBase
         /// no such thing.
         /// </remarks>
         public bool RotateIntrayUploads { get; set; }
+
+        /// <summary>
+        /// The certificates enrolled for this user, usable or not, as an envelope names a recipient (ADR 0969, #1943):
+        /// the ONLY key set a client may treat as "mine". Never the tenant's, whoever asks — the <c>certificates</c>
+        /// listing answers an administrator with every user's, which admitted a colleague's card in an administrator's
+        /// session. Absent (null) for a principal with no personal account.
+        /// </summary>
+        public List<EnrolledKeyResource>? EnrolledKeys { get; set; }
+    }
+
+    /// <summary>One of the caller's enrolled certificates: issuer and serial (what an envelope's recipient names), label.</summary>
+    public class EnrolledKeyResource
+    {
+        public string Issuer { get; set; } = string.Empty;
+
+        public string Serial { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
     }
 
     /// <summary>The intended state of one on/off intray-ingest preference. Shared, because they are all this.</summary>
@@ -142,6 +163,8 @@ public class MeController : ControllerBase
             // server must not substitute its own zone here (#1254). Doing so would make every user inherit
             // whatever zone the container happens to run in.
             DisplayTimeZoneId = me?.DisplayTimeZoneId,
+            EnrolledKeys = [.. (await _enrolment.OwnAsync(userId, cancellationToken))
+                .Select(k => new EnrolledKeyResource { Issuer = k.Issuer, Serial = k.Serial, Label = k.Label })],
             Links =
             [
                 new Link("self", "/api/me", "GET"),

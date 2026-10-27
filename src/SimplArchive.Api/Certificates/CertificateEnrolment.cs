@@ -118,6 +118,31 @@ public sealed class CertificateEnrolment(
                 IssuerOf(r.CertificatePem)))];
     }
 
+    /// <summary>An enrolled certificate as an envelope names its recipient, with the label its holder knows it by.</summary>
+    public sealed record OwnKey(string Issuer, string Serial, string Label);
+
+    /// <summary>
+    /// The certificates enrolled for THIS user, usable or not — whoever asks (ADR 0969's enrolled set; #1943).
+    /// </summary>
+    /// <remarks>
+    /// Not <see cref="ListAsync"/>: an administrator who names no holder is answered with the whole tenant there, and the
+    /// clients took that answer for "my keys" — so in an administrator's session every colleague's key was admitted, the
+    /// case ADR 0969 exists to prevent (crypt@'s card opened the Demo logins in florian@'s session, 2026-10-27). A row
+    /// whose certificate does not parse cannot be matched and is left out.
+    /// </remarks>
+    public async Task<IReadOnlyList<OwnKey>> OwnAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var rows = await dbContext.EnrolledCertificates.AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .OrderBy(c => c.Label)
+            .Select(c => new { c.CertificatePem, c.Serial, c.Label })
+            .ToListAsync(cancellationToken);
+        return [.. rows
+            .Select(r => (Issuer: IssuerOf(r.CertificatePem), r.Serial, r.Label))
+            .Where(r => r.Issuer is not null)
+            .Select(r => new OwnKey(r.Issuer!, r.Serial, r.Label))];
+    }
+
     /// <summary>
     /// The certificate's issuer as .NET formats it — with the serial, how an envelope names its recipient — so a client can
     /// tell "sealed to a key of yours that is not here" from "sealed for other keys" (ADR 0969). Read from the stored

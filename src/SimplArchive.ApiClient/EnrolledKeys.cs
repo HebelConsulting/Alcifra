@@ -49,21 +49,27 @@ public sealed class InMemoryEnrolledKeys : IEnrolledKeysMemory
 }
 
 /// <summary>
-/// The caller's enrolled keys, as the installation states them (ADR 0969): the enrolment listing (<c>certificates</c>,
-/// every enrolled certificate, usable or not) and the reader set (<c>/me</c>'s <c>readerCertificates</c>, the user's own
-/// column where no module enrols). Followed rels only.
+/// The caller's enrolled keys, as the installation states them (ADR 0969): <c>/me</c>'s <c>enrolledKeys</c> (every
+/// certificate enrolled for the caller, usable or not — #1943; the <c>certificates</c> listing only where an older
+/// installation does not carry them) and the reader set (<c>/me</c>'s <c>readerCertificates</c>, the user's own column
+/// where no module enrols). Followed rels only.
 /// </summary>
 public static class EnrolledKeys
 {
     /// <summary>The union of both, or null where neither is offered (an older installation, or the offline copy).</summary>
     public static async Task<IReadOnlyList<EnrolledKey>?> MineAsync(ApiCore core, CancellationToken cancellationToken = default)
     {
-        var listed = await new EnrolledCertificatesClient(core).GetMineForMatchingAsync(cancellationToken);
-
         // The offline copy's responder answers no "me": asked only where the root offers it.
-        var readers = (await core.GetRootLinksAsync(cancellationToken)).ContainsKey("me")
-            ? await new ProfileClient(core).GetReaderCertificatesAsync(cancellationToken)
-            : null;
+        var profile = (await core.GetRootLinksAsync(cancellationToken)).ContainsKey("me") ? new ProfileClient(core) : null;
+
+        // "Mine" is what "me" says (#1943). The certificates listing answers an administrator with the WHOLE tenant, so
+        // reading it here admitted every colleague's key in an administrator's session — ADR 0969's own case. It is
+        // asked only of an installation older than #1943, whose "me" does not carry the keys yet.
+        var listed = profile is not null && await profile.MyEnrolledKeysAsync(cancellationToken) is { } own
+            ? own
+            : await new EnrolledCertificatesClient(core).GetMineForMatchingAsync(cancellationToken);
+
+        var readers = profile is not null ? await profile.GetReaderCertificatesAsync(cancellationToken) : null;
         if (listed is null && readers is null)
         {
             return null;

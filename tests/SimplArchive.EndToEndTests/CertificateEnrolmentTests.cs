@@ -35,6 +35,48 @@ public partial class CertificateEnrolmentTests
     // `certificates list --holder` promised "only this holder's" while the server ignored the value and listed the
     // whole tenant. The filter is real now, and what an OMITTED holder means stays the caller's scope: their own, or
     // the tenant's for an administrator.
+    // #1943: "my enrolled keys" were read from that listing, so in an ADMINISTRATOR's session every colleague's key
+    // counted as the administrator's own and opened what it was addressed to — ADR 0969's own case (crypt@'s card opened
+    // the Demo logins in florian@'s session). "me" carries the caller's own, whoever the caller is.
+    [Fact]
+    public async Task An_administrators_own_keys_are_theirs_alone_while_the_listing_still_shows_the_tenant()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            var root = Links(await TestJson.Get(rig.Admin, "/api"));
+            var adminPem = SelfSigned("admin", rig.AdminEmail);
+            await TestJson.Post(rig.Admin, root["certificates"], new { certificatePem = adminPem, label = "Admin card" });
+            await TestJson.Post(rig.Admin, root["certificates"],
+                new { certificatePem = SelfSigned("member", rig.MemberEmail), label = "Member card", holder = rig.MemberEmail });
+
+            // The administration view is unchanged: the tenant.
+            Assert.Equal(2, (await TestJson.Get(rig.Admin, root["certificates"])).EnumerateArray().Count());
+
+            // "me" names the administrator's own key only, as an envelope names a recipient.
+            using var admin = X509Certificate2.CreateFromPem(adminPem);
+            var own = Assert.Single((await TestJson.Get(rig.Admin, root["me"])).GetProperty("enrolledKeys").EnumerateArray().ToList());
+            Assert.Equal(admin.Issuer, own.GetProperty("issuer").GetString());
+            Assert.Equal(admin.SerialNumber, own.GetProperty("serial").GetString());
+            Assert.Equal("Admin card", own.GetProperty("label").GetString());
+
+            // And the clients' enrolled set — what every opener admits a key by — is that, not the tenant.
+            var mine = await SimplArchive.ApiClient.EnrolledKeys.MineAsync(SimplArchive.ApiClient.ApiCore.Over(rig.Admin));
+            Assert.Equal(["Admin card"], mine!.Select(k => k.Label).Distinct().ToList());
+            Assert.Equal(["Member card"], (await TestJson.Get(rig.Member, root["me"])).GetProperty("enrolledKeys")
+                .EnumerateArray().Select(k => k.GetProperty("label").GetString()).ToList());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
     [Fact]
     public async Task The_listing_filters_by_holder_and_shows_a_member_only_their_own()
     {
