@@ -110,6 +110,9 @@ public sealed class PasswordWork(ApiCore core, IEnvelopeOpener keys, IEnvelopeOp
         // A key not enrolled for the user, the user's keys unknown, or sealed for other keys: the shared words (ADR 0969).
         ISealedRefusal { Outcome: { State: not SealedContentState.Sealed } outcome } => outcome.Text,
         OperationCanceledException => null,
+        // The user's own key, but not one the entry is sealed to: "insert your key ‹label›", never the raw reason, which
+        // named the held key's certificate and read as "sealed to that key" (Mobile #178).
+        ISealedRefusal { Outcome: var outcome } => outcome.Text,
         PasswordEntryChangedException => Strings.Get("PwEntryChanged"),
         PasswordStoreHasNoRecipientsException => Strings.Get("PwNoRecipients"),
         PasswordEntryCreationWithheldException withheld => PasswordNotices.WhyNoNewEntry(withheld.Reason) ?? Strings.Get("PwNewEntryUnavailable"),

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using SimplArchive.ApiClient;
+using SimplArchive.ApiClient.PasswordStore;
 using SimplArchive.Localization;
 
 namespace SimplArchive.UnitTests.ApiClient;
@@ -108,6 +109,20 @@ public sealed class SealedContentTests
         Assert.Null(SealedContent.OutcomeOf(new EnvelopeNotOpenedException("damaged")));
         Assert.Null(SealedContent.OutcomeOf(new HttpRequestException("down")));
         Assert.Null(SealedContent.OutcomeOf(new TaskCanceledException("timed out")));
+    }
+
+    // Mobile #178: holding one of your keys while the entry is sealed to another of yours said the raw reason, "it is not
+    // addressed to this key's certificate (CN=…)", which the owner read as "sealed to that key".
+    [Fact]
+    public void A_password_refused_for_holding_the_wrong_own_key_says_the_shared_words_and_a_cancel_says_nothing()
+    {
+        var insertOffice = new SealedOutcome(SealedContentState.Sealed, "Office key");
+
+        Assert.Equal(insertOffice.Text,
+            PasswordWork.Describe(new EnvelopeStaysSealedException("it is not addressed to this key's certificate (CN=x)", insertOffice)));
+        Assert.Equal(SealedOutcome.NoKey.Text, PasswordWork.Describe(new EnvelopeStaysSealedException("x", SealedOutcome.NoKey)));
+        Assert.Equal(SealedOutcome.NotEnrolled.Text, PasswordWork.Describe(new EnvelopeStaysSealedException("x", SealedOutcome.NotEnrolled)));
+        Assert.Null(PasswordWork.Describe(new KeyPromptCancelledException(insertOffice)));
     }
 
     [Fact]
