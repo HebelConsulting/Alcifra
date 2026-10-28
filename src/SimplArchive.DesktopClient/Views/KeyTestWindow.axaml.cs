@@ -8,7 +8,7 @@ using SimplArchive.DesktopClient.ViewModels;
 namespace SimplArchive.DesktopClient.Views;
 
 /// <summary>
-/// <i>Test the hardware key</i> (core #1864, ADR 0955), opened from the logon window's toolbox icon and the main
+/// <i>Test the hardware key</i> (core #1864, ADR 0955), opened from the logon window's tools icon and the main
 /// window's title bar.
 /// </summary>
 /// <remarks>

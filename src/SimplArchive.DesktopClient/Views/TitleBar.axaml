@@ -75,7 +75,7 @@
              this machine and the key in it rather than about anything in the archive. -->
         <Button ToolTip.Tip="{loc:Tr KtTitle}" Background="Transparent" BorderThickness="0" Padding="4"
                 Click="OnTestHardwareKey" AutomationProperties.AutomationId="key-test">
-            <i:Icon Value="mdi-toolbox-outline" Foreground="{DynamicResource WbMuted}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <i:Icon Value="mdi-tools" Foreground="{DynamicResource WbMuted}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Button>
 
         <!-- Help (?) menu (ADR 0504): the user manual + About box, mirroring the web client's Help menu. -->

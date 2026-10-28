@@ -1562,7 +1562,7 @@ prepared card look broken.
 
 == Testing the key from the desktop client <keytest>
 
-*Test the hardware key*#idx("Hardware key test") is the toolbox icon on the logon window — so it works before
+*Test the hardware key*#idx("Hardware key test") is the tools icon (a screwdriver and a wrench) on the logon window — so it works before
 you sign in — and beside the help icon in the main window's title bar. Insert the key and press *Run the test*.
 
 It reads the certificate in the key's key-management slot (no PIN), seals a fresh random message to it on your

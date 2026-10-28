@@ -64,7 +64,7 @@
     <DockPanel Margin="20" LastChildFill="True">
         <StackPanel DockPanel.Dock="Top" Spacing="12">
             <StackPanel Orientation="Horizontal" Spacing="10">
-                <i:Icon Value="mdi-toolbox-outline" FontSize="26" Foreground="{DynamicResource WbAccent}" />
+                <i:Icon Value="mdi-tools" FontSize="26" Foreground="{DynamicResource WbAccent}" />
                 <TextBlock Text="{loc:Tr KtTitle}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"
                            Foreground="{DynamicResource WbText}" />
             </StackPanel>

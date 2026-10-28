@@ -19,7 +19,7 @@
             <!-- Test the hardware key BEFORE any sign-in (core #1864, ADR 0955), as the phone's sign-in page offers. -->
             <Button Grid.Column="1" ToolTip.Tip="{loc:Tr KtTitle}" Background="Transparent" BorderThickness="0" Padding="4"
                     VerticalAlignment="Center" Click="OnTestHardwareKey" AutomationProperties.AutomationId="key-test">
-                <i:Icon Value="mdi-toolbox-outline" Foreground="{DynamicResource WbMuted}" FontSize="22" />
+                <i:Icon Value="mdi-tools" Foreground="{DynamicResource WbMuted}" FontSize="22" />
             </Button>
         </Grid>
 
