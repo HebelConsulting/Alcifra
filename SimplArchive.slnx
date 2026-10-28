@@ -30,7 +30,6 @@
     <Project Path="tests/SimplArchive.IntegrationTests/SimplArchive.IntegrationTests.csproj" />
     <Project Path="tests/SimplArchive.ManualCapture/SimplArchive.ManualCapture.csproj" />
     <Project Path="tests/SimplArchive.LoadTest/SimplArchive.LoadTest.csproj" />
-    <Project Path="tests/SimplArchive.ThemeGen/SimplArchive.ThemeGen.csproj" />
     <Project Path="tests/SimplArchive.UnitTests/SimplArchive.UnitTests.csproj" />
   </Folder>
 </Solution>

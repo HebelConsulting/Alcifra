@@ -12,7 +12,7 @@ namespace SimplArchive.DesktopClient.Services;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The generated <c>Themes/Tokens.axaml</c> is the shipped design and stays merged as the base. Applying a
+/// The shipped design, built from the brand file by <see cref="InstallShipped"/>, stays merged as the base. Applying a
 /// style adds a second dictionary <em>after</em> it, so every brush it names wins and everything it does not
 /// name still resolves. Switching styles therefore means replacing one dictionary rather than rebuilding the
 /// application's resources, and switching <b>back</b> means removing it.
@@ -29,6 +29,10 @@ public static class ThemeApplier
     // the fifth style someone tried would still be sitting under the one they can see.
     private const string OverrideName = "SimplArchive.StyleOverride";
 
+    /// <summary>The shipped design as the base dictionary, first, so a style applied later wins over it.</summary>
+    public static void InstallShipped(Application application) =>
+        application.Resources.MergedDictionaries.Insert(0, Build(ThemeTokensReader.Shipped));
+
     /// <summary>What happened, for the log — never shown to the user as an interruption.</summary>
     public static IReadOnlyList<string> Apply(string? styleId)
     {
@@ -42,7 +46,9 @@ public static class ThemeApplier
 
         if (load.Applied)
         {
-            application.Resources.MergedDictionaries.Add(Build(load.Tokens));
+            var style = Build(load.Tokens);
+            style[OverrideName] = true;
+            application.Resources.MergedDictionaries.Add(style);
         }
 
         // Fluent does NOT take its accent from the SystemAccentColor resource — it takes it from its own
@@ -88,12 +94,12 @@ public static class ThemeApplier
         }
     }
 
-    // Mirrors the generated dictionary's shape — a ThemeDictionaries pair — so a style follows the light/dark
+    // A ThemeDictionaries pair, for the shipped design and a style alike, so a style follows the light/dark
     // switch exactly as the shipped design does, rather than freezing whichever variant was current when it
     // was applied.
     private static ResourceDictionary Build(ThemeTokens tokens)
     {
-        var dictionary = new ResourceDictionary { [OverrideName] = true };
+        var dictionary = new ResourceDictionary();
         dictionary.ThemeDictionaries[ThemeVariant.Light] = Palette(tokens.Light);
         dictionary.ThemeDictionaries[ThemeVariant.Dark] = Palette(tokens.Dark);
         return dictionary;

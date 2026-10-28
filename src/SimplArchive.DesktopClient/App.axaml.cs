@@ -9,7 +9,14 @@ namespace SimplArchive.DesktopClient;
 
 public partial class App : Application
 {
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+
+        // The shipped design, built from the brand file rather than a generated dictionary (ADR 0990). Here and
+        // not in OnFrameworkInitializationCompleted, so the headless verification hooks get it too.
+        Services.ThemeApplier.InstallShipped(this);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

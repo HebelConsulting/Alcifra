@@ -8,9 +8,9 @@
     <base href="/" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <!-- The design tokens as CSS custom properties (ADR 0578), before app.css so its rules can use them.
-         The SERVER also serves this at /api/theme.css with any installation override applied; this static copy
-         is what the page has before the first request completes. -->
-    <link rel="stylesheet" href="css/tokens.generated.css" />
+         The SERVER builds them from brand/brand.json with any installation override applied; there is no
+         static copy, so nothing generated is committed (ADR 0990). -->
+    <link rel="stylesheet" href="/api/theme.css" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
 </head>

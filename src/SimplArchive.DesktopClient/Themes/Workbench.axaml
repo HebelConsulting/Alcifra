@@ -2,8 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-        The parts of the redesign that are shape rather than colour (ADR 0578). Colours come from the generated
-        Themes/Tokens.axaml; this file says how controls USE them.
+        The parts of the redesign that are shape rather than colour (ADR 0578). Colours come from the brand file,
+        installed by ThemeApplier at start-up; this file says how controls USE them.
 
         Its own file, not App.axaml, for two reasons: MainWindow.axaml is on the 1000-line standing-debt list
         with no headroom, and styles are a different kind of thing from resources — one is what a colour IS, the

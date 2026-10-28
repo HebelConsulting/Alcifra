@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SimplArchive.Theming\SimplArchive.Theming.csproj" />
-    <ProjectReference Include="..\..\tests\SimplArchive.ThemeGen\SimplArchive.ThemeGen.csproj" />
   </ItemGroup>
 
   <ItemGroup>

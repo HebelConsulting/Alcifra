@@ -1,4 +1,3 @@
-using SimplArchive.ThemeGen;
 using SimplArchive.Theming;
 
 namespace SimplArchive.UnitTests;
@@ -9,24 +8,19 @@ namespace SimplArchive.UnitTests;
 public class ThemeTokenTests
 {
     /// <summary>
-    /// What is checked in equals what the generator would write. Without this, the generated files are a claim
-    /// rather than a fact — and the failure mode is a hand edit that survives until somebody regenerates months
-    /// later and cannot tell which version was intended.
+    /// Nothing generated from the brand is committed (ADR 0990): each client builds its theme from
+    /// brand/brand.json when it runs, so a fork's diff stays <c>brand/</c> only. A generated copy coming back
+    /// would be a second, stale answer to "what does the product look like".
     /// </summary>
-    [Fact]
-    public void The_generated_theme_files_are_in_step_with_the_tokens()
+    [Theory]
+    [InlineData("src/SimplArchive.DesktopClient/Themes/Tokens.axaml")]
+    [InlineData("src/SimplArchive.Client/wwwroot/css/tokens.generated.css")]
+    [InlineData("manual/colors.generated.typ")]
+    public void No_theme_file_generated_from_the_brand_is_committed(string relative)
     {
-        var root = RepoPaths.Root();
-
-        foreach (var (path, expected) in ThemeOutputs.For(root))
-        {
-            var relative = Path.GetRelativePath(root, path);
-            Assert.True(File.Exists(path), $"{relative} is missing — run scripts/generate-theme.sh.");
-            Assert.True(
-                File.ReadAllText(path) == expected,
-                $"{relative} does not match what the tokens produce. Either a token changed without "
-                + "regenerating, or this file was edited by hand. Run scripts/generate-theme.sh.");
-        }
+        Assert.False(
+            File.Exists(Path.Combine(RepoPaths.Root(), relative)),
+            $"{relative} is back. The theme is built from brand/brand.json at run time (ADR 0990); delete it.");
     }
 
     /// <summary>

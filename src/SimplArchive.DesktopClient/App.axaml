@@ -20,13 +20,9 @@
              and needs no per-theme tuning; the web client states the same rule as a color-mix toward its surface
              variable. The glyph also changes to the outline variant, so the distinction survives without colour
              vision. -->
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <!-- GENERATED from brand/brand.json (ADR 0578). Every brush the workbench
-                     uses is in there, for both themes; run scripts/generate-theme.sh after changing a token. -->
-                <ResourceInclude Source="avares://SimplArchive.DesktopClient/Themes/Tokens.axaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
+        <!-- Every brush the workbench uses, for both themes, is built from brand/brand.json at start-up by
+             ThemeApplier.InstallShipped (App.Initialize) — nothing generated is committed (ADR 0990). -->
+        <ResourceDictionary />
     </Application.Resources>
     <Application.Styles>
         <FluentTheme />
@@ -58,7 +54,7 @@
              its accent on the folder glyphs, so a second accent-coloured surface would be a state competing
              with a state (ADR 0581). The TreeView paints its own selected row for the OPEN folder, so the two
              stay legible at once and in different channels. -->
-        <!-- WbAccent, the app's OWN token (Themes/Tokens.axaml), because a server profile can carry its own
+        <!-- WbAccent, the app's OWN token (from the brand file), because a server profile can carry its own
              theme (ADR 0578) and this ring should follow it. SystemAccentColorLight1 was tried first and does
              resolve (measured: #ff149a90) — it is simply the OS accent, which would ignore the tenant's. -->
         <Style Selector="Border.wbCurrentNode">

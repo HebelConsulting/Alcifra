@@ -49,7 +49,7 @@ h1:focus {
     /* The boot spinner was still the Blazor template's own colours — a grey track and #1b6ec2 blue, never
        themed by anyone. It renders BEFORE the app exists, so it is the first colour a visitor sees, and a blue
        ring in front of a teal product reads as a page that has not finished loading its stylesheet.
-       tokens.generated.css is linked ahead of this file in index.html, so the variables resolve here. */
+       /api/theme.css is linked ahead of this file in index.html, so the variables resolve here. */
     .loading-progress circle {
         fill: none;
         stroke: var(--sa-hairline);

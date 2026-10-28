@@ -35,9 +35,6 @@
     <!-- App icon (a filing cabinet on a brand tile) — embedded for Window.Icon and the macOS Dock. The
          1024 source and the .icns (for a future .app bundle) live alongside it. See ADR "Desktop app icon". -->
     <AvaloniaResource Include="Assets/cabinet.png" />
-    <!-- The generated theme dictionary (ADR 0578) — merged by App.axaml, so it must be an Avalonia
-         resource rather than content. Regenerate with scripts/generate-theme.sh. -->
-    <AvaloniaResource Include="Themes/Tokens.axaml" />
     <AvaloniaResource Include="Themes/Workbench.axaml" />
     <!-- Sample scanned invoice used only by the hit-overlay screenshot mode (ADR "Search hit overlay"). -->
     <None Include="Assets/hitoverlay-sample.png" CopyToOutputDirectory="PreserveNewest" />
