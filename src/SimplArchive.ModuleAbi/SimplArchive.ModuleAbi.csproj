@@ -11,7 +11,7 @@
          -p:LegacyPackageId=true: a switch this project reads, because a PackageId passed on the command line
          reaches every referenced project too and restore refuses the duplicate. -->
     <PackageId Condition="'$(LegacyPackageId)' == 'true'">SimplArchive.ModuleAbi</PackageId>
-    <Version>1.25.0</Version>
+    <Version>1.25.1</Version>
     <!-- The BINDING identity is pinned, permanently (ADR 0749): the Docker build stamps -p:Version over
          every project (0.0.0-dev locally), so without this pin the host's ModuleAbi.dll assembly version
          depends on the HOST's stamp and a package-built module fails to bind on any dev host (found by
@@ -28,7 +28,15 @@
     <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>simplarchive;dms;industry-module;abi</PackageTags>
+    <PackageProjectUrl>https://github.com/HebelConsulting/SimplArchive</PackageProjectUrl>
+    <!-- The package page's README: what the product IS, before what this contract does. nuget.org flagged 1.25.0
+         for lacking one, and a published version cannot be changed, so 1.25.1 is the first to carry it. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <!-- The industry-module ABI (ADR 0741): the ONLY assembly a module may reference from the core. A leaf
        with no project references, deliberately — every capability a module needs is consciously exported
