@@ -5338,7 +5338,7 @@
     <value>Ablage</value>
   </data>
   <data name="TenantStandardRepositoryInfo" xml:space="preserve">
-    <value>Wohin {Product} ablegt, was es mitbringt — seine Handbücher im Ordner 'SimplArchive Manuals'. Wählen Sie eine andere Ablage, wird dieser Ordner mitverschoben. Die Standardablage kann nicht gelöscht werden.</value>
+    <value>Wohin {Product} ablegt, was es mitbringt — seine Handbücher im Ordner '{Product} Manuals'. Wählen Sie eine andere Ablage, wird dieser Ordner mitverschoben. Die Standardablage kann nicht gelöscht werden.</value>
   </data>
   <data name="ApiErrStandardRepositoryCannotBeDeleted" xml:space="preserve">
     <value>Dies ist die Standardablage des Mandanten und kann nicht gelöscht werden. Machen Sie zuerst in den Mandanteneinstellungen eine andere Ablage zur Standardablage.</value>
@@ -5347,10 +5347,10 @@
     <value>Die Standardablage muss eine der gemeinsamen Ablagen dieses Mandanten sein — kein persönlicher Bereich und nicht im Papierkorb.</value>
   </data>
   <data name="ApiErrCoreOwnedMask" xml:space="preserve">
-    <value>Nur {Product} selbst vergibt den Typ 'SimplArchive Documentation', an den einen Ordner, in den es seine Handbücher ablegt. Verwenden Sie einen gewöhnlichen Ordner.</value>
+    <value>Nur {Product} selbst vergibt den Typ '{Product} Documentation', an den einen Ordner, in den es seine Handbücher ablegt. Verwenden Sie einen gewöhnlichen Ordner.</value>
   </data>
   <data name="WkMaskDocumentation" xml:space="preserve">
-    <value>SimplArchive-Dokumentation</value>
+    <value>{Product}-Dokumentation</value>
   </data>
   <data name="WkMaskManual" xml:space="preserve">
     <value>Handbuch</value>

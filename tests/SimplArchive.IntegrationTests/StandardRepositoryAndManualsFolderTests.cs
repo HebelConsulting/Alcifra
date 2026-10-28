@@ -11,7 +11,7 @@ using SimplArchive.Infrastructure.Persistence;
 namespace SimplArchive.IntegrationTests;
 
 // The two SaveChanges invariants the manuals feature rests on (ADRs 0891/0892): the tenant's standard repository
-// cannot be deleted, and the manuals folder's "SimplArchive Documentation" mask is the core's alone — assigned only
+// cannot be deleted, and the manuals folder's global::SimplArchive.Localization.CoreOwnedNames.DocumentationMask mask is the core's alone — assigned only
 // through an explicit grant, never changed or removed, worn by at most one live folder per tenant.
 public class StandardRepositoryAndManualsFolderTests
 {
@@ -56,8 +56,9 @@ public class StandardRepositoryAndManualsFolderTests
     private static Task<Guid> MaskVersionAsync(SimplArchiveDbContext db, Guid maskId) =>
         db.MaskVersions.Where(v => v.MaskId == maskId && v.IsCurrent).Select(v => v.Id).SingleAsync();
 
-    private async Task<Document> ManualsFolderAsync(SimplArchiveDbContext db, Guid parentId, Guid userId, bool permitted = true, string name = "SimplArchive Manuals")
+    private async Task<Document> ManualsFolderAsync(SimplArchiveDbContext db, Guid parentId, Guid userId, bool permitted = true, string? name = null)
     {
+        name ??= global::SimplArchive.Localization.CoreOwnedNames.ManualsFolder;
         var folder = new Document
         {
             Id = Guid.NewGuid(),

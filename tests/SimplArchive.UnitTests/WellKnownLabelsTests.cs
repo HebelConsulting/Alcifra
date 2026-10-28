@@ -18,7 +18,7 @@ public class WellKnownLabelsTests
     [Fact]
     public void Every_manual_field_and_both_mask_names_read_in_german()
     {
-        var names = ManualFieldNames().Concat(["Manual", "SimplArchive Documentation"]).ToList();
+        var names = ManualFieldNames().Concat(["Manual", global::SimplArchive.Localization.CoreOwnedNames.DocumentationMask]).ToList();
         Assert.Equal(10, names.Count); // eight fields, two masks — the scan found them all
 
         var previous = CultureInfo.CurrentUICulture;

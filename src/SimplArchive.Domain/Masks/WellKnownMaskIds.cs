@@ -758,7 +758,7 @@ public static class WellKnownMaskIds
     /// </remarks>
     public static readonly IReadOnlyList<TypedFolderRule> OneWayExclusiveFolders =
     [
-        new(Documentation, "SimplArchive Documentation", [(Manual, "Manual")]),
+        new(Documentation, "Documentation folder", [(Manual, "Manual")]),
 
         // The reader-certificate folder holds certificates and the tenant's policy, nothing else (ADR 0936); a
         // Certificate may still live anywhere, where it simply addresses nobody.

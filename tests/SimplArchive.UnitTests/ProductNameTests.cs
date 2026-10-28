@@ -11,7 +11,7 @@ public class ProductNameTests
 {
     // Stored names and identifiers that keep their spelling: the manuals folder and the documentation mask are seeded
     // data that a text must name as they are, and the webhook's header is a protocol identifier.
-    private static readonly HashSet<string> NamesStoredData = ["TenantWebhookUrlInfo", "TenantStandardRepositoryInfo", "ApiErrCoreOwnedMask", "WkMaskDocumentation"];
+    private static readonly HashSet<string> NamesStoredData = ["TenantWebhookUrlInfo"];
 
     private static readonly Regex Entry = new(@"<data name=""([^""]+)""[^>]*>\s*<value>(.*?)</value>", RegexOptions.Singleline | RegexOptions.Compiled);
 
@@ -84,17 +84,10 @@ public class ProductNameTests
     // listed here, each with the step that moves it; a new literal fails.
     private static readonly Dictionary<string, string> NotYetRenamed = new()
     {
-        // Phase 2, stored data, renamed by a data migration: the documentation mask and the manuals folder are found by
-        // these names in existing tenants.
-        ["src/SimplArchive.Domain/Masks/WellKnownMaskIds.cs"] = "phase 2: the documentation mask's stored name",
-        ["src/SimplArchive.Localization/WellKnownLabels.cs"] = "phase 2: the documentation mask's stored name, as a label key",
-        ["src/SimplArchive.Infrastructure/Persistence/CoreOwnedDocumentInvariants.cs"] = "phase 2: the documentation mask's stored name",
-        ["src/SimplArchive.Infrastructure/Masks/WellKnownMaskSeeder.cs"] = "phase 2: the documentation mask's stored name",
-        ["src/SimplArchive.Api/Manuals/ManualsFolder.cs"] = "phase 2: the manuals folder's and the mask's stored names",
-        ["src/SimplArchive.Api/Manuals/ManualFiler.cs"] = "phase 2: the core manual's stored document name",
+        // The name before the rename, which the startup heal recognises in stored data (ADR 0986).
+        ["src/SimplArchive.Localization/CoreOwnedNames.cs"] = "the earlier product name, recognised by the heal of stored names",
         // Phase 5, identifiers with data behind them, each moved with a migration of that data.
         ["src/SimplArchive.Api/Program.cs"] = "phase 5: the data-protection application name; renaming it invalidates the keys",
-        ["src/SimplArchive.Api/Versioning/VendorMediaTypeApiVersionReader.cs"] = "phase 2: the media type moves to vnd.alcifra with this message",
         ["src/SimplArchive.DesktopClient/Views/WindowShots.cs"] = "phase 5: a screenshot fixture naming the desktop package, renamed with the updater and the release repository",
         ["src/SimplArchive.Api/Serialization/UtcModelNormalizer.cs"] = "an identifier: the code's own namespace prefix",
         ["src/SimplArchive.DesktopClient/Services/ClientUpdate.cs"] = "phase 5: the release repository's name",

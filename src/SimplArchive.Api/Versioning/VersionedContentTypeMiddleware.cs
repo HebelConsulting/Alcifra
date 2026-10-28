@@ -4,7 +4,7 @@ namespace SimplArchive.Api.Versioning;
 
 // Rewrites the response Content-Type from a plain application/json or application/xml (whichever the
 // stock formatter actually wrote — e.g. when no Accept header, or a generic "application/json"/"*/*",
-// was sent) to the negotiated application/vnd.simplarchive.v{version}+{format} — see ADR "Media-type/
+// was sent) to the negotiated application/vnd.alcifra.v{version}+{format} (VendorMediaTypes) — see ADR "Media-type/
 // Accept-header API versioning (foundation slice)", ADR "JSON/XML content negotiation". When a client
 // explicitly requests the vendor+version+format media type, ASP.NET Core's own content negotiation
 // already echoes that exact value back as Response.ContentType, so this is a no-op in that case. A
@@ -49,11 +49,15 @@ public class VersionedContentTypeMiddleware
                 _ => null,
             };
 
-            if (format is not null)
+            if (contentType is not null && VendorMediaTypes.Current(contentType) is var current && current != contentType)
+            {
+                context.Response.ContentType = current;   // asked in the type before the rename, answered in today's (ADR 0986)
+            }
+            else if (format is not null)
             {
                 var version = context.Features.Get<IApiVersioningFeature>()?.RequestedApiVersion ?? FallbackVersion;
                 var charsetSuffix = contentType!.Contains(';') ? contentType[contentType.IndexOf(';')..] : string.Empty;
-                context.Response.ContentType = $"application/vnd.simplarchive.v{version}+{format}{charsetSuffix}";
+                context.Response.ContentType = $"{VendorMediaTypes.Of(version.ToString(), format)}{charsetSuffix}";
             }
 
             return Task.CompletedTask;

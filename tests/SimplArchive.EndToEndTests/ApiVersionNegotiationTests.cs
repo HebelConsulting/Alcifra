@@ -39,6 +39,9 @@ public class ApiVersionNegotiationTests
     [InlineData("application/json")]
     [InlineData("*/*")]
     // The explicit, well-formed forms, both negotiable formats (ADR 0190).
+    [InlineData("application/vnd.alcifra.v1+json")]
+    [InlineData("application/vnd.alcifra.v1+xml")]
+    // The media type before the rename, still accepted for one release (ADR 0986).
     [InlineData("application/vnd.simplarchive.v1+json")]
     [InlineData("application/vnd.simplarchive.v1+xml")]
     public async Task A_readable_request_is_served(string accept)
@@ -108,5 +111,19 @@ public class ApiVersionNegotiationTests
         Assert.True(
             response.Headers.Contains("api-supported-versions"),
             "the response does not report which versions are supported, so a client cannot tell what it was served");
+    }
+
+    // ADR 0986: answers carry the media type named after the build's product, whichever accepted form was asked for.
+    [Theory]
+    [InlineData("application/vnd.alcifra.v1+json", "json")]
+    [InlineData("application/vnd.simplarchive.v1+json", "json")]
+    [InlineData("application/vnd.simplarchive.v1+xml", "xml")]
+    public async Task An_answer_carries_the_current_media_type(string accept, string format)
+    {
+        using var client = await ClientAsync();
+        var response = await GetAsync(client, accept);
+
+        Assert.True(response.IsSuccessStatusCode, $"Accept: {accept} → {(int)response.StatusCode}");
+        Assert.Equal(SimplArchive.Api.Versioning.VendorMediaTypes.Of("1", format), response.Content.Headers.ContentType?.MediaType);
     }
 }

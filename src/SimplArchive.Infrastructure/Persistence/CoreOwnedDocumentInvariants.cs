@@ -106,5 +106,5 @@ public static class CoreOwnedDocumentInvariants
             .Where(v => v.TenantId == tenantId && v.MaskId == maskId && v.IsCurrent)
             .Select(v => v.Name)
             .FirstOrDefaultAsync(cancellationToken)
-        ?? "SimplArchive Documentation";
+        ?? SimplArchive.Localization.CoreOwnedNames.DocumentationMask;
 }

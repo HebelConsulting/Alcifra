@@ -172,8 +172,13 @@ jobs:
       # Fails if a screen was renamed/removed so a figure has no PNG — the anti-staleness lock.
       # SOURCE_DATE_EPOCH pins the PDF's internal timestamps + the datetime.today() year to the fixed
       # capture clock (ADR 0510) so a rebuild with no content change is byte-identical — no spurious commits.
+      # The product's name is ONE value, the ProductName build property (ADR 0985), read as generate-manual.sh reads it.
       - name: Compile the manual
-        run: SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf --root .
+        run: |
+          set -euo pipefail
+          product="$(sed -n 's|.*<ProductName>\(.*\)</ProductName>.*|\1|p' Directory.Build.props)"
+          [ -n "$product" ] || { echo "::error::ProductName not found in Directory.Build.props"; exit 1; }
+          SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf --root . --input product="$product"
 
       # main only: commit the regenerated PDF + screenshots. GITHUB_TOKEN pushes do not trigger workflows, so no
       # loop; [skip ci] is belt-and-suspenders. A no-op when nothing changed.

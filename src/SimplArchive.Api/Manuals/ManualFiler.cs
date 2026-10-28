@@ -103,7 +103,7 @@ public sealed class ManualFiler(
             return Task.FromResult(ManualFilingOutcome.NotDeclared);
         }
 
-        var source = new ManualSource("SimplArchive Manual", Path.GetFileName(CoreManualPath), "application/pdf",
+        var source = new ManualSource(SimplArchive.Localization.CoreOwnedNames.CoreManual, Path.GetFileName(CoreManualPath), "application/pdf",
             file.CreateReadStream, SimplArchive.Localization.Strings.ProductName, CoreArticleNumber, ServerBuildInfo.Version);
 
         return FileAsync(source,
@@ -244,6 +244,9 @@ public sealed class ManualFiler(
             ? await dbContext.Documents.SingleOrDefaultAsync(d => d.Id == existingId, cancellationToken)
             : null;
 
+        // The core-owned names follow the product's (ADR 0986), healed here, under the lock.
+        await ManualsFolder.HealNamesAsync(dbContext, document, source.DocumentName, logger, cancellationToken);
+
         ManualFilingOutcome outcome;
         try
         {
@@ -253,6 +256,11 @@ public sealed class ManualFiler(
                     dbContext.DocumentVersions, document.Id, document.CurrentVersionId, cancellationToken);
                 if (string.Equals(current?.Sha256Hash, hash, StringComparison.Ordinal))
                 {
+                    if (transaction is not null)
+                    {
+                        await transaction.CommitAsync(cancellationToken);   // a heal of the names, if any
+                    }
+
                     return ManualFilingOutcome.Unchanged;
                 }
 

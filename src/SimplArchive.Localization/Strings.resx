@@ -5338,7 +5338,7 @@
     <value>Repository</value>
   </data>
   <data name="TenantStandardRepositoryInfo" xml:space="preserve">
-    <value>Where {Product} files what it brings — its manuals, in the 'SimplArchive Manuals' folder. Choosing another repository moves that folder with it. The standard repository cannot be deleted.</value>
+    <value>Where {Product} files what it brings — its manuals, in the '{Product} Manuals' folder. Choosing another repository moves that folder with it. The standard repository cannot be deleted.</value>
   </data>
   <data name="ApiErrStandardRepositoryCannotBeDeleted" xml:space="preserve">
     <value>This is the tenant's standard repository and cannot be deleted. Make another repository the standard one in the tenant settings first.</value>
@@ -5347,10 +5347,10 @@
     <value>The standard repository must be one of this tenant's shared repositories — not a personal space and not in the recycle bin.</value>
   </data>
   <data name="ApiErrCoreOwnedMask" xml:space="preserve">
-    <value>Only {Product} itself assigns the 'SimplArchive Documentation' type, to the one folder it files its manuals into. Use an ordinary folder.</value>
+    <value>Only {Product} itself assigns the '{Product} Documentation' type, to the one folder it files its manuals into. Use an ordinary folder.</value>
   </data>
   <data name="WkMaskDocumentation" xml:space="preserve">
-    <value>SimplArchive Documentation</value>
+    <value>{Product} Documentation</value>
   </data>
   <data name="WkMaskManual" xml:space="preserve">
     <value>Manual</value>

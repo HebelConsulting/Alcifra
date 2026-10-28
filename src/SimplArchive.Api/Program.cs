@@ -69,7 +69,7 @@ SimplArchive.Infrastructure.Encryption.EncryptionModes.ThrowIfMisconfigured(buil
 
 // JSON/XML content negotiation — see ADR "JSON/XML content negotiation". AddXmlSerializerFormatters
 // registers the standard XML input/output formatters alongside the default JSON ones; the vendor+version
-// media type (application/vnd.simplarchive.v1+json / +xml) is added directly to each formatter's own
+// media type (application/vnd.alcifra.v1+json / +xml, VendorMediaTypes) is added directly to each formatter's own
 // SupportedMediaTypes so ASP.NET Core's built-in negotiation (matching Accept/Content-Type against these
 // lists) picks the right formatter without needing any header rewriting. Only v1 exists today; a future
 // version would add its own entries here.

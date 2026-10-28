@@ -17,8 +17,9 @@ namespace SimplArchive.Api.Serialization;
 /// </remarks>
 internal static class ContentNegotiationSetup
 {
-    private const string Json = "application/vnd.simplarchive.v1+json";
-    private const string Xml = "application/vnd.simplarchive.v1+xml";
+    // Every accepted subtype (ADR 0986): the current one, and the one before the rename until its retirement.
+    private static IEnumerable<string> Json => SimplArchive.Api.Versioning.VendorMediaTypes.Accepted.Select(s => $"application/{s}.v1+json");
+    private static IEnumerable<string> Xml => SimplArchive.Api.Versioning.VendorMediaTypes.Accepted.Select(s => $"application/{s}.v1+xml");
 
     /// <summary>Adds the vendor media types and installs the UTC-normalising XML input formatter.</summary>
     public static void Configure(MvcOptions options)
@@ -29,11 +30,11 @@ internal static class ContentNegotiationSetup
         {
             if (formatter is SystemTextJsonOutputFormatter)
             {
-                ((TextOutputFormatter)formatter).SupportedMediaTypes.Add(Json);
+                foreach (var type in Json) { ((TextOutputFormatter)formatter).SupportedMediaTypes.Add(type); }
             }
             else if (formatter is XmlSerializerOutputFormatter)
             {
-                ((TextOutputFormatter)formatter).SupportedMediaTypes.Add(Xml);
+                foreach (var type in Xml) { ((TextOutputFormatter)formatter).SupportedMediaTypes.Add(type); }
             }
         }
 
@@ -41,11 +42,11 @@ internal static class ContentNegotiationSetup
         {
             if (formatter is SystemTextJsonInputFormatter)
             {
-                ((TextInputFormatter)formatter).SupportedMediaTypes.Add(Json);
+                foreach (var type in Json) { ((TextInputFormatter)formatter).SupportedMediaTypes.Add(type); }
             }
             else if (formatter is XmlSerializerInputFormatter)
             {
-                ((TextInputFormatter)formatter).SupportedMediaTypes.Add(Xml);
+                foreach (var type in Xml) { ((TextInputFormatter)formatter).SupportedMediaTypes.Add(type); }
             }
         }
 
@@ -55,7 +56,7 @@ internal static class ContentNegotiationSetup
         // exactly the note-not-a-rule shape ADR 0802 exists to prevent.
         //
         // Replaced IN PLACE, after the media types are registered, so the replacement inherits them — including
-        // the vendor one, without which an `application/vnd.simplarchive.v1+xml` request would stop binding at
+        // the vendor ones, without which an `application/vnd.alcifra.v1+xml` request would stop binding at
         // all and the fix would break the very representation it exists to serve.
         for (var i = 0; i < options.InputFormatters.Count; i++)
         {

@@ -310,7 +310,7 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
         // finds the tenant's "SimplArchive Manuals" folder by it, never by name. The Manual mask is a document any
         // person may also use for a third-party product's manual, so every field is optional; for SimplArchive's
         // own manuals the core fills the first four.
-        await EnsureMaskAsync(tenantId, WellKnownMaskIds.Documentation, "SimplArchive Documentation", [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.Documentation, SimplArchive.Localization.CoreOwnedNames.DocumentationMask, [], cancellationToken);
         // Certificate enrolment's folder and policy (ADR 0936), under the ids the Encryption Module seeded them with.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.ReaderCertificates, "Reader certificates", [], cancellationToken);
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.CertificatePolicy, "Certificate policy", [], cancellationToken);

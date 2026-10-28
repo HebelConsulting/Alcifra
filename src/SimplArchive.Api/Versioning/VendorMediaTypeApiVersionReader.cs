@@ -17,12 +17,10 @@ public partial class VendorMediaTypeApiVersionReader : IApiVersionReader
     // AssumeDefaultVersionWhenUnspecified then served v1 silently. The client asked for v2, received v1, and was
     // never told (#595, ADR 0626). Extracting the version regardless of suffix lets the versioning layer answer
     // properly with UNSUPPORTED_API_VERSION.
-    [GeneratedRegex(@"application/vnd\.simplarchive\.v(?<version>[\d.]+)", RegexOptions.IgnoreCase)]
-    private static partial Regex VendorMediaTypePattern();
+    private static Regex VendorMediaTypePattern() => VendorMediaTypes.Versioned;
 
     /// <summary>Our media type named without a readable version — a request we must not silently reinterpret.</summary>
-    [GeneratedRegex(@"application/vnd\.simplarchive\b", RegexOptions.IgnoreCase)]
-    private static partial Regex VendorPrefixPattern();
+    private static Regex VendorPrefixPattern() => VendorMediaTypes.Named;
 
     public void AddParameters(IApiVersionParameterDescriptionContext context)
     {
@@ -53,11 +51,11 @@ public partial class VendorMediaTypeApiVersionReader : IApiVersionReader
         request.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
             .CreateLogger("SimplArchive.Api.Versioning")
             .LogWarning(
-                "Unreadable SimplArchive media type in Accept: {Accept} — serving the DEFAULT version, which is "
-                + "probably not what the caller asked for. Expected application/vnd.simplarchive.v<version>+json "
+                "Unreadable vendor media type in Accept: {Accept} — serving the DEFAULT version, which is "
+                + "probably not what the caller asked for. Expected application/{Subtype}.v<version>+json "
                 + "or +xml. Set Serilog:MinimumLevel:Override:SimplArchive.Api.Versioning to Trace for the "
                 + "request detail.",
-                accept);
+                accept, VendorMediaTypes.Subtype);
 
         return [];
     }

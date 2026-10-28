@@ -21,7 +21,6 @@ public static class WellKnownLabels
 {
     private static readonly IReadOnlyDictionary<string, string> Keys = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["SimplArchive Documentation"] = "WkMaskDocumentation",
         ["Manual"] = "WkMaskManual",
         ["Brand"] = "WkFieldBrand",
         ["Product name"] = "WkFieldProductName",
@@ -39,6 +38,13 @@ public static class WellKnownLabels
     };
 
     /// <summary>The text to show for a stored mask or field name — translated where it is a known one.</summary>
-    public static string For(string? storedName) =>
-        storedName is not null && Keys.TryGetValue(storedName, out var key) ? Strings.Get(key) : storedName ?? string.Empty;
+    public static string For(string? storedName) => storedName switch
+    {
+        null => string.Empty,
+        // The documentation mask is named after the product (ADR 0986): the present name, or an earlier default not yet healed.
+        _ when storedName == CoreOwnedNames.DocumentationMask
+            || CoreOwnedNames.IsEarlierDefault(storedName, CoreOwnedNames.DocumentationSuffix) => Strings.Get("WkMaskDocumentation"),
+        _ when Keys.TryGetValue(storedName, out var key) => Strings.Get(key),
+        _ => storedName,
+    };
 }

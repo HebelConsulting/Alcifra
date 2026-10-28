@@ -5338,7 +5338,7 @@
     <value>Repositorio</value>
   </data>
   <data name="TenantStandardRepositoryInfo" xml:space="preserve">
-    <value>Dónde archiva {Product} lo que aporta — sus manuales, en la carpeta 'SimplArchive Manuals'. Al elegir otro repositorio la carpeta se mueve con él. El repositorio estándar no se puede eliminar.</value>
+    <value>Dónde archiva {Product} lo que aporta — sus manuales, en la carpeta '{Product} Manuals'. Al elegir otro repositorio la carpeta se mueve con él. El repositorio estándar no se puede eliminar.</value>
   </data>
   <data name="ApiErrStandardRepositoryCannotBeDeleted" xml:space="preserve">
     <value>Este es el repositorio estándar del inquilino y no se puede eliminar. Primero convierta otro repositorio en el estándar en la configuración del inquilino.</value>
@@ -5347,10 +5347,10 @@
     <value>El repositorio estándar debe ser uno de los repositorios compartidos de este inquilino — no un espacio personal ni estar en la papelera.</value>
   </data>
   <data name="ApiErrCoreOwnedMask" xml:space="preserve">
-    <value>Solo {Product} asigna el tipo 'SimplArchive Documentation', a la única carpeta donde archiva sus manuales. Use una carpeta normal.</value>
+    <value>Solo {Product} asigna el tipo '{Product} Documentation', a la única carpeta donde archiva sus manuales. Use una carpeta normal.</value>
   </data>
   <data name="WkMaskDocumentation" xml:space="preserve">
-    <value>Documentación de SimplArchive</value>
+    <value>Documentación de {Product}</value>
   </data>
   <data name="WkMaskManual" xml:space="preserve">
     <value>Manual</value>

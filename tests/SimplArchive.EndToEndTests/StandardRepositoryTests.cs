@@ -11,7 +11,7 @@ using SimplArchive.Infrastructure.Persistence;
 namespace SimplArchive.EndToEndTests;
 
 // The tenant's standard repository (ADR 0892) over the real wire: provisioning makes the repository it creates the
-// standard one and files SimplArchive's own manual into "SimplArchive Manuals" beneath it; the standard repository
+// standard one and files SimplArchive's own manual into global::SimplArchive.Localization.CoreOwnedNames.ManualsFolder beneath it; the standard repository
 // cannot be deleted through the API or a mounted drive; and a tenant administrator changes it with If-Match, which
 // moves the manuals folder in the same transaction.
 [Collection(E2ECollection.Name)]
@@ -86,10 +86,10 @@ public class StandardRepositoryTests
 
         var folder = await ManualsFolderAsync(tenant.TenantId);
         Assert.Equal(tenant.RepositoryId, folder.ParentId);
-        Assert.Equal("SimplArchive Manuals", folder.Name);
+        Assert.Equal(global::SimplArchive.Localization.CoreOwnedNames.ManualsFolder, folder.Name);
 
         var children = await TestJson.Get(tenant.Admin, $"/api/documents/{folder.Id}/children");
-        Assert.Contains(children.GetProperty("children").EnumerateArray(), c => c.GetProperty("name").GetString() == "SimplArchive Manual");
+        Assert.Contains(children.GetProperty("children").EnumerateArray(), c => c.GetProperty("name").GetString() == global::SimplArchive.Localization.CoreOwnedNames.CoreManual);
     }
 
     [Fact]
