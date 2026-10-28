@@ -121,6 +121,14 @@ public static class ThemeApplier
             dictionary[variable.ResourceKey] = new SolidColorBrush(Color.Parse(variable.Value));
         }
 
+        // The text on an accent button (Log in, Save) is the brand's onPrimary. Fluent's own value is white, which
+        // only happens to be right for a dark accent: on easyname's yellow it failed contrast (ADR 0995).
+        var onAccent = new SolidColorBrush(Color.Parse(palette.Accent.OnPrimary));
+        foreach (var state in new[] { string.Empty, "PointerOver", "Pressed" })
+        {
+            dictionary[$"AccentButtonForeground{state}"] = onAccent;
+        }
+
         // Fluent paints selection, hover and focus from these; without them a themed application keeps the
         // framework's blue in the one place the eye follows.
         var accent = palette.Accent.Primary;

@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Text.Encodings.Web;
 using SimplArchive.Localization;
 
+using SimplArchive.Theming;
+
 namespace SimplArchive.Api.Documents;
 
 /// <summary>
@@ -107,10 +109,27 @@ public static class ExternalLinkPage
     // "Shared via {0}" with the product name as the link. The TEMPLATE is encoded and the anchor spliced in
     // afterwards, so a translator's text can never inject markup while the one bit of HTML here stays ours —
     // and {0} keeps the word order each language actually wants.
-    private static string FooterLine() =>
-        string.Format(
+    //
+    // A white-label edition (one with a credit, ADR 0995) names itself without the link: the site is ours, and a
+    // recipient sent there from "easyname Archiv" would land on a product of another name. The credit says the rest.
+    private static string FooterLine()
+    {
+        var name = System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName);
+        var credit = Brand.Shipped.Credit is { } text ? $"<br>{HtmlEncoder.Default.Encode(text)}" : string.Empty;
+        return string.Format(
             HtmlEncoder.Default.Encode(Strings.Get("ExtLinkPageFooter")),
-            $"<a href=\"https://www.simplarchive.dev\">{System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)}</a>");
+            Brand.Shipped.Credit is null ? $"<a href=\"https://www.simplarchive.dev\">{name}</a>" : name) + credit;
+    }
+
+    // The publisher's imprint from the brand (ADR 0995), encoded line by line. Deliberately NOT localised: a postal
+    // address does not translate.
+    private static string Imprint()
+    {
+        var imprint = Brand.Shipped.Imprint;
+        var contact = HtmlEncoder.Default.Encode(imprint.Contact);
+        return string.Concat(imprint.Lines.Select(line => $"{HtmlEncoder.Default.Encode(line)}<br>"))
+            + $"<a href=\"mailto:{contact}\">{contact}</a>";
+    }
 
     private static string Document(string title, string body) =>
         $$"""
@@ -167,14 +186,9 @@ public static class ExternalLinkPage
                    way to find out what it is. Safe to link because the page sets referrer: no-referrer, so the
                    token-bearing URL is not handed to the site it points at. -->
               {{FooterLine()}}
-              <!-- Deliberately NOT localised: a postal address does not translate. -->
               <address>
                 &copy; 2026<br>
-                Hebel Consulting GmbH<br>
-                Schweighofplatz 7<br>
-                6010 Kriens<br>
-                Switzerland<br>
-                <a href="mailto:support@simplarchive.dev">support@simplarchive.dev</a>
+                {{Imprint()}}
               </address>
             </footer>
           </main>

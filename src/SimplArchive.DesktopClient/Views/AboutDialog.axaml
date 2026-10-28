@@ -7,10 +7,8 @@
         WindowStartupLocation="CenterOwner">
     <StackPanel Margin="24" Spacing="4" HorizontalAlignment="Center">
         <TextBlock Text="{x:Static l10n:Strings.ProductName}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
-        <TextBlock Text="Hebel Consulting GmbH" FontWeight="SemiBold" Margin="0,12,0,0" HorizontalAlignment="Center" />
-        <TextBlock Text="Schweighofplatz 7" HorizontalAlignment="Center" />
-        <TextBlock Text="6010 Kriens, Switzerland" HorizontalAlignment="Center" />
-        <TextBlock Text="support@simplarchive.dev" Margin="0,2,0,0" HorizontalAlignment="Center" />
+        <!-- The publisher's imprint and, in a white-label edition, the credit, from the brand (ADR 0995). -->
+        <StackPanel x:Name="ImprintPanel" Spacing="4" Margin="0,12,0,0" HorizontalAlignment="Center" />
         <TextBlock x:Name="VersionBlock" Margin="0,16,0,0" Opacity="0.7" HorizontalAlignment="Center" />
         <Button Content="{loc:Tr Close}" Click="OnClose" IsDefault="True" IsCancel="True"
                 Margin="0,16,0,0" HorizontalAlignment="Center" />

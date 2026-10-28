@@ -52,8 +52,14 @@ public class MacOsIconGridTests
         // separately matters: when the shadow was a DropShadowEffect it did not render at all, because effects
         // are applied by the composition renderer and never reach RenderTargetBitmap. Nothing failed, nothing
         // warned, and the inset assertion above passed regardless.
-        Assert.True(withShadow.Bottom > tile.Bottom,
-            $"expected a shadow below the tile: tile ends at y={tile.Bottom}, anything visible ends at y={withShadow.Bottom}");
+        //
+        // Only for the drawn cabinet: the shadow follows its squircle, and a brand's own SVG icon (ADR 0993) is drawn
+        // without one, since its shape is not known. The inset above holds for every icon.
+        if (SimplArchive.Theming.Brand.Shipped.Icon is null)
+        {
+            Assert.True(withShadow.Bottom > tile.Bottom,
+                $"expected a shadow below the tile: tile ends at y={tile.Bottom}, anything visible ends at y={withShadow.Bottom}");
+        }
     }
 
     [Fact]

@@ -13,7 +13,8 @@
     "fonts",
     "wordmark",
     "icon",
-    "distribution"
+    "distribution",
+    "imprint"
   ],
   "properties": {
     "$schema": {
@@ -39,7 +40,7 @@
         "string",
         "null"
       ],
-      "description": "The About credit; null where the product is not white-labelled."
+      "description": "The credit to the product a white-label build is made from, e.g. \"Powered by Alcifra · Hebel Consulting\": shown in the About box, the manual cover, the sign-in page and the external-link landing page (ADR 0995). Null where the product is not white-labelled."
     },
     "colors": {
       "type": "object",
@@ -158,6 +159,31 @@
               "description": "The public demo the desktop's logon window offers."
             }
           }
+        }
+      }
+    },
+    "imprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lines",
+        "contact"
+      ],
+      "description": "Who publishes this edition, as the manual cover and the About box show it (ADR 0995).",
+      "properties": {
+        "lines": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "The publisher's name, then its address, one line each."
+        },
+        "contact": {
+          "type": "string",
+          "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+          "description": "The support address."
         }
       }
     }

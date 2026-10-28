@@ -32,11 +32,11 @@
       // `typst compile` without --input still builds, marked as such.
       #sys.inputs.at("generated", default: "generated from source") \
       © #datetime.today().year() \
-      Hebel Consulting GmbH \
-      Schweighofplatz 7 \
-      6010 Kriens (LU) \
-      Switzerland \
-      #link("mailto:support@simplarchive.dev")[support\@simplarchive.dev]
+      // The publisher's imprint, from the brand (ADR 0995).
+      #for line in brand.imprint.lines [#line \ ]
+      #link("mailto:" + brand.imprint.contact)[#brand.imprint.contact]
+      // And, in a white-label edition, the credit to the product it is made from.
+      #if brand.credit != none [ \ #v(0.4em) #brand.credit ]
     ]
   ]
 ]

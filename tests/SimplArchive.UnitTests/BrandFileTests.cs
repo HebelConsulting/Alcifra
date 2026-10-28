@@ -54,4 +54,14 @@ public class BrandFileTests
     private static string Shipped() => File.ReadAllText(Path.Combine(RepoPaths.Root(), "brand", "brand.json"));
 
     private static Brand Read(string json) => Brand.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)));
+
+    // The imprint every edition shows (ADR 0995): a publisher and an address to reach it.
+    [Fact]
+    public void The_imprint_names_a_publisher_and_a_support_address()
+    {
+        var imprint = Brand.Shipped.Imprint;
+        Assert.NotEmpty(imprint.Lines);
+        Assert.All(imprint.Lines, line => Assert.False(string.IsNullOrWhiteSpace(line)));
+        Assert.Matches(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", imprint.Contact);
+    }
 }

@@ -22,7 +22,8 @@ public sealed record Brand(
     [property: JsonPropertyName("fonts")] BrandFonts Fonts,
     [property: JsonPropertyName("wordmark")] BrandWordmark Wordmark,
     [property: JsonPropertyName("icon")] string? Icon,
-    [property: JsonPropertyName("distribution")] BrandDistribution Distribution)
+    [property: JsonPropertyName("distribution")] BrandDistribution Distribution,
+    [property: JsonPropertyName("imprint")] BrandImprint Imprint)
 {
     /// <summary>
     /// Whether the product shows the brand's own name, so its wordmark may stand for it (ADR 0992). An installation
@@ -104,3 +105,8 @@ public sealed record BrandDistribution(
 /// <summary>The public hosts a build points at (ADR 0994).</summary>
 public sealed record BrandDomains(
     [property: JsonPropertyName("demo")] string Demo);
+
+/// <summary>Who publishes this edition (ADR 0995): the publisher's name and address lines, and its support address.</summary>
+public sealed record BrandImprint(
+    [property: JsonPropertyName("lines")] IReadOnlyList<string> Lines,
+    [property: JsonPropertyName("contact")] string Contact);

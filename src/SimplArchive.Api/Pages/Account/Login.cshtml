@@ -231,6 +231,11 @@
                 </script>
             }
         }
+        @* In a white-label edition, the credit to the product it is made from (ADR 0995). *@
+        @if (SimplArchive.Theming.Brand.Shipped.Credit is { } credit)
+        {
+            <p class="credit">@credit</p>
+        }
     </main>
 </body>
 </html>

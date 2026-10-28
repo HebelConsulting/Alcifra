@@ -74,5 +74,14 @@
     "domains": {
       "demo": "demo.simplarchive.dev"
     }
+  },
+  "imprint": {
+    "lines": [
+      "Hebel Consulting GmbH",
+      "Schweighofplatz 7",
+      "6010 Kriens (LU)",
+      "Switzerland"
+    ],
+    "contact": "support@simplarchive.dev"
   }
 }
