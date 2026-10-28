@@ -28,8 +28,10 @@ values = {
     "BRAND_RELEASE_REPOSITORY": distribution["releaseRepository"],
     "BRAND_DEMO_DOMAIN": distribution["domains"]["demo"],
 }
+# The credit is null in an edition that is not white-labelled (ADR 0995), so it alone may be empty.
+values["BRAND_CREDIT"] = brand["credit"] or ""
 for key, value in values.items():
-    if not value:
+    if not value and key != "BRAND_CREDIT":
         sys.exit(f"brand/brand.json: {key} is empty")
     print(f"{key}={shlex.quote(value)}")
 PY

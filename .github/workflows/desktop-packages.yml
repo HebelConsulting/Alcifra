@@ -1,6 +1,7 @@
 # Builds the Avalonia desktop client packages and attaches them to the GitHub Release — PUBLIC repo only.
 #
-# Triggered on a v* tag. Name-gated to HebelConsulting/SimplArchive (a no-op on the private canonical); like the
+# Triggered on a v* tag. Runs in the brand's release repository (ADR 0996): for Alcifra the public mirror, a no-op on the
+# private canonical; like the
 # Docker publish, a name-only gate is fine because attaching release assets is harmless in the private-first
 # window.
 #
@@ -37,10 +38,25 @@ on:
         default: "0.0.1"
 
 jobs:
+  gate:
+    # Who publishes is the brand's to say (ADR 0996): its release repository, which for Alcifra is the public mirror.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      publishes: ${{ steps.role.outputs.publishes }}
+      white_label: ${{ steps.role.outputs.white_label }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: role
+        run: scripts/brand-release-role.sh
+
   # Every desktop package, on the one runner that can build them all (ADRs 0444/0478).
   packages:
     timeout-minutes: 60
-    if: ${{ github.repository == 'HebelConsulting/SimplArchive' }}
+    needs: gate
+    if: ${{ needs.gate.outputs.publishes == 'true' }}
     runs-on: macos-latest
     permissions:
       contents: write # create the GitHub Release + upload assets
@@ -155,8 +171,8 @@ jobs:
   # — a red verify that looked exactly like the missing-asset verdict it exists to give.
   verify:
     timeout-minutes: 10
-    if: ${{ github.repository == 'HebelConsulting/SimplArchive' && github.event_name == 'push' }}
-    needs: [packages]
+    if: ${{ needs.gate.outputs.publishes == 'true' && github.event_name == 'push' }}
+    needs: [gate, packages]
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -53,4 +53,16 @@ public partial class BrandDistributionTests
         Assert.False(string.IsNullOrWhiteSpace(distribution.ChartName));
         Assert.False(string.IsNullOrWhiteSpace(distribution.Domains.Demo));
     }
+
+    // Who publishes is the brand's to say (ADR 0996): a publishing workflow gated on a repository NAME would publish
+    // only from ours, and a white-label edition could never release.
+    [Theory]
+    [InlineData(".github/workflows/docker-publish.yml")]
+    [InlineData(".github/workflows/desktop-packages.yml")]
+    public void Publishing_is_gated_on_the_brands_release_repository(string relative)
+    {
+        var text = File.ReadAllText(Path.Combine(RepoPaths.Root(), relative.Replace('/', Path.DirectorySeparatorChar)));
+        Assert.Contains("scripts/brand-release-role.sh", text);
+        Assert.DoesNotContain("github.repository == 'HebelConsulting/SimplArchive'", text);
+    }
 }

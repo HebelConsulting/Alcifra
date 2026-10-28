@@ -1,7 +1,8 @@
-# Publishes the runtime Docker image to the GitHub Container Registry (GHCR) — PUBLIC repo only.
+# Publishes the runtime Docker image to the brand's registry (ADR 0994) — from the brand's release repository only.
 #
-# GHCR + Actions minutes are free on a public repo, so this is name-gated to HebelConsulting/SimplArchive and a
-# no-op (skipped job, zero minutes) on the private canonical. A name-only gate is fine here: pushing an image to
+# The gate job asks the brand (ADR 0996): for Alcifra the release repository is the public mirror,
+# HebelConsulting/SimplArchive, where GHCR and Actions minutes are free, and the job is a no-op on the private
+# canonical. A white-label fork names its own repository and publishes from there. A repository gate is fine here: pushing an image to
 # GHCR is harmless during the brief private-first window (the package just inherits the repo's visibility), unlike
 # mutation testing / native CodeQL upload, which are additionally visibility-gated. Uses the built-in GITHUB_TOKEN
 # (no registry secrets). Builds multi-arch (amd64 + arm64 via buildx + QEMU) and runs ONLY on a `v*` release tag —
@@ -17,13 +18,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  gate:
+    # Who publishes is the brand's to say (ADR 0996): its release repository, which for Alcifra is the public mirror.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      publishes: ${{ steps.role.outputs.publishes }}
+      white_label: ${{ steps.role.outputs.white_label }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: role
+        run: scripts/brand-release-role.sh
+
   publish:
     timeout-minutes: 60
-    if: ${{ github.repository == 'HebelConsulting/SimplArchive' }}
+    needs: gate
+    if: ${{ needs.gate.outputs.publishes == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      actions: read # a white-label edition takes its manual from the last manual build on main
       # KEYLESS SIGNING (#847, A08). cosign exchanges this job's OIDC token for a short-lived certificate
       # bound to the workflow's identity, so there is no signing key to hold, rotate or leak — the thing a
       # managed key exists to go wrong. It is a job-scoped grant and buys nothing else: an OIDC token names
@@ -53,6 +70,19 @@ jobs:
           echo "image=$BRAND_IMAGE_REGISTRY/$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
           echo "registry=${BRAND_IMAGE_REGISTRY%%/*}" >> "$GITHUB_OUTPUT"
           echo "cache=$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+
+      # A white-label edition does not commit its manual (ADR 0996), so the repository still holds the upstream one.
+      # Its image carries its own instead: the PDF the last successful manual build on main uploaded.
+      - name: The edition's own manual
+        if: ${{ needs.gate.outputs.white_label == 'true' && matrix.suffix == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow manual.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          [ -n "$run" ] || { echo "::error::No successful manual build on main to put into the image."; exit 1; }
+          gh run download "$run" --repo "$GITHUB_REPOSITORY" --name manual --dir "$RUNNER_TEMP/manual"
+          cp "$RUNNER_TEMP"/manual/*.pdf src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf
 
       - name: Log in to the registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0

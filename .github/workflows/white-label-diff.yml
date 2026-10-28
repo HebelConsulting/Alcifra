@@ -1,0 +1,39 @@
+# A white-label edition differs from upstream only in brand/ (#1117 round 4, ADR 0996). Runs only in a white-label
+# edition's repository (a brand with a credit, publishing from that repository); a no-op everywhere else, ours included.
+name: White-label diff
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      publishes: ${{ steps.role.outputs.publishes }}
+      white_label: ${{ steps.role.outputs.white_label }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: role
+        run: scripts/brand-release-role.sh
+
+  brand-only:
+    name: Only brand/ differs from upstream
+    needs: gate
+    if: ${{ needs.gate.outputs.white_label == 'true' && needs.gate.outputs.publishes == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Compare with the upstream main this edition last merged
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin upstream:refs/remotes/origin/upstream
+          scripts/check-white-label-diff.sh origin/upstream
