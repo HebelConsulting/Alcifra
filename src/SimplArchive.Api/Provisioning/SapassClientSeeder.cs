@@ -34,7 +34,7 @@ public static class SapassClientSeeder
             // not be sitting at, so the approval is an act rather than an inference. The page names THIS tool, which
             // is the whole reason it has a client id of its own instead of borrowing the administrator's.
             ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-            DisplayName = "SimplArchive password CLI (sapass)",
+            DisplayName = $"{SimplArchive.Localization.Strings.ProductName} password CLI (sapass)",
             Permissions =
             {
                 OpenIddictConstants.Permissions.Endpoints.DeviceAuthorization,

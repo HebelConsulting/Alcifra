@@ -223,7 +223,7 @@ if (!string.IsNullOrWhiteSpace(webAuthnBaseUrl))
     builder.Services.AddFido2(options =>
     {
         options.ServerDomain = origin.Host;
-        options.ServerName = "SimplArchive";
+        options.ServerName = SimplArchive.Localization.Strings.ProductName;
         options.Origins = new HashSet<string> { origin.GetLeftPart(UriPartial.Authority) };
     });
 }
@@ -969,7 +969,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapOpenApi().AllowAnonymous();
 if (app.Environment.IsDevelopment())
 {
-    app.MapScalarApiReference(options => options.WithTitle("SimplArchive API"));
+    app.MapScalarApiReference(options => options.WithTitle($"{SimplArchive.Localization.Strings.ProductName} API"));
 }
 
 app.MapFallbackToFile("index.html");

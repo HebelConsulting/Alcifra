@@ -130,6 +130,6 @@ public class WebDavAccessController : ControllerBase
         // the whole tree (Personal + the shared repositories the user can see). The /webdav alias is retired
         // (#794), so a mount saved against it must be re-created against this URL.
         var baseUrl = (_configuration["App:BaseUrl"] ?? "").TrimEnd('/');
-        return $"{baseUrl}/SimplArchive";
+        return $"{baseUrl}{SimplArchive.Api.WebDav.WebDavMiddleware.BasePath}";
     }
 }

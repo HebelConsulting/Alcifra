@@ -43,7 +43,7 @@ internal sealed class LmtpSession
         await using var writer = new StreamWriter(stream, new UTF8Encoding(false), 8192, leaveOpen: true) { AutoFlush = true, NewLine = "\r\n" };
         _writer = writer;
 
-        await ReplyAsync("220 SimplArchive LMTP ready");
+        await ReplyAsync($"220 {SimplArchive.Localization.Strings.ProductName} LMTP ready");
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -62,7 +62,7 @@ internal sealed class LmtpSession
             {
                 case "LHLO":
                     _greeted = true;
-                    await ReplyAsync("250-SimplArchive");
+                    await ReplyAsync($"250-{SimplArchive.Localization.Strings.ProductName}");
                     await ReplyAsync($"250-SIZE {_options.MaxMessageBytes}");
                     await ReplyAsync("250 PIPELINING");
                     break;

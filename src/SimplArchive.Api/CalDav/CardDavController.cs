@@ -34,7 +34,7 @@ public sealed class CardDavController : DavControllerBase
         ApplyPrincipal(_services);
         return new DavControllerContext(
             Protocol, Request, _dbContext, _rights, _storage, _services.GetRequiredService<IDavCollectionKindRegistry>(),
-            CurrentUserId, CurrentTenantId, User.Identity?.Name ?? "SimplArchive", Depth(), _push.VapidPublicKey,
+            CurrentUserId, CurrentTenantId, User.Identity?.Name ?? SimplArchive.Localization.Strings.ProductName, Depth(), _push.VapidPublicKey,
             HttpContext.RequestAborted,
             _services.GetService<ILoggerFactory>()?.CreateLogger("SimplArchive.Api.CalDav"));
     }

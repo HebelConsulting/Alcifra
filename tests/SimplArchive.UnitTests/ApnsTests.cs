@@ -52,7 +52,7 @@ public class ApnsTests
         using var payload = JsonDocument.Parse(ApnsClient.Payload(id, tenant));
         var alert = payload.RootElement.GetProperty("aps").GetProperty("alert");
 
-        Assert.Equal("SimplArchive", alert.GetProperty("title").GetString());
+        Assert.Equal(SimplArchive.Localization.Strings.ProductName, alert.GetProperty("title").GetString());
         Assert.Equal("MobPushNew", alert.GetProperty("loc-key").GetString());   // the app's own text, in the device's language
         Assert.False(alert.TryGetProperty("body", out _));
         Assert.Equal(id, payload.RootElement.GetProperty("id").GetGuid());

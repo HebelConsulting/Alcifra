@@ -68,7 +68,7 @@ public class KekRotationTests
         using (var dav = _factory.CreateClient())
         {
             using var put = new HttpRequestMessage(HttpMethod.Put,
-                $"/SimplArchive/{E2EApiFactory.CryptoTenantName}/{name}")
+                $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{E2EApiFactory.CryptoTenantName}/{name}")
             {
                 Content = new ByteArrayContent(Encoding.ASCII.GetBytes($"{Marker} rotate me\n")),
                 Headers = { Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(
@@ -119,7 +119,7 @@ public class KekRotationTests
         using (var dav = _factory.CreateClient())
         {
             using var get = new HttpRequestMessage(HttpMethod.Get,
-                $"/SimplArchive/{E2EApiFactory.CryptoTenantName}/{name}")
+                $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{E2EApiFactory.CryptoTenantName}/{name}")
             {
                 Headers = { Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(
                     Encoding.UTF8.GetBytes($"{E2EApiFactory.CryptoAdminEmail}:{davPassword}"))) },

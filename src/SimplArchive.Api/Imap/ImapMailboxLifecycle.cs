@@ -120,7 +120,7 @@ internal static class ImapMailboxLifecycle
         var db = scope.ServiceProvider.GetRequiredService<SimplArchiveDbContext>();
         if (resolved is null || !await IsUserMailFolderAsync(db, resolved.Value.Mailbox.FolderId))
         {
-            await session.WriteLineAsync($"{tag} NO the folder structure is managed in SimplArchive, not over IMAP");
+            await session.WriteLineAsync($"{tag} NO the folder structure is managed in {SimplArchive.Localization.Strings.ProductName}, not over IMAP");
             return;
         }
 
@@ -168,7 +168,7 @@ internal static class ImapMailboxLifecycle
         var db = scope.ServiceProvider.GetRequiredService<SimplArchiveDbContext>();
         if (resolved is null || !await IsUserMailFolderAsync(db, resolved.Value.Mailbox.FolderId))
         {
-            await session.WriteLineAsync($"{tag} NO the folder structure is managed in SimplArchive, not over IMAP");
+            await session.WriteLineAsync($"{tag} NO the folder structure is managed in {SimplArchive.Localization.Strings.ProductName}, not over IMAP");
             return;
         }
 
@@ -225,7 +225,7 @@ internal static class ImapMailboxLifecycle
         var isArchive = segments.Length >= 2 && string.Equals(segments[0], "Archive", StringComparison.Ordinal);
         if (!isNotes && !isArchive)
         {
-            await session.WriteLineAsync($"{tag} NO the folder structure is managed in SimplArchive, not over IMAP");
+            await session.WriteLineAsync($"{tag} NO the folder structure is managed in {SimplArchive.Localization.Strings.ProductName}, not over IMAP");
             return;
         }
 

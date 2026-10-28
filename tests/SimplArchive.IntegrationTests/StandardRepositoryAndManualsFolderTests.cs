@@ -124,7 +124,7 @@ public class StandardRepositoryAndManualsFolderTests
         await ManualsFolderAsync(db, standardId, userId, permitted: false);
 
         var refused = await Assert.ThrowsAsync<CoreOwnedMaskException>(() => db.SaveChangesAsync());
-        Assert.Contains("only SimplArchive itself assigns it", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("only the archive itself assigns it", refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]

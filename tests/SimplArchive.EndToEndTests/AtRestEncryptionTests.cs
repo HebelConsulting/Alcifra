@@ -24,7 +24,7 @@ public class AtRestEncryptionTests
         var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
         var name = $"atrest-{Guid.NewGuid():N}.txt";
         using var dav = factory.CreateClient();
-        using var put = new HttpRequestMessage(HttpMethod.Put, $"/SimplArchive/{folder}/{name}")
+        using var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{folder}/{name}")
         {
             // A plain .txt on purpose: an .eml is CLASSIFIED into an email document and renamed by its
             // subject, so the WebDAV GET below would 404 on the original path.
@@ -95,7 +95,7 @@ public class AtRestEncryptionTests
         // The WebDAV door serves plaintext — the decorator decrypts on the way out...
         var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
         using var dav = _factory.CreateClient();
-        using var get = new HttpRequestMessage(HttpMethod.Get, $"/SimplArchive/{E2EApiFactory.CryptoTenantName}/{fileName}")
+        using var get = new HttpRequestMessage(HttpMethod.Get, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{E2EApiFactory.CryptoTenantName}/{fileName}")
         {
             Headers = { Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(
                 Encoding.UTF8.GetBytes($"{E2EApiFactory.CryptoAdminEmail}:{davPassword}"))) },

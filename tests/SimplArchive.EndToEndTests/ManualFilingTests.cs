@@ -53,7 +53,7 @@ public class ManualFilingTests
             Assert.Equal(folder.Id, document.ParentId);
             Assert.Equal("test-module", await FieldAsync(rig.TenantId, documentId, "Article number"));
             Assert.Equal("Test Module", await FieldAsync(rig.TenantId, documentId, "Product name"));
-            Assert.Equal("SimplArchive", await FieldAsync(rig.TenantId, documentId, "Brand"));
+            Assert.Equal(global::SimplArchive.Localization.Strings.ProductName, await FieldAsync(rig.TenantId, documentId, "Brand"));
             Assert.Equal("Test Module Manual", document.Name);
             Assert.NotNull(document.CreatedByServiceAccountId);   // the module's own principal, not a person
             Assert.Equal([Hash("1")], versions.Select(v => v.Sha256Hash));

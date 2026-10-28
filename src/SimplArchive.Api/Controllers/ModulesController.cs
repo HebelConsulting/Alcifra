@@ -612,7 +612,7 @@ public class ModulesController : ControllerBase
             ? [.. module.Settings, new ModuleAbi.ModuleSetting(
                 ModuleAbi.ProtocolReadRefreshSetting.Key,
                 "Refresh content when a drive or mail client opens the folder",
-                Description: "This module fetches its content on demand when the folder is opened. The two SimplArchive "
+                Description: "This module fetches its content on demand when the folder is opened. The desktop and web "
                     + "clients always do so; enable this to let a mounted drive or a mail client do it too, otherwise "
                     + "those surfaces show only what is already filed.")
                 { Kind = ModuleAbi.ModuleSettingKind.Boolean }]

@@ -23,7 +23,7 @@ public class WebDavPropFindTests
         "<D:getetag>\"42-abc\"</D:getetag>" +
         "<D:supportedlock><D:lockentry><D:lockscope><D:exclusive/></D:lockscope></D:lockentry></D:supportedlock>";
 
-    private static PropStatXml Response(string props = FileProps) => new("/SimplArchive/x", "HTTP/1.1 200 OK", props);
+    private static PropStatXml Response(string props = FileProps) => new($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/x", "HTTP/1.1 200 OK", props);
 
     private static PropRequest Request(params XName[] names) =>
         PropRequest.FromProp(new XElement(DavNames.Prop, names.Select(n => new XElement(n))));

@@ -1,4 +1,4 @@
-#import "template.typ": conf, shot, pair, note, accent, idx, index-page
+#import "template.typ": product, conf, shot, pair, note, accent, idx, index-page
 
 #show: doc => conf(doc)
 
@@ -8,7 +8,7 @@
 #page(numbering: none, footer: none)[
   #set align(center + horizon)
   #block[
-    #text(size: 34pt, weight: "bold", fill: accent)[SimplArchive]
+    #text(size: 34pt, weight: "bold", fill: accent)[#product]
     #v(0.2em)
     #text(size: 18pt)[User Manual]
     #v(1.2em)
@@ -48,7 +48,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 = Introduction
 
-SimplArchive is a multi-tenant *document management system* (DMS): a secure archive where an organisation
+#product is a multi-tenant *document management system* (DMS): a secure archive where an organisation
 files, versions, classifies, searches, and governs its documents#idx("Document management system"). It is a showcase of how a senior, AI-driven
 software developer can produce a complex, enterprise-grade system in a relatively short period — every feature in
 this manual is really implemented and really tested.
@@ -141,7 +141,7 @@ belongs to something already filed, and how many you have. They all end in the s
    it back. The file must still carry the document's name — that is what says which document it belongs to.],
   [*WebDAV*], [You would rather work in Finder, Explorer or Files. Mount the archive as a drive and copy
    documents in like any other folder.],
-  [*Import*#idx("Import / export")], [You are bringing in a whole folder tree at once, exported from SimplArchive or elsewhere.],
+  [*Import*#idx("Import / export")], [You are bringing in a whole folder tree at once, exported from #product or elsewhere.],
   [*Email attachment*], [You filed an email and want one of its attachments as a document of its own.],
 )
 
@@ -181,7 +181,7 @@ attachment that was left out, so nothing goes missing quietly.
 )
 
 Either way you can add a *comment* saying what this file is, which becomes the version's comment. There is no
-"overwrite": nothing in SimplArchive replaces content in place, and the honest equivalent is a new version.
+"overwrite": nothing in #product replaces content in place, and the honest equivalent is a new version.
 
 #note[
   If the name is held by a *folder* rather than a document, only the second choice is possible — a folder has no
@@ -190,7 +190,7 @@ Either way you can add a *comment* saying what this file is, which becomes the v
 
 *Versions.*#idx("Version comment") Uploading a new file to an existing document adds a *version* — the history is preserved. The
 *Versions* dialog lists every version; you can compare two of them or *make current* an older one. When you upload
-a file that already exists, SimplArchive warns you of the *duplicate*.
+a file that already exists, #product warns you of the *duplicate*.
 
 Give each version a *comment* saying what changed. It is the difference between a history someone can read and a
 list of timestamps: "Price corrected after the framework-agreement review" answers the question a reader of the
@@ -292,7 +292,7 @@ curated tag catalogue with colours. *Sensitivity labels*#idx("Sensitivity label"
 
 The whole archive is reachable over *WebDAV*#idx("WebDAV") as a network drive — not just your personal space but the shared
 repositories you have permission to access, with your rights enforced on every operation. The mounted drive is
-called *SimplArchive* and mirrors the Repositories tree exactly: your Personal space, then the repositories you
+called *#product* and mirrors the Repositories tree exactly: your Personal space, then the repositories you
 can see, and nothing else.
 
 The *WebDAV* button does the next useful thing rather than always the same thing, and its tooltip says which. In
@@ -315,8 +315,8 @@ folder inside the drive rather than the top of the archive:
 )
 
 #note[
-  *If you connect to more than one SimplArchive* — a local one and a hosted one, say — your computer cannot give
-  both drives the same name, so the second is called something like *SimplArchive-1*. The button always opens the
+  *If you connect to more than one #product* — a local one and a hosted one, say — your computer cannot give
+  both drives the same name, so the second is called something like *#{product}-1*. The button always opens the
   drive belonging to the server you are signed in to, whichever name it ended up with.
 ]
 
@@ -342,7 +342,7 @@ would expect from any network drive.
 What happens underneath is worth knowing, because it changes what other people see. Simple editors write the file
 straight back, and the change becomes a new version immediately. An *office suite*, however, never overwrites a
 file in place: it writes a hidden companion file, then a temporary copy of the new content, and finally renames
-that copy over the original. SimplArchive recognises that sequence and turns it into a *check-out* — the same
+that copy over the original. #product recognises that sequence and turns it into a *check-out* — the same
 one you get from pressing *Check out* in the app.
 
 So after saving from your file manager:
@@ -383,20 +383,20 @@ anything you would mind losing.
 #note[
   *A warning from your own software is not a fault in ours.* Some commercial vendors treat a WebDAV connection to
   a site that is not on their own allow-list as suspicious, or refuse it outright. That is a policy decision in
-  the respective vendors' software, not a limitation of SimplArchive — the same mount that one program declines
+  the respective vendors' software, not a limitation of #product — the same mount that one program declines
   will typically work in another on the same machine.
 ]
 
 == Reading the archive in your mail program (IMAP) <imap>
 
 Where WebDAV turns the archive into a network drive, *IMAP*#idx("IMAP") lets a mail program browse it: point
-any IMAP-speaking mail client at your SimplArchive server and browse the same
+any IMAP-speaking mail client at your #product server and browse the same
 ACL-filtered tree as mailboxes. *INBOX* is your personal folder; the shared repositories you can see appear
 beside it. Archived e-mails read natively; every *other* document can appear too — as a message carrying the
 file as an attachment — if you switch that on.
 
 #note[
-  *This is your archive wearing an IMAP face — it is not a mail service.* SimplArchive does not collect your
+  *This is your archive wearing an IMAP face — it is not a mail service.* #product does not collect your
   mail from your provider, does not send mail, and is not a replacement for your e-mail account. Nothing here
   changes where your mail lives. What it gives you is the second account in your mail program: keep your real
   one alongside it, and *file* mail across from one to the other, which is what the drag described below is
@@ -414,7 +414,7 @@ yours per account: off (the default) lists only e-mails; on lists everything you
 attached to open straight from the mail client.
 
 #note[
-  *The mail client cannot rearrange the folders.* Folders are created, renamed and deleted in SimplArchive —
+  *The mail client cannot rearrange the folders.* Folders are created, renamed and deleted in #product —
   an IMAP client trying the same is politely refused. Messages, though, are yours to work with: drag an
   e-mail into a folder to *file it into the archive* (it becomes a proper e-mail document, named by its
   subject), move a message to re-file it, copy one to leave a *reference*, and delete + expunge to send it
@@ -521,7 +521,7 @@ document does. A raw edit you regret is recoverable from the version history lik
 == Subscribing from your phone (CalDAV & CardDAV) <davsub>
 
 Addressbooks and calendars speak *CardDAV*#idx("CardDAV") and *CalDAV*#idx("CalDAV") — the standards phones,
-tablets and mail programs already use. Point a device at your SimplArchive server and it finds every addressbook
+tablets and mail programs already use. Point a device at your #product server and it finds every addressbook
 and calendar you are allowed to see, wherever it sits in the archive; you then pick which to sync. Edits travel
 both ways: a contact changed on your phone becomes a new version in the archive, and one changed in the workbench
 appears on the phone.
@@ -823,7 +823,7 @@ reaching the archive with no browser at all, see @byod.
 
 = Your own device <byod>
 
-Everything in this chapter is already yours. SimplArchive installs *nothing* on your phone, tablet or laptop —
+Everything in this chapter is already yours. #product installs *nothing* on your phone, tablet or laptop —
 the archive speaks the protocols those devices came with, so the mail app, address book, calendar and file
 manager you already use are the client. There is no app to find, no version to keep current, and nothing to
 uninstall when you leave.
@@ -987,7 +987,7 @@ A document you have edited is marked *Modified*, and only those offer the action
   [*Action*], [*What it does*],
   [*Compare*], [An inline, side-by-side view of what changed between the archived version and your working copy.],
   [*Beyond Compare*], [Opens the same two files in Beyond Compare, if you use it — a desktop-only convenience,
-   since a browser is not allowed to launch another application. Not affiliated with SimplArchive; the button
+   since a browser is not allowed to launch another application. Not affiliated with #product; the button
    points you to the vendor if you do not have it.],
   [*Check in*], [Files your working copy as a new version and releases the lock.],
   [*Discard*], [Throws the working copy away and releases the lock, leaving the archived version untouched.],
@@ -999,7 +999,7 @@ A document you have edited is marked *Modified*, and only those offer the action
   answering a different question.
 ]
 
-= Sharing outside SimplArchive
+= Sharing outside #product
 
 Everything above assumes the other person has an account. An *external link*#idx("External link") is for when they do not: a plain URL
 that opens one document, for anyone who has it, with no sign-in. Use it for the customer who needs the signed
@@ -1174,11 +1174,11 @@ fix it, rather than at three in the morning inside a reminder nobody receives.
   [Tenant settings in the web (left) and desktop (right) clients.])
 
 The desktop client can connect to *several servers*#idx("Server manager"); its server manager stores a profile (name + address) for
-each. A server is not a tenant: one SimplArchive installation hosts many tenants, and which tenant you belong to
+each. A server is not a tenant: one #product installation hosts many tenants, and which tenant you belong to
 follows from the account you sign in with.
 
 #shot("screenshots/desktop-server-manager.png",
-  [The desktop server manager: connection profiles for several SimplArchive servers.])
+  [The desktop server manager: connection profiles for several #product servers.])
 
 == When the archive hands you encrypted content <encryptedreads>
 
@@ -1273,7 +1273,7 @@ certificate here — is set out in @cardsetup.
 
 == Encryption of the archive itself <encryptionservice>
 
-SimplArchive's encryption is extended by *two separate paid products*, and which one you need depends on what
+#product's encryption is extended by *two separate paid products*, and which one you need depends on what
 you are trying to achieve. They are named here because the division is not where most people guess.
 
 *The Encryption Service*#idx("Encryption Service") encrypts *content where it is stored*, under keys held in
@@ -2059,7 +2059,7 @@ it, and the link can be revoked the moment it turns out it should not have been 
 
 // ─────────────────────────────────────────────────────────────────────────────
 #pagebreak()
-= Appendix — how SimplArchive is put together <domainmodel>
+= Appendix — how #product is put together <domainmodel>
 
 The vocabulary the system actually thinks in. Worth ten minutes if you are evaluating it, integrating with it,
 or wondering why something behaves the way it does — several of the answers in this manual are consequences of

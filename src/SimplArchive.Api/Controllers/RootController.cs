@@ -73,6 +73,10 @@ public class RootController : ControllerBase
         // The server's own build version (ADR 0512), so the desktop client's self-update check can tell whether it
         // is behind THIS deployment before looking for a matching client release on GitHub. Read-only, informational.
         public string ServerVersion { get; set; } = string.Empty;
+
+        // The installation's product name (core #1117, Branding:ProductName): what the web and desktop call the product
+        // once they know the installation. On the root because it is read anonymously, before anyone signs in.
+        public string ProductName { get; set; } = string.Empty;
     }
 
     [HttpGet]
@@ -86,6 +90,7 @@ public class RootController : ControllerBase
         var resource = new RootResource
         {
             ServerVersion = ServerBuildInfo.Version,
+            ProductName = SimplArchive.Localization.Strings.ProductName,
             Links =
             [
                 new Link("self", "/api", "GET"),

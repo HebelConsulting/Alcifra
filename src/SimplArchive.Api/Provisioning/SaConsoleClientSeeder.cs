@@ -53,7 +53,7 @@ public static class SaConsoleClientSeeder
             // Explicit, NOT implicit consent: a device grant hands a token to a machine the approving person
             // may not be sitting at, so the approval has to be an act rather than an inference.
             ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-            DisplayName = "SimplArchive administrative CLI (saconsole)",
+            DisplayName = $"{SimplArchive.Localization.Strings.ProductName} administrative CLI (saconsole)",
             Permissions =
             {
                 // No verification-endpoint permission exists, and that is not an omission: enumerated from the

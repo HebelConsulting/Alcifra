@@ -62,7 +62,7 @@ public class WebPasswordlessPasskeyTests
             await page.EvaluateAsync("() => { window.sessionStorage.clear(); window.localStorage.clear(); }");
 
             await page.GotoAsync(_app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-            await page.GetByText("SimplArchive").First.WaitForAsync();
+            await page.GetByText(global::SimplArchive.Localization.Strings.ProductName).First.WaitForAsync();
             await page.GetByText(new System.Text.RegularExpressions.Regex("^log ?in$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)).First.ClickAsync();
             await page.WaitForSelectorAsync("input[name='Email'], input[type='email']");
 

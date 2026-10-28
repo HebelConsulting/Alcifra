@@ -48,7 +48,7 @@ public class OpenApiEndpointTests
         var response = await anon.GetAsync("/scalar/");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("SimplArchive API", body);
+        Assert.Contains($"{(global::SimplArchive.Localization.Strings.ProductName)} API", body);
     }
 
     [Fact]

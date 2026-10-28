@@ -50,7 +50,7 @@ internal static class WindowsSchemeRegistration
         }
 
         using var root = Microsoft.Win32.Registry.CurrentUser.CreateSubKey($@"Software\Classes\{DeepLinks.Scheme}");
-        root.SetValue(null, "URL:SimplArchive deep link");
+        root.SetValue(null, $"URL:{SimplArchive.Localization.Strings.ProductName} deep link");
         root.SetValue("URL Protocol", string.Empty);
         using var command = root.CreateSubKey(@"shell\open\command");
         command.SetValue(null, $"\"{exe}\" \"%1\"");

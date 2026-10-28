@@ -137,7 +137,7 @@ public sealed class ImapSession
                 "IMAP [{Connection}] connection from {RemoteEndPoint} ({Transport})",
                 _connection, client.Client.RemoteEndPoint, _tlsCertificate is null ? "plaintext" : "TLS");
 
-            await WriteLineAsync("* OK SimplArchive IMAP4rev1 ready");
+            await WriteLineAsync($"* OK {SimplArchive.Localization.Strings.ProductName} IMAP4rev1 ready");
             await CommandLoopAsync(stopping);
         }
         catch (Exception e) when (e is IOException or ObjectDisposedException or OperationCanceledException)
@@ -226,7 +226,7 @@ public sealed class ImapSession
                 await OkAsync(tag, "NOOP");
                 return true;
             case "LOGOUT":
-                await WriteLineAsync("* BYE SimplArchive IMAP4rev1 logging out");
+                await WriteLineAsync($"* BYE {SimplArchive.Localization.Strings.ProductName} IMAP4rev1 logging out");
                 await OkAsync(tag, "LOGOUT");
                 return false;
             case "LOGIN":

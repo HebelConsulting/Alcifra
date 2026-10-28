@@ -29,7 +29,7 @@ public class CalDavWriteTests
 
     private static string Item(Protocol protocol, string uid, string title) =>
         protocol == CalDav
-            ? $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SimplArchive//E2E//EN\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
+            ? $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::SimplArchive.Localization.ProductBuild.Name)}//E2E//EN\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
               + $"DTSTAMP:20260817T090000Z\r\nDTSTART:20260901T090000Z\r\nDTEND:20260901T100000Z\r\n"
               + $"SUMMARY:{title}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
             : $"BEGIN:VCARD\r\nVERSION:3.0\r\nUID:{uid}\r\nFN:{title}\r\nN:{title};;;;\r\nEND:VCARD\r\n";

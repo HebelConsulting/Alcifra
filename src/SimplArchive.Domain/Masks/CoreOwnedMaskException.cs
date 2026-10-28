@@ -19,13 +19,13 @@ public sealed class CoreOwnedMaskException : InvalidOperationException
 
     /// <summary>Something other than the core tried to put the mask on a document.</summary>
     public static CoreOwnedMaskException NotAssignable(string documentName, string maskName) =>
-        new($"'{documentName}' cannot be given the '{maskName}' type: only SimplArchive itself assigns it, to the "
+        new($"'{documentName}' cannot be given the '{maskName}' type: only the archive itself assigns it, to the "
             + "one folder it files manuals into. Use an ordinary folder; a manual inside one may wear the 'Manual' type.");
 
     /// <summary>The folder that wears it may not lose it or be re-typed.</summary>
     public static CoreOwnedMaskException CannotChange(string documentName, string maskName) =>
-        new($"'{documentName}' is the '{maskName}' folder SimplArchive files its manuals into, and its type cannot "
-            + "be changed or removed — SimplArchive finds the folder by that type, and would otherwise create a second one.");
+        new($"'{documentName}' is the '{maskName}' folder the archive files its manuals into, and its type cannot "
+            + "be changed or removed — the archive finds the folder by that type, and would otherwise create a second one.");
 
     /// <summary>A second live document would make "the manuals folder" ambiguous.</summary>
     public static CoreOwnedMaskException OnlyOne(string documentName, string maskName) =>

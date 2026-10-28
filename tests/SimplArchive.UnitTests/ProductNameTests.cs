@@ -78,4 +78,77 @@ public class ProductNameTests
     }
 
     private static readonly Regex Literal = new(@"""[^""]*\b(SimplArchive|Alcifra)\b(?!\.[A-Za-z])(?!-)[^""]*""", RegexOptions.Compiled);
+
+    // Phase 1 of the rename (core #1117): the server, the web, the desktop and the tools name the product through
+    // Strings.ProductName (Branding:ProductName) or the build's ProductBuild.Name. What still spells the old name is
+    // listed here, each with the step that moves it; a new literal fails.
+    private static readonly Dictionary<string, string> NotYetRenamed = new()
+    {
+        // Phase 2, stored data, renamed by a data migration: the documentation mask and the manuals folder are found by
+        // these names in existing tenants.
+        ["src/SimplArchive.Domain/Masks/WellKnownMaskIds.cs"] = "phase 2: the documentation mask's stored name",
+        ["src/SimplArchive.Localization/WellKnownLabels.cs"] = "phase 2: the documentation mask's stored name, as a label key",
+        ["src/SimplArchive.Infrastructure/Persistence/CoreOwnedDocumentInvariants.cs"] = "phase 2: the documentation mask's stored name",
+        ["src/SimplArchive.Infrastructure/Masks/WellKnownMaskSeeder.cs"] = "phase 2: the documentation mask's stored name",
+        ["src/SimplArchive.Api/Manuals/ManualsFolder.cs"] = "phase 2: the manuals folder's and the mask's stored names",
+        ["src/SimplArchive.Api/Manuals/ManualFiler.cs"] = "phase 2: the core manual's stored document name",
+        // Phase 5, identifiers with data behind them, each moved with a migration of that data.
+        ["src/SimplArchive.Api/Program.cs"] = "phase 5: the data-protection application name; renaming it invalidates the keys",
+        ["src/SimplArchive.Api/Versioning/VendorMediaTypeApiVersionReader.cs"] = "phase 2: the media type moves to vnd.alcifra with this message",
+        ["src/SimplArchive.DesktopClient/Views/WindowShots.cs"] = "phase 5: a screenshot fixture naming the desktop package, renamed with the updater and the release repository",
+        ["src/SimplArchive.Api/Serialization/UtcModelNormalizer.cs"] = "an identifier: the code's own namespace prefix",
+        ["src/SimplArchive.DesktopClient/Services/ClientUpdate.cs"] = "phase 5: the release repository's name",
+        ["src/SimplArchive.DesktopClient/Services/SecretStore.cs"] = "phase 5: the keychain service; renaming it loses the stored sessions",
+        ["src/SimplArchive.DesktopClient/Services/LocalFolders.cs"] = "phase 5: the local data folder",
+        ["src/SimplArchive.DesktopClient/Services/LayoutSettings.cs"] = "phase 5: the local data folder",
+        ["src/SimplArchive.DesktopClient/Services/TreeExpansionStore.cs"] = "phase 5: the local data folder",
+        ["src/SimplArchive.DesktopClient/Services/ServerProfileStore.cs"] = "phase 5: the local data folder",
+        ["src/SimplArchive.DesktopClient/Services/BrowserAutofillSettings.cs"] = "phase 5: the local data folder",
+        ["src/SimplArchive.DesktopClient/Views/BrowserAutofillDialog.axaml.cs"] = "phase 5: the local data folder",
+        ["src/SimplArchive.DesktopClient/Services/DesktopLog.cs"] = "phase 5: the local log folder",
+        ["src/SimplArchive.DesktopClient/Services/NativeFileOpener.cs"] = "phase 5: the temporary folder",
+    };
+
+    [Theory]
+    [InlineData("SimplArchive.Api")]
+    [InlineData("SimplArchive.Client")]
+    [InlineData("SimplArchive.DesktopClient")]
+    [InlineData("SimplArchive.Infrastructure")]
+    [InlineData("SimplArchive.Domain")]
+    [InlineData("SimplArchive.Localization")]
+    [InlineData("SimplArchive.Cli")]
+    [InlineData("SimplArchive.BrowserHost")]
+    public void No_server_or_client_text_spells_the_product_name_out(string project)
+    {
+        var root = RepoPaths.Root();
+        string[] kinds = [".cs", ".razor", ".cshtml", ".axaml", ".html"];
+        var spelled = Directory.EnumerateFiles(Path.Combine(root, "src", project), "*", SearchOption.AllDirectories)
+            .Where(f => kinds.Contains(Path.GetExtension(f)))
+            .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/'))
+            .Where(f => !f.Contains("/obj/", StringComparison.Ordinal) && !f.Contains("/bin/", StringComparison.Ordinal)
+                && !f.Contains("/wwwroot/download/", StringComparison.Ordinal) && !NotYetRenamed.ContainsKey(f))
+            .Where(f => SpelledOut(File.ReadAllText(Path.Combine(root, f))))
+            .ToList();
+
+        Assert.True(spelled.Count == 0,
+            "These files spell the product's name out; use Strings.ProductName (a text) or ProductBuild.Name (an "
+            + $"identifier that follows the build), or list the file in NotYetRenamed with its step:\n  {string.Join("\n  ", spelled)}");
+    }
+
+    // A string literal or element text naming the product, outside comments, log lines, dotted identifiers
+    // ("SimplArchive.Api") and X-SimplArchive- header names.
+    private static bool SpelledOut(string text)
+    {
+        var code = Comments.Replace(text, string.Empty);
+        return code.Split('\n')
+            .Where(line => !line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+            .Where(line => !LogCall.IsMatch(line))
+            .Select(line => Identifier.Replace(line, string.Empty))
+            .Any(line => Named.IsMatch(line));
+    }
+
+    private static readonly Regex Comments = new(@"<!--.*?-->|@\*.*?\*@|/\*.*?\*/", RegexOptions.Singleline | RegexOptions.Compiled);
+    private static readonly Regex LogCall = new(@"\bLog(Trace|Debug|Information|Warning|Error|Critical)\b|\bLog\.(Fatal|Information|Warning|Error)\b", RegexOptions.Compiled);
+    private static readonly Regex Identifier = new(@"SimplArchive[.\-][A-Za-z]|X-SimplArchive", RegexOptions.Compiled);
+    private static readonly Regex Named = new(@"""[^""\n]*\bSimplArchive\b[^""\n]*""|>[^<\n]*\bSimplArchive\b[^<\n]*<", RegexOptions.Compiled);
 }

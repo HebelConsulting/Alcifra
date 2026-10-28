@@ -58,7 +58,7 @@ public class ImapBodyStructureTests
         {
             Encoding.ASCII.GetBytes("%PDF-1.4\n").CopyTo(bytes, 0);
         }
-        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/SimplArchive/{repoName}/{fileName}")
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{fileName}")
         {
             Content = new ByteArrayContent(bytes),
             Headers = { Authorization = basic },

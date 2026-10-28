@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l10n="using:SimplArchive.Localization"
         xmlns:vm="using:SimplArchive.DesktopClient.ViewModels"
         xmlns:svc="using:SimplArchive.DesktopClient.Services"
         xmlns:i="using:Projektanker.Icons.Avalonia"
@@ -13,7 +14,7 @@
         <Grid ColumnDefinitions="*,Auto">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
                 <i:Icon Value="mdi-file-cabinet" FontSize="28" Foreground="{DynamicResource WbAccent}" />
-                <TextBlock Text="SimplArchive" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text="{x:Static l10n:Strings.ProductName}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
             </StackPanel>
             <!-- Test the hardware key BEFORE any sign-in (core #1864, ADR 0955), as the phone's sign-in page offers. -->
             <Button Grid.Column="1" ToolTip.Tip="{loc:Tr KtTitle}" Background="Transparent" BorderThickness="0" Padding="4"

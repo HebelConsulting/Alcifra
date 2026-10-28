@@ -110,7 +110,7 @@ public static class ExternalLinkPage
     private static string FooterLine() =>
         string.Format(
             HtmlEncoder.Default.Encode(Strings.Get("ExtLinkPageFooter")),
-            "<a href=\"https://www.simplarchive.dev\">SimplArchive</a>");
+            $"<a href=\"https://www.simplarchive.dev\">{System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)}</a>");
 
     private static string Document(string title, string body) =>
         $$"""

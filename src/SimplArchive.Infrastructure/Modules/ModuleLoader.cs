@@ -73,7 +73,7 @@ public static class ModuleLoader
                         logger.LogWarning(
                             "Module {ModuleId} ({Path}) was built against ABI {ModuleMajor}.{ModuleMinor}; this host provides "
                             + "{HostMajor}.{HostMinor}. The module is NOT loaded — a module may be OLDER than its host but "
-                            + "never newer. Upgrade SimplArchive, or install a module built against this host's ABI.",
+                            + $"never newer. Upgrade {SimplArchive.Localization.Strings.ProductName}, or install a module built against this host's ABI.",
                             module.ModuleId, candidate, module.AbiMajorVersion, module.AbiMinorVersion,
                             ModuleAbiVersion.Major, ModuleAbiVersion.Minor);
                         continue;

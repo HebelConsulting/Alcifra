@@ -62,7 +62,7 @@ internal static partial class Ui
         // OIDC silent-renew iframe), so the network never goes "idle" and GotoAsync times out — the source of an
         // intermittent login flake. Readiness is instead signalled by the explicit element waits below.
         await page.GotoAsync(app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.GetByText("SimplArchive").First.WaitForAsync();
+        await page.GetByText(global::SimplArchive.Localization.Strings.ProductName).First.WaitForAsync();
 
         await page.GetByText(LoginRegex()).First.ClickAsync();
 

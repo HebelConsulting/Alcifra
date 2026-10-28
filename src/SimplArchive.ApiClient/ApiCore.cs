@@ -306,6 +306,33 @@ public sealed class ApiCore
 
     // The root's serverVersion as last read by GetRootLinksAsync (ADR 0955).
     private string? _serverVersion;
+    private string? _productName;
+
+    // A string the API root states, trimmed, or null where it does not (an older server, a malformed answer).
+    private static string? RootString(JsonElement root, string name) =>
+        root.ValueKind == JsonValueKind.Object
+        && root.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
+        && value.GetString() is { Length: > 0 } text
+            ? text.Trim()
+            : null;
+
+    /// <summary>
+    /// The installation's product name from the API root (<c>productName</c>, core #1117: Branding:ProductName), or null
+    /// when the root does not say (an older server) or cannot be read. Read like <see cref="GetServerVersionAsync"/>.
+    /// </summary>
+    public async Task<string?> GetProductNameAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await GetRootLinksAsync(cancellationToken);
+            return _productName;
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>The installation this core talks to — its root address, which carries no credential.</summary>
     public string RootUrl => _apiRootUrl;
@@ -451,12 +478,8 @@ public sealed class ApiCore
 
         using (doc)
         {
-            _serverVersion = doc.RootElement.ValueKind == JsonValueKind.Object
-                && doc.RootElement.TryGetProperty("serverVersion", out var version)
-                && version.ValueKind == JsonValueKind.String
-                && version.GetString() is { Length: > 0 } text
-                    ? text.Trim()
-                    : null;
+            _serverVersion = RootString(doc.RootElement, "serverVersion");
+            _productName = RootString(doc.RootElement, "productName");
 
             if (doc.RootElement.TryGetProperty("links", out var items) && items.ValueKind == JsonValueKind.Array)
             {

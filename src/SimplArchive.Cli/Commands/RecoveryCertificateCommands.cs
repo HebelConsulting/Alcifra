@@ -45,7 +45,7 @@ public sealed class RecoveryCertificateShowCommand(ILogger<RecoveryCertificateSh
 public sealed class RecoveryCertificateFileSettings : TenantSessionSettings
 {
     [CommandArgument(0, "<certificate.pem>")]
-    [Description("The PUBLIC recovery certificate (PEM). Its private key stays offline and never reaches SimplArchive.")]
+    [Description("The PUBLIC recovery certificate (PEM). Its private key stays offline and never reaches the server.")]
     public required string File { get; init; }
 
     public override Spectre.Console.ValidationResult Validate() =>

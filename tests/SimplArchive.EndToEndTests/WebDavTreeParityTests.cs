@@ -42,7 +42,7 @@ public partial class WebDavTreeParityTests
         using var dav = _factory.CreateClient();
 
         // The advertised mount URL is the single /SimplArchive resource.
-        Assert.EndsWith("/SimplArchive", (await TestJson.Get(api, "/api/me/webdav-password")).GetProperty("url").GetString());
+        Assert.EndsWith(("/" + global::SimplArchive.Localization.ProductBuild.Name), (await TestJson.Get(api, "/api/me/webdav-password")).GetProperty("url").GetString());
 
         // The Repositories tree-pane's top level = the "Personal" node + the repositories the user can see.
         var repos = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()
@@ -50,9 +50,9 @@ public partial class WebDavTreeParityTests
         var expectedTopLevel = new HashSet<string>(repos) { Personal };
 
         // PROPFIND the single /SimplArchive resource: root named "SimplArchive", children == the tree top level.
-        var names = await PropFindNamesAsync(dav, basic, "/SimplArchive");
-        Assert.Contains("SimplArchive", names);
-        Assert.Equal(expectedTopLevel, names.Where(n => n != "SimplArchive").ToHashSet());
+        var names = await PropFindNamesAsync(dav, basic, ("/" + global::SimplArchive.Localization.ProductBuild.Name));
+        Assert.Contains(global::SimplArchive.Localization.ProductBuild.Name, names);
+        Assert.Equal(expectedTopLevel, names.Where(n => n != global::SimplArchive.Localization.ProductBuild.Name).ToHashSet());
 
         // The legacy `/webdav` alias is RETIRED (#794): one mount, one path. It answers like any unknown route,
         // which is what makes "two ways in" stop being a thing anyone has to reason about — including the tests,

@@ -39,7 +39,7 @@ public sealed class HardwareKeyTest(
     string appVersion)
 {
     /// <summary>The name the report gives this app.</summary>
-    public const string AppName = "SimplArchive Desktop";
+    public static string AppName => $"{SimplArchive.Localization.Strings.ProductName} Desktop";
 
     /// <summary>Runs the test; <paramref name="stepped"/> sees each step as it is recorded.</summary>
     public async Task<KeyTestReport> RunAsync(Action<KeyTestStep>? stepped = null)

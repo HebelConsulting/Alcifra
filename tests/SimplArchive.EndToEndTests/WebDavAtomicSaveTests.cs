@@ -78,29 +78,29 @@ public class WebDavAtomicSaveTests
 
         // THE INTRAY, where refusing this cost a file. Stage one, then run the editor's opening move against it.
         var intrayName = $"safe{id}.docx";
-        (await Dav("PUT", $"/SimplArchive/{Personal}/Intray/{intrayName}", Encoding.UTF8.GetBytes("original"))).EnsureSuccessStatusCode();
+        (await Dav("PUT", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{intrayName}", Encoding.UTF8.GetBytes("original"))).EnsureSuccessStatusCode();
 
-        var intrayMkcol = await Dav("MKCOL", $"/SimplArchive/{Personal}/Intray/{intrayName}.sb-dea8d513-{id}");
+        var intrayMkcol = await Dav("MKCOL", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{intrayName}.sb-dea8d513-{id}");
         Assert.Equal(HttpStatusCode.Created, intrayMkcol.StatusCode);
 
         // The file the editor was replacing is STILL THERE. This is the assertion the bug was about: it is what
         // fails if the MKCOL is refused and the editor rolls back over it.
-        var stillThere = await Dav("GET", $"/SimplArchive/{Personal}/Intray/{intrayName}");
+        var stillThere = await Dav("GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{intrayName}");
         Assert.Equal(HttpStatusCode.OK, stillThere.StatusCode);
         Assert.Equal("original", await stillThere.Content.ReadAsStringAsync());
 
         // A REPOSITORY folder, where the same MKCOL used to materialise a phantom folder.
         var folder = $"sf{id}";
-        (await Dav("MKCOL", $"/SimplArchive/{await RepoNameAsync(ctx)}/{folder}")).EnsureSuccessStatusCode();
+        (await Dav("MKCOL", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{await RepoNameAsync(ctx)}/{folder}")).EnsureSuccessStatusCode();
 
-        var repoMkcol = await Dav("MKCOL", $"/SimplArchive/{await RepoNameAsync(ctx)}/{folder}/doc{id}.docx.sb-dea8d513-{id}");
+        var repoMkcol = await Dav("MKCOL", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{await RepoNameAsync(ctx)}/{folder}/doc{id}.docx.sb-dea8d513-{id}");
         Assert.Equal(HttpStatusCode.Created, repoMkcol.StatusCode);
 
         // Accepted, and NOT materialised as a document. The WRITER's own listing now shows the in-flight
         // collection — deliberately (#794): every scratch path answers a direct request, and a listing that
         // denied it is what made the OS drop its cache mid-save and the editor abandon the collection. What
         // must still be true is that no DOCUMENT came of it, which the archive's own listing says.
-        var listing = await Dav("PROPFIND", $"/SimplArchive/{await RepoNameAsync(ctx)}/{folder}/");
+        var listing = await Dav("PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{await RepoNameAsync(ctx)}/{folder}/");
         var body = await listing.Content.ReadAsStringAsync();
         Assert.Contains($".sb-dea8d513-{id}", body, StringComparison.Ordinal);
 
@@ -137,9 +137,9 @@ public class WebDavAtomicSaveTests
 
         var prefix = depth switch
         {
-            0 => "/SimplArchive",
-            1 => $"/SimplArchive/{repo}",
-            _ => $"/SimplArchive/{repo}/{folder}",
+            0 => ("/" + global::SimplArchive.Localization.ProductBuild.Name),
+            1 => $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}",
+            _ => $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{folder}",
         };
 
         var path = $"{prefix}/.DS_Store";
@@ -185,10 +185,10 @@ public class WebDavAtomicSaveTests
         var repo = await RepoNameAsync(ctx);
         var (_, stem) = await SeedTreeDocumentAsync(ctx, Encoding.UTF8.GetBytes("the real document"));
 
-        var real = await ClutterDavAsync(ctx, "PROPFIND", $"/SimplArchive/{repo}/{stem}.docx", null, ("Depth", "0"));
+        var real = await ClutterDavAsync(ctx, "PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{stem}.docx", null, ("Depth", "0"));
         Assert.Equal(207, (int)real.StatusCode);
 
-        var bare = await ClutterDavAsync(ctx, "PROPFIND", $"/SimplArchive/{repo}/{stem}", null, ("Depth", "0"));
+        var bare = await ClutterDavAsync(ctx, "PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{stem}", null, ("Depth", "0"));
         Assert.Equal(HttpStatusCode.NotFound, bare.StatusCode);
     }
 
@@ -210,7 +210,7 @@ public class WebDavAtomicSaveTests
         var original = Encoding.UTF8.GetBytes("the original content");
         var (docId, stem) = await SeedTreeDocumentAsync(ctx, original);
 
-        var doc = $"/SimplArchive/{repo}/{stem}.docx";
+        var doc = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{stem}.docx";
         var collection = $"{doc}.sb-43a5b669-SetAs1";
         Assert.True((await ClutterDavAsync(ctx, "MKCOL", collection)).IsSuccessStatusCode);
 
@@ -229,7 +229,7 @@ public class WebDavAtomicSaveTests
 
         // On the document's OWN href: the scratch collection is named after the document, so a bare substring
         // check would false-positive on the collection the listing now legitimately shows its writer (#794).
-        var listing = await ClutterDavAsync(ctx, "PROPFIND", $"/SimplArchive/{repo}", null, ("Depth", "1"));
+        var listing = await ClutterDavAsync(ctx, "PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}", null, ("Depth", "1"));
         Assert.DoesNotContain($"{stem}.docx</D:href>", await listing.Content.ReadAsStringAsync(), StringComparison.Ordinal);
 
         // …and the bytes are where the editor moved them, which is the reason it moved them.
@@ -270,7 +270,7 @@ public class WebDavAtomicSaveTests
         var repo = await RepoNameAsync(ctx);
         var (_, stem) = await SeedTreeDocumentAsync(ctx, Encoding.UTF8.GetBytes("the original"));
 
-        var collection = $"/SimplArchive/{repo}/{stem}.docx.sb-43a5b669-Sidec1";
+        var collection = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{stem}.docx.sb-43a5b669-Sidec1";
         Assert.True((await ClutterDavAsync(ctx, "MKCOL", collection)).IsSuccessStatusCode);
 
         var sidecar = $"{collection}/._.~WRD1980";
@@ -334,18 +334,18 @@ public class WebDavAtomicSaveTests
         // The dance, up to the point the live captures show the OS re-listing the folder: collection made,
         // collection sidecar written beside it, content temp inside it.
         var collection = $"{stem}.docx.sb-43a5b669-LiSt01";
-        Assert.True((await ClutterDavAsync(ctx, "MKCOL", $"/SimplArchive/{repo}/{collection}")).IsSuccessStatusCode);
-        Assert.True((await ClutterDavAsync(ctx, "PUT", $"/SimplArchive/{repo}/._{collection}", new byte[4096])).IsSuccessStatusCode);
-        Assert.True((await ClutterDavAsync(ctx, "PUT", $"/SimplArchive/{repo}/{collection}/.~WRD0001", Encoding.UTF8.GetBytes("staged"))).IsSuccessStatusCode);
+        Assert.True((await ClutterDavAsync(ctx, "MKCOL", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{collection}")).IsSuccessStatusCode);
+        Assert.True((await ClutterDavAsync(ctx, "PUT", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/._{collection}", new byte[4096])).IsSuccessStatusCode);
+        Assert.True((await ClutterDavAsync(ctx, "PUT", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/{collection}/.~WRD0001", Encoding.UTF8.GetBytes("staged"))).IsSuccessStatusCode);
 
         // The writer's Depth-1 listing carries what the writer's direct requests find.
-        var mine = await (await ClutterDavAsync(ctx, "PROPFIND", $"/SimplArchive/{repo}", null, ("Depth", "1")))
+        var mine = await (await ClutterDavAsync(ctx, "PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}", null, ("Depth", "1")))
             .Content.ReadAsStringAsync();
         Assert.Contains(collection, mine, StringComparison.Ordinal);
         Assert.Contains($"._{collection}", mine, StringComparison.Ordinal);
 
         // A colleague's listing of the same folder, at the same moment, is clean.
-        var peerRequest = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/SimplArchive/{repo}")
+        var peerRequest = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}")
         {
             Headers = { Authorization = peerBasic },
         };
@@ -371,7 +371,7 @@ public class WebDavAtomicSaveTests
         var repo = await RepoNameAsync(ctx);
         var (_, stem) = await SeedTreeDocumentAsync(ctx, Encoding.UTF8.GetBytes("the document"));
 
-        var owner = $"/SimplArchive/{repo}/~${stem}.docx";
+        var owner = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}/~${stem}.docx";
         var content = Encoding.UTF8.GetBytes("owner-file payload: who has it open");
 
         // LOCK first — the measured order. Word reserves the name before writing it; the lock-null it creates
@@ -400,7 +400,7 @@ public class WebDavAtomicSaveTests
 
         // …and it was never in the folder listing to begin with: an owner file says WHO has a document open,
         // which the special folders have always kept out of their listings — the same deliberate hiding, here.
-        var listing = await (await ClutterDavAsync(ctx, "PROPFIND", $"/SimplArchive/{repo}", null, ("Depth", "1")))
+        var listing = await (await ClutterDavAsync(ctx, "PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repo}", null, ("Depth", "1")))
             .Content.ReadAsStringAsync();
         Assert.DoesNotContain("~%24", listing, StringComparison.Ordinal);
         Assert.DoesNotContain("~$", listing, StringComparison.Ordinal);
@@ -489,17 +489,17 @@ public class WebDavAtomicSaveTests
 
         var checkoutEdit = Encoding.UTF8.GetBytes($"checkout {suite} {ext} {id}");
         await SaveAtomicallyAsync(Dav, "Check-out", $"co{id}{ext}", checkoutEdit, suite);
-        var checkoutBack = await Dav("GET", $"/SimplArchive/{Personal}/Check-out/co{id}{ext}");
+        var checkoutBack = await Dav("GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Check-out/co{id}{ext}");
         Assert.Equal(HttpStatusCode.OK, checkoutBack.StatusCode);
         Assert.Equal(checkoutEdit, await checkoutBack.Content.ReadAsByteArrayAsync());
 
         // Intray: a staged file, edited via WebDAV → the staged object must hold the edit.
         var intrayName = $"in{id}{ext}";
-        (await Dav("PUT", $"/SimplArchive/{Personal}/Intray/{intrayName}", Encoding.UTF8.GetBytes("original"))).EnsureSuccessStatusCode();
+        (await Dav("PUT", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{intrayName}", Encoding.UTF8.GetBytes("original"))).EnsureSuccessStatusCode();
 
         var intrayEdit = Encoding.UTF8.GetBytes($"intray {suite} {ext} {id}");
         await SaveAtomicallyAsync(Dav, "Intray", intrayName, intrayEdit, suite);
-        var intrayBack = await Dav("GET", $"/SimplArchive/{Personal}/Intray/{intrayName}");
+        var intrayBack = await Dav("GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{intrayName}");
         Assert.Equal(HttpStatusCode.OK, intrayBack.StatusCode);
         Assert.Equal(intrayEdit, await intrayBack.Content.ReadAsByteArrayAsync());
     }
@@ -508,7 +508,7 @@ public class WebDavAtomicSaveTests
     // every WebDAV op succeeds (2xx). Temp names are unique per call.
     private static async Task SaveAtomicallyAsync(Func<string, string, byte[]?, (string, string)[]?, Task<HttpResponseMessage>> dav, string folder, string name, byte[] content, string suite)
     {
-        var basePath = $"/SimplArchive/{Personal}/{folder}";
+        var basePath = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/{folder}";
         var target = $"{basePath}/{name}";
         var rand = Guid.NewGuid().ToString("N")[..8];
 

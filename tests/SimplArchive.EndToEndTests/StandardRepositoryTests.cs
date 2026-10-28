@@ -107,7 +107,7 @@ public class StandardRepositoryTests
         // The mounted drive: same refusal, a 409 the operating system can show at least as "cannot be completed".
         var davPassword = (await TestJson.Post(tenant.Admin, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
         using var dav = _factory.CreateClient();
-        var davDelete = new HttpRequestMessage(HttpMethod.Delete, $"/SimplArchive/{tenant.RepositoryName}");
+        var davDelete = new HttpRequestMessage(HttpMethod.Delete, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{tenant.RepositoryName}");
         davDelete.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{tenant.AdminEmail}:{davPassword}")));
         using var davRefused = await dav.SendAsync(davDelete);
         Assert.Equal(HttpStatusCode.Conflict, davRefused.StatusCode);

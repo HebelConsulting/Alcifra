@@ -30,7 +30,7 @@ internal sealed class WebDavNode
 
     // The single mounted resource is named "SimplArchive" and its children mirror the Repositories tree-pane
     // exactly (ADR 0509): the Personal space, then the shared repositories the caller can see.
-    public static WebDavNode Root() => new() { IsRoot = true, IsCollection = true, WebDavName = "SimplArchive", Created = DateTimeOffset.UnixEpoch, Modified = DateTimeOffset.UnixEpoch };
+    public static WebDavNode Root() => new() { IsRoot = true, IsCollection = true, WebDavName = SimplArchive.Localization.ProductBuild.Name, Created = DateTimeOffset.UnixEpoch, Modified = DateTimeOffset.UnixEpoch };
 
     public static WebDavNode Collection(Document document) => new()
     {

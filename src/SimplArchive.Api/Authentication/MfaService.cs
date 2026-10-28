@@ -11,7 +11,7 @@ namespace SimplArchive.Api.Authentication;
 // ProfilePhotoValidator / TenantProvisioningService already sit.
 public sealed class MfaService(IThrottleCounterStore replayStore, ILogger<MfaService> logger)
 {
-    private const string Issuer = "SimplArchive";
+    private static string Issuer => SimplArchive.Localization.Strings.ProductName;
     private const int RecoveryCodeCount = 10;
     // Base32-ish alphabet without ambiguous characters (no 0/1/O/I/L).
     private const string RecoveryAlphabet = "abcdefghjkmnpqrstuvwxyz23456789";

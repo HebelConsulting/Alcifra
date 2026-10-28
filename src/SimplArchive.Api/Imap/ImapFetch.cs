@@ -530,7 +530,7 @@ internal static class ImapFetch
         var mime = new MimeMessage();
         mime.From.Add(message.Details?.CreatedBy is { Length: > 0 } author
             ? new MailboxAddress(author, "no-reply@simplarchive.local")
-            : new MailboxAddress("SimplArchive", "no-reply@simplarchive.local"));
+            : new MailboxAddress(SimplArchive.Localization.Strings.ProductName, "no-reply@simplarchive.local"));
         mime.Subject = message.Name;
         // THE DATE IS THE PAIR, not the date alone. Taking only DocumentDate put every message at midnight,
         // which a mail client sorts and groups by — so the five METARs a weather folder collects in a day all
@@ -662,7 +662,7 @@ internal static class ImapFetch
         // line break is malformed-ish RFC 5322 and left our last line unterminated; and a client that renders
         // the attachment INLINE under the text — Apple Mail does — then draws the document's preview flush
         // against the signature URL, so the archive's own footer reads as a caption for the document.
-        text.Append("\nServed from the SimplArchive archive:\nhttps://www.simplarchive.dev\n\n");
+        text.Append($"\nServed from the {SimplArchive.Localization.Strings.ProductName} archive:\nhttps://www.simplarchive.dev\n\n");
         return text.ToString();
     }
 

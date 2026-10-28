@@ -31,7 +31,7 @@ public sealed class OidcLoopbackAuthenticator
         var returnedState = context.Request.QueryString["state"];
 
         var body = Encoding.UTF8.GetBytes(
-            "<html><body style='font-family:sans-serif;padding:40px'>You can close this window and return to SimplArchive.</body></html>");
+            $"<html><body style='font-family:sans-serif;padding:40px'>You can close this window and return to {System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)}.</body></html>");
         context.Response.ContentType = "text/html";
         await context.Response.OutputStream.WriteAsync(body, cancellationToken);
         context.Response.Close();
@@ -66,7 +66,7 @@ public sealed class OidcLoopbackAuthenticator
         var added = context.Request.QueryString["added"] == "1";
 
         var body = Encoding.UTF8.GetBytes(
-            "<html><body style='font-family:sans-serif;padding:40px'>You can close this window and return to SimplArchive.</body></html>");
+            $"<html><body style='font-family:sans-serif;padding:40px'>You can close this window and return to {System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)}.</body></html>");
         context.Response.ContentType = "text/html";
         await context.Response.OutputStream.WriteAsync(body, cancellationToken);
         context.Response.Close();

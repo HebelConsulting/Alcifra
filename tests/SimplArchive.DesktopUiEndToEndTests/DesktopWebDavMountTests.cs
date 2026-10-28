@@ -55,15 +55,15 @@ public class DesktopWebDavMountTests
         // point cannot be known until the mount finishes (macOS suffixes a colliding volume name). So the script
         // mounts and OpenWebDavFolderAsync opens — asserted there, not here. What is still asserted here is that
         // it mounts at all.
-        var (macFile, macArgs) = OsFileManager.BuildOpenCommand("https://host/SimplArchive", OsFileManager.Platform.MacOs);
+        var (macFile, macArgs) = OsFileManager.BuildOpenCommand($"https://host/{(global::SimplArchive.Localization.ProductBuild.Name)}", OsFileManager.Platform.MacOs);
         Assert.Equal("osascript", macFile);
         Assert.Contains(macArgs, a => a.Contains("mount volume"));
 
-        var (winFile, winArgs) = OsFileManager.BuildOpenCommand("https://host/SimplArchive", OsFileManager.Platform.Windows);
+        var (winFile, winArgs) = OsFileManager.BuildOpenCommand($"https://host/{(global::SimplArchive.Localization.ProductBuild.Name)}", OsFileManager.Platform.Windows);
         Assert.Equal("explorer.exe", winFile);
         Assert.Contains(winArgs, a => a.Contains("DavWWWRoot", StringComparison.OrdinalIgnoreCase));
 
-        var (linuxFile, linuxArgs) = OsFileManager.BuildOpenCommand("https://host/SimplArchive", OsFileManager.Platform.Linux);
+        var (linuxFile, linuxArgs) = OsFileManager.BuildOpenCommand($"https://host/{(global::SimplArchive.Localization.ProductBuild.Name)}", OsFileManager.Platform.Linux);
         Assert.Equal("xdg-open", linuxFile);
         Assert.Contains(linuxArgs, a => a.StartsWith("davs://", StringComparison.Ordinal));
     }

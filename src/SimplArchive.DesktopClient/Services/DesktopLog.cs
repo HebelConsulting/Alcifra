@@ -127,7 +127,7 @@ public static class DesktopLog
             // A client that cannot write its log still has to start. A read-only home directory, a full disk, a
             // locked file — none of those is a reason to deny somebody their archive.
             // The one direct write (ADR 0906): logging itself is unavailable here.
-            Console.Error.WriteLine($"SimplArchive: logging is unavailable ({e.Message}); continuing without a log file.");
+            Console.Error.WriteLine($"{SimplArchive.Localization.Strings.ProductName}: logging is unavailable ({e.Message}); continuing without a log file.");
             _logger = Serilog.Core.Logger.None;
         }
     }

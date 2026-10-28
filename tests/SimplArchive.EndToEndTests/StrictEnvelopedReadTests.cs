@@ -142,7 +142,7 @@ public class StrictEnvelopedReadTests
 
         // The REAL path — repository, then document. An earlier version of this test asked for the document at
         // the mount root, got a 404 for the wrong reason, and passed while proving nothing.
-        var path = $"/SimplArchive/{reader.RepositoryName}/{reader.DocumentName}.txt";
+        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{reader.RepositoryName}/{reader.DocumentName}.txt";
 
         using var dav = _factory.CreateClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, path)

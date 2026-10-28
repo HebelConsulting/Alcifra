@@ -81,7 +81,7 @@ public sealed class ApnsClient(ApnsOptions options, TimeProvider clock)
     {
         ["aps"] = new Dictionary<string, object>
         {
-            ["alert"] = new Dictionary<string, object> { ["title"] = "SimplArchive", ["loc-key"] = "MobPushNew" },
+            ["alert"] = new Dictionary<string, object> { ["title"] = SimplArchive.Localization.Strings.ProductName, ["loc-key"] = "MobPushNew" },
             ["sound"] = "default",
             ["thread-id"] = tenantId.ToString("N"),   // grouped per installation's tenant in Notification Center
         },

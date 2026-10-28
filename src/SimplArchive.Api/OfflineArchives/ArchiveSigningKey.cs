@@ -86,7 +86,7 @@ public sealed class ArchiveSigningKey
     private static X509Certificate2 Ephemeral()
     {
         using var key = RSA.Create(3072);
-        var request = new CertificateRequest("CN=SimplArchive archive signing - development ephemeral", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var request = new CertificateRequest($"CN={SimplArchive.Localization.Strings.ProductName} archive signing - development ephemeral", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
         using var made = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return X509CertificateLoader.LoadPkcs12(made.Export(X509ContentType.Pkcs12), password: null, X509KeyStorageFlags.Exportable);

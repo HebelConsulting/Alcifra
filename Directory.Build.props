@@ -12,4 +12,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
   </PropertyGroup>
+  <!-- The product's name as a build ships it (core #1117; trademark applied for 2026-10-26): ONE value. A white-label
+       build overrides it (dotnet publish -p:ProductName=...). SimplArchive.Localization compiles it into
+       Strings.DefaultProductName; an installation may still name itself through Branding:ProductName. Identifiers
+       (namespaces, package ids, the media type) do not follow it. -->
+  <PropertyGroup>
+    <ProductName>Alcifra</ProductName>
+  </PropertyGroup>
 </Project>

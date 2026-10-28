@@ -6,12 +6,15 @@
 // purple stayed. ThemeGenerationTests now guards the generated file, so the next rebrand cannot strand it.
 #import "colors.generated.typ": accent
 
+// The product's name (ADR 0985), passed by generate-manual.sh from the ProductName build property: never spelled here.
+#let product = sys.inputs.at("product")
+
 // Document-wide configuration. Wrap the whole manual body in `#show: conf`.
 // Set by every heading, read and cleared by the first paragraph after it (#699) — see the show rules below.
 #let after-heading = state("manual.after-heading", false)
 
 #let conf(version: "", date: "", doc) = {
-  set document(title: "SimplArchive — User Manual")
+  set document(title: product + " — User Manual")
   // Named because the last-third heading rule below computes against the page BODY, and a margin changed
   // here but not there would silently move where "the last third" begins.
   let margin-top = 2.4cm
@@ -34,7 +37,7 @@
       grid(
         columns: (1fr, 1fr),
         align: (left, right),
-        [SimplArchive — User Manual],
+        [#product — User Manual],
         counter(page).display("1"),
       )
     },

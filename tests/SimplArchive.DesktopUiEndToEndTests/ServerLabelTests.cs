@@ -17,14 +17,14 @@ public class ServerLabelTests
     [Theory]
     // The port is KEPT when there is one: on a developer machine it is the only thing telling two servers
     // apart, so dropping it would collapse exactly the case this exists for.
-    [InlineData("http://localhost:8080", "SimplArchive — localhost:8080")]
-    [InlineData("http://localhost:5000/", "SimplArchive — localhost:5000")]
+    [InlineData("http://localhost:8080", global::SimplArchive.Localization.ProductBuild.Name + " — localhost:8080")]
+    [InlineData("http://localhost:5000/", global::SimplArchive.Localization.ProductBuild.Name + " — localhost:5000")]
     // ...and dropped when it is the scheme's default, where it is noise on every entry alike.
-    [InlineData("https://demo.simplarchive.dev", "SimplArchive — demo.simplarchive.dev")]
-    [InlineData("https://demo.simplarchive.dev:443/", "SimplArchive — demo.simplarchive.dev")]
-    [InlineData("http://kiosk.local:80", "SimplArchive — kiosk.local")]
+    [InlineData("https://demo.simplarchive.dev", global::SimplArchive.Localization.ProductBuild.Name + " — demo.simplarchive.dev")]
+    [InlineData("https://demo.simplarchive.dev:443/", global::SimplArchive.Localization.ProductBuild.Name + " — demo.simplarchive.dev")]
+    [InlineData("http://kiosk.local:80", global::SimplArchive.Localization.ProductBuild.Name + " — kiosk.local")]
     // A path is not part of what distinguishes one server from another, and spends title width saying so.
-    [InlineData("https://host.example/api/", "SimplArchive — host.example")]
+    [InlineData("https://host.example/api/", global::SimplArchive.Localization.ProductBuild.Name + " — host.example")]
     public void The_title_names_the_host(string apiBaseUrl, string expected) =>
         Assert.Equal(expected, ServerLabel.TitleFor(apiBaseUrl));
 
@@ -37,11 +37,11 @@ public class ServerLabelTests
     [InlineData("not a url")]
     [InlineData("/relative/only")]
     public void An_unreadable_address_leaves_just_the_product_name(string? apiBaseUrl) =>
-        Assert.Equal("SimplArchive", ServerLabel.TitleFor(apiBaseUrl));
+        Assert.Equal(global::SimplArchive.Localization.ProductBuild.Name, ServerLabel.TitleFor(apiBaseUrl));
 
     // Credentials in a URL must never reach a title bar, where they would be shouldered, screenshotted and
     // recorded by every window-list tool on the machine. Host-only is what keeps them out; Authority would not.
     [Fact]
     public void Userinfo_never_reaches_the_title() =>
-        Assert.Equal("SimplArchive — host.example", ServerLabel.TitleFor("https://user:secret@host.example/"));
+        Assert.Equal(global::SimplArchive.Localization.ProductBuild.Name + " — host.example", ServerLabel.TitleFor("https://user:secret@host.example/"));
 }

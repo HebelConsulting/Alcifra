@@ -53,6 +53,14 @@ public partial class MainWindow : Window
             if (DataContext is MainWindowViewModel vm)
             {
                 vm.Preview.AnnotationDialog = ShowAnnotationDialogAsync;
+                // The title names the product as the installation does once it is known (core #1117).
+                vm.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(MainWindowViewModel.ProductName))
+                    {
+                        Title = Services.ServerLabel.TitleFor(DesktopClientOptions.ApiBaseUrl);
+                    }
+                };
                 // Bring a newly marked tree node into view (#692's desktop half). Only the VIEW knows which
                 // container renders which node, so the view-model raises and this scrolls. BringIntoView is
                 // minimal-movement and a no-op when the node is already visible, which is the same behaviour

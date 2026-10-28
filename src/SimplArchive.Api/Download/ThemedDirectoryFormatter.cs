@@ -44,7 +44,7 @@ public sealed class ThemedDirectoryFormatter : IDirectoryFormatter
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1">
               <meta name="robots" content="noindex, nofollow">
-              <title>SimplArchive — downloads</title>
+              <title>{System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)} — downloads</title>
               <link rel="stylesheet" href="/api/theme.css">
               <style>
                 body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -101,7 +101,7 @@ public sealed class ThemedDirectoryFormatter : IDirectoryFormatter
         html.Append("""
               </ul>
               <footer>
-                <a href="/">← Back to SimplArchive</a>
+                <a href="/">← Back to {System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)}</a>
               </footer>
             </body>
             </html>

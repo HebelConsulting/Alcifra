@@ -743,8 +743,8 @@ public class TenantSettingsController : ControllerBase
         {
             await _emailSender.SendAsync(
                 user.Email, user.DisplayName,
-                "SimplArchive test message",
-                "This message confirms that SimplArchive can send mail through the configured account.\n\n"
+                $"{SimplArchive.Localization.Strings.ProductName} test message",
+                $"This message confirms that {SimplArchive.Localization.Strings.ProductName} can send mail through the configured account.\n\n"
                 + $"It was submitted through {account.Source}, as {account.FromAddress}.",
                 cancellationToken);
 
@@ -806,12 +806,12 @@ public class TenantSettingsController : ControllerBase
             timestamp = DateTimeOffset.UtcNow,
             actorType = "System",
             actorId = Guid.Empty,
-            actorName = "SimplArchive test delivery",
+            actorName = $"{SimplArchive.Localization.Strings.ProductName} test delivery",
             action = "Webhook.Test",
             targetType = (string?)null,
             targetId = (Guid?)null,
             targetName = (string?)null,
-            details = "This is a test event to verify your SimplArchive audit webhook configuration.",
+            details = $"This is a test event to verify your {SimplArchive.Localization.Strings.ProductName} audit webhook configuration.",
         };
 
         var body = System.Text.Json.JsonSerializer.Serialize(line, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));

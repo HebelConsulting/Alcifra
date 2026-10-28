@@ -71,7 +71,7 @@ public static class HostRegistration
         new
         {
             name = HostNameFor(clientName),
-            description = $"SimplArchive password store autofill ({clientName})",
+            description = $"{SimplArchive.Localization.Strings.ProductName} password store autofill ({clientName})",
             path = launcher,
             type = "stdio",
             allowed_origins = new[] { $"chrome-extension://{extensionId}/" },

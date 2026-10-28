@@ -59,7 +59,7 @@ public class DesktopCalendarTabTests
 
         var calendar = (await api.DavCollections.ListAsync("calendar")).Single(c => c.IsPersonalDefault);
         var suffix = Guid.NewGuid().ToString("N")[..8];
-        var ics = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SimplArchive//desktop//EN\r\nBEGIN:VEVENT\r\n"
+        var ics = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::SimplArchive.Localization.ProductBuild.Name)}//desktop//EN\r\nBEGIN:VEVENT\r\n"
             + $"UID:{suffix}\r\nDTSTAMP:20260817T090000Z\r\nDTSTART:20260901T090000Z\r\nDTEND:20260901T100000Z\r\n"
             + $"SUMMARY:Sprint planning\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
         await api.Documents.UploadFileAsync(calendar.Href("children"), $"evt-{suffix}.ics", Encoding.UTF8.GetBytes(ics));

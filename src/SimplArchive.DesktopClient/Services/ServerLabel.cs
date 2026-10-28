@@ -25,8 +25,8 @@ namespace SimplArchive.DesktopClient.Services;
 /// </remarks>
 public static class ServerLabel
 {
-    /// <summary>The product name alone, for a window with no server yet.</summary>
-    public const string ProductName = "SimplArchive";
+    /// <summary>The product name alone, for a window with no server yet: the build's, or the installation's (core #1117).</summary>
+    public static string ProductName => SimplArchive.Localization.Strings.ProductName;
 
     /// <summary>
     /// The window title for a client connected to <paramref name="apiBaseUrl"/>.

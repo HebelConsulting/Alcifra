@@ -104,13 +104,13 @@ public sealed class ManualFiler(
         }
 
         var source = new ManualSource("SimplArchive Manual", Path.GetFileName(CoreManualPath), "application/pdf",
-            file.CreateReadStream, "SimplArchive", CoreArticleNumber, ServerBuildInfo.Version);
+            file.CreateReadStream, SimplArchive.Localization.Strings.ProductName, CoreArticleNumber, ServerBuildInfo.Version);
 
         return FileAsync(source,
             findExisting: () => ManualDocumentIdAsync(CoreArticleNumber, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
-            auditActor: _ => (AuditActorType.System, Guid.Empty, "SimplArchive"),
+            auditActor: _ => (AuditActorType.System, Guid.Empty, SimplArchive.Localization.Strings.ProductName),
             cancellationToken);
     }
 
@@ -131,13 +131,13 @@ public sealed class ManualFiler(
 
         var bytes = System.Text.Encoding.ASCII.GetBytes(historyPem);
         var source = new ManualSource("Archive signing keys", "archive-signing-keys.pem", "application/x-pem-file",
-            () => new MemoryStream(bytes), "SimplArchive", ArchiveSigningKeysArticleNumber, currentThumbprint);
+            () => new MemoryStream(bytes), SimplArchive.Localization.Strings.ProductName, ArchiveSigningKeysArticleNumber, currentThumbprint);
 
         return FileAsync(source,
             findExisting: () => ManualDocumentIdAsync(ArchiveSigningKeysArticleNumber, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
-            auditActor: _ => (AuditActorType.System, Guid.Empty, "SimplArchive"),
+            auditActor: _ => (AuditActorType.System, Guid.Empty, SimplArchive.Localization.Strings.ProductName),
             cancellationToken);
     }
 
@@ -165,7 +165,7 @@ public sealed class ManualFiler(
             findExisting: () => ManualDocumentIdAsync(article, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
-            auditActor: _ => (AuditActorType.System, Guid.Empty, "SimplArchive"),
+            auditActor: _ => (AuditActorType.System, Guid.Empty, SimplArchive.Localization.Strings.ProductName),
             cancellationToken);
     }
 
@@ -391,7 +391,7 @@ public sealed class ManualFiler(
     {
         var wanted = new Dictionary<string, string>
         {
-            [WellKnownMaskIds.ManualFields.Brand] = "SimplArchive",
+            [WellKnownMaskIds.ManualFields.Brand] = SimplArchive.Localization.Strings.ProductName,
             [WellKnownMaskIds.ManualFields.ProductName] = source.ProductName,
             [WellKnownMaskIds.ManualFields.ArticleNumber] = source.ArticleNumber,
             [WellKnownMaskIds.ManualFields.ProductVersion] = source.ProductVersion,

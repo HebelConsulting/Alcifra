@@ -186,6 +186,12 @@ public sealed class ApiRoot
             }
 
             var root = await _anonymous.GetFromJsonAsync<RootResponse>("api", cancellationToken);
+            // The installation's product name (core #1117): every text that names the product says it from here on.
+            if (root?.ProductName is { Length: > 0 } productName)
+            {
+                SimplArchive.Localization.Strings.ProductName = productName;
+            }
+
             _rels = root?.Links
                 .Where(l => !string.IsNullOrEmpty(l.Rel) && !string.IsNullOrEmpty(l.Href))
                 .ToDictionary(l => l.Rel, l => Relative(l.Href))
@@ -205,6 +211,9 @@ public sealed class ApiRoot
     private sealed record RootResponse
     {
         public List<LinkResponse> Links { get; set; } = [];
+
+        // The API root only: the installation's product name (Branding:ProductName).
+        public string? ProductName { get; set; }
 
         // Only the "me" resource carries this; the API root leaves it null, which is exactly what a principal
         // with no personal account gets too (#464).

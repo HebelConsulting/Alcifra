@@ -51,7 +51,7 @@ public partial class WebLogoutTests
         // A fresh navigation, which is the move that used to restore the session: the SPA's silent sign-in ran
         // against a cookie logout had never touched, and the workbench came straight back.
         await page.GotoAsync(_app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-        await page.GetByText("SimplArchive").First.WaitForAsync();
+        await page.GetByText(global::SimplArchive.Localization.Strings.ProductName).First.WaitForAsync();
         // Matched the way Ui.LoginAsync matches it — by TEXT with the same anchored regex. A role+Name locator
         // found nothing here, and an anchored text match is also what keeps this honest if the label is
         // localised: it is the same string the helper already relies on.

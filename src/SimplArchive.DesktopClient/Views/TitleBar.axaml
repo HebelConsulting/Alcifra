@@ -7,7 +7,7 @@
              x:DataType="vm:MainWindowViewModel">
 <Border Background="{DynamicResource WbSurface}" Padding="14,10" BorderBrush="{DynamicResource WbBorder}" BorderThickness="0,0,0,1">
     <Grid ColumnDefinitions="Auto,*,Auto">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><Border Width="10" Height="10" CornerRadius="3" Background="{DynamicResource WbAccent}" /><TextBlock Text="SimplArchive" Foreground="{DynamicResource WbText}" FontSize="17" FontWeight="SemiBold" /></StackPanel>
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><Border Width="10" Height="10" CornerRadius="3" Background="{DynamicResource WbAccent}" /><TextBlock Text="{Binding ProductName}" Foreground="{DynamicResource WbText}" FontSize="17" FontWeight="SemiBold" /></StackPanel>
         <!-- Current user: DisplayName + photo (or initials); click to change your own photo (ADR
              "User profile photo"). The self-service avatar sits in the right corner (rightmost), with
              the display name to its left (ADR "Desktop recycle bin parity"). The email is gone. -->

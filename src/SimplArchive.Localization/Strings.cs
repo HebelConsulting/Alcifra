@@ -12,8 +12,8 @@ public static class Strings
     private static readonly ResourceManager Manager =
         new("SimplArchive.Localization.Strings", typeof(Strings).Assembly);
 
-    /// <summary>The product's name as the texts have it unless a host sets another (core #1117, Mobile #187).</summary>
-    public const string DefaultProductName = "Alcifra";
+    /// <summary>The product's name as the build ships it (core #1117, Mobile #187): the ProductName build property.</summary>
+    public const string DefaultProductName = ProductBuild.Name;
 
     /// <summary>The placeholder a text uses where it names the product.</summary>
     public const string ProductToken = "{Product}";

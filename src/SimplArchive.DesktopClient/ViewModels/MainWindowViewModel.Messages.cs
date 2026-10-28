@@ -30,9 +30,11 @@ public partial class MainWindowViewModel
         {
             Services.Safe.Fire(MessagesTab.DiscoverAsync);
             Services.Safe.Fire(PasswordsTab.DiscoverAsync);   // the Passwords tab likewise (ADR 0968)
+            Services.Safe.Fire(ApplyProductNameAsync);   // the installation's product name (core #1117)
         }
         else
         {
+            ForgetProductName();
             MessagesTab.Reset();
             PasswordsTab.Reset();
         }

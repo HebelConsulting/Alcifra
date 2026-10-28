@@ -62,7 +62,7 @@ public sealed class SimplArchiveApi(HttpClient http)
 
         if (string.IsNullOrEmpty(token))
         {
-            throw new CliException("The token endpoint answered without an access_token. The installation may not be a SimplArchive Api.");
+            throw new CliException($"The token endpoint answered without an access_token. The installation may not be a {SimplArchive.Localization.Strings.ProductName} Api.");
         }
 
         return token;

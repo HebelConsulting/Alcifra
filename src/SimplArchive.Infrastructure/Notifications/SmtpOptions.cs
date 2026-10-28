@@ -19,5 +19,5 @@ public sealed class SmtpOptions
 
     public string FromAddress { get; set; } = "notifications@simplarchive.local";
 
-    public string FromName { get; set; } = "SimplArchive";
+    public string FromName { get; set; } = SimplArchive.Localization.Strings.ProductName;
 }

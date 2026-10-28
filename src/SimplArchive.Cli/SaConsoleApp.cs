@@ -288,7 +288,7 @@ public static class SaConsoleApp
                     .WithDescription("Provision a tenant with its first administrator and repository.");
                 tenant.AddBranch("standard-repository", standard =>
                 {
-                    standard.SetDescription("Where SimplArchive files what it brings, its manuals first (ADR 0892).");
+                    standard.SetDescription($"Where {SimplArchive.Localization.Strings.ProductName} files what it brings, its manuals first (ADR 0892).");
                     standard.AddCommand<StandardRepositoryShowCommand>("show")
                         .WithDescription("Show the tenant's standard repository.");
                     standard.AddCommand<StandardRepositorySetCommand>("set")

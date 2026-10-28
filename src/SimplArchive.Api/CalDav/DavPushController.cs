@@ -30,7 +30,7 @@ public sealed class DavPushController : DavControllerBase
         var context = new DavControllerContext(
             DavProtocol.CalDav, Request, _dbContext, _rights, _storage,
             _services.GetRequiredService<IDavCollectionKindRegistry>(), CurrentUserId, CurrentTenantId,
-            User.Identity?.Name ?? "SimplArchive", 0, null, HttpContext.RequestAborted);
+            User.Identity?.Name ?? SimplArchive.Localization.Strings.ProductName, 0, null, HttpContext.RequestAborted);
         return DavPushRegistration.UnregisterAsync(context, id);
     }
 }

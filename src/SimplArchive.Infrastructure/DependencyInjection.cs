@@ -27,6 +27,9 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // The product's name first: options defaulted from it (the SMTP sender's name) read it (core #1117).
+        Branding.ProductBranding.Apply(configuration);
+
         var configuredConnectionString = configuration.GetConnectionString("Default")
             ?? throw new InvalidOperationException("Missing required 'ConnectionStrings:Default' configuration value.");
 

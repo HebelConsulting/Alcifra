@@ -406,7 +406,7 @@ public class LmtpClaimDeliveryTests
         // Generating an identity mints the ingest key and embeds its certificate as a SECOND payload.
         var generated = await TestJson.Post(api, "/api/me/smime-certificate", new { p12Password = "ingest-circle" });
         var mobileConfig = Encoding.UTF8.GetString(Convert.FromBase64String(generated.GetProperty("mobileConfig").GetString()!));
-        Assert.Contains("SimplArchive mail-in certificate", mobileConfig, StringComparison.Ordinal);
+        Assert.Contains($"{(global::SimplArchive.Localization.Strings.ProductName)} mail-in certificate", mobileConfig, StringComparison.Ordinal);
 
         string ingestPem;
         string ingestAddress;

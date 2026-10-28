@@ -20,7 +20,7 @@ public class DesktopWebDavTests
 
         var before = await api.Profile.GetWebDavStatusAsync();
         Assert.False(string.IsNullOrEmpty(before.Username));
-        Assert.EndsWith("/SimplArchive", before.Url); // the single "SimplArchive" mount (ADR 0509)
+        Assert.EndsWith(("/" + global::SimplArchive.Localization.ProductBuild.Name), before.Url); // the single "SimplArchive" mount (ADR 0509)
 
         var generated = await api.Profile.GenerateWebDavPasswordAsync();
         Assert.False(string.IsNullOrEmpty(generated.Password));

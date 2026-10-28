@@ -79,7 +79,7 @@
         @if (Model.State == SimplArchive.Api.Pages.Account.DeviceModel.Step.Approve)
         {
             <div class="login-card">
-                <div class="brand">SimplArchive</div>
+                <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
                 <h1 class="title">@Strings.Get("DeviceApproveTitle")</h1>
 
                 <dl class="facts">
@@ -122,7 +122,7 @@
             @* One message for expired, redeemed, unknown and mistyped alike. The remedy is the same in every
                case, and naming which it was would tell a guesser which codes are real. *@
             <div class="login-card">
-                <div class="brand">SimplArchive</div>
+                <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
                 <h1 class="title">@Strings.Get("DeviceUnusableTitle")</h1>
                 <p class="hint">@Strings.Get("DeviceUnusableHint")</p>
                 <form method="post" asp-page-handler="Code">
@@ -139,7 +139,7 @@
         else
         {
             <div class="login-card">
-                <div class="brand">SimplArchive</div>
+                <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
                 <h1 class="title">@Strings.Get("DeviceEnterCodeTitle")</h1>
                 <p class="hint">@Strings.Get("DeviceEnterCodeHint")</p>
                 <form method="post" asp-page-handler="Code">

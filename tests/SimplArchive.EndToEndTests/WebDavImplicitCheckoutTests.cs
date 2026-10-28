@@ -48,7 +48,7 @@ public class WebDavImplicitCheckoutTests
 
         // 2. The edit is the working copy, readable from the Check-out folder — the same stash an explicit
         //    check-out uses, which is what makes check-in, discard and the idle sweep work unchanged.
-        var stash = await DavAsync(ctx, "GET", $"/SimplArchive/{Personal}/Check-out/{docName}");
+        var stash = await DavAsync(ctx, "GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Check-out/{docName}");
         Assert.Equal(HttpStatusCode.OK, stash.StatusCode);
         Assert.Equal(edited, await stash.Content.ReadAsByteArrayAsync());
 
@@ -77,7 +77,7 @@ public class WebDavImplicitCheckoutTests
         // The lock is not re-taken (which would restart the idle clock on every keystroke-triggered autosave) and
         // the stash simply carries the newer bytes.
         Assert.Equal(first, await CheckedOutAtAsync(ctx, docId));
-        var stash = await DavAsync(ctx, "GET", $"/SimplArchive/{Personal}/Check-out/{docName}");
+        var stash = await DavAsync(ctx, "GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Check-out/{docName}");
         Assert.Equal("second", await stash.Content.ReadAsStringAsync());
     }
 
@@ -136,7 +136,7 @@ public class WebDavImplicitCheckoutTests
         var ctx = await SetupAsync();
         var (docId, docName) = await SeedDocumentAsync(ctx, ".docx", "original");
 
-        var basePath = $"/SimplArchive/{ctx.RepoName}";
+        var basePath = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}";
         // The real shape: named after the file being replaced, hex and a random tail.
         var collection = $"{docName}.sb-a1b2c3d4-Xy9";
 
@@ -206,7 +206,7 @@ public class WebDavImplicitCheckoutTests
         var ctx = await SetupAsync();
         await SeedDocumentAsync(ctx, ".docx", "original");
 
-        var response = await DavAsync(ctx, "PROPFIND", $"/SimplArchive{trailing}", null, ("Depth", "1"));
+        var response = await DavAsync(ctx, "PROPFIND", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}{trailing}", null, ("Depth", "1"));
         Assert.True(response.IsSuccessStatusCode, $"PROPFIND on the mount root returned {(int)response.StatusCode}");
 
         var body = await response.Content.ReadAsStringAsync();
@@ -228,7 +228,7 @@ public class WebDavImplicitCheckoutTests
     public async Task The_macos_atomic_save_sequence_files_the_document()
     {
         var ctx = await SetupAsync();
-        var basePath = $"/SimplArchive/{ctx.RepoName}";
+        var basePath = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}";
         const string name = "Replayed.docx";
         var collection = $"{name}.sb-43a5b669-1eNpWh";
 
@@ -351,7 +351,7 @@ public class WebDavImplicitCheckoutTests
         var ctx = await SetupAsync();
         var (_, docName) = await SeedDocumentAsync(ctx, ".docx", "the original content");
 
-        var basePath = $"/SimplArchive/{ctx.RepoName}";
+        var basePath = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}";
         var collection = $"{docName}.sb-43a5b669-EdIt01";
         (await DavAsync(ctx, "MKCOL", $"{basePath}/{collection}")).EnsureSuccessStatusCode();
 
@@ -391,11 +391,11 @@ public class WebDavImplicitCheckoutTests
         var ctx = await SetupAsync();
         var (docId, docName) = await SeedDocumentAsync(ctx, ".docx", "content that must survive");
 
-        var truncate = await DavAsync(ctx, "PUT", $"/SimplArchive/{ctx.RepoName}/{docName}", []);
+        var truncate = await DavAsync(ctx, "PUT", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}/{docName}", []);
         Assert.True(truncate.IsSuccessStatusCode, $"the create/truncate returned {(int)truncate.StatusCode}");
 
         // Reading it back gives the content, not nothing.
-        var read = await DavAsync(ctx, "GET", $"/SimplArchive/{ctx.RepoName}/{docName}");
+        var read = await DavAsync(ctx, "GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}/{docName}");
         Assert.Equal("content that must survive", await read.Content.ReadAsStringAsync());
 
         // …and it did not take a working copy: there was no edit to take one of.
@@ -414,7 +414,7 @@ public class WebDavImplicitCheckoutTests
     public async Task Every_request_in_the_captured_intray_sequence_is_answered_coherently()
     {
         var ctx = await SetupAsync();
-        var intray = $"/SimplArchive/{Personal}/Intray";
+        var intray = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray";
         const string doc = "Captured.docx";
         var col = $"{doc}.sb-43a5b669-OjK7I6";
         var content = Encoding.UTF8.GetBytes("the captured content");
@@ -501,7 +501,7 @@ public class WebDavImplicitCheckoutTests
     public async Task The_macos_atomic_save_sequence_works_in_the_intray()
     {
         var ctx = await SetupAsync();
-        var intray = $"/SimplArchive/{Personal}/Intray";
+        var intray = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray";
         const string name = "Replayed.docx";
         var collection = $"{name}.sb-43a5b669-InTr01";
         var original = Encoding.UTF8.GetBytes("the original intray content");
@@ -602,7 +602,7 @@ public class WebDavImplicitCheckoutTests
     public async Task A_sidecar_named_after_a_scratch_collection_is_stored_and_served_as_a_file()
     {
         var ctx = await SetupAsync();
-        var intray = $"/SimplArchive/{Personal}/Intray";
+        var intray = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray";
 
         // The exact shape from the trace: the sidecar is named after the collection, so it ENDS with the suffix.
         var collection = $"More testing.docx.sb-43a5b669-{Guid.NewGuid().ToString("N")[..6]}";
@@ -658,7 +658,7 @@ public class WebDavImplicitCheckoutTests
     public async Task An_emptying_rollback_in_the_intray_keeps_the_bytes_it_replaced()
     {
         var ctx = await SetupAsync();
-        var intray = $"/SimplArchive/{Personal}/Intray";
+        var intray = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray";
         var name = $"work{Guid.NewGuid().ToString("N")[..8]}.docx";
         var work = Encoding.UTF8.GetBytes("thirteen thousand bytes of somebody's afternoon");
 
@@ -707,7 +707,7 @@ public class WebDavImplicitCheckoutTests
     {
         var ctx = await SetupAsync();
         var (_, docName) = await SeedDocumentAsync(ctx, ".docx", "AAAA");
-        var path = $"/SimplArchive/{ctx.RepoName}/{docName}";
+        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}/{docName}";
 
         var before = await ETagAsync(ctx, path);
         Assert.False(string.IsNullOrWhiteSpace(before), "the document reported no getetag");
@@ -750,10 +750,10 @@ public class WebDavImplicitCheckoutTests
 
         // A real save in place: the working copy now holds the user's edit.
         await SaveByRenameAsync(ctx, docName, edit);
-        Assert.Equal(edit, await (await DavAsync(ctx, "GET", $"/SimplArchive/{Personal}/Check-out/{docName}")).Content.ReadAsByteArrayAsync());
+        Assert.Equal(edit, await (await DavAsync(ctx, "GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Check-out/{docName}")).Content.ReadAsByteArrayAsync());
 
         // The rollback: an empty scratch file moved onto the document, exactly as measured.
-        var basePath = $"/SimplArchive/{ctx.RepoName}";
+        var basePath = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}";
         var collection = $"{docName}.sb-43a5b669-{Guid.NewGuid().ToString("N")[..6]}";
         (await DavAsync(ctx, "MKCOL", $"{basePath}/{collection}")).EnsureSuccessStatusCode();
         (await DavAsync(ctx, "PUT", $"{basePath}/{collection}/~WRL2558", [])).EnsureSuccessStatusCode();
@@ -761,7 +761,7 @@ public class WebDavImplicitCheckoutTests
         Assert.True(rollback.IsSuccessStatusCode, $"the rollback MOVE returned {(int)rollback.StatusCode}");
 
         // Not refused — the working copy is now empty, which is what the client asked for…
-        Assert.Empty(await (await DavAsync(ctx, "GET", $"/SimplArchive/{Personal}/Check-out/{docName}")).Content.ReadAsByteArrayAsync());
+        Assert.Empty(await (await DavAsync(ctx, "GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Check-out/{docName}")).Content.ReadAsByteArrayAsync());
 
         // …but the edit still exists. No version was ever written, so nothing else could have kept it.
         using var scope = _factory.Services.CreateScope();
@@ -789,7 +789,7 @@ public class WebDavImplicitCheckoutTests
     public async Task Every_request_in_the_captured_sequence_is_answered_coherently_in_the_tree()
     {
         var ctx = await SetupAsync();
-        var repo = $"/SimplArchive/{ctx.RepoName}";
+        var repo = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}";
         const string doc = "Testing My Test.docx";
         var col = $"{doc}.sb-43a5b669-TrEe01";
         var content = Encoding.UTF8.GetBytes("the captured content, saved into the tree");
@@ -922,7 +922,7 @@ public class WebDavImplicitCheckoutTests
 
     private async Task<HttpResponseMessage> CommitRenameAsync(Context ctx, string docName, byte[] content)
     {
-        var basePath = $"/SimplArchive/{ctx.RepoName}";
+        var basePath = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}";
         var temp = $"{Guid.NewGuid().ToString("N")[..8]}.tmp";
 
         (await DavAsync(ctx, "PUT", $"{basePath}/~${docName}", Encoding.UTF8.GetBytes("owner"))).EnsureSuccessStatusCode();

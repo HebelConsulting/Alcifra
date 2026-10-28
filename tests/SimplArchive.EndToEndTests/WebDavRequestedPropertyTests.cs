@@ -30,7 +30,7 @@ public class WebDavRequestedPropertyTests
     {
         var ctx = await SetupAsync();
 
-        var document = await PropFindAsync(ctx, $"/SimplArchive/{Personal}",
+        var document = await PropFindAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}",
             Body("<D:prop><D:displayname/><D:quota-available-bytes/></D:prop>"));
 
         var ok = Propstat(document, "200");
@@ -46,7 +46,7 @@ public class WebDavRequestedPropertyTests
     {
         var ctx = await SetupAsync();
         var item = $"req{Guid.NewGuid().ToString("N")[..8]}.docx";
-        var path = $"/SimplArchive/{Personal}/Intray/{item}";
+        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{item}";
         (await DavAsync(ctx, "PUT", path, new ByteArrayContent(Encoding.UTF8.GetBytes("staged")))).EnsureSuccessStatusCode();
 
         var document = await PropFindAsync(ctx, path, Body("<D:prop><D:getetag/><D:quota-available-bytes/></D:prop>"));
@@ -64,7 +64,7 @@ public class WebDavRequestedPropertyTests
     {
         var ctx = await SetupAsync();
 
-        var document = await PropFindAsync(ctx, $"/SimplArchive/{Personal}", Body("<D:propname/>"));
+        var document = await PropFindAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}", Body("<D:propname/>"));
 
         var prop = Propstat(document, "200").Descendants(Dav + "prop").Single();
         Assert.Contains(prop.Elements(), e => e.Name == Dav + "getlastmodified");
@@ -77,7 +77,7 @@ public class WebDavRequestedPropertyTests
     {
         var ctx = await SetupAsync();
 
-        var document = await PropFindAsync(ctx, $"/SimplArchive/{Personal}", body: null);
+        var document = await PropFindAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}", body: null);
 
         var prop = Propstat(document, "200").Descendants(Dav + "prop").Single();
         foreach (var expected in new[] { "displayname", "resourcetype", "getlastmodified", "creationdate", "supportedlock" })

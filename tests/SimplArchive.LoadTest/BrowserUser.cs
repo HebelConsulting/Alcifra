@@ -70,7 +70,7 @@ public sealed class BrowserUser(
             _page.SetDefaultTimeout(TimeoutMs);
 
             await _page.GotoAsync(baseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-            await _page.GetByText("SimplArchive").First.WaitForAsync();
+            await _page.GetByText(global::SimplArchive.Localization.Strings.ProductName).First.WaitForAsync();
             await _page.GetByText(new System.Text.RegularExpressions.Regex("^log ?in$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 .First.ClickAsync();
 

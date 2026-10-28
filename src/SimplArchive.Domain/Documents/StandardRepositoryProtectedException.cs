@@ -11,7 +11,7 @@ namespace SimplArchive.Domain.Documents;
 public sealed class StandardRepositoryProtectedException : InvalidOperationException
 {
     public StandardRepositoryProtectedException(string documentName)
-        : base($"'{documentName}' is this tenant's standard repository and cannot be deleted: SimplArchive files what "
+        : base($"'{documentName}' is this tenant's standard repository and cannot be deleted: the archive files what "
             + "it brings there, its manuals first among them. Make another repository the standard one first (tenant "
             + "settings), then delete this one.")
     {

@@ -24,7 +24,7 @@ public sealed class WebDavMiddleware
     // The single mounted resource is served at /SimplArchive so an OS mount (Finder / Explorer / Nautilus) is
     // named "SimplArchive" — the OS takes the volume name from the URL's last path segment, not the DAV
     // displayname (ADR 0509). It is the ONLY path the gateway answers on; hrefs are always emitted under it.
-    public const string BasePath = "/SimplArchive";
+    public const string BasePath = "/" + SimplArchive.Localization.ProductBuild.Name;
     // The legacy `/webdav` alias is RETIRED (#794). It existed so mounts predating ADR 0509 kept working, and
     // the cost of keeping it was two ways in: two code paths to reason about, and — the part that actually bit —
     // an entire test suite exercising the alias while every real client used /SimplArchive. One mount, one path.
@@ -132,7 +132,7 @@ public sealed class WebDavMiddleware
         var user = await AuthenticateAsync(context, db);
         if (user is null)
         {
-            context.Response.Headers["WWW-Authenticate"] = "Basic realm=\"SimplArchive WebDAV\"";
+            context.Response.Headers["WWW-Authenticate"] = $"Basic realm=\"{SimplArchive.Localization.Strings.ProductName} WebDAV\"";
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }

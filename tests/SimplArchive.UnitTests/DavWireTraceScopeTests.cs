@@ -30,14 +30,14 @@ public class DavWireTraceScopeTests
     // Discovery, which a client probes before it has credentials.
     [InlineData("PROPFIND", "/.well-known/caldav")]
     // The WebDAV gateway — the gap. Every one of these was previously invisible.
-    [InlineData("GET", "/SimplArchive/Personal/My Documents/report.pdf")]
-    [InlineData("PUT", "/SimplArchive/Personal/report.pdf")]
-    [InlineData("DELETE", "/SimplArchive/Personal/report.pdf")]
-    [InlineData("MOVE", "/SimplArchive/Personal/report.pdf")]
-    [InlineData("LOCK", "/SimplArchive/Personal/report.pdf")]
-    [InlineData("OPTIONS", "/SimplArchive")]
+    [InlineData("GET", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/My Documents/report.pdf")]
+    [InlineData("PUT", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/report.pdf")]
+    [InlineData("DELETE", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/report.pdf")]
+    [InlineData("MOVE", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/report.pdf")]
+    [InlineData("LOCK", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/report.pdf")]
+    [InlineData("OPTIONS", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath)]
     // The legacy mount path still answers, so it must still be traced.
-    [InlineData("GET", "/SimplArchive/Personal/report.pdf")]
+    [InlineData("GET", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/report.pdf")]
     public void The_trace_covers_every_dav_surface(string method, string path) =>
         Assert.True(DavWireTraceMiddleware.IsDav(Request(method, path)),
             $"{method} {path} is served by a DAV surface but would not be traced");
@@ -54,14 +54,14 @@ public class DavWireTraceScopeTests
     [Theory]
     // A file transfer on the gateway: summarised, never captured — it is a user's document, and buffering it
     // would hold a large download in memory before its first byte reached the client.
-    [InlineData("GET", "/SimplArchive/Personal/scan.pdf", true)]
-    [InlineData("HEAD", "/SimplArchive/Personal/scan.pdf", true)]
-    [InlineData("PUT", "/SimplArchive/Personal/scan.pdf", true)]
+    [InlineData("GET", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/scan.pdf", true)]
+    [InlineData("HEAD", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/scan.pdf", true)]
+    [InlineData("PUT", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/scan.pdf", true)]
     // Protocol on the same gateway: captured, because the body is XML and that is the diagnosis.
-    [InlineData("PROPFIND", "/SimplArchive/Personal", false)]
-    [InlineData("PROPPATCH", "/SimplArchive/Personal", false)]
-    [InlineData("MOVE", "/SimplArchive/Personal/scan.pdf", false)]
-    [InlineData("DELETE", "/SimplArchive/Personal/scan.pdf", false)]
+    [InlineData("PROPFIND", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal", false)]
+    [InlineData("PROPPATCH", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal", false)]
+    [InlineData("MOVE", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/scan.pdf", false)]
+    [InlineData("DELETE", SimplArchive.Api.WebDav.WebDavMiddleware.BasePath + "/Personal/scan.pdf", false)]
     // CalDAV/CardDAV item bodies stay captured even for PUT/GET: they are small text items, and seeing the exact
     // vCard a client sent is usually the whole of the interop question. The line is what the payload IS, not
     // which verb carried it.

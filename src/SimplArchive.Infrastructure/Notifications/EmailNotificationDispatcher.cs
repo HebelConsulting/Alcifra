@@ -135,7 +135,7 @@ public sealed class EmailNotificationDispatcher : IEmailNotificationDispatcher
                 var certificates = await ReaderCertificatesForAsync(item, cancellationToken);
                 var (subject, body) = certificates.Count == 0
                     ? (item.Title, item.Body)
-                    : ("SimplArchive — new notification", $"{item.Title}\n\n{item.Body}");
+                    : ($"{SimplArchive.Localization.Strings.ProductName} — new notification", $"{item.Title}\n\n{item.Body}");
                 await SendAsTenantAsync(item.TenantId,
                     () => _emailSender.SendAsync(item.Email, item.DisplayName, subject, body, certificates, cancellationToken));
 

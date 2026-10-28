@@ -61,10 +61,10 @@ public class WebDavReferencedDocumentTests
         (await api.PutAsJsonAsync($"/api/documents/{docId}/versions/{version.GetProperty("id").GetGuid()}", new { })).EnsureSuccessStatusCode();
         await TestJson.Post(api, $"/api/documents/{workingId}/references", new { targetId = docId });
 
-        var path = $"/SimplArchive/{repoName}/{workingName}/{docName}.txt";
+        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{workingName}/{docName}.txt";
 
         // LISTED: the folder holding only a reference is not an empty folder on the drive.
-        using (var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/SimplArchive/{repoName}/{workingName}"))
+        using (var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{workingName}"))
         {
             propfind.Headers.Authorization = basic;
             propfind.Headers.Add("Depth", "1");
@@ -117,7 +117,7 @@ public class WebDavReferencedDocumentTests
         // The document itself is untouched, and still in its real home.
         var stillThere = await TestJson.Get(api, $"/api/documents/{docId}");
         Assert.Equal(docName, stillThere.GetProperty("name").GetString());
-        using (var get = new HttpRequestMessage(HttpMethod.Get, $"/SimplArchive/{repoName}/{homeName}/{docName}.txt") { Headers = { Authorization = basic } })
+        using (var get = new HttpRequestMessage(HttpMethod.Get, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{homeName}/{docName}.txt") { Headers = { Authorization = basic } })
         {
             Assert.Equal(HttpStatusCode.OK, (await dav.SendAsync(get)).StatusCode);
         }
@@ -158,7 +158,7 @@ public class WebDavReferencedDocumentTests
         await TestJson.Post(api, $"/api/documents/{workingId}/references", new { targetId = strangerId });
 
         // The name resolves to the CHILD, so a client reading it gets the file it can see in the app.
-        using var get = new HttpRequestMessage(HttpMethod.Get, $"/SimplArchive/{repoName}/{workingName}/{sharedName}.txt") { Headers = { Authorization = basic } };
+        using var get = new HttpRequestMessage(HttpMethod.Get, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{workingName}/{sharedName}.txt") { Headers = { Authorization = basic } };
         var response = await dav.SendAsync(get);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("the real child", await response.Content.ReadAsStringAsync());
@@ -166,7 +166,7 @@ public class WebDavReferencedDocumentTests
         // …and the listing offers that name exactly once, rather than twice. Counted on the HREF specifically:
         // each entry also carries the name in its displayname, so a naive count of the bare string finds two
         // per entry and would call one entry two.
-        using var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/SimplArchive/{repoName}/{workingName}");
+        using var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{workingName}");
         propfind.Headers.Authorization = basic;
         propfind.Headers.Add("Depth", "1");
         var body = await (await dav.SendAsync(propfind)).Content.ReadAsStringAsync();
@@ -219,7 +219,7 @@ public class WebDavReferencedDocumentTests
         await TestJson.Post(api, $"/api/documents/{yearId}/references", new { targetId = projectId });
 
         // LISTED as a collection in the year folder…
-        using (var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/SimplArchive/{repoName}/2026"))
+        using (var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/2026"))
         {
             propfind.Headers.Authorization = basic;
             propfind.Headers.Add("Depth", "1");
@@ -229,14 +229,14 @@ public class WebDavReferencedDocumentTests
         }
 
         // …WALKABLE: the aliased path serves the target's real child, byte for byte.
-        var get = await DavAsync("GET", $"/SimplArchive/{repoName}/2026/Project X/spec.txt");
+        var get = await DavAsync("GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/2026/Project X/spec.txt");
         Assert.Equal(HttpStatusCode.OK, get.StatusCode);
         Assert.Equal("the spec", await get.Content.ReadAsStringAsync());
 
         // …and DELETE removes the APPEARANCE: the reference goes, the project and its spec stay untouched.
-        Assert.True((await DavAsync("DELETE", $"/SimplArchive/{repoName}/2026/Project X")).IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await DavAsync("GET", $"/SimplArchive/{repoName}/2026/Project X/spec.txt")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await DavAsync("GET", $"/SimplArchive/{repoName}/Project X/spec.txt")).StatusCode);
+        Assert.True((await DavAsync("DELETE", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/2026/Project X")).IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await DavAsync("GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/2026/Project X/spec.txt")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await DavAsync("GET", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/Project X/spec.txt")).StatusCode);
         var repoChildren = (await TestJson.Get(api, $"/api/documents/{repoId}/children"))
             .GetProperty("children").EnumerateArray().Select(c => c.GetProperty("name").GetString()).ToList();
         Assert.Contains("Project X", repoChildren);
@@ -286,7 +286,7 @@ public class WebDavReferencedDocumentTests
             await db.SaveChangesAsync();
         }
 
-        using var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/SimplArchive/{repoName}/Outer/Inner")
+        using var propfind = new HttpRequestMessage(new HttpMethod("PROPFIND"), $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/Outer/Inner")
         {
             Headers = { Authorization = basic },
         };

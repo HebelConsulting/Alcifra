@@ -285,7 +285,7 @@ public class EmailNotificationDispatcherTests
         }
 
         var toCertified = Assert.Single(sender.Sent, s => s.Address == "certified@acme.test");
-        Assert.Equal("SimplArchive — new notification", toCertified.Subject);
+        Assert.Equal($"{(global::SimplArchive.Localization.Strings.ProductName)} — new notification", toCertified.Subject);
         Assert.Contains("Approve Salary review 2026", toCertified.Body, StringComparison.Ordinal);
         Assert.Equal(pem, toCertified.CertificatePem);
 

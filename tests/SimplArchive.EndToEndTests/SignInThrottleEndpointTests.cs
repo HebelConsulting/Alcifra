@@ -75,7 +75,7 @@ public class SignInThrottleEndpointTests
         // the honest case only: an attacker sends credentials.
         for (var probe = 0; probe < 30; probe++)
         {
-            using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), "/SimplArchive");
+            using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), ("/" + global::SimplArchive.Localization.ProductBuild.Name));
             var response = await anonymous.SendAsync(request);
 
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -110,7 +110,7 @@ public class SignInThrottleEndpointTests
         var walled = false;
         for (var attempt = 0; attempt < 12 && !walled; attempt++)
         {
-            var response = await PropFindAsync("/SimplArchive", Basic($"wrong-{attempt}"));
+            var response = await PropFindAsync(("/" + global::SimplArchive.Localization.ProductBuild.Name), Basic($"wrong-{attempt}"));
             walled = response.StatusCode == HttpStatusCode.TooManyRequests;
             if (!walled)
             {
