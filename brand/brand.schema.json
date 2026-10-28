@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "The product's brand (ADR 0989)",
+  "description": "Everything a person READS that names or styles the product, in one file. Wire names are not here: they never follow the brand (ADR 0987).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "fileStem",
+    "publisher",
+    "credit",
+    "colors"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The product's name as every text says it."
+    },
+    "fileStem": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "description": "The stem of package and file names, e.g. <fileStem>-1.2.0-arm64.dmg."
+    },
+    "publisher": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Who publishes the build: installers, copyright lines."
+    },
+    "credit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The About credit; null where the product is not white-labelled."
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light",
+        "dark"
+      ],
+      "properties": {
+        "light": {
+          "$ref": "#/$defs/palette"
+        },
+        "dark": {
+          "$ref": "#/$defs/palette"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accent",
+        "semantic",
+        "neutral"
+      ],
+      "properties": {
+        "accent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "primary",
+            "hover",
+            "onPrimary",
+            "text",
+            "tint",
+            "selection"
+          ],
+          "properties": {
+            "primary": {
+              "$ref": "#/$defs/color"
+            },
+            "hover": {
+              "$ref": "#/$defs/color"
+            },
+            "onPrimary": {
+              "$ref": "#/$defs/color"
+            },
+            "text": {
+              "$ref": "#/$defs/color"
+            },
+            "tint": {
+              "$ref": "#/$defs/color"
+            },
+            "selection": {
+              "$ref": "#/$defs/color"
+            }
+          }
+        },
+        "semantic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "danger",
+            "success",
+            "warning"
+          ],
+          "properties": {
+            "danger": {
+              "$ref": "#/$defs/color"
+            },
+            "success": {
+              "$ref": "#/$defs/color"
+            },
+            "warning": {
+              "$ref": "#/$defs/color"
+            }
+          }
+        },
+        "neutral": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "canvas",
+            "surface",
+            "sunken",
+            "hairline",
+            "text",
+            "textSecondary",
+            "textFaint",
+            "folder"
+          ],
+          "properties": {
+            "canvas": {
+              "$ref": "#/$defs/color"
+            },
+            "surface": {
+              "$ref": "#/$defs/color"
+            },
+            "sunken": {
+              "$ref": "#/$defs/color"
+            },
+            "hairline": {
+              "$ref": "#/$defs/color"
+            },
+            "text": {
+              "$ref": "#/$defs/color"
+            },
+            "textSecondary": {
+              "$ref": "#/$defs/color"
+            },
+            "textFaint": {
+              "$ref": "#/$defs/color"
+            },
+            "folder": {
+              "$ref": "#/$defs/color"
+            }
+          }
+        }
+      }
+    }
+  }
+}

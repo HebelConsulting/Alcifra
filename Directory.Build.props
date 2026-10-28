@@ -12,11 +12,13 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
   </PropertyGroup>
-  <!-- The product's name as a build ships it (core #1117; trademark applied for 2026-10-26): ONE value. A white-label
-       build overrides it (dotnet publish -p:ProductName=...). SimplArchive.Localization compiles it into
-       Strings.DefaultProductName; an installation may still name itself through Branding:ProductName. Identifiers
-       (namespaces, package ids, the media type) do not follow it. -->
+  <!-- The product's name as a build ships it (core #1117): ONE value, read from the brand file brand/brand.json (ADR 0989),
+       which a white-label build replaces. A command line may still override it (dotnet publish -p:ProductName=...).
+       SimplArchive.Localization compiles it into Strings.DefaultProductName; an installation may still name itself
+       through Branding:ProductName. Wire names never follow it (ADR 0987). The restore layer of the Dockerfile has
+       neither this file nor the brand, which is why the read is guarded by Exists. -->
   <PropertyGroup>
-    <ProductName>Alcifra</ProductName>
+    <BrandFile>$(MSBuildThisFileDirectory)brand/brand.json</BrandFile>
+    <ProductName Condition="'$(ProductName)' == '' And Exists('$(BrandFile)')">$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(BrandFile)')), '(?s)^.*?&quot;name&quot;\s*:\s*&quot;([^&quot;]*)&quot;.*$', '$1'))</ProductName>
   </PropertyGroup>
 </Project>

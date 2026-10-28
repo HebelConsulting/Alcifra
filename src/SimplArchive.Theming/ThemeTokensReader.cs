@@ -278,17 +278,9 @@ public static class ThemeTokensReader
                 custom.Success ?? shipped.Success,
                 custom.Warning ?? shipped.Warning);
 
-    private static ThemeTokens ReadShipped()
-    {
-        using var stream = typeof(ThemeTokensReader).Assembly
-            .GetManifestResourceStream("SimplArchive.Theming.tokens.json")
-            ?? throw new InvalidOperationException(
-                "tokens.json is missing from SimplArchive.Theming. It is the shipped design and is embedded "
-                + "deliberately, so this means the build no longer includes it as an EmbeddedResource.");
-
-        return JsonSerializer.Deserialize<ThemeTokens>(stream, Options)
-            ?? throw new InvalidOperationException("The embedded tokens.json could not be read as a theme.");
-    }
+    // The shipped theme is the brand's colours under the brand's name (ADR 0989).
+    private static ThemeTokens ReadShipped() =>
+        new(Brand.Shipped.Name, Brand.Shipped.Colors.Light, Brand.Shipped.Colors.Dark);
 
     // A custom file states only what it changes, so every property is optional — which is a different shape
     // from ThemeTokens, where everything is present by construction.

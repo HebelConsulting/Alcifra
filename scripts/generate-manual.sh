@@ -52,9 +52,9 @@ echo "==> Compiling the Typst manual → $pdf_out"
 # day, and the version changes only at releases.
 VERSION="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 STAMP="${VERSION:+$VERSION · }generated $(date -u +%F)"
-# The product's name is ONE value, the ProductName build property (ADR 0985): the manual reads the same one.
-PRODUCT="$(sed -n 's|.*<ProductName>\(.*\)</ProductName>.*|\1|p' Directory.Build.props)"
-[ -n "$PRODUCT" ] || { echo "ProductName not found in Directory.Build.props" >&2; exit 1; }
+# The product's name is ONE value, the brand file's (ADR 0989): the manual reads the same one as the build.
+PRODUCT="$(python3 -c 'import json; print(json.load(open("brand/brand.json"))["name"])')"
+[ -n "$PRODUCT" ] || { echo "no name in brand/brand.json" >&2; exit 1; }
 SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf_out" --root . --input generated="$STAMP" --input product="$PRODUCT"
 
 echo "==> Done. Served at /download/manual/ (browse /download or open $pdf_out)."

@@ -23,8 +23,8 @@ namespace SimplArchive.Theming;
 public static class ThemeEmitter
 {
     private const string DoNotEdit =
-        "This file is GENERATED from src/SimplArchive.Theming/tokens.json by scripts/generate-theme.sh.\n"
-        + "Edit the tokens and regenerate — a hand edit here fails ThemeGenerationTests on the next build.";
+        "This file is GENERATED from brand/brand.json by scripts/generate-theme.sh.\n"
+        + "Edit the brand file and regenerate — a hand edit here fails ThemeGenerationTests on the next build.";
 
     /// <summary>The desktop client's theme dictionary: one <c>SolidColorBrush</c> per variable, per theme.</summary>
     public static string ToAvalonia(ThemeTokens tokens)

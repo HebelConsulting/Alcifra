@@ -20,7 +20,7 @@ foreach (var (path, content) in outputs)
     Console.WriteLine($"{(unchanged ? "unchanged" : "WRITTEN  ")}  {relative}");
 }
 
-Console.WriteLine($"\n{ThemeTokensReader.Shipped.Name}: {outputs.Count} file(s) from src/SimplArchive.Theming/tokens.json");
+Console.WriteLine($"\n{ThemeTokensReader.Shipped.Name}: {outputs.Count} file(s) from brand/brand.json");
 return 0;
 
 static string RepoRoot()

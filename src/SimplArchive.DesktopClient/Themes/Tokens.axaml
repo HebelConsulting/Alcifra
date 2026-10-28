@@ -1,6 +1,6 @@
 <!--
-     This file is GENERATED from src/SimplArchive.Theming/tokens.json by scripts/generate-theme.sh.
-     Edit the tokens and regenerate — a hand edit here fails ThemeGenerationTests on the next build.
+     This file is GENERATED from brand/brand.json by scripts/generate-theme.sh.
+     Edit the brand file and regenerate — a hand edit here fails ThemeGenerationTests on the next build.
 -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">

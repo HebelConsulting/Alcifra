@@ -2,7 +2,7 @@
 # Regenerates every desktop launcher icon from the design tokens (ADR 0578).
 #
 # Run this after changing the brand accent: the art (a filing cabinet on a rounded tile) takes its colours from
-# src/SimplArchive.Theming/tokens.json, so an icon left ungenerated contradicts the application it launches.
+# brand/brand.json, so an icon left ungenerated contradicts the application it launches.
 #
 # The results are COMMITTED. Packaging reads them from the repository and needs no image tools installed —
 # adding ImageMagick to the packaging preflight once broke the Docker image build and with it the Trivy scan,

@@ -20,15 +20,15 @@
        dependency so the Avalonia desktop and the Blazor WASM web client can both reference it. Each client
        keeps its own binding glue (the desktop's {loc:Tr} markup extension; the web's Loc helper). -->
 
-  <!-- The build's product name (Directory.Build.props) as a constant, ProductBuild.Name: what Strings.DefaultProductName
-       and the WebDAV mount path read (core #1117). Generated, so the name is spelled in one place only. -->
+  <!-- The build's product name (brand/brand.json, read by Directory.Build.props) as a constant, ProductBuild.Name: what Strings.DefaultProductName
+       reads (core #1117). Generated, so the name is spelled in one place only. -->
   <Target Name="GenerateProductBuildName" BeforeTargets="BeforeCompile;CoreCompile">
-    <Error Condition="'$(ProductName)' == ''" Text="ProductName is not set (Directory.Build.props)." />
+    <Error Condition="'$(ProductName)' == ''" Text="ProductName is not set: brand/brand.json has no name (Directory.Build.props reads it)." />
     <PropertyGroup>
       <ProductBuildFile>$(IntermediateOutputPath)ProductBuild.g.cs</ProductBuildFile>
     </PropertyGroup>
     <WriteLinesToFile File="$(ProductBuildFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
-                      Lines="// Generated from the ProductName build property (Directory.Build.props).;namespace SimplArchive.Localization%3B;/// &lt;summary&gt;The product's name as this build ships it (core #1117).&lt;/summary&gt;;public static class ProductBuild;{;    /// &lt;summary&gt;The build's ProductName.&lt;/summary&gt;;    public const string Name = &quot;$(ProductName)&quot;%3B;}" />
+                      Lines="// Generated from the brand file brand/brand.json (ProductName, Directory.Build.props).;namespace SimplArchive.Localization%3B;/// &lt;summary&gt;The product's name as this build ships it (core #1117).&lt;/summary&gt;;public static class ProductBuild;{;    /// &lt;summary&gt;The build's ProductName.&lt;/summary&gt;;    public const string Name = &quot;$(ProductName)&quot;%3B;}" />
     <ItemGroup>
       <Compile Include="$(ProductBuildFile)" />
       <FileWrites Include="$(ProductBuildFile)" />

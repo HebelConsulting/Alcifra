@@ -126,9 +126,9 @@ public class WebDavAccessController : ControllerBase
 
     private string MountUrl()
     {
-        // The single "SimplArchive" resource (ADR 0509): mounting it names the OS volume "SimplArchive" and lists
-        // the whole tree (Personal + the shared repositories the user can see). The /webdav alias is retired
-        // (#794), so a mount saved against it must be re-created against this URL.
+        // The single /webdav resource (ADRs 0509, 0987): mounting it names the OS volume "webdav" and lists the whole
+        // tree (Personal + the shared repositories the user can see). The earlier /SimplArchive and /Alcifra paths are
+        // not served (#794), so a mount saved against them must be re-created against this URL.
         var baseUrl = (_configuration["App:BaseUrl"] ?? "").TrimEnd('/');
         return $"{baseUrl}{SimplArchive.Api.WebDav.WebDavMiddleware.BasePath}";
     }

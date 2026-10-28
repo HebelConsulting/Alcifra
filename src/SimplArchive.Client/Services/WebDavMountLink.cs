@@ -64,7 +64,7 @@ public sealed class WebDavMountLink
                 return;
             }
 
-            // The single "SimplArchive" resource (ADR 0509) — mounting it lists the whole tree (Personal, with
+            // The single /webdav resource (ADRs 0509, 0987) — mounting it lists the whole tree (Personal, with
             // Intray/Check-out, + the shared repositories). Appending the tab's folder is FOLLOWING the address
             // the server advertised, not composing one: the server owns the path, the caller adds only the
             // folder within it.

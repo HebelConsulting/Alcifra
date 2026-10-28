@@ -22,7 +22,7 @@
              vision. -->
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- GENERATED from src/SimplArchive.Theming/tokens.json (ADR 0578). Every brush the workbench
+                <!-- GENERATED from brand/brand.json (ADR 0578). Every brush the workbench
                      uses is in there, for both themes; run scripts/generate-theme.sh after changing a token. -->
                 <ResourceInclude Source="avares://SimplArchive.DesktopClient/Themes/Tokens.axaml" />
             </ResourceDictionary.MergedDictionaries>
