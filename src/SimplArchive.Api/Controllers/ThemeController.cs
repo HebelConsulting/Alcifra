@@ -59,7 +59,7 @@ public class ThemeController(IWebHostEnvironment environment, ILogger<ThemeContr
     public IActionResult Css()
     {
         Response.Headers.CacheControl = "no-cache";
-        return Content(ThemeEmitter.ToCss(Effective()), "text/css");
+        return Content(ThemeEmitter.ToCss(Effective(), Brand.Shipped.Fonts), "text/css");
     }
 
     [HttpHead("/api/theme.css")]

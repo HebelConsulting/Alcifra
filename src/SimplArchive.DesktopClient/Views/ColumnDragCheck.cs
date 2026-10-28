@@ -39,7 +39,7 @@ public static class ColumnDragCheck
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
 
         var vm = new MainWindowViewModel();

@@ -1,11 +1,13 @@
 // Shared styling + helpers for the SimplArchive user manual (ADR 0502).
-// Kept deliberately minimal + font-safe (no bespoke fonts) so `typst compile` is reproducible in CI.
+// Kept deliberately minimal; its one typeface is the brand's, passed with --font-path, so `typst compile` is
+// reproducible in CI (ADR 0991).
 
 // The accent comes from the SAME brand file as both clients (issue #513): the manual is a third styled surface,
 // and the teal flip proved it — every screenshot regenerated teal while this file's own hardcoded purple stayed.
 // Read straight from brand/brand.json (compile with --root .), so nothing generated is committed (ADR 0990).
 // Print wants the LIGHT accent regardless of anybody's dark-mode preference, because paper is white.
-#let accent = rgb(json("/brand/brand.json").colors.light.accent.primary)
+#let brand = json("/brand/brand.json")
+#let accent = rgb(brand.colors.light.accent.primary)
 
 // The product's name (ADR 0989), passed by generate-manual.sh from brand/brand.json: never spelled here.
 #let product = sys.inputs.at("product")
@@ -43,7 +45,9 @@
       )
     },
   )
-  set text(size: 10.5pt)
+  // The brand's document typeface (ADR 0991), from brand/assets/fonts: compile with --font-path so a machine
+  // without it installed sets the same pages rather than falling back to a serif.
+  set text(font: brand.fonts.document, size: 10.5pt)
   set par(justify: true, leading: 0.62em)
   set heading(numbering: "1.1")
 

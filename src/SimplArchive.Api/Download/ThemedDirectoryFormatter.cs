@@ -47,7 +47,7 @@ public sealed class ThemedDirectoryFormatter : IDirectoryFormatter
               <title>{System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)} — downloads</title>
               <link rel="stylesheet" href="/api/theme.css">
               <style>
-                body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+                body { font-family: var(--sa-font-ui, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
                        max-width: 640px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5;
                        background: var(--sa-canvas, #FAFAFC); color: var(--sa-text, #14161C); }
                 h1 { font-size: 1.4rem; margin: 0 0 .25rem; }

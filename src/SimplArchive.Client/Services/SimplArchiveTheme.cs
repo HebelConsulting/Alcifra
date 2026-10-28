@@ -49,7 +49,8 @@ public static class SimplArchiveTheme
     /// </remarks>
     private static Typography Typography()
     {
-        string[] stack = ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"];
+        // The brand's typeface first (ADR 0991), served by the API with /api/theme.css; the earlier stack behind it.
+        string[] stack = [Brand.Shipped.Fonts.Ui, "Helvetica Neue", "Helvetica", "Arial", "sans-serif"];
         return new Typography
         {
             Default = new DefaultTypography { FontFamily = stack },

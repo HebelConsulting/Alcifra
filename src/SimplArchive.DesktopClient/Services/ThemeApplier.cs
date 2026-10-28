@@ -30,8 +30,15 @@ public static class ThemeApplier
     private const string OverrideName = "SimplArchive.StyleOverride";
 
     /// <summary>The shipped design as the base dictionary, first, so a style applied later wins over it.</summary>
-    public static void InstallShipped(Application application) =>
-        application.Resources.MergedDictionaries.Insert(0, Build(ThemeTokensReader.Shipped));
+    public static void InstallShipped(Application application)
+    {
+        var shipped = Build(ThemeTokensReader.Shipped);
+
+        // Fluent's controls take their typeface from this key, not from the font manager's default, so the brand's
+        // font (ADR 0991) is named here too or every button and text box would keep the framework's choice.
+        shipped["ContentControlThemeFontFamily"] = BrandFont.Ui;
+        application.Resources.MergedDictionaries.Insert(0, shipped);
+    }
 
     /// <summary>What happened, for the log — never shown to the user as an interruption.</summary>
     public static IReadOnlyList<string> Apply(string? styleId)

@@ -45,7 +45,7 @@ public static class IndexScrollCheck
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
 
         // See the remarks: without this the check rewrites the developer's own saved layout.

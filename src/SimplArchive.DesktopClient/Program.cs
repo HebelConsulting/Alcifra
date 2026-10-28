@@ -180,7 +180,7 @@ internal static class Program
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             // A window that never set Icon= itself, so a pass can only come from the application-wide style.
@@ -211,7 +211,7 @@ internal static class Program
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             var owner = new Views.LogonWindow();
@@ -437,7 +437,7 @@ internal static class Program
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             Services.IconWriter.Run(args, genIconsIndex, genIconIndex);
@@ -909,7 +909,7 @@ internal static class Program
     public static AppBuilder BuildAvaloniaApp() =>
         AppBuilder.Configure<App>()
             .UsePlatformDetect()
-            .WithInterFont()
+            .WithBrandFont()
             .LogToTrace();
 
 

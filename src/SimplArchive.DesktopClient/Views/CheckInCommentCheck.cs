@@ -37,7 +37,7 @@ public static class CheckInCommentCheck
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
 
         DesktopClientOptions.ApiBaseUrl = baseUrl;

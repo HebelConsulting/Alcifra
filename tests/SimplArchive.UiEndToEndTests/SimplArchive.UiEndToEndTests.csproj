@@ -43,6 +43,8 @@
     <!-- The product's name the server shows (core #1117). -->
     <ProjectReference Include="..\..\src\SimplArchive.Localization\SimplArchive.Localization.csproj" />
     <ProjectReference Include="..\..\src\SimplArchive.Presentation\SimplArchive.Presentation.csproj" />
+    <!-- The brand's font name, which the browser must have loaded (ADR 0991). A dependency-free leaf. -->
+    <ProjectReference Include="..\..\src\SimplArchive.Theming\SimplArchive.Theming.csproj" />
     <ProjectReference Include="..\SimplArchive.SelfHosting\SimplArchive.SelfHosting.csproj" />
   </ItemGroup>
 

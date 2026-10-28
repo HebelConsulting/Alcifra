@@ -36,7 +36,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var shapeDialog = new AnnotationDialog("", "#8BC34A", "Demo Admin", canEdit: true, canDelete: true, isShape: true);
             shapeDialog.Show();
@@ -55,7 +55,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var pages = Services.PreviewRenderer.RenderPdfPages(File.ReadAllBytes(args[sortShotIndex + 2]));
             var sortDialog = new SortPagesDialog(Path.GetFileName(args[sortShotIndex + 2]), pages.Cast<Avalonia.Media.Imaging.Bitmap?>().ToList());
@@ -83,7 +83,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             var domains = ViewModels.MailDomainsViewModel.ForScreenshot();
@@ -102,7 +102,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var dropDialog = new DropActionDialog("Move 'Quarterly Report.pdf' here, or place a reference (shortcut) that leaves it where it is?");
             dropDialog.Show();
@@ -127,7 +127,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             var audience = new Views.ContentAudienceDialog();
@@ -186,7 +186,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             // `--pin` renders the PIN prompt instead (#1353, ADR 0832). Same reason as everything else here:
@@ -225,7 +225,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var win = new Views.ServerManagerWindow();
             var green = args.Contains("--green");
@@ -295,7 +295,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             var profileWin = new Views.EditProfileDialog();
@@ -320,7 +320,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var logonVm = new ViewModels.LogonViewModel();
             // `--update` injects a sample self-update result (issue #271) so the shot shows that layout, since the
@@ -360,7 +360,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             // `--create` renders the SAME dialog in New mode (#631): empty, and — with two candidate
@@ -492,7 +492,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             // Deliberately NOT an api/-shaped address: nothing here is ever fetched, and a composed api URL in
             // client code is what ADR 0543's guard exists to catch — a screenshot is no reason to weaken it.
@@ -516,7 +516,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
 
             // Deliberately NOT an api/-shaped address (the ADR 0543 guard), and the parameterless dialog ctor
@@ -553,7 +553,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var dialog = new Views.ConnectionLostDialog(showDetails: true,
                 "System.Net.Http.HttpRequestException: Connection refused (localhost:8080)\n   at SimplArchive.DesktopClient.Services.SimplArchiveApiClient...");
@@ -572,7 +572,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var catalog = new List<Services.SimplArchiveApiClient.OcrLanguageOption>
             {
@@ -596,7 +596,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var refsVm = new ViewModels.ReferencesViewModel(new Services.SimplArchiveApiClient("headless"), Guid.Empty, "Quarterly Report.pdf", "api");
             refsVm.PrimaryLocation = new ViewModels.ReferencingFolderViewModel { Id = Guid.NewGuid(), Name = "Invoices", Path = "Repositories / Contracts / Invoices" };
@@ -618,7 +618,7 @@ public static class WindowShots
             AppBuilder.Configure<App>()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
                 .UseSkia()
-                .WithInterFont()
+                .WithBrandFont()
                 .SetupWithoutStarting();
             var bulk = args.Contains("--bulk");
             var ctx = bulk

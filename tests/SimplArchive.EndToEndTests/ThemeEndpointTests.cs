@@ -76,6 +76,23 @@ public class ThemeEndpointTests
     }
 
     /// <summary>
+    /// The stylesheet declares the brand's typeface (ADR 0991): an <c>@font-face</c> per file under <c>/fonts</c>
+    /// and the variable the pages use. That the files are SERVED is checked in a real browser
+    /// (<c>WebBrandFontTests</c>), since this in-process host does not serve the static web assets they are.
+    /// </summary>
+    [Fact]
+    public async Task The_stylesheet_declares_the_brands_font()
+    {
+        using var client = _factory.CreateClient();
+        var css = await client.GetStringAsync("/api/theme.css");
+        var stem = SimplArchive.Theming.BrandFonts.FileStem(SimplArchive.Theming.Brand.Shipped.Fonts.Ui);
+
+        Assert.Contains($"url(\"/fonts/{stem}Variable.woff2\")", css);
+        Assert.Contains($"url(\"/fonts/{stem}Variable-Italic.woff2\")", css);
+        Assert.Contains("--sa-font-ui:", css);
+    }
+
+    /// <summary>
     /// The external-link landing page renders no stray template syntax — its HTML is a raw string in a C#
     /// file, so anything Razor-shaped written there is <b>text</b>.
     /// </summary>

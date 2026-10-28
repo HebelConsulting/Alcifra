@@ -20,10 +20,15 @@ public static class ThemeEmitter
     /// explicit choice, so the explicit one has to be able to win in <b>both</b> directions — which is why the
     /// light block is repeated under <c>[data-theme="light"]</c> rather than left to the default.
     /// </remarks>
-    public static string ToCss(ThemeTokens tokens)
+    public static string ToCss(ThemeTokens tokens, BrandFonts fonts)
     {
         var css = new StringBuilder();
         css.Append("/* Built from brand/brand.json and any installation override (ADR 0578). */\n\n");
+        AppendFontFaces(css, fonts.Ui);
+
+        // The screens' typeface, with the stack the web used before the brand named one (#844) as its fallback.
+        css.Append(":root {\n  --sa-font-ui: \"").Append(fonts.Ui)
+           .Append("\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n}\n\n");
 
         AppendCssBlock(css, ":root", tokens.Light);
         css.Append('\n');
@@ -34,6 +39,23 @@ public static class ThemeEmitter
         css.Append('\n');
         AppendCssBlock(css, ":root[data-theme=\"light\"]", tokens.Light);
         return css.ToString();
+    }
+
+    // The web's files are the family's two variable fonts (upright and italic), served by the API from /fonts, so
+    // every weight the pages ask for is one file and no visitor's address goes to a font host (#844).
+    private static void AppendFontFaces(StringBuilder css, string family)
+    {
+        var stem = BrandFonts.FileStem(family);
+        foreach (var (suffix, style) in new[] { (string.Empty, "normal"), ("-Italic", "italic") })
+        {
+            css.Append("@font-face {\n")
+               .Append("  font-family: \"").Append(family).Append("\";\n")
+               .Append("  src: url(\"/fonts/").Append(stem).Append("Variable").Append(suffix).Append(".woff2\") format(\"woff2\");\n")
+               .Append("  font-weight: 100 900;\n")
+               .Append("  font-style: ").Append(style).Append(";\n")
+               .Append("  font-display: swap;\n")
+               .Append("}\n\n");
+        }
     }
 
     private static void AppendCssBlock(StringBuilder css, string selector, ThemePalette palette, string indent = "")

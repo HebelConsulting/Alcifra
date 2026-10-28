@@ -37,7 +37,7 @@ public static class KeyTestShot
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
         if (args.Contains("--dark") && Application.Current is { } app)
         {

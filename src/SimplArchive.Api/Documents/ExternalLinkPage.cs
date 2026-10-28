@@ -127,7 +127,7 @@ public static class ExternalLinkPage
           <style>
             :root { color-scheme: light dark; }
             body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-                   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+                   font-family: var(--sa-font-ui, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
                    background: var(--sa-canvas, #FAFAFC); color: var(--sa-text, #14161C); }
             main { max-width: 32rem; padding: 2.5rem; margin: 1rem; background: var(--sa-surface, #FFFFFF); border-radius: 12px;
                    box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08); text-align: center; }

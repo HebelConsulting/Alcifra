@@ -18,7 +18,8 @@ public sealed record Brand(
     [property: JsonPropertyName("fileStem")] string FileStem,
     [property: JsonPropertyName("publisher")] string Publisher,
     [property: JsonPropertyName("credit")] string? Credit,
-    [property: JsonPropertyName("colors")] BrandColors Colors)
+    [property: JsonPropertyName("colors")] BrandColors Colors,
+    [property: JsonPropertyName("fonts")] BrandFonts Fonts)
 {
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -54,3 +55,15 @@ public sealed record Brand(
 public sealed record BrandColors(
     [property: JsonPropertyName("light")] ThemePalette Light,
     [property: JsonPropertyName("dark")] ThemePalette Dark);
+
+/// <summary>The brand's typefaces, by family name; their files live in <c>brand/assets/fonts</c> (ADR 0991).</summary>
+public sealed record BrandFonts(
+    [property: JsonPropertyName("ui")] string Ui,
+    [property: JsonPropertyName("document")] string Document)
+{
+    /// <summary>
+    /// The stem a family's files are named by: the family without spaces, so "Source Sans 3" is
+    /// <c>SourceSans3-Regular.ttf</c>, <c>SourceSans3Variable.woff2</c> and <c>SourceSans3-LICENSE.txt</c>.
+    /// </summary>
+    public static string FileStem(string family) => family.Replace(" ", string.Empty);
+}

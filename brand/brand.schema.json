@@ -9,7 +9,8 @@
     "fileStem",
     "publisher",
     "credit",
-    "colors"
+    "colors",
+    "fonts"
   ],
   "properties": {
     "$schema": {
@@ -50,6 +51,27 @@
         },
         "dark": {
           "$ref": "#/$defs/palette"
+        }
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ui",
+        "document"
+      ],
+      "description": "The typefaces, by family name. Their files live in brand/assets/fonts: static faces as <Family>-<Style>.ttf (the desktop and the manual), the web's as <Family>Variable.woff2 and <Family>Variable-Italic.woff2, and the licence as <Family>-LICENSE.txt, which must be the SIL Open Font License or Apache-2.0 (BrandFontTests). <Family> is the family name without spaces.",
+      "properties": {
+        "ui": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the clients' screens are set in: the desktop, the web and the server's own pages."
+        },
+        "document": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What a document the product writes is set in: the user manual."
         }
       }
     }

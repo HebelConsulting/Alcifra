@@ -58,7 +58,7 @@ internal static class ScreenshotRenderer
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
 
         // Every per-area client reads this (ApiCore), so it must be set before the first one is constructed.
@@ -147,7 +147,7 @@ internal static class ScreenshotRenderer
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
 
         if (Environment.GetCommandLineArgs().Contains("--dark") && Application.Current is { } app)

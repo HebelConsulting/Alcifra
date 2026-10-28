@@ -55,5 +55,9 @@
         "folder": "#D9A400"
       }
     }
+  },
+  "fonts": {
+    "ui": "Inter",
+    "document": "Inter"
   }
 }

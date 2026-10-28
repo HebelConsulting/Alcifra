@@ -826,9 +826,9 @@ app.UseMiddleware<SimplArchive.Api.CalDav.DavWireTraceMiddleware>();
 
 app.UseBlazorFrameworkFiles();
 
-// An installation's own tab icon, if it dropped one beside its theme (ADR 0578). BEFORE UseStaticFiles,
+// The brand's fonts at /fonts (ADR 0991) and an installation's own tab icon (ADR 0578). BEFORE UseStaticFiles,
 // because static files serve the first match and the shipped icon is already in wwwroot.
-app.UseCustomFavicon();
+app.UseBrandAssets();
 
 // llms.txt and the tour script are UTF-8 prose read by browsers and agents; without an explicit charset the
 // default text/plain and text/markdown mappings let the client guess, and the guess renders em-dashes as

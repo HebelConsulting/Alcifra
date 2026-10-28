@@ -32,7 +32,7 @@ public static class SortThumbnailsCheck
         AppBuilder.Configure<App>()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .UseSkia()
-            .WithInterFont()
+            .WithBrandFont()
             .SetupWithoutStarting();
 
         // The async work runs on the THREAD POOL, never on this thread: SetupWithoutStarting installs

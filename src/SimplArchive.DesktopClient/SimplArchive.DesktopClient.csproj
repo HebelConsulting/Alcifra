@@ -36,6 +36,9 @@
          1024 source and the .icns (for a future .app bundle) live alongside it. See ADR "Desktop app icon". -->
     <AvaloniaResource Include="Assets/cabinet.png" />
     <AvaloniaResource Include="Themes/Workbench.axaml" />
+    <!-- The brand's static faces (ADR 0991), linked from brand/ so a white-label build changes brand/ alone.
+         BrandFont registers them as the app's font collection. -->
+    <AvaloniaResource Include="..\..\brand\assets\fonts\*.ttf" Link="Assets\Fonts\%(Filename)%(Extension)" />
     <!-- Sample scanned invoice used only by the hit-overlay screenshot mode (ADR "Search hit overlay"). -->
     <None Include="Assets/hitoverlay-sample.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -47,7 +50,6 @@
     <PackageReference Include="SimplArchive.Messenger.Client" Version="0.13.0" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.18" />
     <!-- Headless render-to-PNG mode (Program screenshot flag), so the UI can be verified without a display. -->
     <PackageReference Include="Avalonia.Headless" Version="11.3.18" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
