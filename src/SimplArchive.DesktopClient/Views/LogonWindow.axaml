@@ -12,7 +12,10 @@
         CanResize="False" WindowStartupLocation="CenterScreen">
     <StackPanel Margin="28" Spacing="16">
         <Grid ColumnDefinitions="*,Auto">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+            <!-- The brand's wordmark while the product carries the brand's name, else the cabinet and the name (ADR 0992). -->
+            <Image Grid.Column="0" Source="{DynamicResource WbWordmark}" Height="26" HorizontalAlignment="Left"
+                   IsVisible="{x:Static svc:BrandWordmarkImages.Shown}" ToolTip.Tip="{x:Static l10n:Strings.ProductName}" />
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" IsVisible="{x:Static svc:BrandWordmarkImages.Hidden}">
                 <i:Icon Value="mdi-file-cabinet" FontSize="28" Foreground="{DynamicResource WbAccent}" />
                 <TextBlock Text="{x:Static l10n:Strings.ProductName}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
             </StackPanel>

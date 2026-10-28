@@ -87,8 +87,8 @@ public class ThemeEndpointTests
         var css = await client.GetStringAsync("/api/theme.css");
         var stem = SimplArchive.Theming.BrandFonts.FileStem(SimplArchive.Theming.Brand.Shipped.Fonts.Ui);
 
-        Assert.Contains($"url(\"/fonts/{stem}Variable.woff2\")", css);
-        Assert.Contains($"url(\"/fonts/{stem}Variable-Italic.woff2\")", css);
+        Assert.Contains($"url(\"/brand/fonts/{stem}Variable.woff2\")", css);
+        Assert.Contains($"url(\"/brand/fonts/{stem}Variable-Italic.woff2\")", css);
         Assert.Contains("--sa-font-ui:", css);
     }
 

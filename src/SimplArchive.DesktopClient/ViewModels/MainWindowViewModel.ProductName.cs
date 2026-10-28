@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using SimplArchive.Localization;
+using SimplArchive.Theming;
 
 namespace SimplArchive.DesktopClient.ViewModels;
 
@@ -10,7 +11,10 @@ namespace SimplArchive.DesktopClient.ViewModels;
 /// </summary>
 public partial class MainWindowViewModel
 {
-    [ObservableProperty] private string _productName = Strings.ProductName;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowsWordmark))] private string _productName = Strings.ProductName;
+
+    /// <summary>The title bar shows the brand's wordmark while the product carries the brand's name (ADR 0992).</summary>
+    public bool ShowsWordmark => Brand.ShowsWordmark(ProductName);
 
     // Signed in: the installation's name; every text that names the product says it from now on.
     private async Task ApplyProductNameAsync()

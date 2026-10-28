@@ -51,6 +51,11 @@
     /* The one spot of brand in the chrome — the desktop's 10px accent square, same size, same place. */
     .wb-mark { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 3px; background: var(--sa-accent); }
     .wb-brand { font-size: 1.0625rem; font-weight: 600; letter-spacing: -.01em; }
+    /* The brand's wordmark (ADR 0992) where the name would be; /api/theme.css shows the light or dark file. It
+       already carries the accent square as the i's dot, so the separate square steps aside while it shows. */
+    .wb-wordmark { display: inline-flex; align-items: center; }
+    .wb-wordmark img { height: 19px; width: auto; }
+    .wb-wordmark-shown .wb-mark { display: none; }
     /* Pin the unread badge to its wrapper's top-right corner, and do it with the same `inset` SHORTHAND and
        the same specificity MudBlazor uses:
 
@@ -86,7 +91,8 @@
         .wb-user { display: none; }
     }
     @@media (max-width: 767px) {
-        .wb-brand { display: none; }
+        .wb-brand, .wb-wordmark { display: none; }
+        .wb-wordmark-shown .wb-mark { display: inline-block; }
         .wb-appbar { gap: 4px; padding: 0 6px; }
         /* Every dialog body sets a fixed px min-width (e.g. 620/560/480…) that overflows a phone (#358). Cap the
            dialog to the viewport and neutralise the inline min-width so the content reflows/scrolls inside the
@@ -97,9 +103,19 @@
 </style>
 
 <div class="wb-shell">
-    <header class="wb-appbar">
+    <header class="wb-appbar @(ShowsWordmark ? "wb-wordmark-shown" : null)">
         <span class="wb-mark"></span>
-        <span class="wb-brand">@Strings.ProductName</span>
+        @if (ShowsWordmark)
+        {
+            <span class="wb-wordmark" title="@Strings.ProductName">
+                <img class="sa-wordmark-light" src="@WordmarkUrl(Brand.Shipped.Wordmark.Light)" alt="@Strings.ProductName" />
+                <img class="sa-wordmark-dark" src="@WordmarkUrl(Brand.Shipped.Wordmark.Dark)" alt="@Strings.ProductName" />
+            </span>
+        }
+        else
+        {
+            <span class="wb-brand">@Strings.ProductName</span>
+        }
         <span class="wb-spacer"></span>
         <AuthorizeView Context="auth">
             <Authorized>
@@ -329,6 +345,11 @@
     private bool _meLoaded;
     private Guid? _userId;
     private string? _displayName;
+
+    // The wordmark spells the brand's name, so it stands in only while the product carries that name (ADR 0992).
+    private static bool ShowsWordmark => Brand.ShowsWordmark(Strings.ProductName);
+
+    private static string WordmarkUrl(string file) => $"{BrandWordmark.UrlRoot}{file}";
     private string? _photoDataUrl;
     private bool _mfaEnabled;
 

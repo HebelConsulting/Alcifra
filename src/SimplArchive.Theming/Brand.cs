@@ -19,8 +19,15 @@ public sealed record Brand(
     [property: JsonPropertyName("publisher")] string Publisher,
     [property: JsonPropertyName("credit")] string? Credit,
     [property: JsonPropertyName("colors")] BrandColors Colors,
-    [property: JsonPropertyName("fonts")] BrandFonts Fonts)
+    [property: JsonPropertyName("fonts")] BrandFonts Fonts,
+    [property: JsonPropertyName("wordmark")] BrandWordmark Wordmark)
 {
+    /// <summary>
+    /// Whether the product shows the brand's own name, so its wordmark may stand for it (ADR 0992). An installation
+    /// that renamed the product (<c>Branding:ProductName</c>) keeps its name as text: the mark spells another name.
+    /// </summary>
+    public static bool ShowsWordmark(string productName) => string.Equals(productName, Shipped.Name, StringComparison.Ordinal);
+
     private static readonly JsonSerializerOptions Options = new()
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
@@ -66,4 +73,16 @@ public sealed record BrandFonts(
     /// <c>SourceSans3-Regular.ttf</c>, <c>SourceSans3Variable.woff2</c> and <c>SourceSans3-LICENSE.txt</c>.
     /// </summary>
     public static string FileStem(string family) => family.Replace(" ", string.Empty);
+}
+
+/// <summary>
+/// The brand's wordmark (ADR 0992): SVG files relative to <c>brand/assets</c>, one for light backgrounds and one for
+/// dark. The API serves <c>brand/assets</c> at <see cref="UrlRoot"/>.
+/// </summary>
+public sealed record BrandWordmark(
+    [property: JsonPropertyName("light")] string Light,
+    [property: JsonPropertyName("dark")] string Dark)
+{
+    /// <summary>Where the API serves <c>brand/assets</c>.</summary>
+    public const string UrlRoot = "/brand/";
 }

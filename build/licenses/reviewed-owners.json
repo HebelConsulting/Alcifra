@@ -1,5 +1,13 @@
 [
   {
+    "Id": "Avalonia.Svg",
+    "Owners": [
+      "wieslawsoltes"
+    ],
+    "ProjectUrl": "https://github.com/wieslawsoltes/Svg.Skia",
+    "Reviewed": "2026-10-28"
+  },
+  {
     "Id": "DiffPlex",
     "Owners": [
       "mmanela"
@@ -32,6 +40,14 @@
     ],
     "ProjectUrl": "https://github.com/GowenGit/docnet",
     "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "ExCSS",
+    "Owners": [
+      "tylerbrinks"
+    ],
+    "ProjectUrl": "https://github.com/TylerBrinks/ExCSS",
+    "Reviewed": "2026-10-28"
   },
   {
     "Id": "Fido2",
@@ -224,6 +240,14 @@
     "Reviewed": "2026-10-15"
   },
   {
+    "Id": "ShimSkiaSharp",
+    "Owners": [
+      "wieslawsoltes"
+    ],
+    "ProjectUrl": "https://github.com/wieslawsoltes/Svg.Skia",
+    "Reviewed": "2026-10-28"
+  },
+  {
     "Id": "SimplArchive.Keys",
     "Owners": [
       "HebelConsulting"
@@ -249,6 +273,22 @@
     ],
     "ProjectUrl": "",
     "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "Svg.Custom",
+    "Owners": [
+      "wieslawsoltes"
+    ],
+    "ProjectUrl": "https://github.com/wieslawsoltes/Svg.Skia",
+    "Reviewed": "2026-10-28"
+  },
+  {
+    "Id": "Svg.Model",
+    "Owners": [
+      "wieslawsoltes"
+    ],
+    "ProjectUrl": "https://github.com/wieslawsoltes/Svg.Skia",
+    "Reviewed": "2026-10-28"
   },
   {
     "Id": "Tmds.DBus.Protocol",

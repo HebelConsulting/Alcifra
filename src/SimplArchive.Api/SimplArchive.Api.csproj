@@ -146,10 +146,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The brand's web fonts (ADR 0991), copied into the published wwwroot/fonts and served by BrandFontFiles.
-         Taken from brand/, so a white-label build changes brand/ and nothing here. Deliberately None, not Content:
-         as a static web asset a linked file is mapped, under `dotnet run`, to this project's wwwroot, where it does
-         not exist. -->
-    <None Include="..\..\brand\assets\fonts\*.woff2" Link="wwwroot\fonts\%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The brand's assets for the web (ADRs 0991, 0992): fonts, wordmark and licences, copied into the published
+         wwwroot/brand and served at /brand by BrandAssetFiles. The static .ttf faces are the desktop's and the
+         manual's, not the web's. Taken from brand/, so a white-label build changes brand/ and nothing here.
+         Deliberately None, not Content: as a static web asset a linked file is mapped, under `dotnet run`, to
+         this project's wwwroot, where it does not exist. -->
+    <None Include="..\..\brand\assets\**\*" Exclude="..\..\brand\assets\**\*.ttf" Link="wwwroot\brand\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

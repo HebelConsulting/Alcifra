@@ -53,7 +53,7 @@
         @if (Model.ShowRecoveryCodes)
         {
             <form method="post" asp-page-handler="Continue" class="login-card">
-                <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
+                <div class="brand"><partial name="_Wordmark" /></div>
                 <h1 class="title">@Strings.Get("LoginSaveRecoveryTitle")</h1>
 
                 <p class="hint">@Strings.Get("LoginRecoveryHint")</p>
@@ -74,7 +74,7 @@
         else if (Model.ShowEnroll)
         {
             <form method="post" asp-page-handler="Enroll" class="login-card">
-                <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
+                <div class="brand"><partial name="_Wordmark" /></div>
                 <h1 class="title">@Strings.Get("LoginEnrollTitle")</h1>
 
                 @if (Model.Error is not null)
@@ -104,7 +104,7 @@
         else if (Model.ShowMfa)
         {
             <div class="login-card">
-                <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
+                <div class="brand"><partial name="_Wordmark" /></div>
                 <h1 class="title">@Strings.Get("LoginMfaTitle")</h1>
 
                 @if (Model.Error is not null)
@@ -164,7 +164,7 @@
         {
             <div class="login-card">
                 <form method="post">
-                    <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
+                    <div class="brand"><partial name="_Wordmark" /></div>
                     <h1 class="title">@Strings.Get("LoginSignIn")</h1>
 
                     @if (Model.Error is not null)

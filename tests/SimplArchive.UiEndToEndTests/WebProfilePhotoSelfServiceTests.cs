@@ -44,9 +44,10 @@ public class WebProfilePhotoSelfServiceTests
         await Expect(save).ToBeEnabledAsync();
         await save.ClickAsync();
 
-        // The corner now shows the photo (an <img>, not initials).
+        // The corner now shows the photo (an <img>, not initials). Asked of the account avatar itself: the app bar
+        // also carries the brand's wordmark as images (ADR 0992).
         await Expect(page.GetByText("Profile photo updated.")).ToBeVisibleAsync();
-        await Expect(page.Locator(".wb-appbar img")).ToBeVisibleAsync();
+        await Expect(page.GetByTitle("Account").Locator("img")).ToBeVisibleAsync();
 
         // Remove it from the Users & groups tab → the avatar reverts to initials (no <img>).
         await page.Locator(".wb-tab[aria-label=\"Users & groups\"]").First.ClickAsync();

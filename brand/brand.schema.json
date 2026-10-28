@@ -10,7 +10,8 @@
     "publisher",
     "credit",
     "colors",
-    "fonts"
+    "fonts",
+    "wordmark"
   ],
   "properties": {
     "$schema": {
@@ -72,6 +73,27 @@
           "type": "string",
           "minLength": 1,
           "description": "What a document the product writes is set in: the user manual."
+        }
+      }
+    },
+    "wordmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light",
+        "dark"
+      ],
+      "description": "The brand's wordmark, shown in the chrome (web app bar, sign-in page, desktop title bar and logon, manual cover) while the product carries the brand's own name. SVG files relative to brand/assets, the letters outlined (no <text>), nothing external (BrandWordmarkTests).",
+      "properties": {
+        "light": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*\\.svg$",
+          "description": "For light backgrounds."
+        },
+        "dark": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*\\.svg$",
+          "description": "For dark backgrounds."
         }
       }
     }

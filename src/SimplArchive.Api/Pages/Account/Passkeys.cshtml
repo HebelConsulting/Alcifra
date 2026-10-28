@@ -59,6 +59,10 @@
         }
 
         .brand { font-size: 1.5rem; font-weight: 500; color: var(--primary); margin-bottom: 4px; }
+
+        /* The wordmark in place of the name (ADR 0992); only its height is set here, because which of the two
+           files shows is /api/theme.css's decision. */
+        .brand img { height: 28px; width: auto; vertical-align: middle; }
         .title { font-size: 1.25rem; font-weight: 400; margin: 0 0 24px; }
         .hint { font-size: 0.875rem; color: var(--text-secondary); margin: 0 0 20px; }
 
@@ -104,7 +108,7 @@
 <body>
     <main>
         <div class="card">
-            <div class="brand">@SimplArchive.Localization.Strings.ProductName</div>
+            <div class="brand"><partial name="_Wordmark" /></div>
             <h1 class="title">Passkeys</h1>
 
             @if (Model.Error is not null)

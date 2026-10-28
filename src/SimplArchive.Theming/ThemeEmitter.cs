@@ -38,10 +38,12 @@ public static class ThemeEmitter
         AppendCssBlock(css, ":root[data-theme=\"dark\"]", tokens.Dark);
         css.Append('\n');
         AppendCssBlock(css, ":root[data-theme=\"light\"]", tokens.Light);
+        css.Append('\n');
+        AppendWordmarkRules(css);
         return css.ToString();
     }
 
-    // The web's files are the family's two variable fonts (upright and italic), served by the API from /fonts, so
+    // The web's files are the family's two variable fonts (upright and italic), served by the API under /brand, so
     // every weight the pages ask for is one file and no visitor's address goes to a font host (#844).
     private static void AppendFontFaces(StringBuilder css, string family)
     {
@@ -50,12 +52,28 @@ public static class ThemeEmitter
         {
             css.Append("@font-face {\n")
                .Append("  font-family: \"").Append(family).Append("\";\n")
-               .Append("  src: url(\"/fonts/").Append(stem).Append("Variable").Append(suffix).Append(".woff2\") format(\"woff2\");\n")
+               .Append("  src: url(\"").Append(BrandWordmark.UrlRoot).Append("fonts/").Append(stem).Append("Variable").Append(suffix).Append(".woff2\") format(\"woff2\");\n")
                .Append("  font-weight: 100 900;\n")
                .Append("  font-style: ").Append(style).Append(";\n")
                .Append("  font-display: swap;\n")
                .Append("}\n\n");
         }
+    }
+
+    // The wordmark comes in two files (ADR 0992), and a page carries both: these rules show the one that matches
+    // the theme in the SAME four states as the colours above, so the mark can never disagree with the page.
+    // The explicit choice wins in both directions because :root[data-theme] outranks the media query's bare class.
+    private static void AppendWordmarkRules(StringBuilder css)
+    {
+        css.Append(".sa-wordmark-dark { display: none; }\n");
+        css.Append("@media (prefers-color-scheme: dark) {\n");
+        css.Append("  .sa-wordmark-light { display: none; }\n");
+        css.Append("  .sa-wordmark-dark { display: inline-block; }\n");
+        css.Append("}\n");
+        css.Append(":root[data-theme=\"dark\"] .sa-wordmark-light { display: none; }\n");
+        css.Append(":root[data-theme=\"dark\"] .sa-wordmark-dark { display: inline-block; }\n");
+        css.Append(":root[data-theme=\"light\"] .sa-wordmark-light { display: inline-block; }\n");
+        css.Append(":root[data-theme=\"light\"] .sa-wordmark-dark { display: none; }\n");
     }
 
     private static void AppendCssBlock(StringBuilder css, string selector, ThemePalette palette, string indent = "")

@@ -59,5 +59,9 @@
   "fonts": {
     "ui": "Inter",
     "document": "Inter"
+  },
+  "wordmark": {
+    "light": "wordmark-light.svg",
+    "dark": "wordmark-dark.svg"
   }
 }

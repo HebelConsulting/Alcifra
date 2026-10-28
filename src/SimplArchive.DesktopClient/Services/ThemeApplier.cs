@@ -37,6 +37,7 @@ public static class ThemeApplier
         // Fluent's controls take their typeface from this key, not from the font manager's default, so the brand's
         // font (ADR 0991) is named here too or every button and text box would keep the framework's choice.
         shipped["ContentControlThemeFontFamily"] = BrandFont.Ui;
+        BrandWordmarkImages.AddTo(shipped);
         application.Resources.MergedDictionaries.Insert(0, shipped);
     }
 

@@ -1,4 +1,4 @@
-#import "template.typ": product, conf, shot, pair, note, accent, idx, index-page
+#import "template.typ": product, brand, conf, shot, pair, note, accent, idx, index-page
 
 #show: doc => conf(doc)
 
@@ -8,12 +8,17 @@
 #page(numbering: none, footer: none)[
   #set align(center + horizon)
   #block[
-    #text(size: 34pt, weight: "bold", fill: accent)[#product]
+    // The brand's wordmark while the manual names the brand's own product (ADR 0992), else the name as text.
+    #if product == brand.name [
+      #image("/brand/assets/" + brand.wordmark.light, height: 1.6cm, alt: product)
+    ] else [
+      #text(size: 34pt, weight: "bold", fill: accent)[#product]
+    ]
     #v(0.2em)
     #text(size: 18pt)[User Manual]
     #v(1.2em)
     #text(size: 11pt, fill: gray)[
-      An enterprise-grade document management system \
+      A sovereign workspace \
       — the web workbench and the desktop client
     ]
   ]
@@ -293,7 +298,7 @@ curated tag catalogue with colours. *Sensitivity labels*#idx("Sensitivity label"
 
 The whole archive is reachable over *WebDAV*#idx("WebDAV") as a network drive — not just your personal space but the shared
 repositories you have permission to access, with your rights enforced on every operation. The mounted drive is
-called *#product* and mirrors the Repositories tree exactly: your Personal space, then the repositories you
+called *webdav* and mirrors the Repositories tree exactly: your Personal space, then the repositories you
 can see, and nothing else.
 
 The *WebDAV* button does the next useful thing rather than always the same thing, and its tooltip says which. In
