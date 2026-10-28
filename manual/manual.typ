@@ -48,8 +48,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 = Introduction
 
-#product is a multi-tenant *document management system* (DMS): a secure archive where an organisation
-files, versions, classifies, searches, and governs its documents#idx("Document management system"). It is a showcase of how a senior, AI-driven
+#product is a new kind of workspace, *sovereign by design*#idx("Sovereign workspace"): it unites *document
+management*#idx("Document management system"), encryption to each person's own key and open protocols, so an
+organisation keeps its documents, its keys and its choice of devices. It is a showcase of how a senior, AI-driven
 software developer can produce a complex, enterprise-grade system in a relatively short period — every feature in
 this manual is really implemented and really tested.
 
