@@ -20,7 +20,8 @@ public sealed record Brand(
     [property: JsonPropertyName("credit")] string? Credit,
     [property: JsonPropertyName("colors")] BrandColors Colors,
     [property: JsonPropertyName("fonts")] BrandFonts Fonts,
-    [property: JsonPropertyName("wordmark")] BrandWordmark Wordmark)
+    [property: JsonPropertyName("wordmark")] BrandWordmark Wordmark,
+    [property: JsonPropertyName("icon")] string? Icon)
 {
     /// <summary>
     /// Whether the product shows the brand's own name, so its wordmark may stand for it (ADR 0992). An installation

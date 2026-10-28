@@ -4,7 +4,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using SimplArchive.Theming;
 
-namespace SimplArchive.DesktopClient;
+namespace SimplArchive.BrandIcons;
 
 // Draws the app icon — a filing cabinet on a rounded brand tile — as an Avalonia visual, so it can be
 // rendered to PNG headlessly (no external image tools, no third-party art). See ADR "Desktop app icon".

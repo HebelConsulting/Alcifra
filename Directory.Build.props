@@ -21,4 +21,13 @@
     <BrandFile>$(MSBuildThisFileDirectory)brand/brand.json</BrandFile>
     <ProductName Condition="'$(ProductName)' == '' And Exists('$(BrandFile)')">$([System.Text.RegularExpressions.Regex]::Replace($([System.IO.File]::ReadAllText('$(BrandFile)')), '(?s)^.*?&quot;name&quot;\s*:\s*&quot;([^&quot;]*)&quot;.*$', '$1'))</ProductName>
   </PropertyGroup>
+  <!-- The brand's icons (ADR 0993): generated at build time by src/SimplArchive.BrandIcons into BrandIconsDir, never
+       committed. A project that uses them sets UsesBrandIcons; Directory.Build.targets builds and runs the generator
+       first. A build that cannot run it (the Alpine image stages) passes GenerateBrandIcons=false and a BrandIconsDir
+       made elsewhere. -->
+  <PropertyGroup>
+    <BrandAssetsDir>$(MSBuildThisFileDirectory)brand/assets/</BrandAssetsDir>
+    <BrandIconsDir Condition="'$(BrandIconsDir)' == ''">$(MSBuildThisFileDirectory)artifacts/brand-icons/</BrandIconsDir>
+    <BrandIconsProject>$(MSBuildThisFileDirectory)src/SimplArchive.BrandIcons/SimplArchive.BrandIcons.csproj</BrandIconsProject>
+  </PropertyGroup>
 </Project>

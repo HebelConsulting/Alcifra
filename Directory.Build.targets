@@ -1,0 +1,15 @@
+<Project>
+  <!-- Builds and runs the brand's icon generator before a project that uses the icons compiles (ADR 0993). An MSBuild
+       call rather than a ProjectReference, so the generator's rendering packages never become the API's dependencies.
+       The fixed BrandIconsPhase values make every consumer in one build share ONE restore and ONE build of it, so two
+       projects building in parallel never generate into the same folder at once. -->
+  <!-- The caller's own global properties must not reach the generator: the desktop builds once per target framework,
+       and a TargetFramework passed on restored the shared Theming project for net10.0-windows only (NETSDK1005). -->
+  <PropertyGroup>
+    <BrandIconsCallerProperties>TargetFramework;RuntimeIdentifier;SelfContained;PublishDir;OutputPath;Platform</BrandIconsCallerProperties>
+  </PropertyGroup>
+  <Target Name="BuildBrandIcons" BeforeTargets="BeforeBuild" Condition="'$(UsesBrandIcons)' == 'true' And '$(GenerateBrandIcons)' != 'false'">
+    <MSBuild Projects="$(BrandIconsProject)" Targets="Restore" Properties="Configuration=Release;BrandIconsPhase=Restore" RemoveProperties="$(BrandIconsCallerProperties)" />
+    <MSBuild Projects="$(BrandIconsProject)" Targets="Build" Properties="Configuration=Release;BrandIconsPhase=Generate;BrandIconsDir=$(BrandIconsDir)" RemoveProperties="$(BrandIconsCallerProperties)" />
+  </Target>
+</Project>

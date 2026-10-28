@@ -11,6 +11,18 @@
 # construct is `FROM --platform=$BUILDPLATFORM` below, which BuildKit's BUILT-IN frontend supports. Re-add a
 # syntax line only alongside a feature that genuinely requires it, knowing what it re-introduces.
 
+# The brand's icons (ADR 0993), generated once for both stages below. Its own stage on the DEBIAN SDK image, because
+# the generator renders with Skia, whose native library has no musl build for ARM64: on Alpine it would break
+# `docker compose up --build` on an Apple Silicon Mac. $BUILDPLATFORM, so it runs natively and never under emulation.
+# fontconfig comes from the distribution's package manager (ADR 0611).
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS icons
+WORKDIR /src
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libfontconfig1 \
+ && rm -rf /var/lib/apt/lists/*
+COPY . .
+RUN dotnet build src/SimplArchive.BrandIcons -c Release -p:BrandIconsPhase=Generate -p:BrandIconsDir=/icons/
+
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
@@ -41,12 +53,15 @@ COPY ["src/SimplArchive.Infrastructure/SimplArchive.Infrastructure.csproj", "src
 COPY ["src/SimplArchive.Auth/SimplArchive.Auth.csproj", "src/SimplArchive.Auth/"]
 COPY ["src/SimplArchive.Client/SimplArchive.Client.csproj", "src/SimplArchive.Client/"]
 COPY ["src/SimplArchive.Api/SimplArchive.Api.csproj", "src/SimplArchive.Api/"]
-RUN dotnet restore "src/SimplArchive.Api/SimplArchive.Api.csproj"
+RUN dotnet restore "src/SimplArchive.Api/SimplArchive.Api.csproj" -p:GenerateBrandIcons=false
 
 COPY . .
 # -p:Version=$VERSION stamps the API assembly's InformationalVersion with the release tag so the /api discovery
 # document reports the real server version (ADR 0512, for the desktop self-update check); defaults to 0.1.0 locally.
-RUN dotnet publish "src/SimplArchive.Api/SimplArchive.Api.csproj" -c Release -o /app/publish --no-restore -p:Version=$VERSION
+# The icons come from the icons stage; this Alpine stage cannot run the generator (GenerateBrandIcons=false).
+COPY --from=icons /icons /icons
+RUN dotnet publish "src/SimplArchive.Api/SimplArchive.Api.csproj" -c Release -o /app/publish --no-restore -p:Version=$VERSION \
+    -p:GenerateBrandIcons=false -p:BrandIconsDir=/icons/
 
 # (The desktop-client archives are built in their own stage below and copied into the final image — they used to
 #  be produced here, which made the ARM leg build them under emulation. See the `clients` stage for why.)
@@ -74,8 +89,9 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS clien
 ARG VERSION=0.0.0-dev
 WORKDIR /src
 COPY . .
+COPY --from=icons /icons /icons
 RUN apk add --no-cache bash zip tar \
- && bash scripts/package-windows-linux.sh "$VERSION"
+ && BRAND_ICONS_DIR=/icons/ bash scripts/package-windows-linux.sh "$VERSION"
 
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final

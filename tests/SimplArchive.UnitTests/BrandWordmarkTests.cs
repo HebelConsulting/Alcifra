@@ -13,7 +13,10 @@ public class BrandWordmarkTests
 
     [Theory]
     [MemberData(nameof(Files))]
-    public void Each_wordmark_is_a_self_contained_outlined_svg(string file)
+    public void Each_wordmark_is_a_self_contained_outlined_svg(string file) => AssertSelfContainedSvg(file);
+
+    /// <summary>The rules every SVG of the brand keeps (ADRs 0992, 0993): the wordmark's and the icon's.</summary>
+    internal static void AssertSelfContainedSvg(string file)
     {
         var path = Path.Combine(RepoPaths.Root(), "brand", "assets", file);
         Assert.True(File.Exists(path), $"brand.json names brand/assets/{file}, which does not exist.");

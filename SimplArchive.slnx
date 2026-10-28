@@ -6,6 +6,7 @@
     <Project Path="src/SimplArchive.Auth/SimplArchive.Auth.csproj" />
     <Project Path="src/SimplArchive.BrowserHost/SimplArchive.BrowserHost.csproj" />
     <Project Path="src/SimplArchive.Cli/SimplArchive.Cli.csproj" />
+    <Project Path="src/SimplArchive.BrandIcons/SimplArchive.BrandIcons.csproj" />
     <Project Path="src/SimplArchive.Client/SimplArchive.Client.csproj" />
     <Project Path="src/SimplArchive.ConsoleLogging/SimplArchive.ConsoleLogging.csproj" />
     <Project Path="src/SimplArchive.DesktopClient/SimplArchive.DesktopClient.csproj" />

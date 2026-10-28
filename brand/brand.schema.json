@@ -11,7 +11,8 @@
     "credit",
     "colors",
     "fonts",
-    "wordmark"
+    "wordmark",
+    "icon"
   ],
   "properties": {
     "$schema": {
@@ -96,6 +97,14 @@
           "description": "For dark backgrounds."
         }
       }
+    },
+    "icon": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*\\.svg$",
+      "description": "The brand's app icon: a square SVG relative to brand/assets, drawn edge to edge (the build adds the macOS inset). Null keeps the drawn filing cabinet in the brand's colours. Every icon size is generated from it at build time (ADR 0993)."
     }
   },
   "$defs": {

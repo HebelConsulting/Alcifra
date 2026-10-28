@@ -427,23 +427,6 @@ internal static class Program
             return;
         }
 
-        // The icon hooks (ADR 0578): `--gen-icons [dir]` writes every launcher artefact from the one piece of
-        // art, `--gen-icon <out.png>` renders that art alone. Both need Skia, hence the shared setup; the
-        // dispatch and the argument walk belong to IconWriter, which is the thing that knows about icons.
-        var genIconsIndex = Array.IndexOf(args, "--gen-icons");
-        var genIconIndex = Array.IndexOf(args, "--gen-icon");
-        if (genIconsIndex >= 0 || (genIconIndex >= 0 && genIconIndex + 1 < args.Length))
-        {
-            AppBuilder.Configure<App>()
-                .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
-                .UseSkia()
-                .WithBrandFont()
-                .SetupWithoutStarting();
-
-            Services.IconWriter.Run(args, genIconsIndex, genIconIndex);
-            return;
-        }
-
         // Headless render-to-PNG mode for verification without a display: `--screenshot <path>`.
         var screenshotIndex = Array.IndexOf(args, "--screenshot");
         if (screenshotIndex >= 0 && screenshotIndex + 1 < args.Length)

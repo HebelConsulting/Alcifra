@@ -39,7 +39,7 @@
              asserts a window that never sets Icon= itself ends up with one — the title bar is not in a headless
              screenshot, so nothing else would notice this silently reverting to the platform default. -->
         <Style Selector=":is(Window)">
-            <Setter Property="Icon" Value="/Assets/cabinet.png" />
+            <Setter Property="Icon" Value="/Assets/icon.png" />
         </Style>
         <!-- The folder-glyph colours, application-wide so every pane that draws a folder uses the SAME rules
              (ADR 0547): the tree, the contents list and the detail-pane header. Defined once here rather than

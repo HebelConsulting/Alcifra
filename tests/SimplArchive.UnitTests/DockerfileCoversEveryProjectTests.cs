@@ -42,8 +42,12 @@ public class DockerfileCoversEveryProjectTests
     //                   test tools; ADRs 0906/0911). Checked: no project in the Api's graph references it.
     //   ApiClient     — the hypermedia API client the desktop and the mobile app share (ADR 0917), a CLIENT of the
     //                   Api like Cli. Checked: no project in the Api's graph references it.
+    //   BrandIcons    — the brand's icon generator (ADR 0993), run by an MSBuild call, never a reference, and inside
+    //                   the image only in its own Debian stage, whose output the Alpine stages copy while building
+    //                   with GenerateBrandIcons=false. The Api's restore never sees it.
     private static readonly string[] NotInTheImage =
-        ["SimplArchive.DesktopClient", "SimplArchive.Worker", "SimplArchive.Cli", "SimplArchive.ConsoleLogging", "SimplArchive.ApiClient"];
+        ["SimplArchive.DesktopClient", "SimplArchive.Worker", "SimplArchive.Cli", "SimplArchive.ConsoleLogging", "SimplArchive.ApiClient",
+         "SimplArchive.BrandIcons"];
 
     [Fact]
     public void The_restore_layer_copies_every_project_the_image_builds()

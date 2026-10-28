@@ -63,5 +63,6 @@
   "wordmark": {
     "light": "wordmark-light.svg",
     "dark": "wordmark-dark.svg"
-  }
+  },
+  "icon": null
 }

@@ -3,7 +3,7 @@ using Microsoft.Extensions.FileProviders;
 namespace SimplArchive.Api.Branding;
 
 /// <summary>
-/// Serves <c>brand/assets</c> at <c>/brand</c> (ADRs 0991, 0992): the web fonts <c>/api/theme.css</c> names and the
+/// Serves <c>brand/assets</c> at <c>/brand</c> (ADRs 0991, 0992) and the generated icons (ADR 0993): the web fonts <c>/api/theme.css</c> names and the
 /// wordmark the pages show. Anonymous, like the stylesheet, because the sign-in page needs them before anyone has a
 /// token.
 /// </summary>
@@ -16,9 +16,15 @@ namespace SimplArchive.Api.Branding;
 /// </remarks>
 public static class BrandAssetFiles
 {
-    /// <summary>The brand's static files and the installation's own favicon, before the shipped static files.</summary>
+    /// <summary>
+    /// The installation's own favicon, then the brand's assets at <c>/brand</c> and, in a source tree, its generated
+    /// icons (ADR 0993). Before the shipped static files, because static files serve the first match.
+    /// </summary>
     public static IApplicationBuilder UseBrandAssets(this WebApplication app)
     {
+        // First, so an operator's custom/favicon.* wins over the brand's.
+        app.UseCustomFavicon();
+
         if (Locate(app.Environment) is { } directory)
         {
             app.UseStaticFiles(new StaticFileOptions
@@ -36,8 +42,18 @@ public static class BrandAssetFiles
                 "The brand's assets were not found (wwwroot/brand or brand/assets); pages fall back to the next font and to the name as text.");
         }
 
-        return app.UseCustomFavicon();
+        // Published, the generated icons were copied into wwwroot and the shipped static files serve them. In a source
+        // tree they exist only where the build wrote them, so they are served from there, at the root like wwwroot.
+        if (!PublishedIcons(app.Environment) && FindUp(app.Environment, Path.Combine("artifacts", "brand-icons", "web")) is { } icons)
+        {
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(icons) });
+        }
+
+        return app;
     }
+
+    private static bool PublishedIcons(IWebHostEnvironment environment) =>
+        !string.IsNullOrEmpty(environment.WebRootPath) && File.Exists(Path.Combine(environment.WebRootPath, "favicon.png"));
 
     private static string? Locate(IWebHostEnvironment environment)
     {
@@ -47,12 +63,17 @@ public static class BrandAssetFiles
             return published;
         }
 
-        // A source tree: walk up from wherever the app was started until brand/ appears.
+        return FindUp(environment, Path.Combine("brand", "assets"));
+    }
+
+    // A source tree: walk up from wherever the app was started until the relative folder appears.
+    private static string? FindUp(IWebHostEnvironment environment, string relative)
+    {
         foreach (var start in new[] { environment.ContentRootPath, AppContext.BaseDirectory })
         {
             for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
             {
-                var candidate = Path.Combine(directory.FullName, "brand", "assets");
+                var candidate = Path.Combine(directory.FullName, relative);
                 if (Directory.Exists(candidate))
                 {
                     return candidate;

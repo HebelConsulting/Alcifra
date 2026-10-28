@@ -5,8 +5,8 @@ namespace SimplArchive.Api.Branding;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The shipped favicon is a committed artefact, generated from the design tokens by
-/// <c>scripts/generate-icons.sh</c> — so it follows the shipped accent and <b>cannot</b> follow a customer's
+/// The shipped favicon is generated at build time from the brand (ADR 0993), so it follows the brand's icon and
+/// accent and <b>cannot</b> follow a customer's
 /// <c>custom/theme.json</c>, which is applied at runtime. Re-rendering it per request would need a rasteriser,
 /// and the Api image is Alpine precisely because it has none.
 /// </para>

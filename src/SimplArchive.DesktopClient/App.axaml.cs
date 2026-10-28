@@ -162,7 +162,7 @@ public partial class App : Application
 
         try
         {
-            using var stream = AssetLoader.Open(new Uri("avares://SimplArchive.DesktopClient/Assets/cabinet.png"));
+            using var stream = AssetLoader.Open(new Uri("avares://SimplArchive.DesktopClient/Assets/icon.png"));
             var path = Path.Combine(Path.GetTempPath(), "simplarchive-dock-icon.png");
             using (var file = File.Create(path))
             {

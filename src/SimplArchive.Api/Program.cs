@@ -826,7 +826,7 @@ app.UseMiddleware<SimplArchive.Api.CalDav.DavWireTraceMiddleware>();
 
 app.UseBlazorFrameworkFiles();
 
-// The brand's assets at /brand (ADRs 0991, 0992) and an installation's own tab icon (ADR 0578). BEFORE UseStaticFiles,
+// An installation's own tab icon (ADR 0578), the brand's assets at /brand and its icons (ADRs 0991-0993). BEFORE UseStaticFiles,
 // because static files serve the first match and the shipped icon is already in wwwroot.
 app.UseBrandAssets();
 

@@ -147,10 +147,10 @@ public class ThemeEndpointTests
     /// A file dropped into <c>custom/</c> replaces the browser-tab icon, and removing it restores the shipped one.
     /// </summary>
     /// <remarks>
-    /// The favicon is the one brand surface a runtime theme cannot reach: it is a committed artefact generated
-    /// from the tokens, and re-rendering it per request would need a rasteriser the Alpine image does not have.
+    /// The favicon is the one brand surface a runtime theme cannot reach: it is generated from the brand at build
+    /// time (ADR 0993), and re-rendering it per request would need a rasteriser the Alpine image does not have.
     /// So it is a drop-in beside the theme — and the ORDER is what makes it work, since static files serve the
-    /// first match and the shipped icon is already in wwwroot. A test that only checked "a favicon is served"
+    /// first match and the shipped icon is already served. A test that only checked "a favicon is served"
     /// would pass with the override doing nothing at all.
     /// </remarks>
     [Fact]

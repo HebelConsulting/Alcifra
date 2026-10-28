@@ -15,8 +15,9 @@
     <TargetFramework />
     <OutputType>WinExe</OutputType>
     <!-- The Windows executable's icon, in Explorer, the taskbar and the title bar. Multi-resolution
-         (16/32/48/64/96/128/256) generated from the same Assets/cabinet-1024.png artwork as the macOS .icns. -->
-    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+         (16/32/48/64/96/128/256), generated at build time from the brand's icon, like every other size (ADR 0993). -->
+    <UsesBrandIcons>true</UsesBrandIcons>
+    <ApplicationIcon>$(BrandIconsDir)app.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- An unstamped build must not claim a version it never had. Without this, .NET defaults to 1.0.0 — which the
          About box shows and the auto-updater compares against the server's. 1.0.0 sorts ABOVE every real release,
@@ -32,9 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- App icon (a filing cabinet on a brand tile) — embedded for Window.Icon and the macOS Dock. The
-         1024 source and the .icns (for a future .app bundle) live alongside it. See ADR "Desktop app icon". -->
-    <AvaloniaResource Include="Assets/cabinet.png" />
+    <!-- The app icon, embedded for Window.Icon and the macOS Dock: generated at build time from the brand's icon
+         (ADR 0993); the packaging scripts take the .icns and the Linux sizes from the same folder. -->
+    <AvaloniaResource Include="$(BrandIconsDir)icon.png" Link="Assets\icon.png" />
     <AvaloniaResource Include="Themes/Workbench.axaml" />
     <!-- The brand's static faces (ADR 0991), linked from brand/ so a white-label build changes brand/ alone.
          BrandFont registers them as the app's font collection. -->

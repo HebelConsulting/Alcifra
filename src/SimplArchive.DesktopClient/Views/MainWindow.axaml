@@ -11,7 +11,7 @@
         x:Class="SimplArchive.DesktopClient.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Width="1180" Height="760"
-        Icon="/Assets/cabinet.png"
+        Icon="/Assets/icon.png"
         Title="{x:Static l10n:Strings.ProductName}">
 
     <Window.KeyBindings>

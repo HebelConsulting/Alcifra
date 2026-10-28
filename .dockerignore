@@ -8,3 +8,4 @@
 .dockerignore
 Dockerfile
 *.md
+artifacts/
