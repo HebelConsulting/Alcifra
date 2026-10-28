@@ -21,7 +21,8 @@ public sealed record Brand(
     [property: JsonPropertyName("colors")] BrandColors Colors,
     [property: JsonPropertyName("fonts")] BrandFonts Fonts,
     [property: JsonPropertyName("wordmark")] BrandWordmark Wordmark,
-    [property: JsonPropertyName("icon")] string? Icon)
+    [property: JsonPropertyName("icon")] string? Icon,
+    [property: JsonPropertyName("distribution")] BrandDistribution Distribution)
 {
     /// <summary>
     /// Whether the product shows the brand's own name, so its wordmark may stand for it (ADR 0992). An installation
@@ -87,3 +88,19 @@ public sealed record BrandWordmark(
     /// <summary>Where the API serves <c>brand/assets</c>.</summary>
     public const string UrlRoot = "/brand/";
 }
+
+/// <summary>
+/// What a build produces is named and published by (ADR 0994). Read by the packaging scripts and publishing
+/// workflows through <c>scripts/brand.sh</c>, and here by the desktop's update check and its demo default.
+/// </summary>
+public sealed record BrandDistribution(
+    [property: JsonPropertyName("bundleId")] string BundleId,
+    [property: JsonPropertyName("imageRegistry")] string ImageRegistry,
+    [property: JsonPropertyName("imageName")] string ImageName,
+    [property: JsonPropertyName("chartName")] string ChartName,
+    [property: JsonPropertyName("releaseRepository")] string ReleaseRepository,
+    [property: JsonPropertyName("domains")] BrandDomains Domains);
+
+/// <summary>The public hosts a build points at (ADR 0994).</summary>
+public sealed record BrandDomains(
+    [property: JsonPropertyName("demo")] string Demo);

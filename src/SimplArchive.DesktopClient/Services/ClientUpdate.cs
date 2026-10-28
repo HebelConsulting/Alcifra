@@ -35,7 +35,8 @@ public sealed record UpdateInfo(string OfferedVersion, string? DownloadUrl, Clie
 public static class ClientUpdate
 {
     // The public mirror hosts the versioned client releases + assets (ADR 0512); the private canonical publishes none.
-    public const string ReleasesRepo = "HebelConsulting/SimplArchive";
+    // Which repository that is belongs to the brand (ADR 0994): a white-label build updates from its own releases.
+    public static string ReleasesRepo => SimplArchive.Theming.Brand.Shipped.Distribution.ReleaseRepository;
     private const string GitHubApiBase = "https://api.github.com";
 
     // The running OS, for asset selection.

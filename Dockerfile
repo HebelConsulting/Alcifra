@@ -90,7 +90,8 @@ ARG VERSION=0.0.0-dev
 WORKDIR /src
 COPY . .
 COPY --from=icons /icons /icons
-RUN apk add --no-cache bash zip tar \
+# python3 reads the brand for the packaging scripts (scripts/brand.sh, ADR 0994); this build stage only.
+RUN apk add --no-cache bash zip tar python3 \
  && BRAND_ICONS_DIR=/icons/ bash scripts/package-windows-linux.sh "$VERSION"
 
 
@@ -130,8 +131,10 @@ COPY --from=build /app/publish .
 
 # The archives from the build-platform stage. The .gitkeep placeholders that kept the (otherwise-empty) folders
 # in git are removed so they do not clutter the served listing.
-COPY --from=clients /src/dist/SimplArchive-${VERSION}-win-x64.zip wwwroot/download/clients/windows/
-COPY --from=clients /src/dist/SimplArchive-${VERSION}-linux-x64.tar.gz wwwroot/download/clients/linux/
+# Named from the brand's file stem (ADR 0994), which this file cannot read, hence the stem wildcard; the clients stage
+# builds exactly one package per platform.
+COPY --from=clients /src/dist/*-${VERSION}-win-x64.zip wwwroot/download/clients/windows/
+COPY --from=clients /src/dist/*-${VERSION}-linux-x64.tar.gz wwwroot/download/clients/linux/
 RUN rm -f wwwroot/download/clients/windows/.gitkeep wwwroot/download/clients/linux/.gitkeep
 
 USER app

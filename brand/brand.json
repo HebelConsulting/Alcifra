@@ -64,5 +64,15 @@
     "light": "wordmark-light.svg",
     "dark": "wordmark-dark.svg"
   },
-  "icon": null
+  "icon": null,
+  "distribution": {
+    "bundleId": "ch.hebelconsulting.simplarchive",
+    "imageRegistry": "ghcr.io/hebelconsulting",
+    "imageName": "simplarchive",
+    "chartName": "simplarchive",
+    "releaseRepository": "HebelConsulting/SimplArchive",
+    "domains": {
+      "demo": "demo.simplarchive.dev"
+    }
+  }
 }

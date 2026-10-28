@@ -35,19 +35,29 @@ jobs:
     strategy:
       matrix:
         include:
-          - { image: simplarchive, context: ., file: Dockerfile }
-          - { image: simplarchive-ocr, context: ./ocr, file: ./ocr/Dockerfile }
-          - { image: simplarchive-postfix, context: ./postfix, file: ./postfix/Dockerfile }
+          - { suffix: "", context: ., file: Dockerfile }
+          - { suffix: "-ocr", context: ./ocr, file: ./ocr/Dockerfile }
+          - { suffix: "-postfix", context: ./postfix, file: ./postfix/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Log in to GHCR
+      # The image's registry and name are the brand's (ADR 0994): <imageRegistry>/<imageName><suffix>.
+      - name: Image name from the brand
+        id: brand
+        run: |
+          set -euo pipefail
+          source scripts/brand.sh
+          echo "image=$BRAND_IMAGE_REGISTRY/$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+          echo "registry=${BRAND_IMAGE_REGISTRY%%/*}" >> "$GITHUB_OUTPUT"
+          echo "cache=$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to the registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
-          registry: ghcr.io
+          registry: ${{ steps.brand.outputs.registry }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
@@ -55,7 +65,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/hebelconsulting/${{ matrix.image }}
+          images: ${{ steps.brand.outputs.image }}
           # :vX.Y.Z + :X.Y on a v* release tag, :<sha> for traceability, and :latest for the newest stable release
           # (metadata-action's default latest=auto).
           tags: |
@@ -80,8 +90,8 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          cache-from: type=gha,scope=${{ steps.brand.outputs.cache }}
+          cache-to: type=gha,mode=max,scope=${{ steps.brand.outputs.cache }}
           # ATTESTATIONS (#847, A08). Nothing attested what these images were built from: Trivy scans them,
           # which answers "are there known CVEs in it" and not "where did this come from and what is in it".
           # Those are the two questions a consumer of a published image has, and only the first had an answer.
@@ -110,4 +120,4 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           # Every tag metadata-action produced points at the same digest, so one signature covers them all.
-          cosign sign --yes "ghcr.io/hebelconsulting/${{ matrix.image }}@${DIGEST}"
+          cosign sign --yes "${{ steps.brand.outputs.image }}@${DIGEST}"

@@ -54,8 +54,8 @@ On the device, first visit **https://192.168.1.50:9444** once and accept the sel
 Alongside the web client, SimplArchive ships a cross-platform **Avalonia desktop client**. Build self-contained installers/archives — no .NET needed on the target machine:
 
 ```bash
-scripts/package-macos-dmg.sh          # macOS → dist/SimplArchive-<version>-{arm64,x64}.dmg   (run on macOS)
-scripts/package-windows-linux.sh      # Win/Linux x64 → dist/SimplArchive-<version>-win-x64.zip + -linux-x64.tar.gz
+scripts/package-macos-dmg.sh          # macOS → dist/Alcifra-<version>-{arm64,x64}.dmg        (run on macOS)
+scripts/package-windows-linux.sh      # Win/Linux x64 → dist/Alcifra-<version>-win-x64.zip + -linux-x64.tar.gz
 ```
 
 All are self-contained and **unsigned** (a showcase build): macOS Gatekeeper warns on first open (right-click → **Open**); Windows SmartScreen warns on first run ("More info" → "Run anyway"); the Linux launcher may need `chmod +x`. The Windows/Linux script cross-builds from any OS with the .NET SDK.

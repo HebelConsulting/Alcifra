@@ -22,7 +22,10 @@ set -euo pipefail
 
 VERSION="${1:-0.1.0}"
 
-APP_NAME="SimplArchive"
+# The brand names the packages (ADR 0994). The Linux desktop entry and icon keep their fixed identifier,
+# "simplarchive", until the code rebrand (#1117 phase 5): renaming them would orphan every installed entry.
+source "$(dirname "$0")/brand.sh"
+APP_NAME="$BRAND_FILE_STEM"
 EXE_NAME="SimplArchive.DesktopClient"   # the apphost `dotnet publish` produces (the project name)
 PROJECT="src/SimplArchive.DesktopClient/SimplArchive.DesktopClient.csproj"
 OUT_DIR="dist"

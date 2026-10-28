@@ -78,9 +78,9 @@ public sealed partial class LogonViewModel : ObservableObject
 
     // The pre-seeded public demo server (issue #269) — offered as the first-run default so a fresh client
     // points at the live demo out of the box. Only ever seeded on an empty config; never overrides an existing
-    // saved preference.
-    public const string DemoServerName = "demo.simplarchive.dev";
-    public const string DemoServerUrl = "https://demo.simplarchive.dev";
+    // saved preference. The host is the brand's (ADR 0994), so a white-label build offers its own demo.
+    public static string DemoServerName => SimplArchive.Theming.Brand.Shipped.Distribution.Domains.Demo;
+    public static string DemoServerUrl => $"https://{DemoServerName}";
 
     public LogonViewModel()
     {

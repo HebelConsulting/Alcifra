@@ -3,7 +3,7 @@
 # Stage the SimplArchive desktop-client packages into the served download area (ADR 0490):
 #   src/SimplArchive.Api/wwwroot/download/clients/{windows,linux,macos}/
 # named with the git release tag (if HEAD is exactly on a tag) or the short commit SHA — matching the naming the
-# Dockerfile bakes in (SimplArchive-<version>-{win-x64.zip,linux-x64.tar.gz,arm64.dmg,x64.dmg}).
+# Dockerfile bakes in (<fileStem>-<version>-{win-x64.zip,linux-x64.tar.gz,arm64.dmg,x64.dmg}).
 #
 # The Dockerfile already bakes win-x64 + linux-x64 into the published image on every build, so this script is for:
 #   - populating the folders for a LOCAL `dotnet run` of the API (the API serves its own wwwroot), and
@@ -31,20 +31,23 @@ fi
 echo "==> Packaging desktop clients as version: $version"
 
 dest="src/SimplArchive.Api/wwwroot/download/clients"
+# The packages are named from the brand's file stem (ADR 0994).
+source "$(dirname "$0")/brand.sh"
+stem="$BRAND_FILE_STEM"
 
 # Windows + Linux (cross-buildable on any OS).
 scripts/package-windows-linux.sh "$version"
 mkdir -p "$dest/windows" "$dest/linux"
-rm -f "$dest/windows/SimplArchive-"*.zip "$dest/linux/SimplArchive-"*.tar.gz
-cp "dist/SimplArchive-${version}-win-x64.zip" "$dest/windows/"
-cp "dist/SimplArchive-${version}-linux-x64.tar.gz" "$dest/linux/"
+rm -f "$dest/windows/"*.zip "$dest/linux/"*.tar.gz
+cp "dist/${stem}-${version}-win-x64.zip" "$dest/windows/"
+cp "dist/${stem}-${version}-linux-x64.tar.gz" "$dest/linux/"
 
 # macOS .dmg — only on a Mac (needs hdiutil/codesign).
 if [[ "$(uname)" == "Darwin" ]]; then
   scripts/package-macos-dmg.sh "$version"
   mkdir -p "$dest/macos"
-  rm -f "$dest/macos/SimplArchive-"*.dmg
-  cp "dist/SimplArchive-${version}-arm64.dmg" "dist/SimplArchive-${version}-x64.dmg" "$dest/macos/"
+  rm -f "$dest/macos/"*.dmg
+  cp "dist/${stem}-${version}-arm64.dmg" "dist/${stem}-${version}-x64.dmg" "$dest/macos/"
 else
   echo "==> Skipping macOS .dmg (not on macOS) — clients/macos/ keeps its GitHub-Release link."
 fi

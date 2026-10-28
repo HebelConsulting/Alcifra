@@ -129,11 +129,14 @@ jobs:
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
+          # The packages are named from the brand's file stem (ADR 0994).
+          source scripts/brand.sh
+          stem="$BRAND_FILE_STEM"
           assets=(
-            "dist/SimplArchive-$version-win-x64.zip"
-            "dist/SimplArchive-$version-linux-x64.tar.gz"
-            "dist/SimplArchive-$version-arm64.dmg"
-            "dist/SimplArchive-$version-x64.dmg"
+            "dist/$stem-$version-win-x64.zip"
+            "dist/$stem-$version-linux-x64.tar.gz"
+            "dist/$stem-$version-arm64.dmg"
+            "dist/$stem-$version-x64.dmg"
           )
           for asset in "${assets[@]}"; do
             [ -f "$asset" ] || { echo "::error::$asset was not built."; exit 1; }
@@ -178,11 +181,12 @@ jobs:
           attached=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
 
           missing=""
+          source scripts/brand.sh
           for asset in \
-            "SimplArchive-$version-win-x64.zip" \
-            "SimplArchive-$version-linux-x64.tar.gz" \
-            "SimplArchive-$version-arm64.dmg" \
-            "SimplArchive-$version-x64.dmg"
+            "$BRAND_FILE_STEM-$version-win-x64.zip" \
+            "$BRAND_FILE_STEM-$version-linux-x64.tar.gz" \
+            "$BRAND_FILE_STEM-$version-arm64.dmg" \
+            "$BRAND_FILE_STEM-$version-x64.dmg"
           do
             # Two traps in one line, both met here. `grep -qxF` rather than `grep -q`: without -x the x64 .dmg
             # is satisfied by the arm64 one, because one name contains the other. And a HERE-STRING rather

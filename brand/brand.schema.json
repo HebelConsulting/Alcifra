@@ -12,7 +12,8 @@
     "colors",
     "fonts",
     "wordmark",
-    "icon"
+    "icon",
+    "distribution"
   ],
   "properties": {
     "$schema": {
@@ -105,6 +106,60 @@
       ],
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._/-]*\\.svg$",
       "description": "The brand's app icon: a square SVG relative to brand/assets, drawn edge to edge (the build adds the macOS inset). Null keeps the drawn filing cabinet in the brand's colours. Every icon size is generated from it at build time (ADR 0993)."
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundleId",
+        "imageRegistry",
+        "imageName",
+        "chartName",
+        "releaseRepository",
+        "domains"
+      ],
+      "description": "What a build produces is named and published by (ADR 0994): read by the packaging scripts, the image and chart publishing, and the desktop's update check and demo default. Our own installation's configuration does not read it.",
+      "properties": {
+        "bundleId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9-]+)+$",
+          "description": "The macOS bundle identifier of the desktop app."
+        },
+        "imageRegistry": {
+          "type": "string",
+          "pattern": "^[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)*$",
+          "description": "Where the container images are pushed, e.g. ghcr.io/<owner>."
+        },
+        "imageName": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$",
+          "description": "The application image's name; the sidecars are <imageName>-ocr and <imageName>-postfix."
+        },
+        "chartName": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "The Helm chart's name as packaged (scripts/package-chart.sh)."
+        },
+        "releaseRepository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "description": "The GitHub repository whose releases carry the desktop packages, which the desktop's update check reads."
+        },
+        "domains": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "demo"
+          ],
+          "properties": {
+            "demo": {
+              "type": "string",
+              "pattern": "^[a-z0-9.-]+$",
+              "description": "The public demo the desktop's logon window offers."
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {
