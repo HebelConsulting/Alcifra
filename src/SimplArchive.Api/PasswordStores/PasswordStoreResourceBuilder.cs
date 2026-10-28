@@ -79,7 +79,7 @@ public sealed class PasswordStoreResourceBuilder(
         // Who the store is encrypted for and who may change that (ADR 0983): declared on the store, for everything beneath.
         resource.Links.Add(new Link("audience", $"/api/documents/{folder.StoreId}/audience", "GET"));
         // The flat, paginated tree beneath this store or folder (ADR 0207): one listing for completion and search,
-        // rather than one request per folder (sapass, 2026-10-25).
+        // rather than one request per folder (apass, 2026-10-25).
         resource.Links.Add(new Link("descendants", $"{FolderHref(folder.Id)}/descendants", "GET"));
         if (folder.Kind == PasswordItemKind.Folder)
         {

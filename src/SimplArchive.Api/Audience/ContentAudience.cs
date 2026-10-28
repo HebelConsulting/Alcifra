@@ -287,7 +287,7 @@ public sealed class ContentAudience(
     /// document (ADR 0983). Nothing in a personal space, whose owner is the audience by computation.
     /// </summary>
     /// <remarks>
-    /// <b>The creator is the first manager.</b> A service account creates without a person to name (saconsole's
+    /// <b>The creator is the first manager.</b> A service account creates without a person to name (alcifra's
     /// seeding, ADR 0966): the audience then starts as the readers it inherits from <paramref name="parentId"/>, with no
     /// manager, exactly as the migration fills an existing store — a tenant administrator appoints one.
     /// </remarks>

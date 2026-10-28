@@ -3,7 +3,7 @@ using OpenIddict.Abstractions;
 namespace SimplArchive.Api.Provisioning;
 
 /// <summary>
-/// Seeds the OpenIddict client for <c>sapass</c>, the password-store CLI (ADR 0964; sapass decisions 2026-10-25).
+/// Seeds the OpenIddict client for <c>apass</c>, the password-store CLI (ADR 0964; apass decisions 2026-10-25).
 /// </summary>
 /// <remarks>
 /// Its own file beside <see cref="SaConsoleClientSeeder"/>, and for its reason: one client per file keeps
@@ -28,13 +28,13 @@ public static class SapassClientSeeder
             ClientType = OpenIddictConstants.ClientTypes.Public,
 
             // A PUBLIC client with no redirect URI: the device grant never redirects, which is what lets the tool
-            // sign in over SSH on a host with no browser (RFC 8628, as saconsole does — ADR 0823).
+            // sign in over SSH on a host with no browser (RFC 8628, as alcifra does — ADR 0823).
             //
-            // Explicit consent, as saconsole's: a device grant hands a token to a machine the approving person may
+            // Explicit consent, as alcifra's: a device grant hands a token to a machine the approving person may
             // not be sitting at, so the approval is an act rather than an inference. The page names THIS tool, which
             // is the whole reason it has a client id of its own instead of borrowing the administrator's.
             ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-            DisplayName = $"{SimplArchive.Localization.Strings.ProductName} password CLI (sapass)",
+            DisplayName = $"{SimplArchive.Localization.Strings.ProductName} password CLI (apass)",
             Permissions =
             {
                 OpenIddictConstants.Permissions.Endpoints.DeviceAuthorization,

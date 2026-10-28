@@ -14,7 +14,7 @@ using SimplArchive.SealedArchive;
 namespace SimplArchive.EndToEndTests;
 
 // The tenant's recovery certificate (ADR 0960, #1695): a tenant administrator sets, shows and replaces it with
-// saconsole, followed from the tenant settings' rel; a non-administrator is refused; a private key in the upload is
+// alcifra, followed from the tenant settings' rel; a non-administrator is refused; a private key in the upload is
 // refused; and an offline export made after it is set opens with the recovery key alone. Each test makes its own
 // tenant: it changes the setting (ADR 0884).
 [Collection(E2ECollection.Name)]

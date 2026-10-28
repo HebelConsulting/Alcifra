@@ -210,7 +210,7 @@ public partial class SelfEnrolmentDialog : Window
     /// <b>A private key is refused HERE, before anything is sent</b>, whatever the module's own policy says.
     /// The server refuses key material too — but by then it has crossed the wire, which is the one thing this
     /// is about. The rule itself lives in <see cref="EnrolledCertificate"/> so that this dialog, the web one
-    /// and <c>saconsole</c> cannot drift about what they refuse.
+    /// and <c>alcifra</c> cannot drift about what they refuse.
     /// </para>
     /// <para>
     /// <b>DER is converted rather than refused</b>, because a certificate exported from a card tool is as

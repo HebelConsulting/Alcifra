@@ -23,12 +23,12 @@ public sealed class LoginSettings : CommandSettings
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Nothing is written to disk.</b> The session lives in the environment, like saconsole's, so there is no
+/// <b>Nothing is written to disk.</b> The session lives in the environment, like alcifra's, so there is no
 /// credential file to find on a host and no second place for "which installation am I pointing at?".
 /// </para>
 /// <para>
 /// <b>The exports go to STDOUT and everything a person reads goes to STDERR</b> — that split is what makes
-/// <c>eval "$(sapass login --url …)"</c> work. The token is not repeated in the readable half: it is on stdout
+/// <c>eval "$(apass login --url …)"</c> work. The token is not repeated in the readable half: it is on stdout
 /// because the shell must read it there, and nowhere else.
 /// </para>
 /// </remarks>

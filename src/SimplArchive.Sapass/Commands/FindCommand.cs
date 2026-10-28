@@ -12,7 +12,7 @@ public sealed class FindSettings : StoreSettings
     public string Text { get; init; } = string.Empty;
 
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(Text)
-        ? ValidationResult.Error("Say what to look for: sapass find <text>.")
+        ? ValidationResult.Error("Say what to look for: apass find <text>.")
         : ValidationResult.Success();
 }
 

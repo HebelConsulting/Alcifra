@@ -64,6 +64,6 @@ internal static class ModuleSurface
         throw new CliException(active
             ? $"'{moduleId}' is active but declares nothing to configure, so it has no settings."
             : $"'{moduleId}' is not active for this tenant, so its settings are not available. "
-              + "File its licence first: saconsole module activate.");
+              + "File its licence first: alcifra module activate.");
     }
 }

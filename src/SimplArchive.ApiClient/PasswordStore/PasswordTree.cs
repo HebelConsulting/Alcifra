@@ -11,7 +11,7 @@ public sealed record PasswordTreeEntry(
     string? Site = null, string? UserName = null, string? App = null);
 
 /// <summary>
-/// The tree model BOTH clients share (sapass's commands and the desktop's browser host): turning the flat listing
+/// The tree model BOTH clients share (apass's commands and the desktop's browser host): turning the flat listing
 /// into paths, listing a folder's children, and normalising what a user typed. One implementation, because two
 /// copies of a path walk drift on exactly the edge cases — a missing ancestor, a cycle — that nobody tests twice.
 /// </summary>

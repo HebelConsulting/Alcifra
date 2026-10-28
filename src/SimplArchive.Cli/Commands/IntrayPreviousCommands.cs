@@ -9,7 +9,7 @@ namespace SimplArchive.Cli.Commands;
 /// <summary>Reaching the bytes an intray overwrite set aside, by rels (#799).</summary>
 /// <remarks>
 /// root → <c>intray</c> → <c>previous</c>, then a row's own <c>restore</c>. Every hop a rel and no composed
-/// address: <c>saconsole</c> is a client like the other two (ADR 0543), and a CLI is where composing breaks in
+/// address: <c>alcifra</c> is a client like the other two (ADR 0543), and a CLI is where composing breaks in
 /// exactly the way the rule exists to prevent — rename a route and the application keeps working while the
 /// tool starts answering 404.
 /// </remarks>
@@ -68,7 +68,7 @@ public sealed class IntrayPreviousListCommand(ILogger<IntrayPreviousListCommand>
         }
 
         logger.LogInformation("{Table}", CliLogging.Render(table));
-        logger.LogInformation("Restore one with: saconsole intray previous restore <name>");
+        logger.LogInformation("Restore one with: alcifra intray previous restore <name>");
         return 0;
     }
 

@@ -10,7 +10,7 @@ namespace SimplArchive.EndToEndTests;
 // WHY THIS EXISTS. `POST {moduleId}/rebuild/{projectionName}` describes itself as "the operator guarantee
 // that a read model is never the only copy of anything, as a button-press: the support case's first answer" —
 // and a module row advertised `license` and `settings` and nothing else, so by ADR 0543 no conforming client
-// could find the button. It was reachable only by composing a path, which is what `saconsole module rebuild`
+// could find the button. It was reachable only by composing a path, which is what `alcifra module rebuild`
 // is forbidden to do.
 //
 // A LISTING rather than a rel per projection, and that is the load-bearing choice: a rel whose name carried

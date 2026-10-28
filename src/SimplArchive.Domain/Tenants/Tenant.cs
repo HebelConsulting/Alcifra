@@ -210,7 +210,7 @@ public class Tenant : IConcurrencyTracked
     /// The tenant's recovery certificate for offline exports (ADR 0960, #1695): the PUBLIC certificate, one PEM block,
     /// every offline archive is also sealed to, so it stays readable after its cards expire. Null = none set, and every
     /// offline export is refused. Its private key never reaches SimplArchive. Set by a tenant administrator with
-    /// <c>saconsole tenant recovery-certificate</c>.
+    /// <c>alcifra tenant recovery-certificate</c>.
     /// </summary>
     public string? OfflineExportRecoveryCertificatePem { get; set; }
 

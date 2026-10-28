@@ -6112,7 +6112,7 @@
     <value>This organisation has no recovery certificate for offline exports yet, so none can be made. Ask a tenant administrator to set one.</value>
   </data>
   <data name="EnrolWebPointer" xml:space="preserve">
-    <value>Reader certificates are enrolled from the token itself, which proves the key was made on it: use the desktop client (Enrol a certificate, then Add a card or token…), the phone, or saconsole. Here you see what is enrolled for you.</value>
+    <value>Reader certificates are enrolled from the token itself, which proves the key was made on it: use the desktop client (Enrol a certificate, then Add a card or token…), the phone, or alcifra. Here you see what is enrolled for you.</value>
   </data>
   <data name="EnrolYourCertificates" xml:space="preserve">
     <value>Your enrolled certificates</value>

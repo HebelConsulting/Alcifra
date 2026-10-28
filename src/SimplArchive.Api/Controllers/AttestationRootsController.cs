@@ -17,7 +17,7 @@ namespace SimplArchive.Api.Controllers;
 /// <summary>
 /// The installation's trusted attestation roots (#1790, ADR 0963): list, upload, rename, switch on and off. A PLATFORM
 /// ADMINISTRATOR's surface: the organisation running the installation decides which hardware it trusts, and a tenant may
-/// only narrow that. No client UI, like the KEK surface (ADR 0821): <c>saconsole attestation-roots …</c> follows the rel.
+/// only narrow that. No client UI, like the KEK surface (ADR 0821): <c>alcifra attestation-roots …</c> follows the rel.
 /// </summary>
 /// <remarks>
 /// A root is identified by its certificate's SHA-256; there is no delete, because an enrolment's evidence names a root,

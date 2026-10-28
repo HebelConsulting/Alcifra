@@ -308,7 +308,7 @@ public partial class CertificateEnrolmentTests
                 Assert.Contains(rig.MemberEmail, problem, StringComparison.Ordinal);   // what it wanted
             }
 
-            // saconsole certificates enrol --holder: the same refusal, as the line the administrator reads.
+            // alcifra certificates enrol --holder: the same refusal, as the line the administrator reads.
             var cli = await Assert.ThrowsAsync<SimplArchive.Cli.Infrastructure.CliException>(() =>
                 new SimplArchive.Cli.Infrastructure.SimplArchiveApi(rig.Admin).PostAsync("/api/certificates",
                     new { certificatePem = SelfSigned("member", someoneElse), label = "Card", holder = rig.MemberEmail }, CancellationToken.None));
@@ -361,7 +361,7 @@ public partial class CertificateEnrolmentTests
         }
     }
 
-    // As `saconsole certificates policy set --san-must-match-account on|off` does it.
+    // As `alcifra certificates policy set --san-must-match-account on|off` does it.
     private static async Task SetSanMustMatchAccountAsync(HttpClient admin, bool on)
     {
         var written = await SimplArchive.Cli.Commands.CertificatePolicySurface.SetSanMustMatchAccountAsync(

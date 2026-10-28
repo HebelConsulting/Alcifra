@@ -3,7 +3,7 @@ using SimplArchive.Api.PasswordStores;
 namespace SimplArchive.UnitTests.PasswordStore;
 
 // ADR 0982: who is offered a new password entry. A person must be one of the store's readers AND hold a certificate the
-// entry is sealed to; a service account (saconsole's seeding, ADR 0966) needs only that some reader holds one.
+// entry is sealed to; a service account (alcifra's seeding, ADR 0966) needs only that some reader holds one.
 public sealed class NewEntryUnavailableReasonsTests
 {
     private static readonly Guid Anna = Guid.NewGuid();

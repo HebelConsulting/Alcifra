@@ -136,7 +136,7 @@ public class PasswordFoldersController(
 
     /// <summary>
     /// Every folder and entry beneath this store or folder, at any depth, as a cursor-paginated page (ADR 0207) —
-    /// the flat tree sapass's completion, <c>ls</c> and <c>find</c> read instead of walking folder by folder.
+    /// the flat tree apass's completion, <c>ls</c> and <c>find</c> read instead of walking folder by folder.
     /// </summary>
     /// <remarks>
     /// Rows the caller may not see are omitted, exactly as the folder listing omits them; the page itself advances

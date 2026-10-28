@@ -6,7 +6,7 @@ namespace SimplArchive.Cli.Infrastructure;
 
 /// <summary>Where the installation is. Every command needs this and nothing else by default.</summary>
 /// <remarks>
-/// <c>--url</c> falls back to <see cref="UrlVariable"/>, which <c>saconsole login</c> prints as a shell
+/// <c>--url</c> falls back to <see cref="UrlVariable"/>, which <c>alcifra login</c> prints as a shell
 /// export. That is the whole of the "current installation" idea: it lives in the environment beside the
 /// token, so there is exactly ONE place to look and no stored context that can point a command at an
 /// installation the administrator has forgotten they selected. An explicit <c>--url</c> always wins, so a
@@ -14,14 +14,14 @@ namespace SimplArchive.Cli.Infrastructure;
 /// </remarks>
 public class ApiSettings : CommandSettings
 {
-    /// <summary>Environment variable carrying the installation URL (set by <c>saconsole login</c>).</summary>
+    /// <summary>Environment variable carrying the installation URL (set by <c>alcifra login</c>).</summary>
     public const string UrlVariable = "SACONSOLE_URL";
 
-    /// <summary>Environment variable carrying the user access token (set by <c>saconsole login</c>).</summary>
+    /// <summary>Environment variable carrying the user access token (set by <c>alcifra login</c>).</summary>
     public const string TokenVariable = "SACONSOLE_TOKEN";
 
     /// <summary>
-    /// The PRODUCT-LEVEL names, which sapass prints and both tools read FIRST (owner, 2026-10-25): the session
+    /// The PRODUCT-LEVEL names, which apass prints and both tools read FIRST (owner, 2026-10-25): the session
     /// belongs to the installation, not to one of the two tools. Still printed as the legacy pair above for one
     /// release, so a kiosk or script that greps for <c>export SACONSOLE_TOKEN=</c> keeps working.
     /// </summary>
@@ -45,12 +45,12 @@ public class ApiSettings : CommandSettings
 
     // Spectre builds settings by reflection and does not enforce `required` — validate explicitly.
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(ResolvedUrl)
-        ? ValidationResult.Error($"No installation. Pass --url, or run 'saconsole login --url …' and eval its output to set ${UrlVariable}.")
+        ? ValidationResult.Error($"No installation. Pass --url, or run 'alcifra login --url …' and eval its output to set ${UrlVariable}.")
         : ValidationResult.Success();
 }
 
 /// <summary>
-/// Settings for a command acting INSIDE A TENANT — the session <c>saconsole login</c> produced: a user through
+/// Settings for a command acting INSIDE A TENANT — the session <c>alcifra login</c> produced: a user through
 /// the device flow, or a tenant service account through <c>--client-id</c> (ADR 0870). Either way the
 /// commands follow the same rels, and the server answers what that principal may do.
 /// </summary>
@@ -69,7 +69,7 @@ public class TenantSessionSettings : ApiSettings
     {
         _ when base.Validate() is { Successful: false } failed => failed,
         _ when string.IsNullOrEmpty(ResolvedToken) => ValidationResult.Error(
-            $"Not signed in. Run: eval \"$(saconsole login --url {ResolvedUrl})\""),
+            $"Not signed in. Run: eval \"$(alcifra login --url {ResolvedUrl})\""),
         _ => ValidationResult.Success(),
     };
 }

@@ -34,7 +34,7 @@ public sealed class MessengerBackupSettings : MessengerSettings
 public sealed class MessengerRestoreSettings : MessengerSettings
 {
     [CommandOption("--file <FILE>")]
-    [Description("The backup to restore: one written by `saconsole messenger backup` or the phone.")]
+    [Description("The backup to restore: one written by `alcifra messenger backup` or the phone.")]
     public string File { get; init; } = string.Empty;
 
     public override ValidationResult Validate() => this switch

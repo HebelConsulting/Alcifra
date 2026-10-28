@@ -2,11 +2,11 @@ using SimplArchive.Sapass;
 
 namespace SimplArchive.UnitTests;
 
-// sapass's stdout carries DATA — a password, a path, a shell export, a completion script — so a failure must never
+// apass's stdout carries DATA — a password, a path, a shell export, a completion script — so a failure must never
 // write there, and a success must not be the only thing that does. The session is cleared so a developer's own
 // shell cannot satisfy a case by accident.
 //
-// In the "console" collection with saconsole's stream tests: Console.SetOut is process-global, and two classes
+// In the "console" collection with alcifra's stream tests: Console.SetOut is process-global, and two classes
 // redirecting it at once would read each other's output.
 [Collection("console")]
 public class SapassStreamTests
@@ -18,8 +18,8 @@ public class SapassStreamTests
 
         Assert.NotEqual(0, exit);
         Assert.True(string.IsNullOrWhiteSpace(stdout),
-            $"sapass wrote to STDOUT on a failure path; stdout is where a script captures data:\n{stdout}");
-        Assert.False(string.IsNullOrWhiteSpace(stderr), "sapass failed without telling the reader anything on stderr.");
+            $"apass wrote to STDOUT on a failure path; stdout is where a script captures data:\n{stdout}");
+        Assert.False(string.IsNullOrWhiteSpace(stderr), "apass failed without telling the reader anything on stderr.");
     }
 
     [Fact]

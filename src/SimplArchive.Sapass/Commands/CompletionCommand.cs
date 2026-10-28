@@ -20,8 +20,8 @@ public sealed class CompletionSettings : CommandSettings
 /// binary back with the words typed so far, and the binary answers with candidates.
 /// </summary>
 /// <remarks>
-/// Install it where the shell looks, e.g. <c>sapass completion zsh &gt; ~/.zfunc/_sapass</c> for zsh with
-/// <c>fpath=(~/.zfunc $fpath)</c>, or <c>sapass completion bash | sudo tee /etc/bash_completion.d/sapass</c>.
+/// Install it where the shell looks, e.g. <c>apass completion zsh &gt; ~/.zfunc/_sapass</c> for zsh with
+/// <c>fpath=(~/.zfunc $fpath)</c>, or <c>apass completion bash | sudo tee /etc/bash_completion.d/apass</c>.
 /// The output is data (ADR 0906): nothing else goes to stdout.
 /// </remarks>
 public sealed class CompletionCommand : Command<CompletionSettings>
@@ -41,29 +41,29 @@ public sealed class CompletionCommand : Command<CompletionSettings>
     // ${COMP_WORDS[@]:1:$COMP_CWORD} is the argv so far (the program name dropped), which is exactly what
     // __complete expects; -o default keeps file completion for a word that names a file.
     private const string BashScript = """
-        _sapass_complete()
+        _apass_complete()
         {
             local candidates
-            candidates=$(sapass __complete "${COMP_WORDS[@]:1:$COMP_CWORD}" 2>/dev/null)
+            candidates=$(apass __complete "${COMP_WORDS[@]:1:$COMP_CWORD}" 2>/dev/null)
             COMPREPLY=($(compgen -W "$candidates" -- "${COMP_WORDS[COMP_CWORD]}"))
         }
-        complete -o default -o bashdefault -F _sapass_complete sapass
+        complete -o default -o bashdefault -F _apass_complete apass
         """;
 
     // words[2,-1] drops the program name; -Q would quote, which paths do not want.
     private const string ZshScript = """
-        #compdef sapass
+        #compdef apass
         _sapass()
         {
             local -a candidates
-            candidates=(${(f)"$(sapass __complete ${words[2,-1]} 2>/dev/null)"})
+            candidates=(${(f)"$(apass __complete ${words[2,-1]} 2>/dev/null)"})
             compadd -a candidates
         }
-        compdef _sapass sapass
+        compdef _sapass apass
         """;
 
     private const string FishScript = """
-        # sapass: complete commands, stores and entry paths.
-        complete -c sapass -f -a "(sapass __complete (commandline -opc)[2..-1] (commandline -ct) 2>/dev/null)"
+        # apass: complete commands, stores and entry paths.
+        complete -c apass -f -a "(apass __complete (commandline -opc)[2..-1] (commandline -ct) 2>/dev/null)"
         """;
 }

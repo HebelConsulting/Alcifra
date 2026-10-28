@@ -10,7 +10,7 @@ namespace SimplArchive.Cli.Commands;
 public class ModuleSettingsSettings : TenantSessionSettings
 {
     [CommandArgument(0, "<module>")]
-    [Description("The module, by id — e.g. encryption. List them: saconsole module list")]
+    [Description("The module, by id — e.g. encryption. List them: alcifra module list")]
     public required string Module { get; init; }
 }
 

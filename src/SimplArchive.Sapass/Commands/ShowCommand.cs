@@ -12,13 +12,13 @@ public sealed class ShowSettings : StoreSettings
     public string Entry { get; init; } = string.Empty;
 
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(Entry)
-        ? ValidationResult.Error("Name the entry: sapass show <entry>.")
+        ? ValidationResult.Error("Name the entry: apass show <entry>.")
         : ValidationResult.Success();
 }
 
 /// <summary>
 /// Prints an entry's password on the FIRST line and its other fields after it — pass's shape, so
-/// <c>sapass show x | head -1</c> gives the password alone.
+/// <c>apass show x | head -1</c> gives the password alone.
 /// </summary>
 /// <remarks>
 /// <b>This is the one command that touches the key.</b> The envelope is opened on this machine by the card in the

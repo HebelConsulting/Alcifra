@@ -169,7 +169,7 @@ public static class AttestationRootSurface
         return matches.Count switch
         {
             1 => matches[0],
-            0 => throw new CliException($"No attestation root matches '{selector}'. See saconsole attestation-roots list."),
+            0 => throw new CliException($"No attestation root matches '{selector}'. See alcifra attestation-roots list."),
             _ => throw new CliException($"'{selector}' matches {matches.Count} attestation roots; name it by id."),
         };
     }

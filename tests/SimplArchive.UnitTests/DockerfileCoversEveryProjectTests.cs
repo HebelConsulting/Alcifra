@@ -34,11 +34,11 @@ public class DockerfileCoversEveryProjectTests
     //   Worker        — Microsoft.NET.Sdk.Worker, its own host with its own deployment; the Api does not
     //                   reference it. (Surfaced by this very test on its first run, and checked rather than
     //                   assumed: `grep ProjectReference` on the Api finds nothing.)
-    //   Cli           — saconsole (ADR 0822), shipped as a .NET tool an administrator installs, not into the
+    //   Cli           — alcifra (ADR 0822), shipped as a .NET tool an administrator installs, not into the
     //                   image. It is a CLIENT of a deployed installation and references no project here, so
     //                   the Api cannot need it; checked the same way, and this test is what caught the
     //                   assumption that a new src/ project "obviously" did not need a line.
-    //   ConsoleLogging — the plain stderr logger of the command-line programs (saconsole, the tools, the published
+    //   ConsoleLogging — the plain stderr logger of the command-line programs (alcifra, the tools, the published
     //                   test tools; ADRs 0906/0911). Checked: no project in the Api's graph references it.
     //   ApiClient     — the hypermedia API client the desktop and the mobile app share (ADR 0917), a CLIENT of the
     //                   Api like Cli. Checked: no project in the Api's graph references it.

@@ -4,7 +4,7 @@ using SimplArchive.Sapass.Commands;
 
 namespace SimplArchive.UnitTests;
 
-// sapass audience (ADR 0983): names resolve against the audience's members and the readers it offers, and the options
+// apass audience (ADR 0983): names resolve against the audience's members and the readers it offers, and the options
 // apply in a fixed order — so a script's change is the same change every time.
 public class SapassAudienceTests
 {

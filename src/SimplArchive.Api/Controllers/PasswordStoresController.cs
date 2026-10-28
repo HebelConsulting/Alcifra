@@ -35,11 +35,11 @@ public class PasswordStoresController(
     {
         var ids = await tree.StoreIdsAsync(cancellationToken);
         var rights = await access.GetCallerRightsForManyAsync(ids, cancellationToken);
-        // A PERSON is listed only the stores they can DECRYPT (ADR 0983): the Passwords tab, its tile and sapass list a
+        // A PERSON is listed only the stores they can DECRYPT (ADR 0983): the Passwords tab, its tile and apass list a
         // store only to a member of its effective audience. A manager outside it, or an administrator appointing one,
         // reaches the store from the Repositories tab, where it is marked "not encrypted for you". A service account is
         // never a member — it holds no key — and lists every store it may see, because what it does there is seal TO the
-        // audience (saconsole's seeding, ADR 0966), never read.
+        // audience (alcifra's seeding, ADR 0966), never read.
         var visible = new List<Guid>();
         foreach (var id in ids.Where(id => rights.TryGetValue(id, out var r) && r.CanSee))
         {

@@ -27,7 +27,7 @@ public sealed class GenerateSettings : StoreSettings
 
     public override ValidationResult Validate() => this switch
     {
-        _ when string.IsNullOrWhiteSpace(Entry) => ValidationResult.Error("Name the entry: sapass generate Mail/Banking."),
+        _ when string.IsNullOrWhiteSpace(Entry) => ValidationResult.Error("Name the entry: apass generate Mail/Banking."),
         { Length: < 8 } => ValidationResult.Error("--length must be at least 8."),
         _ => ValidationResult.Success(),
     };

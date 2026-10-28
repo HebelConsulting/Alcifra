@@ -8,7 +8,7 @@ namespace SimplArchive.BrowserHost;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>One implementation, two hosts.</b> The desktop and sapass each run this loop; only <see cref="IAutofillStore"/>
+/// <b>One implementation, two hosts.</b> The desktop and apass each run this loop; only <see cref="IAutofillStore"/>
 /// differs, and the browser cannot tell which one answered beyond the name in <c>ping</c>.
 /// </para>
 /// <para>

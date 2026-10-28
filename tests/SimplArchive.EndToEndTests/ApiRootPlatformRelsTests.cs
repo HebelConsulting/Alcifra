@@ -6,7 +6,7 @@ namespace SimplArchive.EndToEndTests;
 // The API root advertises the platform-administrator surface to a platform administrator, and to nobody else
 // (#1409, ADR 0543). Four collections — provisioning a tenant, managing platform administrators, KEK rotation
 // and the search reindex — were reachable by NO rel, so a conforming client had to conclude they did not exist;
-// `saconsole` was composing `api/tenants` for exactly that reason.
+// `alcifra` was composing `api/tenants` for exactly that reason.
 //
 // Both halves are asserted here because either alone is the wrong shape. Emitting them to everyone would hand a
 // signed-in user four addresses that can only ever answer 403 — the lying affordance ADR 0543 exists to prevent —

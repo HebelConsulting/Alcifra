@@ -5,7 +5,7 @@ namespace SimplArchive.Presentation;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Shared because it is at its second occurrence, not speculatively.</b> `saconsole certificates enrol`
+/// <b>Shared because it is at its second occurrence, not speculatively.</b> `alcifra certificates enrol`
 /// wrote it first; the desktop dialog is the second and the web dialog will be the third. Three copies of a
 /// refusal drift, and the one that drifts is the one nobody re-reads — so the rule lives once and each client
 /// renders it in its own words.

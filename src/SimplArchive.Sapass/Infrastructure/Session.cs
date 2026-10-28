@@ -6,11 +6,11 @@ namespace SimplArchive.Sapass.Infrastructure;
 
 /// <summary>
 /// The signed-in installation, taken from the environment — the one place "which installation am I pointed at?"
-/// is answered (as saconsole's session is, ADR 0823).
+/// is answered (as alcifra's session is, ADR 0823).
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The neutral variables come first, and saconsole's are still read for one release</b> (owner, 2026-10-25): the
+/// <b>The neutral variables come first, and alcifra's are still read for one release</b> (owner, 2026-10-25): the
 /// session was named after one of the two tools, so a person who signed in with either tool should not have to
 /// sign in again with the other while the names settle.
 /// </para>
@@ -48,9 +48,9 @@ internal sealed class Session : IDisposable
     public static Session FromEnvironment(IEnvelopeOpener? opener = null)
     {
         var url = First(UrlVariable, LegacyUrlVariable)
-            ?? throw new SapassException($"No installation. Run: eval \"$(sapass login --url …)\" to set ${UrlVariable}.");
+            ?? throw new SapassException($"No installation. Run: eval \"$(apass login --url …)\" to set ${UrlVariable}.");
         var token = First(TokenVariable, LegacyTokenVariable)
-            ?? throw new SapassException($"Not signed in. Run: eval \"$(sapass login --url {url})\" to set ${TokenVariable}.");
+            ?? throw new SapassException($"Not signed in. Run: eval \"$(apass login --url {url})\" to set ${TokenVariable}.");
 
         var http = new HttpClient { BaseAddress = new Uri($"{url.TrimEnd('/')}/") };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

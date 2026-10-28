@@ -11,7 +11,7 @@ namespace SimplArchive.Api.PasswordStores;
 /// <para>
 /// An entry's content is sealed to the attested certificates of the store's effective audience (ADRs 0964, 0983), so the offer is honest only
 /// when what is saved can be read back: a PERSON must be one of those readers and hold a certificate. A SERVICE ACCOUNT
-/// holds no key and never reads (saconsole's seeding, ADR 0966); it seals to the readers, so its offer is honest as long
+/// holds no key and never reads (alcifra's seeding, ADR 0966); it seals to the readers, so its offer is honest as long
 /// as some reader holds a certificate.
 /// </para>
 /// <para>

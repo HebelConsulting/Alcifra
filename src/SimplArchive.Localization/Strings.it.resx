@@ -6112,7 +6112,7 @@
     <value>Questa organizzazione non ha ancora un certificato di recupero per le esportazioni offline, quindi non è possibile crearne. Chiedi a un amministratore del tenant di impostarne uno.</value>
   </data>
   <data name="EnrolWebPointer" xml:space="preserve">
-    <value>I certificati di lettura si registrano dal token stesso, che attesta che la chiave è stata generata su di esso: con il client desktop (Registra un certificato, poi Aggiungi una carta o un token…), il telefono o saconsole. Qui vede cosa è registrato per lei.</value>
+    <value>I certificati di lettura si registrano dal token stesso, che attesta che la chiave è stata generata su di esso: con il client desktop (Registra un certificato, poi Aggiungi una carta o un token…), il telefono o alcifra. Qui vede cosa è registrato per lei.</value>
   </data>
   <data name="EnrolYourCertificates" xml:space="preserve">
     <value>I suoi certificati registrati</value>

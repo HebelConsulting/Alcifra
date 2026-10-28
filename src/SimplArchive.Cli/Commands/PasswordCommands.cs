@@ -48,7 +48,7 @@ public sealed class PasswordStoreCreateCommand(ILogger<PasswordStoreCreateComman
             logger.LogInformation("Password store {Name} already exists; unchanged.", settings.Name);
         }
 
-        // Data output (ADR 0906): the id alone on stdout, for `id=$(saconsole passwords store create …)`.
+        // Data output (ADR 0906): the id alone on stdout, for `id=$(alcifra passwords store create …)`.
         Console.Out.WriteLine(id.ToString("D"));
         return 0;
     }
@@ -125,7 +125,7 @@ public sealed class PasswordEntryCreateSettings : TenantSessionSettings
         _ when !Guid.TryParse(Store, out _) => ValidationResult.Error("Name the store with --store <ID>."),
         _ when string.IsNullOrWhiteSpace(Name) => ValidationResult.Error("Give the entry a --name <NAME>."),
         _ when !PasswordFromStdin => ValidationResult.Error(
-            "The password is read from stdin only: pass --password-stdin and pipe it in (printf '%s' \"$value\" | saconsole …)."),
+            "The password is read from stdin only: pass --password-stdin and pipe it in (printf '%s' \"$value\" | alcifra …)."),
         _ => ValidationResult.Success(),
     };
 }
@@ -176,6 +176,6 @@ internal static class PasswordInput
         var read = (await input.ReadToEndAsync(cancellationToken)).TrimEnd('\r', '\n');
         return read.Length > 0
             ? read
-            : throw new CliException("No password arrived on stdin. Pipe it in: printf '%s' \"$value\" | saconsole passwords entry create …");
+            : throw new CliException("No password arrived on stdin. Pipe it in: printf '%s' \"$value\" | alcifra passwords entry create …");
     }
 }

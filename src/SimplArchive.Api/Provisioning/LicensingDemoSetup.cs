@@ -4,7 +4,7 @@ namespace SimplArchive.Api.Provisioning;
 /// The Licensing Module demo's repositories and its unattended setup principal (ADR 0901), the same shape as Flight
 /// School's (ADR 0894): <i>Customers</i>, <i>Packages</i> and an Administration repository for the module's own licence, and an account that may activate modules and holds every
 /// right on those two repositories and nothing else. The module's demo seed then assigns the register masks, files the
-/// licence, sets the signing key and grants the module's principal, all through <c>saconsole</c> and followed rels.
+/// licence, sets the signing key and grants the module's principal, all through <c>alcifra</c> and followed rels.
 /// </summary>
 /// <remarks>A no-op unless <c>LicensingDemo:ServiceAccount:ClientId</c>/<c>ClientSecret</c> are configured, which only
 /// the module's local demo does.</remarks>

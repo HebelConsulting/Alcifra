@@ -12,7 +12,7 @@ using SimplArchive.Messenger.Client;
 namespace SimplArchive.ApiClient.PasswordStore;
 
 /// <summary>
-/// The password store, UI-free, for the phone now and the desktop and <c>sapass</c> later (ADR 0964): browse by the rels
+/// The password store, UI-free, for the phone now and the desktop and <c>apass</c> later (ADR 0964): browse by the rels
 /// the server advertises, open an entry with the host's key, and seal every change on the device to the store's readers.
 /// </summary>
 /// <remarks>

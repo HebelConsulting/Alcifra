@@ -5,24 +5,24 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 
-// saconsole — administrative CLI for a SimplArchive installation (ADR 0822). An API client and nothing else:
+// alcifra — administrative CLI for a SimplArchive installation (ADR 0822). An API client and nothing else:
 // it does not write configuration, seed secrets or start containers, and everything it does is an act some
 // principal could also perform through a client.
 namespace SimplArchive.Cli;
 
 /// <summary>
-/// Builds the configured <c>saconsole</c> application.
+/// Builds the configured <c>alcifra</c> application.
 /// </summary>
 /// <remarks>
 /// Its own type rather than top-level statements so the wiring can be EXERCISED. The property that needed a
 /// test is not which verbs exist but where errors are written: `login` prints shell exports to stdout for
-/// `eval "$(saconsole login …)"`, so anything else on stdout is something the shell will execute. An
+/// `eval "$(alcifra login …)"`, so anything else on stdout is something the shell will execute. An
 /// unreachable installation once put `Unexpected SocketException: Connection refused` there.
 /// </remarks>
 public static class SaConsoleApp
 {
     /// <summary>
-    /// Runs saconsole: the logger lives exactly as long as the command, and is disposed before the process exits so its
+    /// Runs alcifra: the logger lives exactly as long as the command, and is disposed before the process exits so its
     /// background writer flushes (ADR 0906, #1661). <c>--verbose</c> is taken out of the arguments before parsing: it is
     /// a property of the output, not of any command.
     /// </summary>
@@ -41,13 +41,13 @@ public static class SaConsoleApp
         var app = new CommandApp(new TypeRegistrar(services));
         app.Configure(config =>
         {
-            config.SetApplicationName("saconsole");
+            config.SetApplicationName("alcifra");
 
-            // EVERY error goes to STDERR, and that is load-bearing rather than tidy. `saconsole login` prints shell
-            // exports to stdout so it can be used as `eval "$(saconsole login --url …)"` — so an error written to
+            // EVERY error goes to STDERR, and that is load-bearing rather than tidy. `alcifra login` prints shell
+            // exports to stdout so it can be used as `eval "$(alcifra login --url …)"` — so an error written to
             // stdout is an error the shell EXECUTES. Measured before this was fixed: an unreachable installation put
             // `Unexpected SocketException: Connection refused` on stdout, where eval would have run it.
-            var errors = logging.CreateLogger("saconsole");
+            var errors = logging.CreateLogger("alcifra");
 
             // Four kinds of failure, told apart because calling them all the same thing is how a tool starts lying
             // about what went wrong.
@@ -170,7 +170,7 @@ public static class SaConsoleApp
 
             // The intray's recovery path (#799). The bytes an overwrite set aside have been preserved since
             // #794 and were reachable only by going into object storage by hand; this is the way back, and it
-            // is here rather than in the two user interfaces because saconsole is a client too — an endpoint
+            // is here rather than in the two user interfaces because alcifra is a client too — an endpoint
             // it reaches by following a rel is complete, not a gap waiting for a button.
             config.AddBranch("intray", intray =>
             {
@@ -264,7 +264,7 @@ public static class SaConsoleApp
                         .WithDescription("Report a store's sealing state and contents by name; entry names go to stdout. Nothing is opened.");
                     store.AddBranch("audience", audience =>
                     {
-                        audience.SetDescription("Who a store is encrypted for (ADR 0983); once people manage it, they change it in sapass or the clients.");
+                        audience.SetDescription("Who a store is encrypted for (ADR 0983); once people manage it, they change it in apass or the clients.");
                         audience.AddCommand<PasswordStoreAudienceShowCommand>("show")
                             .WithDescription("List the store's audience, one member per line on stdout, with their role.");
                         audience.AddCommand<PasswordStoreAudienceSetCommand>("set")

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace SimplArchive.EndToEndTests;
 
-// The device authorization grant end to end (RFC 8628, ADR 0823): saconsole asks for a code on a machine with
+// The device authorization grant end to end (RFC 8628, ADR 0823): alcifra asks for a code on a machine with
 // no browser, a PERSON answers at /connect/verify, and only then does the waiting tool get a token.
 //
 // It is driven the whole way — device endpoint, the pending poll, the browser redirect to sign in, the real
@@ -51,7 +51,7 @@ public class DeviceAuthorizationFlowTests
 
         // What the page names: the code (so it can be compared with the terminal), the client, the account.
         Assert.Contains(userCode, html, StringComparison.Ordinal);
-        Assert.Contains("saconsole", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("alcifra", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(email, html, StringComparison.OrdinalIgnoreCase);
 
         var approved = await SubmitAsync(browser, html, "Approve", userCode);

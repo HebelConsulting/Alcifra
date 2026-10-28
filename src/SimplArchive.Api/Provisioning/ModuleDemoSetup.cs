@@ -10,7 +10,7 @@ namespace SimplArchive.Api.Provisioning;
 /// <summary>
 /// A module demo's repositories and the unattended principal that sets them up (ADR 0894's shape, generalised for the
 /// Licensing Module's demo, ADR 0901): one narrow service account with full rights on exactly those repositories and
-/// the system rights the caller names, everything else done through <c>saconsole</c>. A no-op unless
+/// the system rights the caller names, everything else done through <c>alcifra</c>. A no-op unless
 /// <c>{section}:ServiceAccount:ClientId</c>/<c>ClientSecret</c> are configured.
 /// </summary>
 /// <remarks>Flight School and Licensing differ only in data (the repositories, the system rights) and in Flight

@@ -6,8 +6,8 @@ using SimplArchive.Cli.Infrastructure;
 
 namespace SimplArchive.EndToEndTests;
 
-// `saconsole messenger … --as` (core #1813, ADR 0947): the CLI's own impersonation path against a real server — the
-// root's `users`, the row's `impersonate` rel, and the token exchange with the saconsole client, whose registration
+// `alcifra messenger … --as` (core #1813, ADR 0947): the CLI's own impersonation path against a real server — the
+// root's `users`, the row's `impersonate` rel, and the token exchange with the alcifra client, whose registration
 // now carries the grant. What the token then does is ordinary API work, already covered elsewhere.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-1")]

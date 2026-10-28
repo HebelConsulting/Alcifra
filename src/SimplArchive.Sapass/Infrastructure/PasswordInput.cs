@@ -14,7 +14,7 @@ internal static class PasswordInput
             var read = (await Console.In.ReadToEndAsync(cancellationToken)).TrimEnd('\r', '\n');
             return read.Length > 0
                 ? read
-                : throw new SapassException("No password arrived on stdin. Pipe it in: printf '%s' \"$pw\" | sapass insert …");
+                : throw new SapassException("No password arrived on stdin. Pipe it in: printf '%s' \"$pw\" | apass insert …");
         }
 
         var first = SecretInput.ReadHidden("Password:");

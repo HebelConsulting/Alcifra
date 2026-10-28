@@ -69,7 +69,7 @@ public class LogoutModel(
     /// <para>
     /// <b>That client's sessions, not every session</b> (owner, 2026-10-05). This page is the WEB client's
     /// sign-out, so it revokes what was issued to <c>blazor-client</c> for this user — every browser they are signed
-    /// in with — and leaves the desktop and saconsole alone. The desktop ends its own through the revocation
+    /// in with — and leaves the desktop and alcifra alone. The desktop ends its own through the revocation
     /// endpoint. There is no bearer token to revoke "the one being ended" by: this is a plain browser GET.
     /// </para>
     /// </remarks>

@@ -14,7 +14,7 @@ namespace SimplArchive.BrowserHost;
 /// <remarks>
 /// <para>
 /// <b>Why a bridge at all.</b> A browser spawns its host as a new process with no arguments and no user present.
-/// sapass can sign in from the environment; the DESKTOP's session lives in the desktop process (an in-memory OIDC
+/// apass can sign in from the environment; the DESKTOP's session lives in the desktop process (an in-memory OIDC
 /// token, a card session keyed by token serial), so a spawned desktop process would be a second, signless client.
 /// The desktop registers a launcher for its shim, and the shim forwards the protocol to this bridge on the running
 /// app — which owns the session, the card and the PIN dialog (ADR 0978).

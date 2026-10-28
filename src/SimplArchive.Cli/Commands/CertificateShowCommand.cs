@@ -45,7 +45,7 @@ public sealed class CertificateShowCommand(ILogger<CertificateShowCommand> logge
             table.AddRow("Certificate", "none registered");
             logger.LogInformation("{Table}", CliLogging.Render(table));
             logger.LogInformation(
-                "Register one with: saconsole me certificate register <file> (the public certificate, never a private key).");
+                "Register one with: alcifra me certificate register <file> (the public certificate, never a private key).");
             return 0;
         }
 

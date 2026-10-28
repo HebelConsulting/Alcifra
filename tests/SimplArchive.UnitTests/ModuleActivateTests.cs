@@ -6,7 +6,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.UnitTests;
 
 /// <summary>
-/// `saconsole module activate` (#1474): what it refuses before filing anything, and how it splits a licence's
+/// `alcifra module activate` (#1474): what it refuses before filing anything, and how it splits a licence's
 /// modules against the ones an installation actually carries.
 /// </summary>
 /// <remarks>

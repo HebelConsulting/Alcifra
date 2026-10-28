@@ -3,7 +3,7 @@ using SimplArchive.Cli.Commands;
 
 namespace SimplArchive.UnitTests;
 
-// `saconsole certificates list` reads what the server answers. The core answers a bare array (ADR 0936); found live
+// `alcifra certificates list` reads what the server answers. The core answers a bare array (ADR 0936); found live
 // (Messenger demo, 2026-10-16) the command still expected the Encryption Module's wrapped shape and failed with
 // "requires an element of type 'Object'". Either shape is read, so an older installation still lists.
 public class CertificateListRowsTests

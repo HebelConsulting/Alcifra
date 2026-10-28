@@ -254,7 +254,7 @@ public class ContentAudienceController(
     }
 
     /// <summary>
-    /// UNATTENDED SEEDING (owner decision 2026-10-26): a service account — saconsole's seeding, which has no person to
+    /// UNATTENDED SEEDING (owner decision 2026-10-26): a service account — alcifra's seeding, which has no person to
     /// name (ADR 0966) — writes the whole audience of an item no person manages yet, given the right to manage its
     /// permissions. It is never a member or a manager itself; once the audience names a manager, only managers change it.
     /// </summary>

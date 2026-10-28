@@ -30,7 +30,7 @@ namespace SimplArchive.UnitTests;
 /// deliberate one. The login line needs no carve-out: it prints a <c>token</c>, deliberately not a secret word.
 /// <b>But the CALL pattern had a hole</b> (#1644): it matched <c>Console.Error.WriteLine</c> and not
 /// <c>Console.Out.WriteLine</c>, so <c>Console.Out.WriteLine(secret)</c>, a one-time credential in a draft of
-/// <c>saconsole module action</c>, passed unseen. Both streams are matched now, and the planted case below holds it.
+/// <c>alcifra module action</c>, passed unseen. Both streams are matched now, and the planted case below holds it.
 /// </para>
 /// </remarks>
 public class NoSecretReachesALogTests
@@ -108,12 +108,12 @@ public class NoSecretReachesALogTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <c>saconsole tenant create</c> prints the initial administrator password. The Api generates it once and
+    /// <c>alcifra tenant create</c> prints the initial administrator password. The Api generates it once and
     /// stores nothing retrievable, so a caller who loses it must reset rather than look it up — printing it
     /// IS the hand-off, and the code says so beside the line.
     /// </para>
     /// <para>
-    /// A second entry here is a conversation, not an edit. (<c>saconsole login</c>'s session export needs none: it
+    /// A second entry here is a conversation, not an edit. (<c>alcifra login</c>'s session export needs none: it
     /// prints a <c>token</c>, which this guard deliberately does not treat as a secret word — see
     /// <see cref="SecretWords"/>.)
     /// </para>
@@ -123,10 +123,10 @@ public class NoSecretReachesALogTests
         ["src/SimplArchive.Cli/Commands/TenantCreateCommand.cs"] =
             "the bootstrap password hand-off: generated once, stored nowhere retrievable, and announced as such",
         ["src/SimplArchive.Sapass/Commands/ShowCommand.cs"] =
-            "the tool's DATA output (ADR 0906): `sapass show` prints the entry's password on stdout — the whole "
-            + "point of the command, pass's contract, and what `sapass show x | head -1` captures (ADR 0964)",
+            "the tool's DATA output (ADR 0906): `apass show` prints the entry's password on stdout — the whole "
+            + "point of the command, pass's contract, and what `apass show x | head -1` captures (ADR 0964)",
         ["src/SimplArchive.Sapass/Commands/GenerateCommand.cs"] =
-            "the generated secret's one and only sighting: `sapass generate` prints the password it filed, because "
+            "the generated secret's one and only sighting: `apass generate` prints the password it filed, because "
             + "it exists nowhere the user can read it afterwards (the stored copy needs the card)",
     };
 

@@ -8,7 +8,7 @@ namespace SimplArchive.Api.Provisioning;
 /// </summary>
 /// <remarks>
 /// The sequence in one place rather than four calls in <c>Program.cs</c>, which the 1000-line guard had reached
-/// exactly when sapass's client joined it. Each seeder owns its own descriptor and its own healing; this only says
+/// exactly when apass's client joined it. Each seeder owns its own descriptor and its own healing; this only says
 /// WHICH clients exist and in what order they are ensured.
 /// </remarks>
 public static class PublicClientsSeed

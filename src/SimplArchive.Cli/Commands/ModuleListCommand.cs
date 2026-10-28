@@ -10,7 +10,7 @@ namespace SimplArchive.Cli.Commands;
 /// </summary>
 /// <remarks>
 /// <b>It was already promised and did not exist.</b> <c>module rebuild</c>'s own refusal says
-/// <i>"List them: saconsole module list"</i> — a command that was never registered, so an operator who
+/// <i>"List them: alcifra module list"</i> — a command that was never registered, so an operator who
 /// mistyped a module id was sent to a second error. Every other command here needs a module id too, and
 /// nothing told anybody what the ids are.
 /// </remarks>

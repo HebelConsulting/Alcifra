@@ -17,7 +17,7 @@ public sealed record AutofillSave(Guid? EntryId, string Site, string UserName, s
 public sealed record AutofillSaved(Guid Id, string Name, string Path);
 
 /// <summary>
-/// What the host needs from a password store. Implemented by sapass today and by the desktop when it gains a host
+/// What the host needs from a password store. Implemented by apass today and by the desktop when it gains a host
 /// mode; the protocol above does not know which client is answering.
 /// </summary>
 public interface IAutofillStore

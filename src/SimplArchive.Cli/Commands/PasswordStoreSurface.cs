@@ -72,7 +72,7 @@ public static class PasswordStoreSurface
         var store = stores.FirstOrDefault(s => s.Id == storeId)
             ?? throw new CliException(
                 $"No password store {storeId:D} is visible to the signed-in principal. It needs at least the right to "
-                + "see the store; 'saconsole passwords store create' prints a store's id.");
+                + "see the store; 'alcifra passwords store create' prints a store's id.");
         return await Translated(() => client.GetFolderAsync(store.Href, cancellationToken));
     }
 
@@ -133,7 +133,7 @@ public static class PasswordStoreSurface
         $"Nothing can be sealed to '{storeName}': none of its readers holds an enrolled reader certificate, so an entry "
         + "would be readable by nobody. "
         + (readersWithoutCertificate.Count == 0
-            ? "It has no readers at all: grant users read on it first (saconsole acl set/grant)."
+            ? "It has no readers at all: grant users read on it first (alcifra acl set/grant)."
             : $"Readers without a certificate: {string.Join(", ", readersWithoutCertificate.Select(r => r.DisplayName))}. "
               + "Enrol a certificate for at least one of them first.");
 

@@ -7,7 +7,7 @@ using SimplArchive.Sapass.Infrastructure;
 namespace SimplArchive.EndToEndTests;
 
 // Store names parent-qualified as the DAV collections are (ADR 0619): two shared stores may share a name in different
-// folders, and each must read differently in the list, in the store's own resource, and to sapass's --store. And a
+// folders, and each must read differently in the list, in the store's own resource, and to apass's --store. And a
 // tenant administrator who sees another user's My Passwords through the personal-space x-ray (ADR 0670) is no longer
 // LISTED it: the list holds only what the caller can decrypt (ADR 0983), which is what ended crypt@'s two "My Passwords".
 public sealed partial class PasswordStoreTests
@@ -50,7 +50,7 @@ public sealed partial class PasswordStoreTests
         var folder = await rig.Anna.Client.CreateFolderAsync(atRoot, "Mail");
         Assert.Equal("Mail", folder.Label);
 
-        // sapass: the full name always, the plain name only where it is unique (or the caller's own).
+        // apass: the full name always, the plain name only where it is unique (or the caller's own).
         using var session = Session.Over(rig.Admin);
         var catalog = new StoreCatalog(session);
         Assert.Equal(inFolder, (await catalog.StoreAsync("Ops / Team", CancellationToken.None)).Id);

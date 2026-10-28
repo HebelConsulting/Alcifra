@@ -3,7 +3,7 @@ using OpenIddict.Abstractions;
 namespace SimplArchive.Api.Provisioning;
 
 /// <summary>
-/// Seeds the OpenIddict client for <c>saconsole</c>, the administrative CLI (ADRs 0822/0823).
+/// Seeds the OpenIddict client for <c>alcifra</c>, the administrative CLI (ADRs 0822/0823).
 /// </summary>
 /// <remarks>
 /// Its own file rather than another block in <c>Program.cs</c>: adding it inline took that file to 1019 lines
@@ -16,7 +16,7 @@ public static class SaConsoleClientSeeder
 
     /// <summary>
     /// The RFC 8693 token exchange, for acting as another user (ADR "User impersonation"): how an administrator moves a
-    /// user's Messenger conversations with <c>saconsole messenger … --as</c> (core #1813, ADR 0947). The grant alone
+    /// user's Messenger conversations with <c>alcifra messenger … --as</c> (core #1813, ADR 0947). The grant alone
     /// allows nothing — the token endpoint still requires the caller's CanImpersonate right, refuses an administrator
     /// as the target, and records every act as done on behalf.
     /// </summary>
@@ -53,7 +53,7 @@ public static class SaConsoleClientSeeder
             // Explicit, NOT implicit consent: a device grant hands a token to a machine the approving person
             // may not be sitting at, so the approval has to be an act rather than an inference.
             ConsentType = OpenIddictConstants.ConsentTypes.Explicit,
-            DisplayName = $"{SimplArchive.Localization.Strings.ProductName} administrative CLI (saconsole)",
+            DisplayName = $"{SimplArchive.Localization.Strings.ProductName} administrative CLI (alcifra)",
             Permissions =
             {
                 // No verification-endpoint permission exists, and that is not an omission: enumerated from the

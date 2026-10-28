@@ -18,7 +18,7 @@ namespace SimplArchive.EndToEndTests;
 /// <remarks>
 /// <para>
 /// The rest of this suite calls endpoints by composed URL, on purpose: it tests behaviour. That is exactly why it
-/// cannot see a MISSING rel; it just calls the endpoint. Only rel-following consumers (the clients, saconsole, the
+/// cannot see a MISSING rel; it just calls the endpoint. Only rel-following consumers (the clients, alcifra, the
 /// demo seeders) exercise reachability, and they are what kept finding these defects: a pilot never offered
 /// <i>Sign</i>, nothing fileable into a module's exclusive folder.
 /// </para>

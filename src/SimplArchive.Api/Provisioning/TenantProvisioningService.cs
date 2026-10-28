@@ -154,7 +154,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         // Every system right and the ACL bypass, from the one list a further administrator gets too (#1241).
         TenantAdministratorRights.GrantAll(administrator);
 
-        // A SUPPLIED password is chosen, so the policy applies (#849) — `saconsole tenant create` passes one.
+        // A SUPPLIED password is chosen, so the policy applies (#849) — `alcifra tenant create` passes one.
         // The generated fallback is 18 random bytes and passes trivially, so it is validated too rather than
         // excluded: an exception in the guard is a thing somebody later has to decide is still true.
         var password = administratorPassword ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(18));

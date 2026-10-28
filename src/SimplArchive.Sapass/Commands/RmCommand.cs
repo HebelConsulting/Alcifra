@@ -13,7 +13,7 @@ public sealed class RmSettings : StoreSettings
     public string Entry { get; init; } = string.Empty;
 
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(Entry)
-        ? ValidationResult.Error("Name the entry: sapass rm Mail/Banking.")
+        ? ValidationResult.Error("Name the entry: apass rm Mail/Banking.")
         : ValidationResult.Success();
 }
 

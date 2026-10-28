@@ -58,7 +58,7 @@ public sealed class UserCreateCommand(ILogger<UserCreateCommand> logger) : Async
             logger.LogInformation("Created user {Email}.", settings.Email);
         }
 
-        // Data output (ADR 0906): the id alone on stdout, for `id=$(saconsole user create …)`.
+        // Data output (ADR 0906): the id alone on stdout, for `id=$(alcifra user create …)`.
         Console.Out.WriteLine(id);
         return 0;
     }

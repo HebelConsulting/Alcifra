@@ -4,7 +4,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.UnitTests;
 
 /// <summary>
-/// The CA manifest saconsole imports in bulk (#1501) — its literal wire shape, and the refusals.
+/// The CA manifest alcifra imports in bulk (#1501) — its literal wire shape, and the refusals.
 /// </summary>
 /// <remarks>
 /// <para>

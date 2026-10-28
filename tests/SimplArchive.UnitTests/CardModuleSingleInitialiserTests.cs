@@ -21,7 +21,7 @@ namespace SimplArchive.UnitTests;
 public partial class CardModuleSingleInitialiserTests
 {
     // THE one initialiser. Everything that needs the card goes through this class's gate. Root-relative since
-    // 2026-10-25, when the card code moved to its own leaf project (sapass reaches the same key through it).
+    // 2026-10-25, when the card code moved to its own leaf project (apass reaches the same key through it).
     private const string TheModule = "src/SimplArchive.HardwareKeys/CardModule.cs";
 
     // Sites that construct a library of their own and are safe ANYWAY, each with the reason — and the reason

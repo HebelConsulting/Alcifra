@@ -4,7 +4,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.UnitTests;
 
 /// <summary>
-/// The vocabulary <c>saconsole acl</c> speaks (#1504).
+/// The vocabulary <c>alcifra acl</c> speaks (#1504).
 /// </summary>
 /// <remarks>
 /// Pinned here rather than end to end because it is pure: an end-to-end run would exercise one combination

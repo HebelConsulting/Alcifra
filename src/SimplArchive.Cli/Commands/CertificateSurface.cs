@@ -40,6 +40,6 @@ internal static class CertificateSurface
 
         throw new CliException(
             "This installation does not offer certificate enrolment for this tenant: no active module licenses it. "
-            + "File the Encryption Module's licence first: saconsole module activate.");
+            + "File the Encryption Module's licence first: alcifra module activate.");
     }
 }

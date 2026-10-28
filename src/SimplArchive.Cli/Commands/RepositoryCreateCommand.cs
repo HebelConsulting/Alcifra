@@ -26,7 +26,7 @@ public sealed class RepositoryCreateSettings : TenantSessionSettings
 /// different repository, and guessing would file into the wrong one.
 /// </para>
 /// <para>
-/// <b>The id alone goes to stdout</b>, so <c>id=$(saconsole repository create --name …)</c> works; what a person
+/// <b>The id alone goes to stdout</b>, so <c>id=$(alcifra repository create --name …)</c> works; what a person
 /// reads goes to stderr, the split <c>login</c> established.
 /// </para>
 /// <para>
@@ -52,7 +52,7 @@ public sealed class RepositoryCreateCommand(ILogger<RepositoryCreateCommand> log
             logger.LogInformation("Repository {Name} already exists.", settings.Name);
         }
 
-        // Data output (ADR 0906): the id alone on stdout, for `id=$(saconsole repository create …)`.
+        // Data output (ADR 0906): the id alone on stdout, for `id=$(alcifra repository create …)`.
         Console.Out.WriteLine(id.ToString("D"));
         return 0;
     }

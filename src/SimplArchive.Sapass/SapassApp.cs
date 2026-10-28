@@ -12,7 +12,7 @@ using Spectre.Console.Cli;
 namespace SimplArchive.Sapass;
 
 /// <summary>
-/// Builds and runs <c>sapass</c> — a pass-like password store in a terminal, sealed on the machine and opened only
+/// Builds and runs <c>apass</c> — a pass-like password store in a terminal, sealed on the machine and opened only
 /// with the hardware key (ADR 0964).
 /// </summary>
 /// <remarks>
@@ -34,7 +34,7 @@ public static class SapassApp
         var verbose = args.Contains(PlainConsoleLogging.VerboseFlag, StringComparer.Ordinal);
         using var logging = PlainConsoleLogging.CreateFactory(verbose);
         SapassLog.Factory = logging;
-        ApiClientSettings.Logger = logging.CreateLogger("sapass");
+        ApiClientSettings.Logger = logging.CreateLogger("apass");
 
         // The PIN prompt is a property the host assigns (ADR 0730): the card code cannot own a terminal dialog,
         // and a tool that is not at a terminal declines rather than writing a prompt into a pipe.
@@ -57,7 +57,7 @@ public static class SapassApp
         var app = new CommandApp();
         app.Configure(config =>
         {
-            config.SetApplicationName("sapass");
+            config.SetApplicationName("apass");
             config.SetExceptionHandler((exception, _) => Fail(logging, exception));
 
             config.AddCommand<LoginCommand>("login")
@@ -86,7 +86,7 @@ public static class SapassApp
             {
                 browser.SetDescription("Browser autofill: register this tool as the browser's host.");
                 browser.AddCommand<BrowserInstallCommand>("install")
-                    .WithDescription("Register sapass as the autofill host for Chrome or Edge.");
+                    .WithDescription("Register apass as the autofill host for Chrome or Edge.");
             });
         });
 
@@ -96,7 +96,7 @@ public static class SapassApp
     /// <summary>Four kinds of failure, told apart — calling them all "an error" is how a tool starts lying.</summary>
     private static int Fail(ILoggerFactory logging, Exception exception)
     {
-        var log = logging.CreateLogger("sapass");
+        var log = logging.CreateLogger("apass");
         switch (exception)
         {
             case SapassException e:

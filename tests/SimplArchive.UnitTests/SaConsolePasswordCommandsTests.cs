@@ -10,7 +10,7 @@ using Spectre.Console.Cli;
 namespace SimplArchive.UnitTests;
 
 /// <summary>
-/// <c>saconsole passwords</c> (ADR 0966): the secret arrives on stdin only, a re-run writes nothing, and nothing is
+/// <c>alcifra passwords</c> (ADR 0966): the secret arrives on stdin only, a re-run writes nothing, and nothing is
 /// created that nobody could read. The fake server answers as the real one does for a service account.
 /// </summary>
 public sealed class SaConsolePasswordCommandsTests

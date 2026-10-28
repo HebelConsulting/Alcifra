@@ -22,7 +22,7 @@ namespace SimplArchive.Cli.Commands;
 /// <para>
 /// <b>The stdout/stderr split is what makes this usable</b> and is not a stylistic choice: the exports go to
 /// STDOUT and everything a person reads — the code, the URL, the progress, the confirmation — goes to STDERR.
-/// That is what lets <c>eval "$(saconsole login --url …)"</c> work while the administrator still sees the
+/// That is what lets <c>eval "$(alcifra login --url …)"</c> work while the administrator still sees the
 /// code they have to approve. Printing the prompt to stdout would have `eval` try to execute it.
 /// </para>
 /// <para>
@@ -97,7 +97,7 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
             return 0;
         }
 
-        logger.LogInformation("Run the exports below, or wrap the command in: eval \"$(saconsole login --url …)\"");
+        logger.LogInformation("Run the exports below, or wrap the command in: eval \"$(alcifra login --url …)\"");
 
         // STDOUT, and only this. Single-quoted so a URL with shell metacharacters cannot be re-interpreted;
         // neither value can contain a single quote (one is a bearer token, the other a URL we just used).

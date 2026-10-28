@@ -6,7 +6,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.UnitTests;
 
 /// <summary>
-/// saconsole's module commands reach the collection from the ROOT, so a service account administering modules can
+/// alcifra's module commands reach the collection from the ROOT, so a service account administering modules can
 /// (ADR 0870).
 /// </summary>
 /// <remarks>

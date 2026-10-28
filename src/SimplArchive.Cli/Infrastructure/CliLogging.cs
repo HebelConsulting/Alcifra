@@ -7,7 +7,7 @@ using Spectre.Console.Rendering;
 namespace SimplArchive.Cli.Infrastructure;
 
 /// <summary>
-/// saconsole's Spectre-specific output helpers. The logger itself (stderr, plain lines, <c>--verbose</c>) is the shared
+/// alcifra's Spectre-specific output helpers. The logger itself (stderr, plain lines, <c>--verbose</c>) is the shared
 /// <see cref="PlainConsoleLogging"/> every console program uses (ADRs 0906/0911, #1661); what stays here is what only a
 /// Spectre program needs.
 /// </summary>

@@ -4,7 +4,7 @@ using SimplArchive.BrowserHost;
 namespace SimplArchive.Sapass.Infrastructure;
 
 /// <summary>
-/// The browser host's password store, as sapass sees it: every store the signed-in user may read, matched on the
+/// The browser host's password store, as apass sees it: every store the signed-in user may read, matched on the
 /// indexed site (ADR 0973), opened with the card, saved to My Passwords.
 /// </summary>
 /// <remarks>

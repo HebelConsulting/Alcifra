@@ -23,7 +23,7 @@ namespace SimplArchive.Api.Controllers;
 /// </para>
 /// <para>
 /// <b>Reached by a REL from the intray resource</b>, and therefore available to every client including
-/// <c>saconsole</c> — which is a client (ADR 0543; its own csproj says so), so an endpoint it reaches by
+/// <c>alcifra</c> — which is a client (ADR 0543; its own csproj says so), so an endpoint it reaches by
 /// following a rel is complete, not a gap waiting for a user interface. The clients may grow a button later;
 /// the recovery path does not depend on that.
 /// </para>

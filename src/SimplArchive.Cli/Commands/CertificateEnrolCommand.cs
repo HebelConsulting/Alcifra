@@ -46,7 +46,7 @@ public sealed class CertificateEnrolSettings : TenantSessionSettings
 /// </para>
 /// <para>
 /// This is the READER certificate documents are addressed to, not the self-service mail certificate
-/// <c>saconsole me certificate register</c> writes. Two stores; this is the one content delivery uses.
+/// <c>alcifra me certificate register</c> writes. Two stores; this is the one content delivery uses.
 /// </para>
 /// </remarks>
 public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> logger) : AsyncCommand<CertificateEnrolSettings>
@@ -81,7 +81,7 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
                 "Enrolled {Certificate} (serial {Serial}), {Attestation}. {Effect}",
                 label ?? "the certificate", serial is { Length: > 0 } ? serial : "none", state ?? "attestation not reported",
                 enrolled.TryGetProperty("usable", out var usable) && usable.ValueKind == System.Text.Json.JsonValueKind.False
-                    ? "It does NOT address its holder here (see saconsole certificates list)."
+                    ? "It does NOT address its holder here (see alcifra certificates list)."
                     : "Content addressed to this reader is now enveloped to it as well.");
 
             return 0;

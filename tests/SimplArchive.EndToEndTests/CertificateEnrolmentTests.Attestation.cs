@@ -11,7 +11,7 @@ using SimplArchive.TestSupport;
 
 namespace SimplArchive.EndToEndTests;
 
-// Attested enrolment end to end (#1790, ADR 0963): the platform administrator's roots (API and saconsole, If-Match), a
+// Attested enrolment end to end (#1790, ADR 0963): the platform administrator's roots (API and alcifra, If-Match), a
 // tenant's selection (one PUT under the tenant's tag), the enrolment door's named refusals, the way back for a key enrolled
 // without its attestation, and the reader answer following every switch at once. Each test uploads its OWN test root, so
 // the installation-wide table is shared without one test's switch reaching another's.
@@ -142,7 +142,7 @@ public partial class CertificateEnrolmentTests
             Assert.True(enrolled.GetProperty("usable").GetBoolean());
             Assert.Equal(1, await ReaderCountAsync(rig.Member));
 
-            // The tenant switches the root off with saconsole: one PUT of the whole list under the tenant's tag.
+            // The tenant switches the root off with alcifra: one PUT of the whole list under the tenant's tag.
             var admin = new SimplArchiveApi(rig.Admin);
             var rootId = root.GetProperty("id").GetString()!;
             var selection = await TenantAttestationRootSurface.SwitchAsync(admin, rootId, off: true, CancellationToken.None);

@@ -63,7 +63,7 @@ public static class AttestationRootCatalogueSeeder
             throw new InvalidOperationException(
                 $"Refusing to start in the '{environment.EnvironmentName}' environment: the development test attestation root "
                 + $"(catalogue key {AttestationCatalogue.TestRootKey}) is trusted, so any key its generator chooses would count as "
-                + "hardware-attested. Switch it off (saconsole attestation-roots disable) or run with ASPNETCORE_ENVIRONMENT=Development.");
+                + "hardware-attested. Switch it off (alcifra attestation-roots disable) or run with ASPNETCORE_ENVIRONMENT=Development.");
         }
     }
 

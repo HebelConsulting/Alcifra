@@ -6112,7 +6112,7 @@
     <value>Diese Organisation hat noch kein Wiederherstellungszertifikat für Offline-Exporte, deshalb kann keiner erstellt werden. Bitten Sie eine Mandantenadministratorin oder einen Mandantenadministrator, eines festzulegen.</value>
   </data>
   <data name="EnrolWebPointer" xml:space="preserve">
-    <value>Leserzertifikate werden vom Token selbst registriert, der belegt, dass der Schlüssel auf ihm erzeugt wurde: mit dem Desktop-Client (Zertifikat hinterlegen, dann Karte oder Token hinzufügen…), dem Telefon oder saconsole. Hier sehen Sie, was für Sie registriert ist.</value>
+    <value>Leserzertifikate werden vom Token selbst registriert, der belegt, dass der Schlüssel auf ihm erzeugt wurde: mit dem Desktop-Client (Zertifikat hinterlegen, dann Karte oder Token hinzufügen…), dem Telefon oder alcifra. Hier sehen Sie, was für Sie registriert ist.</value>
   </data>
   <data name="EnrolYourCertificates" xml:space="preserve">
     <value>Ihre registrierten Zertifikate</value>

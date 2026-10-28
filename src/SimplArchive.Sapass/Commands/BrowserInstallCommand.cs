@@ -16,8 +16,8 @@ public sealed class BrowserInstallSettings : CommandSettings
     [Description("The extension's id, shown by the browser when the unpacked extension is loaded (chrome://extensions).")]
     public string ExtensionId { get; init; } = string.Empty;
 
-    [CommandOption("--sapass <PATH>")]
-    [Description("The sapass executable the host launcher runs. Defaults to this one.")]
+    [CommandOption("--apass <PATH>")]
+    [Description("The apass executable the host launcher runs. Defaults to this one.")]
     public string? SapassPath { get; init; }
 
     public override ValidationResult Validate() => this switch
@@ -30,8 +30,8 @@ public sealed class BrowserInstallSettings : CommandSettings
 }
 
 /// <summary>
-/// Registers sapass as an autofill host for Chrome or Edge: the launcher and manifest a browser's native messaging
-/// needs, under sapass's own host name (ADR 0978).
+/// Registers apass as an autofill host for Chrome or Edge: the launcher and manifest a browser's native messaging
+/// needs, under its own host name, `sapass` (ADR 0978).
 /// </summary>
 /// <remarks>
 /// The desktop registers its OWN name the same way, so both can be installed and the extension tries the desktop
@@ -42,13 +42,13 @@ public sealed class BrowserInstallCommand(ILogger<BrowserInstallCommand> logger)
 {
     protected override int Execute(CommandContext context, BrowserInstallSettings settings, CancellationToken cancellationToken)
     {
-        var sapass = settings.SapassPath is { Length: > 0 } given ? given : Environment.ProcessPath
-            ?? throw new InvalidOperationException("Cannot tell this tool's own path; pass --sapass <PATH>.");
+        var apass = settings.SapassPath is { Length: > 0 } given ? given : Environment.ProcessPath
+            ?? throw new InvalidOperationException("Cannot tell this tool's own path; pass --apass <PATH>.");
 
         var launcher = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "sapass",
             OperatingSystem.IsWindows() ? "browser-host.cmd" : "browser-host");
-        HostRegistration.WriteLauncher(launcher, sapass, "__browser-host");
+        HostRegistration.WriteLauncher(launcher, apass, "__browser-host");
 
         var result = HostRegistration.Install(settings.Browser, "sapass", settings.ExtensionId, launcher, logger);
         logger.LogInformation("Launcher: {Launcher}", result.LauncherPath);

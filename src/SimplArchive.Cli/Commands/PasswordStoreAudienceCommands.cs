@@ -71,7 +71,7 @@ public sealed class PasswordStoreAudienceSetSettings : TenantSessionSettings
 /// <summary>
 /// Replaces who a store is encrypted for (ADR 0983), by name: the managers, the members and the groups, as one list.
 /// For a store NOBODY manages yet — the one a seed just created (ADR 0966) — a service account may do this unattended;
-/// afterwards only its managers change it (in sapass or the clients, which re-seal). Every name must read the store.
+/// afterwards only its managers change it (in apass or the clients, which re-seal). Every name must read the store.
 /// </summary>
 /// <remarks>Run BEFORE filing entries: what is filed is sealed to the audience as it is then.</remarks>
 public sealed class PasswordStoreAudienceSetCommand(ILogger<PasswordStoreAudienceSetCommand> logger)
@@ -87,7 +87,7 @@ public sealed class PasswordStoreAudienceSetCommand(ILogger<PasswordStoreAudienc
         var audience = await audiences.GetAsync(store.Links, cancellationToken);
         if (!audience.CanManage)
         {
-            throw new CliException($"'{store.Name}' is managed by people now; only its managers change its audience (sapass audience).");
+            throw new CliException($"'{store.Name}' is managed by people now; only its managers change its audience (apass audience).");
         }
 
         var known = audience.Members.Select(m => (m.DisplayName, m.IsGroup, Change: AudienceChange.Of(m)))
@@ -97,7 +97,7 @@ public sealed class PasswordStoreAudienceSetCommand(ILogger<PasswordStoreAudienc
             known.Where(k => k.IsGroup == group && string.Equals(k.DisplayName, name, StringComparison.CurrentCultureIgnoreCase)).ToList() switch
             {
                 [var one] => one.Change,
-                [] => throw new CliException($"'{name}' does not read '{store.Name}': grant read access first (saconsole acl set)."),
+                [] => throw new CliException($"'{name}' does not read '{store.Name}': grant read access first (alcifra acl set)."),
                 _ => throw new CliException($"'{name}' names more than one {(group ? "group" : "person")} here."),
             };
 
@@ -152,7 +152,7 @@ public sealed class PasswordStoreAudienceShowCommand(ILogger<PasswordStoreAudien
 
 /// <summary>
 /// Appoints a manager to a store left without one (ADR 0983): the tenant administrator's one audience act, run signed in
-/// as that administrator (<c>saconsole login</c>). The appointee must read the store; nothing else in the audience
+/// as that administrator (<c>alcifra login</c>). The appointee must read the store; nothing else in the audience
 /// changes, and no key is needed — a new member is sealed to by the next re-seal of a member who holds one.
 /// </summary>
 public sealed class PasswordStoreAudienceAppointCommand(ILogger<PasswordStoreAudienceAppointCommand> logger)
@@ -170,14 +170,14 @@ public sealed class PasswordStoreAudienceAppointCommand(ILogger<PasswordStoreAud
         {
             throw new CliException(audience.Recipients.Any(r => r.IsManager)
                 ? $"'{store.Name}' has a manager; only they change its audience."
-                : $"Only a tenant administrator signed in as a person may appoint a manager to '{store.Name}' (saconsole login).");
+                : $"Only a tenant administrator signed in as a person may appoint a manager to '{store.Name}' (alcifra login).");
         }
 
         var member = audience.Members.FirstOrDefault(m => !m.IsGroup && Same(m.DisplayName, settings.Manager));
         var candidate = audience.Candidates.FirstOrDefault(c => !c.IsGroup && Same(c.DisplayName, settings.Manager));
         if (member is null && candidate is null)
         {
-            throw new CliException($"'{settings.Manager}' does not read '{store.Name}': grant read access first (saconsole acl set).");
+            throw new CliException($"'{settings.Manager}' does not read '{store.Name}': grant read access first (alcifra acl set).");
         }
 
         var rows = audience.Members.Select(AudienceChange.Of).ToList();

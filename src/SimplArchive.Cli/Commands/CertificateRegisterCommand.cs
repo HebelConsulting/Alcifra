@@ -52,7 +52,7 @@ public sealed class CertificateRegisterCommand(ILogger<CertificateRegisterComman
         var subject = status.TryGetProperty("subject", out var value) ? value.GetString() : null;
         logger.LogInformation(
             "Registered {Subject}. Content addressed to this user is now enveloped to it. "
-            + "Replace it by deleting it first: saconsole me certificate delete.", subject ?? "the certificate");
+            + "Replace it by deleting it first: alcifra me certificate delete.", subject ?? "the certificate");
 
         return 0;
     }

@@ -1429,10 +1429,10 @@ is wrong rather than the card.
 
 #note[
   *Two tools, two jobs — and both are now involved.* `caconsole` belongs to the certificate authority: it
-  prepares the card and issues the certificate. `saconsole` belongs to the archive: it *enrols* a finished
-  certificate against a person, lists what is enrolled and revokes one (`saconsole certificates enrol|list|revoke`).
+  prepares the card and issues the certificate. `alcifra` belongs to the archive: it *enrols* a finished
+  certificate against a person, lists what is enrolled and revokes one (`alcifra certificates enrol|list|revoke`).
 
-  This manual said `saconsole` had no certificate commands, which was true until they were added. The division
+  This manual said `alcifra` had no certificate commands, which was true until they were added. The division
   still holds and is worth keeping straight: the authority issues, the archive enrols.
 ]
 
@@ -1464,16 +1464,16 @@ Three things it will not do quietly:
 - *It will not hide what it did.* Every command it runs against the card, and the card's answer, is printed —
   with the PIN and management key removed.
 
-With `--manifest` it also records what was issued and to whom, in a file `saconsole certificates import`
+With `--manifest` it also records what was issued and to whom, in a file `alcifra certificates import`
 reads — so a box of prepared cards is enrolled in one go rather than one at a time:
 
 ```bash
-saconsole certificates import enrolments.json --dry-run   # what would change
-saconsole certificates import enrolments.json
+alcifra certificates import enrolments.json --dry-run   # what would change
+alcifra certificates import enrolments.json
 ```
 
 It is safe to re-run: a certificate already enrolled is reported as *unchanged* rather than as an error, so
-an interrupted import is finished by running it again. (`saconsole certificates enrol <file> --holder <email>`
+an interrupted import is finished by running it again. (`alcifra certificates enrol <file> --holder <email>`
 is the single-certificate sibling, for one card prepared on its own.)
 
 == The walk-through
@@ -1666,7 +1666,7 @@ apart.
 key is *attested* — the token itself proves the key was generated on it and cannot leave it (@attestedenrolment) —
 and only a program that talks to the token can read that proof. So the web client's dialog shows the
 certificates enrolled for you, each with its attestation state, and points you to the desktop client (or the
-phone, or `saconsole`); the desktop client's *Add a card or token…* reads the certificate *and* its attestation
+phone, or `alcifra`); the desktop client's *Add a card or token…* reads the certificate *and* its attestation
 from the token in one step.
 
 *What it asks for is the certificate* — from the token, or the public half as a file (`.pem`, `.crt`, `.cer` or
@@ -1709,27 +1709,27 @@ software, or imported onto the card — cannot be attested, so it cannot be enro
 hardware.
 
 *Which manufacturers count is your installation's decision.* The platform administrator switches on the
-manufacturers' attestation roots the installation trusts (`saconsole attestation-roots`); a fresh installation
+manufacturers' attestation roots the installation trusts (`alcifra attestation-roots`); a fresh installation
 trusts none. A tenant administrator may switch some of them *off* for the tenant, never add one
-(`saconsole certificates attestation-roots`). Where a token cannot attest at all — many cards cannot — an
-administrator may allow *hardware without attestation* for the tenant (`saconsole certificates settings set
+(`alcifra certificates attestation-roots`). Where a token cannot attest at all — many cards cannot — an
+administrator may allow *hardware without attestation* for the tenant (`alcifra certificates settings set
 --unattested-hardware allowed`); such certificates are then marked *not attested*.
 
-*Every certificate shows its state* in the enrolment dialog of both clients and in `saconsole certificates
+*Every certificate shows its state* in the enrolment dialog of both clients and in `alcifra certificates
 list`: *attested by* the root's name and the token's serial number; *not attested*; or attested to a root that
 is not trusted here. Only the first addresses you where your organisation requires attestation, and a switch
 takes effect at once: nothing new is sealed to a key whose root was switched off. Documents already sealed to
 it still open with it — nothing is ever re-sealed.
 
-From `saconsole`, the attestation travels as two files the token's own tool exports — the slot's attestation
+From `alcifra`, the attestation travels as two files the token's own tool exports — the slot's attestation
 certificate and the token's attestation certificate that signed it (for slot 9D: `attest 9d` and `export f9`):
 
 ```sh
-saconsole certificates enrol holder.crt --holder anna@example.test \
+alcifra certificates enrol holder.crt --holder anna@example.test \
     --attestation attestation-9d.pem --attestation-intermediate f9.pem --slot 9d
 ```
 
-A manifest for `saconsole certificates import` carries the same two certificates per row, as an `attestation`
+A manifest for `alcifra certificates import` carries the same two certificates per row, as an `attestation`
 object.
 
 == A certificate carries its holder's address <holderaddress>
@@ -1737,7 +1737,7 @@ object.
 *A reader certificate is enrolled only for the person whose e-mail address it carries*#idx("Certificate policy").
 Documents addressed to you are sealed to the certificates enrolled *for you*, so a certificate issued to a
 colleague's address, enrolled under your name, would make your documents readable with your colleague's key —
-whether you enrolled it yourself or an administrator named you as its holder (`saconsole certificates enrol …
+whether you enrolled it yourself or an administrator named you as its holder (`alcifra certificates enrol …
 --holder`). So the address on the certificate (its subject-alternative e-mail, compared without regard to case)
 must be the account's own, and a mismatch is refused with both addresses named:
 
@@ -1751,15 +1751,15 @@ said otherwise.* An authority whose certificates carry no e-mail address at all 
 — only that case — an administrator can switch the rule off for the tenant:
 
 ```sh
-saconsole certificates policy show
-saconsole certificates policy set --san-must-match-account off   # an authority without e-mail addresses
-saconsole certificates policy set --san-must-match-account on    # back to the default
+alcifra certificates policy show
+alcifra certificates policy set --san-must-match-account off   # an authority without e-mail addresses
+alcifra certificates policy set --san-must-match-account on    # back to the default
 ```
 
 *The rule is applied when a certificate is enrolled, never backwards.* Switching it on does not refuse, flag or
 re-check anything already enrolled; a certificate enrolled while it was off goes on addressing its holder until it
 is revoked. An organisation that saved its own certificate policy before this became the default keeps what it
-saved, which said *off*: `saconsole certificates policy show` says which applies, and `set … on` adopts the
+saved, which said *off*: `alcifra certificates policy show` says which applies, and `set … on` adopts the
 default.
 
 == Your key stopped opening new documents: enrol it again <reenrol>
@@ -1777,7 +1777,7 @@ not need a new key:
   the token's serial number, and new documents are sealed to it again.
 
 This needs no administrator where your organisation lets you enrol your own certificates; where it does not,
-an administrator does the same with `saconsole certificates enrol … --attestation …` for you.
+an administrator does the same with `alcifra certificates enrol … --attestation …` for you.
 
 *If the dialog says the token offers no attestation for the key,* the key was most likely *imported* onto the
 token rather than generated on it — and a token attests only keys it generated itself. That key cannot be

@@ -3,7 +3,7 @@ using SimplArchive.Cli.Commands;
 namespace SimplArchive.UnitTests;
 
 /// <summary>
-/// <c>saconsole certificates revoke --on</c> names a MOMENT, because the field it writes is an instant: a CA
+/// <c>alcifra certificates revoke --on</c> names a MOMENT, because the field it writes is an instant: a CA
 /// revokes at a time, and something done that same day is valid or not depending on which side of it it falls.
 /// </summary>
 public sealed class CertificateRevokeMomentTests

@@ -22,7 +22,7 @@ public sealed class InsertSettings : StoreSettings
     public string? EntryUrl { get; init; }
 
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(Entry)
-        ? ValidationResult.Error("Name the entry: sapass insert Mail/Banking.")
+        ? ValidationResult.Error("Name the entry: apass insert Mail/Banking.")
         : ValidationResult.Success();
 }
 

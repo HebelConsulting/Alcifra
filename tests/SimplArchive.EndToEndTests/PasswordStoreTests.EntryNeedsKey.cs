@@ -14,7 +14,7 @@ namespace SimplArchive.EndToEndTests;
 // ADR 0982: a new password entry is offered only where what is saved can be sealed so its author can read it back. The
 // server withholds the `password-entries` rel and says why (`newEntryUnavailableReason`); folders stay offered; the
 // create refuses by the same rule before anything is written; and every client in this repository follows it — the
-// shared client refuses before sealing, sapass before the secret is read.
+// shared client refuses before sealing, apass before the secret is read.
 public sealed partial class PasswordStoreTests
 {
     [Fact]
@@ -52,7 +52,7 @@ public sealed partial class PasswordStoreTests
             Assert.Equal(HttpStatusCode.Created, folder.StatusCode);
         }
 
-        // The shared client refuses before sealing or sending, with the reason; sapass before the secret is read.
+        // The shared client refuses before sealing or sending, with the reason; apass before the secret is read.
         var client = new PasswordStoreClient(ApiCore.Over(carol));
         var seen = await client.GetFolderAsync(team.Links.Href("self")!);
         Assert.Equal(NewEntryUnavailability.EnrolmentRequired, seen.NewEntryUnavailable);
@@ -95,7 +95,7 @@ public sealed partial class PasswordStoreTests
         return 0;
     });
 
-    // A service account seals to the readers (saconsole's seeding, ADR 0966): offered entries while a reader holds a key,
+    // A service account seals to the readers (alcifra's seeding, ADR 0966): offered entries while a reader holds a key,
     // refused as "no-reader-certificates" when none does.
     [Fact]
     public Task A_service_account_is_offered_entries_only_while_some_reader_holds_a_key() => WithEnrolmentAsync(async rig =>

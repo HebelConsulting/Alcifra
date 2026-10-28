@@ -32,7 +32,7 @@ public sealed class RecoveryCertificateShowCommand(ILogger<RecoveryCertificateSh
 
         if (settings.Pem)
         {
-            // Data output (ADR 0906): the certificate alone on stdout, for `saconsole tenant recovery-certificate show --pem > recovery.pem`.
+            // Data output (ADR 0906): the certificate alone on stdout, for `alcifra tenant recovery-certificate show --pem > recovery.pem`.
             Console.Out.Write(resource.GetProperty("certificatePem").GetString());
             return 0;
         }
@@ -105,8 +105,8 @@ public static class RecoveryCertificateSurface
         if (Configured(resource) != replacing)
         {
             throw new CliException(replacing
-                ? "No recovery certificate is set yet; use 'saconsole tenant recovery-certificate set'."
-                : "A recovery certificate is already set; use 'saconsole tenant recovery-certificate replace' to change it.");
+                ? "No recovery certificate is set yet; use 'alcifra tenant recovery-certificate set'."
+                : "A recovery certificate is already set; use 'alcifra tenant recovery-certificate replace' to change it.");
         }
 
         var self = Hypermedia.Href(Hypermedia.LinksOf(resource), "self", "The recovery certificate");

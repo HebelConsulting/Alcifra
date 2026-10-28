@@ -9,7 +9,7 @@ using SimplArchive.TestModule;
 
 namespace SimplArchive.EndToEndTests;
 
-// `saconsole module upload` (#1703, ABI 1.14, ADR 0918): a client holding only a module credential finds the upload
+// `alcifra module upload` (#1703, ABI 1.14, ADR 0918): a client holding only a module credential finds the upload
 // rel on the ANONYMOUS root (an installation-wide root link), PUTs the file straight to storage and files it by the
 // offer's commit link, never composing an address.
 [Collection(E2ECollection.Name)]
@@ -82,7 +82,7 @@ public class ModuleUploadCommandTests(E2EApiFactory factory)
     [Fact]
     public void The_tool_spells_the_upload_offer_as_the_ABI_does()
     {
-        // saconsole references no server assembly, so it spells the protocol itself; this holds the two equal.
+        // alcifra references no server assembly, so it spells the protocol itself; this holds the two equal.
         Assert.Equal(ModuleUploadProtocol.UrlField, ModuleUploadCommand.UrlField);
         Assert.Equal(ModuleUploadProtocol.CommitRel, ModuleUploadCommand.CommitRel);
     }

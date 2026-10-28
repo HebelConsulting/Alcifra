@@ -139,7 +139,7 @@ public sealed record ModuleRootLink(string Rel, string Path, string Method, bool
 }
 
 /// <summary>
-/// The shape of a module's upload offer, which <c>saconsole module upload</c> follows (ABI 1.14, core ADR 0918):
+/// The shape of a module's upload offer, which <c>alcifra module upload</c> follows (ABI 1.14, core ADR 0918):
 /// a module that takes a file by presigned upload (<see cref="IModuleArchiveFacade.BeginUploadAsync"/>) answers
 /// its begin request with the upload address in <see cref="UrlField"/> and the request that files the upload as
 /// a link with <see cref="CommitRel"/> (<c>"links": [{ "rel": "commit", "href": …, "method": "POST" }]</c>), so a

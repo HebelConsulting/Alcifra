@@ -212,7 +212,7 @@ public class CreatedPasswordEntryResource : HypermediaResource
 
 /// <summary>
 /// Every folder and entry beneath a store or folder, one cursor-paginated page at a time (ADR 0207) — the flat
-/// tree sapass completes and searches over, so one listing answers what the per-folder listing answers in N
+/// tree apass completes and searches over, so one listing answers what the per-folder listing answers in N
 /// requests. Names are in the clear (ADR 0964): nothing here needs the key.
 /// </summary>
 public class PasswordDescendantsResource : HypermediaResource

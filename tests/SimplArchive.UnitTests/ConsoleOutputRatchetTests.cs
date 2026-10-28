@@ -9,7 +9,7 @@ namespace SimplArchive.UnitTests;
 // ships or runs as a tool: src/, tools/ and the two published test tools (SelfHosting, ManualCapture).
 //
 // WHAT IS ALLOWED TO STAY. One kind of site only: a command-line tool's DATA output, the RESULT it prints for a
-// script to capture (`eval "$(saconsole login …)"`, `id=$(saconsole repository create …)`). A log line's timestamp
+// script to capture (`eval "$(alcifra login …)"`, `id=$(alcifra repository create …)`). A log line's timestamp
 // and level would break the capture, so that write stays plain stdout. Everything else (progress, diagnostics,
 // the human half of a CLI, the desktop's headless hooks) goes through ILogger with a console provider.
 //
@@ -40,8 +40,8 @@ public class ConsoleOutputRatchetTests
         ["src/SimplArchive.Cli/Commands/UserCreateCommand.cs"] = 1,   // data output only (ADR 0906): the user's id
         // The one direct write left in the desktop client: DesktopLog's own fallback when logging cannot start.
         ["src/SimplArchive.DesktopClient/Services/DesktopLog.cs"] = 1,
-        // sapass (ADR 0964, 2026-10-25): a pass-like CLI, so its DATA output is stdout by contract — what a script
-        // captures (`sapass show x | head -1`, `eval "$(sapass login …)"`) and what completion reads.
+        // apass (ADR 0964, 2026-10-25): a pass-like CLI, so its DATA output is stdout by contract — what a script
+        // captures (`apass show x | head -1`, `eval "$(apass login …)"`) and what completion reads.
         ["src/SimplArchive.Sapass/Commands/LoginCommand.cs"] = 2,   // data output only: the two shell exports
         ["src/SimplArchive.Sapass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
         ["src/SimplArchive.Sapass/Commands/AudienceCommand.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)

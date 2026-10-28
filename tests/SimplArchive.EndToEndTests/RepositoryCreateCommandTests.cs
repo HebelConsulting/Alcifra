@@ -4,7 +4,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.EndToEndTests;
 
 /// <summary>
-/// <c>saconsole repository create</c> is find-or-create, so a bootstrap that died half-way can simply be run again.
+/// <c>alcifra repository create</c> is find-or-create, so a bootstrap that died half-way can simply be run again.
 /// </summary>
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-1")]

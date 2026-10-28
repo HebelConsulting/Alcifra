@@ -53,7 +53,7 @@ public sealed class ModuleRebuildCommand(ILogger<ModuleRebuildCommand> logger) :
             ? href
             : throw new CliException(
                 $"'{settings.Module}' is installed but not active for this tenant, so nothing can be rebuilt. "
-                + "File its licence first: saconsole module activate.");
+                + "File its licence first: alcifra module activate.");
 
         var available = Projections(await api.GetAsync(projections, cancellationToken)).ToList();
         if (available.Count == 0)

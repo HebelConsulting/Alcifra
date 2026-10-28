@@ -86,7 +86,7 @@ public partial class ClientHypermediaTests
         ["src/SimplArchive.ApiClient/ApiCore.cs"] = 1,
         ["src/SimplArchive.Client/Services/BrowseService.cs"] = 1,
 
-        // saconsole's entry point, the same single permanent exception the two clients each get: the API root
+        // alcifra's entry point, the same single permanent exception the two clients each get: the API root
         // is the one URL a client may know, and this is the line that knows it. Spelled "api" with no slash,
         // which is why it is counted here rather than matching the api/ pattern by accident.
         ["src/SimplArchive.Cli/Infrastructure/Hypermedia.cs"] = 1,
@@ -298,9 +298,9 @@ public partial class ClientHypermediaTests
     // disagree about what they are scanning.
     private static IEnumerable<string> ClientFiles(string root)
     {
-        // saconsole is a CLIENT of the deployed application (ADR 0822 says so in its own csproj), so ADR 0543
+        // alcifra is a CLIENT of the deployed application (ADR 0822 says so in its own csproj), so ADR 0543
         // binds it identically — and it drifted precisely because this guard did not look at it. Owner,
-        // 2026-09-26: "Even in saconsole always follow the rels. No assumed urls."
+        // 2026-09-26: "Even in alcifra always follow the rels. No assumed urls."
         foreach (var project in new[]
                  {
                      "src/SimplArchive.Client", "src/SimplArchive.DesktopClient", "src/SimplArchive.ApiClient", "src/SimplArchive.Cli",

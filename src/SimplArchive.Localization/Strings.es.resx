@@ -6112,7 +6112,7 @@
     <value>Esta organización aún no tiene un certificado de recuperación para las exportaciones sin conexión, por lo que no se puede crear ninguna. Pida a un administrador del inquilino que establezca uno.</value>
   </data>
   <data name="EnrolWebPointer" xml:space="preserve">
-    <value>Los certificados de lector se registran desde el propio token, que demuestra que la clave se generó en él: con el cliente de escritorio (Registrar un certificado, luego Añadir una tarjeta o token…), el teléfono o saconsole. Aquí ve lo que está registrado para usted.</value>
+    <value>Los certificados de lector se registran desde el propio token, que demuestra que la clave se generó en él: con el cliente de escritorio (Registrar un certificado, luego Añadir una tarjeta o token…), el teléfono o alcifra. Aquí ve lo que está registrado para usted.</value>
   </data>
   <data name="EnrolYourCertificates" xml:space="preserve">
     <value>Sus certificados registrados</value>

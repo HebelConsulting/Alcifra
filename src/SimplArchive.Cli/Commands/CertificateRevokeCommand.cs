@@ -85,7 +85,7 @@ public sealed class CertificateRevokeCommand(ILogger<CertificateRevokeCommand> l
         {
             throw new CliException(settings.Serial is { Length: > 0 }
                 ? $"Nothing enrolled in this tenant carries serial {settings.Serial}. "
-                    + "Check it with: saconsole certificates list"
+                    + "Check it with: alcifra certificates list"
                 : $"Nothing enrolled in this tenant carries thumbprint {settings.Thumbprint}.");
         }
 

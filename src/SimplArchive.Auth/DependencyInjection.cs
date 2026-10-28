@@ -61,7 +61,7 @@ public static class DependencyInjection
 
                 options.AllowClientCredentialsFlow();
 
-                // The device authorization grant (RFC 8628), for saconsole (ADR 0823). An administrative CLI
+                // The device authorization grant (RFC 8628), for alcifra (ADR 0823). An administrative CLI
                 // is typically run over SSH on a host with no browser and no desktop session, where the
                 // loopback flow the desktop client uses cannot work at all: it needs a browser on the machine
                 // running the command. Here the tool prints a code, and the approval happens in whatever

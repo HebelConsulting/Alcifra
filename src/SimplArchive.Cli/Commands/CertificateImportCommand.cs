@@ -26,7 +26,7 @@ public sealed class CertificateImportSettings : TenantSessionSettings
 /// <b>An ADMINISTRATOR's tool</b> (owner-decided): every row names a holder, which the module refuses for a
 /// non-administrator. Self-provisioning is a GUI matter (#1502), not this — and the certificate this enrols
 /// is the reader certificate documents are addressed to, NOT the self-service mail certificate
-/// <c>saconsole me certificate register</c> writes. Two stores, and this is the one that matters for content.
+/// <c>alcifra me certificate register</c> writes. Two stores, and this is the one that matters for content.
 /// </para>
 /// <para>
 /// <b>Safe to re-run, which is the property that makes it usable.</b> A certificate already enrolled answers
@@ -53,7 +53,7 @@ public sealed class CertificateImportCommand(ILogger<CertificateImportCommand> l
         var hypermedia = new Hypermedia(api);
 
         // THE MODULE'S OWN REL, followed from the API root — never a composed path (ADR 0543, and the owner's
-        // "Even in saconsole always follow the rels"). Its absence is a real answer: the root emits a module's
+        // "Even in alcifra always follow the rels"). Its absence is a real answer: the root emits a module's
         // rels only for a tenant whose activation is live, so "not advertised" means the Encryption Module is
         // not active here, which is a different problem from anything in the manifest.
         var certificates = await CertificateSurface.AddressAsync(hypermedia, cancellationToken);

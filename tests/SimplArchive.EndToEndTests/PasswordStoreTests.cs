@@ -188,7 +188,7 @@ public sealed partial class PasswordStoreTests
     }
 
     // The flat listing (ADR 0207): one cursor-paginated stream of every folder and entry beneath a store, for the
-    // clients that complete and search over the whole tree rather than browsing it (sapass, 2026-10-25).
+    // clients that complete and search over the whole tree rather than browsing it (apass, 2026-10-25).
     [Fact]
     public Task The_flat_listing_returns_every_folder_and_entry_beneath_a_store_a_page_at_a_time() => WithEnrolmentAsync(async rig =>
     {
@@ -468,7 +468,7 @@ public sealed partial class PasswordStoreTests
         return 0;
     });
 
-    // saconsole's password commands (ADR 0966), as the kiosk's crypto seed runs them: a service account creates a shared
+    // alcifra's password commands (ADR 0966), as the kiosk's crypto seed runs them: a service account creates a shared
     // store, breaks its inheritance, grants a reader, and files an entry sealed on ITS machine; every step re-runs unchanged.
     [Fact]
     public Task Saconsole_seeds_a_shared_store_whose_entries_a_reader_opens_and_a_re_run_changes_nothing() => WithEnrolmentAsync(async rig =>

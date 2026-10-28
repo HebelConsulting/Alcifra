@@ -5,7 +5,7 @@ using SimplArchive.BrowserHost;
 namespace SimplArchive.DesktopClient.Services;
 
 /// <summary>
-/// The desktop's answer to the browser's autofill requests (ADR 0978): the same operations sapass serves, over THIS
+/// The desktop's answer to the browser's autofill requests (ADR 0978): the same operations apass serves, over THIS
 /// client's session and its own key funnel — one implementation of match/open/save in the host library, two hosts.
 /// </summary>
 /// <remarks>

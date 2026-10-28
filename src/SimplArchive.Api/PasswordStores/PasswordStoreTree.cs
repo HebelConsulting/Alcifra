@@ -100,7 +100,7 @@ public sealed class PasswordStoreTree(SimplArchiveDbContext dbContext)
 
     /// <summary>
     /// Every folder and entry beneath a store or folder, at any depth, as ids — what the flat <c>descendants</c>
-    /// listing pages over (ADR 0207; sapass completion, 2026-10-25).
+    /// listing pages over (ADR 0207; apass completion, 2026-10-25).
     /// </summary>
     /// <remarks>
     /// The walk collects the whole id set before the page is read, which is bounded by the store's size rather

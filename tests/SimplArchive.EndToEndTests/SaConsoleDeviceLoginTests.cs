@@ -7,11 +7,11 @@ using Microsoft.AspNetCore.WebUtilities;
 
 namespace SimplArchive.EndToEndTests;
 
-// saconsole's own device-flow client against a real server (ADR 0823), exercising THE CLI's code rather than
+// alcifra's own device-flow client against a real server (ADR 0823), exercising THE CLI's code rather than
 // a re-implementation of it.
 //
 // That distinction is the point. `DeviceAuthorizationFlowTests` drives the protocol with hand-written HTTP and
-// proves the SERVER is right; it would pass just as happily if saconsole's polling loop ignored `interval`,
+// proves the SERVER is right; it would pass just as happily if alcifra's polling loop ignored `interval`,
 // mistook `slow_down` for a failure, or retried after a person had said no. A replay built by analogy replays
 // its author's assumptions — so this one calls DeviceFlow, the type the shipped tool uses.
 [Collection(E2ECollection.Name)]
@@ -32,7 +32,7 @@ public class SaConsoleDeviceLoginTests
         using var transport = _factory.CreateClient();
         var flow = new DeviceFlow(transport, "saconsole");
 
-        // 1. The tool asks for a code, exactly as `saconsole login` does.
+        // 1. The tool asks for a code, exactly as `alcifra login` does.
         var authorization = await flow.RequestAsync(CancellationToken.None);
 
         Assert.False(string.IsNullOrEmpty(authorization.UserCode));

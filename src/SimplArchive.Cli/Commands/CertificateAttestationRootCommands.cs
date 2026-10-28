@@ -109,7 +109,7 @@ public static class TenantAttestationRootSurface
         if (matches.Count != 1)
         {
             throw new CliException(matches.Count == 0
-                ? $"No attestation root matches '{selector}'. See saconsole certificates attestation-roots list."
+                ? $"No attestation root matches '{selector}'. See alcifra certificates attestation-roots list."
                 : $"'{selector}' matches {matches.Count} attestation roots; name it by id.");
         }
 

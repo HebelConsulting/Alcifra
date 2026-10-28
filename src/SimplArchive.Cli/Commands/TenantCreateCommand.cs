@@ -73,7 +73,7 @@ public sealed class TenantCreateCommand(ILogger<TenantCreateCommand> logger) : A
         // who loses it has to reset rather than look it up. Saying so is part of printing it.
         logger.LogWarning("The initial administrator password follows on stdout. It is shown once and not recoverable.");
 
-        // Data output (ADR 0906): the password alone on stdout, for `password=$(saconsole tenant create …)`; never logged
+        // Data output (ADR 0906): the password alone on stdout, for `password=$(alcifra tenant create …)`; never logged
         // (ADR 0886's named carve-out is this write, not a log line).
         Console.Out.WriteLine(password ?? "(the installation returned none)");
 

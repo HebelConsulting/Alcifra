@@ -2,9 +2,9 @@ using SimplArchive.Cli;
 
 namespace SimplArchive.UnitTests;
 
-// saconsole's STDOUT carries shell exports, so nothing else may ever appear there.
+// alcifra's STDOUT carries shell exports, so nothing else may ever appear there.
 //
-// `saconsole login` is meant to be used as `eval "$(saconsole login --url …)"`, which means stdout is not a
+// `alcifra login` is meant to be used as `eval "$(alcifra login --url …)"`, which means stdout is not a
 // place for messages — it is a place for statements the shell will EXECUTE. An error written there is an
 // error that gets run.
 //
@@ -51,13 +51,13 @@ public class SaConsoleStreamTests
         }
 
         Assert.True(string.IsNullOrWhiteSpace(stdout.ToString()),
-            "saconsole wrote to STDOUT on a failure path. STDOUT carries shell exports for "
-            + "eval \"$(saconsole login …)\", so anything written there is executed by the shell:\n"
+            "alcifra wrote to STDOUT on a failure path. STDOUT carries shell exports for "
+            + "eval \"$(alcifra login …)\", so anything written there is executed by the shell:\n"
             + stdout);
 
         // And the reader must still be told something — a silent failure would satisfy the assertion above
         // while being worse than the bug it guards against.
         Assert.False(string.IsNullOrWhiteSpace(stderr.ToString()),
-            "saconsole failed without writing anything to STDERR, so the reader is told nothing.");
+            "alcifra failed without writing anything to STDERR, so the reader is told nothing.");
     }
 }

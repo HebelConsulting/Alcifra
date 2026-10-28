@@ -137,7 +137,7 @@
     /// A PRIVATE KEY is refused HERE, before anything is sent, whatever the module's own policy says — the
     /// server refuses key material too, but by then it has crossed the wire, which is the one thing this is
     /// about. The rule lives in <c>SimplArchive.Presentation.EnrolledCertificate</c> so this dialog, the
-    /// desktop one and <c>saconsole</c> cannot drift about what they refuse.
+    /// desktop one and <c>alcifra</c> cannot drift about what they refuse.
     ///
     /// Unlike the desktop, DER is NOT converted and the picker does not offer it: a browser cannot parse a
     /// certificate at all — the attempt freezes the render silently, which looks exactly like a binding bug.

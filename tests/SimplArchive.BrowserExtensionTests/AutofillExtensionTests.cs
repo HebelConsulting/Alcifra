@@ -41,7 +41,7 @@ public sealed class AutofillExtensionTests : IDisposable
         await Expect(page.Locator("#pass")).ToHaveValueAsync(Mail.Password);
         await Expect(page.Locator(".sa-menu")).ToHaveCountAsync(0);
 
-        // The desktop's name was asked first and is not registered here, so sapass's host answered both requests.
+        // The desktop's name was asked first and is not registered here, so apass's host answered both requests.
         Assert.Equal(
             [("match", "localhost", (Guid?)null), ("open", null, Mail.Id)],
             browser.Calls.Select(c => (c.Command, c.Site, c.EntryId)));

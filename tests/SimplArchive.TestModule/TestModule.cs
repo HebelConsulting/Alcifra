@@ -127,7 +127,7 @@ public sealed class TestModule : IIndustryModule
         context =>
         {
             // A second, separately switched action whose outcome REVEALS a value once (ABI 1.8) — what
-            // `saconsole module action` must keep in a file. Its own variable, so the hand-over test still
+            // `alcifra module action` must keep in a file. Its own variable, so the hand-over test still
             // sees exactly one action.
             // The web UI suite cannot know a document id when it starts the server, so it switches the reveal action
             // on for every Test Dossier instead (#1628). Nothing else creates dossiers there.

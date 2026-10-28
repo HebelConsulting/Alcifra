@@ -1,4 +1,4 @@
-# Publishes the two .NET tools — saconsole (the administrative CLI, ADR 0822) and sapass (the password-store CLI,
+# Publishes the two .NET tools — alcifra (the administrative CLI, ADR 0822) and apass (the password-store CLI,
 # ADR 0977) — to GitHub Packages AND nuget.org — PUBLIC repo only.
 #
 # ONE workflow for both, on purpose: the nuget.org trusted-publishing policy pins this FILE, so a second tool in a
@@ -29,7 +29,7 @@
 #
 # This file must NOT join publish/publish-public.sh's withheld set: it is useless in the private repo and is
 # the whole point in the mirror.
-name: Publish saconsole and sapass
+name: Publish alcifra and apass
 
 on:
   push:
@@ -67,21 +67,31 @@ jobs:
           version="${{ inputs.version }}"
           if [ -z "$version" ]; then version="${GITHUB_REF_NAME#v}"; fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
-          echo "publishing saconsole $version"
+          echo "publishing alcifra $version"
 
+      # Each tool is packed under its Alcifra id (Alcifra.Cli → `alcifra`, Alcifra.Pass → `apass`) AND, until phase 5 of
+      # the rename (#1117), under its earlier id with its earlier command, so `dotnet tool update` on an existing install
+      # keeps working. The earlier ids are deprecated on nuget.org in favour of the new ones. Retirement trigger
+      # (ADR 0885): drop the second pack of each pair when phase 5 renames the code.
       - name: Pack
         run: |
           set -euo pipefail
+          version=${{ steps.version.outputs.value }}
+          # The earlier id and command come from each project's own LegacyPackageId switch (ADR 0988).
           for project in src/SimplArchive.Cli/SimplArchive.Cli.csproj src/SimplArchive.Sapass/SimplArchive.Sapass.csproj; do
-            dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version=${{ steps.version.outputs.value }}
+            dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version"
+            dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version" -p:LegacyPackageId=true
           done
+          ls dist/nuget
 
       - name: Push to GitHub Packages
-        run: >-
-          dotnet nuget push "dist/nuget/*.nupkg"
-          --source "https://nuget.pkg.github.com/HebelConsulting/index.json"
-          --api-key "${{ secrets.GITHUB_TOKEN }}"
-          --skip-duplicate
+        # The earlier ids go first, on their own: a push stops at its first refusal, and the new ids sort before them,
+        # so a refused new id must not keep the earlier ones from updating (ADR 0988).
+        run: |
+          set -euo pipefail
+          for glob in "dist/nuget/SimplArchive.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
+            dotnet nuget push "$glob" --source "https://nuget.pkg.github.com/HebelConsulting/index.json" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
+          done
 
       - name: Log in to nuget.org (trusted publishing)
         id: nuget-login
@@ -90,13 +100,15 @@ jobs:
           user: monacense
 
       - name: Push to nuget.org
-        run: >-
-          dotnet nuget push "dist/nuget/*.nupkg"
-          --source "https://api.nuget.org/v3/index.json"
-          --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
-          --skip-duplicate
+        # The earlier ids go first, on their own: a push stops at its first refusal, and the new ids sort before them,
+        # so a refused new id must not keep the earlier ones from updating (ADR 0988).
+        run: |
+          set -euo pipefail
+          for glob in "dist/nuget/SimplArchive.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
+            dotnet nuget push "$glob" --source "https://api.nuget.org/v3/index.json" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --skip-duplicate
+          done
 
       - name: Report
         run: |
-          echo "::notice::saconsole and sapass ${{ steps.version.outputs.value }} pushed to GitHub Packages and nuget.org."
-          echo "::notice::Install with: dotnet tool install --global SimplArchive.Cli (or SimplArchive.Sapass)"
+          echo "::notice::alcifra and apass ${{ steps.version.outputs.value }} pushed to GitHub Packages and nuget.org."
+          echo "::notice::Install with: dotnet tool install --global Alcifra.Cli (or Alcifra.Pass)"

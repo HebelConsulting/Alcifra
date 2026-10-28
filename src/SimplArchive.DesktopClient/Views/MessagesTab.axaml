@@ -67,7 +67,7 @@
           <i:Icon Value="mdi-account-multiple-plus-outline" FontSize="18" />
         </Button>
         <Border Width="1" Background="{DynamicResource WbBorder}" Margin="4,2" />
-        <!-- Back up and Restore: sealed files, nothing decrypted; the same library as the phone and saconsole. -->
+        <!-- Back up and Restore: sealed files, nothing decrypted; the same library as the phone and alcifra. -->
         <Button Command="{Binding BackUpCommand}" ToolTip.Tip="{loc:Tr MsgBackUpToFile}" AutomationProperties.Name="{loc:Tr MsgBackUpToFile}">
           <i:Icon Value="mdi-content-save-outline" FontSize="18" />
         </Button>

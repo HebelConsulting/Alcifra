@@ -10,8 +10,8 @@ namespace SimplArchive.ConsoleLogging;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>STDERR, so stdout stays the result.</b> <c>eval "$(saconsole login …)"</c> executes stdout and
-/// <c>id=$(saconsole repository create …)</c> captures it, so a progress line there is either run or kept as the id.
+/// <b>STDERR, so stdout stays the result.</b> <c>eval "$(alcifra login …)"</c> executes stdout and
+/// <c>id=$(alcifra repository create …)</c> captures it, so a progress line there is either run or kept as the id.
 /// <c>2&gt;/dev/null</c> silences the person's half and keeps the result.
 /// </para>
 /// <para>
@@ -23,7 +23,7 @@ namespace SimplArchive.ConsoleLogging;
 /// disposed loses the last lines, which on a failure are the only lines.
 /// </para>
 /// <para>
-/// <b>One implementation for every console program</b> (ADR 0877): saconsole, the tools under <c>tools/</c> and the
+/// <b>One implementation for every console program</b> (ADR 0877): alcifra, the tools under <c>tools/</c> and the
 /// published test tools share this rather than each growing a formatter of its own.
 /// </para>
 /// </remarks>

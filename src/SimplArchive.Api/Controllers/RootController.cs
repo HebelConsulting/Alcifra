@@ -57,7 +57,7 @@ public class RootController : ControllerBase
     /// </remarks>
     private static readonly Link[] PlatformAdministratorLinks =
     [
-        // Provisioning a tenant: the reason #1409 was filed, and `saconsole`'s one composed URL until now.
+        // Provisioning a tenant: the reason #1409 was filed, and `alcifra`'s one composed URL until now.
         new Link("tenants", "/api/tenants", "GET"),
         new Link("platformAdministrators", "/api/platform-administrators", "GET"),
         // KEK rotation (ADR 0821) — deliberately no client UI, because a platform administrator cannot sign in

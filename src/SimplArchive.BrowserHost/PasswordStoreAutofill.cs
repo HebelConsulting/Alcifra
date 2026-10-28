@@ -4,7 +4,7 @@ namespace SimplArchive.BrowserHost;
 
 /// <summary>
 /// The autofill operations over a password store, ONCE for both hosts: a browser host is a browser host whether the
-/// desktop or sapass runs it, and two copies of "match on the index, open with the key, save to My Passwords" would
+/// desktop or apass runs it, and two copies of "match on the index, open with the key, save to My Passwords" would
 /// drift on exactly the edge the feature cannot afford — which entry a secret is written to.
 /// </summary>
 public static class PasswordStoreAutofill

@@ -12,7 +12,7 @@ namespace SimplArchive.Api.Provisioning;
 /// <para>
 /// The Flight School demo used to be seeded by a program logged in as the TENANT ADMINISTRATOR, with the password
 /// on its command line: it created the repository, filed the licence, activated the module and wrote its settings
-/// by hand-composed requests. The Encryption Module's demo does all of that through <c>saconsole</c> as a narrow
+/// by hand-composed requests. The Encryption Module's demo does all of that through <c>alcifra</c> as a narrow
 /// seeded service account (ADR 0870), and two activation paths for one core feature drift. This is the Flight
 /// School half of making them one.
 /// </para>
@@ -22,7 +22,7 @@ namespace SimplArchive.Api.Provisioning;
 /// <c>CanManageModules</c>; and it isolates each pilot's dossier, so it holds every right on the Flight School
 /// repository, including <c>CanManagePermissions</c>, and on nothing else. No tenant settings, no other
 /// repository, no service-account management: it finds the module's own principal through a document's
-/// <c>grantable-principals</c> rel, as <c>saconsole acl grant</c> does.
+/// <c>grantable-principals</c> rel, as <c>alcifra acl grant</c> does.
 /// </para>
 /// <para>
 /// The licence goes into <b>Flight School/Administration</b>, which breaks inheritance with nothing copied down,

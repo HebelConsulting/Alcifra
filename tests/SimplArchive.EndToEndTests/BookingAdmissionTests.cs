@@ -496,7 +496,7 @@ public class BookingAdmissionTests
     }
 
     /// <summary>
-    /// <c>saconsole module action</c> commits a module's action and keeps the value it reveals once in a FILE —
+    /// <c>alcifra module action</c> commits a module's action and keeps the value it reveals once in a FILE —
     /// mode 600, never written over — and a re-run that finds the action withdrawn is a no-op with
     /// <c>--if-offered</c>. Driven through the command's own code against the real API, the way
     /// <see cref="LicenceFilingRerunTests"/> drives <c>module activate</c>.
@@ -506,7 +506,7 @@ public class BookingAdmissionTests
     {
         using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_VERIFY_KEY", vendorKey.ExportSubjectPublicKeyInfoPem());
-        var folder = Directory.CreateTempSubdirectory("saconsole-reveal-");
+        var folder = Directory.CreateTempSubdirectory("alcifra-reveal-");
         try
         {
             var rig = await RigAsync(vendorKey);

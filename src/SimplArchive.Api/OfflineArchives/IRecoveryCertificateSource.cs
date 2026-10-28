@@ -14,7 +14,7 @@ public interface IRecoveryCertificateSource
     Task<string?> CurrentPemAsync(CancellationToken cancellationToken);
 }
 
-/// <summary>The tenant's setting, <c>Tenant.OfflineExportRecoveryCertificatePem</c>, set with saconsole (#1695).</summary>
+/// <summary>The tenant's setting, <c>Tenant.OfflineExportRecoveryCertificatePem</c>, set with alcifra (#1695).</summary>
 public sealed class TenantRecoveryCertificateSource(SimplArchiveDbContext dbContext, ICurrentTenantAccessor tenant) : IRecoveryCertificateSource
 {
     public async Task<string?> CurrentPemAsync(CancellationToken cancellationToken) =>

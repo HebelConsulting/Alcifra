@@ -50,7 +50,7 @@ public sealed class AclSetCommand(ILogger<AclSetCommand> logger) : AsyncCommand<
             throw new CliException(
                 $"This would withdraw {string.Join(", ", withdrawn)} from {target.PrincipalName}, because "
                 + "'set' states the COMPLETE set of rights and anything unnamed is withheld. "
-                + $"To add rights without touching the rest: saconsole acl grant {settings.Document} "
+                + $"To add rights without touching the rest: alcifra acl grant {settings.Document} "
                 + $"--{Option(target.PrincipalKind)} \"{target.PrincipalName}\" --rights {settings.Rights}. "
                 + "To proceed as written, pass --yes.");
         }

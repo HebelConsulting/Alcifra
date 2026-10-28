@@ -21,7 +21,7 @@ public sealed class StandardRepositoryShowCommand(ILogger<StandardRepositoryShow
 
         if (StandardRepositorySurface.Current(resource) is { } id)
         {
-            // Data output (ADR 0906): the id alone on stdout, for `id=$(saconsole tenant standard-repository show)`.
+            // Data output (ADR 0906): the id alone on stdout, for `id=$(alcifra tenant standard-repository show)`.
             Console.Out.WriteLine(id);
         }
         else

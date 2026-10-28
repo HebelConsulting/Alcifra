@@ -1,4 +1,4 @@
-# saconsole — the SimplArchive administrative CLI
+# alcifra — the SimplArchive administrative CLI
 
 ## What SimplArchive is
 
@@ -20,9 +20,9 @@ It runs as a container image beside PostgreSQL, S3-compatible object storage and
 for production. The project is also a showcase of how far an AI-assisted, senior-led development process can take an
 enterprise-grade system: <https://github.com/HebelConsulting/SimplArchive>
 
-## What saconsole does
+## What alcifra does
 
-`saconsole` administers a SimplArchive installation over its HTTP API, **following the links the API advertises**
+`alcifra` administers a SimplArchive installation over its HTTP API, **following the links the API advertises**
 rather than composing addresses, so it keeps working when routes move. It is how an installation is set up and
 configured from a terminal or a script:
 
@@ -39,30 +39,30 @@ configured from a terminal or a script:
 | `certificates list`, `enrol`, `revoke`, `import` | Manage the reader certificates encrypted content is addressed to, including bulk import from a CA |
 | `certificates policy show`, `set` | What a certificate must meet before it is enrolled; `set --san-must-match-account on\|off` switches the holder's-address rule, on by default (ADR 0971) |
 | `acl set`, `grant`, `revoke`, `break-inheritance` | Decide who may do what to a document; `break-inheritance` makes a document's own grants the ones that apply |
-| `passwords store create`, `show`, `passwords entry create` | Set up a shared password store: create it, then file entries sealed on your machine to every certificate its readers hold. The password is read from stdin only (`printf '%s' "$pw" \| saconsole passwords entry create --store <id> --name … --password-stdin`); a re-run changes nothing |
+| `passwords store create`, `show`, `passwords entry create` | Set up a shared password store: create it, then file entries sealed on your machine to every certificate its readers hold. The password is read from stdin only (`printf '%s' "$pw" \| alcifra passwords entry create --store <id> --name … --password-stdin`); a re-run changes nothing |
 | `me certificate`, `intray previous` | A user's own certificate, and recovering intray content |
 
 Every command has `--help`. For example, to fix how phones unlock their offline cache and keep the rest:
 
 ```sh
-saconsole tenant offline-cache set --unlock-mode Session --max-unlocked-minutes 10
-saconsole tenant offline-cache show
+alcifra tenant offline-cache set --unlock-mode Session --max-unlocked-minutes 10
+alcifra tenant offline-cache show
 ```
 
 ## Install and sign in
 
 ```sh
-dotnet tool install --global SimplArchive.Cli
+dotnet tool install --global Alcifra.Cli
 
-# before 0.47.0 the package was HebelConsulting.SimplArchive.Cli; replace it once:
-#   dotnet tool uninstall --global HebelConsulting.SimplArchive.Cli
+# the earlier ids SimplArchive.Cli and HebelConsulting.SimplArchive.Cli install `saconsole`; replace them once:
+#   dotnet tool uninstall --global SimplArchive.Cli
 
 # interactive: approve the sign-in in your browser, then the session is set for this shell
-eval "$(saconsole login --url https://archive.example.com)"
-saconsole whoami
+eval "$(alcifra login --url https://archive.example.com)"
+alcifra whoami
 ```
 
-For unattended use, sign in as a tenant **service account** with `saconsole login --client-id <id>`, with the secret
+For unattended use, sign in as a tenant **service account** with `alcifra login --client-id <id>`, with the secret
 in `SACONSOLE_CLIENT_SECRET` (from the environment, never as an argument).
 
 Requires the .NET 10 runtime. Source, documentation and issues: <https://github.com/HebelConsulting/SimplArchive>
@@ -72,4 +72,4 @@ Requires the .NET 10 runtime. Source, documentation and issues: <https://github.
 What is meant for a person goes to **stderr**, as plain lines (`warning:` and `error:` mark those levels); add
 `--verbose` for diagnostic detail. **stdout carries only a command's result**: the exports of `login`, the id of
 `repository create`, `passwords store create` and `entry create` and `tenant standard-repository show`, the entry names of `passwords store show`, the one-time password of `tenant create`. So
-`id=$(saconsole repository create --name Customers)` captures exactly the id, and `2>/dev/null` silences the rest.
+`id=$(alcifra repository create --name Customers)` captures exactly the id, and `2>/dev/null` silences the rest.

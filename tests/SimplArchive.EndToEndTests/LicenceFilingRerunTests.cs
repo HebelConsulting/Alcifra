@@ -8,7 +8,7 @@ using SimplArchive.Cli.Infrastructure;
 namespace SimplArchive.EndToEndTests;
 
 /// <summary>
-/// <c>saconsole module activate</c> can be run again — the same day, and after a run that died half-way (#1613).
+/// <c>alcifra module activate</c> can be run again — the same day, and after a run that died half-way (#1613).
 /// </summary>
 /// <remarks>
 /// The licence used to be POSTed unconditionally under a name both kiosk seeds stamp with the day, so a same-day

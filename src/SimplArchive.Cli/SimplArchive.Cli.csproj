@@ -12,13 +12,18 @@
              console logger and the shared API client, which carry none of the application; see below.) -->
         <IsPackable>true</IsPackable>
         <PackAsTool>true</PackAsTool>
-        <ToolCommandName>saconsole</ToolCommandName>
-        <PackageId>SimplArchive.Cli</PackageId>
+        <ToolCommandName>alcifra</ToolCommandName>
+        <PackageId>Alcifra.Cli</PackageId>
+        <!-- Until phase 5 of the rename (#1117, ADR 0988) the release also packs this under its earlier id, with
+             -p:LegacyPackageId=true: a switch this project reads, because a PackageId passed on the command line
+             reaches every referenced project too and restore refuses the duplicate. -->
+        <PackageId Condition="'$(LegacyPackageId)' == 'true'">SimplArchive.Cli</PackageId>
+        <ToolCommandName Condition="'$(LegacyPackageId)' == 'true'">saconsole</ToolCommandName>
         <!-- The description is what a reader sees on the package feed before they install anything, so it lists
              what the tool DOES rather than what it is meant to grow into. It claimed service accounts and user
              certificates while having neither; certificates arrived with #1353 and service accounts have not,
              so they come out until they do. A package description is a promise made to strangers. -->
-        <Description>saconsole — administrative CLI for a SimplArchive installation: sign in, provision tenants, and register the certificate your content is enveloped to, over the HTTP API.</Description>
+        <Description>alcifra — administrative CLI for an Alcifra installation: sign in, provision tenants, and register the certificate your content is enveloped to, over the HTTP API.</Description>
         <!-- Where a reader of the package page goes next. The PUBLIC repository, because that is the one a stranger
              can open — and the one this package is packed from (saconsole-publish.yml runs only there), so the
              commit SourceLink records is a public commit too. Without these the page linked nowhere, and without

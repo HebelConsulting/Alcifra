@@ -22,14 +22,14 @@ namespace SimplArchive.Api.Pages.Account;
 /// <summary>
 /// The human half of the device authorization grant (RFC 8628, ADR 0823) — served at
 /// <c>/connect/verify</c>, the end-user verification endpoint whose passthrough is the ONLY one
-/// <c>AddAuthServer</c> enables. saconsole prints a code on a machine with no browser; this is where a
+/// <c>AddAuthServer</c> enables. alcifra prints a code on a machine with no browser; this is where a
 /// person, in a browser they already trust, says whether that machine may act as them.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <b>Re-authentication is mandatory, and that is a decision rather than an accident.</b> The conventional
 /// device-flow page approves on one click when a session already exists. This one does not: the grant mints
-/// a token for a DIFFERENT machine than the browser, and saconsole's verbs are tenant creation and token
+/// a token for a DIFFERENT machine than the browser, and alcifra's verbs are tenant creation and token
 /// initialisation — so an unlocked laptop plus a code read aloud would otherwise be enough. An administrator
 /// whose cookie is older than <see cref="MaxSessionAge"/> is signed out and sent through the sign-in page,
 /// which is exactly the shape <c>AuthorizationController</c> already uses for <c>prompt=login</c>.
@@ -126,7 +126,7 @@ public class DeviceModel : PageModel
 
         Marker = Request.Query[ChallengeParameter].ToString();
 
-        // No code yet — somebody opened the bare verification URI rather than the complete one saconsole
+        // No code yet — somebody opened the bare verification URI rather than the complete one alcifra
         // prints. RFC 8628 §3.3.1 expects a form here, so this is the normal path for a typed code, not an
         // error.
         if (string.IsNullOrWhiteSpace(code))

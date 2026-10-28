@@ -15,7 +15,7 @@ public sealed class EditSettings : StoreSettings
     public string Entry { get; init; } = string.Empty;
 
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(Entry)
-        ? ValidationResult.Error("Name the entry: sapass edit Mail/Banking.")
+        ? ValidationResult.Error("Name the entry: apass edit Mail/Banking.")
         : ValidationResult.Success();
 }
 
