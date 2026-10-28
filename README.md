@@ -71,7 +71,7 @@ Your archive also speaks the protocols your existing apps already know, so calen
 | **Calendars** (CalDAV) | `https://demo.simplarchive.dev/caldav` | your email | *WebDAV access…* |
 | **Contacts** (CardDAV) | `https://demo.simplarchive.dev/carddav` | your email | *WebDAV access…* |
 | **Notes** (IMAP) | `demo.simplarchive.dev`, port **993**, TLS | your email | *Email access (IMAP)…* |
-| **Files** (WebDAV) | `https://demo.simplarchive.dev/SimplArchive` | your email | *WebDAV access…* |
+| **Files** (WebDAV) | `https://demo.simplarchive.dev/webdav` | your email | *WebDAV access…* |
 
 **Use an app-specific password, never your login password.** Both are generated in the account menu (top right): *WebDAV access…* issues one secret shared by files, calendars and contacts, and *Email access (IMAP)…* issues a separate one for notes. Each is shown once, and either can be revoked on its own without touching your login.
 

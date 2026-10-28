@@ -30,8 +30,8 @@ public class WebDavPropertyParityTests
     {
         var ctx = await SetupAsync();
 
-        var tree = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}");
-        var intray = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray");
+        var tree = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{ctx.RepoName}");
+        var intray = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/Intray");
 
         Assert.Equal(tree, intray);
     }
@@ -43,11 +43,11 @@ public class WebDavPropertyParityTests
         var ctx = await SetupAsync();
         var docName = await SeedDocumentAsync(ctx);
         var item = $"item{Guid.NewGuid().ToString("N")[..8]}.docx";
-        (await DavAsync(ctx, "PUT", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{item}", Encoding.UTF8.GetBytes("staged")))
+        (await DavAsync(ctx, "PUT", $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/Intray/{item}", Encoding.UTF8.GetBytes("staged")))
             .EnsureSuccessStatusCode();
 
-        var tree = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}/{docName}");
-        var staged = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{item}");
+        var tree = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{ctx.RepoName}/{docName}");
+        var staged = await PropertyNamesAsync(ctx, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/Intray/{item}");
 
         Assert.Equal(tree, staged);
     }
@@ -63,7 +63,7 @@ public class WebDavPropertyParityTests
     public async Task A_special_folders_modified_time_is_real_and_advances_on_a_write()
     {
         var ctx = await SetupAsync();
-        var intray = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray";
+        var intray = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/Intray";
 
         // SEEDED FIRST, and that is the point of this line (#1101). A fresh user's Intray is empty, and
         // WebDavReads.NewestOf deliberately answers an empty collection with the API process's UtcNow — a
@@ -105,7 +105,7 @@ public class WebDavPropertyParityTests
     {
         var ctx = await SetupAsync();
         var item = $"etag{Guid.NewGuid().ToString("N")[..8]}.docx";
-        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{item}";
+        var path = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/Intray/{item}";
         (await DavAsync(ctx, "PUT", path, Encoding.UTF8.GetBytes("staged content"))).EnsureSuccessStatusCode();
 
         var listed = await PropertyValueAsync(ctx, path, "getetag");
@@ -121,7 +121,7 @@ public class WebDavPropertyParityTests
     {
         var ctx = await SetupAsync();
         var item = $"etag{Guid.NewGuid().ToString("N")[..8]}.docx";
-        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/Intray/{item}";
+        var path = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/Intray/{item}";
 
         (await DavAsync(ctx, "PUT", path, Encoding.UTF8.GetBytes("first"))).EnsureSuccessStatusCode();
         var before = await PropertyValueAsync(ctx, path, "getetag");
@@ -137,7 +137,7 @@ public class WebDavPropertyParityTests
     {
         var ctx = await SetupAsync();
         var docName = await SeedDocumentAsync(ctx);
-        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{ctx.RepoName}/{docName}";
+        var path = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{ctx.RepoName}/{docName}";
 
         var listed = await PropertyValueAsync(ctx, path, "getetag");
         Assert.False(string.IsNullOrWhiteSpace(listed), "the tree document reported no getetag");

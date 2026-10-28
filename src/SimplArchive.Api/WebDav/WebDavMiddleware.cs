@@ -21,13 +21,11 @@ namespace SimplArchive.Api.WebDav;
 // create-child paths as the API. Auth is HTTP Basic against the per-user app-specific WebDAV password.
 public sealed class WebDavMiddleware
 {
-    // The single mounted resource is served at /SimplArchive so an OS mount (Finder / Explorer / Nautilus) is
-    // named "SimplArchive" — the OS takes the volume name from the URL's last path segment, not the DAV
-    // displayname (ADR 0509). It is the ONLY path the gateway answers on; hrefs are always emitted under it.
-    public const string BasePath = "/" + SimplArchive.Localization.ProductBuild.Name;
-    // The legacy `/webdav` alias is RETIRED (#794). It existed so mounts predating ADR 0509 kept working, and
-    // the cost of keeping it was two ways in: two code paths to reason about, and — the part that actually bit —
-    // an entire test suite exercising the alias while every real client used /SimplArchive. One mount, one path.
+    // The single mounted resource is served at /webdav. The path is wire protocol, so it never follows the brand
+    // (ADR 0987): the OS labels the mounted volume "webdav", and a person may rename the drive. It is the ONLY path
+    // the gateway answers on; hrefs are always emitted under it. Two ways in stay ruled out (#794): the earlier
+    // /SimplArchive and /Alcifra paths are not served, so a mount saved under them is added again once.
+    public const string BasePath = "/" + SimplArchive.Presentation.WireNames.WebDavSegment;
 
     // Returns BasePath when the path is the gateway's, else null — one path, so the "which prefix?" question the
     // retired alias used to pose no longer exists.

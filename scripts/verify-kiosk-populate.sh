@@ -244,7 +244,7 @@ open_imap() {
 open_webdav() {
   # Depth 1: a depth-0 PROPFIND is a property read, not an open, and deliberately does NOT trigger the hook.
   curl -s --max-time 60 -u "$ADMIN:$PASSWORD" -X PROPFIND -H 'Depth: 1' \
-    "$BASE_URL/SimplArchive/$(printf '%s' "$REPO/$SUBPATH/$1" | sed 's/ /%20/g')/" >/dev/null 2>&1 || true
+    "$BASE_URL/webdav/$(printf '%s' "$REPO/$SUBPATH/$1" | sed 's/ /%20/g')/" >/dev/null 2>&1 || true
 }
 
 probe "IMAP   SELECT " "$IMAP_ICAO" open_imap

@@ -42,6 +42,7 @@
     <ProjectReference Include="..\..\src\SimplArchive.ModuleAbi\SimplArchive.ModuleAbi.csproj" />
     <!-- The product's name the server shows (core #1117). -->
     <ProjectReference Include="..\..\src\SimplArchive.Localization\SimplArchive.Localization.csproj" />
+    <ProjectReference Include="..\..\src\SimplArchive.Presentation\SimplArchive.Presentation.csproj" />
     <ProjectReference Include="..\SimplArchive.SelfHosting\SimplArchive.SelfHosting.csproj" />
   </ItemGroup>
 

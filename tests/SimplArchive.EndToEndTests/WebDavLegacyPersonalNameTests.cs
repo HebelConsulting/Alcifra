@@ -45,7 +45,7 @@ public class WebDavLegacyPersonalNameTests
             return (await dav.SendAsync(req)).StatusCode;
         }
 
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Legacy Owner"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Legacy Owner"));
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -58,8 +58,8 @@ public class WebDavLegacyPersonalNameTests
         }
 
         // The legacy state is real: the owner-named path is gone, the old constant answers.
-        Assert.Equal(HttpStatusCode.NotFound, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Legacy Owner"));
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal"));
+        Assert.Equal(HttpStatusCode.NotFound, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Legacy Owner"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal"));
 
         // The startup heal (run here exactly as Program.cs runs it) renames the row to the owner…
         using (var scope = _factory.Services.CreateScope())
@@ -73,11 +73,11 @@ public class WebDavLegacyPersonalNameTests
         }
 
         // …and BOTH paths serve: the canonical name, and the alias the saved mount still uses.
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Legacy Owner"));
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Legacy Owner"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal"));
 
         // The alias reaches INTO the space too — a mount addresses folders, not just the root.
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/My Documents"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/My Documents"));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class WebDavLegacyPersonalNameTests
 
         // Any authenticated DAV request provisions the space; the name it takes does not matter, because the
         // next block regresses it to the legacy constant either way.
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync(("/" + global::SimplArchive.Localization.ProductBuild.Name)));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync(("/" + global::SimplArchive.Presentation.WireNames.WebDavSegment)));
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -127,8 +127,8 @@ public class WebDavLegacyPersonalNameTests
 
         // The owner's segment resolves to THEIR personal space (not the same-named repository), and the
         // legacy alias serves too — a saved mount survives the heal whatever the tenant's repositories are called.
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Clash Owner"));
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Clash Owner/My Documents"));
-        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/My Documents"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Clash Owner"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Clash Owner/My Documents"));
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/My Documents"));
     }
 }

@@ -83,7 +83,7 @@ public class WebDavRightsTests
     public async Task A_document_is_read_only_by_somebody_who_may_read_it()
     {
         var archive = await ArchiveAsync();
-        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{archive.RepoName}/{archive.FolderName}/{archive.DocName}.txt";
+        var path = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{archive.RepoName}/{archive.FolderName}/{archive.DocName}.txt";
         var (_, outsider) = await PersonAsync(archive, rightsOnRepository: null);
         var (_, seer) = await PersonAsync(archive, new { canSee = true });
         var (_, reader) = await PersonAsync(archive, new { canSee = true, canReadContent = true });
@@ -101,12 +101,12 @@ public class WebDavRightsTests
     public async Task A_document_is_moved_or_renamed_only_with_the_rights_the_rest_door_asks()
     {
         var archive = await ArchiveAsync();
-        var path = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{archive.RepoName}/{archive.FolderName}/{archive.DocName}.txt";
+        var path = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{archive.RepoName}/{archive.FolderName}/{archive.DocName}.txt";
         var (_, outsider) = await PersonAsync(archive, rightsOnRepository: null);
         var (_, reader) = await PersonAsync(archive, new { canSee = true, canReadContent = true });
         var (_, mover) = await PersonAsync(archive, new { canSee = true, canReadContent = true, canMove = true, canCreateSubItems = true, canEditIndexData = true });
 
-        var elsewhere = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{archive.RepoName}/moved{Guid.NewGuid().ToString("N")[..6]}.txt";
+        var elsewhere = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{archive.RepoName}/moved{Guid.NewGuid().ToString("N")[..6]}.txt";
         Assert.Equal(HttpStatusCode.NotFound, (await SendAsync("MOVE", path, outsider, elsewhere)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await SendAsync("MOVE", path, reader, elsewhere)).StatusCode);
         var unchanged = await TestJson.Get(archive.Owner, $"/api/documents/{archive.DocId}");
@@ -122,7 +122,7 @@ public class WebDavRightsTests
         var (_, reader) = await PersonAsync(archive, new { canSee = true, canReadContent = true, canCreateSubItems = true });
         var copyName = $"c{Guid.NewGuid():N}"[..8];
 
-        var copied = await SendAsync("COPY", $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{archive.RepoName}/{archive.FolderName}", reader, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{archive.RepoName}/{copyName}");
+        var copied = await SendAsync("COPY", $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{archive.RepoName}/{archive.FolderName}", reader, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{archive.RepoName}/{copyName}");
         Assert.Equal(HttpStatusCode.Created, copied.StatusCode);
 
         var copy = (await TestJson.Get(archive.Owner, $"/api/documents/{archive.RepoId}/children"))
@@ -139,7 +139,7 @@ public class WebDavRightsTests
     public async Task An_outsider_who_knows_a_path_can_neither_write_delete_create_nor_inspect()
     {
         var archive = await ArchiveAsync();
-        var folder = $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{archive.RepoName}/{archive.FolderName}";
+        var folder = $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{archive.RepoName}/{archive.FolderName}";
         var path = $"{folder}/{archive.DocName}.txt";
         var (_, outsider) = await PersonAsync(archive, rightsOnRepository: null);
 

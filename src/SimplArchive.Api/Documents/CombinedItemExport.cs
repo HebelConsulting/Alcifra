@@ -63,7 +63,7 @@ public static class CombinedItemExport
         var output = new StringBuilder();
         output.Append("BEGIN:VCALENDAR\r\n");
         output.Append("VERSION:2.0\r\n");
-        output.Append($"PRODID:-//{SimplArchive.Localization.ProductBuild.Name}//export//EN\r\n"); // the tasks feed's PRODID family (TaskFeeds)
+        output.Append($"PRODID:-//{SimplArchive.Presentation.WireNames.Product}//export//EN\r\n"); // the tasks feed's PRODID family (TaskFeeds)
         foreach (var zone in timezones.Values)
         {
             output.Append(zone).Append("\r\n");

@@ -93,7 +93,7 @@ public class WebWebDavTests
         // The space is addressed by its OWNER's name, not the literal "Personal" — that is what the mount
         // actually serves, and a client that composed the placeholder produced a path nothing answers.
         var personal = Uri.EscapeDataString(SelfHostedAppFixture.AdminDisplayName);
-        Assert.EndsWith($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{personal}/Intray", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
+        Assert.EndsWith($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{personal}/Intray", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
     }
 
     // The two tabs must copy DIFFERENT addresses — that is the whole point of the deep link, and a shared
@@ -114,6 +114,6 @@ public class WebWebDavTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Copy WebDAV URL" }).ClickAsync();
         await Expect(page.GetByText("Copied WebDAV URL")).ToBeVisibleAsync();
         var personal = Uri.EscapeDataString(SelfHostedAppFixture.AdminDisplayName);
-        Assert.EndsWith($"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{personal}/Check-out", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
+        Assert.EndsWith($"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{personal}/Check-out", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
     }
 }

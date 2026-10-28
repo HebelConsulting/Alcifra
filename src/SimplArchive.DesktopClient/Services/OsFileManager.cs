@@ -307,8 +307,8 @@ public static class OsFileManager
 
     // ---- Already mounted? and mapping a persistent drive letter (issue #461) ---------------------------
 
-    /// <summary>The volume name the OS shows: the WebDAV mount's last segment, the build's product name (ADR 0509, core #1117).</summary>
-    public const string VolumeName = SimplArchive.Localization.ProductBuild.Name;
+    /// <summary>The volume name the OS shows: the WebDAV mount's last segment, fixed wire protocol (ADR 0987).</summary>
+    public const string VolumeName = SimplArchive.Presentation.WireNames.WebDavSegment;
 
     /// <summary>
     /// Where the volume is already mounted, or <c>null</c>. This is what lets ONE button do the next useful

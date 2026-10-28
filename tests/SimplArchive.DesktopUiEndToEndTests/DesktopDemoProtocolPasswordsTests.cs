@@ -55,7 +55,7 @@ public class DesktopDemoProtocolPasswordsTests
             $"{AnnaEmail}:{SelfHostedAppFixture.AdminPassword}"));
         dav.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basic);
 
-        using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), ("/" + global::SimplArchive.Localization.ProductBuild.Name));
+        using var request = new HttpRequestMessage(new HttpMethod("PROPFIND"), ("/" + global::SimplArchive.Presentation.WireNames.WebDavSegment));
         request.Headers.Add("Depth", "0");
 
         var response = await dav.SendAsync(request);

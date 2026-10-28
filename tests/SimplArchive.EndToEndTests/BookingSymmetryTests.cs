@@ -64,7 +64,7 @@ public class BookingSymmetryTests
     };
 
     private static string Event(string uid, int startHour, int endHour, string? rrule = null) =>
-        $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::SimplArchive.Localization.ProductBuild.Name)}//E2E//EN\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
+        $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::SimplArchive.Presentation.WireNames.Product)}//E2E//EN\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
         + $"DTSTAMP:20270301T090000Z\r\nDTSTART:20270310T{startHour:00}0000Z\r\nDTEND:20270310T{endHour:00}0000Z\r\n"
         + (rrule is null ? string.Empty : $"RRULE:{rrule}\r\n")
         + "SUMMARY:Synced booking\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";

@@ -323,7 +323,8 @@ folder inside the drive rather than the top of the archive:
 The setup dialog shows the *mount URL* and your *username* (your e-mail), each with a *Copy* button, and a
 *Generate* button that issues an app-specific *WebDAV password* — separate from your login password and shown
 only once, so copy it right away. The desktop dialog also has *Open folder*, so you can go from generating
-credentials to a mounted drive without closing it.
+credentials to a mounted drive without closing it. The mount URL ends in `/webdav`, so your file manager names the
+drive "webdav"; on Windows you can rename it like any network drive.
 
 The *web client* cannot mount a drive: a browser is not allowed to. Instead of leaving you with a URL and no idea
 what to do with it, its dialog shows the mount steps for the operating system you are on — Finder's

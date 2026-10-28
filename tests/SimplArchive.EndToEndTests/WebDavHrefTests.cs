@@ -11,7 +11,7 @@ namespace SimplArchive.EndToEndTests;
 [Trait("Area", "e2e-2")]
 public partial class WebDavHrefTests
 {
-    private const string WebDavMountPath = ("/" + global::SimplArchive.Localization.ProductBuild.Name);
+    private const string WebDavMountPath = ("/" + global::SimplArchive.Presentation.WireNames.WebDavSegment);
 
     // The personal space is named after its owner (ADR 0671), so its WebDAV/IMAP path segment is
     // whatever this test seeded as the display name — not the constant "Personal" it used to be.

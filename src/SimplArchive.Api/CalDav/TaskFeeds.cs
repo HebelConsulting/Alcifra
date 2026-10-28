@@ -188,7 +188,7 @@ internal static class TaskFeeds
         {
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            $"PRODID:-//{SimplArchive.Localization.ProductBuild.Name}//tasks//EN",
+            $"PRODID:-//{SimplArchive.Presentation.WireNames.Product}//tasks//EN",
         };
 
         if (kind == TaskFeedKind.Todos)

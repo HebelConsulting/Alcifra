@@ -15,7 +15,7 @@ namespace SimplArchive.Api.Versioning;
 public static class VendorMediaTypes
 {
     /// <summary>The subtype every answer carries; the wire never follows the brand.</summary>
-    public const string Subtype = "vnd.alcifra";
+    public const string Subtype = $"vnd.{SimplArchive.Presentation.WireNames.Product}";
 
     /// <summary>The subtype before the rename, accepted in requests only, until its retirement (see remarks).</summary>
     public const string LegacySubtype = "vnd.simplarchive";

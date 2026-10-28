@@ -9,7 +9,7 @@ namespace SimplArchive.Api.Documents;
 /// <inheritdoc cref="IAppointmentComposer"/>
 public sealed class AppointmentComposer : IAppointmentComposer
 {
-    private const string ProductId = "-//" + SimplArchive.Localization.ProductBuild.Name + "//Appointment Editor//EN";
+    private const string ProductId = "-//" + SimplArchive.Presentation.WireNames.Product + "//Appointment Editor//EN";
 
     public Appointment Read(string blob)
     {

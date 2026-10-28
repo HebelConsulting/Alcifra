@@ -53,7 +53,7 @@ public class ImapAttachmentFetchTests
             pdf[i] = (byte)(i * 31 % 256);
         }
 
-        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/statement.pdf")
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{repoName}/statement.pdf")
         {
             Content = new ByteArrayContent(pdf),
             Headers = { Authorization = basic },

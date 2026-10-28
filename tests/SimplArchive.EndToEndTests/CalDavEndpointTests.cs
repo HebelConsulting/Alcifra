@@ -34,7 +34,7 @@ public class CalDavEndpointTests
 
     private static byte[] Item(Protocol protocol, string uid, string title) => Encoding.UTF8.GetBytes(
         protocol == CalDav
-            ? $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::SimplArchive.Localization.ProductBuild.Name)}//E2E//EN\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
+            ? $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::SimplArchive.Presentation.WireNames.Product)}//E2E//EN\r\nBEGIN:VEVENT\r\nUID:{uid}\r\n"
               + $"DTSTAMP:20260817T090000Z\r\nDTSTART:20260901T090000Z\r\nDTEND:20260901T100000Z\r\n"
               + $"SUMMARY:{title}\r\nLOCATION:Room 1\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
             : $"BEGIN:VCARD\r\nVERSION:3.0\r\nUID:{uid}\r\nFN:{title}\r\nN:{title};;;;\r\n"
@@ -134,7 +134,7 @@ public class CalDavEndpointTests
         // ---- File an item through WebDAV — the SAME shared credential, and the path a user would use -------
         var uid = $"e2e-{Guid.NewGuid():N}";
         var title = protocol == CalDav ? "Quarterly review" : "Ada Lovelace";
-        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{Personal}/{protocol.DefaultFolder}/{uid}{protocol.Extension}")
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{Personal}/{protocol.DefaultFolder}/{uid}{protocol.Extension}")
         {
             Content = new ByteArrayContent(Item(protocol, uid, title)),
             Headers = { Authorization = auth },

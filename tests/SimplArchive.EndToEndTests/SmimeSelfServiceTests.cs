@@ -43,7 +43,7 @@ public class SmimeSelfServiceTests
 
         var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
         using var dav = _factory.CreateClient();
-        using var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/note.eml")
+        using var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{repoName}/note.eml")
         {
             Content = new ByteArrayContent(Encoding.ASCII.GetBytes(
                 "From: Alice <alice@example.test>\r\nSubject: Plain secret\r\n"

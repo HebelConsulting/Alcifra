@@ -50,7 +50,7 @@ public class ArchiveEntryHeadTests
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{dav.GetProperty("password").GetString()}")));
         var name = $"bundle-{Guid.NewGuid():N}"[..14];
-        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/{name}.zip")
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{repoName}/{name}.zip")
         {
             Content = new ByteArrayContent(Zip()),
             Headers = { Authorization = basic },

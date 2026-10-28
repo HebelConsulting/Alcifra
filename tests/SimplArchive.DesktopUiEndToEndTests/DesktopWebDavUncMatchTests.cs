@@ -9,13 +9,13 @@ namespace SimplArchive.UiEndToEndTests;
 public class DesktopWebDavUncMatchTests
 {
     [Theory]
-    [InlineData($@"\\demo.simplarchive.dev@SSL@443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", $"https://demo.simplarchive.dev/{(global::SimplArchive.Localization.ProductBuild.Name)}", true)]
-    [InlineData($@"\\demo.simplarchive.dev@SSL\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", $"https://demo.simplarchive.dev/{(global::SimplArchive.Localization.ProductBuild.Name)}", true)]  // @SSL without an explicit port implies 443
-    [InlineData($@"\\DEMO.SIMPLARCHIVE.DEV@SSL@443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", "https://demo.simplarchive.dev/", true)]          // host is case-insensitive
-    [InlineData($@"\\localhost@8080\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", $"http://localhost:8080/{(global::SimplArchive.Localization.ProductBuild.Name)}", true)]
-    [InlineData($@"\\localhost@80\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", $"http://localhost/{(global::SimplArchive.Localization.ProductBuild.Name)}", true)]
-    [InlineData($@"\\other.example.org@SSL@443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", "https://demo.simplarchive.dev/", false)]             // another server's mount is NOT ours (the macOS lesson)
-    [InlineData($@"\\demo.simplarchive.dev@SSL@8443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}", "https://demo.simplarchive.dev/", false)]        // same host, different port = a different deployment
+    [InlineData($@"\\demo.simplarchive.dev@SSL@443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", $"https://demo.simplarchive.dev/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", true)]
+    [InlineData($@"\\demo.simplarchive.dev@SSL\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", $"https://demo.simplarchive.dev/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", true)]  // @SSL without an explicit port implies 443
+    [InlineData($@"\\DEMO.SIMPLARCHIVE.DEV@SSL@443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", "https://demo.simplarchive.dev/", true)]          // host is case-insensitive
+    [InlineData($@"\\localhost@8080\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", $"http://localhost:8080/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", true)]
+    [InlineData($@"\\localhost@80\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", $"http://localhost/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", true)]
+    [InlineData($@"\\other.example.org@SSL@443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", "https://demo.simplarchive.dev/", false)]             // another server's mount is NOT ours (the macOS lesson)
+    [InlineData($@"\\demo.simplarchive.dev@SSL@8443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}", "https://demo.simplarchive.dev/", false)]        // same host, different port = a different deployment
     [InlineData(@"\\fileserver\share", "https://demo.simplarchive.dev/", false)]                                              // an ordinary SMB mapping
     public void A_remote_unc_matches_exactly_our_server(string remote, string server, bool expected)
         => Assert.Equal(expected, OsFileManager.UncMatchesServer(remote, new Uri(server)));

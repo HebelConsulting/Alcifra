@@ -128,7 +128,7 @@ public class ImapSyntheticDetailsTests
 
         // Filed by the USER over WebDAV, so "Created by" has a real name to report rather than the service
         // account that made the repository.
-        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/invoice.pdf")
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{repoName}/invoice.pdf")
         {
             Content = new ByteArrayContent(pdf),
             Headers = { Authorization = basic },
@@ -251,7 +251,7 @@ public class ImapSyntheticDetailsTests
         const string raw = "From: someone@example.com\r\nTo: nobody@example.com\r\nSubject: Untouched\r\n"
             + "Message-Id: <original@example.com>\r\nDate: Mon, 02 Mar 2026 10:00:00 +0000\r\n\r\nJust the body.\r\n";
 
-        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Localization.ProductBuild.Name)}/{repoName}/kept.eml")
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/{repoName}/kept.eml")
         {
             Content = new ByteArrayContent(Encoding.ASCII.GetBytes(raw)),
             Headers = { Authorization = basic },

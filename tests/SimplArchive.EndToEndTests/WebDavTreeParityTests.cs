@@ -23,7 +23,7 @@ public partial class WebDavTreeParityTests
     public WebDavTreeParityTests(E2EApiFactory factory) => _factory = factory;
 
     [Fact]
-    public async Task SimplArchive_is_the_single_mount_and_mirrors_the_repositories_tree()
+    public async Task Webdav_is_the_single_mount_and_mirrors_the_repositories_tree()
     {
         var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
         using var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
@@ -41,26 +41,28 @@ public partial class WebDavTreeParityTests
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
-        // The advertised mount URL is the single /SimplArchive resource.
-        Assert.EndsWith(("/" + global::SimplArchive.Localization.ProductBuild.Name), (await TestJson.Get(api, "/api/me/webdav-password")).GetProperty("url").GetString());
+        // The advertised mount URL is the single /webdav resource.
+        Assert.EndsWith(("/" + global::SimplArchive.Presentation.WireNames.WebDavSegment), (await TestJson.Get(api, "/api/me/webdav-password")).GetProperty("url").GetString());
 
         // The Repositories tree-pane's top level = the "Personal" node + the repositories the user can see.
         var repos = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()
             .Select(r => r.GetProperty("name").GetString()!).ToHashSet();
         var expectedTopLevel = new HashSet<string>(repos) { Personal };
 
-        // PROPFIND the single /SimplArchive resource: root named "SimplArchive", children == the tree top level.
-        var names = await PropFindNamesAsync(dav, basic, ("/" + global::SimplArchive.Localization.ProductBuild.Name));
-        Assert.Contains(global::SimplArchive.Localization.ProductBuild.Name, names);
-        Assert.Equal(expectedTopLevel, names.Where(n => n != global::SimplArchive.Localization.ProductBuild.Name).ToHashSet());
+        // PROPFIND the single /webdav resource: root named "webdav", children == the tree top level.
+        var names = await PropFindNamesAsync(dav, basic, ("/" + global::SimplArchive.Presentation.WireNames.WebDavSegment));
+        Assert.Contains(global::SimplArchive.Presentation.WireNames.WebDavSegment, names);
+        Assert.Equal(expectedTopLevel, names.Where(n => n != global::SimplArchive.Presentation.WireNames.WebDavSegment).ToHashSet());
 
-        // The legacy `/webdav` alias is RETIRED (#794): one mount, one path. It answers like any unknown route,
-        // which is what makes "two ways in" stop being a thing anyone has to reason about — including the tests,
-        // which had been exercising the alias while every real client used /SimplArchive.
+        // One mount, one path (#794, ADR 0987): the earlier mount paths answer like any unknown route, so a mount saved
+        // under them is added again rather than served by a second way in.
         using var legacy = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        using var legacyProbe = new HttpRequestMessage(new HttpMethod("PROPFIND"), "/webdav") { Headers = { Authorization = basic } };
-        legacyProbe.Headers.TryAddWithoutValidation("Depth", "1");
-        Assert.NotEqual(HttpStatusCode.MultiStatus, (await legacy.SendAsync(legacyProbe)).StatusCode);
+        foreach (var earlier in new[] { "/SimplArchive", "/Alcifra" })
+        {
+            using var legacyProbe = new HttpRequestMessage(new HttpMethod("PROPFIND"), earlier) { Headers = { Authorization = basic } };
+            legacyProbe.Headers.TryAddWithoutValidation("Depth", "1");
+            Assert.NotEqual(HttpStatusCode.MultiStatus, (await legacy.SendAsync(legacyProbe)).StatusCode);
+        }
     }
 
     private static async Task<List<string>> PropFindNamesAsync(HttpClient dav, AuthenticationHeaderValue basic, string path)

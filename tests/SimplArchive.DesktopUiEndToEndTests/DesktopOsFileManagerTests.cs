@@ -7,7 +7,7 @@ namespace SimplArchive.UiEndToEndTests;
 // function — assert it for each OS.
 public class DesktopOsFileManagerTests
 {
-    private const string Url = $"https://archive.example.com:8443/{(global::SimplArchive.Localization.ProductBuild.Name)}/Intray";
+    private const string Url = $"https://archive.example.com:8443/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Intray";
 
     [Fact]
     public void MacOs_only_mounts_and_names_no_volume_path()
@@ -31,8 +31,8 @@ public class DesktopOsFileManagerTests
     {
         string output = $"""
             /dev/disk3s1s1 on / (apfs, sealed, local, read-only, journaled)
-            http://localhost:8080/{(global::SimplArchive.Localization.ProductBuild.Name)}/ on /Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)} (webdav, nodev, noexec, nosuid, mounted by flhe)
-            https://demo.simplarchive.dev/{(global::SimplArchive.Localization.ProductBuild.Name)}/ on /Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}-1 (webdav, nodev, noexec, nosuid, mounted by flhe)
+            http://localhost:8080/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/ on /Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)} (webdav, nodev, noexec, nosuid, mounted by flhe)
+            https://demo.simplarchive.dev/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/ on /Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}-1 (webdav, nodev, noexec, nosuid, mounted by flhe)
             /dev/disk5s1 on /Volumes/My Backup Disk (hfs, local, nodev)
             """;
 
@@ -40,10 +40,10 @@ public class DesktopOsFileManagerTests
 
         // The real case that broke it: two servers whose URLs BOTH end in /SimplArchive, distinguished only by
         // host. Deriving the volume name from the last path segment gives "SimplArchive" for both.
-        Assert.Equal($"/Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}",
-            entries.Single(e => e.Source == $"http://localhost:8080/{(global::SimplArchive.Localization.ProductBuild.Name)}/").Point);
-        Assert.Equal("/Volumes/" + global::SimplArchive.Localization.ProductBuild.Name + "-1",
-            entries.Single(e => e.Source == $"https://demo.simplarchive.dev/{(global::SimplArchive.Localization.ProductBuild.Name)}/").Point);
+        Assert.Equal($"/Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}",
+            entries.Single(e => e.Source == $"http://localhost:8080/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/").Point);
+        Assert.Equal("/Volumes/" + global::SimplArchive.Presentation.WireNames.WebDavSegment + "-1",
+            entries.Single(e => e.Source == $"https://demo.simplarchive.dev/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/").Point);
 
         // A mount point may contain spaces, so the point cannot be parsed as "the token after ' on '".
         Assert.Equal("/Volumes/My Backup Disk", entries.Single(e => e.Source == "/dev/disk5s1").Point);
@@ -77,7 +77,7 @@ public class DesktopOsFileManagerTests
     {
         var (file, args) = OsFileManager.BuildOpenCommand(Url, OsFileManager.Platform.Linux);
         Assert.Equal("xdg-open", file);
-        Assert.Contains($"davs://archive.example.com:8443/{(global::SimplArchive.Localization.ProductBuild.Name)}/Intray", args);
+        Assert.Contains($"davs://archive.example.com:8443/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Intray", args);
     }
 
     [Fact]
@@ -86,19 +86,19 @@ public class DesktopOsFileManagerTests
         var (file, args) = OsFileManager.BuildOpenCommand(Url, OsFileManager.Platform.Windows);
         Assert.Equal("explorer.exe", file);
         // The canonical mount path — the /webdav alias is retired (#794), and this pinned it for months after.
-        Assert.Contains($@"\\archive.example.com@SSL@8443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}\Intray", args);
+        Assert.Contains($@"\\archive.example.com@SSL@8443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}\Intray", args);
     }
 
     [Fact]
     public void Http_url_uses_the_plain_dav_scheme_on_linux()
     {
-        var (_, args) = OsFileManager.BuildOpenCommand($"http://localhost:8080/{(global::SimplArchive.Localization.ProductBuild.Name)}/Intray", OsFileManager.Platform.Linux);
-        Assert.Contains($"dav://localhost:8080/{(global::SimplArchive.Localization.ProductBuild.Name)}/Intray", args);
+        var (_, args) = OsFileManager.BuildOpenCommand($"http://localhost:8080/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Intray", OsFileManager.Platform.Linux);
+        Assert.Contains($"dav://localhost:8080/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Intray", args);
         Assert.DoesNotContain(args, a => a.Contains("davs://"));
     }
 
     // The Check-out Edit button (ADR 0513) opens a SINGLE file inside the mount in its native app.
-    private const string Base = $"https://archive.example.com:8443/{(global::SimplArchive.Localization.ProductBuild.Name)}";
+    private const string Base = $"https://archive.example.com:8443/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}";
     private const string Rel = "Personal/Check-out/Report Q1.txt"; // a space, to exercise escaping
 
     [Fact]
@@ -107,9 +107,9 @@ public class DesktopOsFileManagerTests
         var (file, args) = OsFileManager.BuildOpenWebDavFileCommand(Base, Rel, OsFileManager.Platform.MacOs);
         Assert.Equal("osascript", file);
         var script = string.Join("\n", args);
-        Assert.Contains($"mount volume \"https://archive.example.com:8443/{(global::SimplArchive.Localization.ProductBuild.Name)}\"", script);
+        Assert.Contains($"mount volume \"https://archive.example.com:8443/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}\"", script);
         // Volume name = the URL's last path segment; the file opens by its POSIX path under /Volumes.
-        Assert.Contains($"/Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/Check-out/Report Q1.txt", script);
+        Assert.Contains($"/Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/Check-out/Report Q1.txt", script);
         Assert.Contains("open ", script);
     }
 
@@ -118,7 +118,7 @@ public class DesktopOsFileManagerTests
     {
         var (file, args) = OsFileManager.BuildOpenWebDavFileCommand(Base, Rel, OsFileManager.Platform.Linux);
         Assert.Equal("xdg-open", file);
-        Assert.Contains($"davs://archive.example.com:8443/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/Check-out/Report%20Q1.txt", args);
+        Assert.Contains($"davs://archive.example.com:8443/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/Check-out/Report%20Q1.txt", args);
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class DesktopOsFileManagerTests
     {
         var (file, args) = OsFileManager.BuildOpenWebDavFileCommand(Base, Rel, OsFileManager.Platform.Windows);
         Assert.Equal("cmd.exe", file);
-        Assert.Contains($@"\\archive.example.com@SSL@8443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}\Personal\Check-out\Report Q1.txt", args);
+        Assert.Contains($@"\\archive.example.com@SSL@8443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}\Personal\Check-out\Report Q1.txt", args);
     }
 
     // The desktop Intray / Check-out "Open in file manager" buttons deep-open a FOLDER within the single mount
@@ -136,13 +136,13 @@ public class DesktopOsFileManagerTests
     {
         var (mac, macArgs) = OsFileManager.BuildOpenWebDavFileCommand(Base, "Personal/Check-out", OsFileManager.Platform.MacOs);
         Assert.Equal("osascript", mac);
-        Assert.Contains($"/Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/Check-out", string.Join("\n", macArgs));
+        Assert.Contains($"/Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/Check-out", string.Join("\n", macArgs));
 
         var (_, linuxArgs) = OsFileManager.BuildOpenWebDavFileCommand(Base, "Personal/Intray", OsFileManager.Platform.Linux);
-        Assert.Contains($"davs://archive.example.com:8443/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/Intray", linuxArgs);
+        Assert.Contains($"davs://archive.example.com:8443/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/Intray", linuxArgs);
 
         var (_, winArgs) = OsFileManager.BuildOpenWebDavFileCommand(Base, "Personal/Check-out", OsFileManager.Platform.Windows);
-        Assert.Contains($@"\\archive.example.com@SSL@8443\DavWWWRoot\{(global::SimplArchive.Localization.ProductBuild.Name)}\Personal\Check-out", winArgs);
+        Assert.Contains($@"\\archive.example.com@SSL@8443\DavWWWRoot\{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}\Personal\Check-out", winArgs);
     }
 
     // ---- Already mounted: open the folder on disk, do NOT re-mount ----------------------------------------
@@ -156,10 +156,10 @@ public class DesktopOsFileManagerTests
     [InlineData(OsFileManager.Platform.Linux, "xdg-open")]
     public void An_already_mounted_folder_is_opened_directly_without_mounting(OsFileManager.Platform platform, string expected)
     {
-        var (file, args) = OsFileManager.BuildOpenLocalFolderCommand($"/Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/Intray", platform);
+        var (file, args) = OsFileManager.BuildOpenLocalFolderCommand($"/Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/Intray", platform);
 
         Assert.Equal(expected, file);
-        Assert.Contains($"/Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}/Personal/Intray", args);
+        Assert.Contains($"/Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/Personal/Intray", args);
 
         // The assertion that matters: nothing here mounts anything.
         Assert.DoesNotContain("mount volume", string.Join("\n", args));
@@ -178,13 +178,13 @@ public class DesktopOsFileManagerTests
     // The already-mounted check must not confuse two servers. This is the bug that had no error message: a
     // client connected to demo found localhost's mount, said "already mounted", and opened the WRONG archive.
     [Theory]
-    [InlineData("http://localhost:8080", $"/Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}")]
-    [InlineData("https://demo.simplarchive.dev", "/Volumes/" + global::SimplArchive.Localization.ProductBuild.Name + "-1")]
+    [InlineData("http://localhost:8080", $"/Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}")]
+    [InlineData("https://demo.simplarchive.dev", "/Volumes/" + global::SimplArchive.Presentation.WireNames.WebDavSegment + "-1")]
     public void The_already_mounted_check_matches_the_server_not_the_volume_name(string serverUrl, string expected)
     {
         string output = $"""
-            http://localhost:8080/{(global::SimplArchive.Localization.ProductBuild.Name)}/ on /Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)} (webdav, nodev, noexec, nosuid, mounted by flhe)
-            https://demo.simplarchive.dev/{(global::SimplArchive.Localization.ProductBuild.Name)}/ on /Volumes/{(global::SimplArchive.Localization.ProductBuild.Name)}-1 (webdav, nodev, noexec, nosuid, mounted by flhe)
+            http://localhost:8080/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/ on /Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)} (webdav, nodev, noexec, nosuid, mounted by flhe)
+            https://demo.simplarchive.dev/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}/ on /Volumes/{(global::SimplArchive.Presentation.WireNames.WebDavSegment)}-1 (webdav, nodev, noexec, nosuid, mounted by flhe)
             """;
 
         var server = new Uri(serverUrl);
