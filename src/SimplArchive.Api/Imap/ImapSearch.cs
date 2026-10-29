@@ -158,7 +158,8 @@ internal static class ImapSearch
             // what a substring search over a MIME message needs; a UTF-8 decode would mangle an 8-bit body and
             // could silently drop a match.
             var storage = scope.ServiceProvider.GetRequiredService<Application.Abstractions.IObjectStorageClient>();
-            var bytes = await ImapFetch.MessageBytesAsync(storage, message);
+            var archive = ArchiveAddress.From(scope.ServiceProvider.GetRequiredService<IConfiguration>());
+            var bytes = await ImapFetch.MessageBytesAsync(storage, archive, message);
             return Evaluate(System.Text.Encoding.Latin1.GetString(bytes), message);
         }
 

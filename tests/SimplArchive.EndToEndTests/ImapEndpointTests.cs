@@ -126,12 +126,16 @@ public class ImapEndpointTests
             var attachment = Assert.Single(pdfMessage.Attachments);
             Assert.Equal("summary.pdf", attachment.ContentDisposition!.FileName);
 
-            // The body line links to the product (#783) — a bare URL, so clients auto-link it and the part
-            // tree stays untouched: the attachment must remain part 2, because clients address it as BODY[2]
-            // and moving it is the #766 defect class. Both facts asserted together, so the link can never be
-            // "improved" into an HTML sibling without this test asking about the section number.
-            Assert.Contains("https://www.simplarchive.dev", pdfMessage.TextBody);
+            // The body line links to the archive it came from (#783; the installation's App:BaseUrl since #1117,
+            // never a product's website) — a bare URL, so clients auto-link it and the part tree stays untouched:
+            // the attachment must remain part 2, because clients address it as BODY[2] and moving it is the #766
+            // defect class. Both facts asserted together, so the link can never be "improved" into an HTML
+            // sibling without this test asking about the section number.
+            Assert.Contains("archive:\nhttp://localhost", pdfMessage.TextBody!.ReplaceLineEndings("\n"));
+            Assert.DoesNotContain("simplarchive.dev", pdfMessage.TextBody);
             Assert.Single(pdfMessage.Attachments);
+            // The synthetic sender's domain is the installation's too.
+            Assert.Equal("no-reply@localhost", Assert.Single(pdfMessage.From.Mailboxes).Address);
             await client.DisconnectAsync(true);
         }
     }

@@ -27,6 +27,7 @@ internal static class ImapFetch
         var storage = scope.ServiceProvider.GetRequiredService<IObjectStorageClient>();
         var modes = scope.ServiceProvider.GetRequiredService<SimplArchive.Infrastructure.Encryption.EncryptionModes>();
         var selfEnveloper = scope.ServiceProvider.GetRequiredService<SimplArchive.Infrastructure.Encryption.SmimeMessageEnveloper>();
+        var archive = ArchiveAddress.From(scope.ServiceProvider.GetRequiredService<IConfiguration>());
         var seen = await ImapMailboxes.SeenSetAsync(scope, selected.Messages);
 
         for (var index = 0; index < selected.Messages.Count; index++)
@@ -46,7 +47,7 @@ internal static class ImapFetch
                 seen.Add(message.DocumentId);
             }
 
-            await WriteMessageAsync(session, storage, modes, selfEnveloper, message, sequence, items,
+            await WriteMessageAsync(session, storage, archive, modes, selfEnveloper, message, sequence, items,
                 seen.Contains(message.DocumentId), selected.DeletedDocumentIds.Contains(message.DocumentId));
         }
 
@@ -133,7 +134,7 @@ internal static class ImapFetch
     // ---- Response ------------------------------------------------------------------------------------
 
     private static async Task WriteMessageAsync(
-        ImapSession session, IObjectStorageClient storage, SimplArchive.Infrastructure.Encryption.EncryptionModes modes,
+        ImapSession session, IObjectStorageClient storage, ArchiveAddress archive, SimplArchive.Infrastructure.Encryption.EncryptionModes modes,
         SimplArchive.Infrastructure.Encryption.SmimeMessageEnveloper selfEnveloper,
         ImapMessageEntry message, int sequence, List<string> items, bool seen, bool deleted)
     {
@@ -154,9 +155,9 @@ internal static class ImapFetch
         async Task<byte[]> BytesAsync() => bytes ??=
             (session.ReaderCertificates.Envelopes
                 ? selfEnveloper.TryEnvelope(
-                    await MessageBytesAsync(storage, message), session.ReaderCertificates.Pems, session.Email)
+                    await MessageBytesAsync(storage, archive, message), session.ReaderCertificates.Pems, session.Email)
                 : null)
-            ?? bytes ?? await MessageBytesAsync(storage, message);
+            ?? bytes ?? await MessageBytesAsync(storage, archive, message);
 
         async Task<MimeMessage> MimeAsync() => mime ??= MimeMessage.Load(new MemoryStream(await BytesAsync()));
 
@@ -497,11 +498,11 @@ internal static class ImapFetch
     /// A search that matched on different bytes than the fetch returns would produce hits a user cannot find —
     /// the same class of silent wrongness that made SEARCH worth implementing in the first place.
     /// </remarks>
-    internal static async Task<byte[]> MessageBytesAsync(IObjectStorageClient storage, ImapMessageEntry message)
+    internal static async Task<byte[]> MessageBytesAsync(IObjectStorageClient storage, ArchiveAddress archive, ImapMessageEntry message)
     {
         if (!message.Extension.Equals(".eml", StringComparison.OrdinalIgnoreCase))
         {
-            return await BuildSyntheticAsync(storage, message);
+            return await BuildSyntheticAsync(storage, archive, message);
         }
 
         await using var stream = await storage.GetObjectAsync(message.ObjectKey);
@@ -510,7 +511,7 @@ internal static class ImapFetch
         return buffer.ToArray();
     }
 
-    private static async Task<byte[]> BuildSyntheticAsync(IObjectStorageClient storage, ImapMessageEntry message)
+    private static async Task<byte[]> BuildSyntheticAsync(IObjectStorageClient storage, ArchiveAddress archive, ImapMessageEntry message)
     {
         await using var stream = await storage.GetObjectAsync(message.ObjectKey);
         using var content = new MemoryStream();
@@ -527,10 +528,11 @@ internal static class ImapFetch
         //
         // The address half is synthesised (the archive's domain), because a display name is not an address and
         // the person may have none — the NAME is what a client renders, and that is what carries the meaning.
+        // The domain is the installation's (App:BaseUrl), never a product's (#1117).
         var mime = new MimeMessage();
         mime.From.Add(message.Details?.CreatedBy is { Length: > 0 } author
-            ? new MailboxAddress(author, "no-reply@simplarchive.local")
-            : new MailboxAddress(SimplArchive.Localization.Strings.ProductName, "no-reply@simplarchive.local"));
+            ? new MailboxAddress(author, archive.NoReply)
+            : new MailboxAddress(SimplArchive.Localization.Strings.ProductName, archive.NoReply));
         mime.Subject = message.Name;
         // THE DATE IS THE PAIR, not the date alone. Taking only DocumentDate put every message at midnight,
         // which a mail client sorts and groups by — so the five METARs a weather folder collects in a day all
@@ -582,13 +584,13 @@ internal static class ImapFetch
             // UTF-8 with replacement on invalid bytes rather than a throw: a mis-encoded text document should
             // degrade to readable-ish text, never 500 a mailbox listing.
             var documentText = Encoding.UTF8.GetString(content.ToArray());
-            mime.Body = new TextPart("plain") { Text = $"{documentText}\n\n{SyntheticText(message)}" };
+            mime.Body = new TextPart("plain") { Text = $"{documentText}\n\n{SyntheticText(message, archive)}" };
         }
         else
         {
             mime.Body = new Multipart("mixed")
             {
-                new TextPart("plain") { Text = SyntheticText(message) },
+                new TextPart("plain") { Text = SyntheticText(message, archive) },
                 // The media type is derived from the EXTENSION rather than left to default. A MimePart with no
                 // content type is application/octet-stream, so every attachment this server synthesised — a PDF,
                 // a JPEG, a Word document — arrived as an anonymous blob: a client cannot preview it, cannot pick
@@ -630,7 +632,7 @@ internal static class ImapFetch
     /// larger half of what this is for.
     /// </para>
     /// </remarks>
-    private static string SyntheticText(ImapMessageEntry message)
+    private static string SyntheticText(ImapMessageEntry message, ArchiveAddress archive)
     {
         var text = new StringBuilder();
 
@@ -662,7 +664,9 @@ internal static class ImapFetch
         // line break is malformed-ish RFC 5322 and left our last line unterminated; and a client that renders
         // the attachment INLINE under the text — Apple Mail does — then draws the document's preview flush
         // against the signature URL, so the archive's own footer reads as a caption for the document.
-        text.Append($"\nServed from the {SimplArchive.Localization.Strings.ProductName} archive:\nhttps://www.simplarchive.dev\n\n");
+        // The link is the archive the message came from, where the reader can open it (#1117): an edition's mail
+        // named its own product beside our website until then.
+        text.Append($"\nServed from the {SimplArchive.Localization.Strings.ProductName} archive:\n{archive.Url}\n\n");
         return text.ToString();
     }
 

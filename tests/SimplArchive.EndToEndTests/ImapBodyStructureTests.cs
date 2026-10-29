@@ -191,7 +191,8 @@ public class ImapBodyStructureTests
         var body = await FetchAsync(world, "BODY.PEEK[1]");
 
         Assert.Contains("B2000/26 NOTAMN E) Runway 09 closed", body, StringComparison.Ordinal);
-        Assert.Contains("simplarchive.dev", body, StringComparison.Ordinal);
+        Assert.Contains("http://localhost", body, StringComparison.Ordinal); // the archive's address (#1117)
+        Assert.DoesNotContain("simplarchive.dev", body, StringComparison.Ordinal);
     }
 
     // The other direction must NOT regress: a BINARY document cannot be a text body, so it stays a multipart

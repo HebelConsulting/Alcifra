@@ -214,8 +214,10 @@ public class ImapSyntheticDetailsTests
         Assert.Contains("Supplier", body, StringComparison.Ordinal);
         Assert.Contains("Contoso AG", body, StringComparison.Ordinal);
 
-        // The signature stays, and the attachment stays in BODY[2] -- moving it is the defect class #766 was.
-        Assert.Contains("https://www.simplarchive.dev", body, StringComparison.Ordinal);
+        // The signature stays, naming the installation it came from (#1117), and the attachment stays in BODY[2]
+        // -- moving it is the defect class #766 was.
+        Assert.Contains("http://localhost", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("simplarchive.dev", body, StringComparison.Ordinal);
         Assert.Single(message.Attachments);
 
         // The same values as headers a client can filter on.
