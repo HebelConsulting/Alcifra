@@ -109,6 +109,15 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         // BUCKET for a tenant that does not exist, which is recoverable waste and is reused idempotently if the
         // same id is provisioned again — where a half-provisioned TENANT is not recoverable at all. It is also
         // still ordered before any blob could be written into it, which is what the original placement was for.
+        //
+        // A name already taken is refused BEFORE that, by asking the question the unique index asks (an active
+        // tenant of this name, #1992): the common refusal then creates no bucket at all. It is a courtesy, not the
+        // rule — two creations racing past it still meet the constraint below, and only that one leaves a bucket.
+        if (await _dbContext.Tenants.AnyAsync(t => t.Name == name && t.Status == TenantStatus.Active, cancellationToken))
+        {
+            throw TenantNameConflictException.OnCreate();
+        }
+
         await _objectStorage.EnsureTenantBucketAsync(tenant.Id, cancellationToken);
         await _objectStorage.SetBucketLifecycleAsync(tenant.Id, tenant.IncompleteUploadCleanupDays, cancellationToken);
 
@@ -133,7 +142,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         catch (DbUpdateException)
         {
             // Tenant.Name's existing partial unique index (WHERE Status = Active, ADR "Tenant name
-            // uniqueness") — a real DB constraint, no app-level pre-check.
+            // uniqueness") — a real DB constraint, and the authority: the pre-check above only spares the bucket.
             throw TenantNameConflictException.OnCreate();
         }
 
