@@ -14,6 +14,8 @@ on:
     types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
+  # A white-label edition runs its heavy tier before a release by dispatch, not on every push (ADR 0998).
+  workflow_dispatch:
 
 # A new push to a branch cancels its in-progress run, so superseded runs don't waste hosted minutes.
 concurrency:
@@ -27,6 +29,8 @@ jobs:
     timeout-minutes: 30
     name: Build + unit + integration
     runs-on: ubuntu-latest
+    outputs:
+      white_label: ${{ steps.role.outputs.white_label }}
     steps:
       # fetch-tags, because one guard compares the kiosk's config keys against the LAST RELEASE's code
       # (KioskConfigKeysAgainstReleasedImageTests, #1382): the kiosk syncs config from main but runs the image
@@ -37,6 +41,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-tags: true
+      # A white-label edition (ADR 0996) tests with a stand-in manual under its own name (ADR 0998).
+      - name: Is this a white-label edition
+        id: role
+        run: scripts/brand-release-role.sh
+      - name: Stand-in manual for a white-label edition's tests
+        if: ${{ steps.role.outputs.white_label == 'true' }}
+        run: scripts/edition-manual.sh --stand-in
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -239,8 +250,12 @@ jobs:
     # `gh pr checks` and to GitHub's required-status-check machinery. Judge merge-readiness with
     # `scripts/merge-ready.sh`, which asserts the legs actually ran; the `verdict` job below says so out loud.
     # See issue #418 and docs/deploy/ci.md "Merge readiness".
+    #
+    # A white-label edition runs this tier only by dispatch, before it tags a release (ADR 0998): its pushes are
+    # upstream syncs whose code upstream has already run here.
     if: >-
-      github.event_name == 'push'
+      (github.event_name == 'push' && needs.fast.outputs.white_label != 'true')
+      || github.event_name == 'workflow_dispatch'
       || contains(github.event.pull_request.labels.*.name, 'e2e')
     runs-on: ubuntu-latest
     # A leg that HANGS is worse than one that fails: it holds the whole run open, and GitHub refuses to serve any
@@ -281,6 +296,9 @@ jobs:
           sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
           df -h / | tail -1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Stand-in manual for a white-label edition's tests
+        if: ${{ needs.fast.outputs.white_label == 'true' }}
+        run: scripts/edition-manual.sh --stand-in
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json

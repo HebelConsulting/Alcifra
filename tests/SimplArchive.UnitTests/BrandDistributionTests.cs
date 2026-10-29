@@ -78,4 +78,27 @@ public partial class BrandDistributionTests
         Assert.Contains("scripts/edition-manual.sh", text);
         Assert.Contains("\"$BRAND_FILE_STEM-Manual.pdf\"", text);
     }
+
+    // Every release publishes the brand's chart (ADR 0998): packaged by the one script that names it from the brand,
+    // pushed beside the images under /charts (a chart named like its image would collide with it), and attached.
+    [Fact]
+    public void A_release_publishes_the_brands_chart()
+    {
+        var text = File.ReadAllText(Path.Combine(RepoPaths.Root(), ".github", "workflows", "docker-publish.yml"));
+        Assert.Contains("scripts/package-chart.sh \"$version\"", text);
+        Assert.Contains("helm push \"$package\" \"oci://$BRAND_IMAGE_REGISTRY/charts\"", text);
+        Assert.Contains("gh release upload \"$GITHUB_REF_NAME\" \"$package\"", text);
+    }
+
+    // A white-label edition's CI (ADR 0998): its tests get a stand-in manual under its own name, and its pushes run
+    // only the fast tier. Without the first, its manual tests fail on a missing file; without the second, every
+    // upstream sync spends the heavy tier on code upstream has already run.
+    [Fact]
+    public void A_white_label_edition_tests_with_a_stand_in_manual_and_dispatches_its_heavy_tier()
+    {
+        var text = File.ReadAllText(Path.Combine(RepoPaths.Root(), ".github", "workflows", "ci.yml"));
+        Assert.Contains("scripts/edition-manual.sh --stand-in", text);
+        Assert.Contains("github.event_name == 'push' && needs.fast.outputs.white_label != 'true'", text);
+        Assert.Contains("workflow_dispatch:", text);
+    }
 }

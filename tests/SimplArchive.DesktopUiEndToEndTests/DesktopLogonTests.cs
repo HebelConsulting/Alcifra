@@ -32,11 +32,11 @@ public sealed class DesktopLogonTests : IDisposable
 
             // Auto-seeded the public Demo deployment (the default) plus a Local one; English selected (issue #269).
             Assert.Equal(2, vm.Servers.Count);
-            Assert.Equal("demo.simplarchive.dev", vm.Servers[0].Name);
-            Assert.Equal("https://demo.simplarchive.dev", vm.Servers[0].ApiRootUrl);
+            Assert.Equal(LogonViewModel.DemoServerName, vm.Servers[0].Name); // the brand's demo domain (ADR 0994)
+            Assert.Equal(LogonViewModel.DemoServerUrl, vm.Servers[0].ApiRootUrl);
             Assert.Equal("Local", vm.Servers[1].Name);
             Assert.NotNull(vm.SelectedServer);
-            Assert.Equal("demo.simplarchive.dev", vm.SelectedServer!.Name); // Demo is the first-run default
+            Assert.Equal(LogonViewModel.DemoServerName, vm.SelectedServer!.Name); // Demo is the first-run default
             Assert.Equal("en", vm.SelectedLanguage!.Code);
 
             // Server unreachable → the "No connection" message, and no login.

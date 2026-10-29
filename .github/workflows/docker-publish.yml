@@ -146,3 +146,35 @@ jobs:
         run: |
           # Every tag metadata-action produced points at the same digest, so one signature covers them all.
           cosign sign --yes "${{ steps.brand.outputs.image }}@${DIGEST}"
+
+  # The Helm chart (ADR 0998): the brand's chart, its version and appVersion the release, so it installs exactly the
+  # images published above (every image tag defaults to the appVersion). Pushed as an OCI artifact to
+  # <imageRegistry>/charts — a path of its own, because a chart named like its image would collide with it — and
+  # attached to the release, for an installation that pulls from no registry.
+  chart:
+    timeout-minutes: 15
+    needs: [gate, publish]
+    if: ${{ needs.gate.outputs.publishes == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the .tgz to the release
+      packages: write # push the chart to the registry
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Package, push and attach the chart
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source scripts/brand.sh
+          version="${GITHUB_REF_NAME#v}"
+          scripts/package-chart.sh "$version"
+          package="dist/$BRAND_CHART_NAME-$version.tgz"
+          # The token goes in on stdin, never on the command line.
+          printenv GH_TOKEN | helm registry login "${BRAND_IMAGE_REGISTRY%%/*}" --username "$GITHUB_ACTOR" --password-stdin
+          helm push "$package" "oci://$BRAND_IMAGE_REGISTRY/charts"
+          # desktop-packages creates the release too; whichever job is first creates it, the other uploads. The
+          # last upload covers the two creating it at the same moment.
+          gh release upload "$GITHUB_REF_NAME" "$package" --repo "$GITHUB_REPOSITORY" --clobber \
+            || gh release create "$GITHUB_REF_NAME" "$package" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --generate-notes \
+            || gh release upload "$GITHUB_REF_NAME" "$package" --repo "$GITHUB_REPOSITORY" --clobber
