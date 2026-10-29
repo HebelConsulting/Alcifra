@@ -26,7 +26,7 @@ public class WebProfilePhotoTests
         // The corner shows the DisplayName; the email is gone.
         var appbar = page.Locator(".wb-appbar");
         await Expect(appbar).ToContainTextAsync("Demo Admin");
-        await Expect(appbar).Not.ToContainTextAsync("demo@simplarchive.local");
+        await Expect(appbar).Not.ToContainTextAsync("admin@alcifra.local");
 
         // Users & groups tab → select the Demo Admin user.
         await page.Locator(".wb-tab[aria-label=\"Users & groups\"]").First.ClickAsync();

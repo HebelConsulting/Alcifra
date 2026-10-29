@@ -104,7 +104,7 @@ public class WebTreeContextMenuTests
 
         // A grant that exists ONLY on the subfolder — if the dialog shows it, it loaded the subfolder's ACL and
         // not the repository root's.
-        var granteeId = (await (await http.PostAsJsonAsync("/api/users", new { email = $"ctx-{suffix}@simplarchive.local", displayName = granteeName })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var granteeId = (await (await http.PostAsJsonAsync("/api/users", new { email = $"ctx-{suffix}@alcifra.local", displayName = granteeName })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         (await http.PutAsJsonAsync($"/api/documents/{folderId}/acl-entries/users/{granteeId}", new { canSee = true, canReadContent = true })).EnsureSuccessStatusCode();
 
         var page = await Ui.LoginAsync(_app);

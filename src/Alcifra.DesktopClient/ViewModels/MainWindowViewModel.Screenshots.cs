@@ -27,7 +27,7 @@ public partial class MainWindowViewModel
     internal void PopulateDemoForScreenshot()
     {
         IsLoggedIn = true;
-        UserEmail = "demo@simplarchive.local";
+        UserEmail = "admin@alcifra.local";
         CanCreateFolder = true;
         IsTenantAdmin = true;
         // An unread notification, so the bell badge is IN the demo renders. It clipped on the right for months
@@ -221,7 +221,7 @@ public partial class MainWindowViewModel
     internal void PopulateSearchDemoForScreenshot()
     {
         IsLoggedIn = true;
-        UserEmail = "demo@simplarchive.local";
+        UserEmail = "admin@alcifra.local";
         SelectedTab = 3;
         Search.PopulateDemoForScreenshot();
     }
@@ -486,7 +486,7 @@ public partial class MainWindowViewModel
         await root.ReloadChildrenAsync();
         var sub = root.Children.First(c => c.Name == name);
 
-        var granteeId = await _api!.Admin.CreateUserAsync($"treeacl-{suffix}@simplarchive.local", $"TreeAcl {suffix}");
+        var granteeId = await _api!.Admin.CreateUserAsync($"treeacl-{suffix}@alcifra.local", $"TreeAcl {suffix}");
         var viewer = new AclRights(
             CanSee: true, CanReadContent: true, CanEditContent: false, CanEditIndexData: false,
             CanCreateSubItems: false, CanDelete: false, CanMove: false, CanAnnotate: false, CanManagePermissions: false);
@@ -708,7 +708,7 @@ public partial class MainWindowViewModel
     public void PopulateUsersGroupsDemoForScreenshot()
     {
         IsLoggedIn = true;
-        UserEmail = "demo@simplarchive.local";
+        UserEmail = "admin@alcifra.local";
         UserDisplayName = "Demo Admin";
         CanManageUsers = true;
         Principals.Clear();
@@ -726,7 +726,7 @@ public partial class MainWindowViewModel
                 // A stand-in address, deliberately not an api/ path: the demo never follows it, and a composed
                 // URL here would be a real violation of ADR 0543 sitting in a fixture where nobody reads it.
                 Links: LinkMap.FromHrefs(new Dictionary<string, string> { ["email"] = "demo://advertised-by-the-server" }),
-                Email: "demo@simplarchive.local")));
+                Email: "admin@alcifra.local")));
         Principals.Add(new PrincipalRowViewModel(false, Guid.NewGuid(), "Jane Doe", false,
             new AdminClient.SystemRightsData(false, false, false, false, false, false, false, false, false, false, false, false, false)));
         // Select the Administrators group so the rights matrix + Members section show (mock members, no API).

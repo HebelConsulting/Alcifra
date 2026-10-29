@@ -196,7 +196,7 @@ x-api-env: &api-env
   # in code but Mailpit listens on 1025, so it's set explicitly).
   Smtp__Host: "mailpit"
   Smtp__Port: "1025"
-  Smtp__FromAddress: "notifications@simplarchive.local"
+  Smtp__FromAddress: "notifications@alcifra.local"
   Smtp__FromName: "Alcifra"
   # SignalR Valkey backplane (ADR "SignalR Valkey backplane"): when set, real-time notification pushes fan out
   # across API replicas. Unset ⇒ in-process only. Reached over the compose network.
@@ -677,7 +677,7 @@ services:
       # TenantAdministrator with this KNOWN password + a small sample tree (a folder and a document with a
       # mask + index-data). Log straight into the UI at http://localhost:8080 with the email/password below.
       Demo__Tenant__Name: "Demo"
-      Demo__Administrator__Email: "demo@simplarchive.local"
+      Demo__Administrator__Email: "admin@alcifra.local"
       Demo__Administrator__DisplayName: "Demo Admin"
       Demo__Administrator__Password: "SimplDemo2026!"
       Demo__RepositoryName: "Demo Repository"
@@ -691,7 +691,7 @@ services:
       # migration tooling's saved credentials and the next run died at `invalid_client`. Dev-only, like every other
       # credential in this file — the production-readiness gate refuses these settings outside Development.
       Interop__Tenant__Name: "Interop"
-      Interop__Administrator__Email: "interop@simplarchive.local"
+      Interop__Administrator__Email: "interop@alcifra.local"
       Interop__Administrator__DisplayName: "Interop Admin"
       Interop__Administrator__Password: "SimplDemo2026!"
       Interop__RepositoryName: "Interop"

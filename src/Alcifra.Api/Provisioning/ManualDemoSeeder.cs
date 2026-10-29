@@ -145,7 +145,7 @@ public static class ManualDemoSeeder
     };
 
     internal static string MailDomain(string adminEmail) =>
-        adminEmail.Split('@') is [_, var domain] && !string.IsNullOrWhiteSpace(domain) ? domain : "simplarchive.local";
+        adminEmail.Split('@') is [_, var domain] && !string.IsNullOrWhiteSpace(domain) ? domain : "alcifra.local";
 
     // The same showcase switches as the demo tenant, for the same reasons: the external link must answer and
     // show its URL, the quota bar must have a ceiling, and the review task needs an SLA to be overdue against.

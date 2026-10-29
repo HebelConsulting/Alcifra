@@ -63,7 +63,7 @@ public static class CryptoDemoSeeder
 
         // The extra logins take the ADMIN's domain rather than a hardcoded one, same rule as the demo seed
         // (issue #432): the kiosk configures crypt@its-domain and florian/thomas ride along.
-        var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "simplarchive.local";
+        var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "alcifra.local";
 
         User MakeUser(string localPart, string displayName, bool tenantAdministrator = false)
         {

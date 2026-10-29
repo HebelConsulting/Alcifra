@@ -29,7 +29,7 @@ public class DesktopManageAccessTests
 
         // A fresh active user to grant to — it shows up in the grantable-principals picker by display name.
         var granteeName = $"Grantee {suffix}";
-        var granteeId = await api.Admin.CreateUserAsync($"grantee-{suffix}@simplarchive.local", granteeName);
+        var granteeId = await api.Admin.CreateUserAsync($"grantee-{suffix}@alcifra.local", granteeName);
 
         // A brand-new child inherits (no direct grants) and the admin can manage it (not forbidden).
         var initial = await api.Documents.GetAclAsync(folder.Href("self"));
@@ -117,7 +117,7 @@ public class DesktopManageAccessTests
         // A group with a member.
         var groupName = $"grp-{suffix}";
         var groupId = await api.Admin.CreateGroupAsync(groupName);
-        var userId = await api.Admin.CreateUserAsync($"member-{suffix}@simplarchive.local", $"Member {suffix}");
+        var userId = await api.Admin.CreateUserAsync($"member-{suffix}@alcifra.local", $"Member {suffix}");
         await api.Admin.AddGroupMemberAsync(groupId, userId.Id);
 
         // Grant the group Viewer directly on the folder (now the governing scope).

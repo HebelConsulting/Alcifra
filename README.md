@@ -32,10 +32,10 @@ docker compose up --build
 
 Then open **http://localhost:8080** and log straight into the UI with the seeded demo account:
 
-- **Email:** `demo@simplarchive.local`
+- **Email:** `admin@alcifra.local`
 - **Password:** `SimplDemo2026!`
 
-Two further seeded users share that password — **`anna@simplarchive.local`** (Anna Meyer) and **`tom@simplarchive.local`** (Tom Fischer). Signing in as one of them is how you see the collaboration side of the app: chat and mentions from another person, a workflow review arriving in someone else's inbox, the shared *Scan Team* group inbox. Both are deliberately **plain users, not tenant admins**, so they are also how you watch a permission actually being refused.
+Two further seeded users share that password — **`anna@alcifra.local`** (Anna Meyer) and **`tom@alcifra.local`** (Tom Fischer). Signing in as one of them is how you see the collaboration side of the app: chat and mentions from another person, a workflow review arriving in someone else's inbox, the shared *Scan Team* group inbox. Both are deliberately **plain users, not tenant admins**, so they are also how you watch a permission actually being refused.
 
 It comes pre-seeded with a demo tenant, a sample repository/document, and a workflow in progress, so there's something to explore immediately. (The same file runs under Podman: `podman compose up --build`.) Handy dev UIs: pgAdmin at http://localhost:5050 (auto-connected to the database) and the Mailpit inbox at http://localhost:8025.
 

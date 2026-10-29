@@ -306,7 +306,7 @@ public static class DemoDataSeeder
         // TenantMailDomain, ingress answers 550 for every demo address and the seeded department mailbox
         // could never demonstrate receiving. Derived from the admin's email (#432's rule) and written only
         // when absent; #667 — the real admin surface for domains — stays open, this is the demo's shortcut.
-        var demoDomain = adminEmail.Split('@') is [_, var dd] && !string.IsNullOrWhiteSpace(dd) ? dd : "simplarchive.local";
+        var demoDomain = adminEmail.Split('@') is [_, var dd] && !string.IsNullOrWhiteSpace(dd) ? dd : "alcifra.local";
         await DeclaredMailDomain.EnsureAsync(
             dbContext, tenantId, demoDomain, now,
             services.GetService<ILoggerFactory>()?.CreateLogger(typeof(DemoDataSeeder)));
@@ -562,9 +562,9 @@ public static class DemoDataSeeder
         var hasher = new PasswordHasher<User>();
 
         // The extra logins take the ADMIN's domain rather than a hardcoded one, so a deployment that renames the
-        // demo admin (the kiosk uses @simplarchive.dev, local Compose @simplarchive.local) doesn't end up handing
+        // demo admin (the kiosk uses @simplarchive.dev, local Compose @alcifra.local) doesn't end up handing
         // visitors three credentials straddling two domains — the READMEs list all three side by side (issue #432).
-        var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "simplarchive.local";
+        var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "alcifra.local";
 
         User MakeUser(string localPart, string displayName)
         {

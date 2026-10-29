@@ -36,7 +36,7 @@ public class WebContentAudienceTests
         var folderId = (await (await http.PostAsJsonAsync($"/api/documents/{repoId}/children", new { name = folderName })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         (await http.PutAsJsonAsync($"/api/documents/{folderId}/acl-entries/inheritance", new { breaksInheritance = true })).EnsureSuccessStatusCode();
         (await http.PutAsJsonAsync($"/api/documents/{folderId}/acl-entries/users/{me}", new { canSee = true, canReadContent = true, canEditContent = true, canCreateSubItems = true })).EnsureSuccessStatusCode();
-        var reader = await (await http.PostAsJsonAsync("/api/users", new { email = $"reader-{suffix}@simplarchive.local", displayName = readerName })).Content.ReadFromJsonAsync<JsonElement>();
+        var reader = await (await http.PostAsJsonAsync("/api/users", new { email = $"reader-{suffix}@alcifra.local", displayName = readerName })).Content.ReadFromJsonAsync<JsonElement>();
         (await http.PutAsJsonAsync($"/api/documents/{folderId}/acl-entries/users/{reader.GetProperty("id").GetGuid()}", new { canSee = true, canReadContent = true })).EnsureSuccessStatusCode();
         var storeId = (await (await http.PostAsJsonAsync($"/api/documents/{folderId}/children", new { name = storeName, maskId = PasswordStoreMask })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 

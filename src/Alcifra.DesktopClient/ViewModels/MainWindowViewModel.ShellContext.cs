@@ -103,7 +103,7 @@ public sealed partial class MainWindowViewModel
     internal void PopulateIntrayDemoForScreenshot()
     {
         IsLoggedIn = true;
-        UserEmail = "demo@simplarchive.local";
+        UserEmail = "admin@alcifra.local";
         SelectedTab = 1;
         Intray.PopulateDemo();
         Preview.Reset("Preview renders here (PDF/image/text).");

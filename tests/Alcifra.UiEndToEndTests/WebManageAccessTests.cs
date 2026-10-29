@@ -40,7 +40,7 @@ public class WebManageAccessTests
         (await http.PutAsJsonAsync($"/api/documents/{docId}/versions/{v.GetProperty("id").GetGuid()}", new { })).EnsureSuccessStatusCode();
 
         // A fresh active user to grant access to — it shows up in the grantable-principals picker by display name.
-        (await http.PostAsJsonAsync("/api/users", new { email = $"grantee-{suffix}@simplarchive.local", displayName = granteeName })).EnsureSuccessStatusCode();
+        (await http.PostAsJsonAsync("/api/users", new { email = $"grantee-{suffix}@alcifra.local", displayName = granteeName })).EnsureSuccessStatusCode();
 
         var page = await Ui.LoginAsync(_app);
         await page.GetByText("Demo Repository").First.ClickAsync();

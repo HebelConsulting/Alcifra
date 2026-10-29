@@ -17,7 +17,7 @@ public sealed class SmtpOptions
 
     public string? Password { get; set; }
 
-    public string FromAddress { get; set; } = "notifications@simplarchive.local";
+    public string FromAddress { get; set; } = "notifications@alcifra.local";
 
     public string FromName { get; set; } = Alcifra.Localization.Strings.ProductName;
 }

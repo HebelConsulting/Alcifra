@@ -391,7 +391,7 @@ public sealed partial class RecycleBinTabViewModel
         SysCreatedBy = "Demo Admin";
         MaskLine = "Mask: Basic Entry · version 1";
         IndexFields.Add(new IndexFieldViewModel { FieldName = "Keywords", Values = "draft, quarterly" });
-        Comments.Add(new ChatMessageViewModel { Id = Guid.Empty, AuthorName = "demo@simplarchive.local", Body = "Replaced by the final version.", CreatedAt = MainWindowViewModel.ScreenshotClock });
+        Comments.Add(new ChatMessageViewModel { Id = Guid.Empty, AuthorName = "admin@alcifra.local", Body = "Replaced by the final version.", CreatedAt = MainWindowViewModel.ScreenshotClock });
         Preview.Reset("Preview renders here (PDF/image/text).");
         SetSelectedForScreenshot(Items[0]);
         Status = string.Format(Strings.Get("StDeletedItems"), Items.Count);

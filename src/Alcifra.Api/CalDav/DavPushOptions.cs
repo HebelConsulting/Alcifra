@@ -14,7 +14,7 @@ public class DavPushOptions
     public string? VapidPrivateKey { get; set; }
 
     /// <summary>The `mailto:`/`https:` subject VAPID requires, so a push service can contact the operator.</summary>
-    public string Subject { get; set; } = "mailto:admin@simplarchive.local";
+    public string Subject { get; set; } = "mailto:admin@alcifra.local";
 
     /// <summary>Days a subscription lives before a client must re-register; a client may ask for less.</summary>
     public int SubscriptionTtlDays { get; set; } = 30;

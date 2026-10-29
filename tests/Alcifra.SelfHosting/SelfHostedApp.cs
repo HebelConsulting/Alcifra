@@ -90,7 +90,7 @@ public sealed class SelfHostedApp : IAsyncDisposable
     public const string StorageUser = "storageadmin";
     public const string StoragePassword = "storageadmin";
 
-    public const string AdminEmail = "demo@simplarchive.local";
+    public const string AdminEmail = "admin@alcifra.local";
     public const string AdminPassword = "SimplDemo2026!";
     public const string AdminDisplayName = "Demo Admin";
 

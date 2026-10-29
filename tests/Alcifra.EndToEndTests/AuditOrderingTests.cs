@@ -40,7 +40,7 @@ public class AuditOrderingTests
             await PostJson(api, $"/api/documents/{repoId}/children", new { name = $"burst-{i}" });
         }
 
-        var email = $"order-{Guid.NewGuid():N}@simplarchive.local";
+        var email = $"order-{Guid.NewGuid():N}@alcifra.local";
         const string password = "AuditOrder2026!";
         await _factory.SeedUserAsync(tenantId, email, password, "Order auditor", canViewAuditLog: true);
         using var viewer = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
