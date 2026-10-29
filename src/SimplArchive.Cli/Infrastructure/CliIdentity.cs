@@ -7,5 +7,5 @@ namespace SimplArchive.Cli.Infrastructure;
 /// </summary>
 public static class CliIdentity
 {
-    public const string ClientId = "saconsole";
+    public const string ClientId = SimplArchive.Presentation.WireNames.CliClientId;
 }

@@ -12,19 +12,26 @@ namespace SimplArchive.Api.Provisioning;
 /// </remarks>
 public static class SapassClientSeeder
 {
-    public const string ClientId = "sapass";
+    public const string ClientId = SimplArchive.Presentation.WireNames.PassClientId;
 
     /// <summary>Idempotent: creates the client when it is absent, and asks nothing of an existing one.</summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is not null)
+        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.56.0).
+        await SeedAsync(applications, ClientId, cancellationToken);
+        await SeedAsync(applications, SimplArchive.Presentation.WireNames.Legacy.PassClientId, cancellationToken);
+    }
+
+    private static async Task SeedAsync(IOpenIddictApplicationManager applications, string clientId, CancellationToken cancellationToken)
+    {
+        if (await applications.FindByClientIdAsync(clientId, cancellationToken) is not null)
         {
             return;
         }
 
         await applications.CreateAsync(new OpenIddictApplicationDescriptor
         {
-            ClientId = ClientId,
+            ClientId = clientId,
             ClientType = OpenIddictConstants.ClientTypes.Public,
 
             // A PUBLIC client with no redirect URI: the device grant never redirects, which is what lets the tool

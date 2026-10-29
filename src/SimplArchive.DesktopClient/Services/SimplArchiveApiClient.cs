@@ -148,7 +148,7 @@ public sealed class SimplArchiveApiClient
         var response = await http.PostAsync("connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:token-exchange",
-            ["client_id"] = "simplarchive-desktop",
+            ["client_id"] = DesktopClientOptions.ClientId,
             ["subject_token"] = subjectToken,
             ["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
             ["requested_subject"] = targetUserId.ToString(),

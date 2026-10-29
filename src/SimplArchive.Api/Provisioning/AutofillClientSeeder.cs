@@ -13,7 +13,14 @@ namespace SimplArchive.Api.Provisioning;
 /// </remarks>
 public static class AutofillClientSeeder
 {
-    public const string ClientId = "simplarchive-mobile-autofill";
+    public const string ClientId = SimplArchive.Presentation.WireNames.MobileAutofillClientId;
+
+    /// <summary>Both ids that open an autofill session, while the one before the rename is accepted (until v0.56.0).</summary>
+    public static readonly IReadOnlySet<string> ClientIds = new HashSet<string>(StringComparer.Ordinal)
+    {
+        ClientId,
+        SimplArchive.Presentation.WireNames.Legacy.MobileAutofillClientId,
+    };
 
     internal static readonly string[] Permissions =
     [
@@ -26,5 +33,5 @@ public static class AutofillClientSeeder
     ];
 
     public static Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default) =>
-        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, []), cancellationToken);
+        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [], SimplArchive.Presentation.WireNames.Legacy.MobileAutofillClientId), cancellationToken);
 }

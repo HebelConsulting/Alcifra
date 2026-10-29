@@ -18,7 +18,7 @@ namespace SimplArchive.Api.Provisioning;
 /// </remarks>
 public static class DesktopClientSeeder
 {
-    public const string ClientId = "simplarchive-desktop";
+    public const string ClientId = SimplArchive.Presentation.WireNames.DesktopClientId;
 
     /// <summary>Everything the desktop needs; the heal brings an existing registration up to this set.</summary>
     internal static readonly string[] Permissions =
@@ -39,5 +39,5 @@ public static class DesktopClientSeeder
     ];
 
     public static Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default) =>
-        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [SimplArchive.Api.Security.DesktopLoopback.RedirectUri]), cancellationToken);
+        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [SimplArchive.Api.Security.DesktopLoopback.RedirectUri], SimplArchive.Presentation.WireNames.Legacy.DesktopClientId), cancellationToken);
 }

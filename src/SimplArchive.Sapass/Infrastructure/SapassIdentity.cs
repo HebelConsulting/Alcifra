@@ -7,5 +7,5 @@ namespace SimplArchive.Sapass.Infrastructure;
 /// </summary>
 internal static class SapassIdentity
 {
-    public const string ClientId = "sapass";
+    public const string ClientId = SimplArchive.Presentation.WireNames.PassClientId;
 }

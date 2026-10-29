@@ -171,7 +171,7 @@ public static class SecurityHeaders
             // desktop sign-in in v0.10.0 — the login POST's final hop to the loopback listener was refused, with
             // nothing wrong on the server. Taken from DesktopLoopback so this and the client registration cannot
             // drift apart. The mobile app's private-use scheme likewise, from MobileRedirect (ADR 0916).
-            $"form-action 'self' {DesktopLoopback.Origin} {MobileRedirect.SchemeSource}",
+            $"form-action 'self' {DesktopLoopback.Origin} {MobileRedirect.SchemeSources}",
             "frame-ancestors 'self'",
         ]);
     }

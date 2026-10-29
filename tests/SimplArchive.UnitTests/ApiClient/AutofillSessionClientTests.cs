@@ -32,7 +32,7 @@ public sealed class AutofillSessionClientTests : ApiClientSettingsTest
         Assert.Equal("r2", session.RefreshToken);
         var form = Assert.Single(server.Requests, r => r.Path == "/connect/token").Body;
         Assert.Contains("grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange", form);
-        Assert.Contains("client_id=simplarchive-mobile-autofill", form);
+        Assert.Contains("client_id=alcifra-mobile-autofill", form);
         Assert.Contains("subject_token=app-access", form);
         Assert.Contains("subject_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token", form);
         Assert.Contains("scope=openid+offline_access", form);

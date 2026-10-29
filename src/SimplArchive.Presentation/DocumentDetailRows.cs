@@ -92,5 +92,5 @@ public static class DocumentDetailRows
     /// The <c>X-</c> header name IMAP carries a row as, so a client can filter on it. Derived from the row
     /// rather than from the label, because a label is translated and a header name must not be.
     /// </summary>
-    public static string HeaderName(DocumentDetailRow row) => $"X-SimplArchive-{row}";
+    public static string HeaderName(DocumentDetailRow row) => $"{WireNames.HeaderPrefix}{row}";
 }

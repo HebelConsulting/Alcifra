@@ -753,12 +753,12 @@ internal static class ImapFetch
 
         if (d.MaskName is { Length: > 0 } mask)
         {
-            yield return ("X-SimplArchive-Mask", Flatten(mask));
+            yield return (SimplArchive.Presentation.WireNames.MaskHeader, Flatten(mask));
         }
 
         foreach (var field in d.IndexFields)
         {
-            yield return ($"X-SimplArchive-Field-{HeaderToken(field.Name)}", Flatten(field.Value));
+            yield return ($"{SimplArchive.Presentation.WireNames.HeaderPrefix}Field-{HeaderToken(field.Name)}", Flatten(field.Value));
         }
     }
 

@@ -57,9 +57,9 @@ public class DetailRowParityTests
         foreach (var row in DocumentDetailRows.InOrder)
         {
             var header = DocumentDetailRows.HeaderName(row);
-            Assert.StartsWith("X-SimplArchive-", header, StringComparison.Ordinal);
+            Assert.StartsWith("X-Alcifra-", header, StringComparison.Ordinal);
             Assert.DoesNotContain(" ", header, StringComparison.Ordinal);
-            Assert.Equal($"X-SimplArchive-{row}", header);
+            Assert.Equal($"X-Alcifra-{row}", header);
         }
     }
 

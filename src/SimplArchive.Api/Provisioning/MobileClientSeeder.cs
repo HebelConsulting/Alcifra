@@ -11,7 +11,7 @@ namespace SimplArchive.Api.Provisioning;
 /// user client alike, and content doors follow the tenant's mode and the reader's certificates (ADR 0865).</remarks>
 public static class MobileClientSeeder
 {
-    public const string ClientId = "simplarchive-mobile";
+    public const string ClientId = SimplArchive.Presentation.WireNames.MobileClientId;
 
     internal static readonly string[] Permissions =
     [
@@ -27,5 +27,5 @@ public static class MobileClientSeeder
     ];
 
     public static Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default) =>
-        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [SimplArchive.Api.Security.MobileRedirect.RedirectUri]), cancellationToken);
+        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, SimplArchive.Api.Security.MobileRedirect.RedirectUris, SimplArchive.Presentation.WireNames.Legacy.MobileClientId), cancellationToken);
 }

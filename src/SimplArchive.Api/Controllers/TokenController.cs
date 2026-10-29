@@ -114,7 +114,7 @@ public class TokenController : ControllerBase
         // parameters.
         if (request.GrantType == ImpersonationConstants.TokenExchangeGrantType)
         {
-            return request.ClientId == AutofillClientSeeder.ClientId
+            return request.ClientId is { } client && AutofillClientSeeder.ClientIds.Contains(client)
                 ? await HandleAutofillSessionAsync(request)
                 : await HandleImpersonationAsync(request);
         }

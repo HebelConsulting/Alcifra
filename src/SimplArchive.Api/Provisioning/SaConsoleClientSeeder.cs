@@ -12,7 +12,7 @@ namespace SimplArchive.Api.Provisioning;
 /// </remarks>
 public static class SaConsoleClientSeeder
 {
-    public const string ClientId = "saconsole";
+    public const string ClientId = SimplArchive.Presentation.WireNames.CliClientId;
 
     /// <summary>
     /// The RFC 8693 token exchange, for acting as another user (ADR "User impersonation"): how an administrator moves a
@@ -30,7 +30,14 @@ public static class SaConsoleClientSeeder
     /// </summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is { } existing)
+        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.56.0).
+        await SeedAsync(applications, ClientId, cancellationToken);
+        await SeedAsync(applications, SimplArchive.Presentation.WireNames.Legacy.CliClientId, cancellationToken);
+    }
+
+    private static async Task SeedAsync(IOpenIddictApplicationManager applications, string clientId, CancellationToken cancellationToken)
+    {
+        if (await applications.FindByClientIdAsync(clientId, cancellationToken) is { } existing)
         {
             var current = new OpenIddictApplicationDescriptor();
             await applications.PopulateAsync(current, existing, cancellationToken);
@@ -44,7 +51,7 @@ public static class SaConsoleClientSeeder
 
         await applications.CreateAsync(new OpenIddictApplicationDescriptor
         {
-            ClientId = ClientId,
+            ClientId = clientId,
             ClientType = OpenIddictConstants.ClientTypes.Public,
 
             // A PUBLIC client with no redirect URI at all: the device grant never redirects, which is the

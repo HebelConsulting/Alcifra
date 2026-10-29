@@ -117,7 +117,7 @@ public class SecurityHeaderPolicyTests
     {
         var formAction = SecurityHeaders.ComposePolicy(null, null).Split("; ").Single(d => d.StartsWith("form-action ", StringComparison.Ordinal));
 
-        Assert.Contains($" {MobileRedirect.SchemeSource}", formAction, StringComparison.Ordinal);
-        Assert.StartsWith(MobileRedirect.SchemeSource, MobileRedirect.RedirectUri, StringComparison.Ordinal);
+        Assert.Contains($" {MobileRedirect.SchemeSources}", formAction, StringComparison.Ordinal);
+        Assert.StartsWith(MobileRedirect.SchemeSources.Split(' ')[0], MobileRedirect.RedirectUri, StringComparison.Ordinal);
     }
 }

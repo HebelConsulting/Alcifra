@@ -6,16 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 namespace SimplArchive.EndToEndTests;
 
 // ADR 0981: the mobile app's autofill extension runs in its own process, so it gets its OWN session — the app exchanges
-// its access token (RFC 8693) for a new authorization of the simplarchive-mobile-autofill client. Driven through the
+// its access token (RFC 8693) for a new authorization of the alcifra-mobile-autofill client. Driven through the
 // real sign-in and the real OpenIddict server, because what matters is what the issued tokens then do: work, renew,
 // and live and die independently of the app's.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-2")]
 public class AutofillSessionTests
 {
-    private const string AutofillClientId = "simplarchive-mobile-autofill";
-    private const string MobileClientId = "simplarchive-mobile";
-    private const string MobileRedirect = "dev.simplarchive.mobile:/oauth2redirect";
+    private const string AutofillClientId = SimplArchive.Presentation.WireNames.MobileAutofillClientId;
+    private const string MobileClientId = SimplArchive.Presentation.WireNames.MobileClientId;
+    private const string MobileRedirect = SimplArchive.Presentation.WireNames.MobileRedirectUri;
 
     private readonly E2EApiFactory _factory;
 
@@ -41,11 +41,31 @@ public class AutofillSessionTests
         Assert.Equal(userId, await WhoAmIUserAsync(Access(renewedTokens)));
     }
 
+    // Until v0.56.0 an app installed before the rename keeps its ids and redirect, and its autofill extension too
+    // (WireNames.Legacy, #1117 phase 4).
+    [Fact]
+    public async Task The_ids_before_the_rename_still_open_and_renew_an_autofill_session()
+    {
+        var (email, password, userId) = await SeedUserAsync();
+        var app = await _factory.SignInNativeAppAsync(
+            email, password, SimplArchive.Presentation.WireNames.Legacy.MobileClientId, SimplArchive.Presentation.WireNames.Legacy.MobileRedirectUri);
+
+        var legacyAutofill = SimplArchive.Presentation.WireNames.Legacy.MobileAutofillClientId;
+        using var exchanged = await ExchangeAsync(Access(app), ("client_id", legacyAutofill));
+        Assert.Equal(HttpStatusCode.OK, exchanged.StatusCode);
+        var autofill = await ReadAsync(exchanged);
+        Assert.Equal(userId, await WhoAmIUserAsync(Access(autofill)));
+
+        using var client = _factory.CreateClient();
+        using var renewed = await PostRefreshAsync(client, Refresh(autofill), legacyAutofill);
+        Assert.Equal(HttpStatusCode.OK, renewed.StatusCode);
+    }
+
     [Fact]
     public async Task A_token_from_any_other_client_is_refused_and_an_autofill_token_cannot_chain()
     {
         var (email, password, _) = await SeedUserAsync();
-        var desktop = await _factory.SignInNativeAppAsync(email, password, "simplarchive-desktop", "http://127.0.0.1:8765/callback");
+        var desktop = await _factory.SignInNativeAppAsync(email, password, SimplArchive.Presentation.WireNames.DesktopClientId, "http://127.0.0.1:8765/callback");
         var web = await _factory.GetUserTokenAsync(email, password);
         var autofill = await ExchangeOkAsync(Access(await _factory.SignInNativeAppAsync(email, password, MobileClientId, MobileRedirect)));
 

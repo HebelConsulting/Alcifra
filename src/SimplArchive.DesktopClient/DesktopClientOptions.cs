@@ -27,7 +27,7 @@ public static class DesktopClientOptions
         set => ApiClientSettings.ApiRootUrl = value;
     }
 
-    public const string ClientId = "simplarchive-desktop";
+    public const string ClientId = SimplArchive.Presentation.WireNames.DesktopClientId;
 
     // Fixed loopback port the app listens on for the OAuth redirect; the same URI is registered on the server.
     public const int LoopbackPort = 8765;

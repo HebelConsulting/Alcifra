@@ -1729,7 +1729,7 @@
     <value>URL de webhook de auditoría (transmisión SIEM)</value>
   </data>
   <data name="TenantWebhookUrlInfo" xml:space="preserve">
-    <value>Cada evento de auditoría se envía como JSON a esta URL http(s) absoluta poco después de registrarse, en orden, con una cabecera X-SimplArchive-Signature: sha256=&lt;hmac&gt; para que el receptor pueda verificar autenticidad e integridad. Deja en blanco para desactivar la transmisión.</value>
+    <value>Cada evento de auditoría se envía como JSON a esta URL http(s) absoluta poco después de registrarse, en orden, con una cabecera X-Alcifra-Signature: sha256=&lt;hmac&gt; para que el receptor pueda verificar autenticidad e integridad. Deja en blanco para desactivar la transmisión.</value>
   </data>
   <data name="TenantSecretLabelKeep" xml:space="preserve">
     <value>Secreto de firma (deja en blanco para mantener el actual)</value>

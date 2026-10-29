@@ -61,4 +61,38 @@ public class NativeClientSeederTests
         Assert.DoesNotContain(OpenIddictConstants.Permissions.Endpoints.Authorization, descriptor.Permissions);
         Assert.Contains(OpenIddictConstants.Permissions.Prefixes.GrantType + SimplArchive.Auth.ImpersonationConstants.TokenExchangeGrantType, descriptor.Permissions);
     }
+
+    // Rename phase 4 (#1117): every client is registered under its alcifra id AND the id before the rename, with the
+    // same permissions and redirects, so a client installed before the rename signs in unchanged until v0.56.0.
+    [Theory]
+    [InlineData(SimplArchive.Presentation.WireNames.DesktopClientId, SimplArchive.Presentation.WireNames.Legacy.DesktopClientId)]
+    [InlineData(SimplArchive.Presentation.WireNames.MobileClientId, SimplArchive.Presentation.WireNames.Legacy.MobileClientId)]
+    [InlineData(SimplArchive.Presentation.WireNames.MobileAutofillClientId, SimplArchive.Presentation.WireNames.Legacy.MobileAutofillClientId)]
+    [InlineData(SimplArchive.Presentation.WireNames.CliClientId, SimplArchive.Presentation.WireNames.Legacy.CliClientId)]
+    [InlineData(SimplArchive.Presentation.WireNames.PassClientId, SimplArchive.Presentation.WireNames.Legacy.PassClientId)]
+    public async Task A_client_is_registered_under_its_alcifra_id_and_its_id_before_the_rename_alike(string clientId, string legacyClientId)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+
+        var current = new OpenIddictApplicationDescriptor();
+        await applications.PopulateAsync(current, await applications.FindByClientIdAsync(clientId) ?? throw new Xunit.Sdk.XunitException($"{clientId} is not registered"));
+        var legacy = new OpenIddictApplicationDescriptor();
+        await applications.PopulateAsync(legacy, await applications.FindByClientIdAsync(legacyClientId) ?? throw new Xunit.Sdk.XunitException($"{legacyClientId} is not registered"));
+
+        Assert.Equal(current.Permissions.Order(), legacy.Permissions.Order());
+        Assert.Equal(current.RedirectUris.Select(u => u.ToString()).Order(), legacy.RedirectUris.Select(u => u.ToString()).Order());
+    }
+
+    [Fact]
+    public async Task The_mobile_client_accepts_the_apps_redirect_before_and_after_its_identifier_moves()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+        var descriptor = new OpenIddictApplicationDescriptor();
+        await applications.PopulateAsync(descriptor, (await applications.FindByClientIdAsync(MobileClientSeeder.ClientId))!);
+
+        Assert.Contains(new Uri("com.alcifra.mobile:/oauth2redirect"), descriptor.RedirectUris);
+        Assert.Contains(new Uri("dev.simplarchive.mobile:/oauth2redirect"), descriptor.RedirectUris);
+    }
 }

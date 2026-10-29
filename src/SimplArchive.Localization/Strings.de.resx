@@ -1729,7 +1729,7 @@
     <value>Audit-Webhook-URL (SIEM-Streaming)</value>
   </data>
   <data name="TenantWebhookUrlInfo" xml:space="preserve">
-    <value>Jedes Audit-Ereignis wird kurz nach seiner Aufzeichnung als JSON in der richtigen Reihenfolge an diese absolute http(s)-URL gesendet, mit einem X-SimplArchive-Signature: sha256=&lt;hmac&gt;-Header, damit der Empfänger Authentizität und Integrität prüfen kann. Leer lassen, um das Streaming zu deaktivieren.</value>
+    <value>Jedes Audit-Ereignis wird kurz nach seiner Aufzeichnung als JSON in der richtigen Reihenfolge an diese absolute http(s)-URL gesendet, mit einem X-Alcifra-Signature: sha256=&lt;hmac&gt;-Header, damit der Empfänger Authentizität und Integrität prüfen kann. Leer lassen, um das Streaming zu deaktivieren.</value>
   </data>
   <data name="TenantSecretLabelKeep" xml:space="preserve">
     <value>Signaturgeheimnis (leer lassen, um das aktuelle zu behalten)</value>

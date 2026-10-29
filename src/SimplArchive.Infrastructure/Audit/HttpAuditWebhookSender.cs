@@ -5,11 +5,12 @@ using SimplArchive.Application.Abstractions;
 namespace SimplArchive.Infrastructure.Audit;
 
 // POSTs a single signed audit event to a tenant's SIEM webhook (ADR "Audit webhook streaming"). The HMAC-SHA256
-// signature (computed by the dispatcher) rides in X-SimplArchive-Signature so the receiver can verify
-// authenticity + integrity. Any non-2xx or transport error returns false, so the dispatcher retries next sweep.
+// signature (computed by the dispatcher) rides in X-Alcifra-Signature so the receiver can verify
+// authenticity + integrity; until v0.56.0 also in the header before the rename (WireNames.Legacy), so a receiver
+// written against it keeps verifying while it moves. Any non-2xx or transport error returns false, so the dispatcher retries next sweep.
 public sealed class HttpAuditWebhookSender : IAuditWebhookSender
 {
-    public const string SignatureHeader = "X-SimplArchive-Signature";
+    public const string SignatureHeader = SimplArchive.Presentation.WireNames.SignatureHeader;
 
     private readonly HttpClient _http;
 
@@ -24,6 +25,7 @@ public sealed class HttpAuditWebhookSender : IAuditWebhookSender
                 Content = new StringContent(jsonBody, Encoding.UTF8, "application/json"),
             };
             request.Headers.TryAddWithoutValidation(SignatureHeader, $"sha256={signature}");
+            request.Headers.TryAddWithoutValidation(SimplArchive.Presentation.WireNames.Legacy.SignatureHeader, $"sha256={signature}");
 
             using var response = await _http.SendAsync(request, cancellationToken);
             return response.IsSuccessStatusCode

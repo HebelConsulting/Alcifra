@@ -221,9 +221,9 @@ public class ImapSyntheticDetailsTests
         Assert.Single(message.Attachments);
 
         // The same values as headers a client can filter on.
-        Assert.Equal("Detail Pane User", message.Headers["X-SimplArchive-Createdby"]);
-        Assert.Equal(maskName, message.Headers["X-SimplArchive-Mask"]);
-        Assert.Equal("Contoso AG", message.Headers["X-SimplArchive-Field-Supplier"]);
+        Assert.Equal("Detail Pane User", message.Headers["X-Alcifra-Createdby"]);
+        Assert.Equal(maskName, message.Headers["X-Alcifra-Mask"]);
+        Assert.Equal("Contoso AG", message.Headers["X-Alcifra-Field-Supplier"]);
 
         await client.DisconnectAsync(true);
     }
@@ -274,7 +274,7 @@ public class ImapSyntheticDetailsTests
         var message = await repo.GetMessageAsync(summary.UniqueId);
 
         Assert.Equal("<original@example.com>", message.MessageId is null ? null : $"<{message.MessageId}>");
-        Assert.DoesNotContain(message.Headers, h => h.Field.StartsWith("X-SimplArchive-", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(message.Headers, h => h.Field.StartsWith("X-Alcifra-", StringComparison.OrdinalIgnoreCase));
 
         await client.DisconnectAsync(true);
     }

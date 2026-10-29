@@ -14,7 +14,7 @@ namespace SimplArchive.ApiClient;
 public static class AutofillSession
 {
     /// <summary>The autofill extension's public client; its refresh and revocation requests name it too.</summary>
-    public const string ClientId = "simplarchive-mobile-autofill";
+    public const string ClientId = SimplArchive.Presentation.WireNames.MobileAutofillClientId;
 
     /// <summary>What the mobile app's own sign-in asks for, so the extension's session can renew.</summary>
     public const string Scopes = "openid offline_access";
