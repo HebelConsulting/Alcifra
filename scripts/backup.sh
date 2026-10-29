@@ -10,15 +10,16 @@ set -euo pipefail
 # --- config (override via env) ---------------------------------------------------------------------------
 PG_USER="${PG_USER:-postgres}"
 PG_DB="${PG_DB:-simplarchive}"
-S3_BUCKET="${S3_BUCKET:-simplarchive}"
-SA_NETWORK="${SA_NETWORK:-simplarchive_default}"
-MINIO_URL="${MINIO_URL:-http://minio:9000}"
-MINIO_USER="${MINIO_USER:-minioadmin}"
-MINIO_PASS="${MINIO_PASS:-minioadmin}"
+# The S3 endpoint and the identity scripts/seaweedfs-s3.json gives the dev stack.
+S3_URL="${S3_URL:-http://seaweedfs:8333}"
+S3_ACCESS_KEY="${S3_ACCESS_KEY:-storageadmin}"
+S3_SECRET_KEY="${S3_SECRET_KEY:-storageadmin}"
 
 cd "$(dirname "$0")/.."
+# The compose project's network, named after the project (the checkout's directory unless COMPOSE_PROJECT_NAME says).
+SA_NETWORK="${SA_NETWORK:-$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])')_default}"
 OUT="${1:-backups/$(date +%Y%m%d-%H%M%S)}"
-mkdir -p "$OUT/minio"
+mkdir -p "$OUT/buckets"
 OUT_ABS="$(cd "$OUT" && pwd)"
 echo "Backing up to $OUT_ABS"
 
@@ -27,11 +28,19 @@ echo "==> Postgres ($PG_DB)"
 docker compose exec -T db pg_dump -U "$PG_USER" -Fc "$PG_DB" > "$OUT/db.dump"
 echo "    $(du -h "$OUT/db.dump" | cut -f1) -> db.dump"
 
-# --- Object storage: mirror the bucket (a mc container on the compose network) ---------------------------
-echo "==> Object storage ($S3_BUCKET)"
-docker run --rm --network "$SA_NETWORK" -v "$OUT_ABS/minio:/backup" --entrypoint sh minio/mc -c \
-  "mc alias set local $MINIO_URL $MINIO_USER $MINIO_PASS >/dev/null && mc mirror --overwrite --quiet local/$S3_BUCKET /backup"
-echo "    $(find "$OUT/minio" -type f | wc -l | tr -d ' ') object(s) mirrored"
+# --- Object storage: EVERY bucket, each into buckets/<name>/ ---------------------------------------------
+# Each tenant's objects live in a bucket of their own, <prefix>-<tenant> (ADR 0372), beside the base bucket; until
+# #1987 this mirrored one bucket, through a MinIO client the stack no longer runs. The key pair travels as
+# environment to the helper container, never as arguments.
+echo "==> Object storage (every bucket)"
+AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
+  docker run --rm --network "$SA_NETWORK" -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION=us-east-1 \
+    -e S3_URL="$S3_URL" -v "$OUT_ABS/buckets:/backup" --entrypoint sh amazon/aws-cli:2.36.45 -c '
+      set -eu
+      for bucket in $(aws --endpoint-url "$S3_URL" s3api list-buckets --query "Buckets[].Name" --output text); do
+        aws --endpoint-url "$S3_URL" s3 sync --only-show-errors "s3://$bucket" "/backup/$bucket"
+        echo "    $bucket: $(find "/backup/$bucket" -type f 2>/dev/null | wc -l) objects"
+      done' 
 
 # --- OpenBao: a raft snapshot (production/raft only; the dev -dev server is in-memory) -------------------
 echo "==> OpenBao"
