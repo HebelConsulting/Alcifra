@@ -40,10 +40,10 @@ public class WebMailDomainsTests
 
         // The challenge, in full. An administrator has to put BOTH halves into a DNS zone, so a UI that showed
         // only the value — or truncated the token — would send them to the server logs to find the rest.
-        await Expect(dialog.GetByText($"_simplarchive-challenge.{domain}")).ToBeVisibleAsync();
-        var value = await dialog.GetByText(new System.Text.RegularExpressions.Regex("simplarchive-domain-verification=")).First.InnerTextAsync();
-        Assert.StartsWith("simplarchive-domain-verification=", value.Trim(), StringComparison.Ordinal);
-        Assert.True(value.Trim().Length > "simplarchive-domain-verification=".Length + 20, $"the token looks truncated: '{value}'");
+        await Expect(dialog.GetByText($"_alcifra-challenge.{domain}")).ToBeVisibleAsync();
+        var value = await dialog.GetByText(new System.Text.RegularExpressions.Regex("alcifra-domain-verification=")).First.InnerTextAsync();
+        Assert.StartsWith("alcifra-domain-verification=", value.Trim(), StringComparison.Ordinal);
+        Assert.True(value.Trim().Length > "alcifra-domain-verification=".Length + 20, $"the token looks truncated: '{value}'");
     }
 
     [Fact]

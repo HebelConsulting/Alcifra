@@ -50,12 +50,49 @@ public class SealedArchiveTests
 
         var cover = SealedArchiveReader.ReadCover(new MemoryStream(archive), [PublicOnly(Installation)]);
 
-        Assert.Equal(("simplarchive", 1, "Acme", "https://archive.example/api"), (cover.Format, cover.FormatVersion, cover.Source.TenantName, cover.Source.ApiRoot));
+        Assert.Equal(("alcifra", 1, "Acme", "https://archive.example/api"), (cover.Format, cover.FormatVersion, cover.Source.TenantName, cover.Source.ApiRoot));
         Assert.Equal([(ArchiveRecipientKind.Exporter, "Anna Example"), (ArchiveRecipientKind.Recovery, "Recovery certificate")],
             cover.Recipients.Select(r => (r.Kind, r.Label)));
         Assert.Equal(SealedArchiveWriter.Thumbprint(Recovery), cover.Recipients[1].Thumbprint);
         // nothing of the content is readable from the plain parts
         Assert.DoesNotContain("the content", Encoding.UTF8.GetString(archive), StringComparison.Ordinal);
+    }
+
+    // Rename phase 4b (#1117): an archive written before it names the format "simplarchive" and still opens until v0.56.0;
+    // a cover naming anything else is still refused by name. The cover is re-signed, so only the format differs.
+    [Theory]
+    [InlineData("simplarchive", true)]
+    [InlineData("somethingelse", false)]
+    public async Task A_cover_naming_the_format_before_the_rename_still_reads(string format, bool reads)
+    {
+        var archive = await WriteAsync(Installation, Recipients);
+        byte[]? cover = null;
+        var renamed = Rewrite(archive, SealedArchiveLayout.Cover, bytes =>
+        {
+            var text = Encoding.UTF8.GetString(bytes);
+            Assert.Contains("\"alcifra\"", text, StringComparison.Ordinal);
+            cover = Encoding.UTF8.GetBytes(text.Replace("\"alcifra\"", $"\"{format}\"", StringComparison.Ordinal));
+            return cover;
+        });
+        var resigned = Rewrite(renamed, SealedArchiveLayout.CoverSignature, _ =>
+        {
+            var signed = new System.Security.Cryptography.Pkcs.SignedCms(new System.Security.Cryptography.Pkcs.ContentInfo(cover!), detached: true);
+            signed.ComputeSignature(new System.Security.Cryptography.Pkcs.CmsSigner(Installation)
+            {
+                DigestAlgorithm = new System.Security.Cryptography.Oid("2.16.840.1.101.3.4.2.1"),
+                IncludeOption = System.Security.Cryptography.X509Certificates.X509IncludeOption.EndCertOnly,
+            });
+            return signed.Encode();
+        });
+
+        if (reads)
+        {
+            Assert.Equal(format, SealedArchiveReader.ReadCover(new MemoryStream(resigned), [PublicOnly(Installation)]).Format);
+        }
+        else
+        {
+            Assert.Throws<ArchiveFormatException>(() => SealedArchiveReader.ReadCover(new MemoryStream(resigned), [PublicOnly(Installation)]));
+        }
     }
 
     [Fact]

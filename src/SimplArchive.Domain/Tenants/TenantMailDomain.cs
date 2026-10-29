@@ -82,11 +82,4 @@ public class TenantMailDomain : ITenantScoped
     /// <summary>When a verification check last ran, successful or not — so the UI can say how fresh it is.</summary>
     public DateTimeOffset? LastCheckedAt { get; set; }
 
-    /// <summary>The DNS name the <see cref="VerificationToken"/> is published at.</summary>
-    /// <remarks>
-    /// A dedicated sub-name rather than the apex: publishing at the apex mixes this record in with SPF, DMARC
-    /// and everything else an organisation already keeps there, and a domain being verified by us is not a
-    /// fact its apex should have to carry.
-    /// </remarks>
-    public string ChallengeName => $"_simplarchive-challenge.{Domain.Trim().TrimEnd('.')}";
 }

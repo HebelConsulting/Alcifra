@@ -26,9 +26,6 @@ public class TenantMailDomainConfiguration : IEntityTypeConfiguration<TenantMail
         // because it was never challenged. Bounded because it is a generated token, not free text.
         builder.Property(d => d.VerificationToken).HasMaxLength(128);
 
-        // Not mapped: derived from Domain, and a stored copy would be a second thing to keep in step.
-        builder.Ignore(d => d.ChallengeName);
-
         // Cascade: a deleted tenant's domains go with it. Nothing else may claim a domain while its tenant
         // exists, and nothing should keep claiming one after the tenant is gone.
         builder.HasOne<Tenant>()

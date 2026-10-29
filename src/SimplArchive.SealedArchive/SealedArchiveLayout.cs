@@ -7,10 +7,18 @@ namespace SimplArchive.SealedArchive;
 public static class SealedArchiveLayout
 {
     /// <summary>The file name extension of a sealed archive.</summary>
-    public const string Extension = ".simplarchive";
+    public const string Extension = ".alcifra";
 
     /// <summary>What <see cref="ArchiveCover.Format"/> says, so a reader knows the file before it trusts it.</summary>
-    public const string Format = "simplarchive";
+    /// <remarks>Wire, so fixed whatever the brand (ADR 0987); this leaf references nothing, so it is spelled here.</remarks>
+    public const string Format = "alcifra";
+
+    /// <summary>The extension before the rename (#1117 phase 4b), still opened until v0.56.0.</summary>
+    /// <remarks>Retirement trigger (ADR 0885): removed with <c>WireNames.Legacy</c> in v0.56.0.</remarks>
+    public const string LegacyExtension = ".simplarchive";
+
+    /// <summary>The format name before the rename, still read until v0.56.0 (see <see cref="LegacyExtension"/>).</summary>
+    public const string LegacyFormat = "simplarchive";
 
     /// <summary>The container's version. A reader refuses a newer one by name rather than misreading it.</summary>
     public const int FormatVersion = 1;

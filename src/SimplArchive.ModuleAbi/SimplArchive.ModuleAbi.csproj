@@ -11,7 +11,7 @@
          -p:LegacyPackageId=true: a switch this project reads, because a PackageId passed on the command line
          reaches every referenced project too and restore refuses the duplicate. -->
     <PackageId Condition="'$(LegacyPackageId)' == 'true'">SimplArchive.ModuleAbi</PackageId>
-    <Version>1.25.1</Version>
+    <Version>1.26.0</Version>
     <!-- The BINDING identity is pinned, permanently (ADR 0749): the Docker build stamps -p:Version over
          every project (0.0.0-dev locally), so without this pin the host's ModuleAbi.dll assembly version
          depends on the HOST's stamp and a package-built module fails to bind on any dev host (found by

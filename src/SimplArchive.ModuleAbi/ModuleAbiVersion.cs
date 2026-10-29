@@ -148,5 +148,10 @@ public static class ModuleAbiVersion
     /// hub, never stored and never pushed to a closed app (core ADR 0957). A new interface and new types only, so a 1.24
     /// module is unaffected.
     /// </para>
-    public const int Minor = 25;
+    /// <para>
+    /// 1.26 signs a <see cref="MobileLicense"/> as <see cref="MobileLicense.Kind"/> <c>alcifra-mobile</c> and still verifies
+    /// one signed as <see cref="MobileLicense.LegacyKind"/> (core #1117 phase 4b, ADR 1002). A new constant only, so a 1.25
+    /// module is unaffected; a licence it signed still verifies.
+    /// </para>
+    public const int Minor = 26;
 }

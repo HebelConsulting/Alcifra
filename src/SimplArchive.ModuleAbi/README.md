@@ -38,7 +38,7 @@ with a clear message. The **minor** floats: a module built against an older mino
 and one built against a newer minor than the host offers is refused. A patch never changes the contract.
 
 ```xml
-<PackageReference Include="Alcifra.ModuleAbi" Version="1.25.1" />
+<PackageReference Include="Alcifra.ModuleAbi" Version="1.26.0" />
 ```
 
 Until the rename to Alcifra is complete, the same contract is also published as `SimplArchive.ModuleAbi`, at the

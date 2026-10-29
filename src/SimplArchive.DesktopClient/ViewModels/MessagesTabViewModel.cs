@@ -581,7 +581,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     public async Task BackUpAsync()
     {
         if (Current is not { } session || SaveFile is null || _api() is not { } api
-            || await SaveFile($"messages-{DateTime.Now.ToString("yyyy-MM-dd-HHmm", CultureInfo.InvariantCulture)}.simplarchive-messages") is not { } file)
+            || await SaveFile($"messages-{DateTime.Now.ToString("yyyy-MM-dd-HHmm", CultureInfo.InvariantCulture)}{SimplArchive.Presentation.WireNames.MessengerBackupExtension}") is not { } file)
         {
             return;
         }

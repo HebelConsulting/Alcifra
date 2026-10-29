@@ -17,8 +17,8 @@ public class DesktopMailDomainRowTests
         {
             Info = new AdminClient.MailDomainInfo(
                 Guid.NewGuid(), "contoso.example", verified,
-                verified ? null : "_simplarchive-challenge.contoso.example",
-                verified ? null : "simplarchive-domain-verification=abc",
+                verified ? null : "_alcifra-challenge.contoso.example",
+                verified ? null : "alcifra-domain-verification=abc",
                 verifyHref, removeHref),
         };
 
@@ -30,7 +30,7 @@ public class DesktopMailDomainRowTests
         Assert.True(row.CanVerify);
         Assert.True(row.CanRemove);
         Assert.True(row.ShowsChallenge);
-        Assert.Equal("_simplarchive-challenge.contoso.example", row.ChallengeName);
+        Assert.Equal("_alcifra-challenge.contoso.example", row.ChallengeName);
     }
 
     [Fact]
@@ -91,8 +91,8 @@ public class DesktopMailDomainsTests
         var added = model.Domains.Single(d => d.Domain == domain);
         Assert.False(added.Verified);
         Assert.True(added.ShowsChallenge);
-        Assert.Equal($"_simplarchive-challenge.{domain}", added.ChallengeName);
-        Assert.StartsWith("simplarchive-domain-verification=", added.ChallengeValue, StringComparison.Ordinal);
+        Assert.Equal($"_alcifra-challenge.{domain}", added.ChallengeName);
+        Assert.StartsWith("alcifra-domain-verification=", added.ChallengeValue, StringComparison.Ordinal);
 
         // The box is cleared on success, so a second add does not silently re-submit the first domain.
         Assert.Equal(string.Empty, model.NewDomain);

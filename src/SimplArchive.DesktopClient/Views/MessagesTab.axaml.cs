@@ -215,7 +215,7 @@ public partial class MessagesTab : UserControl
 
         var file = await storage.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = Strings.Get(suggestedName.EndsWith(".simplarchive-messages", StringComparison.Ordinal) ? "MsgBackUpToFile" : "MsgSaveAs"),
+            Title = Strings.Get(suggestedName.EndsWith(SimplArchive.Presentation.WireNames.MessengerBackupExtension, StringComparison.Ordinal) ? "MsgBackUpToFile" : "MsgSaveAs"),
             SuggestedFileName = suggestedName,
         });
         return file is null ? null : await file.OpenWriteAsync();

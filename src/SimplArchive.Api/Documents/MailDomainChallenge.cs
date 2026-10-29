@@ -11,7 +11,22 @@ public static class MailDomainChallenge
     /// an opaque string is one nobody dares delete years later. Naming ourselves in it is the difference
     /// between a record that can be cleaned up and a record that is kept forever out of caution.
     /// </remarks>
-    public const string Prefix = "simplarchive-domain-verification=";
+    public const string Prefix = SimplArchive.Presentation.WireNames.MailDomainChallengePrefix;
+
+    /// <summary>The DNS name a domain's TXT challenge is published at (a sub-name, not the apex: see the remarks).</summary>
+    /// <remarks>
+    /// A dedicated sub-name rather than the apex: publishing at the apex mixes this record in with SPF, DMARC and
+    /// everything else an organisation already keeps there, and a domain being verified by us is not a fact its apex
+    /// should have to carry.
+    /// </remarks>
+    public static string NameFor(string domain) => $"{SimplArchive.Presentation.WireNames.MailDomainChallengeLabel}.{domain.Trim().TrimEnd('.')}";
+
+    /// <summary>
+    /// Every name a challenge is looked up at: the current one, and the one before the rename for a domain whose
+    /// administrator published there (WireNames.Legacy, until v0.56.0). The value is the stored token either way.
+    /// </summary>
+    public static IReadOnlyList<string> NamesFor(string domain) =>
+        [NameFor(domain), $"{SimplArchive.Presentation.WireNames.Legacy.MailDomainChallengeLabel}.{domain.Trim().TrimEnd('.')}"];
 
     /// <summary>A fresh challenge value: the prefix plus 160 bits of randomness, URL-safe.</summary>
     /// <remarks>

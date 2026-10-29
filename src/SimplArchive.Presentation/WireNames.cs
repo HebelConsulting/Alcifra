@@ -40,6 +40,15 @@ public static class WireNames
     /// <summary>The IMAP header naming a message's mask.</summary>
     public const string MaskHeader = $"{HeaderPrefix}Mask";
 
+    /// <summary>The DNS label a mail-domain claim publishes its TXT challenge under (#667).</summary>
+    public const string MailDomainChallengeLabel = $"_{Product}-challenge";
+
+    /// <summary>The prefix of a mail-domain challenge value, so a zone's owner can tell what the record is for.</summary>
+    public const string MailDomainChallengePrefix = $"{Product}-domain-verification=";
+
+    /// <summary>The file extension of a user's sealed Messenger backup.</summary>
+    public const string MessengerBackupExtension = $".{Product}-messages";
+
     /// <summary>
     /// The names before the rename (#1117, phase 4), still ACCEPTED so a client or an integration written against them
     /// keeps working while it moves: the server seeds the old client ids beside the new ones, accepts the old redirect,
@@ -65,5 +74,8 @@ public static class WireNames
         public const string MobileRedirectUri = "dev.simplarchive.mobile:/oauth2redirect";
 
         public const string SignatureHeader = "X-SimplArchive-Signature";
+
+        /// <summary>Where a domain claimed before the rename may still publish its challenge (phase 4b).</summary>
+        public const string MailDomainChallengeLabel = "_simplarchive-challenge";
     }
 }

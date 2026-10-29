@@ -38,6 +38,24 @@ public sealed class MobileLicenseTests
         Assert.StartsWith($"{MobileLicense.Kind}\n", Licence().SignedPayload(), StringComparison.Ordinal);
     }
 
+    // Rename phase 4b (#1117): a licence issued before it says "simplarchive-mobile" in its signed payload and still
+    // unlocks the app until v0.56.0; a payload of any OTHER kind still does not.
+    [Fact]
+    public void A_licence_signed_under_the_kind_before_the_rename_still_verifies()
+    {
+        var licence = Licence();
+        var before = $"{MobileLicense.LegacyKind}{licence.SignedPayload()[MobileLicense.Kind.Length..]}";
+        var other = $"tenant{licence.SignedPayload()[MobileLicense.Kind.Length..]}";
+
+        Assert.True((licence with { Signature = Sign(before) }).VerifiedBy(Vendor));
+        Assert.False((licence with { Signature = Sign(other) }).VerifiedBy(Vendor));
+        Assert.Equal("alcifra-mobile", MobileLicense.Kind);
+    }
+
+    // As the vendor signs a payload: ECDsa P-256/SHA-256 over its UTF-8 bytes, base64.
+    private static string Sign(string payload) =>
+        Convert.ToBase64String(Vendor.SignData(System.Text.Encoding.UTF8.GetBytes(payload), HashAlgorithmName.SHA256));
+
     [Theory]
     [InlineData("petra@kristall.ch", true)]
     [InlineData("Petra@KRISTALL.CH", true)]

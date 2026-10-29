@@ -137,7 +137,7 @@ public static class SealedArchiveReader
         }
 
         var cover = ArchiveCover.FromBytes(coverBytes) ?? throw new ArchiveFormatException("its cover is not readable");
-        if (cover.Format != SealedArchiveLayout.Format)
+        if (cover.Format is not (SealedArchiveLayout.Format or SealedArchiveLayout.LegacyFormat))
         {
             throw new ArchiveFormatException($"its cover says '{cover.Format}'");
         }

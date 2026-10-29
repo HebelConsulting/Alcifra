@@ -59,8 +59,8 @@ public class TenantMailDomainsTests
         Assert.False(created.GetProperty("verified").GetBoolean());
         var challengeName = created.GetProperty("challengeName").GetString()!;
         var challengeValue = created.GetProperty("challengeValue").GetString()!;
-        Assert.Equal($"_simplarchive-challenge.{domain}", challengeName);
-        Assert.StartsWith("simplarchive-domain-verification=", challengeValue, StringComparison.Ordinal);
+        Assert.Equal($"_alcifra-challenge.{domain}", challengeName);
+        Assert.StartsWith("alcifra-domain-verification=", challengeValue, StringComparison.Ordinal);
 
         // Nothing published yet: the refusal names the record rather than merely failing, and carries it as a
         // Problem extension so a client can render it as a copyable field.
@@ -88,6 +88,21 @@ public class TenantMailDomainsTests
 
         // And now ingress resolves it.
         Assert.True(await ResolvesAsync(address));
+    }
+
+    // Rename phase 4b (#1117): an administrator who published under the name before the rename is not sent back to
+    // their zone; until v0.56.0 the record there verifies the domain too, with the token the claim stored.
+    [Fact]
+    public async Task A_challenge_published_under_the_name_before_the_rename_still_verifies()
+    {
+        var (client, _, domain, _) = await RouterAsync();
+        using var _c = client;
+        var created = await TestJson.Post(client, "/api/tenant/mail-domains", new { domain });
+
+        _factory.Dns.Publish($"_simplarchive-challenge.{domain}", created.GetProperty("challengeValue").GetString()!);
+        var verified = await TestJson.Post(client, $"/api/tenant/mail-domains/{created.GetProperty("id").GetGuid()}/verify", new { });
+
+        Assert.True(verified.GetProperty("verified").GetBoolean());
     }
 
     [Fact]

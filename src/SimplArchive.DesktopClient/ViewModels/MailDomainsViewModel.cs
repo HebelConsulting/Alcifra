@@ -94,8 +94,8 @@ public sealed partial class MailDomainsViewModel : ObservableObject
         {
             Info = new AdminClient.MailDomainInfo(
                 Guid.NewGuid(), "contoso.example", Verified: false,
-                "_simplarchive-challenge.contoso.example",
-                "simplarchive-domain-verification=qmny5W0JLnkcGKt98oEb1zmCqQ0",
+                "_alcifra-challenge.contoso.example",
+                "alcifra-domain-verification=qmny5W0JLnkcGKt98oEb1zmCqQ0",
                 VerifyHref: "/verify", RemoveHref: "/remove"),
         });
         model.Domains.Add(new MailDomainRowViewModel

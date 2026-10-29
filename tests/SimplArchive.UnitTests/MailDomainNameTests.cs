@@ -59,16 +59,16 @@ public class MailDomainChallengeTests
 
         // Named, so a zone full of verification records from a dozen services stays readable — and so nobody
         // is afraid to delete it years later because it is an anonymous opaque string.
-        Assert.StartsWith("simplarchive-domain-verification=", token, StringComparison.Ordinal);
+        Assert.StartsWith("alcifra-domain-verification=", token, StringComparison.Ordinal);
 
         // 20 bytes, base64url, unpadded → 27 characters.
-        Assert.Equal(27, token["simplarchive-domain-verification=".Length..].Length);
+        Assert.Equal(27, token["alcifra-domain-verification=".Length..].Length);
 
         // URL- and DNS-safe: a TXT value containing '+' or '/' survives, but is the kind of thing a zone editor
         // or a copy-paste mangles, and a challenge that fails to verify because of punctuation is unanswerable.
         // Asked of the VALUE, not the whole token — the prefix ends in '=' by construction, which is what
         // makes the record read as a key/value pair.
-        var value = token["simplarchive-domain-verification=".Length..];
+        var value = token["alcifra-domain-verification=".Length..];
         Assert.DoesNotContain('+', value);
         Assert.DoesNotContain('/', value);
         Assert.DoesNotContain('=', value);

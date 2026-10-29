@@ -199,7 +199,14 @@ public class TenantMailDomainsController : ControllerBase
             return Ok(ToResource(entry, canManage: true)); // already proven; nothing to look up
         }
 
-        var records = await _dns.GetTxtRecordsAsync(entry.ChallengeName, cancellationToken);
+        // Both names until v0.56.0: an administrator who published under the one before the rename is not sent back
+        // to their zone (WireNames.Legacy). The value is the STORED token at either.
+        var records = new List<string>();
+        foreach (var name in MailDomainChallenge.NamesFor(entry.Domain))
+        {
+            records.AddRange(await _dns.GetTxtRecordsAsync(name, cancellationToken));
+        }
+
         entry.LastCheckedAt = _time.GetUtcNow();
 
         // Trace carries the whole exchange (ADR 0626): what we looked for and what was actually published. This
@@ -208,7 +215,7 @@ public class TenantMailDomainsController : ControllerBase
         // is a secret: the token is published in public DNS by design.
         _logger.LogTrace(
             "Mail-domain challenge at {Name}: expected {Expected}, found {Found}",
-            entry.ChallengeName, entry.VerificationToken, records);
+            MailDomainChallenge.NamesFor(entry.Domain), entry.VerificationToken, records);
 
         // Compared against the STORED token, and ordinally: a DNS TXT value is bytes, and a case-insensitive
         // match on a random token would only widen what counts as proof.
@@ -224,9 +231,9 @@ public class TenantMailDomainsController : ControllerBase
             // and DNS propagating it. A Warning here would fire on every mistyped domain anyone tries.
             _logger.LogDebug(
                 "Mail-domain verification for {Domain} found no matching record at {Name} ({Count} present).",
-                entry.Domain, entry.ChallengeName, records.Count);
+                entry.Domain, MailDomainChallenge.NameFor(entry.Domain), records.Count);
 
-            throw new MailDomainNotVerifiedException(entry.Domain, entry.ChallengeName);
+            throw new MailDomainNotVerifiedException(entry.Domain, MailDomainChallenge.NameFor(entry.Domain));
         }
 
         entry.VerifiedAt = _time.GetUtcNow();
@@ -291,7 +298,7 @@ public class TenantMailDomainsController : ControllerBase
             // The challenge is shown only while it is still the thing to do. A verified domain that kept
             // publishing its token would invite someone to "tidy up" the record it no longer needs, and a
             // domain declared by configuration never had one.
-            ChallengeName = entry.VerifiedAt is null ? entry.ChallengeName : null,
+            ChallengeName = entry.VerifiedAt is null ? MailDomainChallenge.NameFor(entry.Domain) : null,
             ChallengeValue = entry.VerifiedAt is null ? entry.VerificationToken : null,
         };
 

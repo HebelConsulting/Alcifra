@@ -32,7 +32,12 @@ public sealed record MobileLicense(
     string Signature)
 {
     /// <summary>The first line of the signed payload: what kind of licence this is.</summary>
-    public const string Kind = "simplarchive-mobile";
+    /// <remarks>Wire, so fixed whatever the brand (core ADR 0987); this leaf references nothing, so it is spelled here.</remarks>
+    public const string Kind = "alcifra-mobile";
+
+    /// <summary>The kind before the rename (core #1117 phase 4b): a licence signed with it still verifies until core v0.56.0.</summary>
+    /// <remarks>Retirement trigger (core ADR 0885): removed with the core's <c>WireNames.Legacy</c>; licences are re-issued.</remarks>
+    public const string LegacyKind = "simplarchive-mobile";
 
     /// <summary>The level for the phone layout on any device.</summary>
     public const string Standard = "standard";
@@ -45,15 +50,20 @@ public sealed record MobileLicense(
     /// sorted and comma-joined, the licensee, and the date as <c>yyyy-MM-dd</c>, newline-joined. Changing it invalidates
     /// every issued mobile licence.
     /// </summary>
-    public string SignedPayload() =>
-        $"{Kind}\n{Level}\n{string.Join(",", Domains.Select(d => d.Trim().ToLowerInvariant()).Order(StringComparer.Ordinal))}\n"
+    public string SignedPayload() => PayloadOf(Kind);
+
+    private string PayloadOf(string kind) =>
+        $"{kind}\n{Level}\n{string.Join(",", Domains.Select(d => d.Trim().ToLowerInvariant()).Order(StringComparer.Ordinal))}\n"
         + $"{Licensee}\n{ValidUntil:yyyy-MM-dd}";
 
     /// <summary>Signs the claims with the vendor's private key (the Licensing module's half).</summary>
     public MobileLicense Sign(ECDsa privateKey) => this with { Signature = SignedClaims.Sign(privateKey, SignedPayload()) };
 
     /// <summary>True when <paramref name="publicKey"/> signed exactly these claims.</summary>
-    public bool VerifiedBy(ECDsa publicKey) => SignedClaims.Verify(publicKey, SignedPayload(), Signature);
+    /// <remarks>A licence signed under <see cref="LegacyKind"/> verifies too, until that is retired.</remarks>
+    public bool VerifiedBy(ECDsa publicKey) =>
+        SignedClaims.Verify(publicKey, SignedPayload(), Signature)
+        || SignedClaims.Verify(publicKey, PayloadOf(LegacyKind), Signature);
 
     /// <summary>Whether it still unlocks on <paramref name="day"/> (the last day included).</summary>
     public bool IsValidOn(DateOnly day) => day <= ValidUntil;
