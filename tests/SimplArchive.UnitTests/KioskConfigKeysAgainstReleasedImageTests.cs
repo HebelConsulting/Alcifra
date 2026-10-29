@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using SimplArchive.Theming;
 
 namespace SimplArchive.UnitTests;
 
@@ -30,6 +31,13 @@ public partial class KioskConfigKeysAgainstReleasedImageTests
         if (PrivateRepositoryGate.RepoRoot() is not { } root || !PrivateRepositoryGate.IsPrivateRepository(root))
         {
             return; // tools/ is withheld from the public mirror (ADR 0484)
+        }
+
+        // The kiosk runs the product's releases, not a white-label edition's (ADR 0996): an edition has the kiosk's
+        // files because it is a copy of this repository, but no kiosk of its own and no release to compare against.
+        if (Brand.Shipped.Credit is not null)
+        {
+            return;
         }
 
         var kiosk = Path.Combine(root, "tools", "kiosk");
