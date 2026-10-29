@@ -46,6 +46,19 @@ public static class WireNames
     /// <summary>The prefix of a mail-domain challenge value, so a zone's owner can tell what the record is for.</summary>
     public const string MailDomainChallengePrefix = $"{Product}-domain-verification=";
 
+    /// <summary>
+    /// The environment variables the command-line tools share (<c>alcifra</c>, <c>apass</c>): the installation's address,
+    /// the session's access token (both printed by <c>login</c> as shell exports), and a client secret, which is never an
+    /// option. Wire in ADR 0987's sense: a script written against them must work whatever the build is called.
+    /// </summary>
+    public const string UrlVariable = "ALCIFRA_URL";
+
+    /// <inheritdoc cref="UrlVariable"/>
+    public const string TokenVariable = "ALCIFRA_TOKEN";
+
+    /// <inheritdoc cref="UrlVariable"/>
+    public const string ClientSecretVariable = "ALCIFRA_CLIENT_SECRET";
+
     /// <summary>The file extension of a user's sealed Messenger backup.</summary>
     public const string MessengerBackupExtension = $".{Product}-messages";
 
@@ -80,6 +93,21 @@ public static class WireNames
 
         /// <summary>Where a domain claimed before the rename may still publish its challenge (phase 4b).</summary>
         public const string MailDomainChallengeLabel = "_simplarchive-challenge";
+
+        /// <summary>The tools' environment variables before the rename, still read after the current ones (#1117).</summary>
+        public const string CliUrlVariable = "SACONSOLE_URL";
+
+        /// <inheritdoc cref="CliUrlVariable"/>
+        public const string CliTokenVariable = "SACONSOLE_TOKEN";
+
+        /// <inheritdoc cref="CliUrlVariable"/>
+        public const string CliClientSecretVariable = "SACONSOLE_CLIENT_SECRET";
+
+        /// <summary>The product-level session names <c>apass</c> printed before the rename (owner, 2026-10-25).</summary>
+        public const string SessionUrlVariable = "SA_URL";
+
+        /// <inheritdoc cref="SessionUrlVariable"/>
+        public const string SessionTokenVariable = "SA_TOKEN";
 
         /// <summary>The deep-link scheme before the rename, still registered and parsed (#1117).</summary>
         public const string DeepLinkScheme = "simplarchive";

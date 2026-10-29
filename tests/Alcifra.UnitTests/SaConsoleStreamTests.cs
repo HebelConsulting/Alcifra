@@ -27,8 +27,8 @@ public class SaConsoleStreamTests
         var stdout = new StringWriter();
         var stderr = new StringWriter();
         var (outBefore, errBefore) = (Console.Out, Console.Error);
-        var url = Environment.GetEnvironmentVariable("SACONSOLE_URL");
-        var token = Environment.GetEnvironmentVariable("SACONSOLE_TOKEN");
+        var url = Environment.GetEnvironmentVariable("ALCIFRA_URL");
+        var token = Environment.GetEnvironmentVariable("ALCIFRA_TOKEN");
 
         try
         {
@@ -36,8 +36,8 @@ public class SaConsoleStreamTests
             Console.SetError(stderr);
 
             // Cleared so the "missing installation" case cannot be satisfied by the developer's own shell.
-            Environment.SetEnvironmentVariable("SACONSOLE_URL", null);
-            Environment.SetEnvironmentVariable("SACONSOLE_TOKEN", null);
+            Environment.SetEnvironmentVariable("ALCIFRA_URL", null);
+            Environment.SetEnvironmentVariable("ALCIFRA_TOKEN", null);
 
             var exit = SaConsoleApp.Run(args);   // Run, not Build: it disposes the logger, so its background writer flushes
             Assert.True(exit != 0, "these arguments are all supposed to fail");
@@ -46,8 +46,8 @@ public class SaConsoleStreamTests
         {
             Console.SetOut(outBefore);
             Console.SetError(errBefore);
-            Environment.SetEnvironmentVariable("SACONSOLE_URL", url);
-            Environment.SetEnvironmentVariable("SACONSOLE_TOKEN", token);
+            Environment.SetEnvironmentVariable("ALCIFRA_URL", url);
+            Environment.SetEnvironmentVariable("ALCIFRA_TOKEN", token);
         }
 
         Assert.True(string.IsNullOrWhiteSpace(stdout.ToString()),

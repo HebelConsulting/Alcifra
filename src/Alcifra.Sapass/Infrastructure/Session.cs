@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using Alcifra.ApiClient;
 using Alcifra.ApiClient.PasswordStore;
+using Alcifra.Presentation;
 
 namespace Alcifra.Sapass.Infrastructure;
 
@@ -22,10 +23,8 @@ namespace Alcifra.Sapass.Infrastructure;
 /// </remarks>
 internal sealed class Session : IDisposable
 {
-    public const string UrlVariable = "SA_URL";
-    public const string TokenVariable = "SA_TOKEN";
-    public const string LegacyUrlVariable = "SACONSOLE_URL";
-    public const string LegacyTokenVariable = "SACONSOLE_TOKEN";
+    public const string UrlVariable = WireNames.UrlVariable;
+    public const string TokenVariable = WireNames.TokenVariable;
 
     private Session(string url, HttpClient http, ApiCore core, PasswordStoreClient passwords)
     {
@@ -47,9 +46,10 @@ internal sealed class Session : IDisposable
     /// <param name="opener">The key path, for a command that opens an entry; null for one that only lists names.</param>
     public static Session FromEnvironment(IEnvelopeOpener? opener = null)
     {
-        var url = First(UrlVariable, LegacyUrlVariable)
+        // The names before the rename are read after the current one until WireNames.Legacy retires (v0.56.0).
+        var url = First(UrlVariable, WireNames.Legacy.SessionUrlVariable, WireNames.Legacy.CliUrlVariable)
             ?? throw new SapassException($"No installation. Run: eval \"$(apass login --url …)\" to set ${UrlVariable}.");
-        var token = First(TokenVariable, LegacyTokenVariable)
+        var token = First(TokenVariable, WireNames.Legacy.SessionTokenVariable, WireNames.Legacy.CliTokenVariable)
             ?? throw new SapassException($"Not signed in. Run: eval \"$(apass login --url {url})\" to set ${TokenVariable}.");
 
         var http = new HttpClient { BaseAddress = new Uri($"{url.TrimEnd('/')}/") };

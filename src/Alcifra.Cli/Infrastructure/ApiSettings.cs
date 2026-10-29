@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Alcifra.Presentation;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -14,30 +15,28 @@ namespace Alcifra.Cli.Infrastructure;
 /// </remarks>
 public class ApiSettings : CommandSettings
 {
-    /// <summary>Environment variable carrying the installation URL (set by <c>alcifra login</c>).</summary>
-    public const string UrlVariable = "SACONSOLE_URL";
+    /// <summary>Environment variable carrying the installation URL (set by <c>alcifra login</c>, and by <c>apass login</c>).</summary>
+    /// <remarks>
+    /// One session for both tools (owner, 2026-10-25): it belongs to the installation, not to one tool. The names
+    /// before the rename are read after it until <see cref="WireNames.Legacy"/> retires (v0.56.0).
+    /// </remarks>
+    public const string UrlVariable = WireNames.UrlVariable;
 
     /// <summary>Environment variable carrying the user access token (set by <c>alcifra login</c>).</summary>
-    public const string TokenVariable = "SACONSOLE_TOKEN";
-
-    /// <summary>
-    /// The PRODUCT-LEVEL names, which apass prints and both tools read FIRST (owner, 2026-10-25): the session
-    /// belongs to the installation, not to one of the two tools. Still printed as the legacy pair above for one
-    /// release, so a kiosk or script that greps for <c>export SACONSOLE_TOKEN=</c> keeps working.
-    /// </summary>
-    public const string NeutralUrlVariable = "SA_URL";
-
-    /// <inheritdoc cref="NeutralUrlVariable"/>
-    public const string NeutralTokenVariable = "SA_TOKEN";
+    public const string TokenVariable = WireNames.TokenVariable;
 
     [CommandOption("--url <URL>")]
-    [Description("Base URL of the installation, e.g. https://archive.example.com. Defaults to $SACONSOLE_URL.")]
+    [Description("Base URL of the installation, e.g. https://archive.example.com. Defaults to $ALCIFRA_URL.")]
     public string? Url { get; init; }
 
-    /// <summary>The installation to act on — the option if given, else the environment (product-level name first).</summary>
+    /// <summary>The installation to act on — the option if given, else the environment (current name first).</summary>
     public string ResolvedUrl => !string.IsNullOrWhiteSpace(Url)
         ? Url
-        : First(NeutralUrlVariable, UrlVariable);
+        : First(UrlVariable, WireNames.Legacy.SessionUrlVariable, WireNames.Legacy.CliUrlVariable);
+
+    /// <summary>A client secret from the environment — current name first — or the empty string; never an option's value.</summary>
+    public static string ClientSecretFromEnvironment =>
+        First(WireNames.ClientSecretVariable, WireNames.Legacy.CliClientSecretVariable);
 
     /// <summary>The first of these environment variables that is set, or the empty string.</summary>
     protected static string First(params string[] names) =>
@@ -63,7 +62,7 @@ public class ApiSettings : CommandSettings
 public class TenantSessionSettings : ApiSettings
 {
     /// <summary>The access token from the environment — never an option, so it cannot land in shell history.</summary>
-    public string ResolvedToken => First(NeutralTokenVariable, TokenVariable);
+    public string ResolvedToken => First(TokenVariable, WireNames.Legacy.SessionTokenVariable, WireNames.Legacy.CliTokenVariable);
 
     public override ValidationResult Validate() => this switch
     {
@@ -90,12 +89,12 @@ public class PlatformAdminSettings : ApiSettings
     public required string ClientId { get; init; }
 
     [CommandOption("--client-secret <SECRET>")]
-    [Description("Platform-administrator client secret. Prefer SACONSOLE_CLIENT_SECRET in the environment.")]
+    [Description("Platform-administrator client secret. Prefer ALCIFRA_CLIENT_SECRET in the environment.")]
     public string? ClientSecret { get; init; }
 
     /// <summary>The secret, from the option or the environment — never echoed.</summary>
     public string ResolvedSecret => string.IsNullOrEmpty(ClientSecret)
-        ? Environment.GetEnvironmentVariable("SACONSOLE_CLIENT_SECRET") ?? string.Empty
+        ? ClientSecretFromEnvironment
         : ClientSecret;
 
     public override ValidationResult Validate() => this switch
@@ -103,7 +102,7 @@ public class PlatformAdminSettings : ApiSettings
         _ when base.Validate() is { Successful: false } failed => failed,
         { ClientId: null or "" } => ValidationResult.Error("Missing required option --client-id."),
         _ when string.IsNullOrEmpty(ResolvedSecret) => ValidationResult.Error(
-            "No client secret. Pass --client-secret, or set SACONSOLE_CLIENT_SECRET so it does not land in shell history."),
+            $"No client secret. Pass --client-secret, or set {WireNames.ClientSecretVariable} so it does not land in shell history."),
         _ => ValidationResult.Success(),
     };
 }

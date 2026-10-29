@@ -31,29 +31,46 @@ public sealed class SaConsoleTests
         Assert.Contains("--url", result.Message);
     }
 
+    private static readonly string[] SecretVariables = ["ALCIFRA_CLIENT_SECRET", "SACONSOLE_CLIENT_SECRET"];
+
     [Fact] // the secret must be available, but the option is not the only way to supply it
     public void A_missing_secret_says_how_to_supply_it_without_shell_history()
     {
-        var previous = Environment.GetEnvironmentVariable("SACONSOLE_CLIENT_SECRET");
-        Environment.SetEnvironmentVariable("SACONSOLE_CLIENT_SECRET", null);
+        var previous = SecretVariables.Select(Environment.GetEnvironmentVariable).ToArray();
+        foreach (var name in SecretVariables)
+        {
+            Environment.SetEnvironmentVariable(name, null);
+        }
+
         try
         {
             var result = Valid(secret: null).Validate();
 
             Assert.False(result.Successful);
-            Assert.Contains("SACONSOLE_CLIENT_SECRET", result.Message);
+            Assert.Contains("ALCIFRA_CLIENT_SECRET", result.Message);
         }
         finally
         {
-            Environment.SetEnvironmentVariable("SACONSOLE_CLIENT_SECRET", previous);
+            for (var i = 0; i < SecretVariables.Length; i++)
+            {
+                Environment.SetEnvironmentVariable(SecretVariables[i], previous[i]);
+            }
         }
     }
 
-    [Fact]
-    public void The_environment_supplies_the_secret_when_the_option_does_not()
+    // The name before the rename is read too, until WireNames.Legacy retires (v0.56.0): a script still setting it works.
+    [Theory]
+    [InlineData("ALCIFRA_CLIENT_SECRET")]
+    [InlineData("SACONSOLE_CLIENT_SECRET")]
+    public void The_environment_supplies_the_secret_when_the_option_does_not(string variable)
     {
-        var previous = Environment.GetEnvironmentVariable("SACONSOLE_CLIENT_SECRET");
-        Environment.SetEnvironmentVariable("SACONSOLE_CLIENT_SECRET", "from-the-environment");
+        var previous = SecretVariables.Select(Environment.GetEnvironmentVariable).ToArray();
+        foreach (var name in SecretVariables)
+        {
+            Environment.SetEnvironmentVariable(name, null);
+        }
+
+        Environment.SetEnvironmentVariable(variable, "from-the-environment");
         try
         {
             var settings = Valid(secret: null);
@@ -63,7 +80,10 @@ public sealed class SaConsoleTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("SACONSOLE_CLIENT_SECRET", previous);
+            for (var i = 0; i < SecretVariables.Length; i++)
+            {
+                Environment.SetEnvironmentVariable(SecretVariables[i], previous[i]);
+            }
         }
     }
 

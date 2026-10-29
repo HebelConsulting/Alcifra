@@ -34,7 +34,7 @@ public sealed class AlcifraApi(HttpClient http)
         string clientId, string clientSecret, CancellationToken cancellationToken) =>
         RequestClientCredentialsTokenAsync(
             clientId, clientSecret,
-            "Check --client-id and SACONSOLE_CLIENT_SECRET, and that the service account has not been revoked.",
+            "Check --client-id and ALCIFRA_CLIENT_SECRET, and that the service account has not been revoked.",
             cancellationToken);
 
     private async Task<string> RequestClientCredentialsTokenAsync(
