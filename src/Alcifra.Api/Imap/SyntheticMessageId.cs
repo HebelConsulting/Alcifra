@@ -14,7 +14,7 @@ namespace Alcifra.Api.Imap;
 /// </remarks>
 internal static class SyntheticMessageId
 {
-    private const string Suffix = "@simplarchive";
+    private const string Suffix = "@alcifra";
 
     /// <summary>The Message-ID value (no angle brackets) for a document served synthetically.</summary>
     internal static string For(Guid documentId) => $"{documentId}{Suffix}";

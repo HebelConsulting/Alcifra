@@ -8,13 +8,13 @@ using Alcifra.Api.Imap;
 namespace Alcifra.EndToEndTests;
 
 // A document read over IMAP, exported, and filed back must not become a silent duplicate (#782). A non-.eml
-// document is served over IMAP as a synthetic mail whose Message-ID we mint as `<{documentId}@simplarchive>` —
+// document is served over IMAP as a synthetic mail whose Message-ID we mint as `<{documentId}@alcifra>` —
 // self-identifying. So a re-filed export is recognisable as OURS, and the interactive filing probe
 // (GET /api/duplicates, the call the reference/copy/cancel modal is built on) resolves the exact original and
 // offers it, instead of the archive growing a mail-shaped clone nothing can dedupe.
 //
 // The trap this also pins (#782): the id rides in a header a user can edit and carry between tenants, so it is
-// a HINT that must be re-verified — a `<{random-guid}@simplarchive>` naming no visible document resolves to
+// a HINT that must be re-verified — a `<{random-guid}@alcifra>` naming no visible document resolves to
 // nothing, exactly as if it named nothing.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-1")]
@@ -116,9 +116,9 @@ public class ImapReFileRecognitionTests
     {
         var (world, documentId, documentName) = await SeedDocumentAsync("refile-me.pdf");
 
-        // It really is OUR self-identifying id, naming the exact document (`<{documentId}@simplarchive>`).
+        // It really is OUR self-identifying id, naming the exact document (`<{documentId}@alcifra>`).
         var messageId = await FetchMessageIdAsync(world);
-        var embedded = Regex.Match(messageId, "<([0-9a-fA-F-]+)@simplarchive>");
+        var embedded = Regex.Match(messageId, "<([0-9a-fA-F-]+)@alcifra>");
         Assert.True(embedded.Success, $"the wrapper's Message-ID is not one of ours: {messageId}");
         Assert.Equal(documentId, Guid.Parse(embedded.Groups[1].Value));
 
@@ -141,7 +141,7 @@ public class ImapReFileRecognitionTests
         var (world, _, _) = await SeedDocumentAsync("real.pdf");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(world.Email, world.Password));
 
-        var forged = $"<{Guid.NewGuid()}@simplarchive>";
+        var forged = $"<{Guid.NewGuid()}@alcifra>";
         var probe = await TestJson.Get(api, $"/api/duplicates?entryId={Uri.EscapeDataString(forged)}");
         Assert.Empty(probe.GetProperty("duplicates").EnumerateArray());
     }

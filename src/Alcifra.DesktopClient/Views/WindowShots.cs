@@ -178,7 +178,7 @@ public static class WindowShots
                 // EMPTY string in a single-file app, which is exactly how the packaged client is published, so
                 // the analyzer rejects it (IL3000) and warnings are errors here. The file's contents never
                 // matter — FindModule only asks whether something is there.
-                var stub = Path.Combine(Path.GetTempPath(), "simplarchive-card-screenshot.module");
+                var stub = Path.Combine(Path.GetTempPath(), "alcifra-card-screenshot.module");
                 File.WriteAllBytes(stub, []);
                 HardwareKeys.CardCertificates.ModulePathOverride = stub;
             }

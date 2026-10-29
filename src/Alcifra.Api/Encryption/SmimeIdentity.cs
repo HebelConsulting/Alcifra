@@ -70,7 +70,7 @@ public static class SmimeIdentity
                     <dict>
                         <key>PayloadType</key><string>com.apple.security.root</string>
                         <key>PayloadVersion</key><integer>1</integer>
-                        <key>PayloadIdentifier</key><string>dev.simplarchive.ingest.{email}</string>
+                        <key>PayloadIdentifier</key><string>com.alcifra.ingest.{email}</string>
                         <key>PayloadUUID</key><string>{Guid.NewGuid().ToString().ToUpperInvariant()}</string>
                         <key>PayloadDisplayName</key><string>{Alcifra.Localization.Strings.ProductName} mail-in certificate</string>
                         <key>PayloadContent</key>
@@ -90,7 +90,7 @@ public static class SmimeIdentity
                     <dict>
                         <key>PayloadType</key><string>com.apple.security.pkcs12</string>
                         <key>PayloadVersion</key><integer>1</integer>
-                        <key>PayloadIdentifier</key><string>dev.simplarchive.identity.{email}</string>
+                        <key>PayloadIdentifier</key><string>com.alcifra.identity.{email}</string>
                         <key>PayloadUUID</key><string>{identityUuid}</string>
                         <key>PayloadDisplayName</key><string>{Alcifra.Localization.Strings.ProductName} S/MIME identity ({email})</string>
                         <key>Password</key><string>{System.Security.SecurityElement.Escape(pkcs12Password)}</string>
@@ -100,7 +100,7 @@ public static class SmimeIdentity
             {ingestPayload}    </array>
                 <key>PayloadType</key><string>Configuration</string>
                 <key>PayloadVersion</key><integer>1</integer>
-                <key>PayloadIdentifier</key><string>dev.simplarchive.smime.{email}</string>
+                <key>PayloadIdentifier</key><string>com.alcifra.smime.{email}</string>
                 <key>PayloadUUID</key><string>{profileUuid}</string>
                 <key>PayloadDisplayName</key><string>{Alcifra.Localization.Strings.ProductName} encrypted mail ({email})</string>
             </dict>

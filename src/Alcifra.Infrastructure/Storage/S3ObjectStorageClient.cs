@@ -235,7 +235,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe,
             TagSet =
             [
                 new Tag { Key = "tenant-id", Value = tenantId.ToString("D") },
-                new Tag { Key = "application", Value = "simplarchive" },
+                new Tag { Key = "application", Value = "alcifra" },
             ],
         }, cancellationToken);
     }

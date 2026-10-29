@@ -151,7 +151,7 @@ var valkeyConnection = builder.Configuration.GetConnectionString("Valkey");
 if (!string.IsNullOrWhiteSpace(valkeyConnection))
 {
     signalR.AddStackExchangeRedis(valkeyConnection, options =>
-        options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("simplarchive-signalr"));
+        options.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("alcifra-signalr"));
 }
 
 // Sign-in throttling (ADR 0716, issue #843) — progressive refusal of credential guessing at every door that

@@ -5,7 +5,7 @@ window.simplArchiveLang = {
     supported: ['en', 'de', 'it', 'es'],
     preferred: function () {
         try {
-            var saved = localStorage.getItem('simplarchive.lang');
+            var saved = localStorage.getItem('alcifra.lang');
             if (saved && this.supported.indexOf(saved) >= 0) {
                 return saved;
             }
@@ -17,7 +17,7 @@ window.simplArchiveLang = {
     },
     set: function (code) {
         try {
-            localStorage.setItem('simplarchive.lang', code);
+            localStorage.setItem('alcifra.lang', code);
         } catch (e) { /* ignore */ }
     }
 };

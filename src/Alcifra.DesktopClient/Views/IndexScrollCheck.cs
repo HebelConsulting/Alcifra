@@ -50,7 +50,7 @@ public static class IndexScrollCheck
 
         // See the remarks: without this the check rewrites the developer's own saved layout.
         Services.LayoutSettingsStore.PathOverride =
-            Path.Combine(Path.GetTempPath(), $"simplarchive-indexscroll-{Guid.NewGuid():N}.json");
+            Path.Combine(Path.GetTempPath(), $"alcifra-indexscroll-{Guid.NewGuid():N}.json");
 
         var ok = true;
 

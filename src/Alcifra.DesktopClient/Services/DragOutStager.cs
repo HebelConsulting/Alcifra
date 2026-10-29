@@ -29,7 +29,7 @@ public static class DragOutStager
         AlcifraApiClient api, IReadOnlyList<DragOutItem> items, CancellationToken cancellationToken = default,
         string? combinedStem = null)
     {
-        var dir = Path.Combine(Path.GetTempPath(), "simplarchive-dragout", Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "alcifra-dragout", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
 
         // A uniform multi-selection of contacts or calendar entries stages ONE combined file (#658): both

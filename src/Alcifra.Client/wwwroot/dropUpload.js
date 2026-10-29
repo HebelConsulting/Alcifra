@@ -6,7 +6,7 @@
 // API calls (create child, create version, finalize, index-data, mask).
 
 // Custom drag MIME for an internal move/reference drag — distinguishes a node drag from an OS-file drop.
-const NODE_MIME = 'application/x-simplarchive-node';
+const NODE_MIME = 'application/x-alcifra-node';
 
 // Returns true once wired (or already wired), false if `root` isn't a real element yet — the workbench DOM
 // lives inside <Authorized>, so on a page reload auth may still be resolving when this is first called.

@@ -35,7 +35,7 @@
     <ProjectReference Include="..\Alcifra.Presentation\Alcifra.Presentation.csproj" />
     <!-- The find-in-document word source's local half (WordLayoutSource): PDF bytes to word boxes, pure managed. -->
     <ProjectReference Include="..\Alcifra.TextLayout\Alcifra.TextLayout.csproj" />
-    <!-- The .simplarchive container's reader (ADR 0961): a road copy opens into the same responder as an export. -->
+    <!-- The .alcifra container's reader (ADR 0961): a road copy opens into the same responder as an export. -->
     <ProjectReference Include="..\Alcifra.SealedArchive\Alcifra.SealedArchive.csproj" />
   </ItemGroup>
 

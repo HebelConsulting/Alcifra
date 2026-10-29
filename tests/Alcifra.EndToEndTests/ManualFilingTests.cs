@@ -139,7 +139,32 @@ public class ManualFilingTests
         await using var scope = await TenantScopeAsync(rig.TenantId);
         var manual = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id);
         Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.CoreManual, manual.Name);
-        Assert.Equal("simplarchive-core", await FieldAsync(rig.TenantId, manual.Id, "Article number"));
+        Assert.Equal(ManualFiler.CoreArticleNumber, await FieldAsync(rig.TenantId, manual.Id, "Article number"));
+    }
+
+    // #1117: a manual filed before the rename carries the earlier Article number. The next filing finds it by that
+    // number, re-keys it, and versions the SAME document rather than filing a second manual beside it.
+    [Fact]
+    public async Task A_manual_filed_under_its_earlier_article_number_is_found_and_re_keyed()
+    {
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        Assert.Equal(ManualFilingOutcome.Filed, await CoreAsync(rig.TenantId));
+        var folder = await ManualsFolderAsync(rig.TenantId);
+        Guid manualId;
+        await using (var scope = await TenantScopeAsync(rig.TenantId))
+        {
+            manualId = (await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id)).Id;
+            var value = await scope.Db.FieldValues.SingleAsync(v => v.DocumentId == manualId && v.Value == ManualFiler.CoreArticleNumber);
+            value.Value = "simplarchive-core";
+            await scope.Db.SaveChangesAsync();
+        }
+
+        Assert.Equal(ManualFilingOutcome.Unchanged, await CoreAsync(rig.TenantId));
+
+        await using var after = await TenantScopeAsync(rig.TenantId);
+        Assert.Equal(manualId, (await after.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id)).Id);
+        Assert.Equal(ManualFiler.CoreArticleNumber, await FieldAsync(rig.TenantId, manualId, "Article number"));
     }
 
     // ADR 0986: the core-owned names follow the product's. A tenant filed before the rename has "Alcifra Manuals"

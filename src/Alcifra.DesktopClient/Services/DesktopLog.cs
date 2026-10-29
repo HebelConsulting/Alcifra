@@ -102,7 +102,7 @@ public static class DesktopLog
                 .Enrich.WithProperty("Version", typeof(DesktopLog).Assembly.GetName().Version?.ToString() ?? "unknown")
                 .WriteTo.Console(outputTemplate: Template,
                     restrictedToMinimumLevel: verbose ? LogEventLevel.Verbose : LogEventLevel.Information)
-                .WriteTo.File(Path.Combine(Directory, "simplarchive-.log"),
+                .WriteTo.File(Path.Combine(Directory, "alcifra-.log"),
                     outputTemplate: Template,
                     rollingInterval: RollingInterval.Day,
                     fileSizeLimitBytes: FileSizeLimitBytes,
@@ -171,7 +171,7 @@ public static class DesktopLog
     {
         try
         {
-            return new DirectoryInfo(Directory).EnumerateFiles("simplarchive-*.log")
+            return new DirectoryInfo(Directory).EnumerateFiles("alcifra-*.log")
                 .OrderByDescending(f => f.LastWriteTimeUtc)
                 .FirstOrDefault()?.FullName;
         }

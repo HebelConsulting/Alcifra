@@ -56,7 +56,7 @@ public class WebDragMoveReferenceTests
         // carrying "<id>|false" under the node MIME. Because the id is part of the ≥2 selection, the WHOLE set moves.
         var draggedId = await rowA.GetAttributeAsync("data-node-id");
         var dataTransfer = await page.EvaluateHandleAsync(
-            @"(payload) => { const dt = new DataTransfer(); dt.setData('application/x-simplarchive-node', payload); return dt; }",
+            @"(payload) => { const dt = new DataTransfer(); dt.setData('application/x-alcifra-node', payload); return dt; }",
             $"{draggedId}|false");
         await targetRow.DispatchEventAsync("drop", new Dictionary<string, object> { ["dataTransfer"] = dataTransfer });
 

@@ -25,7 +25,7 @@ public static class BrowserAutofill
     /// <summary>Starts or stops the bridge to match the saved setting and the session that is signed in.</summary>
     public static void Apply(AlcifraApiClient? api, ILoggerFactory? logging = null)
     {
-        _logger ??= logging?.CreateLogger("simplarchive.autofill");
+        _logger ??= logging?.CreateLogger("alcifra.autofill");
 
         var settings = BrowserAutofillSettingsStore.Load();
         if (!settings.Enabled || api is null)

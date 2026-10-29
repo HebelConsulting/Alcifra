@@ -30,7 +30,7 @@ public class PerTenantBucketPolicyTests
         // The seed helper (like provisioning) tags the bucket with the tenant id + application marker.
         var tags = await s3.GetBucketTaggingAsync(new GetBucketTaggingRequest { BucketName = bucket });
         Assert.Contains(tags.TagSet, t => t.Key == "tenant-id" && t.Value == tenantId.ToString("D"));
-        Assert.Contains(tags.TagSet, t => t.Key == "application" && t.Value == "simplarchive");
+        Assert.Contains(tags.TagSet, t => t.Key == "application" && t.Value == "alcifra");
 
         // Set the lifecycle setting, then confirm the bucket carries the abort-incomplete-multipart rule.
         var name = (await TestJson.Get(admin, "/api/tenant-settings")).GetProperty("name").GetString();

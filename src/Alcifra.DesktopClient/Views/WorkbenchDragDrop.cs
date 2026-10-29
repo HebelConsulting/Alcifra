@@ -55,7 +55,7 @@ internal sealed class WorkbenchDragDrop
 
     // Custom drag payload for an internal move/reference drag (distinct from an OS-file drop). See ADR
     // "Desktop drag-and-drop move and reference".
-    private const string NodeDragFormat = "simplarchive/node";
+    private const string NodeDragFormat = "alcifra/node";
 
     // One dragged item — the internal drag carries a LIST of these (the whole selection, or a single tree folder),
     // so a drop moves/references all of them. Id is the underlying item (a reference's target), used for the ops.

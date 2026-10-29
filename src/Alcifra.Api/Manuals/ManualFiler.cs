@@ -83,7 +83,18 @@ public sealed class ManualFiler(
     ILogger<ManualFiler> logger)
 {
     /// <summary>The Manual "Article number" that identifies Alcifra's own manual — and how it is found again.</summary>
-    public const string CoreArticleNumber = "simplarchive-core";
+    public const string CoreArticleNumber = "alcifra-core";
+
+    /// <summary>
+    /// The Article numbers before the rename (#1117): a manual filed under one is found by it once more, and re-keyed to
+    /// the current number under the filing lock. Retire with <c>WireNames.Legacy</c> (v0.56.0), when every installation
+    /// has started once and so re-keyed its manuals.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, string> EarlierArticleNumbers = new Dictionary<string, string>
+    {
+        ["alcifra-core"] = "simplarchive-core",
+        ["alcifra-archive-signing-keys"] = "simplarchive-archive-signing-keys",
+    };
 
     /// <summary>
     /// Where the served core manual lives under wwwroot — the same file the download link serves, named from the
@@ -118,7 +129,7 @@ public sealed class ManualFiler(
     }
 
     /// <summary>The Manual "Article number" of the archive signing keys document (ADR 0961) — how it is found again.</summary>
-    public const string ArchiveSigningKeysArticleNumber = "simplarchive-archive-signing-keys";
+    public const string ArchiveSigningKeysArticleNumber = "alcifra-archive-signing-keys";
 
     /// <summary>
     /// Files the installation's archive signing keys (ADR 0961) in the current tenant: the PUBLIC certificate of every key
@@ -313,17 +324,36 @@ public sealed class ManualFiler(
     }
 
     // A manual the core files itself (its own, a client's) is found again by its Article number, which needs no column.
+    // Called under the filing lock, so re-keying a manual filed under its earlier number races no sibling instance.
     private async Task<Guid?> ManualDocumentIdAsync(string articleNumberValue, CancellationToken cancellationToken)
     {
+        if (await ArticleNumberValues(articleNumberValue).Select(v => (Guid?)v.DocumentId).FirstOrDefaultAsync(cancellationToken) is { } id)
+        {
+            return id;
+        }
+
+        if (!EarlierArticleNumbers.TryGetValue(articleNumberValue, out var earlier)
+            || await ArticleNumberValues(earlier).FirstOrDefaultAsync(cancellationToken) is not { } filedEarlier)
+        {
+            return null;
+        }
+
+        filedEarlier.Value = articleNumberValue;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Manual {DocumentId}: Article number {Earlier} re-keyed to {Current}",
+            filedEarlier.DocumentId, earlier, articleNumberValue);
+        return filedEarlier.DocumentId;
+    }
+
+    private IQueryable<FieldValue> ArticleNumberValues(string articleNumberValue)
+    {
         var articleNumber = WellKnownMaskIds.ManualFields.ArticleNumber;
-        return await dbContext.FieldValues
+        return dbContext.FieldValues
             .Where(v => v.Value == articleNumberValue
                 && dbContext.FieldDefinitions.Any(f => f.Id == v.FieldDefinitionId && f.Name == articleNumber
                     && dbContext.MaskVersions.Any(mv => mv.Id == f.MaskVersionId && mv.MaskId == WellKnownMaskIds.Manual))
                 && dbContext.Documents.Any(d => d.Id == v.DocumentId))
-            .OrderBy(v => v.DocumentId)
-            .Select(v => (Guid?)v.DocumentId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .OrderBy(v => v.DocumentId);
     }
 
     private async Task<(Guid? UserId, Guid? ServiceAccountId)> AuthorOfStandardRepositoryAsync()

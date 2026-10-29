@@ -46,7 +46,7 @@ internal static class PersonSchedules
     internal static Guid IdFor(Guid resourceDocumentId)
     {
         var hash = SHA256.HashData(
-            [.. resourceDocumentId.ToByteArray(), .. Encoding.UTF8.GetBytes("simplarchive:feed:person-schedule")]);
+            [.. resourceDocumentId.ToByteArray(), .. Encoding.UTF8.GetBytes("alcifra:feed:person-schedule")]);
         return new Guid(hash.AsSpan(0, 16));
     }
 

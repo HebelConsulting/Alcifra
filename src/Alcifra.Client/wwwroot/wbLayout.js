@@ -7,7 +7,7 @@
 //
 // Panes are identified by `data-pane`; gutters by `data-gutter` (each sits next to the pane it sizes).
 
-const KEY = 'simplarchive.wb-layout';
+const KEY = 'alcifra.wb-layout';
 
 // Default pane extents (px along the resize axis) and, per gutter, which pane it resizes and how the
 // pointer maps to a size: 'left' = pointer.x - pane.left, 'right' = pane.right - pointer.x (pane is

@@ -52,7 +52,7 @@ public sealed class AutofillBridge : IAsyncDisposable
     /// <summary>Where a client's shim finds its bridge: one file per client name, under the user's local data.</summary>
     public static string DiscoveryPath(string clientName) => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "simplarchive", $"autofill-{clientName}.json");
+        "alcifra", $"autofill-{clientName}.json");
 
     /// <summary>Starts listening, writes the discovery file, and accepts shims until disposed.</summary>
     public static AutofillBridge Start(AutofillHost host, string clientName, ILogger logger)

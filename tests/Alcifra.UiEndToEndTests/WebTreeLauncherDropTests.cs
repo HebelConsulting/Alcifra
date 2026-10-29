@@ -109,7 +109,7 @@ public class WebTreeLauncherDropTests
         var nodeId = (await source.GetAttributeAsync("data-node-id"))!;
         var dt = await page.EvaluateHandleAsync(
             @"id => { const dt = new DataTransfer();
-                      dt.setData('application/x-simplarchive-node', id + '|false');
+                      dt.setData('application/x-alcifra-node', id + '|false');
                       return dt; }",
             nodeId);
         await intray.DispatchEventAsync("dragover", new Dictionary<string, object> { ["dataTransfer"] = dt });

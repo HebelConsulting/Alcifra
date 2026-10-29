@@ -19,7 +19,7 @@ public sealed class DavBasicAuthenticationHandler : AuthenticationHandler<Authen
     private const string BasicPrefix = "Basic ";
 
     /// <summary>The claim carrying the authenticated user's tenant — read back by the DAV controllers.</summary>
-    public const string TenantClaim = "simplarchive:tenant";
+    public const string TenantClaim = "alcifra:tenant";
 
     private readonly AlcifraDbContext _dbContext;
     private readonly PasswordHasher<User> _passwordHasher = new();

@@ -7,7 +7,7 @@ namespace Alcifra.Client.Services;
 // when set, is attached to API calls by ImpersonationHandler in place of the admin's own token.
 public class ImpersonationState
 {
-    private const string StorageKey = "simplarchive.impersonation";
+    private const string StorageKey = "alcifra.impersonation";
     private readonly IJSRuntime _js;
 
     public ImpersonationState(IJSRuntime js) => _js = js;

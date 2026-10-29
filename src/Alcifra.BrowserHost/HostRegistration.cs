@@ -30,7 +30,7 @@ public static class HostRegistration
     public static readonly IReadOnlyList<string> Browsers = ["chrome", "edge"];
 
     /// <summary>The host name a client's manifest declares and the extension asks for.</summary>
-    public static string HostNameFor(string clientName) => $"chat.simplarchive.autofill.{clientName}";
+    public static string HostNameFor(string clientName) => $"com.alcifra.autofill.{clientName}";
 
     /// <summary>Writes the launcher and the manifest for one browser, returning where they went.</summary>
     /// <param name="launcher">The executable the browser spawns; it must reach the host verb with no arguments.</param>

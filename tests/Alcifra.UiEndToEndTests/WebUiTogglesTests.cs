@@ -45,6 +45,6 @@ public class WebUiTogglesTests
 
         // The theme applies (body background changes) and the choice persists to localStorage.
         await page.WaitForFunctionAsync("before => getComputedStyle(document.body).backgroundColor !== before", before);
-        Assert.Equal("True", await page.EvaluateAsync<string?>("() => localStorage.getItem('simplarchive.darkMode')"));
+        Assert.Equal("True", await page.EvaluateAsync<string?>("() => localStorage.getItem('alcifra.darkMode')"));
     }
 }

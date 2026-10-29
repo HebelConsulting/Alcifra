@@ -170,7 +170,7 @@ public sealed partial class CompareVersionsViewModel : ObservableObject
     private async Task<string> StageAsync(VersionOption v)
     {
         var bytes = await _api!.Versions.DownloadVersionBytesAsync(v.DownloadUrl!);
-        var path = Path.Combine(Path.GetTempPath(), $"simplarchive-v{v.Number}-{Guid.NewGuid():N}{v.FileExtension}");
+        var path = Path.Combine(Path.GetTempPath(), $"alcifra-v{v.Number}-{Guid.NewGuid():N}{v.FileExtension}");
         await File.WriteAllBytesAsync(path, bytes);
         return path;
     }

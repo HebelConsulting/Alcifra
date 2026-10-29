@@ -131,7 +131,7 @@ public class WebDetailPaneSizingTests
         page.EvaluateAsync<bool>(
             """
             () => {
-                const raw = localStorage.getItem('simplarchive.wb-layout');
+                const raw = localStorage.getItem('alcifra.wb-layout');
                 if (!raw) return false;
                 try { return 'index' in (JSON.parse(raw).sizes ?? {}); } catch { return false; }
             }

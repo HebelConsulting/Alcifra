@@ -57,7 +57,7 @@ public static class CheckoutDiffLauncher
 
     private static async Task<string> StageAsync(byte[] bytes, string label, string fileExtension)
     {
-        var path = Path.Combine(Path.GetTempPath(), $"simplarchive-{label}-{Guid.NewGuid():N}{fileExtension}");
+        var path = Path.Combine(Path.GetTempPath(), $"alcifra-{label}-{Guid.NewGuid():N}{fileExtension}");
         await File.WriteAllBytesAsync(path, bytes);
         return path;
     }

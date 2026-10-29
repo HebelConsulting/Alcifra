@@ -66,7 +66,7 @@ internal static class TaskFeeds
     /// </remarks>
     internal static Guid IdFor(Guid userId, TaskFeedKind kind)
     {
-        var salt = kind == TaskFeedKind.Todos ? "simplarchive:feed:tasks" : "simplarchive:feed:task-deadlines";
+        var salt = kind == TaskFeedKind.Todos ? "alcifra:feed:tasks" : "alcifra:feed:task-deadlines";
         var hash = SHA256.HashData([.. userId.ToByteArray(), .. Encoding.UTF8.GetBytes(salt)]);
         return new Guid(hash.AsSpan(0, 16));
     }
@@ -182,7 +182,7 @@ internal static class TaskFeeds
     /// </remarks>
     private static string Compose(TaskFeedKind kind, TaskRow row)
     {
-        var uid = $"simplarchive-task-{row.StateId}";
+        var uid = $"alcifra-task-{row.StateId}";
         var stamp = Utc(row.UpdatedAt);
         var lines = new List<string>
         {

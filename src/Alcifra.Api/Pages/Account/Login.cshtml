@@ -23,7 +23,7 @@
         (function () {
             try {
                 var supported = ['en', 'de', 'it', 'es'];
-                var saved = localStorage.getItem('simplarchive.lang');
+                var saved = localStorage.getItem('alcifra.lang');
                 var current = document.documentElement.lang;
                 if (saved && supported.indexOf(saved) >= 0 && saved !== current) {
                     var ret = new URLSearchParams(window.location.search).get('ReturnUrl') || '';
@@ -45,7 +45,7 @@
         {
             <a class="lang-link@(code == currentLang ? " active" : "")"
                href="/Account/SetLanguage?culture=@code&returnUrl=@langReturnUrl"
-               onclick="try{localStorage.setItem('simplarchive.lang','@code')}catch(e){}"
+               onclick="try{localStorage.setItem('alcifra.lang','@code')}catch(e){}"
                lang="@code" hreflang="@code">@label</a>
         }
     </nav>

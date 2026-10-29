@@ -14,7 +14,7 @@ namespace Alcifra.Api.Security;
 /// </remarks>
 public sealed class ValkeyThrottleCounterStore : IThrottleCounterStore
 {
-    private const string Prefix = "simplarchive:throttle:";
+    private const string Prefix = "alcifra:throttle:";
 
     private readonly IConnectionMultiplexer _multiplexer;
 
