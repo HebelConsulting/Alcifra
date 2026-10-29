@@ -105,8 +105,8 @@ public class AtRestKeyIdentityTests
         var (bucket, key, _) = await FileEncryptedDocumentAsync(api);
         var metadata = await RawMetadataAsync(bucket, key);
 
-        var generation = Assert.Contains("x-amz-meta-sa-kek-generation", metadata);
-        var stamped = Assert.Contains("x-amz-meta-sa-kek-thumbprint", metadata);
+        var generation = Assert.Contains("x-amz-meta-alcifra-kek-generation", metadata);
+        var stamped = Assert.Contains("x-amz-meta-alcifra-kek-thumbprint", metadata);
 
         Assert.Equal(_factory.KekThumbprint(generation), stamped);
         Assert.Equal(64, stamped.Length); // SHA-256 as lower-case hex, so a truncation is visible here

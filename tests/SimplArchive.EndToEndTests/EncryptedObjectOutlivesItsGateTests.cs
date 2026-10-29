@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Infrastructure.Storage;
@@ -54,8 +55,8 @@ public class EncryptedObjectOutlivesItsGateTests
         // under test is one the application can actually produce.
         await storage.SetObjectMetadataAsync(key, new Dictionary<string, string>
         {
-            [EncryptingObjectStorageClient.WrappedDekKey] = Convert.ToBase64String(new byte[256]),
-            [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+            [AtRestMetadata.WrappedDekKey] = Convert.ToBase64String(new byte[256]),
+            [AtRestMetadata.KekGenerationKey] = "kek-v1",
         });
 
         var encrypted = await storage.GetPresignedDownloadUrlAsync(key, TimeSpan.FromMinutes(5));
@@ -63,6 +64,47 @@ public class EncryptedObjectOutlivesItsGateTests
         Assert.False(encrypted!.IsAbsoluteUri,
             $"an encrypted object was presigned straight from storage, so the caller receives CIPHERTEXT: {encrypted}");
         Assert.StartsWith("/api/encrypted-content", encrypted.ToString(), StringComparison.Ordinal);
+    }
+
+    // ADR 1003: an object written before the rename carries its wrapping under the sa-* keys, and a WORM-locked one
+    // always will. Written encrypted through the product on the gated tenant, then its keys renamed back in the store,
+    // it must still decrypt — and a re-wrap's Stamp leaves only the alcifra-* keys.
+    [Fact]
+    public async Task An_object_wrapped_under_the_keys_before_the_rename_still_decrypts()
+    {
+        Guid tenantId;
+        using (var lookup = _factory.Services.CreateScope())
+        {
+            tenantId = await lookup.ServiceProvider.GetRequiredService<SimplArchive.Infrastructure.Persistence.SimplArchiveDbContext>()
+                .Tenants.IgnoreQueryFilters(["TenantFilter"])
+                .Where(t => t.Name == E2EApiFactory.CryptoTenantName).Select(t => t.Id).SingleAsync();
+        }
+
+        using var scope = _factory.Services.CreateScope();
+        var storage = scope.ServiceProvider.GetRequiredService<IObjectStorageClient>();
+        var raw = scope.ServiceProvider.GetRequiredService<S3ObjectStorageClient>();
+        var key = ObjectKeyBuilder.Build(tenantId, DateTimeOffset.UtcNow, Guid.NewGuid(), Guid.NewGuid(), ".txt");
+        await storage.PutObjectAsync(key, new MemoryStream(Encoding.ASCII.GetBytes("wrapped before the rename\n")), "text/plain");
+
+        var written = (await raw.GetObjectWithMetadataAsync(key)).Metadata;
+        Assert.True(written.ContainsKey(AtRestMetadata.WrappedDekKey));
+        var renamed = new Dictionary<string, string>
+        {
+            [AtRestMetadata.LegacyWrappedDekKey] = written[AtRestMetadata.WrappedDekKey],
+            [AtRestMetadata.LegacyKekGenerationKey] = written[AtRestMetadata.KekGenerationKey],
+            [AtRestMetadata.LegacyKekThumbprintKey] = written[AtRestMetadata.KekThumbprintKey],
+        };
+        await raw.SetObjectMetadataAsync(key, renamed);
+        Assert.False((await raw.GetObjectWithMetadataAsync(key)).Metadata.ContainsKey(AtRestMetadata.WrappedDekKey));
+
+        await using var read = await storage.GetObjectAsync(key);
+        Assert.Equal("wrapped before the rename\n", await new StreamReader(read).ReadToEndAsync());
+
+        var restamped = new Dictionary<string, string>(renamed, StringComparer.OrdinalIgnoreCase);
+        AtRestMetadata.Stamp(restamped, "w", "g", "t");
+        Assert.Equal(
+            new[] { AtRestMetadata.WrappedDekKey, AtRestMetadata.KekGenerationKey, AtRestMetadata.KekThumbprintKey }.Order(),
+            restamped.Keys.Order());
     }
 
     [Fact]
@@ -84,14 +126,14 @@ public class EncryptedObjectOutlivesItsGateTests
         // falling back to a download URL, which is how this becomes a door.
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(
             () => storage.GetPresignedCiphertextUrlAsync(key, TimeSpan.FromMinutes(2)));
-        Assert.Contains(EncryptingObjectStorageClient.WrappedDekKey, refused.Message, StringComparison.Ordinal);
+        Assert.Contains(AtRestMetadata.WrappedDekKey, refused.Message, StringComparison.Ordinal);
 
         // Now the same object as one written while the tenant encrypted — the anti-vacuous half, since a
         // method that threw for everything would satisfy the assertion above.
         await storage.SetObjectMetadataAsync(key, new Dictionary<string, string>
         {
-            [EncryptingObjectStorageClient.WrappedDekKey] = Convert.ToBase64String(new byte[256]),
-            [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+            [AtRestMetadata.WrappedDekKey] = Convert.ToBase64String(new byte[256]),
+            [AtRestMetadata.KekGenerationKey] = "kek-v1",
         });
 
         var ciphertext = await storage.GetPresignedCiphertextUrlAsync(key, TimeSpan.FromMinutes(2));
@@ -118,8 +160,8 @@ public class EncryptedObjectOutlivesItsGateTests
         await storage.PutObjectAsync(key, new MemoryStream(Encoding.ASCII.GetBytes("%PDF-1.7 not really\n")), "application/pdf");
         await storage.SetObjectMetadataAsync(key, new Dictionary<string, string>
         {
-            [EncryptingObjectStorageClient.WrappedDekKey] = Convert.ToBase64String(new byte[256]),
-            [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+            [AtRestMetadata.WrappedDekKey] = Convert.ToBase64String(new byte[256]),
+            [AtRestMetadata.KekGenerationKey] = "kek-v1",
         });
 
         var preview = await storage.GetPresignedPreviewUrlAsync(key, TimeSpan.FromMinutes(5), "x.pdf", "application/pdf");

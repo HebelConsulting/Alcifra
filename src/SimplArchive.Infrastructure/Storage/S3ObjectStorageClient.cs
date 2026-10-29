@@ -472,7 +472,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe,
     private void RefuseEncrypted(string objectKey, IReadOnlyDictionary<string, string> metadata)
     {
         if (!RefuseEncryptedObjects
-            || !metadata.ContainsKey(EncryptingObjectStorageClient.WrappedDekKey))
+            || !AtRestMetadata.IsEncrypted(metadata))
         {
             return;
         }
@@ -486,7 +486,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe,
             + "Encryption:ServiceUrl, so its data key cannot be unwrapped. The read is REFUSED rather than "
             + "served as ciphertext. Restore the encryption service configuration this store was written "
             + "under — reading or re-writing these objects without it corrupts them.",
-            objectKey, EncryptingObjectStorageClient.WrappedDekKey);
+            objectKey, AtRestMetadata.WrappedDekKey);
 
         throw new EncryptedObjectWithoutEncryptionServiceException(objectKey);
     }

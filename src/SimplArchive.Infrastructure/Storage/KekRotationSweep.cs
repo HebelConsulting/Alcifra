@@ -108,8 +108,8 @@ public sealed class KekRotationSweep(
         try
         {
             var info = await storage.GetObjectInfoAsync(objectKey, cancellationToken);
-            if (!info.Metadata.TryGetValue(EncryptingObjectStorageClient.WrappedDekKey, out var wrappedDek)
-                || !info.Metadata.TryGetValue(EncryptingObjectStorageClient.KekGenerationKey, out var generation))
+            if (AtRestMetadata.WrappedDek(info.Metadata) is not { } wrappedDek
+                || AtRestMetadata.Generation(info.Metadata) is not { } generation)
             {
                 return; // plaintext object (the mixed state ADR 0818 allows) — nothing to re-wrap
             }
@@ -123,16 +123,12 @@ public sealed class KekRotationSweep(
                 await keys.RewrapDekAsync(wrappedDek, generation, cancellationToken);
 
             // Metadata only. The ciphertext is byte-identical before and after a rotation.
-            var metadata = new Dictionary<string, string>(info.Metadata, StringComparer.OrdinalIgnoreCase)
-            {
-                [EncryptingObjectStorageClient.WrappedDekKey] = rewrapped,
-                [EncryptingObjectStorageClient.KekGenerationKey] = newGeneration,
-                // Re-wrapping is the other operation that decides which key an object belongs to, so the
-                // stamp must move with it (ADR 0867). Omitting it here would leave a swept object carrying
-                // the OLD key's thumbprint under the NEW generation — a mismatch of our own making, and one
-                // that would refuse every object the sweep had touched.
-                [EncryptingObjectStorageClient.KekThumbprintKey] = newThumbprint,
-            };
+            // Re-wrapping is the other operation that decides which key an object belongs to, so the stamp must move
+            // with it (ADR 0867). Omitting it would leave a swept object carrying the OLD key's thumbprint under the
+            // NEW generation — a mismatch of our own making that would refuse every object the sweep had touched.
+            // Stamp also drops the sa-* keys before the rename, so a swept object carries one answer (ADR 1003).
+            var metadata = new Dictionary<string, string>(info.Metadata, StringComparer.OrdinalIgnoreCase);
+            AtRestMetadata.Stamp(metadata, rewrapped, newGeneration, newThumbprint);
             await storage.SetObjectMetadataAsync(objectKey, metadata, cancellationToken);
             Interlocked.Increment(ref _rewrapped);
         }
@@ -232,8 +228,8 @@ public sealed class KekRotationSweep(
             // be re-wrapped, so it is exactly where a stale key survives longest.
             foreach (var version in await storage.ListObjectVersionsAsync(prefix, cancellationToken))
             {
-                if (!version.Metadata.TryGetValue(EncryptingObjectStorageClient.KekGenerationKey, out var generation)
-                    || !version.Metadata.TryGetValue(EncryptingObjectStorageClient.KekThumbprintKey, out var stamped)
+                if (AtRestMetadata.Generation(version.Metadata) is not { } generation
+                    || AtRestMetadata.Thumbprint(version.Metadata) is not { } stamped
                     || !held.TryGetValue(generation, out var heldThumbprint)
                     || verdicts.GetValueOrDefault(generation) != KeySample.Unstamped)
                 {
@@ -274,7 +270,7 @@ public sealed class KekRotationSweep(
 
             foreach (var version in await storage.ListObjectVersionsAsync(prefix, cancellationToken))
             {
-                if (!version.Metadata.TryGetValue(EncryptingObjectStorageClient.KekGenerationKey, out var generation)
+                if (AtRestMetadata.Generation(version.Metadata) is not { } generation
                     || generation == current)
                 {
                     continue;

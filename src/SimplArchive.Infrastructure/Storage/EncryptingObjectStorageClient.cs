@@ -20,28 +20,7 @@ public sealed class EncryptingObjectStorageClient(
     ILogger<EncryptingObjectStorageClient> logger,
     IModuleMaskDeclarations? declarations = null) : IObjectStorageClient
 {
-    /// <summary>Object-metadata keys — the wrapped DEK and its KEK generation (ADR 0818).</summary>
-    public const string WrappedDekKey = "sa-wrapped-dek";
-
-    public const string KekGenerationKey = "sa-kek-generation";
-
-    /// <summary>
-    /// Which KEY that generation was when it wrapped this object — the SHA-256 of its SubjectPublicKeyInfo
-    /// (ADR 0867, service ADR 0019).
-    /// </summary>
-    /// <remarks>
-    /// <b>A generation's NAME is not its identity</b>, and that is what made the loss this stamp exists to
-    /// catch silent: <c>kek-v1</c> addresses whichever key wears the label on whichever token the service is
-    /// pointed at, so a re-provisioned token mints a correct-looking <c>kek-v1</c> and orphans everything the
-    /// previous one wrapped. Measured: 5 of 48 objects dead, two of them WORM segments that can never be
-    /// re-wrapped (#1510).
-    /// <para>
-    /// <b>Absent means UNKNOWN, never mismatched.</b> Every object written before this carries no stamp, so
-    /// the comparison is skipped and the oracle decides exactly as it did before — which is what makes the
-    /// whole change additive, with no migration and no backfill.
-    /// </para>
-    /// </remarks>
-    public const string KekThumbprintKey = "sa-kek-thumbprint";
+    // The metadata keys (wrapped DEK, KEK generation, key thumbprint) are AtRestMetadata's (ADRs 0818, 0867, 1003).
 
     private static readonly TimeSpan ProxyUrlExpiry = TimeSpan.FromMinutes(15);
 
@@ -92,12 +71,8 @@ public sealed class EncryptingObjectStorageClient(
         var (dek, wrappedDek, generation, thumbprint) = await keys.MintDekAsync(cancellationToken);
         var ciphertext = AtRestBlobCipher.Encrypt(dek, buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
 
-        var enriched = new Dictionary<string, string>(metadata)
-        {
-            [WrappedDekKey] = wrappedDek,
-            [KekGenerationKey] = generation,
-            [KekThumbprintKey] = thumbprint,
-        };
+        var enriched = new Dictionary<string, string>(metadata, StringComparer.OrdinalIgnoreCase);
+        AtRestMetadata.Stamp(enriched, wrappedDek, generation, thumbprint);
         await inner.PutObjectAsync(objectKey, new MemoryStream(ciphertext), contentType, enriched, cancellationToken);
     }
 
@@ -153,7 +128,7 @@ public sealed class EncryptingObjectStorageClient(
     public async Task<StoredObject> GetObjectWithMetadataAsync(string objectKey, CancellationToken cancellationToken = default)
     {
         var stored = await inner.GetObjectWithMetadataAsync(objectKey, cancellationToken);
-        if (!stored.Metadata.TryGetValue(WrappedDekKey, out var wrappedDek))
+        if (AtRestMetadata.WrappedDek(stored.Metadata) is not { } wrappedDek)
         {
             return stored;
         }
@@ -161,8 +136,8 @@ public sealed class EncryptingObjectStorageClient(
         await using var ciphertext = stored.Content;
         using var buffer = new MemoryStream();
         await ciphertext.CopyToAsync(buffer, cancellationToken);
-        var dek = await keys.UnwrapDekAsync(wrappedDek, stored.Metadata[KekGenerationKey],
-            stored.Metadata.GetValueOrDefault(KekThumbprintKey), objectKey, cancellationToken);
+        var dek = await keys.UnwrapDekAsync(wrappedDek, AtRestMetadata.Generation(stored.Metadata)!,
+            AtRestMetadata.Thumbprint(stored.Metadata), objectKey, cancellationToken);
         var plaintext = AtRestBlobCipher.Decrypt(dek, buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
         // publiclyVisible: the range read below slices this buffer. A MemoryStream made from a bare array hides it, and
         // GetBuffer() then threw — every Messenger file on a Strict tenant answered 500 (2026-10-21).
@@ -175,7 +150,7 @@ public sealed class EncryptingObjectStorageClient(
         // range for plaintext objects; an encrypted one is fetched whole, decrypted, sliced — GCM
         // authenticates the blob as one unit, so there is no honest partial decrypt.
         var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
-        if (!info.Metadata.ContainsKey(WrappedDekKey))
+        if (!AtRestMetadata.IsEncrypted(info.Metadata))
         {
             return await inner.GetObjectRangeAsync(objectKey, from, to, cancellationToken);
         }
@@ -195,7 +170,7 @@ public sealed class EncryptingObjectStorageClient(
         // serve — and a GET serves PLAINTEXT, so the size must describe it (a 28-byte lie breaks WebDAV
         // clients that compare getcontentlength against the download).
         var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
-        return info.Metadata.ContainsKey(WrappedDekKey)
+        return AtRestMetadata.IsEncrypted(info.Metadata)
             ? info with { Size = info.Size - AtRestBlobCipher.Overhead }
             : info;
     }
@@ -228,10 +203,10 @@ public sealed class EncryptingObjectStorageClient(
     public async Task<Uri> GetPresignedCiphertextUrlAsync(string objectKey, TimeSpan expiry, CancellationToken cancellationToken = default)
     {
         var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
-        if (!info.Metadata.ContainsKey(WrappedDekKey))
+        if (!AtRestMetadata.IsEncrypted(info.Metadata))
         {
             throw new InvalidOperationException(
-                $"'{objectKey}' carries no {WrappedDekKey}, so it has no ciphertext to serve. Presigning it "
+                $"'{objectKey}' carries no {AtRestMetadata.WrappedDekKey}, so it has no ciphertext to serve. Presigning it "
                 + "would hand out the plaintext this tier refuses (ADRs 0825/0862).");
         }
 
@@ -342,7 +317,7 @@ public sealed class EncryptingObjectStorageClient(
         string? contentType, bool inline, CancellationToken cancellationToken)
     {
         var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
-        if (!info.Metadata.ContainsKey(WrappedDekKey))
+        if (!AtRestMetadata.IsEncrypted(info.Metadata))
         {
             return null; // a plaintext object — presigned is correct, gated tenant or not (the mixed state)
         }
@@ -387,7 +362,7 @@ public sealed class EncryptingObjectStorageClient(
         if (await keys.GatedAsync(destinationKey, cancellationToken))
         {
             var info = await inner.GetObjectInfoAsync(sourceKey, cancellationToken);
-            if (!info.Metadata.ContainsKey(WrappedDekKey))
+            if (!AtRestMetadata.IsEncrypted(info.Metadata))
             {
                 await using var plaintext = await inner.GetObjectAsync(sourceKey, cancellationToken);
                 await PutObjectAsync(destinationKey, plaintext,

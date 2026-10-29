@@ -671,18 +671,9 @@ public class DocumentVersionsController : ControllerBase
             // the stamp being consistent merely means the failure arrives from the oracle, exactly as it did
             // before this ADR. Having the client ECHO the thumbprint it wrapped against is the stronger
             // form; it changes both clients' upload contract and is recorded in ADR 0867 as deferred.
-            var metadata = new Dictionary<string, string>
-            {
-                [SimplArchive.Infrastructure.Storage.EncryptingObjectStorageClient.WrappedDekKey] = request.WrappedDek,
-                [SimplArchive.Infrastructure.Storage.EncryptingObjectStorageClient.KekGenerationKey] = request.KekGeneration,
-            };
-
-            if (await _atRestKeys.GenerationThumbprintAsync(request.KekGeneration, cancellationToken)
-                is { Length: > 0 } thumbprint)
-            {
-                metadata[SimplArchive.Infrastructure.Storage.EncryptingObjectStorageClient.KekThumbprintKey] =
-                    thumbprint;
-            }
+            var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            SimplArchive.Infrastructure.Storage.AtRestMetadata.Stamp(metadata, request.WrappedDek, request.KekGeneration,
+                await _atRestKeys.GenerationThumbprintAsync(request.KekGeneration, cancellationToken));
 
             await _objectStorageClient.SetObjectMetadataAsync(version.ObjectKey, metadata, cancellationToken);
         }

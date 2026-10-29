@@ -47,8 +47,8 @@ public class EncryptedObjectWithoutServiceTests
             "application/pdf",
             new Dictionary<string, string>
             {
-                [EncryptingObjectStorageClient.WrappedDekKey] = "not-a-real-wrapped-key",
-                [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+                [AtRestMetadata.WrappedDekKey] = "not-a-real-wrapped-key",
+                [AtRestMetadata.KekGenerationKey] = "kek-v1",
             });
 
         // The client the decorator wraps reads it happily — that is how the decorator gets the bytes it
@@ -89,7 +89,7 @@ public class EncryptedObjectWithoutServiceTests
         var guarded = Client(refuseEncryptedObjects: true);
 
         var info = await guarded.GetObjectInfoAsync(key);
-        Assert.DoesNotContain(EncryptingObjectStorageClient.WrappedDekKey, info.Metadata.Keys);
+        Assert.DoesNotContain(AtRestMetadata.WrappedDekKey, info.Metadata.Keys);
 
         await using var content = await guarded.GetObjectAsync(key);
         Assert.Equal("an ordinary document", await new StreamReader(content).ReadToEndAsync());
@@ -114,8 +114,8 @@ public class EncryptedObjectWithoutServiceTests
             "application/pdf",
             new Dictionary<string, string>
             {
-                [EncryptingObjectStorageClient.WrappedDekKey] = "not-a-real-wrapped-key",
-                [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+                [AtRestMetadata.WrappedDekKey] = "not-a-real-wrapped-key",
+                [AtRestMetadata.KekGenerationKey] = "kek-v1",
             });
         await writer.PutObjectAsync(
             plaintext, new MemoryStream(Encoding.UTF8.GetBytes("an ordinary document")), "text/plain");

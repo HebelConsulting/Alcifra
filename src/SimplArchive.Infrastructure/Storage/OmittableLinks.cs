@@ -41,7 +41,7 @@ public sealed class OmittableLinks(ILogger<OmittableLinks> logger)
                 + "installation has no Encryption:ServiceUrl, so the link would hand out ciphertext. The resource is "
                 + "served without it. Restore the encryption service configuration this store was written under. The "
                 + "storage exchange is at Trace.",
-                rel, refused.ObjectKey, EncryptingObjectStorageClient.WrappedDekKey);
+                rel, refused.ObjectKey, AtRestMetadata.WrappedDekKey);
             return null;
         }
     }

@@ -51,8 +51,8 @@ public class KekRotationTests
         using var buffer = new MemoryStream();
         await response.ResponseStream.CopyToAsync(buffer);
         return (buffer.ToArray(),
-            response.Metadata["x-amz-meta-sa-wrapped-dek"],
-            response.Metadata["x-amz-meta-sa-kek-generation"]);
+            response.Metadata["x-amz-meta-alcifra-wrapped-dek"],
+            response.Metadata["x-amz-meta-alcifra-kek-generation"]);
     }
 
     [Fact]

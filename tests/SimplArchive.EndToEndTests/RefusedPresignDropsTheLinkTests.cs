@@ -119,8 +119,8 @@ public class RefusedPresignDropsTheLinkTests
             objectKey,
             new Dictionary<string, string>
             {
-                [EncryptingObjectStorageClient.WrappedDekKey] = "not-a-real-wrapped-key",
-                [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+                [AtRestMetadata.WrappedDekKey] = "not-a-real-wrapped-key",
+                [AtRestMetadata.KekGenerationKey] = "kek-v1",
             });
         _factory.PresignGuardedKeys[objectKey] = true;
     }

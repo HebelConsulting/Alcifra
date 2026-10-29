@@ -314,10 +314,8 @@ public sealed class StrictEnvelopeDelivery(
         }
 
         var info = await storage.GetObjectInfoAsync(objectKey, cancellationToken);
-        if (!info.Metadata.TryGetValue(
-                SimplArchive.Infrastructure.Storage.EncryptingObjectStorageClient.WrappedDekKey, out var wrapped)
-            || !info.Metadata.TryGetValue(
-                SimplArchive.Infrastructure.Storage.EncryptingObjectStorageClient.KekGenerationKey, out var generation))
+        if (SimplArchive.Infrastructure.Storage.AtRestMetadata.WrappedDek(info.Metadata) is not { } wrapped
+            || SimplArchive.Infrastructure.Storage.AtRestMetadata.Generation(info.Metadata) is not { } generation)
         {
             return null;
         }
@@ -328,10 +326,7 @@ public sealed class StrictEnvelopeDelivery(
         // where ADR 0867's check otherwise sits. Without this the one tier where the loss matters most —
         // the one holding WORM content that can never be re-wrapped — would be the one tier that reported it
         // as a generic service refusal inviting a retry.
-        if (info.Metadata.TryGetValue(
-                SimplArchive.Infrastructure.Storage.EncryptingObjectStorageClient.KekThumbprintKey,
-                out var stamped)
-            && stamped is { Length: > 0 }
+        if (SimplArchive.Infrastructure.Storage.AtRestMetadata.Thumbprint(info.Metadata) is { Length: > 0 } stamped
             && await atRestKeys.GenerationThumbprintAsync(generation, cancellationToken) is { Length: > 0 } held
             && !string.Equals(stamped, held, StringComparison.OrdinalIgnoreCase))
         {

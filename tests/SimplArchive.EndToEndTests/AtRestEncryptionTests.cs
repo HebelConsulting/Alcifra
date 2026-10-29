@@ -85,12 +85,12 @@ public class AtRestEncryptionTests
         await raw.ResponseStream.CopyToAsync(buffer);
         var storedText = Encoding.ASCII.GetString(buffer.ToArray());
         Assert.DoesNotContain(Marker, storedText, StringComparison.Ordinal);
-        Assert.NotNull(raw.Metadata["x-amz-meta-sa-wrapped-dek"]);
+        Assert.NotNull(raw.Metadata["x-amz-meta-alcifra-wrapped-dek"]);
         // The generation is whatever the service currently publishes, not a literal: KekRotationTests
         // rotates the shared stub, and rotation is one-way. Pinning "kek-v1" here made a sibling test's
         // legitimate act look like this one's failure — the mutating-shared-state rule, from the reading
         // side. What matters is that a generation was recorded at all.
-        Assert.False(string.IsNullOrEmpty(raw.Metadata["x-amz-meta-sa-kek-generation"]));
+        Assert.False(string.IsNullOrEmpty(raw.Metadata["x-amz-meta-alcifra-kek-generation"]));
 
         // The WebDAV door serves plaintext — the decorator decrypts on the way out...
         var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
@@ -218,6 +218,6 @@ public class AtRestEncryptionTests
         using var buffer = new MemoryStream();
         await raw.ResponseStream.CopyToAsync(buffer);
         Assert.Contains(Marker, Encoding.ASCII.GetString(buffer.ToArray()), StringComparison.Ordinal);
-        Assert.DoesNotContain("sa-wrapped-dek", raw.Metadata.Keys, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("alcifra-wrapped-dek", raw.Metadata.Keys, StringComparer.OrdinalIgnoreCase);
     }
 }

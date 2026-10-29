@@ -71,7 +71,7 @@ public sealed class EncryptedObjectPresignGuard(
     {
         // Null: nothing stored under the key, so nothing to hand out and the presign is issued exactly as before.
         if (await probe.MetadataAsync(objectKey, cancellationToken) is { } metadata
-            && metadata.ContainsKey(EncryptingObjectStorageClient.WrappedDekKey))
+            && AtRestMetadata.IsEncrypted(metadata))
         {
             throw new EncryptedObjectWithoutEncryptionServiceException(objectKey);
         }

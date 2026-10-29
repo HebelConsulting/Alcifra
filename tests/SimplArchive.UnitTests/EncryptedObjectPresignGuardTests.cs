@@ -235,8 +235,8 @@ public class EncryptedObjectPresignGuardTests
 
     private static Dictionary<string, string> Wrapped() => new()
     {
-        [EncryptingObjectStorageClient.WrappedDekKey] = WrappedDekValue,
-        [EncryptingObjectStorageClient.KekGenerationKey] = "kek-v1",
+        [AtRestMetadata.WrappedDekKey] = WrappedDekValue,
+        [AtRestMetadata.KekGenerationKey] = "kek-v1",
     };
 
     private static MethodInfo PresignNamed(string name) =>
@@ -321,7 +321,7 @@ public class EncryptedObjectPresignGuardTests
                 return _metadata switch
                 {
                     null => Task.FromException<StoredObjectInfo>(new AmazonS3Exception("Not Found") { StatusCode = HttpStatusCode.NotFound }),
-                    _ when _refusesOnHead && _metadata.ContainsKey(EncryptingObjectStorageClient.WrappedDekKey) =>
+                    _ when _refusesOnHead && _metadata.ContainsKey(AtRestMetadata.WrappedDekKey) =>
                         Task.FromException<StoredObjectInfo>(new EncryptedObjectWithoutEncryptionServiceException((string)args![0]!)),
                     _ => Task.FromResult(new StoredObjectInfo(3, "application/pdf", _metadata)),
                 };
