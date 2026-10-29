@@ -1,11 +1,12 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using SimplArchive.Localization;
+using SimplArchive.Theming;
 
 namespace SimplArchive.UnitTests;
 
 // The product's name is ONE value (core #1117, Mobile #187): every text that names the product says {Product}, and
-// Strings fills in the name a host set, Alcifra by default. A literal name in a text would survive a rename, or a change
+// Strings fills in the name a host set, the brand's by default. A literal name in a text would survive a rename, or a change
 // of the wordmark's casing, unnoticed.
 public class ProductNameTests
 {
@@ -16,8 +17,8 @@ public class ProductNameTests
     private static readonly Regex Entry = new(@"<data name=""([^""]+)""[^>]*>\s*<value>(.*?)</value>", RegexOptions.Singleline | RegexOptions.Compiled);
 
     [Fact]
-    public void A_text_names_the_product_by_default_as_Alcifra() =>
-        Assert.Equal("About Alcifra", Strings.Get("AboutHeading", CultureInfo.InvariantCulture));
+    public void A_text_names_the_product_by_default_as_the_brand() =>
+        Assert.Equal($"About {Brand.Shipped.Name}", Strings.Get("AboutHeading", CultureInfo.InvariantCulture));
 
     [Fact]
     public void A_host_sets_the_name_once_and_every_text_says_it()
