@@ -6,7 +6,7 @@ using Alcifra.ApiClient;
 namespace Alcifra.DesktopClient.Services;
 
 /// <summary>
-/// Registers the <c>simplarchive://</c> URL scheme for the current Windows user (#761).
+/// Registers the deep-link URL schemes (<see cref="DeepLinks.Schemes"/>) for the current Windows user (#761).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -49,11 +49,14 @@ internal static class WindowsSchemeRegistration
             return;
         }
 
-        using var root = Microsoft.Win32.Registry.CurrentUser.CreateSubKey($@"Software\Classes\{DeepLinks.Scheme}");
-        root.SetValue(null, $"URL:{Alcifra.Localization.Strings.ProductName} deep link");
-        root.SetValue("URL Protocol", string.Empty);
-        using var command = root.CreateSubKey(@"shell\open\command");
-        command.SetValue(null, $"\"{exe}\" \"%1\"");
-        DesktopLog.Debug("Deep link: {Scheme}:// registered for the current user -> {Exe}", DeepLinks.Scheme, exe);
+        foreach (var scheme in DeepLinks.Schemes)
+        {
+            using var root = Microsoft.Win32.Registry.CurrentUser.CreateSubKey($@"Software\Classes\{scheme}");
+            root.SetValue(null, $"URL:{Alcifra.Localization.Strings.ProductName} deep link");
+            root.SetValue("URL Protocol", string.Empty);
+            using var command = root.CreateSubKey(@"shell\open\command");
+            command.SetValue(null, $"\"{exe}\" \"%1\"");
+            DesktopLog.Debug("Deep link: {Scheme}:// registered for the current user -> {Exe}", scheme, exe);
+        }
     }
 }

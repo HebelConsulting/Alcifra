@@ -50,9 +50,9 @@ internal static class Program
         // raise ProcessExit, so this one handler flushes the sinks on every way out.
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Services.DesktopLog.Shutdown();
 
-        // A simplarchive:// launch (#761): the OS hands the link as an argument. Parked on the view-model and
+        // An alcifra:// launch (#761; simplarchive:// until WireNames.Legacy retires): the OS hands the link as an argument. Parked on the view-model and
         // consumed once the user is signed in and the workbench is loaded — a deep link cannot skip login.
-        if (args.FirstOrDefault(a => a.StartsWith($"{Alcifra.ApiClient.DeepLinks.Scheme}://", StringComparison.OrdinalIgnoreCase)) is { } schemeLink)
+        if (args.FirstOrDefault(Alcifra.ApiClient.DeepLinks.IsSchemeLink) is { } schemeLink)
         {
             Services.DesktopLog.Debug("Deep link: launched with {Link}", schemeLink);
             ViewModels.MainWindowViewModel.PendingDeepLink = schemeLink;

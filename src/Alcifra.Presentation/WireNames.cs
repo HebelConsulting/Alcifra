@@ -49,6 +49,9 @@ public static class WireNames
     /// <summary>The file extension of a user's sealed Messenger backup.</summary>
     public const string MessengerBackupExtension = $".{Product}-messages";
 
+    /// <summary>The URL scheme the native clients register for deep links, <c>alcifra://go/{id}</c> (#761).</summary>
+    public const string DeepLinkScheme = Product;
+
     /// <summary>
     /// The names before the rename (#1117, phase 4), still ACCEPTED so a client or an integration written against them
     /// keeps working while it moves: the server seeds the old client ids beside the new ones, accepts the old redirect,
@@ -77,5 +80,8 @@ public static class WireNames
 
         /// <summary>Where a domain claimed before the rename may still publish its challenge (phase 4b).</summary>
         public const string MailDomainChallengeLabel = "_simplarchive-challenge";
+
+        /// <summary>The deep-link scheme before the rename, still registered and parsed (#1117).</summary>
+        public const string DeepLinkScheme = "simplarchive";
     }
 }

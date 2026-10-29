@@ -22,8 +22,8 @@ set -euo pipefail
 
 VERSION="${1:-0.1.0}"
 
-# The brand names the packages (ADR 0994). The Linux desktop entry and icon keep their fixed identifier,
-# "simplarchive", until the code rebrand (#1117 phase 5): renaming them would orphan every installed entry.
+# The brand names the packages (ADR 0994). The Linux desktop entry and icon have a fixed identifier, "alcifra";
+# install.sh removes the entry and icons installed under "simplarchive" before the rename (#1117).
 source "$(dirname "$0")/brand.sh"
 APP_NAME="$BRAND_FILE_STEM"
 EXE_NAME="Alcifra.DesktopClient"   # the apphost `dotnet publish` produces (the project name)
@@ -101,22 +101,22 @@ README
     local icon_dir="${brand_icons}linux"
     for size in 48 64 128 256; do
       mkdir -p "$stage/share/icons/hicolor/${size}x${size}/apps"
-      cp "$icon_dir/${size}.png" "$stage/share/icons/hicolor/${size}x${size}/apps/simplarchive.png"
+      cp "$icon_dir/${size}.png" "$stage/share/icons/hicolor/${size}x${size}/apps/alcifra.png"
     done
 
     mkdir -p "$stage/share/applications"
     # Exec is a placeholder: the tarball can be unpacked anywhere, so install.sh rewrites it to the absolute
     # path of the binary it just installed. A .desktop with a relative Exec silently does nothing when launched
     # from a menu, which is the failure this avoids.
-    cat > "$stage/share/applications/simplarchive.desktop" <<DESKTOP
+    cat > "$stage/share/applications/alcifra.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
 Name=Alcifra
 GenericName=Document Management
-Comment=Browse, file and search documents in a Alcifra archive
+Comment=Browse, file and search documents in an Alcifra archive
 Exec=__EXEC__ %u
-MimeType=x-scheme-handler/simplarchive;
-Icon=simplarchive
+MimeType=x-scheme-handler/alcifra;x-scheme-handler/simplarchive;
+Icon=alcifra
 Terminal=false
 Categories=Office;
 StartupWMClass=$EXE_NAME
@@ -132,13 +132,16 @@ apps="$HOME/.local/share/applications"
 icons="$HOME/.local/share/icons/hicolor"
 
 mkdir -p "$apps"
-sed "s|__EXEC__|$here/Alcifra.DesktopClient|" "$here/share/applications/simplarchive.desktop" \
-    > "$apps/simplarchive.desktop"
+sed "s|__EXEC__|$here/Alcifra.DesktopClient|" "$here/share/applications/alcifra.desktop" \
+    > "$apps/alcifra.desktop"
+# The entry and icons installed under the name before the rename (#1117), which would otherwise stay in the menu.
+rm -f "$apps/simplarchive.desktop"
+for size in 48 64 128 256; do rm -f "$icons/${size}x${size}/apps/simplarchive.png"; done
 chmod +x "$here/Alcifra.DesktopClient" 2>/dev/null || true
 
 for size in 48 64 128 256; do
     mkdir -p "$icons/${size}x${size}/apps"
-    cp "$here/share/icons/hicolor/${size}x${size}/apps/simplarchive.png" "$icons/${size}x${size}/apps/"
+    cp "$here/share/icons/hicolor/${size}x${size}/apps/alcifra.png" "$icons/${size}x${size}/apps/"
 done
 
 # Best effort: desktops that cache the menu need a nudge; those that do not have these commands are fine.
@@ -152,9 +155,9 @@ INSTALL
     cat > "$stage/uninstall.sh" <<'UNINSTALL'
 #!/usr/bin/env sh
 set -eu
-rm -f "$HOME/.local/share/applications/simplarchive.desktop"
+rm -f "$HOME/.local/share/applications/alcifra.desktop"
 for size in 48 64 128 256; do
-    rm -f "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/simplarchive.png"
+    rm -f "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/alcifra.png"
 done
 update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 echo "Removed the menu entry and icons. The unpacked files are untouched."

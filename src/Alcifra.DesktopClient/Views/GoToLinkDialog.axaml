@@ -4,7 +4,7 @@
         x:Class="Alcifra.DesktopClient.Views.GoToLinkDialog"
         Title="{loc:Tr GoToLinkTitle}" Width="460" SizeToContent="Height" CanResize="False"
         WindowStartupLocation="CenterOwner">
-    <!-- Paste-a-link entry (#761): accepts the https /go/{id} form and simplarchive://go/{id}. -->
+    <!-- Paste-a-link entry (#761): accepts the https /go/{id} form and alcifra://go/{id} (simplarchive:// until v0.56.0). -->
     <StackPanel Margin="16" Spacing="12">
         <TextBlock Text="{loc:Tr GoToLinkPrompt}" TextWrapping="Wrap" />
         <TextBox x:Name="LinkBox" Watermark="https://…/go/…" />

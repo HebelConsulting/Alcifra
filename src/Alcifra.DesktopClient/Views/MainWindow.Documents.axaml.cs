@@ -439,7 +439,7 @@ public partial class MainWindow
     });
 
     // Copy a deep link for the selected row (#761): the https web-app URL — universally openable, and the
-    // simplarchive:// handler accepts it too. The context menu selects the row it opened on (the pane's
+    // alcifra:// handler accepts it too. The context menu selects the row it opened on (the pane's
     // existing contract), so the selection IS the row here.
     internal void OnCopyDeepLink(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
