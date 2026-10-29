@@ -169,6 +169,11 @@ x-api-env: &api-env
   ObjectStorage__PublicServiceUrl: "${S3_PUBLIC_URL:-http://localhost:8333}"
   ObjectStorage__Region: "us-east-1"
   ObjectStorage__BucketName: "simplarchive"
+  # Each tenant's bucket is `alcifra-{tenantId}` (ADR 1000). A volume from before the rename keeps its objects in
+  # `simplarchive-…` buckets and refuses to start until SA_LEGACY_BUCKET_PREFIX=simplarchive (in .env) lets reads fall
+  # back while `alcifra storage migrate` moves them; clear it when that reports nothing left.
+  ObjectStorage__BucketPrefix: "alcifra"
+  ObjectStorage__LegacyBucketPrefix: "${SA_LEGACY_BUCKET_PREFIX:-}"
   # ObjectStorage__AccessKey / __SecretKey now come from OpenBao KV (secret/simplarchive/objectstorage).
   # Gotenberg sidecar for office-document -> PDF preview conversion (ADR 0228). Reached over the compose
   # network; when unset, office preview simply falls back to offering the original file.
@@ -298,7 +303,7 @@ services:
       AWS_SECRET_ACCESS_KEY: storageadmin
       AWS_DEFAULT_REGION: us-east-1
     # Readiness gate only: waits until SeaweedFS's S3 API answers, then exits (the api's depends_on gates on this).
-    # It does NOT create a base bucket — every object lives in a per-tenant bucket `simplarchive-{tenantId}` that the
+    # It does NOT create a base bucket — every object lives in a per-tenant bucket `alcifra-{tenantId}` that the
     # app creates on demand at tenant provisioning (EnsureTenantBucketAsync, with its own object-lock + CORS + tags,
     # ADR 0372). A bare `simplarchive` bucket is never written to, so creating it here was a pre-0372 leftover.
     entrypoint: >

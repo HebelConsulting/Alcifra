@@ -13,7 +13,7 @@ namespace SimplArchive.Infrastructure.Storage;
 // endpoint ObjectStorageOptions points at via the AWS SDK — ForcePathStyle is required for
 // non-AWS-hosted, self-signed-cert-free endpoints like MinIO, which don't support the SDK's default
 // virtual-hosted-style bucket addressing.
-public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
+public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe, ITenantBucketMigration
 {
     // Two clients differing only in ServiceURL: _internalClient for the Api's own server-side calls
     // (GetObjectAsync), _presignClient for signing presigned URLs the browser uses. They're the same
@@ -23,6 +23,10 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     private readonly IAmazonS3 _internalClient;
     private readonly IAmazonS3 _presignClient;
     private readonly string _bucketPrefix;
+
+    // Where existing objects may still be (ADR 1000): null outside a bucket migration. While set, a read that misses
+    // falls back here, a delete removes from both, and a change to an object found only here moves it across first.
+    private readonly string? _legacyBucketPrefix;
     private readonly bool _presignUseHttp;
     private readonly bool _internalPresignUseHttp;
     private readonly ILogger<S3ObjectStorageClient> _logger;
@@ -77,6 +81,10 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
                 + "63-character limit.");
         }
 
+        _legacyBucketPrefix = string.IsNullOrWhiteSpace(value.LegacyBucketPrefix) || value.LegacyBucketPrefix == _bucketPrefix
+            ? null
+            : value.LegacyBucketPrefix;
+
         var publicServiceUrl = string.IsNullOrWhiteSpace(value.PublicServiceUrl) ? value.ServiceUrl : value.PublicServiceUrl;
         _presignUseHttp = publicServiceUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
 
@@ -95,7 +103,13 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     // tenant-scoped — `tenants/{tenantId}/...` (ObjectKeyBuilder, CheckoutStashKey, AuditWormArchiver, the intray
     // prefix, and derived artifacts inherit it) — so the tenant, and thus the bucket, is derived from the key with
     // no call-site changes. A non-tenant-scoped key is a programming error.
-    private string BucketFor(string keyOrPrefix)
+    private string BucketFor(string keyOrPrefix) => BucketForTenant(TenantOf(keyOrPrefix));
+
+    // The legacy bucket of the same tenant while a migration is configured (ADR 1000), else null.
+    private string? LegacyBucketFor(string keyOrPrefix) =>
+        _legacyBucketPrefix is null ? null : LegacyBucketForTenant(TenantOf(keyOrPrefix));
+
+    private static Guid TenantOf(string keyOrPrefix)
     {
         var root = SimplArchive.Application.Abstractions.ObjectKeyPrefixes.Root;
         if (keyOrPrefix.StartsWith(root, StringComparison.Ordinal))
@@ -105,7 +119,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
             var segment = slash >= 0 ? rest[..slash] : rest;
             if (Guid.TryParse(segment, out var tenantId))
             {
-                return $"{_bucketPrefix}-{tenantId:D}";
+                return tenantId;
             }
         }
 
@@ -115,6 +129,69 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 
     public string BucketForTenant(Guid tenantId) => $"{_bucketPrefix}-{tenantId:D}";
 
+    // The start-up step's bucket probes (TenantBucketStartup) go through the same traced client.
+    internal Amazon.S3.IAmazonS3 InternalClient => _internalClient;
+
+    private string LegacyBucketForTenant(Guid tenantId) => $"{_legacyBucketPrefix}-{tenantId:D}";
+
+    public bool IsConfigured => _legacyBucketPrefix is not null;
+
+    public async Task<TenantBucketMigrationBatch> MigrateBatchAsync(Guid tenantId, string? after, int limit, CancellationToken cancellationToken = default)
+    {
+        if (_legacyBucketPrefix is null)
+        {
+            return new TenantBucketMigrationBatch(0, 0, 0, 0, null, null);
+        }
+
+        if (after is null)
+        {
+            await EnsureTenantBucketAsync(tenantId, cancellationToken);
+        }
+
+        return await new TenantBucketMigration(_internalClient, BucketForTenant, LegacyBucketForTenant, _logger)
+            .MigrateBatchAsync(tenantId, after, limit, cancellationToken);
+    }
+
+    // A read that misses the tenant's bucket tries the legacy one (ADR 1000). A miss costs one failed request and only
+    // while a legacy prefix is configured; NoSuchBucket is a miss too, for a tenant whose bucket is not there yet.
+    private async Task<T> ReadThroughAsync<T>(string objectKey, Func<string, Task<T>> read)
+    {
+        try
+        {
+            return await read(BucketFor(objectKey));
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound && LegacyBucketFor(objectKey) is { } legacy)
+        {
+            return await read(legacy);
+        }
+    }
+
+    // The bucket holding the object, for a call that cannot fall back after the fact: a presign makes no request, so a
+    // HEAD decides. Without a migration, or when neither bucket holds it, the tenant's own bucket.
+    private async Task<string> HoldingBucketAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        var bucket = BucketFor(objectKey);
+        if (LegacyBucketFor(objectKey) is not { } legacy
+            || await TenantBucketMigration.ExistsAsync(_internalClient, bucket, objectKey, cancellationToken)
+            || !await TenantBucketMigration.ExistsAsync(_internalClient, legacy, objectKey, cancellationToken))
+        {
+            return bucket;
+        }
+
+        return legacy;
+    }
+
+    // Before a change to an existing object (metadata, lock, compare-and-set): one still only in the legacy bucket is
+    // moved across first, so every write lands in the tenant's bucket and the legacy copy is never the newer one.
+    private async Task MoveAcrossFirstAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        if (LegacyBucketFor(objectKey) is { } legacy
+            && await TenantBucketMigration.ExistsAsync(_internalClient, legacy, objectKey, cancellationToken))
+        {
+            await TenantBucketMigration.CopyAcrossAsync(_internalClient, legacy, BucketFor(objectKey), objectKey, cancellationToken);
+        }
+    }
+
     public async Task EnsureTenantBucketAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
         var bucket = BucketForTenant(tenantId);
@@ -123,7 +200,14 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
         // (re)applied every call so the browser can PUT/GET presigned URLs directly against the tenant bucket.
         if (!await Amazon.S3.Util.AmazonS3Util.DoesS3BucketExistV2Async(_internalClient, bucket))
         {
-            await _internalClient.PutBucketAsync(new PutBucketRequest { BucketName = bucket, ObjectLockEnabledForBucket = true }, cancellationToken);
+            try
+            {
+                await _internalClient.PutBucketAsync(new PutBucketRequest { BucketName = bucket, ObjectLockEnabledForBucket = true }, cancellationToken);
+            }
+            catch (AmazonS3Exception e) when (e.ErrorCode == "BucketAlreadyOwnedByYou")
+            {
+                // The other app instance created it in between: both ensure every tenant's bucket at start (ADR 1000).
+            }
         }
 
         await _internalClient.PutCORSConfigurationAsync(new PutCORSConfigurationRequest
@@ -265,7 +349,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     {
         var request = new GetPreSignedUrlRequest
         {
-            BucketName = BucketFor(objectKey),
+            BucketName = verb == HttpVerb.GET ? await HoldingBucketAsync(objectKey, cancellationToken) : BucketFor(objectKey),
             Key = objectKey,
             Verb = verb,
             Expires = DateTime.UtcNow.Add(expiry),
@@ -320,7 +404,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     public async Task<Stream> GetObjectAsync(string objectKey, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Getting object {ObjectKey} from storage.", objectKey);
-        var response = await _internalClient.GetObjectAsync(BucketFor(objectKey), objectKey, cancellationToken);
+        var response = await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectAsync(bucket, objectKey, cancellationToken));
 
         // FREE, because the response already carries the metadata — no second request. This is also the
         // DAMAGING direction: a server-side read feeds the finalizer's hash, the rendition, the text layout
@@ -334,13 +418,13 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     public async Task<StoredObject> GetObjectWithMetadataAsync(string objectKey, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Getting object {ObjectKey} with metadata from storage.", objectKey);
-        var response = await _internalClient.GetObjectAsync(BucketFor(objectKey), objectKey, cancellationToken);
+        var response = await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectAsync(bucket, objectKey, cancellationToken));
         return new StoredObject(response.ResponseStream, response.ContentLength, UserMetadata(response.Metadata));
     }
 
     public async Task<StoredObjectInfo> GetObjectInfoAsync(string objectKey, CancellationToken cancellationToken = default)
     {
-        var response = await _internalClient.GetObjectMetadataAsync(BucketFor(objectKey), objectKey, cancellationToken);
+        var response = await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectMetadataAsync(bucket, objectKey, cancellationToken));
         var metadata = UserMetadata(response.Metadata);
         RefuseEncrypted(objectKey, metadata);
         return new StoredObjectInfo(response.ContentLength, response.Headers.ContentType, metadata);
@@ -358,7 +442,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     {
         try
         {
-            var response = await _internalClient.GetObjectMetadataAsync(BucketFor(objectKey), objectKey, cancellationToken);
+            var response = await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectMetadataAsync(bucket, objectKey, cancellationToken));
             return UserMetadata(response.Metadata);
         }
         catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -423,13 +507,12 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 
     public async Task<Stream> GetObjectRangeAsync(string objectKey, long from, long to, CancellationToken cancellationToken = default)
     {
-        var request = new GetObjectRequest
+        var response = await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectAsync(new GetObjectRequest
         {
-            BucketName = BucketFor(objectKey),
+            BucketName = bucket,
             Key = objectKey,
             ByteRange = new ByteRange(from, to), // inclusive
-        };
-        var response = await _internalClient.GetObjectAsync(request, cancellationToken);
+        }, cancellationToken));
         return response.ResponseStream;
     }
 
@@ -437,7 +520,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     {
         try
         {
-            await _internalClient.GetObjectMetadataAsync(BucketFor(objectKey), objectKey, cancellationToken);
+            await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectMetadataAsync(bucket, objectKey, cancellationToken));
             return true;
         }
         catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -448,7 +531,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 
     public async Task<long> GetObjectSizeAsync(string objectKey, CancellationToken cancellationToken = default)
     {
-        var metadata = await _internalClient.GetObjectMetadataAsync(BucketFor(objectKey), objectKey, cancellationToken);
+        var metadata = await ReadThroughAsync(objectKey, bucket => _internalClient.GetObjectMetadataAsync(bucket, objectKey, cancellationToken));
         return metadata.ContentLength;
     }
 
@@ -459,6 +542,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     public async Task<bool> TryPutIfMatchAsync(string objectKey, string eTag, Stream content, string contentType,
         CancellationToken cancellationToken = default)
     {
+        await MoveAcrossFirstAsync(objectKey, cancellationToken);
         try
         {
             await _internalClient.PutObjectAsync(
@@ -495,6 +579,16 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
         CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Claiming object {ObjectKey} with a conditional write.", objectKey);
+
+        // Absent means absent from BOTH buckets while a migration runs (ADR 1000): a claim still in the legacy bucket
+        // is held.
+        if (LegacyBucketFor(objectKey) is { } legacy
+            && await TenantBucketMigration.ExistsAsync(_internalClient, legacy, objectKey, cancellationToken))
+        {
+            _logger.LogDebug("Object {ObjectKey} is already claimed (in the legacy bucket).", objectKey);
+            return false;
+        }
+
         try
         {
             await _internalClient.PutObjectAsync(
@@ -541,19 +635,45 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 
     public async Task<IReadOnlyList<StoredObjectVersion>> ListObjectVersionsAsync(string prefix, CancellationToken cancellationToken = default)
     {
-        var bucket = BucketFor(prefix);
+        var versions = await ListObjectVersionsAsync(BucketFor(prefix), prefix, cancellationToken);
+        if (LegacyBucketFor(prefix) is not { } legacy)
+        {
+            return versions;
+        }
+
+        // The legacy bucket's versions count too (ADR 1000): a WORM-locked one keeps its wrapped key until it may be
+        // removed. Where the tenant's bucket holds the key, the legacy copy is no longer the latest of anything.
+        var moved = versions.Select(v => v.Key).ToHashSet(StringComparer.Ordinal);
+        return
+        [
+            .. versions,
+            .. (await ListObjectVersionsAsync(legacy, prefix, cancellationToken))
+                .Select(v => moved.Contains(v.Key) ? v with { IsLatest = false } : v),
+        ];
+    }
+
+    private async Task<List<StoredObjectVersion>> ListObjectVersionsAsync(string bucket, string prefix, CancellationToken cancellationToken)
+    {
         var versions = new List<StoredObjectVersion>();
         string? keyMarker = null;
         string? versionIdMarker = null;
         do
         {
-            var response = await _internalClient.ListVersionsAsync(new ListVersionsRequest
+            ListVersionsResponse response;
+            try
             {
-                BucketName = bucket,
-                Prefix = prefix,
-                KeyMarker = keyMarker,
-                VersionIdMarker = versionIdMarker,
-            }, cancellationToken);
+                response = await _internalClient.ListVersionsAsync(new ListVersionsRequest
+                {
+                    BucketName = bucket,
+                    Prefix = prefix,
+                    KeyMarker = keyMarker,
+                    VersionIdMarker = versionIdMarker,
+                }, cancellationToken);
+            }
+            catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound && LegacyBucketFor(prefix) is not null)
+            {
+                return versions; // during a migration either bucket may not exist (yet, or any more)
+            }
 
             foreach (var version in response.Versions ?? [])
             {
@@ -595,6 +715,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     {
         // A self-COPY with REPLACE is S3's way to change metadata in place; the Content-Type must be
         // restated or the REPLACE resets it.
+        await MoveAcrossFirstAsync(objectKey, cancellationToken);
         var bucket = BucketFor(objectKey);
         var current = await _internalClient.GetObjectMetadataAsync(bucket, objectKey, cancellationToken);
         var request = new CopyObjectRequest
@@ -616,14 +737,39 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
 
     public async Task<IReadOnlyList<StorageObject>> ListObjectsAsync(string prefix, CancellationToken cancellationToken = default)
     {
+        var objects = await ListObjectsAsync(BucketFor(prefix), prefix, cancellationToken);
+        if (LegacyBucketFor(prefix) is not { } legacy)
+        {
+            return objects;
+        }
+
+        // One listing of both buckets (ADR 1000); a key in both is the tenant's bucket's.
+        var listed = objects.Select(o => o.Key).ToHashSet(StringComparer.Ordinal);
+        return
+        [
+            .. objects,
+            .. (await ListObjectsAsync(legacy, prefix, cancellationToken)).Where(o => !listed.Contains(o.Key)),
+        ];
+    }
+
+    private async Task<List<StorageObject>> ListObjectsAsync(string bucket, string prefix, CancellationToken cancellationToken)
+    {
         var objects = new List<StorageObject>();
         string? continuationToken = null;
 
         do
         {
-            var response = await _internalClient.ListObjectsV2Async(
-                new ListObjectsV2Request { BucketName = BucketFor(prefix), Prefix = prefix, ContinuationToken = continuationToken },
-                cancellationToken);
+            ListObjectsV2Response response;
+            try
+            {
+                response = await _internalClient.ListObjectsV2Async(
+                    new ListObjectsV2Request { BucketName = bucket, Prefix = prefix, ContinuationToken = continuationToken },
+                    cancellationToken);
+            }
+            catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound && LegacyBucketFor(prefix) is not null)
+            {
+                return objects; // during a migration either bucket may not exist (yet, or any more)
+            }
 
             foreach (var s3Object in response.S3Objects ?? [])
             {
@@ -637,13 +783,13 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
         return objects;
     }
 
-    public Task CopyObjectAsync(string sourceKey, string destinationKey, CancellationToken cancellationToken = default)
+    public async Task CopyObjectAsync(string sourceKey, string destinationKey, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Copying object {SourceKey} to {DestinationKey} in storage.", sourceKey, destinationKey);
-        return _internalClient.CopyObjectAsync(
+        await _internalClient.CopyObjectAsync(
             new CopyObjectRequest
             {
-                SourceBucket = BucketFor(sourceKey),
+                SourceBucket = await HoldingBucketAsync(sourceKey, cancellationToken),
                 SourceKey = sourceKey,
                 DestinationBucket = BucketFor(destinationKey),
                 DestinationKey = destinationKey,
@@ -651,49 +797,48 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
             cancellationToken);
     }
 
-    public Task DeleteObjectAsync(string objectKey, CancellationToken cancellationToken = default)
+    public async Task DeleteObjectAsync(string objectKey, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Deleting object {ObjectKey} from storage.", objectKey);
-        return _internalClient.DeleteObjectAsync(BucketFor(objectKey), objectKey, cancellationToken);
+        await _internalClient.DeleteObjectAsync(BucketFor(objectKey), objectKey, cancellationToken);
+
+        // From BOTH buckets while a migration runs (ADR 1000), or the next migration run brings the object back.
+        if (LegacyBucketFor(objectKey) is { } legacy)
+        {
+            await DeleteFromLegacyAsync(legacy, objectKey, () => _internalClient.DeleteObjectAsync(legacy, objectKey, cancellationToken));
+        }
     }
 
     public async Task DeleteObjectForGoodAsync(string objectKey, CancellationToken cancellationToken = default)
     {
-        var bucket = BucketFor(objectKey);
-        var deleted = 0;
-        string? keyMarker = null;
-        string? versionIdMarker = null;
-        ListVersionsResponse response;
-        do
+        await TenantBucketMigration.DeleteAllVersionsAsync(_internalClient, BucketFor(objectKey), objectKey, cancellationToken);
+        if (LegacyBucketFor(objectKey) is { } legacy)
         {
-            response = await _internalClient.ListVersionsAsync(new ListVersionsRequest
-            {
-                BucketName = bucket,
-                Prefix = objectKey,
-                KeyMarker = keyMarker,
-                VersionIdMarker = versionIdMarker,
-            }, cancellationToken);
-
-            foreach (var version in (response.Versions ?? []).Where(v => v.Key == objectKey && !string.IsNullOrEmpty(v.VersionId) && v.VersionId != "null"))
-            {
-                await _internalClient.DeleteObjectAsync(new DeleteObjectRequest { BucketName = bucket, Key = objectKey, VersionId = version.VersionId }, cancellationToken);
-                deleted++;
-            }
-
-            keyMarker = response.NextKeyMarker;
-            versionIdMarker = response.NextVersionIdMarker;
+            await DeleteFromLegacyAsync(legacy, objectKey,
+                () => TenantBucketMigration.DeleteAllVersionsAsync(_internalClient, legacy, objectKey, cancellationToken));
         }
-        while (response.IsTruncated == true);
 
-        // An unversioned bucket lists its objects with a "null" version id: the plain delete removes them for good.
-        await _internalClient.DeleteObjectAsync(bucket, objectKey, cancellationToken);
-        _logger.LogDebug("Deleted object {ObjectKey} for good: {Versions} stored version(s) removed.", objectKey, deleted);
+        _logger.LogDebug("Deleted object {ObjectKey} for good.", objectKey);
+    }
+
+    // A legacy bucket that is not there has nothing to delete: a tenant provisioned after the prefix changed.
+    private static async Task DeleteFromLegacyAsync(string legacy, string objectKey, Func<Task> delete)
+    {
+        try
+        {
+            await delete();
+        }
+        catch (AmazonS3Exception e) when (e.ErrorCode == "NoSuchBucket")
+        {
+        }
     }
 
     // ---- WORM / S3 Object Lock (ADR "WORM / immutable document versions") ----
 
-    public Task SetRetentionAsync(string objectKey, DateTimeOffset retainUntil, SimplArchive.Domain.Tenants.WormLockMode mode, CancellationToken cancellationToken = default)
-        => _internalClient.PutObjectRetentionAsync(new PutObjectRetentionRequest
+    public async Task SetRetentionAsync(string objectKey, DateTimeOffset retainUntil, SimplArchive.Domain.Tenants.WormLockMode mode, CancellationToken cancellationToken = default)
+    {
+        await MoveAcrossFirstAsync(objectKey, cancellationToken);
+        await _internalClient.PutObjectRetentionAsync(new PutObjectRetentionRequest
         {
             BucketName = BucketFor(objectKey),
             Key = objectKey,
@@ -705,9 +850,12 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
                 RetainUntilDate = retainUntil.UtcDateTime,
             },
         }, cancellationToken);
+    }
 
-    public Task SetLegalHoldAsync(string objectKey, bool held, CancellationToken cancellationToken = default)
-        => _internalClient.PutObjectLegalHoldAsync(new PutObjectLegalHoldRequest
+    public async Task SetLegalHoldAsync(string objectKey, bool held, CancellationToken cancellationToken = default)
+    {
+        await MoveAcrossFirstAsync(objectKey, cancellationToken);
+        await _internalClient.PutObjectLegalHoldAsync(new PutObjectLegalHoldRequest
         {
             BucketName = BucketFor(objectKey),
             Key = objectKey,
@@ -716,6 +864,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
                 Status = held ? ObjectLockLegalHoldStatus.On : ObjectLockLegalHoldStatus.Off,
             },
         }, cancellationToken);
+    }
 
     public async Task<ObjectLockStatus> GetLockStatusAsync(string objectKey, CancellationToken cancellationToken = default)
     {
@@ -730,12 +879,15 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
         // object never pays it.
         var seenNotFound = false;
 
+        // The lock of the copy a read would be served (ADR 1000): where the object is still only in the legacy
+        // bucket, that copy's lock is the one in force.
+        var bucket = await HoldingBucketAsync(objectKey, cancellationToken);
         DateTimeOffset? retainUntil = null;
         try
         {
             var retention = await _internalClient.GetObjectRetentionAsync(new GetObjectRetentionRequest
             {
-                BucketName = BucketFor(objectKey),
+                BucketName = bucket,
                 Key = objectKey,
             }, cancellationToken);
             if (retention.Retention?.RetainUntilDate is { } until)
@@ -755,7 +907,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
         {
             var hold = await _internalClient.GetObjectLegalHoldAsync(new GetObjectLegalHoldRequest
             {
-                BucketName = BucketFor(objectKey),
+                BucketName = bucket,
                 Key = objectKey,
             }, cancellationToken);
             legalHold = hold.LegalHold?.Status == ObjectLockLegalHoldStatus.On;
@@ -799,7 +951,7 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe
     // A "does this object have a lock?" GET returns an error when the object has no such configuration yet.
     // S3/MinIO signal it inconsistently — a 404, or a 4xx with ErrorCode NoSuchObjectLockConfiguration, or a
     // MinIO message like "The specified object does not have a ObjectLock configuration". All mean "no lock".
-    private static bool IsNoLockConfiguration(AmazonS3Exception e) =>
+    internal static bool IsNoLockConfiguration(AmazonS3Exception e) =>
         e.StatusCode == System.Net.HttpStatusCode.NotFound
         || string.Equals(e.ErrorCode, "NoSuchObjectLockConfiguration", StringComparison.OrdinalIgnoreCase)
         || (e.Message?.Contains("ObjectLock configuration", StringComparison.OrdinalIgnoreCase) ?? false);

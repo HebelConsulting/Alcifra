@@ -281,6 +281,12 @@ public static class SaConsoleApp
                 });
             });
 
+            config.AddBranch("storage", storage =>
+            {
+                storage.SetDescription("The installation's object storage (platform administrator).");
+                storage.AddCommand<StorageMigrateCommand>("migrate")
+                    .WithDescription("Move every tenant's objects from the legacy bucket prefix to the current one (ADR 1000); safe to stop and re-run.");
+            });
             config.AddBranch("tenant", tenant =>
             {
                 tenant.SetDescription("Tenant administration: provisioning (platform administrator), the tenant's standard repository, its recovery certificate and its offline-cache policy (tenant administrator).");

@@ -22,6 +22,23 @@ public class DesktopAppointmentPreviewTests
     [Fact]
     public async Task Selecting_an_appointment_fills_the_pane_with_its_zones_link_and_notes()
     {
+        // The times are formatted in the current culture, so the expectations name one with a 24-hour clock: under the
+        // machine's own (en-NZ on 2026-10-29) the range read "7:00 am" and this failed with nothing wrong in the code.
+        // It flows into every await below and is restored for the next test.
+        var original = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-CH");
+        try
+        {
+            await SelectingAnAppointmentFillsThePaneAsync();
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = original;
+        }
+    }
+
+    private async Task SelectingAnAppointmentFillsThePaneAsync()
+    {
         DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
         var token = await Ui.GetUserTokenAsync(_app.BaseUrl);
         var api = new SimplArchiveApiClient(token);

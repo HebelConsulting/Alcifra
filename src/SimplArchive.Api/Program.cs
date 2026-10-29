@@ -587,6 +587,7 @@ using (var scope = app.Services.CreateScope())
 
         await SimplArchive.Api.Documents.ModulePersonalFolders.EnsureEverywhereAsync(services);   // ABI 1.18, ADR 0937
         await SimplArchive.Api.Audience.ContentAudienceBackfill.FillEverywhereAsync(services);   // ADR 0983, inside the seed lock
+        await SimplArchive.Infrastructure.Storage.TenantBucketStartup.EnsureAsync(services);   // ADR 1000: buckets around a prefix change
 
     }
 

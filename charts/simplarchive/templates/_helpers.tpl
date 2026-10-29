@@ -182,6 +182,12 @@ rolls the Deployment automatically (the pod template changes). Secrets come from
   value: {{ .Values.config.objectStorage.region | quote }}
 - name: ObjectStorage__BucketName
   value: {{ .Values.config.objectStorage.bucketName | quote }}
+- name: ObjectStorage__BucketPrefix
+  value: {{ .Values.config.objectStorage.bucketPrefix | quote }}
+{{- with .Values.config.objectStorage.legacyBucketPrefix }}
+- name: ObjectStorage__LegacyBucketPrefix
+  value: {{ . | quote }}
+{{- end }}
 - name: Gotenberg__Url
   value: {{ include "simplarchive.gotenbergUrl" . | quote }}
 - name: OpenSearch__Url

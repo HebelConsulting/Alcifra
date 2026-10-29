@@ -25,10 +25,18 @@ public partial class AdrIndexTests
 {
     private const string Index = "docs/adr/README.md";
 
+    // Every numbered ADR file. Numbered, not "0*": ADR 1000 is the first whose number does not start with a zero, and the
+    // glob that assumed it reported its index row as pointing at a file that did not exist.
+    private static IEnumerable<string?> AdrFiles(string adrDir) =>
+        Directory.GetFiles(adrDir, "*.md").Select(Path.GetFileName).Where(f => f is not null && AdrFileName().IsMatch(f));
+
+    [GeneratedRegex(@"^\d{4}-")]
+    private static partial Regex AdrFileName();
+
     [GeneratedRegex(@"^\| (\d{4}) \| \[(?<title>.+?)\]\((?<href>[^)]+)\) \|")]
     private static partial Regex IndexRow();
 
-    [GeneratedRegex(@"\[(?<label>\d{4})\]\((?<href>0\d{3}-[a-z0-9-]+\.md)\)")]
+    [GeneratedRegex(@"\[(?<label>\d{4})\]\((?<href>\d{4}-[a-z0-9-]+\.md)\)")]
     private static partial Regex CrossLink();
 
     // EVERY ADR CROSS-LINK RESOLVES, AND ITS LABEL MATCHES ITS TARGET.
@@ -55,7 +63,7 @@ public partial class AdrIndexTests
         }
 
         var adrDir = Path.Combine(root, "docs", "adr");
-        var present = Directory.GetFiles(adrDir, "0*.md").Select(Path.GetFileName).ToHashSet(StringComparer.Ordinal);
+        var present = AdrFiles(adrDir).ToHashSet(StringComparer.Ordinal);
         var broken = new List<string>();
         var mislabelled = new List<string>();
         var scanned = 0;
@@ -123,7 +131,7 @@ public partial class AdrIndexTests
 
         // One-to-one with the files. Union cannot drop a row, but a hand-resolved conflict can, and an index that
         // silently loses an ADR is the failure this whole file exists to prevent.
-        var files = Directory.GetFiles(adrDir, "0*.md").Select(Path.GetFileName).Where(f => f is not null).ToHashSet()!;
+        var files = AdrFiles(adrDir).Where(f => f is not null).ToHashSet()!;
         var linked = rows.Select(r => r.Href).ToHashSet();
 
         var missingFromIndex = files.Where(f => !linked.Contains(f!)).Order().ToList();

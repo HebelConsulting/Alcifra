@@ -72,9 +72,21 @@ public class StructuredItemRendererTests
     [Fact]
     public void An_appointment_renders_its_when_and_where()
     {
-        var html = Renderer.ToHtml(
-            Ics("SUMMARY:The Iron Horse", "DTSTART:20260829T190000", "DTEND:20260829T210000", "LOCATION:Northampton, MA"),
-            ".ics");
+        // The time is formatted in the current culture, so the expectation names one with a 24-hour clock: under the
+        // machine's own (en-NZ on 2026-10-29) the card said "7:00 pm" and this failed with nothing wrong in the code.
+        var original = System.Globalization.CultureInfo.CurrentCulture;
+        string? html;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-CH");
+            html = Renderer.ToHtml(
+                Ics("SUMMARY:The Iron Horse", "DTSTART:20260829T190000", "DTEND:20260829T210000", "LOCATION:Northampton, MA"),
+                ".ics");
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = original;
+        }
 
         Assert.NotNull(html);
         Assert.Contains("The Iron Horse", html!, StringComparison.Ordinal);

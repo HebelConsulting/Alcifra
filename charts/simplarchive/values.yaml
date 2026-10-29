@@ -57,6 +57,12 @@ config:
     publicServiceUrl: ""  # browser-facing endpoint for presigned URLs (often the same)
     region: "us-east-1"
     bucketName: "simplarchive"
+    # Each tenant's bucket is `{bucketPrefix}-{tenantId}` (ADR 0372); falls back to bucketName when empty.
+    bucketPrefix: "alcifra"
+    # Only while existing objects move to bucketPrefix's buckets (ADR 1000): set it to the prefix they are under
+    # ("simplarchive" for an installation from before the rename), run `alcifra storage migrate`, and clear it when
+    # that reports nothing left. Without it, an installation whose objects are elsewhere refuses to start.
+    legacyBucketPrefix: ""
   gotenbergUrl: ""        # office/markdown/html -> PDF preview (optional; unset disables converted preview)
   openSearchUrl: ""       # full-text search (optional; unset falls back to metadata-only search)
   tikaUrl: ""             # content extraction + OCR (optional)

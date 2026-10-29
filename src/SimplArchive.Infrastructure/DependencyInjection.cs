@@ -378,6 +378,8 @@ public static class DependencyInjection
         {
             RefuseEncryptedObjects = !encryptionConfigured,
         });
+        // The bucket migration (ADR 1000) is the plain client's: it moves stored bytes as they are, ciphertext included.
+        services.AddSingleton<ITenantBucketMigration>(provider => provider.GetRequiredService<S3ObjectStorageClient>());
         // Registered unconditionally so controllers can inject it and ask (Enabled/GatedAsync answer
         // honestly either way); only the DECORATOR below is conditional.
         services.AddHttpClient(AtRestKeyService.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));

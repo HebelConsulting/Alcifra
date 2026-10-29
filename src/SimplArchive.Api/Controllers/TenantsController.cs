@@ -29,17 +29,20 @@ public class TenantsController : ControllerBase
     private readonly ITenantProvisioningService _tenantProvisioningService;
 
     private readonly IAuditRecorder _audit;
+    private readonly ITenantBucketMigration _bucketMigration;
 
     public TenantsController(
         SimplArchiveDbContext dbContext,
         ICurrentPlatformAdministratorAccessor currentPlatformAdministratorAccessor,
         ITenantProvisioningService tenantProvisioningService,
-        IAuditRecorder audit)
+        IAuditRecorder audit,
+        ITenantBucketMigration bucketMigration)
     {
         _dbContext = dbContext;
         _currentPlatformAdministratorAccessor = currentPlatformAdministratorAccessor;
         _tenantProvisioningService = tenantProvisioningService;
         _audit = audit;
+        _bucketMigration = bucketMigration;
     }
 
     // Plain mutable classes, not records — System.Xml.Serialization.XmlSerializer (ADR "JSON/XML content
@@ -49,6 +52,21 @@ public class TenantsController : ControllerBase
         public Guid Id { get; set; }
 
         public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>What one batch of a tenant's bucket migration did (ADR 1000); <c>next</c> continues it.</summary>
+    public class StorageMigrationBatchResource : HypermediaResource
+    {
+        public int Copied { get; set; }
+
+        public int AlreadyPresent { get; set; }
+
+        public int Removed { get; set; }
+
+        public int Retained { get; set; }
+
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public DateTimeOffset? RetainedUntil { get; set; }
     }
 
     public class TenantsListResource : HypermediaResource
@@ -246,13 +264,81 @@ public class TenantsController : ControllerBase
         return exists ? NoContent() : NotFound();
     }
 
-    private static TenantResource BuildResource(Tenant tenant)
+    /// <summary>
+    /// Moves the next batch of the tenant's objects from its legacy bucket to its current one (ADR 1000): copies with
+    /// metadata, retention date and legal hold, then removes each legacy copy no lock keeps.
+    /// </summary>
+    /// <remarks>
+    /// Idempotent, so it needs no <c>If-Match</c>: it changes no resource anybody read, and a repeated or concurrent
+    /// call copies nothing twice. <c>alcifra storage migrate</c> follows <c>next</c> until it is absent and reports each
+    /// batch as it goes (ADR 0999).
+    /// </remarks>
+    [HttpPost("{tenantId:guid}/storage-migration")]
+    public async Task<IActionResult> MigrateStorage(Guid tenantId, [FromQuery] string? after, [FromQuery] int? limit, CancellationToken cancellationToken)
     {
+        if (_currentPlatformAdministratorAccessor.PlatformAdministratorId is null)
+        {
+            return Forbid();
+        }
+
+        if (!_bucketMigration.IsConfigured)
+        {
+            throw new SimplArchive.Api.Errors.Exceptions.Storage.BucketMigrationNotConfiguredException();
+        }
+
+        var tenant = await _dbContext.Tenants.SingleOrDefaultAsync(t => t.Id == tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return NotFound();
+        }
+
+        var pageSize = PageSize.Resolve(limit);
+        var batch = await _bucketMigration.MigrateBatchAsync(tenantId, after, pageSize, cancellationToken);
+
+        if (batch.Copied + batch.Removed > 0)
+        {
+            await _audit.RecordAsync(
+                AuditActions.TenantStorageMigrated,
+                "Tenant",
+                tenantId,
+                tenant.Name,
+                details: $"copied {batch.Copied}, removed {batch.Removed}, kept by a lock {batch.Retained}",
+                tenantId: tenantId,
+                cancellationToken: cancellationToken);
+        }
+
+        var links = new List<Link>();
+        if (batch.Next is { } next)
+        {
+            links.Add(new Link("next", Url.Action(nameof(MigrateStorage), new { tenantId, after = next, limit = pageSize })!, "POST"));
+        }
+
+        return Ok(new StorageMigrationBatchResource
+        {
+            Copied = batch.Copied,
+            AlreadyPresent = batch.AlreadyPresent,
+            Removed = batch.Removed,
+            Retained = batch.Retained,
+            RetainedUntil = batch.RetainedUntil,
+            Links = links,
+        });
+    }
+
+    private TenantResource BuildResource(Tenant tenant)
+    {
+        var links = new List<Link> { new("self", $"/api/tenants/{tenant.Id}", "GET") };
+
+        // Only while a migration is configured (ADR 1000): a missing rel tells the CLI there is nothing to move.
+        if (_bucketMigration.IsConfigured)
+        {
+            links.Add(new Link("storage-migration", $"/api/tenants/{tenant.Id}/storage-migration", "POST"));
+        }
+
         return new TenantResource
         {
             Id = tenant.Id,
             Name = tenant.Name,
-            Links = [new Link("self", $"/api/tenants/{tenant.Id}", "GET")],
+            Links = links,
         };
     }
 }

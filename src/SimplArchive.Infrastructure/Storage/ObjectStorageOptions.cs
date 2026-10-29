@@ -30,6 +30,11 @@ public class ObjectStorageOptions
     // (BucketName "simplarchive" → buckets "simplarchive-{tenantId}").
     public string? BucketPrefix { get; set; }
 
+    // Where existing objects may still be while they move to BucketPrefix's buckets (ADR 1000): a read that misses
+    // the tenant's bucket falls back to `{LegacyBucketPrefix}-{tenantId}`, a delete removes from both, and
+    // `alcifra storage migrate` copies across. Unset once the migration reports nothing left.
+    public string? LegacyBucketPrefix { get; set; }
+
     public required string AccessKey { get; set; }
 
     public required string SecretKey { get; set; }

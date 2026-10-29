@@ -71,6 +71,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
     {
         ["DELETE api/modules/{moduleId}/activation"] = "advertised only for an active module that needs no licence (ADR 0944); this tenant's test module requires one — LicenceFreeModuleTests follows the rel",
         ["PUT api/modules/{moduleId}/activation"] = "advertised only for a module that needs no licence (ADR 0944); this tenant's test module requires one — LicenceFreeModuleTests follows the rel",
+        ["POST api/tenants/{tenantId:guid}/storage-migration"] = "advertised only while ObjectStorage:LegacyBucketPrefix is set (ADR 1000); this stack has none — TenantStorageMigrationRelTests asserts the absent rel, TenantBucketMigrationTests the migration",
         ["GET api/certificate-attestation-roots"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["HEAD api/certificate-attestation-roots"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",
         ["PUT api/certificate-attestation-roots"] = "advertised only while a module that licenses certificate enrolment is active (ADR 0936); none is in this tenant",

@@ -76,8 +76,9 @@ public partial class ConcurrencyContractRatchetTests
             "Creates only: the owner's grant is added as part of creating the repository, in the same save as "
             + "the document row. Nothing here rewrites an existing entry.",
         ["TenantsController.cs:Tenant"] =
-            "Creates only: reads tenants directly, and its single mutation is a POST that delegates to "
-            + "ITenantProvisioningService, which does the Tenants.Add. The moment this controller grows a PUT "
+            "Creates only: reads tenants directly; its one write to a Tenant is a POST that delegates to "
+            + "ITenantProvisioningService, which does the Tenants.Add. Its second POST, storage-migration (ADR 1000), "
+            + "copies the tenant's OBJECTS between buckets and changes no row. The moment this controller grows a PUT "
             + "it needs the contract, which is why this is not a permanent exemption.",
         ["DocumentChildrenController.cs:Document"] =
             "Creates only: Documents.Add(child) is its single write, and the file assigns no property on an "
