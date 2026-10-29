@@ -12,7 +12,7 @@
 #
 # Outputs:
 #   manual/screenshots/{desktop,web}-*.png          (regenerated screenshots)
-#   src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf   (the served manual)
+#   src/SimplArchive.Api/wwwroot/download/manual/<fileStem>-Manual.pdf   (the served manual, ADR 0997)
 #
 # Requires: the .NET SDK, `typst` on PATH, and (for the web capture) Docker + Google Chrome.
 set -euo pipefail
@@ -30,7 +30,8 @@ if ! command -v typst >/dev/null 2>&1; then
   exit 1
 fi
 
-pdf_out="src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf"
+source scripts/brand.sh
+pdf_out="src/SimplArchive.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
 mkdir -p manual/screenshots "$(dirname "$pdf_out")"
 
 echo "==> Building the capture harness (and the app projects it drives)…"

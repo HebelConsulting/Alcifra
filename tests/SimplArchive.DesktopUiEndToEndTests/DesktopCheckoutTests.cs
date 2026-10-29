@@ -64,7 +64,7 @@ public class DesktopCheckoutTests
 
         var repo = (await api.Documents.GetRepositoriesAsync()).Single(n => n.Name == "Demo Repository");
         using var http = new HttpClient();
-        var pdf = await http.GetByteArrayAsync($"{_app.BaseUrl}/download/samples/SimplArchive-Patch3-Sample-Batch.pdf");
+        var pdf = await http.GetByteArrayAsync($"{_app.BaseUrl}/download/samples/Patch3-Sample-Batch.pdf");
         var fileName = $"rs-{Guid.NewGuid():N}.pdf";
         await api.Documents.UploadFileAsync(repo.Href("children"), fileName, pdf);
         var doc = (await api.Documents.GetChildrenAsync(repo.Href("children"))).Single(n => n.Name == Path.GetFileNameWithoutExtension(fileName));

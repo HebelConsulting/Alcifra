@@ -85,8 +85,11 @@ public sealed class ManualFiler(
     /// <summary>The Manual "Article number" that identifies SimplArchive's own manual — and how it is found again.</summary>
     public const string CoreArticleNumber = "simplarchive-core";
 
-    /// <summary>Where the served core manual lives under wwwroot — the same file the download link serves.</summary>
-    public const string CoreManualPath = "download/manual/SimplArchive-Manual.pdf";
+    /// <summary>
+    /// Where the served core manual lives under wwwroot — the same file the download link serves, named from the
+    /// brand's file stem (ADR 0997).
+    /// </summary>
+    public static readonly string CoreManualPath = $"download/manual/{SimplArchive.Theming.Brand.Shipped.ManualFileName}";
 
     /// <summary>Files SimplArchive's own user manual in the current tenant.</summary>
     /// <remarks>

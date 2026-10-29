@@ -69,7 +69,7 @@ public static class Screens
         new("server-manager", [], DesktopWindow.Servers, WhyFixture: "A pre-session window over local configuration — no app to capture from."),
         // The sort & rotate dialog over the checked-in sample batch — its mis-rotated page 4 shown mid-fix,
         // which is the figure the manual's page-operations section stands on (#527).
-        new("sort-rotate", [], DesktopWindow.SortDialog, Pdf: "src/SimplArchive.Api/wwwroot/download/samples/SimplArchive-Patch3-Sample-Batch.pdf", WhyFixture: "A dialog over a fixed sample batch; its mis-rotated page is what the figure is of."),
+        new("sort-rotate", [], DesktopWindow.SortDialog, Pdf: "src/SimplArchive.Api/wwwroot/download/samples/Patch3-Sample-Batch.pdf", WhyFixture: "A dialog over a fixed sample batch; its mis-rotated page is what the figure is of."),
         new("contacts", ["--contacts"], Capture: Capture.Live),
         new("calendar", ["--calendar"], WhyFixture:
             "MEASURED, not assumed (#1358, second slice): the live capture drew October 2026 while the "

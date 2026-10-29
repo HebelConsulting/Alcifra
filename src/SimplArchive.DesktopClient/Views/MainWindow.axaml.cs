@@ -240,7 +240,7 @@ public partial class MainWindow : Window
     // Help ▸ Manual (ADR 0504): open the auto-generated user manual (served at /download/manual/ on the
     // connected server, ADR 0502) in the system browser rather than embedding a PDF viewer.
     internal void OnOpenManual(object? sender, RoutedEventArgs e) =>
-        SystemBrowser.Open($"{DesktopClientOptions.ApiBaseUrl}/download/manual/SimplArchive-Manual.pdf");
+        SystemBrowser.Open($"{DesktopClientOptions.ApiBaseUrl}/download/manual/{SimplArchive.Theming.Brand.Shipped.ManualFileName}");
 
     // Help ▸ Show log folder (ADR 0613). A log the user cannot find when support asks for it is a log that does
     // not exist — and asking somebody to launch a .app from a terminal is not a support procedure.

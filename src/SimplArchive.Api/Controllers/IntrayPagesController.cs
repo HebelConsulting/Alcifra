@@ -6,6 +6,7 @@ using SimplArchive.Api.Intray;
 using SimplArchive.Application.Abstractions;
 using SimplArchive.Infrastructure.Intray;
 using SimplArchive.Infrastructure.Storage;
+using SimplArchive.Theming;
 
 namespace SimplArchive.Api.Controllers;
 
@@ -272,7 +273,7 @@ public class IntrayPagesController(
     [AllowAnonymous]
     [HttpGet("patch-code-sheet")]
     public IActionResult PatchCodeSheet() =>
-        File(PatchCodePage.CreatePdf(), "application/pdf", "SimplArchive-Patch3-Separator.pdf");
+        File(PatchCodePage.CreatePdf(), "application/pdf", $"{Brand.Shipped.FileStem}-Patch3-Separator.pdf");
 
     [HttpHead("patch-code-sheet")]
     public IActionResult PatchCodeSheetHead() => NoContent();
@@ -288,7 +289,7 @@ public class IntrayPagesController(
     [AllowAnonymous]
     [HttpGet("patch-code-sample")]
     public IActionResult PatchCodeSample() =>
-        File(Intray.PatchCodeSampleBatch.CreatePdf(), "application/pdf", "SimplArchive-Patch3-Sample-Batch.pdf");
+        File(Intray.PatchCodeSampleBatch.CreatePdf(), "application/pdf", $"{Brand.Shipped.FileStem}-Patch3-Sample-Batch.pdf");
 
     [HttpHead("patch-code-sample")]
     public IActionResult PatchCodeSampleHead() => NoContent();
@@ -312,7 +313,7 @@ public class IntrayPagesController(
     [AllowAnonymous]
     [HttpGet("patch-code-sample-scan")]
     public IActionResult PatchCodeSampleScan() =>
-        File(Intray.PatchCodeSampleBatch.CreateTiff(), "image/tiff", "SimplArchive-Patch3-Sample-Scan.tif");
+        File(Intray.PatchCodeSampleBatch.CreateTiff(), "image/tiff", $"{Brand.Shipped.FileStem}-Patch3-Sample-Scan.tif");
 
     [HttpHead("patch-code-sample-scan")]
     public IActionResult PatchCodeSampleScanHead() => NoContent();

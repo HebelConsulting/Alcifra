@@ -7,8 +7,9 @@ namespace SimplArchive.UnitTests;
 // and nothing on the build path spells a package or image name by hand, or a white-label build would ship ours.
 public partial class BrandDistributionTests
 {
-    // A package or image name written out: "SimplArchive-$version-…", "SimplArchive-*.dmg", "ghcr.io/hebelconsulting/…".
-    [GeneratedRegex(@"SimplArchive-(\$|\*|\{)|ghcr\.io/hebelconsulting/")]
+    // A package, image or manual name written out: "SimplArchive-$version-…", "SimplArchive-*.dmg",
+    // "Alcifra-Manual.pdf", "ghcr.io/hebelconsulting/…".
+    [GeneratedRegex(@"(SimplArchive|Alcifra)-(\$|\*|\{|Manual)|ghcr\.io/hebelconsulting/")]
     private static partial Regex HandWrittenName();
 
     // The build path: the files that produce and publish packages, images and the chart.
@@ -21,6 +22,9 @@ public partial class BrandDistributionTests
         "Dockerfile",
         ".github/workflows/desktop-packages.yml",
         ".github/workflows/docker-publish.yml",
+        ".github/workflows/manual.yml",
+        "scripts/generate-manual.sh",
+        "scripts/edition-manual.sh",
     ];
 
     [Theory]
@@ -64,5 +68,14 @@ public partial class BrandDistributionTests
         var text = File.ReadAllText(Path.Combine(RepoPaths.Root(), relative.Replace('/', Path.DirectorySeparatorChar)));
         Assert.Contains("scripts/brand-release-role.sh", text);
         Assert.DoesNotContain("github.repository == 'HebelConsulting/SimplArchive'", text);
+    }
+
+    // The release carries the manual the image serves (ADR 0997), named and chosen by one script for every edition.
+    [Fact]
+    public void A_release_carries_the_editions_manual()
+    {
+        var text = File.ReadAllText(Path.Combine(RepoPaths.Root(), ".github", "workflows", "desktop-packages.yml"));
+        Assert.Contains("scripts/edition-manual.sh", text);
+        Assert.Contains("\"$BRAND_FILE_STEM-Manual.pdf\"", text);
     }
 }

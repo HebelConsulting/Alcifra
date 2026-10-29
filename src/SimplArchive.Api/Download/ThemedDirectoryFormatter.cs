@@ -37,40 +37,7 @@ public sealed class ThemedDirectoryFormatter : IDirectoryFormatter
         var entries = contents.OrderByDescending(e => e.IsDirectory).ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase);
 
         var html = new StringBuilder();
-        html.Append("""
-            <!doctype html>
-            <html lang="en">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <meta name="robots" content="noindex, nofollow">
-              <title>{System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)} — downloads</title>
-              <link rel="stylesheet" href="/api/theme.css">
-              <style>
-                body { font-family: var(--sa-font-ui, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
-                       max-width: 640px; margin: 3rem auto; padding: 0 1rem; line-height: 1.5;
-                       background: var(--sa-canvas, #FAFAFC); color: var(--sa-text, #14161C); }
-                h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-                .path { color: var(--sa-text-secondary, #5A5F6E); font-size: .9rem; margin: 0 0 1.5rem; }
-                ul { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--sa-hairline, #E6E7EC); }
-                li { border-bottom: 1px solid var(--sa-hairline, #E6E7EC); }
-                a.row { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
-                        padding: .7rem .25rem; text-decoration: none; color: inherit; }
-                a.row:hover { background: var(--sa-accent-tint, #E4F3F1); }
-                .name { overflow-wrap: anywhere; }
-                .dir .name { font-weight: 600; color: var(--sa-accent-text, #0F766E); }
-                .size { color: var(--sa-text-secondary, #5A5F6E); font-size: .85rem; white-space: nowrap;
-                        font-variant-numeric: tabular-nums; }
-                .empty { color: var(--sa-text-secondary, #5A5F6E); padding: 1rem .25rem; }
-                footer { margin-top: 2rem; font-size: .85rem; color: var(--sa-text-faint, #898F9E); }
-                footer a { color: inherit; }
-              </style>
-            </head>
-            <body>
-              <h1>Downloads</h1>
-
-            """);
-
+        html.Append("  <h1>Downloads</h1>\n");
         html.Append("  <p class=\"path\">").Append(WebUtility.HtmlEncode(path)).Append("</p>\n  <ul>\n");
 
         // A parent link, so somebody who lands deep can get back out without editing the address bar.
@@ -98,16 +65,10 @@ public sealed class ThemedDirectoryFormatter : IDirectoryFormatter
             html.Append("    <li class=\"empty\">Nothing here yet.</li>\n");
         }
 
-        html.Append("""
-              </ul>
-              <footer>
-                <a href="/">← Back to {System.Net.WebUtility.HtmlEncode(SimplArchive.Localization.Strings.ProductName)}</a>
-              </footer>
-            </body>
-            </html>
-            """);
+        html.Append("  </ul>");
 
-        await context.Response.WriteAsync(html.ToString(), Encoding.UTF8);
+        var page = DownloadPage.Render($"{SimplArchive.Localization.Strings.ProductName} — downloads", html.ToString());
+        await context.Response.WriteAsync(page, Encoding.UTF8);
     }
 
     // Decimal units, because that is what a download page beside a browser's own progress bar should agree with.

@@ -191,9 +191,11 @@ jobs:
       - name: Compile the manual
         run: |
           set -euo pipefail
-          product="$(python3 -c 'import json; print(json.load(open("brand/brand.json"))["name"])')"
-          [ -n "$product" ] || { echo "::error::no name in brand/brand.json"; exit 1; }
-          SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf --root . --font-path brand/assets/fonts --input product="$product"
+          source scripts/brand.sh
+          # Named from the brand's file stem (ADR 0997).
+          pdf="src/SimplArchive.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
+          SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
+          echo "MANUAL_PDF=$pdf" >> "$GITHUB_ENV"
 
       # main only: commit the regenerated PDF + screenshots. GITHUB_TOKEN pushes do not trigger workflows, so no
       # loop; [skip ci] is belt-and-suspenders. A no-op when nothing changed.
@@ -204,7 +206,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: manual
-          path: src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf
+          path: ${{ env.MANUAL_PDF }}
           if-no-files-found: error
 
       - name: Commit the regenerated manual
@@ -212,7 +214,7 @@ jobs:
         run: |
           git config user.name "simplarchive-manual-bot"
           git config user.email "manual-bot@users.noreply.github.com"
-          git add manual/screenshots src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf
+          git add -A manual/screenshots src/SimplArchive.Api/wwwroot/download/manual
           if git diff --cached --quiet; then
             echo "Manual unchanged — nothing to commit."
           else

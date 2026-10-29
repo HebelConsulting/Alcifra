@@ -77,12 +77,7 @@ jobs:
         if: ${{ needs.gate.outputs.white_label == 'true' && matrix.suffix == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow manual.yml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          [ -n "$run" ] || { echo "::error::No successful manual build on main to put into the image."; exit 1; }
-          gh run download "$run" --repo "$GITHUB_REPOSITORY" --name manual --dir "$RUNNER_TEMP/manual"
-          cp "$RUNNER_TEMP"/manual/*.pdf src/SimplArchive.Api/wwwroot/download/manual/SimplArchive-Manual.pdf
+        run: scripts/edition-manual.sh --white-label
 
       - name: Log in to the registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0

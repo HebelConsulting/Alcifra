@@ -24,7 +24,7 @@ public class WebIntraySortRotationTests
         // deliberately upside-down one this feature exists for.
         var name = "rot-" + Guid.NewGuid().ToString("N")[..8];
         using var http = new HttpClient();
-        var bytes = await http.GetByteArrayAsync($"{_app.BaseUrl}/download/samples/SimplArchive-Patch3-Sample-Batch.pdf");
+        var bytes = await http.GetByteArrayAsync($"{_app.BaseUrl}/download/samples/Patch3-Sample-Batch.pdf");
 
         await page.Locator(".wb-tab[aria-label=\"Intray\"]").First.ClickAsync();
         await page.SetInputFilesAsync("#intray-file-input", new FilePayload

@@ -9,6 +9,7 @@ using OpenIddict.Abstractions;
 using Fido2NetLib;
 using Scalar.AspNetCore;
 using Serilog;
+using SimplArchive.Api.Download;
 using SimplArchive.Api.Authentication;
 using SimplArchive.Api.Configuration;
 using SimplArchive.Api.Errors;
@@ -838,43 +839,8 @@ staticContentTypes.Mappings[".txt"] = "text/plain; charset=utf-8";
 staticContentTypes.Mappings[".md"] = "text/markdown; charset=utf-8";
 app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = staticContentTypes });
 
-// Public desktop-client download area (ADR 0490): make ONLY /download browsable so a visitor can click through to
-// clients/<os>/ and grab the build that matches this API. The win/linux archives are baked into the image by the
-// Dockerfile; clients/macos/ carries an index.html linking to the GitHub Release (a Linux image can't build the
-// .dmg). Placed BEFORE UseAuthentication/UseAuthorization, so the listing + downloads are anonymous. Uses a real
-// PhysicalFileProvider (UseDirectoryBrowser needs directory enumeration, which the static-web-assets manifest
-// provider used under `dotnet run` doesn't support) — resolved across the published (wwwroot) + dev layouts. The
-// dedicated static-file handler sets ServeUnknownFileTypes so .dmg/.tar.gz download rather than 404 on the default
-// (known-types-only) middleware above.
-var downloadDir = new[]
-{
-    string.IsNullOrEmpty(app.Environment.WebRootPath) ? null : System.IO.Path.Combine(app.Environment.WebRootPath, "download"),
-    System.IO.Path.Combine(app.Environment.ContentRootPath, "wwwroot", "download"),
-    System.IO.Path.Combine(AppContext.BaseDirectory, "wwwroot", "download"),
-    // dev: `dotnet run` sets the content root to the repo root, so the API's own wwwroot is under src/.
-    System.IO.Path.Combine(app.Environment.ContentRootPath, "src", "SimplArchive.Api", "wwwroot", "download"),
-}.FirstOrDefault(p => p is not null && System.IO.Directory.Exists(p));
-
-if (downloadDir is not null)
-{
-    var downloadProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(downloadDir);
-    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = downloadProvider, RequestPath = "/download" });
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = downloadProvider,
-        RequestPath = "/download",
-        ServeUnknownFileTypes = true,
-        DefaultContentType = "application/octet-stream",
-    });
-    app.UseDirectoryBrowser(new DirectoryBrowserOptions
-    {
-        FileProvider = downloadProvider,
-        RequestPath = "/download",
-        // The product's own design rather than the framework's "Index of /download/…" (ADR 0578). The
-        // listing stays dynamic because archive filenames carry a version that changes every release.
-        Formatter = new SimplArchive.Api.Download.ThemedDirectoryFormatter(),
-    });
-}
+// Public download area (ADR 0490): anonymous, before authentication; its pages follow the brand (ADR 0997).
+app.UseDownloadArea();
 
 // Explicit UseRouting so it runs HERE, after the /download static/browse middleware — not auto-injected at the
 // pipeline start. Otherwise the SPA fallback endpoint ({*path}) is already matched by the time the directory

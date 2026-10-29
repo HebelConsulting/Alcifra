@@ -284,7 +284,7 @@ public sealed partial class IntrayItemActionsViewModel : ObservableObject
         await RunAsync(async () =>
         {
             var sheet = await api.Intray.GetBytesAsync(href);
-            await NativeFileOpener.OpenBytesAsync(sheet, "SimplArchive-Patch3-Separator.pdf");
+            await NativeFileOpener.OpenBytesAsync(sheet, $"{SimplArchive.Theming.Brand.Shipped.FileStem}-Patch3-Separator.pdf");
         });
     }
 

@@ -328,7 +328,7 @@ public static class WindowShots
             if (args.Contains("--update"))
             {
                 logonVm.UpdateCheck = (_, _) => System.Threading.Tasks.Task.FromResult<Services.UpdateInfo?>(
-                    new Services.UpdateInfo("2.0.0", "https://demo.simplarchive.dev/download/clients/macos/SimplArchive-2.0.0-x64.dmg", Services.ClientUpdateKind.UpdateAvailable));
+                    new Services.UpdateInfo("2.0.0", $"https://{SimplArchive.Theming.Brand.Shipped.Distribution.Domains.Demo}/download/clients/macos/{SimplArchive.Theming.Brand.Shipped.FileStem}-2.0.0-x64.dmg", Services.ClientUpdateKind.UpdateAvailable));
             }
 
             var win = new Views.LogonWindow { DataContext = logonVm };

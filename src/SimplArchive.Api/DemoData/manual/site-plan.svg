@@ -13,5 +13,5 @@
   <rect x="900" y="200" width="180" height="300" fill="#c9c4d3" rx="4"/>
   <text x="990" y="355" font-size="22" fill="#444" text-anchor="middle">Parking</text>
   <text x="60" y="80" font-size="34" fill="#333" font-weight="bold">Situationsplan / Site plan</text>
-  <text x="60" y="118" font-size="18" fill="#777">Fiktives Demo-Dokument von SimplArchive. / A fictional SimplArchive demo document.</text>
+  <text x="60" y="118" font-size="18" fill="#777">Fiktives Demo-Dokument. / A fictional demo document.</text>
 </svg>

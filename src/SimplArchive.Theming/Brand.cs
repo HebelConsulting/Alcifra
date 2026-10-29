@@ -31,6 +31,12 @@ public sealed record Brand(
     /// </summary>
     public static bool ShowsWordmark(string productName) => string.Equals(productName, Shipped.Name, StringComparison.Ordinal);
 
+    /// <summary>
+    /// The served manual's file name (ADR 0997): the brand's file stem, so a downloaded manual says whose it is.
+    /// </summary>
+    [JsonIgnore]
+    public string ManualFileName => $"{FileStem}-Manual.pdf";
+
     private static readonly JsonSerializerOptions Options = new()
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,

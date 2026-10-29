@@ -112,7 +112,7 @@ public class PatchCodeSampleShapeTests
     public void The_browsable_copy_matches_what_the_composer_produces()
     {
         var checkedIn = Path.Combine(RepoRoot(), "src", "SimplArchive.Api", "wwwroot", "download", "samples",
-            "SimplArchive-Patch3-Sample-Batch.pdf");
+            "Patch3-Sample-Batch.pdf");
 
         Assert.True(File.Exists(checkedIn),
             $"{checkedIn} is missing — run scripts/generate-scan-sample.sh.");

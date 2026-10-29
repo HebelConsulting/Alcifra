@@ -64,8 +64,8 @@ printf 'wrote %s (%s bytes, %s pages)\n' \
 # composition change fails the build until this script is re-run.
 samples="$repo_root/src/SimplArchive.Api/wwwroot/download/samples"
 mkdir -p "$samples"
-curl -fsS -o "$samples/SimplArchive-Patch3-Separator.pdf"    "$api/api/intray/patch-code-sheet"
-curl -fsS -o "$samples/SimplArchive-Patch3-Sample-Batch.pdf" "$api/api/intray/patch-code-sample"
-cp "$demo/patch-code-sample-batch.tif" "$samples/SimplArchive-Patch3-Sample-Scan.tif"
+curl -fsS -o "$samples/Patch3-Separator.pdf"    "$api/api/intray/patch-code-sheet"
+curl -fsS -o "$samples/Patch3-Sample-Batch.pdf" "$api/api/intray/patch-code-sample"
+cp "$demo/patch-code-sample-batch.tif" "$samples/Patch3-Sample-Scan.tif"
 
 printf 'wrote %s browsable copies to %s\n' 3 "$samples"

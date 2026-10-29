@@ -4,7 +4,7 @@
   <!-- Conditional: the Docker restore layer copies .csproj files only, and this carries package metadata, nothing a restore needs. -->
   <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
   <PropertyGroup>
-    <Description>The hypermedia API client the SimplArchive desktop and mobile apps share (ADR 0917).</Description>
+    <Description>The hypermedia API client the $(ProductName) desktop and mobile apps share (ADR 0917).</Description>
   </PropertyGroup>
 
   <!-- TargetFramework is set explicitly for the Docker restore layer, as every project does. -->

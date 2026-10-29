@@ -4,7 +4,7 @@
   <!-- Conditional: the Docker restore layer copies .csproj files only, and this carries package metadata, nothing a restore needs. -->
   <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
   <PropertyGroup>
-    <Description>The SimplArchive clients' user-interface texts (EN/DE/IT/ES).</Description>
+    <Description>The $(ProductName) clients' user-interface texts (EN/DE/IT/ES).</Description>
   </PropertyGroup>
 
   <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker

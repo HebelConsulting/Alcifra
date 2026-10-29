@@ -84,7 +84,7 @@ RUN dotnet publish "src/SimplArchive.Api/SimplArchive.Api.csproj" -c Release -o 
 #
 # Both final images still carry the archives, so /download/clients/{windows,linux}/ keeps working and downloads
 # stay in lock-step with the API image (ADR 0490). macOS is unaffected — a Linux build cannot produce a .dmg, so
-# clients/macos/ links to the GitHub Release.
+# clients/macos/ links to the brand's release repository (ADR 0997).
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS clients
 ARG VERSION=0.0.0-dev
 WORKDIR /src

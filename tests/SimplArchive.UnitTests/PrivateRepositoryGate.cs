@@ -1,3 +1,5 @@
+using SimplArchive.Theming;
+
 namespace SimplArchive.UnitTests;
 
 /// <summary>
@@ -41,10 +43,28 @@ public static class PrivateRepositoryGate
     /// <summary>The repository root, or null when it cannot be found — see <see cref="RepoPaths"/>.</summary>
     public static string? RepoRoot() => RepoPaths.RootOrNull();
 
-    /// <summary>True when this checkout's origin is the private repository, resolving worktrees.</summary>
+    /// <summary>
+    /// True when this checkout's origin is the private repository, or a white-label edition made from it, resolving
+    /// worktrees.
+    /// </summary>
+    /// <remarks>
+    /// An edition is a copy of the private repository with only <c>brand/</c> changed (ADR 0996): it HAS every input
+    /// the mirror withholds, so it is gated like the private repository. Read by origin alone, it was taken for the
+    /// mirror, and a guard that counts what <c>tools/</c> holds but reads its allowances only where it is private
+    /// failed there on an allowed write (ADR 0997).
+    /// </remarks>
     public static bool IsPrivateRepository(string root) =>
+        IsPrivateRepository(root, Brand.Shipped.Credit is null ? null : Brand.Shipped.Distribution.ReleaseRepository);
+
+    /// <summary>
+    /// <see cref="IsPrivateRepository(string)"/> with the edition's repository given: null for the product's own
+    /// brand, whose release repository is the public mirror.
+    /// </summary>
+    public static bool IsPrivateRepository(string root, string? editionRepository) =>
         GitConfigPath(root) is { } config
-        && File.ReadAllText(config).Contains(PrivateRepo, StringComparison.OrdinalIgnoreCase);
+        && File.ReadAllText(config) is var text
+        && (text.Contains(PrivateRepo, StringComparison.OrdinalIgnoreCase)
+            || (editionRepository is not null && text.Contains(editionRepository, StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>
     /// The <c>config</c> that carries the origin remote, or null when there is no git directory to consult —

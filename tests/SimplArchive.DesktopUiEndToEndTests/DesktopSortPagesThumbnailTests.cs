@@ -24,8 +24,8 @@ public class DesktopSortPagesThumbnailTests
     public DesktopSortPagesThumbnailTests(SelfHostedAppFixture app) => _app = app;
 
     [Theory]
-    [InlineData("SimplArchive-Patch3-Sample-Batch.pdf", 7)]
-    [InlineData("SimplArchive-Patch3-Sample-Scan.tif", 7)]
+    [InlineData("Patch3-Sample-Batch.pdf", 7)]
+    [InlineData("Patch3-Sample-Scan.tif", 7)]
     public async Task Thumbnails_load_for_every_page_of_a_staged_item(string sample, int pages)
     {
         DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;

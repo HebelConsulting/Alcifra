@@ -67,5 +67,5 @@ selected row; each row's own actions in its context/⋮ menu):
 
 ## Docs
 
-- [User manual (PDF)](/download/manual/SimplArchive-Manual.pdf): generated from the running app.
+- [User manual](/download/manual/): generated from the running app.
 - [Desktop clients](/download/clients/): Windows, macOS and Linux builds.

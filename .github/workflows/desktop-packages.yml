@@ -60,6 +60,7 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write # create the GitHub Release + upload assets
+      actions: read # a white-label edition takes its manual from its manual build (scripts/edition-manual.sh)
     # NOTARIZATION POSTPONED (ADR 0905): while Apple has not provisioned the notary for our fresh enrolment, the
     # repository variable MACOS_NOTARIZATION_POSTPONED=true builds the .dmgs AD-HOC signed, as every release before
     # ADR 0896 did. Not "signed but un-notarized": Gatekeeper refuses that too, and it LOOKS finished (the script
@@ -157,6 +158,13 @@ jobs:
           for asset in "${assets[@]}"; do
             [ -f "$asset" ] || { echo "::error::$asset was not built."; exit 1; }
           done
+          # The edition's manual travels with its release too (ADR 0997): a stable public link to the PDF this
+          # version serves, without a running server.
+          if [ "${{ needs.gate.outputs.white_label }}" = "true" ]; then
+            assets+=("$(scripts/edition-manual.sh --white-label)")
+          else
+            assets+=("$(scripts/edition-manual.sh)")
+          fi
           gh release create "$GITHUB_REF_NAME" "${assets[@]}" --title "$GITHUB_REF_NAME" --generate-notes \
             || gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
 
@@ -202,7 +210,8 @@ jobs:
             "$BRAND_FILE_STEM-$version-win-x64.zip" \
             "$BRAND_FILE_STEM-$version-linux-x64.tar.gz" \
             "$BRAND_FILE_STEM-$version-arm64.dmg" \
-            "$BRAND_FILE_STEM-$version-x64.dmg"
+            "$BRAND_FILE_STEM-$version-x64.dmg" \
+            "$BRAND_FILE_STEM-Manual.pdf"
           do
             # Two traps in one line, both met here. `grep -qxF` rather than `grep -q`: without -x the x64 .dmg
             # is satisfied by the arm64 one, because one name contains the other. And a HERE-STRING rather
@@ -222,4 +231,4 @@ jobs:
             exit 1
           fi
 
-          echo "All four packages are attached to $GITHUB_REF_NAME."
+          echo "All four packages and the manual are attached to $GITHUB_REF_NAME."

@@ -4,7 +4,7 @@
        bytes with it on the phone too. Conditional for the Docker restore layer, as in Presentation. -->
   <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
   <PropertyGroup>
-    <Description>PDF bytes to per-page word boxes, once, for every SimplArchive surface (#1402, ADR 0830).</Description>
+    <Description>PDF bytes to per-page word boxes, once, for every $(ProductName) surface (#1402, ADR 0830).</Description>
   </PropertyGroup>
 
   <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker

@@ -104,4 +104,19 @@ public class PrivateRepositoryGateTests : IDisposable
             "[remote \"origin\"]\n\turl = git@github.com:HebelConsulting/SimplArchive.git\n");
         Assert.False(PrivateRepositoryGate.IsPrivateRepository(theirs));
     }
+
+    // A white-label edition is a copy of the private repository with only brand/ changed (ADR 0996), so its guards
+    // run as they do here. The product's own brand names the public mirror as its release repository and passes no
+    // edition, so the mirror stays the mirror.
+    [Fact]
+    public void Recognises_a_white_label_edition_made_from_it()
+    {
+        var edition = Dir("edition");
+        File.WriteAllText(Path.Combine(Dir("edition", ".git"), "config"),
+            "[remote \"origin\"]\n\turl = https://github.com/HebelConsulting/Edition.git\n");
+
+        Assert.True(PrivateRepositoryGate.IsPrivateRepository(edition, "HebelConsulting/Edition"));
+        Assert.False(PrivateRepositoryGate.IsPrivateRepository(edition, null));
+        Assert.False(PrivateRepositoryGate.IsPrivateRepository(edition, "HebelConsulting/Another"));
+    }
 }

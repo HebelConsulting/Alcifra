@@ -4,7 +4,7 @@
   <!-- Conditional: the Docker restore layer copies .csproj files only, and this carries package metadata, nothing a restore needs. -->
   <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
   <PropertyGroup>
-    <Description>The display rules every SimplArchive client must answer identically (ADRs 0650/0651).</Description>
+    <Description>The display rules every $(ProductName) client must answer identically (ADRs 0650/0651).</Description>
   </PropertyGroup>
 
   <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker

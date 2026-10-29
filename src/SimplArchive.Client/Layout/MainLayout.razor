@@ -172,7 +172,7 @@
                 @* Help (?) menu — Manual + About (ADR 0504), just left of the account menu. *@
                 <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Inherit" title="@Strings.Get("Help")" @onclick="OpenHelpMenuAsync" />
                 <MudMenu @ref="_helpMenu" PositionAtCursor="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Style="display:none;">
-                    <MudMenuItem Icon="@Icons.Material.Filled.MenuBook" Href="/download/manual/SimplArchive-Manual.pdf" Target="_blank">@Strings.Get("HelpManual")</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.MenuBook" Href="@($"/download/manual/{SimplArchive.Theming.Brand.Shipped.ManualFileName}")" Target="_blank">@Strings.Get("HelpManual")</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.Info" OnClick="ShowAboutAsync">@Strings.Get("HelpAbout")</MudMenuItem>
                 </MudMenu>
                 @* DisplayName first, the account/self-service avatar in the corner (rightmost). *@
