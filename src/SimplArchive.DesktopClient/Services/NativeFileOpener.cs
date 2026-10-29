@@ -42,7 +42,7 @@ public static class NativeFileOpener
 
     private static string TempDirectory()
     {
-        var directory = TempDirectoryOverride ?? Path.Combine(Path.GetTempPath(), "SimplArchive");
+        var directory = TempDirectoryOverride ?? Path.Combine(Path.GetTempPath(), SimplArchive.Localization.PersistedNames.DesktopTempFolder);
         Directory.CreateDirectory(directory);
         return directory;
     }

@@ -70,7 +70,7 @@ public static class LayoutSettingsStore
 {
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SimplArchive",
+        SimplArchive.Localization.PersistedNames.DesktopAppData,
         "desktop-layout.json");
 
     // Overridable so a test can point at a throwaway file instead of the real app-data path (mirrors

@@ -45,7 +45,7 @@ public static class ServerProfileStore
 {
     private static readonly string FilePath = Path.Combine(
         System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
-        "SimplArchive",
+        SimplArchive.Localization.PersistedNames.DesktopAppData,
         "servers.json");
 
     // Overridable so a test can point at a throwaway file instead of the real app-data path.

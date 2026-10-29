@@ -42,7 +42,7 @@ public partial class BrowserAutofillDialog : Window
         if (enabled)
         {
             var launcher = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SimplArchive",
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), SimplArchive.Localization.PersistedNames.DesktopAppData,
                 OperatingSystem.IsWindows() ? "browser-host.cmd" : "browser-host");
 
             // Chrome starts a manifest's path with NO arguments, so the launcher carries the verb (ADR 0978).

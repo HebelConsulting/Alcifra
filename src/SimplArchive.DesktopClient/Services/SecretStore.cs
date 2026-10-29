@@ -107,7 +107,7 @@ public sealed class InMemorySecretStore : ISecretStore
 /// </remarks>
 public abstract class ProcessSecretStore : ISecretStore
 {
-    protected const string Service = "SimplArchive";
+    protected const string Service = SimplArchive.Localization.PersistedNames.DesktopKeychainService;
 
     public abstract bool IsAvailable { get; }
 
@@ -317,7 +317,7 @@ public sealed class WindowsCredentialStore : ISecretStore
         }
     }
 
-    private static string Target(string key) => $"SimplArchive:{key}";
+    private static string Target(string key) => $"{SimplArchive.Localization.PersistedNames.DesktopKeychainService}:{key}";
 
     private static byte[] ReadBlob(Credential credential)
     {

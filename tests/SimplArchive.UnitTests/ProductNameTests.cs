@@ -85,22 +85,14 @@ public class ProductNameTests
     // listed here, each with the step that moves it; a new literal fails.
     private static readonly Dictionary<string, string> NotYetRenamed = new()
     {
-        // The name before the rename, which the startup heal recognises in stored data (ADR 0986).
-        ["src/SimplArchive.Localization/CoreOwnedNames.cs"] = "the earlier product name, recognised by the heal of stored names",
-        // Phase 5, identifiers with data behind them, each moved with a migration of that data.
-        ["src/SimplArchive.Api/Program.cs"] = "phase 5: the data-protection application name; renaming it invalidates the keys",
+        // Names already written into installations and users' machines, kept whatever the product is called: the
+        // data-protection application, the desktop's app-data, keychain and temp names, the earlier product name the
+        // heals recognise (#1117 phase 5). One file, which the code sweep excludes.
+        ["src/SimplArchive.Localization/PersistedNames.cs"] = "names with data behind them; renaming one orphans what was stored under it",
+        // Phase 5, identifiers that move with the code sweep.
         ["src/SimplArchive.DesktopClient/Views/WindowShots.cs"] = "phase 5: a screenshot fixture naming the desktop package, renamed with the updater and the release repository",
         ["src/SimplArchive.Api/Serialization/UtcModelNormalizer.cs"] = "an identifier: the code's own namespace prefix",
         ["src/SimplArchive.DesktopClient/Services/ClientUpdate.cs"] = "phase 5: the release repository's name",
-        ["src/SimplArchive.DesktopClient/Services/SecretStore.cs"] = "phase 5: the keychain service; renaming it loses the stored sessions",
-        ["src/SimplArchive.DesktopClient/Services/LocalFolders.cs"] = "phase 5: the local data folder",
-        ["src/SimplArchive.DesktopClient/Services/LayoutSettings.cs"] = "phase 5: the local data folder",
-        ["src/SimplArchive.DesktopClient/Services/TreeExpansionStore.cs"] = "phase 5: the local data folder",
-        ["src/SimplArchive.DesktopClient/Services/ServerProfileStore.cs"] = "phase 5: the local data folder",
-        ["src/SimplArchive.DesktopClient/Services/BrowserAutofillSettings.cs"] = "phase 5: the local data folder",
-        ["src/SimplArchive.DesktopClient/Views/BrowserAutofillDialog.axaml.cs"] = "phase 5: the local data folder",
-        ["src/SimplArchive.DesktopClient/Services/DesktopLog.cs"] = "phase 5: the local log folder",
-        ["src/SimplArchive.DesktopClient/Services/NativeFileOpener.cs"] = "phase 5: the temporary folder",
     };
 
     [Theory]

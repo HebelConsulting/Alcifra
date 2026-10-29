@@ -12,7 +12,7 @@ public sealed class LocalFolders
     public LocalFolders(string tenantName, string userName)
     {
         var basePath = OperatingSystem.IsWindows()
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SimplArchive")
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), SimplArchive.Localization.PersistedNames.DesktopAppData)
             : HomeFolder(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Brand.Shipped.FileStem);
 
         Root = Path.Combine(basePath, Sanitize(tenantName), Sanitize(userName));
@@ -32,7 +32,7 @@ public sealed class LocalFolders
     internal static string HomeFolder(string home, string fileStem)
     {
         var folder = Path.Combine(home, fileStem);
-        var earlier = Path.Combine(home, "SimplArchive");
+        var earlier = Path.Combine(home, SimplArchive.Localization.PersistedNames.EarlierProduct);
         if (folder != earlier && Directory.Exists(earlier) && !Directory.Exists(folder))
         {
             try

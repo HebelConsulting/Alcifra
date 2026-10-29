@@ -86,7 +86,7 @@ public static class ClientUpdate
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
             // GitHub's API rejects requests without a User-Agent (403); harmless on the /api call too.
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("SimplArchive-DesktopClient");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd(SimplArchive.Localization.PersistedNames.DesktopUserAgent);
 
             // (1) The server's own version, from its /api discovery document.
             var apiDoc = await http.GetStringAsync($"{baseUrl.TrimEnd('/')}/api", cancellationToken);

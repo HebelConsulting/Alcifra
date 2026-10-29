@@ -39,7 +39,7 @@ public static class TreeExpansionStore
 {
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SimplArchive",
+        SimplArchive.Localization.PersistedNames.DesktopAppData,
         "desktop-tree.json");
 
     /// <summary>Overridable so a test writes to a throwaway file rather than the developer's own state.</summary>

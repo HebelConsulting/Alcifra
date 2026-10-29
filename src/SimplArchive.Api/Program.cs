@@ -128,7 +128,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // cookie can't be decrypted) and every cookie across replicas. SetApplicationName pins the purpose strings.
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<SimplArchive.Infrastructure.Persistence.SimplArchiveDbContext>()
-    .SetApplicationName("SimplArchive");
+    .SetApplicationName(SimplArchive.Localization.PersistedNames.DataProtectionApplication);
 
 builder.Services.AddAuthServer(builder.Configuration, builder.Environment);
 

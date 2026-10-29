@@ -22,7 +22,7 @@ public static class CoreOwnedNames
 
     // The product names an earlier default may carry: the name before the rename (ADR 0985), and the build's own, for an
     // installation that has since named itself (Branding:ProductName).
-    private static readonly string[] EarlierProducts = ["SimplArchive", ProductBuild.Name];
+    private static readonly string[] EarlierProducts = [PersistedNames.EarlierProduct, ProductBuild.Name];
 
     /// <summary>
     /// Whether <paramref name="current"/> is an earlier default of a core-owned name ending in <paramref name="suffix"/>,

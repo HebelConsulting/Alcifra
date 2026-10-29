@@ -13,7 +13,7 @@ public static class BrowserAutofillSettingsStore
 {
     private static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "SimplArchive",
+        SimplArchive.Localization.PersistedNames.DesktopAppData,
         "desktop-autofill.json");
 
     /// <summary>Overridable so a test points at a throwaway file (the layout store's pattern).</summary>
