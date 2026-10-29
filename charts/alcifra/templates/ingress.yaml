@@ -1,0 +1,42 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "alcifra.fullname" . }}
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $host := .Values.ingress.hosts }}
+    - host: {{ $host.host | quote }}
+      http:
+        paths:
+          {{- range $host.paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                {{- if eq ($host.backend | default "app") "seaweedfs" }}
+                # The S3 host routes straight to the object store (presigned URLs the browser hits directly).
+                name: {{ include "alcifra.fullname" $ }}-seaweedfs
+                port:
+                  number: 8333
+                {{- else }}
+                name: {{ include "alcifra.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+                {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}

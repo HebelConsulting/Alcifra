@@ -68,8 +68,8 @@
   "distribution": {
     "bundleId": "ch.hebelconsulting.simplarchive",
     "imageRegistry": "ghcr.io/hebelconsulting",
-    "imageName": "simplarchive",
-    "chartName": "simplarchive",
+    "imageName": "alcifra",
+    "chartName": "alcifra",
     "releaseRepository": "HebelConsulting/SimplArchive",
     "domains": {
       "demo": "demo.simplarchive.dev"

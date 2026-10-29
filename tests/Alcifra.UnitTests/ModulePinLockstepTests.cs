@@ -35,7 +35,7 @@ public partial class ModulePinLockstepTests
             "modules.env yielded no pins. It is the SOURCE, so a parse failure here makes every comparison "
             + "below vacuous — fix the parse or the file, never this assertion.");
 
-        var chart = File.ReadAllText(Path.Combine(root, "charts", "simplarchive", "values.yaml"));
+        var chart = File.ReadAllText(Path.Combine(root, "charts", "alcifra", "values.yaml"));
 
         var drifted = pins
             .Where(p => !ChartDeclares(chart, p.Key, p.Value))
@@ -44,7 +44,7 @@ public partial class ModulePinLockstepTests
             .ToList();
 
         Assert.True(drifted.Count == 0,
-            "charts/simplarchive/values.yaml disagrees with modules.env:\n"
+            "charts/alcifra/values.yaml disagrees with modules.env:\n"
             + string.Join("\n", drifted)
             + "\n\nmodules.env is the source. A chart that pins a different version installs software nobody "
             + "asked for, and a chart that pins a different digest refuses to install at all.");
@@ -65,7 +65,7 @@ public partial class ModulePinLockstepTests
         }
 
         var env = File.ReadAllText(Path.Combine(root, "modules.env"));
-        var chart = File.ReadAllText(Path.Combine(root, "charts", "simplarchive", "values.yaml"));
+        var chart = File.ReadAllText(Path.Combine(root, "charts", "alcifra", "values.yaml"));
         var sources = Pins(env).Keys.ToDictionary(k => k, _ => string.Empty);
         foreach (Match m in EnvSource().Matches(env))
         {
@@ -77,7 +77,7 @@ public partial class ModulePinLockstepTests
             .Where(p => ChartSource(chart, p.Key) != p.Value)
             .Select(p => $"  {p.Key}: modules.env says source='{p.Value}', the chart says '{ChartSource(chart, p.Key)}'")
             .ToList();
-        Assert.True(drifted.Count == 0, "charts/simplarchive/values.yaml disagrees with modules.env on where a module comes from:\n" + string.Join("\n", drifted));
+        Assert.True(drifted.Count == 0, "charts/alcifra/values.yaml disagrees with modules.env on where a module comes from:\n" + string.Join("\n", drifted));
     }
 
     private static string ChartSource(string chart, string key)
@@ -142,9 +142,9 @@ public partial class ModulePinLockstepTests
         var defaults = files.ToDictionary(f => f, f => FeedDefault().Matches(File.ReadAllText(Path.Combine(root, f)))
             .Select(m => m.Groups[1].Value).Distinct(StringComparer.Ordinal).ToList());
 
-        var chart = ChartFeed().Match(File.ReadAllText(Path.Combine(root, "charts", "simplarchive", "values.yaml")));
-        Assert.True(chart.Success, "charts/simplarchive/values.yaml has no modules.feed — this guard cannot read it.");
-        defaults["charts/simplarchive/values.yaml (modules.feed)"] = [chart.Groups[1].Value];
+        var chart = ChartFeed().Match(File.ReadAllText(Path.Combine(root, "charts", "alcifra", "values.yaml")));
+        Assert.True(chart.Success, "charts/alcifra/values.yaml has no modules.feed — this guard cannot read it.");
+        defaults["charts/alcifra/values.yaml (modules.feed)"] = [chart.Groups[1].Value];
 
         var silent = defaults.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key).ToList();
         Assert.True(silent.Count == 0,
@@ -166,14 +166,14 @@ public partial class ModulePinLockstepTests
         }
 
         var source = Path.Combine(root, "scripts", "modules-init.sh");
-        var copy = Path.Combine(root, "charts", "simplarchive", "files", "modules-init.sh");
+        var copy = Path.Combine(root, "charts", "alcifra", "files", "modules-init.sh");
 
         Assert.True(File.Exists(copy),
             $"{copy} is missing. The chart renders it into a ConfigMap and cannot read outside itself, so the "
             + "copy is required — and it is required to be identical, which is what the rest of this asserts.");
 
         Assert.True(File.ReadAllText(source) == File.ReadAllText(copy),
-            "scripts/modules-init.sh and charts/simplarchive/files/modules-init.sh have diverged.\n\n"
+            "scripts/modules-init.sh and charts/alcifra/files/modules-init.sh have diverged.\n\n"
             + "Copy the script over the chart's copy; do not edit one of them. Two installers that differ mean "
             + "compose and Kubernetes install modules differently, and only one of them was tested (#1249 is "
             + "what that looks like after a year).");

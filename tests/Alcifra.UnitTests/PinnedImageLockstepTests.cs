@@ -5,7 +5,7 @@ namespace Alcifra.UnitTests;
 // Every place that names a third-party service image must name the SAME version, and must PIN it.
 //
 // WHY. A third-party image — Postgres, OpenSearch, Tika, Gotenberg, Valkey, SeaweedFS — is named in four
-// places: `docker-compose.yaml`, `charts/simplarchive/values.yaml`, and the two E2E fixtures that stand the
+// places: `docker-compose.yaml`, `charts/alcifra/values.yaml`, and the two E2E fixtures that stand the
 // same services up with Testcontainers. A floating tag in a FIXTURE means the suite is not testing the version
 // that ships, and nobody learns that until the upstream project releases.
 //
@@ -110,12 +110,12 @@ public partial class PinnedImageLockstepTests
         var surfaces = new List<(string Label, string Path, bool Csharp)>
         {
             ("docker-compose.yaml", Path.Combine(root, "docker-compose.yaml"), false),
-            ("charts/simplarchive/values.yaml", Path.Combine(root, "charts", "simplarchive", "values.yaml"), false),
+            ("charts/alcifra/values.yaml", Path.Combine(root, "charts", "alcifra", "values.yaml"), false),
             // The chart's hooks that run aws-cli name it LITERALLY, outside values.yaml — and so did the AWS
             // installers below. Neither was a surface here, so they sat at 2.36.2 while images.env moved to 2.36.50
             // and then 2.37.9, with every check green.
-            ("charts/…/hooks/storage-init.yaml", Path.Combine(root, "charts", "simplarchive", "templates", "hooks", "storage-init.yaml"), false),
-            ("charts/…/reset-cronjob.yaml", Path.Combine(root, "charts", "simplarchive", "templates", "reset-cronjob.yaml"), false),
+            ("charts/…/hooks/storage-init.yaml", Path.Combine(root, "charts", "alcifra", "templates", "hooks", "storage-init.yaml"), false),
+            ("charts/…/reset-cronjob.yaml", Path.Combine(root, "charts", "alcifra", "templates", "reset-cronjob.yaml"), false),
             ("E2EApiFactory.cs", Path.Combine(root, "tests", "Alcifra.EndToEndTests", "E2EApiFactory.cs"), true),
             ("SelfHostedApp.cs", Path.Combine(root, "tests", "Alcifra.SelfHosting", "SelfHostedApp.cs"), true),
         };

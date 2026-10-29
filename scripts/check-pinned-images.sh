@@ -36,7 +36,7 @@ done
 # The chart hooks and the AWS installers name images literally, outside images.env. They sat at older pins
 # (aws-cli 2.36.2, Postgres 16.14) while this report said the stack was current, because it never read them.
 # PinnedImageLockstepTests holds them to images.env; this report says when images.env itself is behind upstream.
-for extra in charts/simplarchive/templates/hooks/storage-init.yaml charts/simplarchive/templates/reset-cronjob.yaml \
+for extra in charts/alcifra/templates/hooks/storage-init.yaml charts/alcifra/templates/reset-cronjob.yaml \
              tools/aws-install/install.sh tools/aws-install-single/install.sh; do
   [[ -f "$repo_root/$extra" ]] && files+=("$repo_root/$extra")
 done

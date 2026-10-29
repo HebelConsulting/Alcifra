@@ -89,14 +89,14 @@ Running your own instance instead of the demo? Substitute your host; the paths a
 
 ## Install in production
 
-Production deploys via the **Helm chart** in [`charts/simplarchive`](charts/simplarchive) — an API Deployment/Service/Ingress/HPA/PDB with health probes, non-root containers, and secret wiring; dependencies (Postgres, object storage, OpenSearch, …) are external/managed. The chart's [`values.yaml`](charts/simplarchive/values.yaml) documents the full configuration surface, and pre-install/pre-upgrade migration hooks apply schema changes off the app's startup path.
+Production deploys via the **Helm chart** in [`charts/alcifra`](charts/alcifra) — an API Deployment/Service/Ingress/HPA/PDB with health probes, non-root containers, and secret wiring; dependencies (Postgres, object storage, OpenSearch, …) are external/managed. The chart's [`values.yaml`](charts/alcifra/values.yaml) documents the full configuration surface, and pre-install/pre-upgrade migration hooks apply schema changes off the app's startup path.
 
 Every release publishes the chart, versioned with the release so it installs exactly that release's images: as an
 OCI artifact and as a `.tgz` on the release.
 
 ```sh
-helm upgrade --install simplarchive oci://ghcr.io/hebelconsulting/charts/simplarchive \
-  --version X.Y.Z -n simplarchive --create-namespace -f values-production.yaml
+helm upgrade --install alcifra oci://ghcr.io/hebelconsulting/charts/alcifra \
+  --version X.Y.Z -n alcifra --create-namespace -f values-production.yaml
 ```
 
 ## Encryption — two paid extras, in development

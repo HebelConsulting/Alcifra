@@ -3,7 +3,7 @@
 -- thing that account is ever used for. After this runs it owns nothing application-related and is never used
 -- by the app, migrations, or OpenBao again.
 --
--- ONE FILE, TWO DEPLOYMENT SHAPES. The Helm chart cannot read outside itself, so charts/simplarchive/files/
+-- ONE FILE, TWO DEPLOYMENT SHAPES. The Helm chart cannot read outside itself, so charts/alcifra/files/
 -- carries a COPY of this — kept byte-identical and checked by DbInitCopyLockstepTests. They used to be two
 -- files that drifted, and the drift was not cosmetic: ADR 0721 added `simplarchive_runtime` here and the chart
 -- copy never got it, so every chart install silently ran the dynamic-credential model 0721 exists to replace

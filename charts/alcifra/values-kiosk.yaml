@@ -1,0 +1,90 @@
+# Kiosk-demo values overlay (ADR 0485): the self-contained, daily-reset public demo on a single k3s node
+# (Oracle A1 free tier). Built up across the phased chart work — this is phase 1 (stateless in-cluster deps).
+#
+#   helm install sa charts/alcifra -f charts/alcifra/values-kiosk.yaml
+#
+# Single node → single replica, no HPA/PDB.
+
+replicaCount: 1
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+# In-cluster dependencies (phases 1-2). The app auto-wires to their Services (see _helpers.tpl).
+deps:
+  tika:
+    enabled: true
+  gotenberg:
+    enabled: true
+  ocr:
+    enabled: true
+  valkey:
+    enabled: true
+  postgres:
+    enabled: true
+  seaweedfs:
+    enabled: true
+  opensearch:
+    enabled: true
+  openbao:
+    enabled: true
+  reset:
+    enabled: true
+
+# Ingress + Let's Encrypt TLS (phase 4): demo.* → the app, s3.* → SeaweedFS, both on 443.
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: demo.simplarchive.dev
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: s3.simplarchive.dev
+      backend: seaweedfs
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: simplarchive-tls
+      hosts:
+        - demo.simplarchive.dev
+        - s3.simplarchive.dev
+
+certManager:
+  clusterIssuer:
+    enabled: true
+    email: "you@example.com"   # REPLACE with a real address before deploying (LE account/expiry notices).
+
+# App config (phase 6). The kiosk runs the demo seed, so it uses the Development environment (the production-
+# readiness gate, ADR 0343, refuses demo seeding + startup migration outside Development) — but WITH full OpenBao
+# providing real certs + credentials. Single replica ⇒ startup migration is safe; the migrate hook Job is off.
+config:
+  aspnetCoreEnvironment: Development
+  app:
+    baseUrl: "https://demo.simplarchive.dev"
+    applyMigrationsAtStartup: true
+  objectStorage:
+    publicServiceUrl: "https://s3.simplarchive.dev"   # presigned URLs the browser hits (the s3.* ingress host)
+
+migrationJob:
+  enabled: false
+
+# The demo tenant/admin seed. App__TrustProxyHeaders used to be set here too and no longer is: the chart now
+# derives it from ingress.enabled, which is true above. Repeating it would put the same variable in the
+# container twice, and this overlay is exactly where the missing default hid — the kiosk worked, so nobody
+# discovered that an ordinary install could not sign in at all.
+extraEnv:
+  - name: App__ProxyBaseUrl
+    value: "https://demo.simplarchive.dev"
+  - name: Demo__Tenant__Name
+    value: "Demo"
+  - name: Demo__Administrator__Email
+    value: "demo@simplarchive.local"
+  - name: Demo__Administrator__Password
+    value: "SimplDemo2026!"

@@ -1,0 +1,16 @@
+{{/*
+Refuses to render over an installation made under another chart name (ADR 1004). Every resource is named after the
+chart (`<release>-<name>-…`), so a release whose chart was renamed would get NEW StatefulSets with EMPTY volumes, and
+the application would start on a blank database beside the data it no longer reads. The release's StatefulSets carry
+the name they were made under in `app.kubernetes.io/name`; one that differs from this chart's means `nameOverride`
+must say it. Renders nothing; `lookup` finds nothing without a cluster, so `helm template` and lint pass.
+*/}}
+{{- $name := include "alcifra.name" . -}}
+{{- $sets := lookup "apps/v1" "StatefulSet" .Release.Namespace "" -}}
+{{- range $set := ($sets.items | default list) -}}
+{{- $labels := $set.metadata.labels | default dict -}}
+{{- $madeAs := get $labels "app.kubernetes.io/name" -}}
+{{- if and (eq (get $labels "app.kubernetes.io/instance") $.Release.Name) $madeAs (ne $madeAs $name) -}}
+{{- fail (printf "release %q already has StatefulSet %q, made under the name %q; this chart would name its resources %q and start them on EMPTY volumes. Set `nameOverride: %s` to keep the existing names and their data (ADR 1004)." $.Release.Name $set.metadata.name $madeAs $name $madeAs) -}}
+{{- end -}}
+{{- end -}}

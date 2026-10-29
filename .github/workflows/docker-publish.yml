@@ -70,6 +70,13 @@ jobs:
           echo "image=$BRAND_IMAGE_REGISTRY/$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
           echo "registry=${BRAND_IMAGE_REGISTRY%%/*}" >> "$GITHUB_OUTPUT"
           echo "cache=$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+          # The names before the rename, published for ONE more release so an installation can move at its own pace
+          # (ADR 1004). Upstream only: a white-label edition never had them. RETIRE at v0.56.0 (docs/deploy/release.md).
+          if [ "${{ needs.gate.outputs.white_label }}" != "true" ]; then
+            echo "images=$BRAND_IMAGE_REGISTRY/$BRAND_IMAGE_NAME${{ matrix.suffix }},$BRAND_IMAGE_REGISTRY/simplarchive${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "images=$BRAND_IMAGE_REGISTRY/$BRAND_IMAGE_NAME${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+          fi
 
       # A white-label edition does not commit its manual (ADR 0996), so the repository still holds the upstream one.
       # Its image carries its own instead: the PDF the last successful manual build on main uploaded.
@@ -90,7 +97,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ${{ steps.brand.outputs.image }}
+          images: ${{ steps.brand.outputs.images }}
           # :vX.Y.Z + :X.Y on a v* release tag, :<sha> for traceability, and :latest for the newest stable release
           # (metadata-action's default latest=auto).
           tags: |
@@ -145,7 +152,9 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           # Every tag metadata-action produced points at the same digest, so one signature covers them all.
-          cosign sign --yes "${{ steps.brand.outputs.image }}@${DIGEST}"
+          # Every image name too: the earlier name is a repository of its own (ADR 1004).
+          IFS=, read -ra images <<< "${{ steps.brand.outputs.images }}"
+          for image in "${images[@]}"; do cosign sign --yes "${image}@${DIGEST}"; done
 
   # The Helm chart (ADR 0998): the brand's chart, its version and appVersion the release, so it installs exactly the
   # images published above (every image tag defaults to the appVersion). Pushed as an OCI artifact to
@@ -173,6 +182,12 @@ jobs:
           # The token goes in on stdin, never on the command line.
           printenv GH_TOKEN | helm registry login "${BRAND_IMAGE_REGISTRY%%/*}" --username "$GITHUB_ACTOR" --password-stdin
           helm push "$package" "oci://$BRAND_IMAGE_REGISTRY/charts"
+          # The chart under the name before the rename, for ONE more release (ADR 1004): an installation upgrading
+          # with it keeps its resources' names. Upstream only; RETIRE at v0.56.0 with the images above.
+          if [ "${{ needs.gate.outputs.white_label }}" != "true" ]; then
+            scripts/package-chart.sh "$version" simplarchive simplarchive
+            helm push "dist/simplarchive-$version.tgz" "oci://$BRAND_IMAGE_REGISTRY/charts"
+          fi
           # desktop-packages creates the release too; whichever job is first creates it, the other uploads. The
           # last upload covers the two creating it at the same moment.
           gh release upload "$GITHUB_REF_NAME" "$package" --repo "$GITHUB_REPOSITORY" --clobber \

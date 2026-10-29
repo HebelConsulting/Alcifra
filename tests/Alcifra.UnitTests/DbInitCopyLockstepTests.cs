@@ -63,11 +63,11 @@ public class DbInitCopyLockstepTests
         var required = PrivateRepositoryGate.IsPrivateRepository(root)
             ? new[]
             {
-                Path.Combine("charts", "simplarchive", "files", "db-init.sql"),
+                Path.Combine("charts", "alcifra", "files", "db-init.sql"),
                 Path.Combine("tools", "kiosk", "config", "db-init.sql"),
                 Path.Combine("tools", "vendor", "config", "db-init.sql"),
             }
-            : [Path.Combine("charts", "simplarchive", "files", "db-init.sql")];
+            : [Path.Combine("charts", "alcifra", "files", "db-init.sql")];
 
         foreach (var name in required)
         {
@@ -96,15 +96,15 @@ public class DbInitCopyLockstepTests
     // total would let one come back while another went missing — and it is precisely their AGREEING that made
     // the original omission silent.
     [Theory]
-    [InlineData("charts/simplarchive/files/db-init.sql", "simplarchive_runtime",
+    [InlineData("charts/alcifra/files/db-init.sql", "simplarchive_runtime",
         "db-init must CREATE the role; OpenBao can only rotate the password of a role that exists")]
-    [InlineData("charts/simplarchive/files/openbao-entrypoint.sh", "allowed_roles=simplarchive,simplarchive-owner,simplarchive-runtime",
+    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "allowed_roles=simplarchive,simplarchive-owner,simplarchive-runtime",
         "the database engine's allowlist must name it, or the engine refuses the static role — silently, as far as the app is concerned")]
-    [InlineData("charts/simplarchive/files/openbao-entrypoint.sh", "database/static-roles/simplarchive-runtime",
+    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "database/static-roles/simplarchive-runtime",
         "the static role itself must be registered, with a rotation statement")]
-    [InlineData("charts/simplarchive/files/openbao-entrypoint.sh", "database/static-creds/simplarchive-runtime",
+    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "database/static-creds/simplarchive-runtime",
         "the AppRole policy must grant reading it; CLAUDE.md flags this omission as failing silently into the old path")]
-    [InlineData("charts/simplarchive/templates/_helpers.tpl", "OpenBao__DatabaseRuntimeStaticRole",
+    [InlineData("charts/alcifra/templates/_helpers.tpl", "OpenBao__DatabaseRuntimeStaticRole",
         "Program.cs gates the static-password provider on this, so while it is unset the app uses the DYNAMIC credential")]
     public void The_chart_wires_the_runtime_static_role(string relativePath, string needle, string why)
     {
@@ -145,7 +145,7 @@ public class DbInitCopyLockstepTests
         var provisioners = DeploymentFiles(root)
             .Where(f => File.ReadAllText(f).Contains("bao write database/config/simplarchive", StringComparison.Ordinal))
             .ToList();
-        Assert.Contains(provisioners, f => f.EndsWith(Path.Combine("charts", "simplarchive", "files", "openbao-entrypoint.sh"), StringComparison.Ordinal));
+        Assert.Contains(provisioners, f => f.EndsWith(Path.Combine("charts", "alcifra", "files", "openbao-entrypoint.sh"), StringComparison.Ordinal));
         if (PrivateRepositoryGate.IsPrivateRepository(root))
         {
             Assert.Contains(provisioners, f => f.EndsWith(Path.Combine("tools", "kiosk", "docker-compose.yml"), StringComparison.Ordinal));

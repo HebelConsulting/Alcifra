@@ -1,0 +1,487 @@
+# Default values for the Alcifra API chart. See docs/deploy/README.md for a production walkthrough.
+# A production install MUST supply real endpoints + an existingSecret (never inline plaintext secrets here).
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/hebelconsulting/alcifra
+  # Defaults to the chart's appVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Non-secret application configuration (mapped to the API's env / IConfiguration). Sensitive values (the OpenBao
+# AppRole SecretId, or DB/object-storage credentials when not using OpenBao) come from `existingSecret`, not here.
+config:
+  aspnetCoreEnvironment: Production
+  app:
+    baseUrl: "https://alcifra.example.com"
+    # Honour X-Forwarded-Proto/-Host from the proxy in front. Unset means "follow ingress.enabled", which is
+    # almost always right: TLS terminates at the ingress and the pod is reached over plain HTTP, and without
+    # this the sign-in fails with a bare 400 because OpenIddict sees an insecure transport. Set it explicitly
+    # only when the Service is published directly, or when a proxy fronts the app without this chart's Ingress.
+    trustProxyHeaders: null
+    # WHICH proxy may set X-Forwarded-* (#847). Those headers decide the scheme and host every generated URL
+    # carries and the address the sign-in throttle counts against, so believing ANY peer lets whoever can reach
+    # a pod choose both — and outside Development the app REFUSES to start with trustProxyHeaders on and
+    # neither of these set. The default is the usual private range a cluster's pod CIDR falls in; narrow it to
+    # your actual CIDR, or name the ingress controller's addresses in knownProxies instead. Comma-separated.
+    # Get this wrong and sign-in fails with a bare 400, the same symptom as trustProxyHeaders being off.
+    knownProxyNetworks: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fd00::/8"
+    knownProxies: ""
+    # Leave false in production and run migrations as a one-off step; with multiple replicas, startup migration
+    # would race. See docs/deploy/README.md.
+    applyMigrationsAtStartup: false
+  database:
+    # Maximum PostgreSQL connections THIS POD may open. Empty = the application's own conservative default (40),
+    # which is deliberately far below Npgsql's built-in 100.
+    #
+    # SET THIS whenever replicaCount or autoscaling.maxReplicas is raised. The pool is per pod, so what the
+    # database sees is the pool MULTIPLIED by the replica count, and the budget must satisfy:
+    #
+    #   maxPoolSize × maxReplicas + migration Job + OpenBao  <  max_connections − superuser_reserved_connections
+    #
+    # A PostgreSQL server that runs out answers `53300: remaining connection slots are reserved…` and the API
+    # returns 500s — it does NOT queue and slow down. Below the limit, Npgsql waits for a free connector instead,
+    # so the same overload degrades gracefully. This is not hypothetical: an uncapped pool took the public demo
+    # down for eight minutes under load (issue #750).
+    #
+    # Worked example — a 2 GiB managed instance (max_connections ≈ 225, reserved 3) with maxReplicas 6:
+    #   (225 − 3 − 10 for the migration Job and OpenBao) / 6 ≈ 35  →  maxPoolSize: 30
+    maxPoolSize: ""
+  objectStorage:
+    serviceUrl: ""        # server-side S3 endpoint (e.g. https://s3.eu-central-1.amazonaws.com)
+    publicServiceUrl: ""  # browser-facing endpoint for presigned URLs (often the same)
+    region: "us-east-1"
+    bucketName: "simplarchive"
+    # Each tenant's bucket is `{bucketPrefix}-{tenantId}` (ADR 0372); falls back to bucketName when empty.
+    bucketPrefix: "alcifra"
+    # Only while existing objects move to bucketPrefix's buckets (ADR 1000): set it to the prefix they are under
+    # ("simplarchive" for an installation from before the rename), run `alcifra storage migrate`, and clear it when
+    # that reports nothing left. Without it, an installation whose objects are elsewhere refuses to start.
+    legacyBucketPrefix: ""
+  gotenbergUrl: ""        # office/markdown/html -> PDF preview (optional; unset disables converted preview)
+  openSearchUrl: ""       # full-text search (optional; unset falls back to metadata-only search)
+  tikaUrl: ""             # content extraction + OCR (optional)
+  tikaOcrLanguages: "eng+deu+fra+ita"
+  ocrUrl: ""              # searchable-PDF sidecar (optional)
+  # Valkey/Redis — REQUIRED once replicaCount / the HPA scales past 1, now for TWO reasons. It is the SignalR
+  # backplane (ADR "SignalR Valkey backplane"), so real-time notification pushes fan out across pods; and it
+  # holds the sign-in throttle's counters (ADR 0716), which are per-POD without it — leaving an attacker one
+  # guessing budget per replica. Unset ⇒ in-process only (correct only at 1 replica).
+  valkeyConnectionString: ""   # e.g. "valkey:6379" or "valkey.internal:6379,password=...,ssl=true"
+  # Networks a caller-supplied outbound URL may reach even though they are otherwise refused (ADR 0717) — an
+  # audit webhook pointing at an on-premises log collector, a self-hosted push service on the LAN. Deployment
+  # configuration on purpose: a tenant administrator can register a webhook URL but must not be able to widen
+  # what the network permits. The cloud-metadata addresses stay refused however this is set.
+  #   outboundAllowedNetworks: ["10.0.0.0/8", "fd00::/8"]
+  outboundAllowedNetworks: []
+  smtp:
+    host: ""              # notification email (optional; unset disables email, in-app notifications still work)
+    port: 587
+    fromAddress: ""
+    fromName: "Alcifra"
+  openBao:
+    # REQUIRED outside Development (#847, A02): with no address the transit encryptor is a pass-through and
+    # every secret it protects is stored in PLAINTEXT — TOTP secrets, tenant SMTP passwords, audit-webhook
+    # signing secrets, module settings and the mail ingest key. The app REFUSES TO START without it, which is
+    # deliberate: a deployment should not learn which of those were in the clear from a breach.
+    address: ""                       # e.g. https://openbao.internal:8200
+    roleId: ""                        # AppRole RoleId (non-secret)
+    databaseConnectionTemplate: ""    # host/port/db, e.g. "Host=pg;Port=5432;Database=simplarchive"
+  bootstrap:
+    name: "bootstrap-admin"
+    clientId: "bootstrap-platform-admin"
+
+# A Kubernetes Secret whose keys are injected as env (via envFrom). At minimum it should carry the OpenBao
+# AppRole SecretId (`OpenBao__SecretId`); when not using OpenBao, also `ConnectionStrings__Default`,
+# `ObjectStorage__AccessKey`, `ObjectStorage__SecretKey`, `Bootstrap__PlatformAdministrator__ClientSecret`.
+existingSecret: ""
+
+# Extra raw env entries ({name, value} or {name, valueFrom}) appended verbatim.
+extraEnv: []
+
+# In-cluster dependency workloads for the self-contained kiosk demo (ADR 0485). In production these stay DISABLED
+# and the deps are external/managed (the config.* URLs above point at them). When a dep is enabled here, the app's
+# corresponding URL auto-wires to its in-cluster Service (see _helpers.tpl), overriding the config.* value. The
+# stateful deps (postgres/seaweedfs/opensearch/openbao) are added in later phases.
+deps:
+  tika:
+    enabled: false
+    image: apache/tika:3.3.1.0-full
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  gotenberg:
+    enabled: false
+    image: gotenberg/gotenberg:8.37
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "1", memory: 768Mi }
+  ocr:
+    enabled: false
+    image: ghcr.io/hebelconsulting/alcifra-ocr
+    tag: ""   # defaults to the chart appVersion
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "1", memory: 512Mi }
+  valkey:
+    enabled: false
+    image: valkey/valkey:8.1.10-alpine
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { cpu: 250m, memory: 128Mi }
+  # Stateful deps (phase 2) — StatefulSet + headless Service + PVC each. Credentials are generated into a chart
+  # Secret (idempotent via lookup); phase 3 moves them under OpenBao.
+  postgres:
+    enabled: false
+    image: postgres:16.15-alpine
+    database: simplarchive
+    storage: 5Gi
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  seaweedfs:
+    enabled: false
+    image: chrislusf/seaweedfs@sha256:c7d6c721b30ae711db766bbbfd40192776e263d4e51e22f57baef7bef93c12c6
+    storage: 10Gi
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: "1", memory: 512Mi }
+  opensearch:
+    enabled: false
+    image: opensearchproject/opensearch:2.19.6
+    storage: 5Gi
+    javaOpts: "-Xms512m -Xmx512m"
+    # A privileged initContainer sets vm.max_map_count=262144 (OpenSearch requires it; the node must allow it).
+    setSysctl: true
+    resources:
+      requests: { cpu: 200m, memory: 1Gi }
+      limits: { cpu: "1", memory: 1536Mi }
+  # OpenBao (phase 3) — the combined entrypoint inits+unseals+provisions in-pod. roleId/secretId are fixed for the
+  # kiosk (isolated network); the app reads them + the OpenBao-managed DB creds / OIDC certs at runtime.
+  openbao:
+    enabled: false
+    image: openbao/openbao:2.6.2
+    storage: 1Gi
+    roleId: "simplarchive-role"
+    secretId: "simplarchive-secret"
+    bootstrapClientSecret: "dev-bootstrap-secret"
+    # awskms seal (ADR 0677, the AWS install): auto-unseal via a KMS key, the pod authenticating through the
+    # IRSA-annotated service account below. init.json then carries recovery keys + root token for install.sh
+    # to move into Secrets Manager and wipe from the volume. Disabled = the kiosk's persisted-unseal-key mode.
+    seal:
+      awskms:
+        enabled: false
+        kmsKeyId: ""
+        region: ""
+    serviceAccount:
+      create: false
+      annotations: {}
+    # A Secret created OUTSIDE the chart carrying OpenBao__SecretId and BOOTSTRAP_CLIENT_SECRET (ADR 0696).
+    # When set, the chart does not render its own AppRole Secret and takes both values from this one, so
+    # neither ever appears in a --set flag, a values file, or an operator's shell. Empty = the kiosk's
+    # chart-created secret from the two literals above.
+    existingApproleSecret: ""
+    # External managed Postgres for the database engine (hostname; TLS is required automatically when set).
+    # Empty = the in-cluster postgres dep.
+    externalDatabaseHost: ""
+    # Secret carrying S3_ACCESS_KEY/S3_SECRET_KEY (+ optional SMTP_USER/SMTP_PASSWORD) when the in-cluster
+    # stateful deps — and their generated secret — are disabled (the AWS install materialises this from
+    # Secrets Manager). Empty = the stateful secret (kiosk).
+    credentialsSecret: ""
+    storageClassName: ""
+    resources:
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 500m, memory: 256Mi }
+  # Daily-reset CronJob (phase 5) — wipes tenant data then restarts the app to re-migrate + re-seed.
+  reset:
+    enabled: false
+
+# Postgres role bootstrap against an EXTERNAL managed database (ADR 0677, the AWS install) — the same
+# db-init.sql the in-cluster path runs with deps.postgres, pointed at a managed host with the master
+# credentials from a Secret (keys: username, password) that the installer materialises from the provider's
+# managed secret at deploy time.
+dbInit:
+  external:
+    enabled: false
+    host: ""
+    database: "simplarchive"
+    adminSecret: ""
+    schedule: "0 1 * * *"   # daily 01:00 UTC
+    kubectlImage: rancher/kubectl:v1.31.0
+
+service:
+  type: ClusterIP
+  port: 80
+
+# The IMAP endpoint (ADR 0594/0596, #562). Off by default; when enabled the pod listens on 993 (implicit
+# TLS) and the Service exposes it. The certificate PEM + key come from the existing secret (envFrom) as
+# Imap__CertificatePem / Imap__CertificateKeyPem — in a cluster, point cert-manager (Let's Encrypt) at a
+# Certificate whose secret is mapped into those keys; see docs/deploy/README.md. The plaintext dev port is
+# never exposed here — the production-readiness gate refuses it outside Development.
+imap:
+  enabled: false
+  # The port the listener BINDS inside the container. The container drops all capabilities and runs
+  # non-root, so it cannot bind a privileged (<1024) port — bind a high one and remap it below rather than
+  # granting NET_BIND_SERVICE. 993 is fine where the process may bind low ports (e.g. the compose stack).
+  tlsPort: 993
+  # What clients are TOLD to dial, when it differs from the bound port (ImapOptions.PublicTlsPort). With the
+  # remap above — bind 9993, publish 993 — this is 993. Null advertises the bound port unchanged.
+  publicTlsPort: null
+  # What the IMAP dialog shows users as the server host (their mail client dials this). Set to the public
+  # hostname; empty falls back to whatever the app was told locally, which is wrong behind a proxy.
+  publicHost: ""
+  # The cert-manager secret whose tls.crt/tls.key the listener presents. Empty defaults to the release's own
+  # "<fullname>-tls" — the same secret the ingress terminates with — so a stack with one hostname needs no
+  # value. The listener has no plaintext fallback in production (the readiness gate refuses it).
+  tlsSecretName: ""
+  # Bind the TLS port on the NODE's own interface. IMAP is raw TCP and does not ride the ingress, so a
+  # single-node k3s box exposes it this way (with the instance's security group opening the port). Unset on
+  # multi-node clusters, which expose IMAP through a LoadBalancer Service instead. Null = no hostPort.
+  hostPort: null
+  # Session hygiene (ADR 0618). idleTimeoutSeconds keeps RFC 3501's 30-minute autologout floor;
+  # preAuthTimeoutSeconds is the short leash for sockets that never authenticate. maxConnectionsPerUser
+  # defaults to 16 — 8 is the recommended value for small deployments (one desktop mail client can
+  # open ~5 connections on its own).
+  idleTimeoutSeconds: 1800
+  preAuthTimeoutSeconds: 60
+  maxConnectionsPerUser: 16
+  maxConnections: 200
+
+# Mail ingress (ADR 0628/0630). The LMTP listener the MTA delivers to. In-cluster only: LMTP has no
+# authentication of its own — RFC 2033 assumes the MTA on a private network is its only client — so the Service
+# port stays ClusterIP and nothing should route to it from outside the cluster.
+lmtp:
+  enabled: false
+  port: 2525
+  # 0.0.0.0 because the MTA is a different pod and cannot reach this one's loopback. The API logs a Warning
+  # whenever this is not loopback, naming the consequence.
+  bindAddress: "0.0.0.0"
+  maxMessageBytes: 36700160
+
+# The MTA itself (ADR 0630). Off by default, and READ ITS PREREQUISITES BEFORE ENABLING — see
+# docs/deploy/README.md. Receiving internet mail needs ALL of:
+#   * a public IP whose port 25 is not blocked (most clouds and effectively all residential ISPs block it),
+#   * a reverse-DNS (PTR) record for that IP matching myHostname, or most receivers will reject your bounces,
+#   * an MX record for each tenant domain pointing at that name,
+#   * a TLS certificate, or inbound mail is accepted in plaintext.
+# Enabling this without them produces a service that starts cleanly and receives nothing, which is the most
+# expensive way to be wrong.
+postfix:
+  enabled: false
+  image:
+    repository: ghcr.io/hebelconsulting/alcifra-postfix
+    tag: ""
+    pullPolicy: IfNotPresent
+  # The name this MTA calls itself. MUST match the PTR record of the address it sends from.
+  myHostname: mail.example.com
+  service:
+    # LoadBalancer, because port 25 must be reachable from the internet with a STABLE address — a PTR record
+    # points at an IP, so an ephemeral one cannot be made to match.
+    type: LoadBalancer
+    port: 25
+    loadBalancerIP: ""
+    annotations: {}
+  # The read-only database role Postfix uses for the accepted-domain lookup (scripts/db-init.sql). It needs
+  # SELECT on TenantMailDomains and nothing else; do not reuse the application's credentials here.
+  database:
+    host: ""
+    name: simplarchive
+    user: simplarchive_postfix
+    # Read from this secret's `postfix-db-password` key rather than values, so it never lands in a release
+    # manifest or `helm get values`.
+    existingSecret: ""
+  tls:
+    # Mounts a TLS secret (tls.crt/tls.key) into the MTA. Empty means inbound mail is accepted in PLAINTEXT.
+    existingSecret: ""
+  resources: {}
+
+# The push server phones subscribe to (ADR 0920): ntfy, limited to UnifiedPush topics. OFF by default — without it
+# the phone app still works and shows notifications when opened; with it, each notification wakes the phone. It must
+# be reachable from the internet at `publicUrl`, through the ingress below or one of your own, because the phone's
+# distributor app connects to it directly. The VAPID key pair that signs the pushes comes from OpenBao
+# (secret/simplarchive/webpush: publicKey, privateKey); without it the app sends nothing. iPhones and iPads need no
+# push server: the Api sends through APNs with a key at secret/simplarchive/apns (keyId, teamId, privateKey; ADR 0951).
+#
+# The message cache is an emptyDir: it holds a day of id-only messages for phones that were offline, and losing it
+# in a restart costs those phones a wake-up, never a notification.
+push:
+  enabled: false
+  image: binwiederhier/ntfy:v2.30.0
+  # The address phones reach it at, e.g. https://push.example.com. Required when enabled.
+  publicUrl: ""
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    host: push.example.com
+    tlsSecretName: ""
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+ingress:
+  enabled: false
+  className: ""
+  # SESSION AFFINITY IS REQUIRED once replicaCount (or the HPA) is above 1 — and it is 2 by default above, so
+  # this applies to a stock install (ADR 0839). It is NOT the same requirement as the Valkey backplane, and
+  # having the backplane does not satisfy it: the backplane fans out MESSAGES between replicas, while affinity
+  # is about a client being able to ESTABLISH a hub connection at all.
+  #
+  # A SignalR client POSTs /hubs/notifications/negotiate and is handed a connectionId that exists only on the
+  # replica that issued it, then opens the WebSocket carrying that id. Without affinity the second request is
+  # balanced to a DIFFERENT replica, which has never heard of the connection and answers 404 — so with two
+  # replicas a hub connection succeeds about half the time, and real-time notifications silently degrade to
+  # "sometimes". Observed on the kiosk before ADR 0839: negotiate answered 200 by one instance, the upgrade
+  # answered 404 by the other, seconds apart.
+  #
+  # The annotation is controller-specific, so the chart cannot default it (className is deliberately empty).
+  # For ingress-nginx, uncomment these three. For another controller, use its equivalent — and check it, because
+  # nothing here can.
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/affinity: "cookie"
+    # nginx.ingress.kubernetes.io/session-cookie-name: "alcifra-affinity"
+    # nginx.ingress.kubernetes.io/session-cookie-path: "/"
+  hosts:
+    - host: alcifra.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: alcifra-tls
+    #   hosts:
+    #     - alcifra.example.com
+
+# A Let's Encrypt ClusterIssuer for the Ingress TLS (ADR 0485). Requires cert-manager installed in the cluster
+# (a one-time prerequisite). Disabled by default; the kiosk overlay enables it + provides the email.
+certManager:
+  clusterIssuer:
+    enabled: false
+    name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ""   # REQUIRED when enabled — the ACME account/expiry-notice address.
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Runs EF Core migrations as a one-off pre-install/pre-upgrade hook Job (`--migrate` mode) before the app rolls
+# out — the recommended way to apply migrations in production (keeps them off the app's startup path).
+migrationJob:
+  enabled: true
+  backoffLimit: 1
+  # How many five-second attempts the init container gives OpenBao to come up before it gives up. Ten
+  # minutes: a first install has to initialise, unseal through KMS and provision, and failing early there
+  # would report a broken install for a dependency that was merely slow.
+  openBaoWaitAttempts: 120
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Liveness = the process is up (zero dependency checks); readiness = Postgres reachable. See ADR 0205.
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 3
+  failureThreshold: 6
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1654   # the aspnet Alpine image's built-in non-root `app` user
+  runAsGroup: 1654
+  fsGroup: 1654
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false   # some rendition libraries write to a temp dir
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+# Spread replicas across nodes/zones for HA (used when set).
+topologySpreadConstraints: []
+
+# Industry modules (ADR 0799). A module is installed by resolving a PINNED PACKAGE and verifying its digest,
+# never by copying a file onto the host — which is what #1242 cost, when the kiosk served a build four releases
+# old and nothing anywhere recorded it.
+modules:
+  # WHICH modules this installation installs. Empty (the default) is core-only: no initContainer is rendered,
+  # no package credential is needed, and the chart behaves exactly as it did before this existed.
+  install: []
+  # e.g.
+  #   install: ["FLIGHT_SCHOOL"]
+  #   existingSecret: alcifra-module-feed
+
+  # The vendor feed (core #1555): a customer's pull credential reads the module packages its licence names, and
+  # stops at the licence's end for anything published after it.
+  feed: https://packages.simplarchive.dev/nuget
+
+  # A Secret holding the installation's PULL CREDENTIAL from the vendor (the Licensing Module's feed). REQUIRED when
+  # `install` is non-empty: the feed serves nothing anonymously.
+  existingSecret: ""
+  tokenSecretKey: token
+
+  # The version + digest of every module this chart knows how to install. A LITERAL COPY of modules.env, because
+  # a chart is self-contained and values.yaml cannot include another file — so the copy is CHECKED rather than
+  # trusted (ModulePinLockstepTests), the same arrangement images.env has with the image tags above.
+  pins:
+    FLIGHT_SCHOOL:
+      package: Alcifra.FlightSchool
+      version: 0.2.0
+      sha512: "ekHTOUci6S2i4/g9QbWo7zMVl8M+uAUBzvEH6tBjsBWeb+lZiEtiOZ9troPewb7/74aQ/1KmElhktb1VyKtDvw=="
+    ENCRYPTION:
+      package: Alcifra.Encryption
+      version: 0.6.0
+      sha512: "6JEkK5bsOvCYWwQjNIYUDLE7NzgTQUScCkXEX0YKViZRwe9gRwBMnFvVQOYbsFHFi1Ih2mj/J+yO/8ZKskmZCA=="
+    LICENSING:
+      package: Alcifra.Licensing
+      version: 0.6.0
+      sha512: "eJp8588NETDiD+B5sw18GPg1i/aZhaij+nxGuklH1DlzEfgTK8Kiq3dVilmpFC7kFtyROfwLwoT2x42dOeIo9g=="
+    # Open source, no licence: from nuget.org, anonymously (ADR 0948).
+    MESSENGER:
+      package: SimplArchive.Messenger
+      version: 0.8.0
+      sha512: "ETDpzUblUGa431+nWIg3or3k2yP7kOGtOFM0aX8DOPrXxOLabGg/zlFcWlIKMHqkD+0BhgjDZHgyYuCn2MdrSQ=="
+      source: nuget.org
+
+  # Plain alpine: a .nupkg is a zip, so the installer needs no NuGet tooling and no SDK image.
+  image:
+    repository: alpine
+    tag: 3.22.5

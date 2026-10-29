@@ -1,0 +1,205 @@
+{{- if .Values.deps.openbao.enabled }}
+# In-cluster OpenBao (ADR 0485 / 0338-0339-0358-0359-0472): secrets + PKI (OIDC certs) + dynamic/static Postgres
+# creds + transit. One combined entrypoint inits+unseals+provisions in-pod (a k8s RWO PVC can't be shared with a
+# separate init Job).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "alcifra.fullname" . }}-openbao-config
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+  annotations:
+    {{- include "alcifra.provisioningHook" "-20" | nindent 4 }}
+data:
+  openbao.hcl: |
+{{ .Files.Get "files/openbao.hcl" | indent 4 }}
+{{- if .Values.deps.openbao.seal.awskms.enabled }}
+    # awskms auto-unseal (ADR 0677): the pod's IRSA identity encrypts/decrypts the root key via KMS, so no
+    # unseal key ever exists on the volume.
+    seal "awskms" {
+      kms_key_id = {{ .Values.deps.openbao.seal.awskms.kmsKeyId | quote }}
+      region     = {{ .Values.deps.openbao.seal.awskms.region | quote }}
+    }
+{{- end }}
+  entrypoint.sh: |
+{{ .Files.Get "files/openbao-entrypoint.sh" | indent 4 }}
+---
+{{- if not .Values.deps.openbao.existingApproleSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "alcifra.fullname" . }}-openbao-approle
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+  annotations:
+    {{- include "alcifra.provisioningHook" "-20" | nindent 4 }}
+type: Opaque
+data:
+  # The app's AppRole SecretId (fixed for the kiosk; matches what the entrypoint provisions).
+  OpenBao__SecretId: {{ .Values.deps.openbao.secretId | b64enc }}
+{{- end }}
+---
+{{- if .Values.deps.openbao.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "alcifra.fullname" . }}-openbao
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+  annotations:
+    {{- include "alcifra.provisioningHook" "-20" | nindent 4 }}
+    {{- with .Values.deps.openbao.serviceAccount.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+---
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "alcifra.fullname" . }}-openbao
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+    app.kubernetes.io/component: openbao
+  annotations:
+    {{- include "alcifra.provisioningHook" "-20" | nindent 4 }}
+spec:
+  selector:
+    {{- include "alcifra.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: openbao
+  ports:
+    - name: http
+      port: 8200
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "alcifra.fullname" . }}-openbao
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+    app.kubernetes.io/component: openbao
+  annotations:
+    {{- include "alcifra.provisioningHook" "-20" | nindent 4 }}
+spec:
+  serviceName: {{ include "alcifra.fullname" . }}-openbao
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "alcifra.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: openbao
+  template:
+    metadata:
+      labels:
+        {{- include "alcifra.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: openbao
+    spec:
+      {{- if .Values.deps.openbao.serviceAccount.create }}
+      serviceAccountName: {{ include "alcifra.fullname" . }}-openbao
+      {{- end }}
+      containers:
+        - name: openbao
+          image: {{ .Values.deps.openbao.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/usr/local/bin/openbao-entrypoint.sh"]
+          securityContext:
+            capabilities:
+              add: ["IPC_LOCK"]
+          env:
+            {{- if .Values.deps.openbao.externalDatabaseHost }}
+            - name: PG_HOST
+              value: {{ .Values.deps.openbao.externalDatabaseHost | quote }}
+            - name: PG_SSLMODE
+              value: require
+            {{- else }}
+            - name: PG_HOST
+              value: {{ include "alcifra.fullname" . }}-postgres
+            {{- end }}
+            {{- if .Values.deps.openbao.seal.awskms.enabled }}
+            - name: SEAL_AWSKMS
+              value: "1"
+            {{- end }}
+            - name: APPROLE_ROLE_ID
+              value: {{ .Values.deps.openbao.roleId | quote }}
+            {{- if .Values.deps.openbao.existingApproleSecret }}
+            - name: APPROLE_SECRET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.deps.openbao.existingApproleSecret }}
+                  key: OpenBao__SecretId
+            {{- else }}
+            - name: APPROLE_SECRET_ID
+              value: {{ .Values.deps.openbao.secretId | quote }}
+            {{- end }}
+            {{- $credSecret := .Values.deps.openbao.credentialsSecret | default (include "alcifra.statefulSecretName" .) }}
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $credSecret }}
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $credSecret }}
+                  key: S3_SECRET_KEY
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $credSecret }}
+                  key: SMTP_USER
+                  optional: true
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $credSecret }}
+                  key: SMTP_PASSWORD
+                  optional: true
+            {{- if .Values.deps.openbao.existingApproleSecret }}
+            - name: BOOTSTRAP_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.deps.openbao.existingApproleSecret }}
+                  key: BOOTSTRAP_CLIENT_SECRET
+            {{- else }}
+            - name: BOOTSTRAP_CLIENT_SECRET
+              value: {{ .Values.deps.openbao.bootstrapClientSecret | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8200
+          resources:
+            {{- toYaml .Values.deps.openbao.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /openbao
+            - name: config
+              mountPath: /etc/openbao/openbao.hcl
+              subPath: openbao.hcl
+            - name: config
+              mountPath: /usr/local/bin/openbao-entrypoint.sh
+              subPath: entrypoint.sh
+          readinessProbe:
+            httpGet: { path: "/v1/sys/health?standbyok=true", port: http }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: { port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "alcifra.fullname" . }}-openbao-config
+            defaultMode: 0755
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.deps.openbao.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.deps.openbao.storage | quote }}
+{{- end }}

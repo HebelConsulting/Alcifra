@@ -1,0 +1,16 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "alcifra.fullname" . }}
+  labels:
+    {{- include "alcifra.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "alcifra.selectorLabels" . | nindent 6 }}
+      # Same over-broad match as the Service had: without the component this budget governed every pod the
+      # chart runs, so a drain would have weighed the dependencies against the API's allowance.
+      app.kubernetes.io/component: api
+{{- end }}
