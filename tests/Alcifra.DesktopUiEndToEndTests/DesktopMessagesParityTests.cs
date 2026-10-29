@@ -501,7 +501,7 @@ public sealed class DesktopMessagesParityTests : IDisposable
     // Nothing in the temp folder holds the content in a readable form (neither the client's own nor the system's).
     private void AssertTempHoldsNo(string content)
     {
-        foreach (var directory in new[] { _tempDirectory, Path.Combine(Path.GetTempPath(), "Alcifra") }.Where(Directory.Exists))
+        foreach (var directory in new[] { _tempDirectory, Path.Combine(Path.GetTempPath(), global::Alcifra.Localization.PersistedNames.DesktopTempFolder) }.Where(Directory.Exists))
         {
             foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
             {

@@ -24,7 +24,7 @@
 #     exchange fails — and that environment has to exist in the PUBLIC repo, which is where this runs;
 #   * renaming this file breaks the policy match SILENTLY. Update the policy on nuget.org in the same change.
 #
-# The package id is `Alcifra.Cli` since 0.47.0 (ADR 0941); `HebelConsulting.Alcifra.Cli` stays on
+# The package id was `SimplArchive.Cli` from 0.47.0 (ADR 0941) and is `Alcifra.Cli` since 0.55.0; `HebelConsulting.SimplArchive.Cli` stays on
 # nuget.org deprecated in its favour, and nothing publishes it any more.
 #
 # This file must NOT join publish/publish-public.sh's withheld set: it is useless in the private repo and is
@@ -69,27 +69,23 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
           echo "publishing alcifra $version"
 
-      # Each tool is packed under its Alcifra id (Alcifra.Cli → `alcifra`, Alcifra.Pass → `apass`) AND, until phase 5 of
-      # the rename (#1117), under its earlier id with its earlier command, so `dotnet tool update` on an existing install
-      # keeps working. The earlier ids are deprecated on nuget.org in favour of the new ones. Retirement trigger
-      # (ADR 0885): drop the second pack of each pair when phase 5 renames the code.
+      # Each tool is packed under its Alcifra id (Alcifra.Cli → `alcifra`, Alcifra.Pass → `apass`). The earlier ids
+      # (SimplArchive.Cli → `saconsole`, SimplArchive.Sapass → `sapass`) were packed beside them until phase 5 of the
+      # rename (#1117), which retired them as their trigger said (ADR 0885): they stay on nuget.org at 0.54.0,
+      # deprecated in favour of the new ones, and an install moves with `dotnet tool uninstall` + `install`.
       - name: Pack
         run: |
           set -euo pipefail
           version=${{ steps.version.outputs.value }}
-          # The earlier id and command come from each project's own LegacyPackageId switch (ADR 0988).
           for project in src/Alcifra.Cli/Alcifra.Cli.csproj src/Alcifra.Sapass/Alcifra.Sapass.csproj; do
             dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version"
-            dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version" -p:LegacyPackageId=true
           done
           ls dist/nuget
 
       - name: Push to GitHub Packages
-        # The earlier ids go first, on their own: a push stops at its first refusal, and the new ids sort before them,
-        # so a refused new id must not keep the earlier ones from updating (ADR 0988).
         run: |
           set -euo pipefail
-          for glob in "dist/nuget/Alcifra.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
+          for glob in "dist/nuget/Alcifra.*.nupkg"; do
             dotnet nuget push "$glob" --source "https://nuget.pkg.github.com/HebelConsulting/index.json" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
           done
 
@@ -100,11 +96,9 @@ jobs:
           user: monacense
 
       - name: Push to nuget.org
-        # The earlier ids go first, on their own: a push stops at its first refusal, and the new ids sort before them,
-        # so a refused new id must not keep the earlier ones from updating (ADR 0988).
         run: |
           set -euo pipefail
-          for glob in "dist/nuget/Alcifra.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
+          for glob in "dist/nuget/Alcifra.*.nupkg"; do
             dotnet nuget push "$glob" --source "https://api.nuget.org/v3/index.json" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --skip-duplicate
           done
 

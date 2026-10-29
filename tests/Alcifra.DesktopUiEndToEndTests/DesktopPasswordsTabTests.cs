@@ -358,7 +358,7 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         password.Press();
         password.Release();
 
-        foreach (var directory in new[] { Path.GetTempPath(), Path.Combine(Path.GetTempPath(), "Alcifra") }.Where(Directory.Exists))
+        foreach (var directory in new[] { Path.GetTempPath(), Path.Combine(Path.GetTempPath(), global::Alcifra.Localization.PersistedNames.DesktopTempFolder) }.Where(Directory.Exists))
         {
             foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly).Where(f => File.GetLastWriteTimeUtc(f) >= started))
             {

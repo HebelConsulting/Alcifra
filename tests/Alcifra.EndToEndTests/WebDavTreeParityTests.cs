@@ -57,7 +57,7 @@ public partial class WebDavTreeParityTests
         // One mount, one path (#794, ADR 0987): the earlier mount paths answer like any unknown route, so a mount saved
         // under them is added again rather than served by a second way in.
         using var legacy = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        foreach (var earlier in new[] { "/Alcifra", "/Alcifra" })
+        foreach (var earlier in new[] { $"/{(global::Alcifra.Localization.PersistedNames.EarlierProduct)}", "/Alcifra" })
         {
             using var legacyProbe = new HttpRequestMessage(new HttpMethod("PROPFIND"), earlier) { Headers = { Authorization = basic } };
             legacyProbe.Headers.TryAddWithoutValidation("Depth", "1");

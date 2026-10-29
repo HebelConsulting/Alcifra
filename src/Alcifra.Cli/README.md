@@ -54,8 +54,8 @@ alcifra tenant offline-cache show
 ```sh
 dotnet tool install --global Alcifra.Cli
 
-# the earlier ids Alcifra.Cli and HebelConsulting.Alcifra.Cli install `saconsole`; replace them once:
-#   dotnet tool uninstall --global Alcifra.Cli
+# the earlier ids SimplArchive.Cli and HebelConsulting.SimplArchive.Cli install `saconsole`; replace them once:
+#   dotnet tool uninstall --global SimplArchive.Cli
 
 # interactive: approve the sign-in in your browser, then the session is set for this shell
 eval "$(alcifra login --url https://archive.example.com)"

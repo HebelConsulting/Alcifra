@@ -175,7 +175,8 @@ public class ManualFilingTests
         var rig = await RigAsync();
         await MakeStandardAsync(rig.TenantId, rig.RepoId);
         Assert.Equal(ManualFilingOutcome.Filed, await CoreAsync(rig.TenantId));
-        await RenameCoreOwnedAsync(rig.TenantId, "Alcifra Manuals", "Alcifra Manual");
+        await RenameCoreOwnedAsync(rig.TenantId,
+            $"{(global::Alcifra.Localization.PersistedNames.EarlierProduct)} Manuals", $"{(global::Alcifra.Localization.PersistedNames.EarlierProduct)} Manual");
 
         Assert.Equal(ManualFilingOutcome.Unchanged, await CoreAsync(rig.TenantId));
 
