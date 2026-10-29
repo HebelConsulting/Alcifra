@@ -1,0 +1,75 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l10n="using:Alcifra.Localization"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        xmlns:svc="using:Alcifra.DesktopClient.Services"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:lang="using:Alcifra.Localization"
+        x:Class="Alcifra.DesktopClient.Views.LogonWindow"
+        x:DataType="vm:LogonViewModel"
+        Title="{loc:Tr LogonTitle}" Width="380" Height="430"
+        CanResize="False" WindowStartupLocation="CenterScreen">
+    <StackPanel Margin="28" Spacing="16">
+        <Grid ColumnDefinitions="*,Auto">
+            <!-- The brand's wordmark while the product carries the brand's name, else the cabinet and the name (ADR 0992). -->
+            <Image Grid.Column="0" Source="{DynamicResource WbWordmark}" Height="26" HorizontalAlignment="Left"
+                   IsVisible="{x:Static svc:BrandWordmarkImages.Shown}" ToolTip.Tip="{x:Static l10n:Strings.ProductName}" />
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" IsVisible="{x:Static svc:BrandWordmarkImages.Hidden}">
+                <i:Icon Value="mdi-file-cabinet" FontSize="28" Foreground="{DynamicResource WbAccent}" />
+                <TextBlock Text="{x:Static l10n:Strings.ProductName}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
+            <!-- Test the hardware key BEFORE any sign-in (core #1864, ADR 0955), as the phone's sign-in page offers. -->
+            <Button Grid.Column="1" ToolTip.Tip="{loc:Tr KtTitle}" Background="Transparent" BorderThickness="0" Padding="4"
+                    VerticalAlignment="Center" Click="OnTestHardwareKey" AutomationProperties.AutomationId="key-test">
+                <i:Icon Value="mdi-tools" Foreground="{DynamicResource WbMuted}" FontSize="22" />
+            </Button>
+        </Grid>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr LogonUsername}" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+            <TextBox Text="{Binding Username}" Watermark="you@example.com" />
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr LogonServer}" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+            <ComboBox ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServer}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="svc:ServerProfile"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </StackPanel>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="{loc:Tr LogonLanguage}" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}" HorizontalAlignment="Stretch">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="lang:LanguageOption"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </StackPanel>
+
+        <!-- Self-update notice for the selected deployment (issue #271), above the Login button. -->
+        <StackPanel Spacing="4" IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <SelectableTextBlock Text="{Binding UpdateStatus}" Foreground="#b26a00" FontSize="12" TextWrapping="Wrap"
+                       HorizontalAlignment="Center" TextAlignment="Center" />
+            <Button Command="{Binding OpenDownloadCommand}" IsVisible="{Binding HasUpdateLink}"
+                    HorizontalAlignment="Center" Padding="8,2">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <i:Icon Value="mdi-download" />
+                    <TextBlock Text="{loc:Tr LogonUpdateDownload}" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <Button Command="{Binding LoginCommand}" Classes="accent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,4,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <i:Icon Value="mdi-login" />
+                <TextBlock Text="{loc:Tr LogonLogin}" />
+            </StackPanel>
+        </Button>
+
+        <SelectableTextBlock Text="{Binding Status}" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        <TextBlock Text="{loc:Tr LogonManageServers}" Foreground="{DynamicResource WbFaint}" FontSize="11" HorizontalAlignment="Center" />
+    </StackPanel>
+</Window>

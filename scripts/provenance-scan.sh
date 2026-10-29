@@ -22,7 +22,7 @@ ids=$(jq -r '[.projects[].frameworks[]? | ((.topLevelPackages // []) + (.transit
 : > provenance-findings.txt
 for id in $ids; do
   # Our own feed's packages are not on nuget.org; they are published by this organisation's workflows.
-  case "$id" in SimplArchive.*) continue ;; esac
+  case "$id" in Alcifra.*) continue ;; esac
   answer=$(curl -fsS --retry 3 "https://azuresearch-usnc.nuget.org/query?q=packageid:${id}&prerelease=true&semVerLevel=2.0.0" || echo '')
   if [ -z "$answer" ]; then
     echo "$id  (the registry did not answer)" >> provenance-findings.txt

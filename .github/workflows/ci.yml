@@ -66,7 +66,7 @@ jobs:
       # covers exactly the gap the compiler leaves. Needs the restored solution to load, not a build. Generated EF
       # migrations are marked `generated_code = true` in .editorconfig, so they're skipped.
       - name: Format check (whitespace)
-        run: dotnet format whitespace SimplArchive.slnx --verify-no-changes
+        run: dotnet format whitespace Alcifra.slnx --verify-no-changes
       # Publish-machinery guard (ADR 0484): the private→public sync redacts withheld brand references from commit
       # subjects (not just files). Unit-tests that filter. Private-repo-only — publish/ is withheld from the public
       # mirror, so a false `if` skips this step cleanly there (the script is absent). (This step's wording avoids the
@@ -112,7 +112,7 @@ jobs:
           # limitation is real and worth knowing — a brand smuggled into a code comment as decoration passes
           # here. Reviewing that is a reader's job, which is what the standing principle in CLAUDE.md is for.
           PROSE_PATTERN='(apple ?(mail|notes)\b|\bthunderbird\b)'
-          PROSE_HITS=$(git ls-files 'manual/*' 'charts/*' 'src/SimplArchive.Localization/*' \
+          PROSE_HITS=$(git ls-files 'manual/*' 'charts/*' 'src/Alcifra.Localization/*' \
             | xargs grep -InEi "$PROSE_PATTERN" 2>/dev/null || true)
           if [ -n "$PROSE_HITS" ]; then
             echo "::error::A third-party product named as an EXAMPLE in user-facing prose (ADR 0610). Say what the thing does — 'any IMAP-speaking client', not a brand:"
@@ -178,7 +178,7 @@ jobs:
         run: dotnet tool restore
       - name: License compliance
         run: |
-          dotnet nuget-license -i SimplArchive.slnx -t \
+          dotnet nuget-license -i Alcifra.slnx -t \
             -a build/licenses/allowed-licenses.json \
             -override build/licenses/package-license-overrides.json \
             -ignore build/licenses/ignored-packages.json \
@@ -192,17 +192,17 @@ jobs:
       # exercised by the heavy E2E matrix (separate jobs/runners), so this number reflects the unit/integration
       # signal over Domain/Application/Infrastructure, not a full end-to-end figure.
       - name: Unit tests
-        run: dotnet test tests/SimplArchive.UnitTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
+        run: dotnet test tests/Alcifra.UnitTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
       - name: Integration tests
-        run: dotnet test tests/SimplArchive.IntegrationTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/integration
+        run: dotnet test tests/Alcifra.IntegrationTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/integration
       # The browser extension end to end (ADR 0980), in the test library's own Chromium: the installed branded
       # browser ignores --load-extension, so it cannot load an unpacked extension. The fixture would install the
       # browser itself; doing it as its own step names a download failure as one. No --with-deps: the image already
       # carries a branded browser, whose libraries are the same set.
       - name: Install the extension tests' browser
-        run: pwsh tests/SimplArchive.BrowserExtensionTests/bin/Debug/net10.0/playwright.ps1 install chromium --no-shell
+        run: pwsh tests/Alcifra.BrowserExtensionTests/bin/Debug/net10.0/playwright.ps1 install chromium --no-shell
       - name: Browser extension tests
-        run: dotnet test tests/SimplArchive.BrowserExtensionTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/extension
+        run: dotnet test tests/Alcifra.BrowserExtensionTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/extension
       # Merge the two cobertura files into one report (ReportGenerator, pinned in .config/dotnet-tools.json). The
       # GitHub-flavoured markdown summary is appended to the job summary; the HTML report is uploaded as an
       # artifact below. Informational only — `continue-on-error` so a report hiccup never fails the build, and
@@ -215,8 +215,8 @@ jobs:
             -reports:"coverage/**/coverage.cobertura.xml" \
             -targetdir:"coverage/report" \
             -reporttypes:"Html;MarkdownSummaryGithub" \
-            "-assemblyfilters:+SimplArchive.*;-SimplArchive.*Tests" \
-            "-classfilters:-SimplArchive.Infrastructure.Migrations.*"
+            "-assemblyfilters:+Alcifra.*;-Alcifra.*Tests" \
+            "-classfilters:-Alcifra.Infrastructure.Migrations.*"
           cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
         if: always()
@@ -311,12 +311,12 @@ jobs:
       - name: Restore
         run: dotnet restore
       - name: Build ${{ matrix.project }}
-        run: dotnet build tests/SimplArchive.${{ matrix.project }} --no-restore -c Debug
+        run: dotnet build tests/Alcifra.${{ matrix.project }} --no-restore -c Debug
       # Suites run once, no retry wrapper — the known intermittent flakes are root-caused (SearchTests polls until
       # BOTH docs are indexed; the login helper waits on DOMContentLoaded + a 60s timeout for the slower hosted
       # CPU; WebSearchFilterTests polls until the row clears). A red suite is a real regression or a new flake.
       - name: Test ${{ matrix.project }} ${{ matrix.filter }}
-        run: dotnet test tests/SimplArchive.${{ matrix.project }} --no-build -c Debug ${{ matrix.filter }} --logger "trx;LogFileName=results.trx" --results-directory "${{ github.workspace }}/trx"
+        run: dotnet test tests/Alcifra.${{ matrix.project }} --no-build -c Debug ${{ matrix.filter }} --logger "trx;LogFileName=results.trx" --results-directory "${{ github.workspace }}/trx"
       # A red leg must leave EVIDENCE behind. Without this the only record of which tests failed is the job log,
       # and a log is unreachable while ANY sibling job is still running — so one hung leg hides the diagnosis of
       # a different one indefinitely (that is exactly what happened on run 31501708457: `gh` answered "run is

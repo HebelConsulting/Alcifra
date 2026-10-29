@@ -21,7 +21,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-demo="$repo_root/src/SimplArchive.Api/DemoData"
+demo="$repo_root/src/Alcifra.Api/DemoData"
 api="${API_URL:-http://localhost:8080}"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -62,7 +62,7 @@ printf 'wrote %s (%s bytes, %s pages)\n' \
 # rather than loosen that, the files are produced here. They cannot be byte-compared in a test, because PdfPig
 # stamps a fresh document id into every build; PatchCodeSampleShapeTests guards their SHAPE instead, so a
 # composition change fails the build until this script is re-run.
-samples="$repo_root/src/SimplArchive.Api/wwwroot/download/samples"
+samples="$repo_root/src/Alcifra.Api/wwwroot/download/samples"
 mkdir -p "$samples"
 curl -fsS -o "$samples/Patch3-Separator.pdf"    "$api/api/intray/patch-code-sheet"
 curl -fsS -o "$samples/Patch3-Sample-Batch.pdf" "$api/api/intray/patch-code-sample"

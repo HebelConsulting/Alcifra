@@ -1,0 +1,385 @@
+using Alcifra.Application.Abstractions;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using Alcifra.Api.Manuals;
+using Alcifra.Domain.Documents;
+using Alcifra.Domain.Modules;
+using Alcifra.Infrastructure.Modules;
+using Alcifra.Infrastructure.Persistence;
+using SimplArchive.ModuleAbi;
+
+namespace Alcifra.EndToEndTests;
+
+// A module ships its manual and the core files it (ABI 1.5, ADR 0891), against the real loader, Postgres and object
+// storage: nothing is filed without a standard repository; once there is one the manual is filed ONCE into the lazily
+// created global::Alcifra.Localization.CoreOwnedNames.ManualsFolder folder (found by its mask), an unchanged package files nothing, a changed one becomes
+// a new version of the SAME document, a deleted manual is filed afresh — and two instances running the check at the
+// same moment still produce one document and one version. Alcifra's own manual goes the same way.
+[Collection(E2ECollection.Name)]
+[Trait("Area", "e2e-2")]
+public class ManualFilingTests
+{
+    private const string VerifyKeyVariable = "SIMPLARCHIVE_TESTMODULE_VERIFY_KEY";
+
+    private readonly E2EApiFactory _factory;
+
+    public ManualFilingTests(E2EApiFactory factory) => _factory = factory;
+
+    [Fact]
+    public async Task A_manual_is_filed_once_versioned_when_the_package_changes_and_refiled_when_deleted()
+    {
+        var rig = await RigAsync();
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        try
+        {
+            // Activation with no location configured files nothing — no default place is guessed.
+            await ActivateAsync(rig, vendorKey);
+            Assert.Null((await ActivationAsync(rig.TenantId)).ManualDocumentId);
+
+            await MakeStandardAsync(rig.TenantId, rig.RepoId);
+            Assert.Equal(ManualFilingOutcome.Filed, await FileAsync(rig.TenantId));
+
+            var activation = await ActivationAsync(rig.TenantId);
+            var documentId = Assert.IsType<Guid>(activation.ManualDocumentId);
+            var (document, versions) = await DocumentAsync(rig.TenantId, documentId);
+            var folder = await ManualsFolderAsync(rig.TenantId);
+            Assert.Equal(rig.RepoId, folder.ParentId);
+            Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.ManualsFolder, folder.Name);
+            Assert.Equal(folder.Id, document.ParentId);
+            Assert.Equal("test-module", await FieldAsync(rig.TenantId, documentId, "Article number"));
+            Assert.Equal("Test Module", await FieldAsync(rig.TenantId, documentId, "Product name"));
+            Assert.Equal(global::Alcifra.Localization.Strings.ProductName, await FieldAsync(rig.TenantId, documentId, "Brand"));
+            Assert.Equal("Test Module Manual", document.Name);
+            Assert.NotNull(document.CreatedByServiceAccountId);   // the module's own principal, not a person
+            Assert.Equal([Hash("1")], versions.Select(v => v.Sha256Hash));
+
+            // The startup path, with the package unchanged: nothing new — the property two instances rely on.
+            await StartupAsync(rig.TenantId);
+            Assert.Single((await DocumentAsync(rig.TenantId, documentId)).Versions);
+
+            // An upgraded package: a NEW VERSION of the same document, never a second document.
+            Environment.SetEnvironmentVariable(TestModule.TestModule.ManualEditionVariable, "2");
+            Assert.Equal(ManualFilingOutcome.Versioned, await FileAsync(rig.TenantId));
+            Assert.Equal(documentId, (await ActivationAsync(rig.TenantId)).ManualDocumentId);
+            Assert.Equal([Hash("1"), Hash("2")], (await DocumentAsync(rig.TenantId, documentId)).Versions.Select(v => v.Sha256Hash));
+            Assert.Equal(ManualFilingOutcome.Unchanged, await FileAsync(rig.TenantId));
+
+            // Somebody deleted it: the archive should still carry the manual the module ships, so it is filed afresh.
+            await SoftDeleteAsync(rig.TenantId, documentId);
+            Assert.Equal(ManualFilingOutcome.Filed, await FileAsync(rig.TenantId));
+            var refiled = Assert.IsType<Guid>((await ActivationAsync(rig.TenantId)).ManualDocumentId);
+            Assert.NotEqual(documentId, refiled);
+            Assert.Equal([Hash("2")], (await DocumentAsync(rig.TenantId, refiled)).Versions.Select(v => v.Sha256Hash));
+
+            await using var scope = await TenantScopeAsync(rig.TenantId);
+            // Three for the module's manual (filed, versioned, refiled); the startup pass also filed Alcifra's own.
+            Assert.Equal(3, await scope.Db.AuditEvents.CountAsync(e => e.Action == "Manual.Filed" && e.TargetName == "Test Module Manual"));
+            Assert.Equal(1, await scope.Db.AuditEvents.CountAsync(e => e.Action == "Manual.Filed" && e.TargetName == global::Alcifra.Localization.CoreOwnedNames.CoreManual));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+            Environment.SetEnvironmentVariable(TestModule.TestModule.ManualEditionVariable, null);
+        }
+    }
+
+    [Fact]
+    public async Task Two_instances_checking_at_once_file_one_document_and_one_version()
+    {
+        var rig = await RigAsync();
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        try
+        {
+            await ActivateAsync(rig, vendorKey);
+            await MakeStandardAsync(rig.TenantId, rig.RepoId);
+
+            // Both start together; the activation-row lock makes the second wait, then read what the first committed.
+            var first = await Task.WhenAll(FileAsync(rig.TenantId), FileAsync(rig.TenantId));
+            Assert.Equal([ManualFilingOutcome.Unchanged, ManualFilingOutcome.Filed], first.Order());
+
+            await using (var scope = await TenantScopeAsync(rig.TenantId))
+            {
+                Assert.Single(await scope.Db.Documents.Where(d => d.Name == "Test Module Manual").ToListAsync());
+                Assert.Single(await scope.Db.Documents.Where(d => d.Name.StartsWith(global::Alcifra.Localization.CoreOwnedNames.ManualsFolder)).ToListAsync());
+            }
+
+            Environment.SetEnvironmentVariable(TestModule.TestModule.ManualEditionVariable, "3");
+            var second = await Task.WhenAll(FileAsync(rig.TenantId), FileAsync(rig.TenantId));
+            Assert.Equal([ManualFilingOutcome.Unchanged, ManualFilingOutcome.Versioned], second.Order());
+
+            var documentId = Assert.IsType<Guid>((await ActivationAsync(rig.TenantId)).ManualDocumentId);
+            Assert.Equal([Hash("1"), Hash("3")], (await DocumentAsync(rig.TenantId, documentId)).Versions.Select(v => v.Sha256Hash));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+            Environment.SetEnvironmentVariable(TestModule.TestModule.ManualEditionVariable, null);
+        }
+    }
+
+    [Fact]
+    public async Task Alcifras_own_manual_is_filed_once_beside_the_modules_and_found_again_by_its_fields()
+    {
+        var rig = await RigAsync();
+
+        // No standard repository: nothing filed — and nothing guessed.
+        Assert.Equal(ManualFilingOutcome.NoLocation, await CoreAsync(rig.TenantId));
+
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        Assert.Equal(ManualFilingOutcome.Filed, await CoreAsync(rig.TenantId));
+        Assert.Equal(ManualFilingOutcome.Unchanged, await CoreAsync(rig.TenantId));
+
+        var folder = await ManualsFolderAsync(rig.TenantId);
+        await using var scope = await TenantScopeAsync(rig.TenantId);
+        var manual = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id);
+        Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.CoreManual, manual.Name);
+        Assert.Equal("simplarchive-core", await FieldAsync(rig.TenantId, manual.Id, "Article number"));
+    }
+
+    // ADR 0986: the core-owned names follow the product's. A tenant filed before the rename has "Alcifra Manuals"
+    // and "Alcifra Manual"; the next filing renames both, even when the manual itself is unchanged.
+    [Fact]
+    public async Task Names_filed_before_the_rename_are_healed_at_the_next_filing()
+    {
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        Assert.Equal(ManualFilingOutcome.Filed, await CoreAsync(rig.TenantId));
+        await RenameCoreOwnedAsync(rig.TenantId, "Alcifra Manuals", "Alcifra Manual");
+
+        Assert.Equal(ManualFilingOutcome.Unchanged, await CoreAsync(rig.TenantId));
+
+        var folder = await ManualsFolderAsync(rig.TenantId);
+        Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.ManualsFolder, folder.Name);
+        await using var scope = await TenantScopeAsync(rig.TenantId);
+        Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.CoreManual,
+            (await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id)).Name);
+    }
+
+    [Fact]
+    public async Task A_manuals_folder_a_person_renamed_keeps_its_name()
+    {
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        Assert.Equal(ManualFilingOutcome.Filed, await CoreAsync(rig.TenantId));
+        await RenameCoreOwnedAsync(rig.TenantId, "Our handbooks", manualName: null);
+
+        Assert.Equal(ManualFilingOutcome.Unchanged, await CoreAsync(rig.TenantId));
+
+        Assert.Equal("Our handbooks", (await ManualsFolderAsync(rig.TenantId)).Name);
+    }
+
+    // As the data stood before the rename (or after a person renamed it): the folder and, if given, the manual in it.
+    private async Task RenameCoreOwnedAsync(Guid tenantId, string folderName, string? manualName)
+    {
+        var folderId = (await ManualsFolderAsync(tenantId)).Id;
+        await using var scope = await TenantScopeAsync(tenantId);
+        (await scope.Db.Documents.SingleAsync(d => d.Id == folderId)).Name = folderName;
+        if (manualName is not null)
+        {
+            (await scope.Db.Documents.SingleAsync(d => d.ParentId == folderId)).Name = manualName;
+        }
+
+        await scope.Db.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task The_archive_signing_keys_are_published_beside_the_manuals_and_unchanged_keys_file_nothing()
+    {
+        // ADR 0961: every public key that ever signed an offline archive, newest first, where every member reads.
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        var signing = _factory.Services.GetRequiredService<Alcifra.Api.OfflineArchives.ArchiveSigningKey>();
+
+        await ManualStartupFiling.FileForTenantAsync(_factory.Services, rig.TenantId, [], NullLogger.Instance);
+        await ManualStartupFiling.FileForTenantAsync(_factory.Services, rig.TenantId, [], NullLogger.Instance);
+
+        var folder = await ManualsFolderAsync(rig.TenantId);
+        Guid documentId;
+        await using (var scope = await TenantScopeAsync(rig.TenantId))
+        {
+            documentId = (await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id && d.Name == "Archive signing keys")).Id;
+        }
+
+        Assert.Equal(ManualFiler.ArchiveSigningKeysArticleNumber, await FieldAsync(rig.TenantId, documentId, "Article number"));
+        var (_, versions) = await DocumentAsync(rig.TenantId, documentId);
+        var version = Assert.Single(versions);   // the second pass found the same keys
+        await using var content = await _factory.Services.GetRequiredService<IObjectStorageClient>().GetObjectAsync(version.ObjectKey);
+        using var reader = new StreamReader(content);
+        var published = await reader.ReadToEndAsync();
+        Assert.Equal(signing.HistoryPem(), published);
+        Assert.Contains(signing.Current!.ExportCertificatePem(), published, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE KEY", published, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_client_manual_from_the_directory_is_filed_named_after_its_file_and_versioned_when_it_changes()
+    {
+        var rig = await RigAsync();
+        await MakeStandardAsync(rig.TenantId, rig.RepoId);
+        var directory = Directory.CreateTempSubdirectory("client-manuals-").FullName;
+        var pdf = Path.Combine(directory, "Alcifra-Mobile-Manual.pdf");
+        try
+        {
+            await File.WriteAllTextAsync(pdf, "%PDF-1.4 the phone manual, edition 1");
+            await File.WriteAllTextAsync($"{pdf}.version", "0.21.2\n");
+
+            await ManualStartupFiling.FileClientManualsAsync(_factory.Services, rig.TenantId, [pdf], NullLogger.Instance);
+            await ManualStartupFiling.FileClientManualsAsync(_factory.Services, rig.TenantId, [pdf], NullLogger.Instance);
+
+            var folder = await ManualsFolderAsync(rig.TenantId);
+            Guid documentId;
+            await using (var scope = await TenantScopeAsync(rig.TenantId))
+            {
+                var manual = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id && d.Name == "Alcifra Mobile Manual");
+                documentId = manual.Id;
+            }
+
+            Assert.Equal("client:alcifra-mobile-manual", await FieldAsync(rig.TenantId, documentId, "Article number"));
+            Assert.Equal("0.21.2", await FieldAsync(rig.TenantId, documentId, "Product version"));
+            Assert.Single((await DocumentAsync(rig.TenantId, documentId)).Versions);   // filed once, unchanged the second time
+
+            await File.WriteAllTextAsync(pdf, "%PDF-1.4 the phone manual, edition 2");
+            await ManualStartupFiling.FileClientManualsAsync(_factory.Services, rig.TenantId, [pdf], NullLogger.Instance);
+
+            Assert.Equal(2, (await DocumentAsync(rig.TenantId, documentId)).Versions.Count);   // a new version, same document
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private async Task<ManualFilingOutcome> CoreAsync(Guid tenantId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Services.GetRequiredService<ManualFiler>().FileCoreManualAsync();
+    }
+
+    private static string Hash(string edition) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes($"Test Module manual, edition {edition}\n")));
+
+    private IIndustryModule LoadedTestModule() =>
+        _factory.Services.GetRequiredService<IReadOnlyList<ModuleLoader.LoadedModule>>()
+            .Single(m => m.Module.ModuleId == "test-module").Module;
+
+    private async Task<ManualFilingOutcome> FileAsync(Guid tenantId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Services.GetRequiredService<ManualFiler>().FileModuleManualAsync(LoadedTestModule());
+    }
+
+    // The startup path for ONE tenant — the whole sweep would also file into every other test's tenants.
+    private Task StartupAsync(Guid tenantId) =>
+        ManualStartupFiling.FileForTenantAsync(_factory.Services, tenantId, [LoadedTestModule()], NullLogger.Instance);
+
+    private async Task<ModuleActivation> ActivationAsync(Guid tenantId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Db.ModuleActivations.AsNoTracking().SingleAsync(a => a.ModuleId == "test-module");
+    }
+
+    private async Task<(Document Document, List<DocumentVersion> Versions)> DocumentAsync(Guid tenantId, Guid documentId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        var document = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.Id == documentId);
+        var versions = await scope.Db.DocumentVersions.AsNoTracking()
+            .Where(v => v.DocumentId == documentId && v.Status == DocumentVersionStatus.Confirmed)
+            .OrderBy(v => v.VersionNumber)
+            .ToListAsync();
+        return (document, versions);
+    }
+
+    private async Task MakeStandardAsync(Guid tenantId, Guid repositoryId)
+    {
+        // A tenant seeded straight into the database has no standard repository (provisioning sets it); give it one.
+        await using var scope = await TenantScopeAsync(tenantId);
+        var tenant = await scope.Db.Tenants.SingleAsync(t => t.Id == tenantId);
+        tenant.StandardRepositoryId = repositoryId;
+        await scope.Db.SaveChangesAsync();
+    }
+
+    private async Task<Document> ManualsFolderAsync(Guid tenantId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Db.Documents.AsNoTracking()
+            .SingleAsync(d => scope.Db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == Alcifra.Domain.Masks.WellKnownMaskIds.Documentation));
+    }
+
+    private async Task<string?> FieldAsync(Guid tenantId, Guid documentId, string name)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Db.FieldValues
+            .Where(v => v.DocumentId == documentId && scope.Db.FieldDefinitions.Any(f => f.Id == v.FieldDefinitionId && f.Name == name))
+            .Select(v => v.Value)
+            .SingleOrDefaultAsync();
+    }
+
+    private async Task SoftDeleteAsync(Guid tenantId, Guid documentId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        var document = await scope.Db.Documents.SingleAsync(d => d.Id == documentId);
+        document.DeletedAt = DateTimeOffset.UtcNow;
+        await scope.Db.SaveChangesAsync();
+    }
+
+    private sealed class TenantScope(AsyncServiceScope scope) : IAsyncDisposable
+    {
+        public IServiceProvider Services => scope.ServiceProvider;
+
+        public AlcifraDbContext Db => scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+
+        public ValueTask DisposeAsync() => scope.DisposeAsync();
+    }
+
+    private Task<TenantScope> TenantScopeAsync(Guid tenantId)
+    {
+        var scope = _factory.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<CurrentTenantAccessor>().TenantId = tenantId;
+        return Task.FromResult(new TenantScope(scope));
+    }
+
+    private sealed record Rig(HttpClient Admin, HttpClient Owner, Guid TenantId, Guid RepoId);
+
+    private async Task<Rig> RigAsync()
+    {
+        var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
+        var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
+        var repoId = (await TestJson.Post(owner, "/api/repositories", new { name = $"Manuals {Guid.NewGuid():N}" }))
+            .GetProperty("id").GetGuid();
+
+        var email = $"manuals-{Guid.NewGuid():N}@e2e.local";
+        const string password = "manuals12345678";
+        var adminId = await _factory.SeedUserAsync(tenantId, email, password, "Manuals Admin", isTenantAdmin: true);
+        await TestJson.Put(owner, $"/api/documents/{repoId}/acl-entries/users/{adminId}",
+            new { canSee = true, canReadContent = true, canCreateSubItems = true, canEditContent = true });
+
+        var admin = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
+        return new Rig(admin, owner, tenantId, repoId);
+    }
+
+    private static async Task ActivateAsync(Rig rig, ECDsa vendorKey)
+    {
+        var license = new TenantLicense(["test-module"], rig.TenantId,
+                DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)), ModuleAbiVersion.Major, string.Empty)
+            .Sign(vendorKey);
+        var json = JsonSerializer.Serialize(license, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        var docId = (await TestJson.Post(rig.Owner, $"/api/documents/{rig.RepoId}/children",
+            new { name = $"License {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+        var created = await TestJson.Post(rig.Owner, $"/api/documents/{docId}/versions", new { fileExtension = ".json" });
+        using (var storage = new HttpClient())
+        {
+            (await storage.PutAsync(created.GetProperty("uploadUrl").GetString()!,
+                new ByteArrayContent(Encoding.UTF8.GetBytes(json)))).EnsureSuccessStatusCode();
+        }
+
+        await TestJson.Put(rig.Owner, $"/api/documents/{docId}/versions/{created.GetProperty("id").GetGuid()}", new { });
+        await TestJson.Put(rig.Admin, "/api/modules/test-module/license", new { licenseDocumentId = docId });
+    }
+}

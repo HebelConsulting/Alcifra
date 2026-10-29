@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Regenerate the SimplArchive user manual (ADR 0502): capture fresh screenshots from the real app, then compile the
+# Regenerate the Alcifra user manual (ADR 0502): capture fresh screenshots from the real app, then compile the
 # Typst sources to the served PDF.
 #
 #   scripts/generate-manual.sh [--desktop-only]
@@ -12,7 +12,7 @@
 #
 # Outputs:
 #   manual/screenshots/{desktop,web}-*.png          (regenerated screenshots)
-#   src/SimplArchive.Api/wwwroot/download/manual/<fileStem>-Manual.pdf   (the served manual, ADR 0997)
+#   src/Alcifra.Api/wwwroot/download/manual/<fileStem>-Manual.pdf   (the served manual, ADR 0997)
 #
 # Requires: the .NET SDK, `typst` on PATH, and (for the web capture) Docker + Google Chrome.
 set -euo pipefail
@@ -31,15 +31,15 @@ if ! command -v typst >/dev/null 2>&1; then
 fi
 
 source scripts/brand.sh
-pdf_out="src/SimplArchive.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
+pdf_out="src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
 mkdir -p manual/screenshots "$(dirname "$pdf_out")"
 
 echo "==> Building the capture harness (and the app projects it drives)…"
-dotnet build tests/SimplArchive.ManualCapture/SimplArchive.ManualCapture.csproj -clp:ErrorsOnly
+dotnet build tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj -clp:ErrorsOnly
 
 echo "==> Capturing screenshots ($mode)…"
 # shellcheck disable=SC2086
-dotnet run --project tests/SimplArchive.ManualCapture --no-build -- $mode --out manual/screenshots
+dotnet run --project tests/Alcifra.ManualCapture --no-build -- $mode --out manual/screenshots
 
 # A regenerated PNG whose every pixel is within ±1 of the committed one is raster noise, not a change (#832).
 # Runs BEFORE the compile below, so neither the PNG nor the PDF that embeds it churns over nothing.

@@ -21,7 +21,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends libfontconfig1 \
  && rm -rf /var/lib/apt/lists/*
 COPY . .
-RUN dotnet build src/SimplArchive.BrandIcons -c Release -p:BrandIconsPhase=Generate -p:BrandIconsDir=/icons/
+RUN dotnet build src/Alcifra.BrandIcons -c Release -p:BrandIconsPhase=Generate -p:BrandIconsDir=/icons/
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
@@ -38,29 +38,29 @@ ARG VERSION=0.0.0-dev
 
 # Copy all project files first (preserving relative paths, needed since Api's project references must resolve
 # during restore) so the restore layer is cached independently of source-code changes.
-COPY ["src/SimplArchive.Localization/SimplArchive.Localization.csproj", "src/SimplArchive.Localization/"]
+COPY ["src/Alcifra.Localization/Alcifra.Localization.csproj", "src/Alcifra.Localization/"]
 COPY ["src/SimplArchive.ModuleAbi/SimplArchive.ModuleAbi.csproj", "src/SimplArchive.ModuleAbi/"]
-COPY ["src/SimplArchive.Presentation/SimplArchive.Presentation.csproj", "src/SimplArchive.Presentation/"]
-COPY ["src/SimplArchive.TextLayout/SimplArchive.TextLayout.csproj", "src/SimplArchive.TextLayout/"]
-COPY ["src/SimplArchive.HardwareKeys/SimplArchive.HardwareKeys.csproj", "src/SimplArchive.HardwareKeys/"]
-COPY ["src/SimplArchive.BrowserHost/SimplArchive.BrowserHost.csproj", "src/SimplArchive.BrowserHost/"]
-COPY ["src/SimplArchive.Sapass/SimplArchive.Sapass.csproj", "src/SimplArchive.Sapass/"]
-COPY ["src/SimplArchive.SealedArchive/SimplArchive.SealedArchive.csproj", "src/SimplArchive.SealedArchive/"]
-COPY ["src/SimplArchive.Theming/SimplArchive.Theming.csproj", "src/SimplArchive.Theming/"]
-COPY ["src/SimplArchive.Domain/SimplArchive.Domain.csproj", "src/SimplArchive.Domain/"]
-COPY ["src/SimplArchive.Application/SimplArchive.Application.csproj", "src/SimplArchive.Application/"]
-COPY ["src/SimplArchive.Infrastructure/SimplArchive.Infrastructure.csproj", "src/SimplArchive.Infrastructure/"]
-COPY ["src/SimplArchive.Auth/SimplArchive.Auth.csproj", "src/SimplArchive.Auth/"]
-COPY ["src/SimplArchive.Client/SimplArchive.Client.csproj", "src/SimplArchive.Client/"]
-COPY ["src/SimplArchive.Api/SimplArchive.Api.csproj", "src/SimplArchive.Api/"]
-RUN dotnet restore "src/SimplArchive.Api/SimplArchive.Api.csproj" -p:GenerateBrandIcons=false
+COPY ["src/Alcifra.Presentation/Alcifra.Presentation.csproj", "src/Alcifra.Presentation/"]
+COPY ["src/Alcifra.TextLayout/Alcifra.TextLayout.csproj", "src/Alcifra.TextLayout/"]
+COPY ["src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj", "src/Alcifra.HardwareKeys/"]
+COPY ["src/Alcifra.BrowserHost/Alcifra.BrowserHost.csproj", "src/Alcifra.BrowserHost/"]
+COPY ["src/Alcifra.Sapass/Alcifra.Sapass.csproj", "src/Alcifra.Sapass/"]
+COPY ["src/Alcifra.SealedArchive/Alcifra.SealedArchive.csproj", "src/Alcifra.SealedArchive/"]
+COPY ["src/Alcifra.Theming/Alcifra.Theming.csproj", "src/Alcifra.Theming/"]
+COPY ["src/Alcifra.Domain/Alcifra.Domain.csproj", "src/Alcifra.Domain/"]
+COPY ["src/Alcifra.Application/Alcifra.Application.csproj", "src/Alcifra.Application/"]
+COPY ["src/Alcifra.Infrastructure/Alcifra.Infrastructure.csproj", "src/Alcifra.Infrastructure/"]
+COPY ["src/Alcifra.Auth/Alcifra.Auth.csproj", "src/Alcifra.Auth/"]
+COPY ["src/Alcifra.Client/Alcifra.Client.csproj", "src/Alcifra.Client/"]
+COPY ["src/Alcifra.Api/Alcifra.Api.csproj", "src/Alcifra.Api/"]
+RUN dotnet restore "src/Alcifra.Api/Alcifra.Api.csproj" -p:GenerateBrandIcons=false
 
 COPY . .
 # -p:Version=$VERSION stamps the API assembly's InformationalVersion with the release tag so the /api discovery
 # document reports the real server version (ADR 0512, for the desktop self-update check); defaults to 0.1.0 locally.
 # The icons come from the icons stage; this Alpine stage cannot run the generator (GenerateBrandIcons=false).
 COPY --from=icons /icons /icons
-RUN dotnet publish "src/SimplArchive.Api/SimplArchive.Api.csproj" -c Release -o /app/publish --no-restore -p:Version=$VERSION \
+RUN dotnet publish "src/Alcifra.Api/Alcifra.Api.csproj" -c Release -o /app/publish --no-restore -p:Version=$VERSION \
     -p:GenerateBrandIcons=false -p:BrandIconsDir=/icons/
 
 # (The desktop-client archives are built in their own stage below and copied into the final image — they used to
@@ -145,4 +145,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/health/ready || exit 1
 
-ENTRYPOINT ["dotnet", "SimplArchive.Api.dll"]
+ENTRYPOINT ["dotnet", "Alcifra.Api.dll"]

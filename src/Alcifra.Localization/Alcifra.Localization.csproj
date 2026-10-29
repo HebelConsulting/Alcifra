@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Published for the mobile app (ADR 0917): shared metadata, version stamped by the publish workflow. -->
+  <!-- Conditional: the Docker restore layer copies .csproj files only, and this carries package metadata, nothing a restore needs. -->
+  <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
+  <PropertyGroup>
+    <Description>The $(ProductName) clients' user-interface texts (EN/DE/IT/ES).</Description>
+  </PropertyGroup>
+
+  <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker
+       restore layer copies only the .csproj files, not Directory.Build.props — every project does the same. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Shared UI-string resources for both clients (ADR "Web UI localization — shared resources"): the .resx
+       (English + de/it/es satellites) + the ResourceManager accessor + the culture helper, with no UI
+       dependency so the Avalonia desktop and the Blazor WASM web client can both reference it. Each client
+       keeps its own binding glue (the desktop's {loc:Tr} markup extension; the web's Loc helper). -->
+
+  <!-- The build's product name (brand/brand.json, read by Directory.Build.props) as a constant, ProductBuild.Name: what Strings.DefaultProductName
+       reads (core #1117). Generated, so the name is spelled in one place only. -->
+  <Target Name="GenerateProductBuildName" BeforeTargets="BeforeCompile;CoreCompile">
+    <Error Condition="'$(ProductName)' == ''" Text="ProductName is not set: brand/brand.json has no name (Directory.Build.props reads it)." />
+    <PropertyGroup>
+      <ProductBuildFile>$(IntermediateOutputPath)ProductBuild.g.cs</ProductBuildFile>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(ProductBuildFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                      Lines="// Generated from the brand file brand/brand.json (ProductName, Directory.Build.props).;namespace Alcifra.Localization%3B;/// &lt;summary&gt;The product's name as this build ships it (core #1117).&lt;/summary&gt;;public static class ProductBuild;{;    /// &lt;summary&gt;The build's ProductName.&lt;/summary&gt;;    public const string Name = &quot;$(ProductName)&quot;%3B;}" />
+    <ItemGroup>
+      <Compile Include="$(ProductBuildFile)" />
+      <FileWrites Include="$(ProductBuildFile)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

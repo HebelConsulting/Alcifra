@@ -1,0 +1,748 @@
+using System.IO.Compression;
+using System.Text;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Documents;
+using Alcifra.Domain.Masks;
+using Alcifra.Domain.Workflow;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Documents;
+
+// Packages a repository (root document) or any sub-folder into a self-contained .zip an import can consume
+// (ADR "Repository export"). Runs in the caller's request scope, so the tenant + soft-delete query filters
+// apply automatically — only active documents of the caller's tenant are read. The archive carries the folder
+// tree, document/version metadata + deduplicated blobs, per-document index-field values, the referenced mask
+// definitions (all referenced MaskVersions), comments, in-scope references, and the referenced principals
+// (users/service-accounts, identity only). ACLs, workflow state, legal holds, and check-out locks are
+// deliberately dropped (retention rides along via the mask's RetentionYears). Read-only; no schema change.
+public sealed class RepositoryExporter
+{
+    // 2 since issue #382: the chat thread moved from "tree/comments.jsonl" to "tree/chat.jsonl" (and its
+    // "parentCommentId" field to "parentMessageId"). Bumped rather than shimmed so a v1 archive fails loudly with
+    // UnsupportedArchiveVersionException instead of importing with every thread silently missing.
+    public const int FormatVersion = 2;
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    private readonly AlcifraDbContext _dbContext;
+    private readonly IObjectStorageClient _objectStorage;
+    private readonly ILogger _logger;
+
+    public RepositoryExporter(AlcifraDbContext dbContext, IObjectStorageClient objectStorage, ILogger<RepositoryExporter>? logger = null)
+    {
+        _dbContext = dbContext;
+        _objectStorage = objectStorage;
+        _logger = logger ?? (ILogger)NullLogger.Instance;
+    }
+
+    // Writes the export archive to the supplied stream. The root must be an existing, active document of the
+    // caller's tenant (validated by the caller). The stream is written but not disposed/closed by this method.
+    public Task ExportAsync(Guid rootId, RepositoryExportFilters filters, bool includePermissions, Stream output, CancellationToken cancellationToken) =>
+        ExportAsync(rootId, filters, includePermissions, output, audience: null, cancellationToken);
+
+    /// <param name="audience">An offline export's caller (ADR 0927): the archive holds only what they may read, at the
+    /// version they may read, with the visible folder chain above the anchor. Null for the regular export.</param>
+    public async Task ExportAsync(Guid rootId, RepositoryExportFilters filters, bool includePermissions, Stream output,
+        OfflineExportAudience? audience, CancellationToken cancellationToken)
+    {
+        // 1. Collect the active subtree (tenant + soft-delete filters apply automatically).
+        var documents = await CollectSubtreeAsync(_dbContext, [rootId], cancellationToken);
+        if (documents.Count == 0 || documents[0].Id != rootId)
+        {
+            throw new InvalidOperationException("The export's root is not an active document of this tenant.");
+        }
+
+        // An offline export: the folders above the anchor (metadata only), and only what the caller may see.
+        var chain = audience is null ? [] : await CollectAncestorsAsync(documents[0], cancellationToken);
+        IReadOnlyDictionary<Guid, EffectiveRights> rights = new Dictionary<Guid, EffectiveRights>();
+        if (audience is not null)
+        {
+            rights = await audience.RightsForMany([.. documents.Concat(chain).Select(d => d.Id)], cancellationToken);
+            bool Sees(Document d) => rights.TryGetValue(d.Id, out var r) && r.CanSee;
+            var seen = new HashSet<Guid>();
+            documents = [.. documents.Where(d => (d.Id == rootId || seen.Contains(d.ParentId ?? Guid.Empty)) && Sees(d) && seen.Add(d.Id))];
+            chain = [.. chain.TakeWhile(Sees)];
+        }
+
+        // An offline export follows the references in its scope (ADR 0959): each target comes in, a folder with what
+        // the caller may see beneath it, and the visible folder chain above it. The repository export does not: it
+        // stays a restorable snapshot of its subtree, with in-scope references only.
+        var followed = audience is null ? null : await new OfflineReferenceFollower(_dbContext, _logger).FollowAsync(rootId, documents, chain, audience, cancellationToken);
+        if (followed is not null)
+        {
+            var broughtIds = followed.BroughtIn.Select(d => d.Id).ToHashSet();
+            chain = [.. chain.Where(c => !broughtIds.Contains(c.Id)), .. followed.Chains];
+            documents = [.. documents, .. followed.BroughtIn];
+            var merged = new Dictionary<Guid, EffectiveRights>(rights);
+            foreach (var (id, r) in followed.Rights)
+            {
+                merged[id] = r;
+            }
+
+            rights = merged;
+        }
+
+        var docIds = documents.Select(d => d.Id).ToHashSet();
+
+        // 2. Confirmed versions of those documents + their workflow-gating state (for ActiveOnly resolution).
+        var versions = await _dbContext.DocumentVersions
+            .Where(v => docIds.Contains(v.DocumentId) && v.Status == DocumentVersionStatus.Confirmed)
+            .ToListAsync(cancellationToken);
+        var versionIds = versions.Select(v => v.Id).ToList();
+        var gatedStates = await _dbContext.WorkflowStates
+            .Where(w => versionIds.Contains(w.DocumentVersionId) && w.Status != WorkflowStatus.Released)
+            .Select(w => new { w.DocumentVersionId, w.AssignedToUserId })
+            .ToListAsync(cancellationToken);
+        var gated = gatedStates.Select(w => w.DocumentVersionId).ToHashSet();
+        var reviewing = audience?.UserId is { } reviewer ? gatedStates.Where(w => w.AssignedToUserId == reviewer).Select(w => w.DocumentVersionId).ToHashSet() : [];
+
+        // 3. Principal name lookups (for the CreatedBy filter + the principals manifest). Tenant-bounded.
+        var userById = await _dbContext.Users
+            .Select(u => new UserLite(u.Id, u.Email, u.DisplayName, u.IsActive, u.ClearanceRank))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+        var serviceAccountById = await _dbContext.ServiceAccounts
+            .Select(s => new ServiceAccountLite(s.Id, s.Name, s.IsActive, s.ClearanceRank))
+            .ToDictionaryAsync(s => s.Id, cancellationToken);
+
+        // 4. Resolve the per-document version set (version selection + date/createdBy filters).
+        var versionsByDoc = versions.GroupBy(v => v.DocumentId).ToDictionary(g => g.Key, g => g.ToList());
+        var exportedVersions = new List<DocumentVersion>();
+        foreach (var document in documents)
+        {
+            if (!versionsByDoc.TryGetValue(document.Id, out var docVersions))
+            {
+                continue;
+            }
+
+            IEnumerable<DocumentVersion> candidates = docVersions;
+            // What the caller may read of a version (ADR 0300): content rights, and a gated version only for editors and
+            // its assigned reviewer.
+            var r = rights.GetValueOrDefault(document.Id);
+            // Encrypted content only to its audience (ADR 0983): withheld, the document is metadata only.
+            var withheld = audience?.Withholds is { } withholds && await withholds(document.Id, cancellationToken);
+            bool Readable(DocumentVersion v) => !withheld && r is { CanReadContent: true } && (r.CanEditContent || !gated.Contains(v.Id) || reviewing.Contains(v.Id));
+            if (filters.Versions == ExportVersionSelection.EveryReadableForCaller)
+            {
+                // A road copy (ADR 0961): every version the caller may read, oldest first.
+                candidates = docVersions.Where(Readable).OrderBy(v => v.VersionNumber ?? 0);
+            }
+            else if (filters.Versions == ExportVersionSelection.CurrentForCaller)
+            {
+                // The version the caller would see online (ADR 0927): the current one (pinned, else the newest
+                // confirmed, ADR 0503) when they may read it; else the newest one they may read; none without CanReadContent.
+                var current = docVersions.FirstOrDefault(v => v.Id == document.CurrentVersionId)
+                    ?? docVersions.OrderByDescending(v => v.VersionNumber ?? 0).First();
+                var chosen = Readable(current) ? current : docVersions.Where(Readable).OrderByDescending(v => v.VersionNumber ?? 0).FirstOrDefault();
+                candidates = chosen is null ? [] : [chosen];
+            }
+            else if (filters.Versions == ExportVersionSelection.ActiveOnly)
+            {
+                // The version an end user sees as current: the highest-numbered confirmed version that isn't
+                // gated in a workflow (ADR "Workflow status-gating"). May not be the newest version.
+                var active = docVersions
+                    .Where(v => !gated.Contains(v.Id))
+                    .OrderByDescending(v => v.VersionNumber ?? 0)
+                    .FirstOrDefault();
+                candidates = active is null ? [] : [active];
+            }
+
+            exportedVersions.AddRange(candidates.Where(v => MatchesFilters(v, filters, userById, serviceAccountById)));
+        }
+
+        // 5. Included documents = those with a surviving version, plus every ancestor up to the root (keep the
+        // path intact), plus the root itself (the export anchor).
+        var documentById = documents.ToDictionary(d => d.Id);
+        // An offline export's reference targets are anchors too: each is included, and the walk up from what lies
+        // beneath one stops at it.
+        var included = new HashSet<Guid>(followed?.Targets ?? Enumerable.Empty<Guid>()) { rootId };
+        foreach (var docId in exportedVersions.Select(v => v.DocumentId).Distinct())
+        {
+            for (var cursor = (Guid?)docId; cursor is { } id && included.Add(id); cursor = documentById.GetValueOrDefault(id)?.ParentId)
+            {
+            }
+        }
+
+        // A folder holding a listed reference has contents even with no document of its own (#376): it is kept, with the
+        // folders above it, as a folder holding a document is.
+        foreach (var folderId in followed?.References.Select(r => r.Reference.ParentFolderId) ?? [])
+        {
+            for (var cursor = (Guid?)folderId; cursor is { } id && documentById.ContainsKey(id) && included.Add(id); cursor = documentById[id].ParentId)
+            {
+            }
+        }
+
+        // The folder chain above an offline export's anchor: metadata only, so the copy places the anchor in its tree.
+        var includedDocuments = chain.AsEnumerable().Reverse().Concat(documents.Where(d => included.Contains(d.Id))).ToList();
+        foreach (var folder in chain)
+        {
+            included.Add(folder.Id);
+        }
+
+        exportedVersions = exportedVersions.Where(v => included.Contains(v.DocumentId)).ToList();
+        var exportedVersionDocIds = exportedVersions.Select(v => v.DocumentId).ToHashSet();
+
+        // 6. Index-field values, comments, and in-scope references for the included documents.
+        var fieldValues = await _dbContext.FieldValues
+            .Where(f => exportedVersionDocIds.Contains(f.DocumentId))
+            .ToListAsync(cancellationToken);
+        // Only what a PERSON typed. An automatic entry (ADR 0545) stores no text — its wording is a localized
+        // template rendered from Kind + DocumentVersionId, neither of which crosses the archive — so exporting one
+        // would write an empty row that imports as a blank message nobody wrote. The importing side records its
+        // own entries for the versions it creates anyway, which is where those events belong.
+        //
+        // Ordered client-side — SQLite can't translate a DateTimeOffset ORDER BY (the export runs against both
+        // providers), and the thread is small.
+        var comments = (await _dbContext.ChatMessages
+            .Where(c => included.Contains(c.DocumentId) && c.Kind == ChatMessageKind.UserPost)
+            .ToListAsync(cancellationToken))
+            .OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
+            .ToList();
+        var references = followed is null
+            ? await _dbContext.DocumentReferences
+                .Where(r => included.Contains(r.ParentFolderId) && included.Contains(r.TargetDocumentId))
+                .ToListAsync(cancellationToken)
+            : [];
+        // An offline export lists every reference filed in what it holds, its target brought in or not (ADR 0959).
+        var followedReferences = followed?.References.Where(r => included.Contains(r.Reference.ParentFolderId)).ToList() ?? [];
+        // Annotations (notes + markup shapes, ADR "Annotations in export/import") — anchored to an exported version.
+        var exportedVersionIds = exportedVersions.Select(v => v.Id).ToHashSet();
+        var annotations = await _dbContext.DocumentAnnotations
+            .Where(a => exportedVersionIds.Contains(a.DocumentVersionId))
+            .ToListAsync(cancellationToken);
+
+        // 7. Referenced mask definitions — every distinct MaskVersion an included document pins.
+        var maskVersionIds = includedDocuments.Select(d => d.MaskVersionId).Distinct().ToList();
+        var maskVersions = await _dbContext.MaskVersions.Where(m => maskVersionIds.Contains(m.Id)).ToListAsync(cancellationToken);
+        var maskIds = maskVersions.Select(m => m.MaskId).Distinct().ToList();
+        var masks = await _dbContext.Masks.Where(m => maskIds.Contains(m.Id)).ToListAsync(cancellationToken);
+        var fieldDefinitions = await _dbContext.FieldDefinitions.Where(f => maskVersionIds.Contains(f.MaskVersionId)).ToListAsync(cancellationToken);
+        var fieldsByMaskVersion = fieldDefinitions.GroupBy(f => f.MaskVersionId).ToDictionary(g => g.Key, g => g.ToList());
+
+        // 8. Referenced principals — the union of every CreatedBy across the exported documents/versions/comments.
+        var referencedUserIds = new HashSet<Guid>();
+        var referencedServiceAccountIds = new HashSet<Guid>();
+        void Note(Guid? userId, Guid? serviceAccountId)
+        {
+            if (userId is { } u) referencedUserIds.Add(u);
+            if (serviceAccountId is { } s) referencedServiceAccountIds.Add(s);
+        }
+
+        foreach (var d in includedDocuments) Note(d.CreatedByUserId, d.CreatedByServiceAccountId);
+        foreach (var v in exportedVersions) Note(v.CreatedByUserId, v.CreatedByServiceAccountId);
+        foreach (var c in comments) Note(c.CreatedByUserId, c.CreatedByServiceAccountId);
+
+        // A MENTIONED user counts as referenced even if they never wrote anything here (issue #383) — without
+        // this, someone who was only ever addressed would be missing from the principals manifest, so the import
+        // could not map them and every mention of them would arrive as the unknown-user tombstone.
+        foreach (var c in comments)
+        {
+            foreach (var mentionedId in ChatMentions.Parse(c.Body)) Note(mentionedId, null);
+        }
+
+        foreach (var a in annotations) Note(a.CreatedByUserId, a.CreatedByServiceAccountId);
+
+        // 8b. ACL — the own AclEntry rows on the included documents (opt-in, ADR "ACL in export/import"). Their
+        // principals (incl. groups, otherwise never exported) join the principals manifest.
+        var aclEntries = includePermissions
+            ? await _dbContext.AclEntries.Where(a => included.Contains(a.DocumentId)).ToListAsync(cancellationToken)
+            : [];
+        var referencedGroupIds = aclEntries.Where(a => a.GroupId is not null).Select(a => a.GroupId!.Value).ToHashSet();
+        foreach (var a in aclEntries) Note(a.UserId, a.ServiceAccountId);
+        var groupById = referencedGroupIds.Count == 0
+            ? new Dictionary<Guid, GroupLite>()
+            : await _dbContext.Groups.Where(g => referencedGroupIds.Contains(g.Id))
+                .Select(g => new GroupLite(g.Id, g.Name, g.ClearanceRank))
+                .ToDictionaryAsync(g => g.Id, cancellationToken);
+
+        // Sensitivity labels (ADR "Classification in export/import"): the definitions referenced by an included
+        // document's assignment or a mask version's default. Carried by name (the natural key), so import merges
+        // them into the destination tenant's catalog. Always exported — a label is document classification
+        // metadata, not a permission.
+        var referencedLabelIds = includedDocuments.Where(d => d.SensitivityLabelId is not null).Select(d => d.SensitivityLabelId!.Value)
+            .Concat(maskVersions.Where(m => m.DefaultSensitivityLabelId is not null).Select(m => m.DefaultSensitivityLabelId!.Value))
+            .ToHashSet();
+        var labelsById = referencedLabelIds.Count == 0
+            ? new Dictionary<Guid, Alcifra.Domain.Documents.SensitivityLabelDefinition>()
+            : await _dbContext.SensitivityLabelDefinitions.Where(l => referencedLabelIds.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id, cancellationToken);
+        string? LabelName(Guid? id) => id is { } v && labelsById.TryGetValue(v, out var l) ? l.Name : null;
+
+        // 8c. Group memberships — only the edges among users already exported (bounded; no extra users are pulled
+        // in — ADR "Group memberships in export"). referencedUserIds is final at this point.
+        var memberships = referencedGroupIds.Count == 0
+            ? []
+            : await _dbContext.GroupMemberships
+                .Where(m => referencedGroupIds.Contains(m.GroupId) && referencedUserIds.Contains(m.UserId))
+                .Select(m => new { m.GroupId, m.UserId })
+                .ToListAsync(cancellationToken);
+
+        var root = documentById[rootId];
+        var tenant = await _dbContext.Tenants.SingleAsync(t => t.Id == root.TenantId, cancellationToken);
+
+        // 9. Write the archive.
+        using var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
+
+        // Sensitivity-label catalog (referenced definitions, matched by name on import).
+        await WriteJsonAsync(archive, "labels/labels.json", labelsById.Values
+            .OrderBy(l => l.Rank).ThenBy(l => l.Name)
+            .Select(l => new { name = l.Name, rank = l.Rank, color = l.Color, watermark = l.Watermark }), cancellationToken);
+
+        await WriteJsonAsync(archive, "masks/masks.json", maskVersions.Select(mv => new
+        {
+            maskId = mv.MaskId,
+            wellKnown = IsWellKnown(mv.MaskId),
+            version = new { maskVersionId = mv.Id, name = mv.Name, versionNumber = mv.VersionNumber, reviewSlaDays = mv.ReviewSlaDays, retentionYears = mv.RetentionYears, defaultSensitivityLabel = LabelName(mv.DefaultSensitivityLabelId) },
+            fields = fieldsByMaskVersion.GetValueOrDefault(mv.Id, []).Select(f => new
+            {
+                fieldDefinitionId = f.Id,
+                name = f.Name,
+                dataType = (int)f.DataType,
+                isRequired = f.IsRequired,
+                isList = f.IsList,
+                formatPattern = f.FormatPattern,
+                maxTextLength = f.MaxTextLength,
+                minValue = f.MinValue,
+                maxValue = f.MaxValue,
+            }),
+        }), cancellationToken);
+
+        await WriteJsonAsync(archive, "principals/principals.json", new
+        {
+            // clearanceRank travels only with permissions (ADR "Classification in export/import") — it's an
+            // access-control attribute; applied max-never-lower on import. Serialized as null when not included so
+            // the importer can tell "not carried" from "explicitly 0".
+            users = referencedUserIds.Where(userById.ContainsKey).Select(id => userById[id]).Select(u => new { id = u.Id, email = u.Email, displayName = u.DisplayName, isActive = u.IsActive, clearanceRank = includePermissions ? u.ClearanceRank : (int?)null }),
+            serviceAccounts = referencedServiceAccountIds.Where(serviceAccountById.ContainsKey).Select(id => serviceAccountById[id]).Select(s => new { id = s.Id, name = s.Name, isActive = s.IsActive, clearanceRank = includePermissions ? s.ClearanceRank : (int?)null }),
+            // Groups appear only when ACL is included — matched by name on import. Users/serviceAccounts carry
+            // natural keys (email/name) so a future import matches by them and mints fresh Guids.
+            groups = groupById.Values.Select(g => new { id = g.Id, name = g.Name, clearanceRank = includePermissions ? g.ClearanceRank : (int?)null }),
+            // Membership edges among the exported users only (bounded, ADR "Group memberships in export").
+            memberships = memberships.Select(m => new { groupId = m.GroupId, userId = m.UserId }),
+        }, cancellationToken);
+
+        await WriteJsonLinesAsync(archive, "tree/documents.jsonl", includedDocuments.Select(d => (object)new
+        {
+            id = d.Id,
+            parentId = d.ParentId,
+            name = d.Name,
+            maskVersionId = d.MaskVersionId,
+            sensitivityLabel = LabelName(d.SensitivityLabelId),
+            createdByUserId = d.CreatedByUserId,
+            createdByServiceAccountId = d.CreatedByServiceAccountId,
+            createdAt = d.CreatedAt,
+            breaksInheritance = d.BreaksInheritance,
+        }), cancellationToken);
+
+        // On a tenant that refuses plaintext doors (ADR 0928): each version's content as the envelope addressed to the
+        // caller, named by its own hash; the version's sha256 stays the document's.
+        var envelopes = new Dictionary<Guid, (byte[] Bytes, string Sha)>();
+        if (audience?.Envelope is { } envelope)
+        {
+            foreach (var version in exportedVersions)
+            {
+                var bytes = await envelope(version, cancellationToken);
+                envelopes[version.Id] = (bytes, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes)));
+            }
+        }
+
+        await WriteJsonLinesAsync(archive, "tree/versions.jsonl", exportedVersions.Select(v => (object)new
+        {
+            id = v.Id,
+            documentId = v.DocumentId,
+            versionNumber = v.VersionNumber,
+            documentDate = v.DocumentDate.ToString("yyyy-MM-dd"),
+            documentTime = v.DocumentTime?.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+            filedAt = v.CreatedAt,
+            createdByUserId = v.CreatedByUserId,
+            createdByServiceAccountId = v.CreatedByServiceAccountId,
+            sha256 = v.Sha256Hash,
+            fileExtension = Path.GetExtension(v.ObjectKey),
+            ocrLanguages = v.OcrLanguages,
+            comment = v.Comment,
+            blobRef = envelopes.TryGetValue(v.Id, out var enveloped) ? enveloped.Sha : v.Sha256Hash,
+            contentType = envelopes.ContainsKey(v.Id) ? "application/pkcs7-mime" : null,
+        }), cancellationToken);
+
+        var indexRows = fieldValues.Select(f => (object)new
+        {
+            documentId = f.DocumentId,
+            fieldDefinitionId = f.FieldDefinitionId,
+            value = f.Value,
+            ordinal = f.Ordinal,
+        }).ToList();
+
+        // The chat thread (issue #382) — "tree/comments.jsonl" with a "parentCommentId" field before FormatVersion 2.
+        //
+        // "mentions" (issue #383) is additive and FormatVersion stays 2 on purpose: an archive written before
+        // mentions existed has none to lose, so bumping would only make every archive to date unimportable. The
+        // ids are the archive's own user ids, which the import remaps like every other principal reference — the
+        // body's "@[id]" tokens are remapped in step.
+        var chatRows = comments.Select(c => (object)new
+        {
+            id = c.Id,
+            documentId = c.DocumentId,
+            parentMessageId = c.ParentMessageId,
+            body = c.Body,
+            mentions = ChatMentions.Parse(c.Body),
+            createdByUserId = c.CreatedByUserId,
+            createdByServiceAccountId = c.CreatedByServiceAccountId,
+            createdAt = c.CreatedAt,
+        }).ToList();
+
+        // With the module's "seal index data and chat" (ADR 0928) both files travel inside one artefact sealed to the
+        // caller; a merger opens it with the caller's key and reads the two files from it as they would be here.
+        if (audience?.Seal is { } seal)
+        {
+            var sealedPart = JsonSerializer.SerializeToUtf8Bytes(new Dictionary<string, string>
+            {
+                ["tree/index-data.jsonl"] = Lines(indexRows),
+                ["tree/chat.jsonl"] = Lines(chatRows),
+            }, Json);
+            var entry = archive.CreateEntry("tree/sealed.p7m", CompressionLevel.NoCompression);
+            await using var stream = entry.Open();
+            await stream.WriteAsync(seal(sealedPart), cancellationToken);
+        }
+        else
+        {
+            await WriteJsonLinesAsync(archive, "tree/index-data.jsonl", indexRows, cancellationToken);
+            await WriteJsonLinesAsync(archive, "tree/chat.jsonl", chatRows, cancellationToken);
+        }
+
+        await WriteJsonLinesAsync(archive, "tree/annotations.jsonl", annotations.Select(a => (object)new
+        {
+            id = a.Id,
+            documentId = a.DocumentId,
+            documentVersionId = a.DocumentVersionId,
+            pageIndex = a.PageIndex,
+            kind = (int)a.Kind,
+            positionX = a.PositionX,
+            positionY = a.PositionY,
+            width = a.Width,
+            height = a.Height,
+            points = a.Points,
+            text = a.Text,
+            color = a.Color,
+            createdByUserId = a.CreatedByUserId,
+            createdByServiceAccountId = a.CreatedByServiceAccountId,
+            createdAt = a.CreatedAt,
+        }), cancellationToken);
+
+        if (followed is null)
+        {
+            await WriteJsonLinesAsync(archive, "tree/references.jsonl", references.Select(r => (object)new
+            {
+                id = r.Id,
+                parentFolderId = r.ParentFolderId,
+                targetDocumentId = r.TargetDocumentId,
+                createdByUserId = r.CreatedByUserId,
+                createdByServiceAccountId = r.CreatedByServiceAccountId,
+                createdAt = r.CreatedAt,
+            }), cancellationToken);
+        }
+        else
+        {
+            // The offline export's rows add what the copy needs to list a reference whose target it does not hold
+            // (ADR 0959): the target's name and whether it is a folder. A reference whose target the caller
+            // may not see is not listed at all, as online (ADR 0765).
+            await WriteJsonLinesAsync(archive, "tree/references.jsonl", followedReferences.Select(f => (object)new
+            {
+                id = f.Reference.Id,
+                parentFolderId = f.Reference.ParentFolderId,
+                targetDocumentId = f.Reference.TargetDocumentId,
+                createdByUserId = f.Reference.CreatedByUserId,
+                createdByServiceAccountId = f.Reference.CreatedByServiceAccountId,
+                createdAt = f.Reference.CreatedAt,
+                targetName = f.TargetName,
+                targetIsFolder = f.TargetIsFolder,
+            }), cancellationToken);
+
+            // The documents the export holds because a reference brought them in, for the copy's bookkeeping: a
+            // phone evicts them first under its size limit (ADR 0959).
+            await WriteJsonLinesAsync(archive, "tree/referenced.jsonl", followed.BroughtIn.Where(d => included.Contains(d.Id))
+                .Select(d => (object)new { documentId = d.Id }), cancellationToken);
+        }
+
+        // ACL grants (opt-in). BreaksInheritance already rides on tree/documents.jsonl, so a document's inherit-
+        // vs-own-grants semantics reconstruct exactly on import.
+        await WriteJsonLinesAsync(archive, "acl/acl.jsonl", aclEntries.Select(a => (object)new
+        {
+            documentId = a.DocumentId,
+            userId = a.UserId,
+            groupId = a.GroupId,
+            serviceAccountId = a.ServiceAccountId,
+            canSee = a.CanSee,
+            canReadContent = a.CanReadContent,
+            canEditContent = a.CanEditContent,
+            canEditIndexData = a.CanEditIndexData,
+            canDelete = a.CanDelete,
+            canCreateSubItems = a.CanCreateSubItems,
+            canMove = a.CanMove,
+            canManagePermissions = a.CanManagePermissions,
+            canAnnotate = a.CanAnnotate,
+        }), cancellationToken);
+
+        // 10. Blobs — one entry per distinct content hash, streamed from object storage.
+        var writtenBlobs = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var version in exportedVersions)
+        {
+            if (envelopes.TryGetValue(version.Id, out var enveloped))
+            {
+                if (writtenBlobs.Add(enveloped.Sha))
+                {
+                    var envelopeEntry = archive.CreateEntry($"blobs/{enveloped.Sha}", CompressionLevel.NoCompression);
+                    await using var envelopeStream = envelopeEntry.Open();
+                    await envelopeStream.WriteAsync(enveloped.Bytes, cancellationToken);
+                }
+
+                continue;
+            }
+
+            if (version.Sha256Hash is not { } hash || !writtenBlobs.Add(hash))
+            {
+                continue;
+            }
+
+            var entry = archive.CreateEntry($"blobs/{hash}", CompressionLevel.NoCompression);
+            await using var entryStream = entry.Open();
+            await using var blob = await _objectStorage.GetObjectForClientAsync(version.ObjectKey, "a repository export", cancellationToken);
+            await blob.CopyToAsync(entryStream, cancellationToken);
+        }
+
+        await WriteJsonAsync(archive, "manifest.json", new
+        {
+            formatVersion = FormatVersion,
+            exportedAt = DateTimeOffset.UtcNow,
+            includesPermissions = includePermissions,
+            // An offline export (ADR 0927): what one caller may read, the current version as they may read it, and the
+            // visible folder chain above the root. A merger keeps it apart from a regular export by this flag.
+            offline = audience is not null,
+            envelopes = envelopes.Count > 0,
+            sealedIndexDataAndChat = audience?.Seal is not null,
+            source = new { tenantId = tenant.Id, tenantName = tenant.Name },
+            root = new { documentId = root.Id, name = root.Name },
+            filters = new
+            {
+                documentDateFrom = filters.DocumentDateFrom?.ToString("yyyy-MM-dd"),
+                documentDateTo = filters.DocumentDateTo?.ToString("yyyy-MM-dd"),
+                // WHICH ZONE those two dates were read in (#1256). Without it the manifest records a filter
+                // whose meaning depends on who ran the export and says nothing about which — the archive would
+                // be a permanent claim nobody can check. Null means they were read as UTC.
+                documentDateTimeZone = filters.TimeZoneId,
+                filedFrom = filters.FiledFrom,
+                filedTo = filters.FiledTo,
+                versions = filters.Versions switch
+                {
+                    ExportVersionSelection.ActiveOnly => "active",
+                    ExportVersionSelection.CurrentForCaller => "current",
+                    ExportVersionSelection.EveryReadableForCaller => "every-readable",
+                    _ => "all",
+                },
+                createdBy = filters.CreatedBy,
+            },
+            counts = new
+            {
+                documents = includedDocuments.Count,
+                versions = exportedVersions.Count,
+                blobs = writtenBlobs.Count,
+                indexValues = fieldValues.Count,
+                comments = comments.Count,
+                references = followed is null ? references.Count : followedReferences.Count,
+                maskVersions = maskVersions.Count,
+                principals = referencedUserIds.Count + referencedServiceAccountIds.Count + groupById.Count,
+                aclGrants = aclEntries.Count,
+                labels = labelsById.Count,
+            },
+        }, cancellationToken);
+    }
+
+    // The anchor's ancestors, nearest first, up to its repository.
+    private async Task<List<Document>> CollectAncestorsAsync(Document anchor, CancellationToken cancellationToken)
+    {
+        var chain = new List<Document>();
+        for (var parentId = anchor.ParentId; parentId is { } id;)
+        {
+            var parent = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == id, cancellationToken);
+            if (parent is null || chain.Count > 256)
+            {
+                break;
+            }
+
+            chain.Add(parent);
+            parentId = parent.ParentId;
+        }
+
+        return chain;
+    }
+
+    // The documents beneath the given roots, the roots first and then level by level (a parent before its
+    // children), each once even where one root lies beneath another. Shared with the reference follower (ADR 0959).
+    internal static async Task<List<Document>> CollectSubtreeAsync(AlcifraDbContext dbContext, IReadOnlyCollection<Guid> rootIds, CancellationToken cancellationToken)
+    {
+        var all = await dbContext.Documents.Where(d => rootIds.Contains(d.Id)).ToListAsync(cancellationToken);
+        var seen = all.Select(d => d.Id).ToHashSet();
+        var level = seen.ToList();
+        while (level.Count > 0)
+        {
+            var children = (await dbContext.Documents
+                .Where(d => d.ParentId != null && level.Contains(d.ParentId!.Value))
+                .ToListAsync(cancellationToken))
+                .Where(c => seen.Add(c.Id))
+                .ToList();
+            if (children.Count == 0)
+            {
+                break;
+            }
+
+            all.AddRange(children);
+            level = children.Select(c => c.Id).ToList();
+        }
+
+        return all;
+    }
+
+    /// <summary>
+    /// Whether a version falls inside the caller's document-date range, read in the caller's own zone (#1256).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Two kinds of version, and only one of them is an instant</b> — the same split the search query makes
+    /// (ADR 0801), because a filter that answered differently from search would be a second definition of "the
+    /// 16th":
+    /// </para>
+    /// <list type="bullet">
+    /// <item>a <b>timed</b> version is an instant, so the caller's day is a UTC <b>range</b>: 00:30 in Zurich on
+    /// the 16th is 22:30 UTC on the 15th, and an export of "the 16th" must still contain it;</item>
+    /// <item>a <b>date-only</b> version never was an instant. Somebody chose a calendar date, and it is that
+    /// date in every zone — shifting it would drop a document filed "on the 15th" out of an export for the
+    /// 15th, which is inventing a bug to fix one that is not there.</item>
+    /// </list>
+    /// <para>
+    /// <b>Why getting this wrong is worse here than in search.</b> A missing search hit prompts another search;
+    /// a missing document in an exported archive is discovered by whoever receives it, if at all. The export
+    /// succeeds, reports a plausible count, and nothing distinguishes "the filter excluded it" from "it was
+    /// never there".
+    /// </para>
+    /// <para>
+    /// With no zone (a scripted caller, a service account) this is the literal comparison it always was.
+    /// </para>
+    /// </remarks>
+    // internal so the two subtle halves — the date-only exception and the INCLUSIVE upper bound — get unit
+    // coverage in the fast tier. The end-to-end tests prove the wiring; they run only behind the e2e label, and
+    // logic this easy to get quietly wrong should not wait for a gated tier to say so.
+    internal static bool WithinDocumentDateRange(DocumentVersion version, RepositoryExportFilters filters)
+    {
+        if (filters.DocumentDateFrom is null && filters.DocumentDateTo is null)
+        {
+            return true;
+        }
+
+        var zone = ResolveZone(filters.TimeZoneId);
+
+        // Date-only, or no zone to read the bounds in: compare the calendar dates as they stand.
+        if (zone is null || DocumentInstant.Of(version.DocumentDate, version.DocumentTime) is not { } instant)
+        {
+            if (filters.DocumentDateFrom is { } df && version.DocumentDate < df) return false;
+            if (filters.DocumentDateTo is { } dt && version.DocumentDate > dt) return false;
+            return true;
+        }
+
+        // Timed: the caller's first and last day become one half-open UTC window. `To` is INCLUSIVE of its day,
+        // so the window ends where that day ends — an exclusive end would silently drop everything filed on the
+        // last day of the range, which reads as "the export is short" rather than as an off-by-one.
+        if (filters.DocumentDateFrom is { } from && instant < DocumentInstant.DayIn(from, zone).From) return false;
+        if (filters.DocumentDateTo is { } to && instant >= DocumentInstant.DayIn(to, zone).To) return false;
+        return true;
+    }
+
+    /// <remarks>
+    /// An unknown id falls back to <c>null</c> — the literal comparison — rather than throwing: a stale
+    /// preference should cost the caller the conversion, not the whole export.
+    /// </remarks>
+    private static TimeZoneInfo? ResolveZone(string? timeZoneId)
+    {
+        if (string.IsNullOrWhiteSpace(timeZoneId))
+        {
+            return null;
+        }
+
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId.Trim());
+        }
+        catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return null;
+        }
+    }
+
+    private static bool MatchesFilters(
+        DocumentVersion version,
+        RepositoryExportFilters filters,
+        IReadOnlyDictionary<Guid, UserLite> userById,
+        IReadOnlyDictionary<Guid, ServiceAccountLite> serviceAccountById)
+    {
+        if (!WithinDocumentDateRange(version, filters)) return false;
+        if (filters.FiledFrom is { } ff && version.CreatedAt < ff) return false;
+        if (filters.FiledTo is { } ft && version.CreatedAt > ft) return false;
+
+        if (!string.IsNullOrWhiteSpace(filters.CreatedBy))
+        {
+            var needle = filters.CreatedBy.Trim();
+            var names = new List<string>();
+            if (version.CreatedByUserId is { } u && userById.TryGetValue(u, out var user))
+            {
+                names.Add(user.DisplayName);
+                names.Add(user.Email);
+            }
+
+            if (version.CreatedByServiceAccountId is { } s && serviceAccountById.TryGetValue(s, out var svc))
+            {
+                names.Add(svc.Name);
+            }
+
+            if (!names.Any(n => n.Contains(needle, StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private sealed record UserLite(Guid Id, string Email, string DisplayName, bool IsActive, int ClearanceRank);
+
+    private sealed record ServiceAccountLite(Guid Id, string Name, bool IsActive, int ClearanceRank);
+
+    private sealed record GroupLite(Guid Id, string Name, int ClearanceRank);
+
+    // Asks the single source of truth rather than restating it. The previous hand-written list named three of
+    // the eleven well-known masks and had not been touched since the other eight arrived — so a Note, Contact
+    // or Appointment exported as NOT well-known, and the importer creates a fresh mask for anything not well
+    // known. The imported documents then wore a duplicate mask with a different id, invisible to every
+    // WellKnownMaskIds check: containment, the IMAP projection, the clients' type column.
+    private static bool IsWellKnown(Guid maskId) => WellKnownMaskIds.All.Contains(maskId);
+
+    private static async Task WriteJsonAsync(ZipArchive archive, string name, object payload, CancellationToken cancellationToken)
+    {
+        var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+        await using var stream = entry.Open();
+        await JsonSerializer.SerializeAsync(stream, payload, Json, cancellationToken);
+    }
+
+    private static string Lines(IEnumerable<object> rows) => string.Concat(rows.Select(r => JsonSerializer.Serialize(r, Json) + "\n"));
+
+    private static async Task WriteJsonLinesAsync(ZipArchive archive, string name, IEnumerable<object> rows, CancellationToken cancellationToken)
+    {
+        var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+        await using var stream = entry.Open();
+        await using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+        foreach (var row in rows)
+        {
+            await writer.WriteLineAsync(JsonSerializer.Serialize(row, Json));
+        }
+    }
+}

@@ -24,7 +24,7 @@ natives it ships. They are a considered part of the product.
 them ([#496](https://github.com/HebelConsulting/SimplArchivePrivate/issues/496)).** They exist only because
 Ubuntu 24.04 ships libvips **8.15.1** while NetVips 3.2.0 needs **8.18.4**; installing the distro package made
 the **test host crash** rather than fail cleanly. They are referenced by **test projects only**, so nothing
-extra is published — verify with `dotnet list src/SimplArchive.Api/SimplArchive.Api.csproj package
+extra is published — verify with `dotnet list src/Alcifra.Api/Alcifra.Api.csproj package
 --include-transitive`.
 
 **When the runner image ships a compatible libvips, delete those four entries and their four

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- The user-manual screenshot-capture harness (ADR 0502). A build/dev tool (not shipped in the container): it
+       emits a deterministic set of PNGs from the real app so the Typst manual is always in step with the UI.
+       Lives under tests/ (published to the public mirror) — NOT tools/, which the sync pipeline withholds (0484). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" Version="1.49.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The shared self-host boot engine (ADR 0502) — used for web capture (adds our own Chrome on top). -->
+    <ProjectReference Include="..\Alcifra.SelfHosting\Alcifra.SelfHosting.csproj" />
+    <!-- The product's name the server shows (core #1117). -->
+    <ProjectReference Include="..\..\src\Alcifra.Localization\Alcifra.Localization.csproj" />
+    <!-- Progress through the shared plain stderr logger (ADRs 0906/0911); the harness has no data output. -->
+    <ProjectReference Include="..\..\src\Alcifra.ConsoleLogging\Alcifra.ConsoleLogging.csproj" />
+    <!-- Built (not linked) so each capture subprocess (dotnet run, no-build) works: the API for the web mode, the
+         desktop client's headless screenshot hooks for the desktop mode. -->
+    <ProjectReference Include="..\..\src\Alcifra.Api\Alcifra.Api.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Alcifra.DesktopClient\Alcifra.DesktopClient.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+</Project>

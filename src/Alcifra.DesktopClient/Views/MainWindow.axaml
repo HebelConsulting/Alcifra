@@ -1,0 +1,602 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l10n="using:Alcifra.Localization"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        xmlns:v="using:Alcifra.DesktopClient.Views"
+        xmlns:conv="using:Avalonia.Data.Converters"
+        xmlns:svc="using:Alcifra.DesktopClient.Services"
+        xmlns:api="using:Alcifra.ApiClient"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        x:Class="Alcifra.DesktopClient.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Width="1180" Height="760"
+        Icon="/Assets/icon.png"
+        Title="{x:Static l10n:Strings.ProductName}">
+
+    <Window.KeyBindings>
+        <!-- Esc exits the preview full-screen (no-op otherwise). See ADR "Desktop preview full-screen toggle". -->
+        <KeyBinding Gesture="Escape" Command="{Binding ExitPreviewFullscreenCommand}" />
+        <!-- Esc cancels an edit, Ctrl/Cmd+S saves it (ADR 0550) — no visual cost, and they serve the person deep
+             in a long field list. Both commands no-op unless the pane is editing, so they do not shadow anything.
+             Esc is bound twice on purpose: the two commands are mutually exclusive in practice (you cannot be in
+             a full-screen preview and editing the pane), and each ignores the state it does not own. -->
+        <KeyBinding Gesture="Escape" Command="{Binding CancelEditCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveDetailCommand}" />
+        <KeyBinding Gesture="Cmd+S" Command="{Binding SaveDetailCommand}" />
+    </Window.KeyBindings>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- The app chrome is its own control (ADR 0578): brand, notifications, theme and the account menu
+             are a responsibility, not a region, and this file has no room left for another one. -->
+        <v:TitleBar DockPanel.Dock="Top" />
+        <v:EnvironmentBanner DockPanel.Dock="Top" />
+
+        <!-- Impersonation banner (ADR "User impersonation") -->
+        <Border DockPanel.Dock="Top" Background="#b26a00" Padding="12,5" IsVisible="{Binding IsImpersonating}">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <i:Icon Value="mdi-account-supervisor" Foreground="White" />
+                <TextBlock Foreground="White" VerticalAlignment="Center">
+                    <Run Text="{loc:Tr MwImpersonating}" />
+                    <Run Text="{Binding ImpersonatedName}" FontWeight="Bold" />
+                </TextBlock>
+                <Button Content="{loc:Tr StopImpersonating}" Command="{Binding StopImpersonatingCommand}" Margin="8,0,0,0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Status bar: the text is SELECTABLE and carries a copy button, because the message it most often
+             holds is an error a user needs to paste into a report (found on the kiosk). The button shows only
+             when there is something to copy. -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource WbChrome}" Padding="12,6" BorderBrush="{DynamicResource WbBorder}" BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Content="{loc:Tr Copy}" Command="{Binding CopyStatusCommand}"
+                        IsVisible="{Binding StatusIsError}"
+                        FontSize="11" Padding="8,1" Margin="8,0,0,0" VerticalAlignment="Center" />
+                <SelectableTextBlock Text="{Binding Status}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <!-- Logged-out prompt -->
+        <TextBlock Text="{loc:Tr MwLoginToBrowse}" Foreground="{DynamicResource WbFaint}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !IsLoggedIn}" />
+
+        <!-- Bottom tabs -->
+        <TabControl AutomationProperties.AutomationId="tour:tab-bar" TabStripPlacement="Bottom" IsVisible="{Binding IsLoggedIn}" SelectedIndex="{Binding SelectedTab}">
+
+            <TabItem ToolTip.Tip="{loc:Tr TabRepositories}">
+                <TabItem.Header><i:Icon Value="mdi-folder-multiple" FontSize="20" /></TabItem.Header>
+                <!-- The preview full-screen overlay (at the end of this Grid) covers the ribbon + panes but not
+                     the bottom tab strip, which stays reachable — mirrors the web (ADR "Desktop preview
+                     full-screen toggle"). -->
+                <Grid>
+                <DockPanel LastChildFill="True">
+
+                    <!-- Ribbon — buttons grouped by concern (tree / documents / general) with vertical separators
+                         between the groups (ADR "Desktop Repositories-tab UI polish"). "Convert scans" moved to
+                         the Tenant tab. The vertical separators are thin theme-coloured Borders. -->
+                    <!-- The ribbon is its own control (#519, tranche 5) — the last tab ribbon that was still inline. -->
+                    <v:RepositoriesRibbon DockPanel.Dock="Top" />
+
+                    <!-- tree | contents | detail (resizable via gutters, each side pane collapsible) -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{Binding TreeWidth, Mode=TwoWay}" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="{Binding ListWidth, Mode=TwoWay}" />
+                            <ColumnDefinition Width="10" />
+                            <ColumnDefinition Width="4.2*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Tree (folders only, lazy) -->
+                        <!-- The tree is its own control (#519, tranche 6); it inherits this window's DataContext. -->
+                        <v:FolderTreePane x:Name="TreePane" Grid.Column="0" />
+
+                        <!-- gutter: resize + collapse the tree. The GridSplitter must be a DIRECT child of the
+                             resizable Grid (nesting it caused an NRE in Grid.ArrangeOverride); the caret Button
+                             is a second child overlaid in the same cell. -->
+                        <GridSplitter Grid.Column="1" Background="{DynamicResource WbBorder}" ResizeDirection="Columns" IsEnabled="{Binding !TreeCollapsed}" />
+                        <Button Grid.Column="1" Command="{Binding ToggleTreeCommand}" Width="10" Height="24" Padding="0" MinWidth="0" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{loc:Tr MwCollapseExpand}">
+                            <i:Icon Value="{Binding TreeCaret}" FontSize="11" />
+                        </Button>
+
+                        <!-- Contents list (drop OS files here to upload into the current folder) -->
+                        <!-- The contents list is its own control (#519, tranche 7); it inherits this window's DataContext. -->
+                        <v:ContentsListPane x:Name="ListPane" Grid.Column="2" />
+
+                        <!-- gutter: resize + collapse the contents list -->
+                        <GridSplitter Grid.Column="3" Background="{DynamicResource WbBorder}" ResizeDirection="Columns" IsEnabled="{Binding !ListCollapsed}" />
+                        <Button Grid.Column="3" Command="{Binding ToggleListCommand}" Width="10" Height="24" Padding="0" MinWidth="0" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip.Tip="{loc:Tr MwCollapseExpand}">
+                            <i:Icon Value="{Binding ListCaret}" FontSize="11" />
+                        </Button>
+
+                        <!-- Detail: index-data over (preview | chat) -->
+                        <!-- The detail pane is its own control (#519, tranche 8); it inherits this window's DataContext. -->
+                        <v:DocumentDetailPane Grid.Column="4" />
+                    </Grid>
+                </DockPanel>
+
+                    <!-- Full-screen preview overlay (in-app maximize): covers the ribbon + panes; the bottom tab
+                         strip stays reachable, so switching tabs exits full screen. Esc also exits (Window key
+                         binding). See ADR "Desktop preview full-screen toggle". -->
+                    <Border IsVisible="{Binding Preview.PreviewFullscreen}" ZIndex="100" Background="{DynamicResource WbChrome}">
+                        <v:PreviewPane DataContext="{Binding Preview}" />
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem ToolTip.Tip="{loc:Tr TabIntray}">
+                <TabItem.Header><i:Icon Value="mdi-inbox" FontSize="20" /></TabItem.Header>
+                <!-- Outer grid so the preview full-screen overlay can cover the intray (tab strip stays reachable). -->
+                <Grid>
+                <DockPanel LastChildFill="True">
+
+                <!-- The intray ribbon is its own control (ADR 0577): it grew a group per feature — pages,
+                     straightening, separator sheets — and each one arrived as more lines in this file. -->
+                <v:IntrayRibbon DockPanel.Dock="Top" />
+
+                <Grid Margin="14" ColumnDefinitions="*,10,1.15*">
+
+                    <!-- Left column: the server intray (the S3-backed staging area) + actions. The old local-intray
+                         sync is replaced by opening the Intray as a WebDAV folder (ADR "Desktop inbox via WebDAV"). -->
+                    <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto">
+                        <!-- Intray header -->
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="{loc:Tr TabIntray}" FontWeight="SemiBold" />
+                                <SelectableTextBlock Text="{Binding Intray.Status}" Foreground="{DynamicResource WbFaint}" FontSize="11" />
+                            </StackPanel>
+                        </Grid>
+                        <!-- View filter (ADR 0532): a CanManageIntrays holder gets a user-picker to open another
+                             user's intray. Its companion — "show group intrays" — is an on/off, so it went to the
+                             ribbon as a toggle beside the other sticky toggles (#521, promoted from the web per
+                             ADR 0511); a picker cannot follow it, because it chooses a value out of a list as
+                             long as the tenant has users. -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12" Margin="0,0,0,6" VerticalAlignment="Center"
+                                    IsVisible="{Binding Intray.CanManageIntrays}">
+                            <ComboBox MinWidth="180"
+                                      ItemsSource="{Binding Intray.Users}" SelectedItem="{Binding Intray.SelectedUser}"
+                                      PlaceholderText="{loc:Tr IntrayUserPicker}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:IntrayUserPickerItem">
+                                        <TextBlock Text="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <ListBox Grid.Row="2" x:Name="ServerIntrayList" ItemsSource="{Binding Intray.ServerItems}" SelectedItem="{Binding Intray.SelectedServerItem}"
+                                 DragDrop.AllowDrop="True"
+                                 SelectionMode="Multiple" SelectionChanged="OnServerIntraySelectionChanged" DoubleTapped="OnIntrayItemDoubleTapped">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:IntrayItemViewModel">
+                                    <!-- The row, its indicators and its context menu are their own control
+                                         (#521, #519): this file has no headroom, and a row is a thing. -->
+                                    <v:IntrayRow />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+
+                    <GridSplitter Grid.Column="1" Background="{DynamicResource WbBorder}" ResizeDirection="Columns" HorizontalAlignment="Stretch" />
+
+                    <!-- Right column: mask/index-data pane (top) │ preview pane (bottom). Each is resizable
+                         (the row splitter) + collapsible (its header caret) + persisted. -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{Binding Intray.MaskHeight, Mode=TwoWay}" />
+                            <RowDefinition Height="6" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="{Binding Intray.PreviewHeight, Mode=TwoWay}" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Mask / index-data header -->
+                        <Border Grid.Row="0" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1,0,0,0">
+                            <Grid ColumnDefinitions="*,Auto" Margin="12,6">
+                                <SelectableTextBlock Grid.Column="0" Text="{Binding Intray.DetailTitle}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Command="{Binding Intray.ToggleMaskCommand}" ToolTip.Tip="{loc:Tr MwCollapseExpand}"><i:Icon Value="{Binding Intray.MaskCaret}" /></Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Mask / index-data body (staged to the item's sidecar) — editable only for a focused server item -->
+                        <Border Grid.Row="1" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1,0,0,0" IsVisible="{Binding !Intray.MaskCollapsed}">
+                            <ScrollViewer>
+                                <StackPanel Margin="12,4" Spacing="6">
+                                    <TextBlock Text="{loc:Tr MwSelectIntrayItem}" Foreground="{DynamicResource WbFaint}"
+                                               TextWrapping="Wrap" IsVisible="{Binding !Intray.ItemFocused}" />
+
+                                    <!-- Emails (.eml/.msg) are classified automatically when filed — no mask offered. -->
+                                    <StackPanel IsVisible="{Binding Intray.IsEmail}" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                                        <i:Icon Value="mdi-email-check-outline" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                                        <TextBlock Text="{loc:Tr IntrayEmailAutoMask}" Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="6">
+                                        <StackPanel.IsVisible>
+                                            <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+                                                <Binding Path="Intray.ItemFocused" />
+                                                <Binding Path="!Intray.IsEmail" />
+                                            </MultiBinding>
+                                        </StackPanel.IsVisible>
+                                        <Grid ColumnDefinitions="180,*">
+                                            <TextBlock Grid.Column="0" Text="{loc:Tr Name}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                                            <TextBox Grid.Column="1" Text="{Binding Intray.Name}" Height="28" Padding="4,2" VerticalContentAlignment="Center" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="180,*">
+                                            <TextBlock Grid.Column="0" Text="{loc:Tr VerColDocDate}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                                            <!-- Free-text date entry with an optional calendar picker (ADR "Intray refinements").
+                                                 The TIME beside it is typed, never picked (ADR 0758): an hour is a value the
+                                                 filer already knows. Empty clears it. Added with #1304, where the intray was
+                                                 found to silently discard an hour a staged item arrived with. -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Stretch">
+                                                <CalendarDatePicker SelectedDate="{Binding Intray.DocumentDate}" Watermark="yyyy-MM-dd" Width="170" />
+                                                <TextBox Text="{Binding Intray.DocumentTime}" Watermark="HH:mm UTC" Width="110" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="180,*">
+                                            <TextBlock Grid.Column="0" Text="{loc:Tr MaskLabel}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                                            <ComboBox Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding Intray.AvailableMasks}" SelectedItem="{Binding Intray.SelectedMaskChoice}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:MaskChoiceViewModel"><TextBlock Text="{Binding Name}" /></DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <!-- OCR languages for a scannable item — staged, applied to the searchable-PDF conversion at filing (ADR "Inbox OCR-language staging"). -->
+                                        <Grid ColumnDefinitions="180,*,Auto" IsVisible="{Binding Intray.StgScannable}">
+                                            <TextBlock Grid.Column="0" Text="{loc:Tr SysOcrLanguages}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                                            <SelectableTextBlock Grid.Column="1" Text="{Binding Intray.OcrDisplay}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                            <Button Grid.Column="2" Click="OnEditIntrayOcrLanguages" Margin="6,2,0,2" ToolTip.Tip="{loc:Tr MwEditOcr}"><i:Icon Value="mdi-pencil-outline" /></Button>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding Intray.MaskEditFields}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:MaskFieldEditViewModel">
+                                                    <Grid ColumnDefinitions="180,*" Margin="0,3">
+                                                        <SelectableTextBlock Grid.Column="0" Text="{Binding Label}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+                                                        <Panel Grid.Column="1">
+                                                            <CalendarDatePicker IsVisible="{Binding IsDate}" HorizontalAlignment="Left" SelectedDate="{Binding DateValue}" Watermark="yyyy-MM-dd" />
+                                                            <CheckBox IsVisible="{Binding IsBoolean}" IsChecked="{Binding BoolValue}" />
+                                                            <TextBox IsVisible="{Binding IsMultiLine}" Text="{Binding TextValue}" IsReadOnly="{Binding Locked}" AcceptsReturn="True" Height="60" Watermark="{loc:Tr OneValuePerLine}" />
+                                                            <TextBox IsVisible="{Binding IsSingleLine}" Text="{Binding TextValue}" Height="28" Padding="4,2" VerticalContentAlignment="Center" />
+                                                        </Panel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <Button Content="{loc:Tr Save}" Command="{Binding Intray.SaveMaskCommand}" HorizontalAlignment="Right" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <GridSplitter Grid.Row="2" Background="{DynamicResource WbBorder}" ResizeDirection="Rows" HorizontalAlignment="Stretch"
+                                      IsEnabled="{Binding !Intray.MaskCollapsed}" />
+
+                        <!-- Preview header -->
+                        <Border Grid.Row="3" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1,1,0,0">
+                            <Grid ColumnDefinitions="*,Auto" Margin="12,6">
+                                <TextBlock Grid.Column="0" Text="{loc:Tr MwPreview}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Command="{Binding Intray.TogglePreviewCommand}" ToolTip.Tip="{loc:Tr MwCollapseExpand}"><i:Icon Value="{Binding Intray.PreviewCaret}" /></Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Preview body (full parity: renditions, hit-overlay, find-in-document, click-to-copy) -->
+                        <!-- Intray preview — the same reusable surface as the Repositories pane; full-screen shows
+                             the overlay below (ADR "Desktop preview full-screen toggle"). -->
+                        <Border Grid.Row="4" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1,0,0,0" IsVisible="{Binding !Intray.PreviewCollapsed}">
+                            <v:PreviewPane DataContext="{Binding Intray.Preview}" />
+                        </Border>
+                    </Grid>
+                </Grid>
+                </DockPanel>
+
+                    <!-- Full-screen preview overlay for the Intray tab (its own IntrayPreview, disconnected from Repositories). -->
+                    <Border IsVisible="{Binding Intray.Preview.PreviewFullscreen}" ZIndex="100" Background="{DynamicResource WbChrome}">
+                        <v:PreviewPane DataContext="{Binding Intray.Preview}" />
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Check-out (ADR "Document check-out / check-in"): the caller's checked-out documents + their
+                 local working-copy status (repo SHA-256 vs the local file). Modified → Check in / Discard;
+                 unchanged/missing → Unlock. Working copies live in the local `checkout` folder. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabCheckout}">
+                <TabItem.Header>
+                    <Panel>
+                        <i:Icon Value="mdi-lock-outline" FontSize="20" />
+                        <Border IsVisible="{Binding HasCheckouts}" Background="{DynamicResource WbAccent}" CornerRadius="8" MinWidth="16" Height="16"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,-9,0" Padding="4,0">
+                            <SelectableTextBlock Text="{Binding CheckoutCount}" Foreground="{DynamicResource WbOnAccent}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Panel>
+                </TabItem.Header>
+                <!-- The whole body is its own control (#519, tranche 3), on the extracted CheckoutTabViewModel. -->
+                <v:CheckoutTab DataContext="{Binding Checkout}" />
+            </TabItem>
+
+            <TabItem AutomationProperties.AutomationId="tour:tab-search" ToolTip.Tip="{loc:Tr TabSearch}">
+                <TabItem.Header><i:Icon Value="mdi-magnify" FontSize="20" /></TabItem.Header>
+                <!-- The whole body is its own control (#519, tranche 4), on the extracted SearchTabViewModel. -->
+                <v:SearchTab DataContext="{Binding Search}" />
+            </TabItem>
+
+            <!-- Recycle bin (ADR "Desktop recycle bin parity", mirroring the web ADR 0329): a tenant-wide
+                 master-detail — the list of soft-deleted documents on the left, and the same read-only detail
+                 + preview + chat as the Repositories tab on the right (its own RecycleBin.Preview, never shared). -->
+            <TabItem ToolTip.Tip="{loc:Tr TabRecycleBin}">
+                <TabItem.Header><i:Icon Value="mdi-delete-outline" FontSize="20" /></TabItem.Header>
+                <!-- The whole body is its own control (#519, tranche 2), on the extracted RecycleBinTabViewModel
+                     (#517). See RecycleBinTab.axaml for why the first attempt was reverted. -->
+                <v:RecycleBinTab DataContext="{Binding RecycleBin}" />
+            </TabItem>
+
+            <TabItem ToolTip.Tip="{loc:Tr TabTasks}">
+                <TabItem.Header>
+                    <Panel>
+                        <i:Icon Value="mdi-clipboard-check-outline" FontSize="20" />
+                        <!-- Pending-task count badge (ADR "Workflow / document state model", 0009). -->
+                        <Border IsVisible="{Binding HasTasks}" Background="#e53935" CornerRadius="8" MinWidth="16" Height="16"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-5,-9,0" Padding="4,0">
+                            <SelectableTextBlock Text="{Binding TaskCount}" Foreground="White" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Panel>
+                </TabItem.Header>
+                <DockPanel LastChildFill="True" Margin="8">
+                    <!-- The ribbon in the Repositories shape (#530 tranche 3); the "My review tasks" text
+                         header it replaces said what the tab strip already says. -->
+                    <v:TaskRibbon DockPanel.Dock="Top" />
+                    <TextBlock DockPanel.Dock="Top" Text="{loc:Tr TasksEmpty}" Margin="0,8"
+                               Foreground="{DynamicResource WbFaint}" IsVisible="{Binding !HasTasks}" />
+                    <!-- The list (headers + filter row + rows) is its own control (#550, the #519 direction). -->
+                    <v:TasksList IsVisible="{Binding HasTasks}" />
+                </DockPanel>
+            </TabItem>
+
+            <!-- Users & groups administration (ADR "Users & groups administration tab"). Shown only to a
+                 CanManageUsers holder (whoami). Combined principal list | assignable rights matrix. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabUsersGroups}" IsVisible="{Binding CanManageUsers}">
+                <TabItem.Header><i:Icon Value="mdi-account-cog" FontSize="20" /></TabItem.Header>
+                <DockPanel LastChildFill="True">
+                    <!-- The ribbon is its own control, spanning the tab like every converted tab's
+                         (#530 tranche 4) — it replaces the mini-toolbar that sat inside the list column. -->
+                    <v:PrincipalRibbon DockPanel.Dock="Top" />
+                    <Grid ColumnDefinitions="300,*">
+                        <ListBox Grid.Column="0" ItemsSource="{Binding Principals}" SelectedItem="{Binding SelectedPrincipal}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PrincipalRowViewModel">
+                                    <!-- The row and its menu are their own control (#530 tranche 4). -->
+                                    <v:PrincipalRow />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    <Border Grid.Column="1" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1,0,0,0">
+                        <Panel>
+                            <TextBlock IsVisible="{Binding !HasSelectedPrincipal}" Text="{loc:Tr UgSelectPrincipal}"
+                                       Foreground="{DynamicResource WbFaint}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <!-- The detail is its own control (#793, paying down the #466 debt); handlers forward back here. -->
+                            <v:PrincipalDetailPane Margin="16" IsVisible="{Binding HasSelectedPrincipal}" />
+                        </Panel>
+                    </Border>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Audit log (ADR "Desktop audit viewer") — visible only for a CanViewAuditLog holder. -->
+            <TabItem AutomationProperties.AutomationId="tour:tab-audit" ToolTip.Tip="{loc:Tr TabAudit}" IsVisible="{Binding CanViewAuditLog}">
+                <TabItem.Header><i:Icon Value="mdi-history" FontSize="20" /></TabItem.Header>
+                <!-- The whole body is its own control (#519, tranche 1), on the extracted AuditTabViewModel
+                     (#517) — the header and the visibility gate stay here, on the shell's DataContext. -->
+                <v:AuditTab DataContext="{Binding Audit}" />
+            </TabItem>
+
+            <!-- Legal holds (ADR "Legal hold & retention enforcement") — visible only for a CanLegalHold holder. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabLegalHolds}" IsVisible="{Binding CanLegalHold}">
+                <TabItem.Header><i:Icon Value="mdi-gavel" FontSize="20" /></TabItem.Header>
+                <DockPanel LastChildFill="True" Margin="8">
+                    <!-- The ribbon is its own control (#530 tranche 5); Release moved into it (and each row's
+                         context menu) from the detail-pane header, by decision. -->
+                    <v:LegalHoldRibbon DockPanel.Dock="Top" />
+                    <Grid ColumnDefinitions="300,*" Margin="0,8,0,0">
+                        <ListBox Grid.Column="0" ItemsSource="{Binding LegalHolds}" SelectedItem="{Binding SelectedLegalHold}"
+                                 BorderBrush="{DynamicResource WbBorder}" BorderThickness="1">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:LegalHoldRowViewModel">
+                                    <!-- The row and its menu are their own control (#530 tranche 5). -->
+                                    <v:LegalHoldRow />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <DockPanel Grid.Column="1" Margin="10,0,0,0" LastChildFill="True" IsVisible="{Binding HasSelectedHold}">
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+                                <SelectableTextBlock Text="{Binding SelectedLegalHold.Name}" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="{loc:Tr MwDocuments}" FontWeight="SemiBold" Margin="0,0,0,4" />
+                            <ScrollViewer>
+                                <ListBox ItemsSource="{Binding SelectedHoldItems}" SelectedItem="{Binding SelectedHoldItem}"
+                                         DoubleTapped="OnGoToHoldItem" Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:LegalHoldItemRowViewModel">
+                                            <!-- The row and its menu are their own control (the #530 recipe). -->
+                                            <v:LegalHoldItemRow />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Retention schedule (ADR "Retention policies (auto-disposition)") — visible for a CanManageClassification holder. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabRetention}" IsVisible="{Binding CanManageClassification}">
+                <TabItem.Header><i:Icon Value="mdi-calendar-remove-outline" FontSize="20" /></TabItem.Header>
+                <DockPanel LastChildFill="True" Margin="8">
+                    <!-- The ribbon is its own control (#530 tranche 2); the tenant's disposition-mode
+                         description is information, not an action, so it stays as a line beneath it. -->
+                    <v:RetentionRibbon DockPanel.Dock="Top" />
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,6,0,6">
+                        <TextBlock Text="{loc:Tr MwRetDescAuto}"
+                                   Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   IsVisible="{Binding !RetentionRequiresReview}" />
+                        <TextBlock Text="{loc:Tr MwRetDescReview}"
+                                   Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   IsVisible="{Binding RetentionRequiresReview}" />
+                    </StackPanel>
+                    <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1">
+                        <DockPanel LastChildFill="True">
+                            <Grid DockPanel.Dock="Top" ColumnDefinitions="3*,110,170,180" Background="{DynamicResource WbChrome}">
+                                <TextBlock Grid.Column="0" Text="{loc:Tr ColDocument}" FontWeight="SemiBold" Margin="6,4" />
+                                <TextBlock Grid.Column="1" Text="{loc:Tr TabRetention}" FontWeight="SemiBold" Margin="6,4" />
+                                <TextBlock Grid.Column="2" Text="{loc:Tr RetColDisposition}" FontWeight="SemiBold" Margin="6,4" />
+                                <TextBlock Grid.Column="3" Text="{loc:Tr WorkflowStatus}" FontWeight="SemiBold" Margin="6,4" />
+                            </Grid>
+                            <ScrollViewer>
+                                <ListBox ItemsSource="{Binding RetentionItems}" SelectedItem="{Binding SelectedRetentionRow}"
+                                         Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:RetentionRowViewModel">
+                                            <!-- The row, its columns and its context menu are their own control
+                                                 (#530 tranche 2); the ribbon acts on the selection. -->
+                                            <v:RetentionRow />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Tenant-admin self-service settings (ADR "Tenant-admin settings tab") — visible for a tenant admin. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabTenant}" IsVisible="{Binding IsTenantAdmin}">
+                <TabItem.Header><i:Icon Value="mdi-office-building-cog-outline" FontSize="20" /></TabItem.Header>
+                <!-- The whole body is its own control (#530 tranche 10): ribbon, reference card first, then
+                     the per-group settings with per-group pencils. -->
+                <v:TenantSettingsPane />
+            </TabItem>
+
+            <!-- My work dashboard (ADR "My work dashboard") — added last to avoid re-indexing the other tabs. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabMyWork}">
+                <TabItem.Header><i:Icon Value="mdi-view-dashboard-outline" FontSize="20" /></TabItem.Header>
+                <ScrollViewer Margin="14">
+                    <StackPanel Spacing="6" MaxWidth="640" HorizontalAlignment="Left">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{loc:Tr TabMyWork}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <!-- The header stays, by decision (#530 tranche 7) — a dashboard keeps its title;
+                                 only refresh takes the ribbon-button look (Border.ribbon scopes the ghost
+                                 style), and the desktop GAINS it: the web had one, this tab did not
+                                 (ADR 0511 parity). -->
+                            <Border Classes="ribbon">
+                                <Button Command="{Binding RefreshMyWorkCommand}" ToolTip.Tip="{loc:Tr RibbonRefresh}"><i:Icon Value="mdi-refresh" FontSize="18" /></Button>
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock Text="{loc:Tr MyWorkReminders}" FontWeight="SemiBold" Margin="0,8,0,2" />
+                        <TextBlock Text="{loc:Tr MyWorkNothingDue}" Foreground="{DynamicResource WbMuted}" IsVisible="{Binding !DashboardReminders.Count}" />
+                        <ItemsControl ItemsSource="{Binding DashboardReminders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="api:RemindersClient+DashReminderInfo">
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="2"
+                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenDashboardReminderCommand}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <i:Icon Value="mdi-alarm" FontSize="16" />
+                                            <TextBlock Text="{Binding DocumentName}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding RemindAt, Converter={x:Static vm:SessionZoneTimeConverter.Instance}}" Foreground="{DynamicResource WbMuted}" />
+                                            <TextBlock Text="{loc:Tr MwOverdue}" Foreground="#c62828" IsVisible="{Binding Overdue}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{loc:Tr MyWorkFollowing}" FontWeight="SemiBold" Margin="0,10,0,2" />
+                        <TextBlock Text="{loc:Tr MyWorkNotFollowing}" Foreground="{DynamicResource WbMuted}" IsVisible="{Binding !DashboardFollowing.Count}" />
+                        <ItemsControl ItemsSource="{Binding DashboardFollowing}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="svc:AlcifraApiClient+DashFollowedInfo">
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="2"
+                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenDashboardFollowedCommand}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <i:Icon Value="mdi-bell" FontSize="16" />
+                                            <TextBlock Text="{Binding DocumentName}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="{loc:Tr MyWorkReviewTasks}" FontWeight="SemiBold" Margin="0,10,0,2" />
+                        <TextBlock Text="{loc:Tr MyWorkNoReview}" Foreground="{DynamicResource WbMuted}" IsVisible="{Binding !Tasks.Count}" />
+                        <ItemsControl ItemsSource="{Binding Tasks}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:TaskItemViewModel">
+                                    <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Background="Transparent" BorderThickness="0" Padding="2"
+                                            Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).OpenTaskCommand}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <i:Icon Value="mdi-clipboard-check-outline" FontSize="16" />
+                                            <TextBlock Text="{Binding DocumentName}" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tag catalog (ADR "Tag controlled vocabulary") — added last to avoid re-indexing the other tabs. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabTags}" IsVisible="{Binding IsTenantAdmin}">
+                <TabItem.Header><i:Icon Value="mdi-tag-multiple-outline" FontSize="20" /></TabItem.Header>
+                <DockPanel LastChildFill="True" Margin="8">
+                    <!-- The ribbon is its own control (#530 tranche 6); + replaced the inline create form and
+                         the "Tag catalog" header said what the tab strip already says. The catalog
+                         description is information, not an action — its own line beneath. -->
+                    <v:TagRibbon DockPanel.Dock="Top" />
+                    <TextBlock DockPanel.Dock="Top" Text="{loc:Tr MwTagCatalogDesc}" Margin="0,8,0,0"
+                               Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" MaxWidth="720" HorizontalAlignment="Left" />
+                    <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" Margin="0,8,0,0"
+                            MaxWidth="520" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <ScrollViewer>
+                            <ListBox ItemsSource="{Binding TagCatalogAdmin}" SelectedItem="{Binding SelectedTagRow}"
+                                     Background="Transparent" BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:TagCatalogRow">
+                                        <!-- The row and its menu are their own control (#530 tranche 6). -->
+                                        <v:TagRow />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
+                    </Border>
+                </DockPanel>
+            </TabItem>
+
+            <!-- Contacts (#564) — the caller's addressbooks, which CardDAV also serves. Added last to avoid
+                 re-indexing the other tabs; its whole body is its own control with its own view-model. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabContacts}">
+                <TabItem.Header><i:Icon Value="mdi-account-box-outline" FontSize="20" /></TabItem.Header>
+                <v:ContactsTab DataContext="{Binding ContactsTab}" />
+            </TabItem>
+
+            <!-- Calendar (#564) — the twin of Contacts, which CalDAV also serves. Same shape, same reasoning:
+                 appended so no other tab's index moves, and its own control with its own view-model. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabCalendar}">
+                <TabItem.Header><i:Icon Value="mdi-calendar-month-outline" FontSize="20" /></TabItem.Header>
+                <v:CalendarTab DataContext="{Binding CalendarTab}" />
+            </TabItem>
+
+            <!-- Messages (core #1813): read-only conversations, appended last so no tab is re-indexed, and shown
+                 only while the archive offers the Messenger to this user. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabMessages}" IsVisible="{Binding MessagesTab.IsOffered}">
+                <TabItem.Header><i:Icon Value="mdi-message-text-outline" FontSize="20" /></TabItem.Header>
+                <v:MessagesTab DataContext="{Binding MessagesTab}" />
+            </TabItem>
+
+            <!-- Passwords (ADR 0968): the password store, appended last, shown where the installation offers it. -->
+            <TabItem ToolTip.Tip="{loc:Tr PwPasswords}" IsVisible="{Binding PasswordsTab.IsOffered}">
+                <TabItem.Header><i:Icon Value="mdi-key-chain-variant" FontSize="20" /></TabItem.Header>
+                <v:PasswordsTab DataContext="{Binding PasswordsTab}" />
+            </TabItem>
+
+        </TabControl>
+    </DockPanel>
+</Window>

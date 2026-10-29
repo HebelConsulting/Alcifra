@@ -1,0 +1,71 @@
+using System.Text;
+using Alcifra.DesktopClient;
+using Alcifra.DesktopClient.Services;
+using Alcifra.DesktopClient.ViewModels;
+
+namespace Alcifra.UiEndToEndTests;
+
+// The desktop half of version comparison (ADR 0712): the real AlcifraApiClient lists a document's
+// confirmed versions, fetches the pair's extracted texts, and the VM renders the shared TextDiff's rows.
+[Collection(UiCollection.Name)]
+public class DesktopVersionComparisonTests
+{
+    private readonly SelfHostedAppFixture _app;
+
+    public DesktopVersionComparisonTests(SelfHostedAppFixture app) => _app = app;
+
+    [Fact]
+    public async Task Lists_versions_and_diffs_two_text_versions()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+
+        var repo = (await api.Documents.GetRepositoriesAsync()).Single(n => n.Name == "Demo Repository");
+        var fileName = $"cmp-{Guid.NewGuid():N}.txt";
+        await api.Documents.UploadFileAsync(repo.Href("children"), fileName, Encoding.UTF8.GetBytes("one\ntwo\nthree\n"));
+        var doc = (await api.Documents.GetChildrenAsync(repo.Href("children"))).Single(n => n.Name == Path.GetFileNameWithoutExtension(fileName));
+        await api.Documents.UploadNewVersionAsync(doc.Href("versions"), Encoding.UTF8.GetBytes("one\nTWO edited\nthree\nfour\n"), ".txt");
+
+        var versions = await api.Versions.GetVersionsAsync(doc.Href("versions"));
+        Assert.Equal(2, versions.Count); // both confirmed, newest first
+        Assert.Equal(2, versions[0].VersionNumber);
+
+        // The listing carries the confirmed-version count that gates the "Compare versions" action (ADR
+        // "Compare-versions gating + default") — 2 here, so the action is enabled.
+        Assert.Equal(2, (await api.Documents.GetChildrenAsync(repo.Href("children"))).Single(n => n.Id == doc.Id).VersionCount);
+
+        // The version collection advertises ONE compare address; the pair travels as query parameters.
+        var (_, compareHref) = await api.Versions.GetVersionsWithLinksAsync(doc.Href("versions"));
+        var cmp = await api.Versions.GetVersionComparisonAsync(compareHref!, versions[1].Id, versions[0].Id);
+        Assert.True(cmp.Available);
+        Assert.Equal("one\ntwo\nthree\n", cmp.FromText);
+        Assert.Equal("one\nTWO edited\nthree\nfour\n", cmp.ToText);
+
+        // The dialog VM defaults the pickers to latest-vs-penultimate but does NOT run the diff (ADR "Explicit
+        // compare", issue #371): the result area shows the hint and Compare is enabled, waiting for a click.
+        var cvm = new CompareVersionsViewModel();
+        await cvm.SetupAsync(api, doc.Id, "cmp", doc.Href("versions"));
+        Assert.Equal(versions[0].Id, cvm.ToVersion!.Id);   // newest
+        Assert.Equal(versions[1].Id, cvm.FromVersion!.Id); // penultimate
+        Assert.Empty(cvm.Rows);                            // nothing compared yet
+        Assert.True(cvm.ShowHint);
+        Assert.True(cvm.CompareCommand.CanExecute(null));  // two different versions are selected
+
+        // Clicking Compare is what runs it.
+        await cvm.CompareCommand.ExecuteAsync(null);
+        Assert.NotEmpty(cvm.Rows);
+        Assert.False(cvm.ShowHint);
+
+        // The rows are the SHARED answer (Presentation TextDiff): "two"→"TWO edited" pairs as one changed row
+        // with word-level emphasis on both sides, and "four" arrives as an added row with no old cell.
+        Assert.Contains(cvm.Rows, r => r.OldSegments.Any(s => s.Emphasized) && r.NewSegments.Any(s => s.Emphasized));
+        Assert.Contains(cvm.Rows, r => r.OldNumber.Length == 0 && string.Concat(r.NewSegments.Select(s => s.Text)) == "four");
+
+        // Changing a picker discards the diff and returns to the hint — a stale diff must never be attributed to
+        // the new selection. Picking the SAME version on both sides also disables Compare.
+        cvm.FromVersion = cvm.ToVersion;
+        Assert.Empty(cvm.Rows);
+        Assert.True(cvm.ShowHint);
+        Assert.False(cvm.CompareCommand.CanExecute(null));
+    }
+}

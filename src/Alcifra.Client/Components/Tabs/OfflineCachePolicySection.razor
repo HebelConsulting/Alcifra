@@ -1,0 +1,140 @@
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject Alcifra.Client.Services.ApiRoot ApiRoot
+
+@* The Tenant tab's "Offline cache (phone app)" group (#1742, ADR 0923), as the desktop shows it (ADR 0511). Its own
+   resource, followed from /me, saved whole with If-Match; the tab owns the header (its pencil and Save/Cancel). A
+   component of its own because the tab is near the 1000-line limit. *@
+@if (_policy is { CanEdit: true })
+{
+    @Header
+    <div style="display:flex; align-items:center; gap:4px;">
+        <MudSwitch T="bool" @bind-Value="_edit.Allowed" Disabled="@(!Editing)" Color="Color.Primary" Class="flex-grow-1"
+                   Label="@Strings.Get("TenantOcAllowed")" />
+        <InfoButton Text="@(Strings.Get("TenantOcAllowedInfo"))" />
+    </div>
+    @if (_edit.Allowed)
+    {
+        <div style="margin-left:24px; display:flex; flex-direction:column; gap:4px;">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("TenantOcKeeps")</MudText>
+            <MudSwitch T="bool" @bind-Value="_edit.Notifications" Disabled="@(!Editing)" Color="Color.Primary" Label="@Strings.Get("TenantOcNotifications")" />
+            <MudSwitch T="bool" @bind-Value="_edit.OpenedDocuments" Disabled="@(!Editing)" Color="Color.Primary" Label="@Strings.Get("TenantOcOpenedDocuments")" />
+            <MudSwitch T="bool" @bind-Value="_edit.ChosenFolders" Disabled="@(!Editing)" Color="Color.Primary" Label="@Strings.Get("TenantOcChosenFolders")" />
+            <MudSelect T="string" @bind-Value="_edit.UnlockMode" Label="@Strings.Get("TenantOcUnlock")" Disabled="@(!Editing)" Dense="true" Style="max-width:320px">
+                <MudSelectItem Value="@("UserChooses")">@Strings.Get("TenantOcUserChooses")</MudSelectItem>
+                <MudSelectItem Value="@("Session")">@Strings.Get("TenantOcUnlockSession")</MudSelectItem>
+                <MudSelectItem Value="@("Document")">@Strings.Get("TenantOcUnlockDocument")</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_edit.RefreshMode" Label="@Strings.Get("TenantOcRefresh")" Disabled="@(!Editing)" Dense="true" Style="max-width:320px">
+                <MudSelectItem Value="@("UserChooses")">@Strings.Get("TenantOcUserChooses")</MudSelectItem>
+                <MudSelectItem Value="@("KeepUpdated")">@Strings.Get("TenantOcRefreshKeep")</MudSelectItem>
+                <MudSelectItem Value="@("RemoveWhenNewer")">@Strings.Get("TenantOcRefreshRemove")</MudSelectItem>
+            </MudSelect>
+            <MudNumericField T="int" @bind-Value="_edit.MaxUnlockedMinutes" Min="1" Max="1440" Disabled="@(!Editing)"
+                             Label="@Strings.Get("TenantOcMaxMinutes")" Style="max-width:320px" />
+        </div>
+    }
+}
+
+@code {
+    /// <summary>Whether this group is the one in edit mode (the tab decides, so only one group edits at a time).</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>The tab's group header (title, pencil, Save/Cancel), shown with the group.</summary>
+    [Parameter] public RenderFragment? Header { get; set; }
+
+    private PolicyDto? _policy;
+    private PolicyDto _edit = new();
+    private string? _href;
+    private string? _etag;
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    /// <summary>Re-reads the policy (on load, on Cancel, and after any settings save: they share one concurrency token).</summary>
+    public async Task ReloadAsync()
+    {
+        try
+        {
+            var me = await Http.GetFromJsonAsync<MeDto>(await ApiRoot.RequireAsync("me"));
+            if (Links.Href(me?.Links, "offlineCachePolicy") is not { } href)
+            {
+                _policy = null;   // the installation does not offer it (ADR 0543)
+                return;
+            }
+
+            using var response = await Http.GetAsync(href);
+            response.EnsureSuccessStatusCode();
+            _href = href;
+            _etag = response.Headers.ETag?.Tag;
+            _policy = await response.Content.ReadFromJsonAsync<PolicyDto>();
+            _edit = _policy! with { };
+        }
+        catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _policy = null;
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Saves the whole policy with the tag of the read that filled the form; true when it was saved.</summary>
+    public async Task<bool> SaveAsync()
+    {
+        if (_href is null)
+        {
+            return false;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, _href)
+        {
+            Content = JsonContent.Create(new
+            {
+                allowed = _edit.Allowed, notifications = _edit.Notifications, openedDocuments = _edit.OpenedDocuments,
+                chosenFolders = _edit.ChosenFolders, unlockMode = _edit.UnlockMode, refreshMode = _edit.RefreshMode,
+                maxUnlockedMinutes = _edit.MaxUnlockedMinutes,
+            }),
+        };
+        if (_etag is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", _etag);
+        }
+
+        using var response = await Http.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            string? code = null;
+            try
+            {
+                var problem = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                code = problem.TryGetProperty("errorCode", out var c) ? c.GetString() : null;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+            }
+
+            Snackbar.Add(code is not null ? Alcifra.Localization.ApiErrorText.For(code) : Strings.Get("StErrSaveSettings"), Severity.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
+    private sealed class MeDto
+    {
+        public List<LinkResponse>? Links { get; set; }
+    }
+
+    private sealed record PolicyDto
+    {
+        public bool Allowed { get; set; }
+        public bool Notifications { get; set; }
+        public bool OpenedDocuments { get; set; }
+        public bool ChosenFolders { get; set; }
+        public string UnlockMode { get; set; } = "UserChooses";
+        public string RefreshMode { get; set; } = "UserChooses";
+        public int MaxUnlockedMinutes { get; set; } = 15;
+        public bool CanEdit { get; set; }
+    }
+}

@@ -1,0 +1,714 @@
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Alcifra.Api.Documents;
+using Alcifra.Api.Hypermedia;
+using Alcifra.Api.Pagination;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Booking;
+using Alcifra.Domain.Documents;
+using Alcifra.Domain.Masks;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Controllers;
+
+/// <summary>
+/// Creating a contact or an appointment: <c>POST</c> on the collection that holds it (#631).
+/// </summary>
+/// <remarks>
+/// <para>
+/// The structured editors (ADR 0631) are <c>PUT</c> on a document that already exists, and
+/// <c>POST /documents/{id}/children</c> makes a folder-ish document with no version — so neither could answer
+/// "make me a new contact". This is the missing half, and it takes the shape <c>sections</c>/<c>notes</c>
+/// already established: a <c>POST</c> on the typed folder, advertised as a rel that gates the client's button.
+/// One create, one rel (ADR 0637), so neither client special-cases contacts or calendars.
+/// </para>
+/// <para>
+/// <b>It takes the EDITOR's own resource, not a create-shaped subset.</b> The subset it shipped with was
+/// defensible only while New opened a small form; both clients now open the full structured editor empty, so a
+/// narrower create is a funnel that silently drops a second phone number, a birthday or a postal address at the
+/// exact moment the user first types one. One shape and one conversion for create and edit means there is no
+/// second place for the mapping to be wrong, and no field that exists in the form but not on the wire.
+/// </para>
+/// <para>
+/// <b>The UID is minted here, never taken from the request.</b> It is the correlation key a later DAV sync
+/// matches on, so a client's guess would fork the item into a duplicate on first sync — the same reasoning
+/// that made the editors read the UID from the STORED item, after reading it from the wrong place rewrote a
+/// vCard's UID to the contact's phone number (#628).
+/// </para>
+/// </remarks>
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/documents/{documentId:guid}")]
+[Authorize]
+public class TypedItemsController : ControllerBase
+{
+    private readonly AlcifraDbContext _dbContext;
+    private readonly DocumentAccessService _access;
+    private readonly IObjectStorageClient _storage;
+    private readonly DocumentFinalizer _finalizer;
+    private readonly IContactCardComposer _contacts;
+    private readonly IAppointmentComposer _appointments;
+    private readonly IAuditRecorder _audit;
+    private readonly IDavCollectionKindRegistry _kinds;
+    private readonly ILogger<TypedItemsController> _logger;
+
+    public TypedItemsController(
+        AlcifraDbContext dbContext,
+        DocumentAccessService access,
+        IObjectStorageClient storage,
+        DocumentFinalizer finalizer,
+        IContactCardComposer contacts,
+        IAppointmentComposer appointments,
+        IAuditRecorder audit,
+        IDavCollectionKindRegistry kinds,
+        ILogger<TypedItemsController> logger)
+    {
+        _logger = logger;
+        _dbContext = dbContext;
+        _access = access;
+        _storage = storage;
+        _finalizer = finalizer;
+        _contacts = contacts;
+        _appointments = appointments;
+        _audit = audit;
+        _kinds = kinds;
+    }
+
+    [HttpPost("contacts")]
+    public async Task<IActionResult> CreateContact(
+        Guid documentId,
+        [FromBody] DocumentContactCardController.ContactCardResource request,
+        CancellationToken cancellationToken)
+    {
+        if (await RequireFolderAsync(documentId, [WellKnownMaskIds.Addressbook], cancellationToken) is not { } folder)
+        {
+            return NotFound();
+        }
+
+        if (!(await _access.GetCallerRightsAsync(documentId, cancellationToken)).CanCreateSubItems)
+        {
+            return Forbid();
+        }
+
+        var uid = Guid.NewGuid().ToString();
+
+        // A fresh card: Merge composes one from nothing when the existing blob is null, which is the same path
+        // an edit takes minus the preservation — so the two cannot drift in how a vCard is written.
+        var blob = _contacts.Merge(null, DocumentContactCardController.FromResource(request), uid);
+        var name = FirstNonEmpty(request.FormattedName, Join(request.GivenName, request.FamilyName), request.Organization)
+                   ?? "New contact";
+
+        return await CreateAsync(folder, name, blob, ".vcf", "text/vcard", cancellationToken);
+    }
+
+    [HttpPost("appointments")]
+    public async Task<IActionResult> CreateAppointment(
+        Guid documentId,
+        [FromBody] DocumentAppointmentController.AppointmentResource request,
+        CancellationToken cancellationToken)
+    {
+        if (await RequireFolderAsync(documentId, CalendarFamily, cancellationToken) is not { } folder)
+        {
+            return NotFound();
+        }
+
+        if (!(await _access.GetCallerRightsAsync(documentId, cancellationToken)).CanCreateSubItems)
+        {
+            return Forbid();
+        }
+
+        var uid = Guid.NewGuid().ToString();
+        var blob = _appointments.Merge(null, DocumentAppointmentController.FromResource(request), uid);
+        var name = FirstNonEmpty(request.Summary) ?? "New appointment";
+
+        return await CreateAsync(folder, name, blob, ".ics", "text/calendar", cancellationToken);
+    }
+
+    /// <summary>One listed contact — the card's index fields, so a row renders without a request of its own.</summary>
+    public class ContactEntryResource : HypermediaResource
+    {
+        public Guid Id { get; set; }
+
+        /// <summary>The filed document name, which is what the tree and the tab title show.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        public string? FullName { get; set; }
+
+        public string? Email { get; set; }
+
+        public string? Phone { get; set; }
+
+        public string? Organization { get; set; }
+
+        /// <summary>
+        /// True when the card carries an inline picture — so a row draws a face rather than initials, without
+        /// asking. Its address arrives as the <c>photo</c> rel on this entry, present only when this is true.
+        /// </summary>
+        public bool HasPhoto { get; set; }
+    }
+
+    /// <summary>One listed appointment.</summary>
+    public class AppointmentEntryResource : HypermediaResource
+    {
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Which occurrence of a repeating series this row is — the instant that identifies it (#1133).
+        /// </summary>
+        /// <remarks>
+        /// Null for an entry that does not repeat, and for a listing asked without a window. It is the same
+        /// value an <c>EXDATE</c> carries, which is what lets an editor act on THIS occurrence — cancel the
+        /// 24th of December — rather than only on the whole series.
+        /// <para>
+        /// <see cref="Id"/> stays the SERIES' document, because that is what a client opens, follows rels
+        /// from and addresses actions at. Two rows of one series therefore share an Id, so a client keying its
+        /// selection on the id alone must key on the pair instead.
+        /// </para>
+        /// </remarks>
+        public string? RecurrenceId { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The indexed start, verbatim: ISO-8601 with an offset for a timed entry, a plain <c>yyyy-MM-dd</c>
+        /// for an all-day one.
+        /// </summary>
+        /// <remarks>
+        /// A string rather than a <c>DateTimeOffset</c>, because the two shapes are genuinely different things
+        /// and a single typed field would have to invent a time for the all-day case — the exact inference
+        /// ADR 0647 refuses. <see cref="AllDay"/> says which shape this is, so a client formats rather than
+        /// guesses.
+        /// </remarks>
+        public string? Start { get; set; }
+
+        public string? End { get; set; }
+
+        public string? Location { get; set; }
+
+        /// <summary>True when the entry is a day rather than a moment — <see cref="Start"/> carries no time.</summary>
+        public bool AllDay { get; set; }
+
+        /// <summary>
+        /// The stored <c>RRULE</c> as text (<c>FREQ=WEEKLY;BYDAY=TU</c>), or null when the entry does not repeat.
+        /// </summary>
+        /// <remarks>
+        /// <b>Opaque, and never expanded.</b> The server does not compute a recurrence set (the epic's decision),
+        /// so <see cref="Start"/> is the FIRST occurrence's and nothing else. That makes this field the only
+        /// thing standing between a grid and a quiet lie: an entry drawn once, in a month it actually occupies
+        /// four times, looks exactly like an entry that happens once. A client shows a marker; it does not try
+        /// to read the rule.
+        /// </remarks>
+        public string? Repeats { get; set; }
+
+        /// <summary>
+        /// The occurrences taken OUT of the series — the <c>EXDATE</c> instants, comma-separated (#1133).
+        /// </summary>
+        /// <remarks>
+        /// Sent so a client can tell a cancelled day from one that never existed, and — more to the point —
+        /// so expansion leaves it out. Without it an occurrence cancelled through "this occurrence" keeps
+        /// being drawn, which is a calendar disagreeing with itself.
+        /// </remarks>
+        public string? Exceptions { get; set; }
+    }
+
+    public class ContactListResource : HypermediaResource
+    {
+        public List<ContactEntryResource> Contacts { get; set; } = [];
+    }
+
+    public class AppointmentListResource : HypermediaResource
+    {
+        public List<AppointmentEntryResource> Appointments { get; set; } = [];
+    }
+
+    /// <summary>
+    /// The contacts filed in this addressbook, with their index fields.
+    /// </summary>
+    /// <remarks>
+    /// The same rel as the create, on the same address, distinguished by method — so a client that can read the
+    /// collection can list it, while the POST keeps its own right. Whether New is offered rides on the
+    /// collection's <c>CanCreateEntries</c>, since one rel cannot say "read yes, write no".
+    /// </remarks>
+    [HttpGet("contacts")]
+    public Task<IActionResult> ListContacts(
+        Guid documentId, [FromQuery] string? cursor, [FromQuery] int? limit, CancellationToken cancellationToken) =>
+        ListAsync(
+            documentId, [WellKnownMaskIds.Addressbook], cursor, limit, cancellationToken,
+            (id, name, field) => new ContactEntryResource
+            {
+                Id = id,
+                Name = name,
+                FullName = field("Full name"),
+                Email = field("Email"),
+                Phone = field("Phone"),
+                Organization = field("Organization"),
+                HasPhoto = field("Photo") is not null,
+            },
+            (entries, links) => new ContactListResource { Contacts = entries, Links = links });
+
+    [HttpHead("contacts")]
+    public async Task<IActionResult> HeadContacts(Guid documentId, CancellationToken cancellationToken) =>
+        await RequireFolderAsync(documentId, [WellKnownMaskIds.Addressbook], cancellationToken) is null
+            ? NotFound()
+            : await CanListAsync(documentId, cancellationToken) ? NoContent() : Forbid();
+
+    /// <summary>The appointments filed in this calendar, with their index fields. See <see cref="ListContacts"/>.</summary>
+    /// <remarks>
+    /// <paramref name="from"/>/<paramref name="to"/> ask for OCCURRENCES rather than stored entries (#1133): a
+    /// repeating series comes back once per occurrence in the window, each carrying the day it falls on and
+    /// the instant that identifies it. Without them the listing answers as it always has — one row per stored
+    /// entry — which is what CalDAV and every other caller still wants.
+    /// <para>
+    /// Expanded on the SERVER so there is one implementation of it. The clients render what they are given,
+    /// and a surface added later inherits the same answer rather than reimplementing the arithmetic.
+    /// </para>
+    /// </remarks>
+    [HttpGet("appointments")]
+    public Task<IActionResult> ListAppointments(
+        Guid documentId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        CancellationToken cancellationToken) =>
+        ListAsync(
+            // READABLE, not writable (#1242): a read-only module collection lists here even though nothing
+            // may be created in it — this is the only address the Calendar tab reads entries from.
+            documentId, ReadableCalendarFamily, cursor, limit, cancellationToken,
+            (id, name, field) => new AppointmentEntryResource
+            {
+                Id = id,
+                Name = name,
+                // WHICH FIELDS SPAN THE ENTRY. "Start" and "End" are the CORE Appointment mask's own field
+                // names; a module names its times for its domain — a flight-log entry has Block off, Takeoff,
+                // Landing and Block on — so the kind may declare which pair to read (ABI 0.13).
+                //
+                // Without this, #1242 made a module's Logbook LISTABLE and left every row unplaceable: a null
+                // start, and a Calendar tab with nothing to put on a day. The collection appeared and was
+                // empty, which looks exactly like the bug #1242 set out to fix.
+                Start = field(StartFieldOf(documentId)),
+                End = field(EndFieldOf(documentId)),
+                Location = field("Location"),
+                // A day, not a moment: the indexed value carries no time at all (ADR 0647).
+                AllDay = field(StartFieldOf(documentId)) is { } start && !start.Contains('T', StringComparison.Ordinal),
+                Repeats = field("Repeats"),
+                // The cancelled occurrences, so expansion can leave them out (#1133) — without this an
+                // occurrence cancelled through "this occurrence" keeps being drawn.
+                Exceptions = field("Exceptions"),
+            },
+            (entries, links) => new AppointmentListResource { Appointments = entries, Links = links },
+            from is { } start && to is { } end ? entries => ExpandOccurrences(entries, start, end) : null);
+
+    /// <summary>One row per OCCURRENCE that falls in the window, in place of the series' single row (#1133).</summary>
+    /// <remarks>
+    /// <para>
+    /// An entry that does not repeat is passed through untouched — the common case, and the one every caller
+    /// had before this existed.
+    /// </para>
+    /// <para>
+    /// Each occurrence carries <c>RecurrenceId</c>, the instant that identifies it WITHIN the series. That is
+    /// what lets an editor say "this occurrence" — cancel the 24th of December — rather than only "the whole
+    /// series", and it is the same value an EXDATE carries.
+    /// </para>
+    /// </remarks>
+    private static List<AppointmentEntryResource> ExpandOccurrences(
+        List<AppointmentEntryResource> entries, DateTimeOffset from, DateTimeOffset to)
+    {
+        var expanded = new List<AppointmentEntryResource>();
+        foreach (var entry in entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Repeats)
+                || !DateTimeOffset.TryParse(entry.Start, out var startsAt))
+            {
+                expanded.Add(entry);
+                continue;
+            }
+
+            var endsAt = DateTimeOffset.TryParse(entry.End, out var parsedEnd) ? parsedEnd : startsAt;
+            var series = new ListedSeries(startsAt, endsAt, entry.Repeats, entry.Exceptions);
+
+            foreach (var occurrence in SlotOccurrences.Between(series, from, to))
+            {
+                expanded.Add(new AppointmentEntryResource
+                {
+                    Id = entry.Id,
+                    Name = entry.Name,
+                    Start = occurrence.StartsAtUtc.ToString("O"),
+                    End = occurrence.EndsAtUtc.ToString("O"),
+                    Location = entry.Location,
+                    AllDay = entry.AllDay,
+                    Repeats = entry.Repeats,
+                    Exceptions = entry.Exceptions,
+                    RecurrenceId = occurrence.StartsAtUtc.ToString("O"),
+                    Links = entry.Links,
+                });
+            }
+        }
+
+        return expanded;
+    }
+
+    /// <summary>A listed row seen as a repeating slot, so the shared expander can answer about it.</summary>
+    private sealed record ListedSeries(
+        DateTimeOffset StartsAtUtc,
+        DateTimeOffset EndsAtUtc,
+        string? RecurrenceRule,
+        string? ExceptionDates) : IRecurringSlot;
+
+    [HttpHead("appointments")]
+    public async Task<IActionResult> HeadAppointments(Guid documentId, CancellationToken cancellationToken) =>
+        // Mirrors the GET exactly, readable family included — a HEAD that 404s where the GET returns rows is a
+        // companion action that answers a different question (the standing every-GET-has-a-HEAD convention).
+        await RequireFolderAsync(documentId, ReadableCalendarFamily, cancellationToken) is null
+            ? NotFound()
+            : await CanListAsync(documentId, cancellationToken) ? NoContent() : Forbid();
+
+    private async Task<bool> CanListAsync(Guid documentId, CancellationToken cancellationToken) =>
+        (await _access.GetCallerRightsAsync(documentId, cancellationToken)).CanSee;
+
+    /// <summary>
+    /// One listing for both typed collections: page the children, read their index fields, shape a row.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Written once with the two genuine differences — how a row is shaped and what the envelope is called —
+    /// passed in as lambdas at the call site. Two copies of this would drift in exactly the way that matters
+    /// here: the paging, the access check and the field lookup are the parts a reader never re-reads.
+    /// </para>
+    /// <para>
+    /// <b>Field values are read BY NAME.</b> A document has one row per index field, so filtering only by
+    /// document id returns an arbitrary one — which is how a vCard's UID was once overwritten with a phone
+    /// number (#628).
+    /// </para>
+    /// <para>
+    /// Values are fetched for the whole page in ONE query and assembled in memory, rather than as a correlated
+    /// sub-query per field per row: four sub-queries times a page of fifty is the shape that turns a listing
+    /// into a timeout, and it is the same "one read, many follows" economy the clients are held to (ADR 0557).
+    /// </para>
+    /// </remarks>
+    private async Task<IActionResult> ListAsync<TEntry, TList>(
+        Guid documentId,
+        IReadOnlyList<Guid> folderMaskIds,
+        string? cursor,
+        int? limit,
+        CancellationToken cancellationToken,
+        Func<Guid, string, Func<string, string?>, TEntry> shape,
+        Func<List<TEntry>, List<Link>, TList> envelope,
+        Func<List<TEntry>, List<TEntry>>? expand = null)
+        where TEntry : HypermediaResource
+        where TList : HypermediaResource
+    {
+        if (await RequireFolderAsync(documentId, folderMaskIds, cancellationToken) is not { } listedFolder)
+        {
+            return NotFound();
+        }
+
+        // Which kind this collection is, so the projection knows what the entries call their times (ABI 0.13).
+        // Once per request: one listing describes one collection.
+        var listedMaskId = await _dbContext.MaskVersions
+            .Where(v => v.Id == listedFolder.MaskVersionId)
+            .Select(v => (Guid?)v.MaskId)
+            .FirstOrDefaultAsync(cancellationToken);
+        _listingKind = _kinds.ForFolderMask(listedMaskId);
+
+        if (!await CanListAsync(documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var pageSize = PageSize.Resolve(limit);
+        var query = _dbContext.Documents.Where(d => d.ParentId == documentId);
+        if (Cursor.TryDecode(cursor, out var cursorCreatedAt, out var cursorId))
+        {
+            query = query.Where(d => d.CreatedAt > cursorCreatedAt || (d.CreatedAt == cursorCreatedAt && d.Id > cursorId));
+        }
+
+        // Filter and order on the ENTITY before projecting: EF cannot translate an order applied to an already
+        // projected positional shape, and the failure is a 500 rather than a compile error.
+        var fetched = await query
+            .OrderBy(d => d.CreatedAt).ThenBy(d => d.Id)
+            .Take(pageSize + 1)
+            .Select(d => new { d.Id, d.Name, d.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        var page = fetched.Take(pageSize).ToList();
+        var ids = page.Select(p => p.Id).ToList();
+
+        var values = await _dbContext.FieldValues
+            .Where(fv => ids.Contains(fv.DocumentId))
+            .Join(
+                _dbContext.FieldDefinitions,
+                fv => fv.FieldDefinitionId,
+                fd => fd.Id,
+                (fv, fd) => new { fv.DocumentId, fd.Name, fv.Value })
+            .ToListAsync(cancellationToken);
+
+        var byDocument = values
+            .GroupBy(v => v.DocumentId)
+            .ToDictionary(g => g.Key, g => g.ToDictionary(v => v.Name, v => v.Value, StringComparer.OrdinalIgnoreCase));
+
+        var entries = new List<TEntry>();
+        foreach (var row in page)
+        {
+            var fields = byDocument.GetValueOrDefault(row.Id) ?? [];
+            var entry = shape(row.Id, row.Name, name => fields.GetValueOrDefault(name) is { Length: > 0 } v ? v : null);
+
+            // The row's own address, so acting on it never reads the pane's loaded state (ADR 0559).
+            entry.Links = [new Link("self", $"/api/documents/{row.Id}", "GET")];
+
+            // Where the row LIVES, so "Go to" can reveal it in the tree the way a legal-hold item already
+            // does — from the row's advertised rels, never from a bare id or the pane's state (ADR 0555).
+            // Free: this listing is ONE collection's contents, so every row's parent is that collection, and
+            // making the client resolve `self` first to learn it would be a request per Go-to (ADR 0557).
+            entry.Links.Add(new Link("parent", $"/api/documents/{documentId}", "GET"));
+
+            // A contact that HAS a picture also carries its address, so the row follows a rel rather than
+            // composing one (ADR 0543) and never spends a request discovering there is nothing to show.
+            if (entry is ContactEntryResource { HasPhoto: true })
+            {
+                entry.Links.Add(new Link("photo", DocumentContactCardController.PhotoHref(row.Id), "GET"));
+            }
+
+            // The structured appointment, on the ROW (ADR 0690): the detail pane shows the recorded zones, the
+            // notes and the URL, none of which are index fields, so it must read the entry itself. Advertised
+            // here rather than discovered through `self` because that would cost TWO requests per selection —
+            // one to resolve the row, one to follow the rel — on the tab's most-used interaction (ADR 0557).
+            if (entry is AppointmentEntryResource)
+            {
+                entry.Links.Add(new Link("appointment", $"/api/documents/{row.Id}/appointment", "GET"));
+            }
+            entries.Add(entry);
+        }
+
+        // Occurrences, when the caller asked for a window (#1133). A post-step on the SHAPED rows rather than a
+        // second listing: the paging, the access check and the field lookup are what a reader never re-reads,
+        // and a second copy of them is where the two would drift.
+        if (expand is not null)
+        {
+            entries = expand(entries);
+        }
+
+        var links = new List<Link> { new("self", $"/api/documents/{documentId}", "GET") };
+        if (fetched.Count > pageSize && page.Count > 0)
+        {
+            var last = page[^1];
+            links.Add(new Link("next", $"{Request.Path}?cursor={Cursor.Encode(last.CreatedAt, last.Id)}&limit={pageSize}", "GET"));
+        }
+
+        return Ok(envelope(entries, links));
+    }
+
+    /// <summary>The folder, when it wears the mask this create belongs to; else null.</summary>
+    /// <remarks>
+    /// NotFound rather than a refusal, exactly as the notebook creates answer: these sub-resources do not
+    /// EXIST on an ordinary folder, which is what their absent rel already says. A 403 would imply the caller
+    /// might be granted them.
+    /// </remarks>
+    // A room's Schedule serves the whole appointments surface (ADR 0744): the tab lists it as a calendar,
+    // so its entries must list — and a create THERE is a booking, classified and conflict-checked by the
+    // same finalizer pass every .ics write goes through.
+    //
+    // DERIVED from the kind registry, not written out (#1122). Written out, it said [Calendar, Schedule] and
+    // went on saying it when Blockers (ADR 0778) and Availability (ADR 0780) arrived — so this endpoint
+    // 404'd both LISTING and CREATING in those two collections, which is the server half of the same omission
+    // ChildCreationPolicy.AdmitsCalendarEntries had made on the advertising side. Fixing only the advertising
+    // half would have been worse than neither: a create rel the server then refuses is exactly the affordance
+    // ADR 0543 exists to prevent.
+    //
+    // READ-ONLY kinds are excluded FROM CREATION ONLY (#1242). A module's Logbook (ADR 0791) is append-only
+    // history nobody creates entries in from the app — its entries are the module's to write — but its entries
+    // must still LIST here, because this is the only address the Calendar tab reads from. Excluding read-only
+    // kinds from the whole surface made the Logbook subscribable over CalDAV (which works) and permanently
+    // empty in the app (which is what was reported): the tab ticks it and gets nothing.
+    //
+    // So the two questions are asked separately, and both off the registry so they cannot drift:
+    // ReadableCalendarFamily for GET/HEAD, CalendarFamily for POST.
+    //
+    // The items themselves stay maskless at creation — the classifier reads the bytes and the parent and
+    // decides, so a new kind needs nothing here beyond being in the registry.
+    private Guid[] CalendarFamily =>
+        [.. _kinds.All.Where(kind => kind.Extension == ".ics" && !kind.ReadOnly).Select(kind => kind.FolderMaskId)];
+
+    /// <summary>
+    /// The item field naming an entry's start for the collection behind <paramref name="folderDocumentId"/> —
+    /// the kind's declaration, else the core's "Start".
+    /// </summary>
+    /// <remarks>
+    /// Resolved from the folder rather than passed in, because the projection callback sees only an ENTRY.
+    /// <see cref="ListAsync"/> resolves the kind ONCE for the listing — one request describes one collection —
+    /// and the shape lambda closes over the answer.
+    /// </remarks>
+    private string StartFieldOf(Guid folderDocumentId) =>
+        _listingKind?.StartFieldName ?? "Start";
+
+    /// <inheritdoc cref="StartFieldOf"/>
+    private string EndFieldOf(Guid folderDocumentId) =>
+        _listingKind?.EndFieldName ?? "End";
+
+    /// <summary>
+    /// The kind of the collection THIS request is listing, resolved once in <see cref="ListAsync"/>.
+    /// </summary>
+    /// <remarks>
+    /// A controller is per-request, so one field is enough and there is nothing to key. It began as a
+    /// dictionary that nothing populated — which compiled, fell back to the core field names, and would have
+    /// left the defect exactly as it was while looking fixed.
+    /// </remarks>
+    private Alcifra.Domain.CalDav.DavCollectionKind? _listingKind;
+
+    /// <summary>Every .ics collection, read-only ones included — what may be LISTED (#1242).</summary>
+    private Guid[] ReadableCalendarFamily =>
+        [.. _kinds.All.Where(kind => kind.Extension == ".ics").Select(kind => kind.FolderMaskId)];
+
+    private async Task<Document?> RequireFolderAsync(Guid documentId, IReadOnlyList<Guid> maskIds, CancellationToken cancellationToken)
+    {
+        var folder = await _dbContext.Documents.FirstOrDefaultAsync(d => d.Id == documentId, cancellationToken);
+        if (folder?.MaskVersionId is not { } maskVersionId)
+        {
+            return null;
+        }
+
+        var actual = await _dbContext.MaskVersions
+            .Where(v => v.Id == maskVersionId)
+            .Select(v => (Guid?)v.MaskId)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (actual is { } maskId && maskIds.Contains(maskId))
+        {
+            return folder;
+        }
+
+        // Debug, not Warning: the caller gets a 404 it can act on, and a conforming client never asks — the
+        // absent rel already said so (ADR 0626's boundary). It is logged at all because the interesting case is
+        // a client that DID ask, which means its rel gating disagrees with this rule.
+        _logger.LogDebug(
+            "Refused a typed-item create on {DocumentId}: it wears {ActualMaskId}, the create needs one of {RequiredMaskIds}",
+            documentId, actual, maskIds);
+        return null;
+    }
+
+    /// <summary>
+    /// The document + its first version, filed into the collection. Shared, because a contact and an
+    /// appointment differ only in the bytes, the extension and the media type.
+    /// </summary>
+    private async Task<IActionResult> CreateAsync(
+        Document folder, string name, string blob, string extension, string contentType, CancellationToken cancellationToken)
+    {
+        var (createdByUserId, createdByServiceAccountId) = _access.GetCallerIdentity();
+        var now = DateTimeOffset.UtcNow;
+        var versionId = Guid.NewGuid();
+        var storageFolderId = Guid.NewGuid();
+
+        var document = new Document
+        {
+            Id = Guid.NewGuid(),
+            TenantId = folder.TenantId,
+            ParentId = folder.Id,
+            Name = await UniqueNameAsync(folder.Id, name, cancellationToken),
+            CreatedByUserId = createdByUserId,
+            CreatedByServiceAccountId = createdByServiceAccountId,
+            CreatedAt = now,
+            StorageFolderId = storageFolderId,
+            // MASKLESS on purpose: the finalizer classifies a .vcf as a Contact and a .ics as an Appointment
+            // once the bytes are there, and a typed folder admits only those. Stamping anything here would be
+            // guessing at what classification is about to decide (ADR 0641's lesson, from the other side).
+        };
+        // ONE transaction for one create (#1171). This committed the bare document row, wrote the blob, committed
+        // the version, and let the finalizer commit again — so a failure part-way left an EMPTY, MASKLESS,
+        // VERSION-LESS document sitting in the folder, which is not a state any caller asked for and not one the
+        // user can tell from a slow create.
+        //
+        // Owned only when nothing is already in flight (ADR 0781, the BookingsController.Book shape): a module
+        // read-model context can enlist ours, and beginning a second inside it would throw.
+        var owned = _dbContext.Database.CurrentTransaction is null
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        await using var transaction = owned;
+
+        _dbContext.Documents.Add(document);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var objectKey = ObjectKeyBuilder.Build(folder.TenantId, now, storageFolderId, versionId, extension);
+        await _storage.PutObjectAsync(objectKey, new MemoryStream(System.Text.Encoding.UTF8.GetBytes(blob)), contentType, cancellationToken);
+
+        // Pending + the shared finalizer, never a hand-written Confirmed version: the status is guarded by a
+        // CHECK constraint, and the finalizer is what classifies the item and extracts its index fields — the
+        // UID among them, which is what a later DAV sync matches on.
+        var version = new DocumentVersion
+        {
+            Id = versionId,
+            DocumentId = document.Id,
+            TenantId = folder.TenantId,
+            Status = DocumentVersionStatus.Pending,
+            ObjectKey = objectKey,
+            CreatedByUserId = createdByUserId,
+            CreatedAt = now,
+            DocumentDate = DateOnly.FromDateTime(now.UtcDateTime),
+        };
+        _dbContext.DocumentVersions.Add(version);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _finalizer.FinalizeAsync(version, cancellationToken);
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        // AFTER the commit: an audit event written before it would record a creation that then rolled back.
+        //
+        // The blob PUT above stays inside, before the commit — the version row points at the key it writes, so
+        // it cannot come later. A rollback therefore leaves an unreferenced object, which the incomplete-upload
+        // sweep collects: orphaned storage is recoverable waste, a phantom document in somebody's folder is not.
+        await _audit.RecordAsync(AuditActions.DocumentCreated, "Document", document.Id, document.Name, cancellationToken: cancellationToken);
+
+        // A completed unit of work with its outcome. The UID is deliberately NOT logged: it is the correlation
+        // key a DAV sync matches on, not a secret, but it is also the one field that identifies the item to an
+        // external system — the document id is what an administrator here can act on.
+        _logger.LogInformation(
+            "Created {ContentType} {DocumentId} named {DocumentName} in collection {CollectionId}",
+            contentType, document.Id, document.Name, folder.Id);
+
+        return Created($"/api/documents/{document.Id}", new CreatedResource
+        {
+            Id = document.Id,
+            Links = [new Link("self", $"/api/documents/{document.Id}", "GET")],
+        });
+    }
+
+    /// <summary>A name no sibling already holds — the DbContext refuses a clash, and a create should not.</summary>
+    private async Task<string> UniqueNameAsync(Guid folderId, string name, CancellationToken cancellationToken)
+    {
+        var taken = await _dbContext.Documents
+            .Where(d => d.ParentId == folderId)
+            .Select(d => d.Name)
+            .ToListAsync(cancellationToken);
+
+        if (!taken.Contains(name, StringComparer.OrdinalIgnoreCase))
+        {
+            return name;
+        }
+
+        for (var suffix = 2; ; suffix++)
+        {
+            var candidate = $"{name} ({suffix})";
+            if (!taken.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    private static string? FirstNonEmpty(params string?[] candidates) =>
+        candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c))?.Trim();
+
+    private static string? Join(string? given, string? family) =>
+        string.Join(' ', new[] { given, family }.Where(p => !string.IsNullOrWhiteSpace(p))) is { Length: > 0 } joined
+            ? joined
+            : null;
+
+    public class CreatedResource : HypermediaResource
+    {
+        public Guid Id { get; set; }
+    }
+}

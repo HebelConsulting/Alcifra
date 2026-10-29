@@ -1,0 +1,297 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Notifications;
+using Alcifra.Domain.Tenants;
+using Alcifra.Domain.Users;
+using Alcifra.Infrastructure.Notifications;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.IntegrationTests;
+
+// Verifies the email-notification dispatcher (ADR "Email notifications (SMTP)"): it emails the not-yet-emailed
+// notifications, stamps EmailedAt on success (so they aren't re-sent), spans tenants, and leaves EmailedAt null
+// on a send failure so the next sweep retries — without stalling the rest of the batch.
+public class EmailNotificationDispatcherTests
+{
+    private static AlcifraDbContext CreateContext(SqliteConnection connection) =>
+        new(new DbContextOptionsBuilder<AlcifraDbContext>().UseSqlite(connection).Options, new CurrentTenantAccessor());
+
+    /// <param name="CertificatePems">
+    /// Every certificate the notification was addressed to — a LIST since ADR 0856, because a module
+    /// answers a set. <see cref="CertificatePem"/> reads the single one the pre-module sources produce,
+    /// so the assertions that predate this keep saying what they said.
+    /// </param>
+    private sealed record SentEmail(
+        string Address, string Subject, string? Body = null, IReadOnlyList<string>? CertificatePems = null)
+    {
+        /// <summary>The one certificate, where there is exactly one — null when there are none.</summary>
+        /// <remarks>
+        /// Deliberately throws when there are SEVERAL rather than returning the first: a test asserting
+        /// "the certificate" against a multi-certificate send is asking a question with no single answer,
+        /// and silently answering the first is how such a test would keep passing while addressing the
+        /// wrong reader.
+        /// </remarks>
+        public string? CertificatePem => CertificatePems switch
+        {
+            null or { Count: 0 } => null,
+            { Count: 1 } one => one[0],
+            { } many => throw new InvalidOperationException(
+                $"This notification was addressed to {many.Count} certificates; assert on CertificatePems."),
+        };
+    }
+
+    private sealed class RecordingEmailSender : IEmailSender
+    {
+        public List<SentEmail> Sent { get; } = [];
+        // Addresses in this set throw on send (simulating a failing recipient).
+        public HashSet<string> FailFor { get; } = [];
+
+        public Task SendAsync(string toAddress, string toName, string subject, string body, CancellationToken cancellationToken = default) =>
+            SendAsync(toAddress, toName, subject, body, envelopeCertificatePems: [], cancellationToken);
+
+        // The LIST overload is what is implemented, because since ADR 0856 that is the interface's
+        // primitive and the single-certificate one is sugar for it. Implemented rather than left to the
+        // interface default for the reason that has not changed: the default DROPS the certificates, and a
+        // fake that silently swallowed them would green the very tests that exist to see them.
+        //
+        // This fake previously implemented the SINGLE overload, and the change caught it honestly — the
+        // dispatcher started calling the list, nothing recorded a certificate, and the enveloping test
+        // failed rather than passing on a fake that had stopped observing anything.
+        public Task SendAsync(string toAddress, string toName, string subject, string body,
+            IReadOnlyList<string> envelopeCertificatePems, CancellationToken cancellationToken = default)
+        {
+            if (FailFor.Contains(toAddress))
+            {
+                throw new InvalidOperationException($"simulated send failure for {toAddress}");
+            }
+
+            Sent.Add(new SentEmail(toAddress, subject, body, envelopeCertificatePems));
+            return Task.CompletedTask;
+        }
+    }
+
+    private static Notification Pending(Guid tenantId, Guid recipientId, string title) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = tenantId,
+        RecipientUserId = recipientId,
+        Type = NotificationType.ReviewAssigned,
+        Title = title,
+        Body = $"{title} body",
+        CreatedAt = DateTimeOffset.UtcNow,
+    };
+
+    [Fact]
+    public async Task Emails_pending_notifications_stamps_them_and_does_not_resend()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        using (var setup = CreateContext(connection)) await setup.Database.EnsureCreatedAsync();
+
+        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTimeOffset.UtcNow };
+        var user = new User { Id = Guid.NewGuid(), TenantId = tenant.Id, Email = "rcpt@acme.test", DisplayName = "Recipient", CreatedAt = DateTimeOffset.UtcNow };
+        var pending = Pending(tenant.Id, user.Id, "Review requested");
+        var already = Pending(tenant.Id, user.Id, "Old");
+        already.EmailedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+        using (var seed = CreateContext(connection)) { seed.Tenants.Add(tenant); seed.Users.Add(user); seed.Notifications.AddRange(pending, already); await seed.SaveChangesAsync(); }
+
+        var sender = new RecordingEmailSender();
+        int sent;
+        using (var act = CreateContext(connection))
+        {
+            var dispatcher = new EmailNotificationDispatcher(act, sender, NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act));
+            sent = await dispatcher.DispatchPendingAsync();
+        }
+
+        // Only the un-emailed one is sent, to the recipient's address, with the notification title as subject.
+        Assert.Equal(1, sent);
+        var email = Assert.Single(sender.Sent);
+        Assert.Equal("rcpt@acme.test", email.Address);
+        Assert.Equal("Review requested", email.Subject);
+
+        using (var read = CreateContext(connection))
+        {
+            Assert.NotNull((await read.Notifications.IgnoreQueryFilters().SingleAsync(n => n.Id == pending.Id)).EmailedAt);
+        }
+
+        // A second pass sends nothing (the first is now stamped, the other was already emailed).
+        using (var again = CreateContext(connection))
+        {
+            var dispatcher = new EmailNotificationDispatcher(again, sender, NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(again));
+            Assert.Equal(0, await dispatcher.DispatchPendingAsync());
+        }
+
+        Assert.Single(sender.Sent);
+    }
+
+    [Fact]
+    public async Task A_muted_type_is_suppressed_but_marked_handled_while_other_types_still_email()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        using (var setup = CreateContext(connection)) await setup.Database.EnsureCreatedAsync();
+
+        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTimeOffset.UtcNow };
+        var user = new User { Id = Guid.NewGuid(), TenantId = tenant.Id, Email = "rcpt@acme.test", DisplayName = "Recipient", CreatedAt = DateTimeOffset.UtcNow };
+        var muted = new Notification { Id = Guid.NewGuid(), TenantId = tenant.Id, RecipientUserId = user.Id, Type = NotificationType.ChatMessagePosted, Title = "New comment", Body = "b", CreatedAt = DateTimeOffset.UtcNow };
+        var kept = new Notification { Id = Guid.NewGuid(), TenantId = tenant.Id, RecipientUserId = user.Id, Type = NotificationType.ReviewAssigned, Title = "Review requested", Body = "b", CreatedAt = DateTimeOffset.UtcNow };
+        using (var seed = CreateContext(connection))
+        {
+            seed.Tenants.Add(tenant);
+            seed.Users.Add(user);
+            seed.Notifications.AddRange(muted, kept);
+            // The user muted the ChatMessagePosted email channel; ReviewAssigned is left at its default (on).
+            seed.UserNotificationPreferences.Add(new UserNotificationPreference { Id = Guid.NewGuid(), TenantId = tenant.Id, UserId = user.Id, Type = NotificationType.ChatMessagePosted, EmailEnabled = false });
+            await seed.SaveChangesAsync();
+        }
+
+        var sender = new RecordingEmailSender();
+        using (var act = CreateContext(connection))
+        {
+            var dispatcher = new EmailNotificationDispatcher(act, sender, NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act));
+            Assert.Equal(1, await dispatcher.DispatchPendingAsync()); // only the non-muted one counts as sent
+        }
+
+        // The muted type was not emailed; the other was.
+        var email = Assert.Single(sender.Sent);
+        Assert.Equal("Review requested", email.Subject);
+
+        using (var read = CreateContext(connection))
+        {
+            // NEITHER is re-scanned, because both queue rows are gone — and they say DIFFERENT things about what
+            // happened, which is the point of the queue (ADR 0840).
+            Assert.Empty(await read.EmailOutbox.ToListAsync());
+
+            // The muted one was never emailed, and now says so. The old shape stamped EmailedAt on it — the only
+            // way it had to mean "handled" — so the row claimed an email nobody had sent, and "was this emailed?"
+            // could not be answered from the data. This assertion is the inverse of the one it replaces.
+            Assert.Null((await read.Notifications.IgnoreQueryFilters().SingleAsync(n => n.Id == muted.Id)).EmailedAt);
+            Assert.Null((await read.Notifications.IgnoreQueryFilters().SingleAsync(n => n.Id == muted.Id)).EmailFailedAt);
+
+            // The one that WAS sent is stamped, as before.
+            Assert.NotNull((await read.Notifications.IgnoreQueryFilters().SingleAsync(n => n.Id == kept.Id)).EmailedAt);
+        }
+    }
+
+    [Fact]
+    public async Task Spans_tenants()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        using (var setup = CreateContext(connection)) await setup.Database.EnsureCreatedAsync();
+
+        var t1 = new Tenant { Id = Guid.NewGuid(), Name = "T1", CreatedAt = DateTimeOffset.UtcNow };
+        var t2 = new Tenant { Id = Guid.NewGuid(), Name = "T2", CreatedAt = DateTimeOffset.UtcNow };
+        var u1 = new User { Id = Guid.NewGuid(), TenantId = t1.Id, Email = "a@t1.test", DisplayName = "A", CreatedAt = DateTimeOffset.UtcNow };
+        var u2 = new User { Id = Guid.NewGuid(), TenantId = t2.Id, Email = "b@t2.test", DisplayName = "B", CreatedAt = DateTimeOffset.UtcNow };
+        using (var seed = CreateContext(connection)) { seed.Tenants.AddRange(t1, t2); seed.Users.AddRange(u1, u2); seed.Notifications.AddRange(Pending(t1.Id, u1.Id, "One"), Pending(t2.Id, u2.Id, "Two")); await seed.SaveChangesAsync(); }
+
+        var sender = new RecordingEmailSender();
+        using (var act = CreateContext(connection))
+        {
+            var dispatcher = new EmailNotificationDispatcher(act, sender, NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act));
+            Assert.Equal(2, await dispatcher.DispatchPendingAsync());
+        }
+
+        Assert.Contains(sender.Sent, e => e.Address == "a@t1.test");
+        Assert.Contains(sender.Sent, e => e.Address == "b@t2.test");
+    }
+
+    [Fact]
+    public async Task A_failed_send_stays_unemailed_and_does_not_stall_the_batch()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        using (var setup = CreateContext(connection)) await setup.Database.EnsureCreatedAsync();
+
+        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTimeOffset.UtcNow };
+        var bad = new User { Id = Guid.NewGuid(), TenantId = tenant.Id, Email = "bad@acme.test", DisplayName = "Bad", CreatedAt = DateTimeOffset.UtcNow };
+        var good = new User { Id = Guid.NewGuid(), TenantId = tenant.Id, Email = "good@acme.test", DisplayName = "Good", CreatedAt = DateTimeOffset.UtcNow };
+        var badNote = Pending(tenant.Id, bad.Id, "For bad");
+        var goodNote = Pending(tenant.Id, good.Id, "For good");
+        using (var seed = CreateContext(connection)) { seed.Tenants.Add(tenant); seed.Users.AddRange(bad, good); seed.Notifications.AddRange(badNote, goodNote); await seed.SaveChangesAsync(); }
+
+        var sender = new RecordingEmailSender();
+        sender.FailFor.Add("bad@acme.test");
+        using (var act = CreateContext(connection))
+        {
+            var dispatcher = new EmailNotificationDispatcher(act, sender, NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act));
+            Assert.Equal(1, await dispatcher.DispatchPendingAsync()); // only the good one counts as sent
+        }
+
+        Assert.Contains(sender.Sent, e => e.Address == "good@acme.test");
+        using (var read = CreateContext(connection))
+        {
+            Assert.NotNull((await read.Notifications.IgnoreQueryFilters().SingleAsync(n => n.Id == goodNote.Id)).EmailedAt); // stamped
+            Assert.Null((await read.Notifications.IgnoreQueryFilters().SingleAsync(n => n.Id == badNote.Id)).EmailedAt);       // retryable
+        }
+    }
+
+    /// <summary>
+    /// #1334: a recipient with a stored S/MIME certificate gets a GENERIC subject (headers cannot
+    /// encrypt) with the title moved into the body, and the certificate rides to the sender; a
+    /// certificate-less recipient in the same sweep keeps yesterday's descriptive plaintext exactly.
+    /// </summary>
+    [Fact]
+    public async Task A_certified_recipient_gets_a_generic_subject_and_the_certificate_rides_to_the_sender()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        using (var setup = CreateContext(connection)) await setup.Database.EnsureCreatedAsync();
+
+        using var key = System.Security.Cryptography.RSA.Create(2048);
+        var request = new System.Security.Cryptography.X509Certificates.CertificateRequest(
+            "CN=certified@acme.test", key, System.Security.Cryptography.HashAlgorithmName.SHA256,
+            System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        var pem = certificate.ExportCertificatePem();
+
+        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTimeOffset.UtcNow };
+        var certified = new User
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
+            Email = "certified@acme.test",
+            DisplayName = "C",
+            CreatedAt = DateTimeOffset.UtcNow,
+            SmimeCertificatePem = pem
+        };
+        var plain = new User
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
+            Email = "plain@acme.test",
+            DisplayName = "P",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        using (var seed = CreateContext(connection))
+        {
+            seed.Tenants.Add(tenant);
+            seed.Users.AddRange(certified, plain);
+            seed.Notifications.AddRange(
+                Pending(tenant.Id, certified.Id, "Approve Salary review 2026"),
+                Pending(tenant.Id, plain.Id, "Approve Salary review 2026"));
+            await seed.SaveChangesAsync();
+        }
+
+        var sender = new RecordingEmailSender();
+        using (var act = CreateContext(connection))
+        {
+            var dispatcher = new EmailNotificationDispatcher(act, sender,
+                NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act));
+            await dispatcher.DispatchPendingAsync();
+        }
+
+        var toCertified = Assert.Single(sender.Sent, s => s.Address == "certified@acme.test");
+        Assert.Equal($"{(global::Alcifra.Localization.Strings.ProductName)} — new notification", toCertified.Subject);
+        Assert.Contains("Approve Salary review 2026", toCertified.Body, StringComparison.Ordinal);
+        Assert.Equal(pem, toCertified.CertificatePem);
+
+        var toPlain = Assert.Single(sender.Sent, s => s.Address == "plain@acme.test");
+        Assert.Equal("Approve Salary review 2026", toPlain.Subject);
+        Assert.Null(toPlain.CertificatePem);
+    }
+
+}

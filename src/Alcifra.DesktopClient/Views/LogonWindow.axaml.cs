@@ -1,0 +1,34 @@
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+
+namespace Alcifra.DesktopClient.Views;
+
+// The startup logon window (ADR "Desktop logon window", login redesign slice B): username + server + language +
+// Login. Ctrl/Cmd+P opens the server manager (and the server list refreshes when it closes).
+public partial class LogonWindow : Window
+{
+    public LogonWindow()
+    {
+        InitializeComponent();
+        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+        // Once shown, let the VM run its network-backed self-update check (issue #271).
+        Opened += (_, _) => (DataContext as ViewModels.LogonViewModel)?.Activate();
+    }
+
+    // Signed out by definition, so the test runs without an archive side (ADR 0955).
+    private void OnTestHardwareKey(object? sender, RoutedEventArgs e) =>
+        Services.Safe.Fire(() => KeyTestWindow.ShowAsync(this, api: null));
+
+    private async void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.P && (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)))
+        {
+            e.Handled = true;
+            await new ServerManagerWindow().ShowDialog(this);
+            // Refresh the server dropdown so it reflects any add/edit/remove (without replacing the VM, which
+            // would drop the LoginSucceeded subscription the app relies on).
+            (DataContext as ViewModels.LogonViewModel)?.RefreshServers();
+        }
+    }
+}

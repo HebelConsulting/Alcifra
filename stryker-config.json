@@ -1,9 +1,9 @@
 {
   "stryker-config": {
-    "solution": "SimplArchive.slnx",
+    "solution": "Alcifra.slnx",
     "test-projects": [
-      "tests/SimplArchive.UnitTests/SimplArchive.UnitTests.csproj",
-      "tests/SimplArchive.IntegrationTests/SimplArchive.IntegrationTests.csproj"
+      "tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj",
+      "tests/Alcifra.IntegrationTests/Alcifra.IntegrationTests.csproj"
     ],
     "reporters": ["html", "progress"],
     "mutation-level": "Standard",

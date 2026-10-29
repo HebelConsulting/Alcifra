@@ -3,7 +3,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
-namespace SimplArchive.TestSupport;
+namespace Alcifra.TestSupport;
 
 /// <summary>
 /// A TEST attestation hierarchy (ADR 0963), generated per test and never shipped: a root, optionally the manufacturer-style

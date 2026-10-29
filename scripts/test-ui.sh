@@ -2,7 +2,7 @@
 #
 # test-ui.sh — run the web UI end-to-end suite the way CI does.
 #
-# Use this instead of `dotnet test tests/SimplArchive.UiEndToEndTests`.
+# Use this instead of `dotnet test tests/Alcifra.UiEndToEndTests`.
 #
 # WHY THIS EXISTS (issue #420): run as ONE process, the 140-test suite is unreliable — something
 # accumulates across a ~20-minute run (one fixture, one browser, one API subprocess) and tests start
@@ -88,7 +88,7 @@ printf '==> %s legs from ci.yml, %s at a time\n\n' "${#filters[@]}" "$jobs"
 
 if [ "$build" -eq 1 ]; then
     printf '==> Building\n'
-    dotnet build "$repo_root/tests/SimplArchive.UiEndToEndTests" -c Debug || exit 1
+    dotnet build "$repo_root/tests/Alcifra.UiEndToEndTests" -c Debug || exit 1
     printf '\n'
 fi
 
@@ -114,7 +114,7 @@ command -v caffeinate >/dev/null 2>&1 && keepawake="caffeinate -i"
 
 run_leg() {
     local i="$1" filter="$2"
-    $keepawake dotnet test "$repo_root/tests/SimplArchive.UiEndToEndTests" --no-build -c Debug --filter "$filter" \
+    $keepawake dotnet test "$repo_root/tests/Alcifra.UiEndToEndTests" --no-build -c Debug --filter "$filter" \
         > "$logdir/leg-$i.log" 2>&1
     printf '%s' "$?" > "$logdir/leg-$i.rc"
 }

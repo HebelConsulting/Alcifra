@@ -1,4 +1,4 @@
-# Default values for the SimplArchive API chart. See docs/deploy/README.md for a production walkthrough.
+# Default values for the Alcifra API chart. See docs/deploy/README.md for a production walkthrough.
 # A production install MUST supply real endpoints + an existingSecret (never inline plaintext secrets here).
 
 replicaCount: 2
@@ -83,7 +83,7 @@ config:
     host: ""              # notification email (optional; unset disables email, in-app notifications still work)
     port: 587
     fromAddress: ""
-    fromName: "SimplArchive"
+    fromName: "Alcifra"
   openBao:
     # REQUIRED outside Development (#847, A02): with no address the transit encryptor is a pass-through and
     # every secret it protects is stored in PLAINTEXT — TOTP secrets, tenant SMTP passwords, audit-webhook
@@ -463,15 +463,15 @@ modules:
   # trusted (ModulePinLockstepTests), the same arrangement images.env has with the image tags above.
   pins:
     FLIGHT_SCHOOL:
-      package: SimplArchive.FlightSchool
+      package: Alcifra.FlightSchool
       version: 0.2.0
       sha512: "ekHTOUci6S2i4/g9QbWo7zMVl8M+uAUBzvEH6tBjsBWeb+lZiEtiOZ9troPewb7/74aQ/1KmElhktb1VyKtDvw=="
     ENCRYPTION:
-      package: SimplArchive.Encryption
+      package: Alcifra.Encryption
       version: 0.6.0
       sha512: "6JEkK5bsOvCYWwQjNIYUDLE7NzgTQUScCkXEX0YKViZRwe9gRwBMnFvVQOYbsFHFi1Ih2mj/J+yO/8ZKskmZCA=="
     LICENSING:
-      package: SimplArchive.Licensing
+      package: Alcifra.Licensing
       version: 0.6.0
       sha512: "eJp8588NETDiD+B5sw18GPg1i/aZhaij+nxGuklH1DlzEfgTK8Kiq3dVilmpFC7kFtyROfwLwoT2x42dOeIo9g=="
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).

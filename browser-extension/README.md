@@ -1,6 +1,6 @@
-# SimplArchive autofill — browser extension (Chrome/Edge)
+# Alcifra autofill — browser extension (Chrome/Edge)
 
-Fills logins from a SimplArchive password store and offers to keep a submitted one. The password never leaves the
+Fills logins from a Alcifra password store and offers to keep a submitted one. The password never leaves the
 machine except into the page you chose: names are in the clear (ADR 0964), the secret is read from the store with your
 hardware key and its PIN.
 

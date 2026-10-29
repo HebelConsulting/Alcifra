@@ -1,0 +1,45 @@
+@using System.Reflection
+
+@using Alcifra.Theming
+@* About dialog (ADR 0504): the publisher's imprint and, in a white-label edition, the credit to the product it is made
+   from, both from the brand (ADR 0995), not translated; then the running client version. *@
+<MudDialog>
+    <DialogContent>
+        <div style="text-align:center; padding: 8px 6px; min-width: 260px;">
+            <MudText Typo="Typo.h6" Color="Color.Primary">@Strings.ProductName</MudText>
+            @foreach (var (line, index) in Brand.Shipped.Imprint.Lines.Select((line, index) => (line, index)))
+            {
+                <MudText Typo="Typo.body2" Class="@(index == 0 ? "mt-3" : null)">
+                    @if (index == 0) { <strong>@line</strong> } else { @line }
+                </MudText>
+            }
+            <MudText Typo="Typo.body2" Class="mt-1">
+                <MudLink Href="@($"mailto:{Brand.Shipped.Imprint.Contact}")">@Brand.Shipped.Imprint.Contact</MudLink>
+            </MudText>
+            @if (Brand.Shipped.Credit is { } credit)
+            {
+                <MudText Typo="Typo.caption" Class="mt-3" Style="display:block;">@credit</MudText>
+            }
+            <MudText Typo="Typo.caption" Class="mt-4" Style="display:block;">@Strings.Get("AboutVersion") @_version</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Close())">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private string _version = "1.0.0";
+
+    protected override void OnInitialized()
+    {
+        var asm = typeof(AboutDialog).Assembly;
+        var raw = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                  ?? asm.GetName().Version?.ToString() ?? "1.0.0";
+        var plus = raw.IndexOf('+');
+        _version = plus >= 0 ? raw[..plus] : raw;
+    }
+}

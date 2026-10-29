@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Backs up SimplArchive's three stateful stores (Postgres, object storage, OpenBao) from the local
+# Backs up Alcifra's three stateful stores (Postgres, object storage, OpenBao) from the local
 # docker-compose stack into a timestamped directory. First slice of the backup/DR story
 # (docs/adr/0344-backup-and-disaster-recovery.md); see docs/deploy/backup-dr.md for the runbook and how to
 # adapt these commands for a managed/production deployment (point the same tools at the real endpoints).

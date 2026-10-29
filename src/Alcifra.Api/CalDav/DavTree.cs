@@ -1,0 +1,370 @@
+using Microsoft.EntityFrameworkCore;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Documents;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.CalDav;
+
+/// <summary>A collection the caller may subscribe to, with the display name the client shows.</summary>
+/// <param name="ComponentSet">
+/// What a CalDAV collection holds — <c>VEVENT</c> for a calendar, <c>VTODO</c> for the task feed (#650). The
+/// component set is how a client decides whether to show a collection at all: a reminder app ignores a
+/// VEVENT-only collection, and a calendar app ignores a VTODO-only one.
+/// </param>
+internal sealed record DavCollection(
+    Guid FolderId, string DisplayName, bool Writable, string? Color, string ComponentSet = "VEVENT");
+
+/// <summary>An item inside such a collection: the document, its current version, and its DAV resource name.</summary>
+/// <param name="GeneratedText">
+/// Set for an item that has no stored blob — the task feeds compose theirs from workflow state at read time
+/// (#650). When present it IS the item's bytes, and object storage is never consulted.
+/// </param>
+internal sealed record DavItem(
+    Guid DocumentId, Guid FolderId, string ResourceName, string ObjectKey, string ETag,
+    DateTimeOffset LastModified, long? SizeBytes, string? GeneratedText = null);
+
+/// <summary>
+/// Resolves what a CalDAV/CardDAV caller can see (#564, ADR 0619): the typed folders they hold CanSee on,
+/// wherever those sit in the archive tree, and the items inside one. The home set is FLAT by decision — a
+/// client picks collections from a list, so tree position rides in the display name instead of the URL.
+/// </summary>
+/// <remarks>
+/// Addressing one resource never enumerates the rest. A syncing client fetches items one at a time, so a
+/// per-item "list everything and filter" would be quadratic on the hottest path there is: 500 contacts would
+/// mean 500 scans of every typed folder in the archive, each with an ACL check per folder. Hence the single-
+/// collection and single-item lookups below, which the listing paths reuse rather than the other way round.
+/// </remarks>
+internal static class DavTree
+{
+    /// <summary>
+    /// Every ACL-visible folder wearing the protocol's folder mask, "My Calendar"/"My Addressbook" first (the
+    /// personal defaults a client should see at the top), then alphabetically by display name.
+    /// </summary>
+    internal static async Task<List<DavCollection>> CollectionsAsync(
+        AlcifraDbContext db, IEffectiveRightsCalculator rights, Guid userId, DavProtocol protocol,
+        IDavCollectionKindRegistry registry, CancellationToken cancellationToken)
+    {
+        var candidates = await FolderQuery(db, protocol, registry)
+            .Select(d => new FolderRow(d.Id, d.Name, d.ParentId))
+            .ToListAsync(cancellationToken);
+
+        // Parent rows for the display name — one lookup for the whole page rather than one per collection.
+        var parentIds = candidates.Where(c => c.ParentId is not null).Select(c => c.ParentId!.Value).Distinct().ToList();
+        var parents = await db.Documents
+            .Where(d => parentIds.Contains(d.Id))
+            .Select(d => new ParentRow(d.Id, d.Name, d.PersonalOfUserId))
+            .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+
+        var collections = new List<(DavCollection Collection, bool IsPersonalDefault)>();
+        foreach (var candidate in candidates)
+        {
+            var effective = await rights.GetEffectiveRightsAsync(userId, candidate.Id);
+            if (!effective.CanSee)
+            {
+                continue;
+            }
+
+            var parent = candidate.ParentId is { } parentId ? parents.GetValueOrDefault(parentId) : null;
+            collections.Add((
+                new DavCollection(candidate.Id, DisplayName(candidate, parent), effective.CanEditContent, Color: null),
+                // The caller's own personal defaults sort first; another user's personal folder shared with
+                // the caller is a normal collection.
+                parent?.PersonalOfUserId == userId));
+        }
+
+        var colors = await ColorsAsync(db, userId, protocol, registry, collections.Select(c => c.Collection.FolderId).ToList(), cancellationToken);
+
+        var ordered = collections
+            .OrderByDescending(c => c.IsPersonalDefault)
+            .ThenBy(c => c.Collection.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(c => c.Collection with { Color = colors.GetValueOrDefault(c.Collection.FolderId) })
+            .ToList();
+
+        // The task feeds, last (#650). CalDAV only — a review deadline is not a contact. They are appended
+        // rather than sorted in because they are not folders and have no tree position to sort by; a client
+        // shows them as two more subscribable collections and neither knows nor cares that nothing stores them.
+        if (protocol == DavProtocol.CalDav)
+        {
+            ordered.AddRange(TaskFeeds.CollectionsFor(userId));
+
+            // The caller's own time (ADR 0775): one collection per resource document that represents them.
+            // Appended for the same reason the task feeds are — they are not folders and have no tree
+            // position to sort by.
+            ordered.AddRange(await PersonSchedules.CollectionsForAsync(db, userId, cancellationToken));
+        }
+
+        return ordered;
+    }
+
+    /// <summary>
+    /// The collection with this id, if the caller may see it and it really wears the folder mask — resolved
+    /// DIRECTLY (two small queries and one rights check), because every item request goes through here.
+    /// </summary>
+    internal static async Task<DavCollection?> CollectionAsync(
+        AlcifraDbContext db, IEffectiveRightsCalculator rights, Guid userId, DavProtocol protocol,
+        IDavCollectionKindRegistry registry, Guid folderId, CancellationToken cancellationToken)
+    {
+        // A task feed first: its id belongs to no document, so every query below would miss it — and the ACL
+        // walk would not merely miss it but throw, since it resolves a document's ancestors.
+        if (protocol == DavProtocol.CalDav && TaskFeeds.KindOf(userId, folderId) is not null)
+        {
+            return TaskFeeds.CollectionsFor(userId).First(c => c.FolderId == folderId);
+        }
+
+        // A person's schedule, for the same reason: its id belongs to no document, so the ACL walk below
+        // would not merely miss it — it would throw, resolving the ancestors of a document that is not there.
+        if (protocol == DavProtocol.CalDav
+            && await PersonSchedules.ResourceForAsync(db, userId, folderId, cancellationToken) is not null)
+        {
+            return (await PersonSchedules.CollectionsForAsync(db, userId, cancellationToken))
+                .FirstOrDefault(c => c.FolderId == folderId);
+        }
+
+        var folder = await FolderQuery(db, protocol, registry)
+            .Where(d => d.Id == folderId)
+            .Select(d => new FolderRow(d.Id, d.Name, d.ParentId))
+            .FirstOrDefaultAsync(cancellationToken);
+        if (folder is null)
+        {
+            return null;
+        }
+
+        var effective = await rights.GetEffectiveRightsAsync(userId, folder.Id);
+        if (!effective.CanSee)
+        {
+            return null;
+        }
+
+        var parent = folder.ParentId is { } parentId
+            ? await db.Documents.Where(d => d.Id == parentId)
+                .Select(d => new ParentRow(d.Id, d.Name, d.PersonalOfUserId))
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+
+        var colors = await ColorsAsync(db, userId, protocol, registry, [folder.Id], cancellationToken);
+        return new DavCollection(folder.Id, DisplayName(folder, parent), effective.CanEditContent, colors.GetValueOrDefault(folder.Id));
+    }
+
+    /// <summary>
+    /// The items of a collection: every child wearing the protocol's item mask that has a current version.
+    /// The resource name is UID-derived (decided) — <c>{uid}{extension}</c>, which is the shape a client uses
+    /// when it creates one itself, so server-side and client-side items are indistinguishable.
+    /// </summary>
+    internal static async Task<List<DavItem>> ItemsAsync(
+        AlcifraDbContext db, DavProtocol protocol, IDavCollectionKindRegistry registry, Guid userId, Guid folderId,
+        CancellationToken cancellationToken, ILogger? logger = null)
+    {
+        if (protocol == DavProtocol.CalDav && TaskFeeds.KindOf(userId, folderId) is { } feed)
+        {
+            return await TaskFeeds.ItemsAsync(db, userId, folderId, feed, cancellationToken);
+        }
+
+        // A person's schedule (ADR 0775): its members are real booking documents that live in some OTHER
+        // resource's Schedule, so they are loaded by id rather than by parent — and then go through exactly
+        // the same UID naming and item composition as any collection's children, because they ARE ordinary
+        // documents. A client cannot tell a claimed flight here from the same flight in the aircraft's
+        // Schedule, which is the point: it is one booking seen from two sides.
+        if (protocol == DavProtocol.CalDav
+            && await PersonSchedules.ResourceForAsync(db, userId, folderId, cancellationToken) is { } resourceId)
+        {
+            var claimed = await PersonSchedules.BookingDocumentIdsAsync(db, resourceId, cancellationToken);
+            var claimedDocuments = await db.Documents
+                .Where(d => claimed.Contains(d.Id))
+                .Select(d => new ItemRow(d.Id, d.CurrentVersionId, d.ConcurrencyToken))
+                .ToListAsync(cancellationToken);
+
+            return await ComposeItemsAsync(db, protocol, registry, folderId, claimedDocuments, cancellationToken, logger);
+        }
+
+        var documents = await ItemQuery(db, protocol, registry, folderId)
+            .Select(d => new ItemRow(d.Id, d.CurrentVersionId, d.ConcurrencyToken))
+            .ToListAsync(cancellationToken);
+
+        return await ComposeItemsAsync(db, protocol, registry, folderId, documents, cancellationToken, logger);
+    }
+
+    /// <summary>Documents to DAV items: their UID names in one query, then one item each.</summary>
+    /// <remarks>
+    /// Shared by the ordinary child listing and by a person's schedule (ADR 0775). The two differ only in
+    /// WHICH documents they hold — one asks by parent, the other by claim — and everything after that must
+    /// stay identical, or the same flight would be named one way in the aircraft's Schedule and another in
+    /// the pilot's, and a syncing client would treat them as two events.
+    /// </remarks>
+    private static async Task<List<DavItem>> ComposeItemsAsync(
+        AlcifraDbContext db, DavProtocol protocol, IDavCollectionKindRegistry registry, Guid folderId, List<ItemRow> documents,
+        CancellationToken cancellationToken, ILogger? logger)
+    {
+        // The UID values for the whole collection in one query — the resource name comes from them.
+        var uidFieldIds = await UidFieldIdsAsync(db, protocol, registry, cancellationToken);
+        var documentIds = documents.Select(d => d.Id).ToList();
+        var uids = await db.FieldValues
+            .Where(fv => documentIds.Contains(fv.DocumentId) && uidFieldIds.Contains(fv.FieldDefinitionId))
+            .Select(fv => new { fv.DocumentId, fv.Value })
+            .ToDictionaryAsync(fv => fv.DocumentId, fv => fv.Value, cancellationToken);
+
+        var items = new List<DavItem>();
+        foreach (var document in documents)
+        {
+            if (await ToItemAsync(db, protocol, folderId, document, uids.GetValueOrDefault(document.Id), cancellationToken, logger) is { } item)
+            {
+                items.Add(item);
+            }
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// One item by its DAV resource name, resolved without listing the collection — the path a syncing client
+    /// hits once per item. Matches on the UID field, falling back to the document id (which is what an item
+    /// with no UID is named after).
+    /// </summary>
+    internal static async Task<DavItem?> ItemAsync(
+        AlcifraDbContext db, DavProtocol protocol, IDavCollectionKindRegistry registry, Guid userId, Guid folderId,
+        string resourceName, CancellationToken cancellationToken)
+    {
+        // A person's schedule (ADR 0775) resolves one item by listing and matching, rather than with a
+        // targeted query. A person holds tens of flights, not thousands, and composing the list is the same
+        // work the collection listing already does — where a second, narrower lookup would be a second way to
+        // name an item, and the two disagreeing is exactly how a client ends up seeing a member the listing
+        // never offered.
+        if (protocol == DavProtocol.CalDav
+            && await PersonSchedules.ResourceForAsync(db, userId, folderId, cancellationToken) is not null)
+        {
+            return (await ItemsAsync(db, protocol, registry, userId, folderId, cancellationToken))
+                .FirstOrDefault(i => string.Equals(i.ResourceName, resourceName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (protocol == DavProtocol.CalDav && TaskFeeds.KindOf(userId, folderId) is { } feed)
+        {
+            return await TaskFeeds.ItemAsync(db, userId, folderId, feed, resourceName, cancellationToken);
+        }
+
+        if (!resourceName.EndsWith(protocol.Extension, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var uid = resourceName[..^protocol.Extension.Length];
+        var uidFieldIds = await UidFieldIdsAsync(db, protocol, registry, cancellationToken);
+        var fallbackId = Guid.TryParse(uid, out var parsed) ? parsed : (Guid?)null;
+
+        var document = await ItemQuery(db, protocol, registry, folderId)
+            .Where(d => db.FieldValues.Any(fv => fv.DocumentId == d.Id && uidFieldIds.Contains(fv.FieldDefinitionId) && fv.Value == uid)
+                || (fallbackId != null && d.Id == fallbackId))
+            .Select(d => new ItemRow(d.Id, d.CurrentVersionId, d.ConcurrencyToken))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return document is null ? null : await ToItemAsync(db, protocol, folderId, document, uid, cancellationToken);
+
+    }
+
+    /// <summary>
+    /// The colour a given user sees for these collections: their own override when they set one, otherwise the
+    /// collection's own "Colour" field. Absence of an override is what makes the default apply, so a reset is a
+    /// delete rather than a write (ADR 0620).
+    /// </summary>
+    private static async Task<Dictionary<Guid, string>> ColorsAsync(
+        AlcifraDbContext db, Guid userId, DavProtocol protocol, IDavCollectionKindRegistry registry,
+        IReadOnlyList<Guid> folderIds, CancellationToken cancellationToken)
+    {
+        var folderMaskIds = registry.FolderMaskIds(protocol.Extension);
+        var colorFieldIds = await db.FieldDefinitions
+            .Where(f => f.Name == ColorFieldName
+                && db.MaskVersions.Any(v => v.Id == f.MaskVersionId && folderMaskIds.Contains(v.MaskId)))
+            .Select(f => f.Id)
+            .ToListAsync(cancellationToken);
+
+        var defaults = await db.FieldValues
+            .Where(fv => folderIds.Contains(fv.DocumentId) && colorFieldIds.Contains(fv.FieldDefinitionId))
+            .Select(fv => new { fv.DocumentId, fv.Value })
+            .ToDictionaryAsync(fv => fv.DocumentId, fv => fv.Value, cancellationToken);
+
+        var overrides = await db.DavCollectionColors
+            .Where(c => c.UserId == userId && folderIds.Contains(c.DocumentId))
+            .Select(c => new { c.DocumentId, c.Color })
+            .ToDictionaryAsync(c => c.DocumentId, c => c.Color, cancellationToken);
+
+        return folderIds
+            .Select(id => (Id: id, Color: overrides.GetValueOrDefault(id) ?? defaults.GetValueOrDefault(id)))
+            .Where(x => x.Color is { Length: > 0 })
+            .ToDictionary(x => x.Id, x => x.Color!);
+    }
+
+    // ---- Shared shapes + queries ---------------------------------------------------------------------
+
+    /// <summary>The folder masks' colour field — the collection's own default (ADR 0620).</summary>
+    internal const string ColorFieldName = "Colour";
+
+    private sealed record FolderRow(Guid Id, string Name, Guid? ParentId);
+
+    private sealed record ParentRow(Guid Id, string Name, Guid? PersonalOfUserId);
+
+    private sealed record ItemRow(Guid Id, Guid? CurrentVersionId, Guid ConcurrencyToken);
+
+    // Parent-qualified display name (decided): two folders named "Deadlines" under different parents must be
+    // distinguishable in a client's collection list, and the full path is too long for one.
+    private static string DisplayName(FolderRow folder, ParentRow? parent) =>
+        parent is null ? folder.Name : $"{parent.Name} / {folder.Name}";
+
+    private static IQueryable<Document> FolderQuery(AlcifraDbContext db, DavProtocol protocol, IDavCollectionKindRegistry registry)
+    {
+        var folderMaskIds = registry.FolderMaskIds(protocol.Extension);
+        return db.Documents.Where(d => db.MaskVersions.Any(v => v.Id == d.MaskVersionId && folderMaskIds.Contains(v.MaskId)));
+    }
+
+    private static IQueryable<Document> ItemQuery(AlcifraDbContext db, DavProtocol protocol, IDavCollectionKindRegistry registry, Guid folderId)
+    {
+        var itemMaskIds = registry.ItemMaskIds(protocol.Extension);
+        return db.Documents.Where(d => d.ParentId == folderId
+            && db.MaskVersions.Any(v => v.Id == d.MaskVersionId && itemMaskIds.Contains(v.MaskId)));
+    }
+
+    private static async Task<List<Guid>> UidFieldIdsAsync(AlcifraDbContext db, DavProtocol protocol, IDavCollectionKindRegistry registry, CancellationToken cancellationToken)
+    {
+        var itemMaskIds = registry.ItemMaskIds(protocol.Extension);
+        return await db.FieldDefinitions
+            .Where(f => f.Name == protocol.UidFieldName
+                && db.MaskVersions.Any(v => v.Id == f.MaskVersionId && itemMaskIds.Contains(v.MaskId)))
+            .Select(f => f.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    private static async Task<DavItem?> ToItemAsync(
+        AlcifraDbContext db, DavProtocol protocol, Guid folderId, ItemRow document, string? uid, CancellationToken cancellationToken,
+        ILogger? logger = null)
+    {
+        var version = await CurrentVersion.ResolveAsync(db.DocumentVersions, document.Id, document.CurrentVersionId, cancellationToken);
+        if (version?.ObjectKey is not { Length: > 0 } objectKey)
+        {
+            return null;
+        }
+
+        // A UID is guaranteed by classification (it falls back to the document id), but an item filed by some
+        // other path might lack one — the document id keeps the resource addressable either way. Warned when it
+        // fires on an ENUMERATION (#789, the ADR 0626 rule): a resource whose identity is a raw document GUID is
+        // one no client can recognise across a restore, and nothing else says so — the client just re-downloads
+        // and cannot say why. Trace on the wire category carries the full exchange.
+        if (uid is not { Length: > 0 })
+        {
+            logger?.LogWarning(
+                "DAV item {DocumentId} in folder {FolderId} has no UID — its resource name falls back to the document id, "
+                + "which no client can track across a restore; Trace on the DAV wire category carries the exchange",
+                document.Id, folderId);
+        }
+        var resourceUid = uid is { Length: > 0 } value ? value : document.Id.ToString();
+
+        return new DavItem(
+            DocumentId: document.Id,
+            FolderId: folderId,
+            ResourceName: resourceUid + protocol.Extension,
+            ObjectKey: objectKey,
+            // The CURRENT VERSION's id, not the document's concurrency token (which ADR 0619 chose and slice 2
+            // corrected): an ETag must change exactly when the served bytes change, and filing a new version
+            // does not touch the Document row — so the token stayed put while the content changed. That made
+            // If-Match collision detection inert and would have made a sync client believe nothing had moved.
+            ETag: version.Id.ToString(),
+            LastModified: version.CreatedAt,
+            SizeBytes: version.SizeBytes);
+    }
+}

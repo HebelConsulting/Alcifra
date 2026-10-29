@@ -197,7 +197,7 @@ x-api-env: &api-env
   Smtp__Host: "mailpit"
   Smtp__Port: "1025"
   Smtp__FromAddress: "notifications@simplarchive.local"
-  Smtp__FromName: "SimplArchive"
+  Smtp__FromName: "Alcifra"
   # SignalR Valkey backplane (ADR "SignalR Valkey backplane"): when set, real-time notification pushes fan out
   # across API replicas. Unset ⇒ in-process only. Reached over the compose network.
   ConnectionStrings__Valkey: "valkey:6379"
@@ -448,7 +448,7 @@ services:
 
   # pgAdmin 4 — a web UI for the dev Postgres, pre-wired for zero-click connect (ADR 0437). Desktop mode
   # (SERVER_MODE=False ⇒ no pgAdmin login, MASTER_PASSWORD_REQUIRED=False ⇒ no master password) + a pre-registered
-  # "SimplArchive (dev)" server (scripts/pgadmin-servers.json) whose password comes from a mounted passfile
+  # "Alcifra (dev)" server (scripts/pgadmin-servers.json) whose password comes from a mounted passfile
   # (scripts/pgadmin-pgpass — the fixed dev `postgres` superuser creds). libpq requires the passfile be 0600, but a
   # bind-mount stays world-readable, so an entrypoint wrapper copies it to /tmp/pgpass at mode 600 before handing off
   # to pgAdmin's own /entrypoint.sh. Dev-only convenience baking in throwaway creds (the stack is "Not for
@@ -601,7 +601,7 @@ services:
         # private_key — no jq needed here). Dev-only self-signed CA; production would use a persistent CA.
         bao secrets enable pki || true
         bao secrets tune -max-lease-ttl=87600h pki
-        bao write -field=certificate pki/root/generate/internal common_name='SimplArchive Dev CA' ttl=87600h >/dev/null
+        bao write -field=certificate pki/root/generate/internal common_name='Alcifra Dev CA' ttl=87600h >/dev/null
         bao write pki/roles/openiddict allow_any_name=true max_ttl=8760h key_type=rsa key_bits=2048
         bao write -format=json pki/issue/openiddict common_name=simplarchive-signing ttl=8760h > /tmp/signing.json
         bao write -format=json pki/issue/openiddict common_name=simplarchive-encryption ttl=8760h > /tmp/encryption.json

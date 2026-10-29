@@ -1,0 +1,310 @@
+@using Alcifra.Client.Services
+@using Alcifra.Presentation
+
+@* The web structured appointment editor (#631) — the twin of the desktop dialog, and the same window for New
+   and Edit. Everything the form does not show, VALARM above all, is preserved by the server's merge.
+
+   Recurrence and attendees are SHOWN, never edited (ADR 0631 decisions 2 and 3): changing a series properly
+   means choosing between this occurrence / this and following / all, and this product never sends a scheduling
+   message — so an editable field would let this copy diverge from everybody else's. *@
+
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 480px; max-width: 620px; max-height: 62vh; overflow-y: auto;">
+
+            @* A dropdown when there is a choice, a read-only field when there is exactly one: the destination
+               must ALWAYS be visible (#1125). Showing nothing is how an entry meant for a room's Schedule was
+               filed as an availability window — the dialog said "New appointment" and never named where. *@
+            @if (Targets.Count > 1)
+            {
+                <MudSelect T="CreateTarget" Value="_target" ValueChanged="@(t => _target = t)"
+                           Label="@Strings.Get("CalendarCollections")" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Class="mb-3" ToStringFunc="@(t => t?.DisplayName ?? string.Empty)">
+                    @foreach (var target in Targets)
+                    {
+                        <MudSelectItem T="CreateTarget" Value="target">@target.DisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else if (Targets.Count == 1)
+            {
+                @* PLAIN TEXT, not a read-only text field: an input that cannot be typed in still looks like one,
+                   and the desktop states this the same way (ADR 0511). It also stops the destination being the
+                   dialog's first input, which is how a read-only box ended up swallowing the first fill. *@
+                <div class="d-flex align-center mb-3" style="gap:8px;">
+                    <span style="color:var(--mud-palette-text-secondary);">@Strings.Get("CalendarCollections")</span>
+                    <span>@Targets[0].DisplayName</span>
+                </div>
+            }
+
+            <MudTextField @bind-Value="Form.Summary" Label="@Strings.Get("ApptSummary")"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Form.StructuredEnabled)" />
+
+            <MudCheckBox T="bool" @bind-Value="Form.IsAllDay" Label="@Strings.Get("ApptAllDay")"
+                         Dense="true" Class="mt-1" Disabled="@(!Form.StructuredEnabled)" />
+
+            @* Start and end in the APPOINTMENT'S own zone, each with its OWN picker (ADR 0690): iCalendar lets
+               DTSTART and DTEND name different TZIDs, and a flight leaving Zurich at 09:00 and landing in Boston
+               at 11:30 is exactly that. Nothing here converts between zones (ADR 0631 decision 5) — choosing one
+               re-labels the same wall clock. The empty entry means a floating time, which stays floating. *@
+            <div class="d-flex align-center" style="gap:8px;">
+                <MudDatePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Date="Form.StartDate" Label="@Strings.Get("ApptStart")" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Disabled="@(!Form.StructuredEnabled)" />
+                @if (!Form.IsAllDay)
+                {
+                    <MudTimePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Time="Form.StartTime" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Style="max-width:140px;" Disabled="@(!Form.StructuredEnabled)" />
+                    <MudAutocomplete T="string" @bind-Value="Form.StartTimeZoneId" SearchFunc="SearchZones"
+                                     Label="@Strings.Get("ApptStartZone")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Placeholder="@Strings.Get("ApptTimesAreFloating")" CoerceValue="true" Clearable="true"
+                                     Disabled="@(!Form.StructuredEnabled)" />
+                }
+            </div>
+            <div class="d-flex align-center mt-2" style="gap:8px;">
+                <MudDatePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Date="Form.EndDate" Label="@Strings.Get("ApptEnd")" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Disabled="@(!Form.StructuredEnabled)" />
+                @if (!Form.IsAllDay)
+                {
+                    <MudTimePicker Editable="true" PickerVariant="PickerVariant.Dialog" @bind-Time="Form.EndTime" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Style="max-width:140px;" Disabled="@(!Form.StructuredEnabled)" />
+                    <MudAutocomplete T="string" @bind-Value="Form.EndTimeZoneId" SearchFunc="SearchZones"
+                                     Label="@Strings.Get("ApptEndZone")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                     Placeholder="@Strings.Get("ApptTimesAreFloating")" CoerceValue="true" Clearable="true"
+                                     Disabled="@(!Form.StructuredEnabled)" />
+                }
+            </div>
+
+            <MudTextField @bind-Value="Form.Location" Label="@Strings.Get("ApptLocation")" Class="mt-3"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Form.StructuredEnabled)" />
+            <MudTextField @bind-Value="Form.Url" Label="@Strings.Get("ApptUrl")" Placeholder="https://" Class="mt-2"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Form.StructuredEnabled)" />
+            <MudTextField @bind-Value="Form.Description" Label="@Strings.Get("ApptDescription")" Lines="3" Class="mt-2"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(!Form.StructuredEnabled)" />
+
+            @* Recurrence, editable for the repeats the shared list offers (#1133) — daily hours, WORKING DAYS,
+               a weekly slot. A rule richer than the list arrived over CalDAV and is STATED instead, because
+               offering the nearest button would rewrite it on the next save. The desktop draws the same
+               distinction (ADR 0511). *@
+            @if (Form.RepeatIsRicherThanOffered)
+            {
+                <div class="mt-3">
+                    <MudText Typo="Typo.subtitle2">@Strings.Get("ApptRepeats")</MudText>
+                    <MudText Typo="Typo.body2">@Form.RecurrenceRule</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("ApptRecurrenceReadOnly")</MudText>
+                </div>
+            }
+            else
+            {
+                <MudSelect T="string" Value="Form.RepeatKey" ValueChanged="@(key => Form.RepeatKey = key ?? RepeatChoices.None)"
+                           Label="@Strings.Get("ApptRepeats")" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Class="mt-2" Disabled="@(!Form.StructuredEnabled)">
+                    @foreach (var choice in RepeatChoices.All)
+                    {
+                        <MudSelectItem T="string" Value="@choice.Key">@RepeatLabel(choice.Key)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @* WHICH days a weekly repeat falls on (#1136) — "Mon, Wed, Fri", which neither "every week" nor
+                   the weekdays preset could say. Drawn in the culture's own order; the rule's order is fixed.
+                   Ticking none leaves a plain weekly repeat, which already means the entry's own weekday. *@
+                @if (Form.ChoosesWeekdays)
+                {
+                    <div class="d-flex align-center flex-wrap mt-2" style="gap:4px;">
+                        <span class="mud-text-secondary mr-2">@Strings.Get("RepeatOnDays")</span>
+                        @foreach (var day in AppointmentForm.WeekdaysInCultureOrder())
+                        {
+                            <MudCheckBox T="bool" Dense="true"
+                                         Value="@Form.RepeatDays.Contains(day)"
+                                         ValueChanged="@(on => ToggleDay(day, on))"
+                                         Label="@DayLabel(day)" />
+                        }
+                    </div>
+                }
+
+                @* When it stops. An availability window may be left open — an offer takes nothing from anyone —
+                   while a booking or a block must end, because two endless claims cannot be compared. *@
+                @if (Form.RepeatsOnAChoice)
+                {
+                    <MudDatePicker @bind-Date="Form.RepeatUntil" Label="@Strings.Get("RepeatUntil")"
+                                   DateFormat="yyyy-MM-dd" Editable="true" Variant="Variant.Outlined"
+                                   Margin="Margin.Dense" Class="mt-2" Disabled="@(!Form.StructuredEnabled)" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("RepeatUntilHint")</MudText>
+                }
+            }
+
+            @if (Form.Attendees.Count > 0)
+            {
+                <div class="mt-3">
+                    <MudText Typo="Typo.subtitle2">@Strings.Get("ApptAttendees")</MudText>
+                    @foreach (var attendee in Form.Attendees)
+                    {
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2" title="@attendee.Address">@attendee.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@attendee.Status</MudText>
+                        </div>
+                    }
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("ApptAttendeesReadOnly")</MudText>
+                </div>
+            }
+
+            @* Says a reminder is set without implying it can be changed here. *@
+            @if (Form.ReminderCount > 0)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-3">
+                    @(Form.ReminderCount == 1
+                        ? Strings.Get("ApptReminderOne")
+                        : string.Format(Strings.Get("ApptReminderMany"), Form.ReminderCount))
+                </MudText>
+            }
+
+            @* Advanced: the RAW stored item (#648, ADR 0643). Collapsed, because the structured fields above
+               answer almost every edit. It exists because the server's merge keeps everything this form does
+               not model — a photo, custom labels, X- extensions, VALARM — and until now there was no way to
+               SEE that, let alone change it. A save from here REPLACES the item rather than merging, which is
+               what makes deleting a line actually delete the property. *@
+            @if (ShowRaw)
+            {
+                <MudExpansionPanels Class="mt-3" Elevation="0">
+                    <MudExpansionPanel Text="@Strings.Get("RawAdvanced")" Expanded="_rawExpanded"
+                                       ExpandedChanged="OnRawExpandedAsync">
+                        <MudTextField @bind-Value="Form.Raw.Text" Lines="12" Variant="Variant.Outlined"
+                                      Margin="Margin.Dense" Disabled="@(!Form.CanEdit)" Immediate="true"
+                                      Style="font-family: monospace; font-size: 12px;"
+                                      aria-label="@Strings.Get("RawAdvanced")" />
+                        @* Says which way the save will go. Without it, a user who typed in both places has no
+                           way to know the form above was set aside. *@
+                        @if (Form.Raw.IsDirty)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+                                @Strings.Get("RawReplacesNote")
+                            </MudText>
+                        }
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Cancel())">@Strings.Get("Cancel")</MudButton>
+        @* Both gates: the caller may edit, AND a destination is settled. CanEdit alone would let a create be
+           committed with nothing chosen when the candidates differ in kind (#1125). *@
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!Form.CanEdit || !HasTarget)" OnClick="Ok">
+            @Strings.Get("Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    /// <summary>The culture's own short day name — "Mo" here, "Mon" there; never a hardcoded letter.</summary>
+    private static string DayLabel(DayOfWeek day) =>
+        System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.AbbreviatedDayNames[(int)day];
+
+    private void ToggleDay(DayOfWeek day, bool on)
+    {
+        if (on)
+        {
+            Form.RepeatDays.Add(day);
+        }
+        else
+        {
+            Form.RepeatDays.Remove(day);
+        }
+    }
+
+    /// <summary>This client's wording for a shared repeat key (#1133).</summary>
+    /// <remarks>
+    /// The RULES are decided once in RepeatChoices so the two clients cannot offer different repeats; the
+    /// LABELS stay each client's, because they come from the localized resources.
+    /// </remarks>
+    private static string RepeatLabel(string key) => Strings.Get(key switch
+    {
+        RepeatChoices.Daily => "RepeatDaily",
+        RepeatChoices.Weekdays => "RepeatWeekdays",
+        RepeatChoices.Weekly => "RepeatWeekly",
+        RepeatChoices.Monthly => "RepeatMonthly",
+        RepeatChoices.Yearly => "RepeatYearly",
+        _ => "RepeatNone",
+    });
+
+    /// <summary>
+    /// The zone list, narrowed by what has been typed — six hundred entries is a list nobody scrolls.
+    /// </summary>
+    /// <remarks>
+    /// The choices come from the shared <c>TimeZoneChoices</c> rather than from this browser, so both clients
+    /// offer the same names in the same (IANA) spelling that an .ics actually carries.
+    /// </remarks>
+    private Task<IEnumerable<string>> SearchZones(string? typed, CancellationToken token) =>
+        Task.FromResult(string.IsNullOrWhiteSpace(typed)
+            ? AppointmentForm.ZoneChoices.Take(30)
+            : AppointmentForm.ZoneChoices.Where(z => z.Contains(typed.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Parameter] public AppointmentForm Form { get; set; } = new();
+
+    /// <summary>
+    /// Where the entry may go: on create the calendars the caller may add to, on edit the collections of the
+    /// same kind it may be MOVED between (#1122).
+    /// </summary>
+    [Parameter] public List<CreateTarget> Targets { get; set; } = [];
+
+    /// <summary>
+    /// True while composing a NEW entry — which is what hides the raw-source box and what makes the picker a
+    /// filing choice rather than a move.
+    /// </summary>
+    /// <remarks>
+    /// An explicit flag because the proxy it replaces — "Targets is empty" — stopped meaning "editing" the
+    /// moment edit gained a move picker: passing targets would have silently hidden the raw disclosure, a
+    /// feature nothing would have failed over (#648).
+    /// </remarks>
+    [Parameter] public bool IsCreate { get; set; }
+
+    /// <summary>Where the entry is filed NOW, so the picker opens on it and a move is only what CHANGES.</summary>
+    [Parameter] public Guid CurrentCollectionId { get; set; }
+
+    /// <summary>Hidden while composing a NEW item: there is no stored source to show yet.</summary>
+    private bool ShowRaw => !IsCreate;
+
+    private bool _rawExpanded;
+
+    /// <summary>
+    /// Fetches the raw source the first time the disclosure is opened (#648) — lazily, because a card carrying
+    /// a photo is hundreds of kilobytes and most edits never expand the box.
+    /// </summary>
+    private async Task OnRawExpandedAsync(bool expanded)
+    {
+        _rawExpanded = expanded;
+        if (expanded && LoadRaw is { } load)
+        {
+            await load();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>Supplied by the caller — this dialog owns no api client, matching the desktop's split.</summary>
+    [Parameter] public Func<Task>? LoadRaw { get; set; }
+
+    private CreateTarget? _target;
+
+    // On edit, open on the collection the entry is ALREADY in — matched by id, since the targets are rebuilt
+    // from the listing each time and never the same instance. On create, the first, which the tab orders with
+    // the caller's personal collection ahead of shared ones.
+    protected override void OnInitialized() =>
+        // Pre-select ONLY when every candidate means the same thing (#1125): a bookable resource contributes
+        // three collections of DIFFERENT meaning that sort alphabetically, so "Availability" came first and a
+        // booking meant for the Schedule was silently filed as an offer of free time. On edit the entry's own
+        // collection is the answer and there is nothing to guess.
+        _target = Targets.FirstOrDefault(t => t.CollectionId == CurrentCollectionId)
+            ?? (Targets.Select(t => t.CollectionKind).Distinct(StringComparer.Ordinal).Count() > 1
+                ? null
+                : Targets.FirstOrDefault());
+
+    /// <summary>A create cannot be committed until a destination is chosen (#1125).</summary>
+    private bool HasTarget => !IsCreate || _target is not null;
+
+    private void Ok() => Dialog.Close(DialogResult.Ok(new Saved(Form, _target)));
+
+    /// <summary>What Save returns: the filled form, and — for a create — where it goes.</summary>
+    public sealed record Saved(AppointmentForm Form, CreateTarget? Target);
+}

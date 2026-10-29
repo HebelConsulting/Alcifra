@@ -1,0 +1,453 @@
+using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Alcifra.Infrastructure.Persistence;
+using SimplArchive.ModuleAbi;
+
+namespace Alcifra.Infrastructure.Modules;
+
+/// <summary>
+/// The definitions the loaded modules declared (ADR 0742) — one immutable catalog, built at startup by
+/// handing each module the builder. A singleton: the definitions are code, fixed for the process's life.
+/// </summary>
+public sealed class StateMachineCatalog : IStateMachineDefinitions
+{
+    private readonly Dictionary<string, MachineDefinition> _machines = new(StringComparer.Ordinal);
+
+    /// <summary>One transition: the button caption, the guard, the module's handler.</summary>
+    // AutoRefreshOnOpen (ABI 0.6): the clients invoke this transition the moment the subject folder is opened,
+    // rather than waiting for a button — the DABS/METAR populate-on-open hook. The subject resource advertises
+    // it with the marker so the clients know which action to auto-run.
+    //
+    // ProtocolRead (ABI 0.27, #1286): whether a read over WebDAV/IMAP may invoke it too. Those surfaces browse
+    // the same tree and never ran the hook, so a user who reaches the archive only through a mounted drive saw
+    // an EMPTY weather folder — the sweep had purged the content and nothing on that path could refetch it.
+    // The module declares eligibility (its source may or may not be lawfully fetched unattended, ADR 0756) and
+    // the tenant administrator enables it per tenant; both, or no fetch.
+    public sealed record TransitionDefinition(
+        string Label,
+        IReadOnlyList<StateCondition> Guard,
+        Func<TransitionContext, Task> Handler,
+        bool AutoRefreshOnOpen = false,
+        ProtocolReadRefresh ProtocolRead = ProtocolReadRefresh.Never,
+        // The least time between two upstream fetches (ABI 0.28, #1307) — the rate limit for a hook whose
+        // collection holds DURABLE items, where the staged-content cooldown (ADR 0810) never engages. Null
+        // means the module declared none: ephemeral content, ExpiresAt is the clock.
+        TimeSpan? MinimumRefreshInterval = null,
+        // Who may invoke it (ABI 1.6, ADR 0897): the subject's fields naming the person, in precedence order —
+        // the first holding a value wins. Null means the ordinary edit-rights gate.
+        IReadOnlyList<string>? InvokedByPrincipalFields = null);
+
+    /// <summary>A declared proposal query (ABI 0.11, ADR 0769): label for the picker affordance, the field
+    /// its answers fill, and the module's handler — run under the module principal, read-only.</summary>
+    public sealed record ProposalDefinition(string Label, string FillsField, Func<TransitionContext, Task<IReadOnlyList<ProposalItem>>> Handler);
+
+    /// <summary>One declared machine: whose it is, its subject mask, its statuses, its transitions.</summary>
+    /// <remarks><see cref="ModuleId"/> is what the wire surface gates activation on (ADR 0737): a
+    /// machine's transitions exist for a tenant exactly when its declaring module is active there. Null
+    /// only for machines declared straight on the catalog (tests) — nothing gates those.</remarks>
+    public sealed record MachineDefinition(
+        string MachineId,
+        string? ModuleId,
+        Guid SubjectMaskId,
+        Dictionary<string, IReadOnlyList<StateCondition>> Statuses,
+        Dictionary<string, TransitionDefinition> Transitions,
+        // statusName → the module's escalation handler (ABI 0.5): what the background sweep invokes while that
+        // status holds to learn who to remind and what to say.
+        Dictionary<string, Func<TransitionContext, Task<IReadOnlyList<EscalationNotice>>>> Escalations,
+        // name → the declared proposal query (ABI 0.11, ADR 0769).
+        Dictionary<string, ProposalDefinition> Proposals)
+    {
+        /// <summary>The statuses whose escalation notices may reach an address that is not a user (ABI 1.10, ADR 0902).</summary>
+        public HashSet<string> ExternalEscalations { get; } = new(StringComparer.Ordinal);
+    }
+
+    public IReadOnlyDictionary<string, MachineDefinition> Machines => _machines;
+
+    public IStateMachineBuilder Machine(string machineId, Guid subjectMaskId) =>
+        Machine(machineId, subjectMaskId, moduleId: null);
+
+    /// <summary>The loader's entry: definitions declared through this carry the declaring module's id.</summary>
+    public IStateMachineDefinitions ForModule(string moduleId) => new ModuleScope(this, moduleId);
+
+    private IStateMachineBuilder Machine(string machineId, Guid subjectMaskId, string? moduleId)
+    {
+        var definition = new MachineDefinition(machineId, moduleId, subjectMaskId,
+            new Dictionary<string, IReadOnlyList<StateCondition>>(StringComparer.Ordinal),
+            new Dictionary<string, TransitionDefinition>(StringComparer.Ordinal),
+            new Dictionary<string, Func<TransitionContext, Task<IReadOnlyList<EscalationNotice>>>>(StringComparer.Ordinal),
+            new Dictionary<string, ProposalDefinition>(StringComparer.Ordinal));
+        _machines[machineId] = definition;
+        return new Builder(definition);
+    }
+
+    /// <summary>
+    /// Refuses a module whose principal-invoked transition (ABI 1.6) names a field its subject mask lacks. Only the
+    /// module's OWN masks qualify: the field is the module's claim about its own records.
+    /// </summary>
+    public void ValidatePrincipalFields(string moduleId, IReadOnlyList<ModuleMaskSeed> masks)
+    {
+        var fieldsOf = masks.ToDictionary(m => m.MaskId, m => m.Fields.Select(f => f.Name).ToHashSet(StringComparer.Ordinal));
+        foreach (var machine in _machines.Values.Where(m => m.ModuleId == moduleId))
+        {
+            foreach (var (transitionName, transition) in machine.Transitions)
+            {
+                foreach (var field in transition.InvokedByPrincipalFields ?? [])
+                {
+                    if (!fieldsOf.TryGetValue(machine.SubjectMaskId, out var declared) || !declared.Contains(field))
+                    {
+                        throw new UnknownPrincipalFieldException(machine.MachineId, transitionName, field);
+                    }
+                }
+            }
+        }
+    }
+
+    private sealed class ModuleScope(StateMachineCatalog catalog, string moduleId) : IStateMachineDefinitions
+    {
+        public IStateMachineBuilder Machine(string machineId, Guid subjectMaskId) =>
+            catalog.Machine(machineId, subjectMaskId, moduleId);
+    }
+
+    private sealed class Builder(MachineDefinition definition) : IStateMachineBuilder
+    {
+        public IStateMachineBuilder Status(string name, params StateCondition[] conditions)
+        {
+            definition.Statuses[name] = conditions;
+            return this;
+        }
+
+        public IStateMachineBuilder Transition(string name, string label, IReadOnlyList<StateCondition> guard, Func<TransitionContext, Task> handler)
+        {
+            definition.Transitions[name] = new TransitionDefinition(label, guard, handler);
+            return this;
+        }
+
+        public IStateMachineBuilder Transition(
+            string name, string label, IReadOnlyList<StateCondition> guard, Func<TransitionContext, Task> handler,
+            IReadOnlyList<string> invokedByPrincipalFields)
+        {
+            // An empty list would name nobody, so only an administrator could act: a declaration that reads as a
+            // rule and behaves as a lock. Refused at load rather than discovered by the first person who cannot sign.
+            if (invokedByPrincipalFields is not { Count: > 0 } || invokedByPrincipalFields.Any(string.IsNullOrWhiteSpace))
+            {
+                throw new ArgumentException(
+                    $"Transition '{definition.MachineId}/{name}' names no principal field.", nameof(invokedByPrincipalFields));
+            }
+
+            definition.Transitions[name] = new TransitionDefinition(
+                label, guard, handler, InvokedByPrincipalFields: [.. invokedByPrincipalFields]);
+            return this;
+        }
+
+        public IStateMachineBuilder Escalates(string statusName, Func<TransitionContext, Task<IReadOnlyList<EscalationNotice>>> handler)
+        {
+            definition.Escalations[statusName] = handler;
+            return this;
+        }
+
+        public IStateMachineBuilder Escalates(
+            string statusName, Func<TransitionContext, Task<IReadOnlyList<EscalationNotice>>> handler, bool externalRecipients)
+        {
+            definition.Escalations[statusName] = handler;
+            if (externalRecipients)
+            {
+                definition.ExternalEscalations.Add(statusName);
+            }
+            else
+            {
+                definition.ExternalEscalations.Remove(statusName);
+            }
+
+            return this;
+        }
+
+        public IStateMachineBuilder AutoRefreshOnOpen(string name, string label, Func<TransitionContext, Task> handler)
+            => AutoRefreshOnOpen(name, label, handler, ProtocolReadRefresh.Never);
+
+        public IStateMachineBuilder AutoRefreshOnOpen(string name, string label, Func<TransitionContext, Task> handler, ProtocolReadRefresh protocolRead, TimeSpan minimumRefreshInterval)
+        {
+            definition.Transitions[name] = new TransitionDefinition(
+                label, [], handler, AutoRefreshOnOpen: true, ProtocolRead: protocolRead,
+                MinimumRefreshInterval: minimumRefreshInterval);
+            return this;
+        }
+
+        public IStateMachineBuilder AutoRefreshOnOpen(string name, string label, Func<TransitionContext, Task> handler, ProtocolReadRefresh protocolRead)
+        {
+            // A transition like any other (executable, refusable, listed) but flagged auto-invoke-on-open —
+            // ungated, because a populate has nothing to refuse (ABI 0.6).
+            definition.Transitions[name] = new TransitionDefinition(label, [], handler, AutoRefreshOnOpen: true, ProtocolRead: protocolRead);
+            return this;
+        }
+
+        public IStateMachineBuilder Proposal(string name, string label, string fillsFieldName, Func<TransitionContext, Task<IReadOnlyList<ProposalItem>>> handler)
+        {
+            definition.Proposals[name] = new ProposalDefinition(label, fillsFieldName, handler);
+            return this;
+        }
+    }
+}
+
+/// <summary>
+/// Evaluates and executes against the catalog (ADR 0742): statuses derive on every ask — nothing is
+/// stored, so a certificate filed by hand during a deactivation window simply counts — and a transition
+/// runs its handler only when every guard condition holds, refusals carrying each failed condition's code,
+/// value and sentence. Deterministic given documents + facts + clock, which is what makes a machine
+/// testable without a host.
+/// </summary>
+public sealed class StateMachineEngine
+{
+    private readonly AlcifraDbContext _dbContext;
+    private readonly StateMachineCatalog _catalog;
+    private readonly IModuleArchiveFacade _archive;
+    private readonly IServiceProvider _services;
+    private readonly ModuleReadModelCatalog _readModels;
+
+    private readonly ModuleIdentityAccessor? _identity;
+
+    public StateMachineEngine(
+        AlcifraDbContext dbContext, StateMachineCatalog catalog, IModuleArchiveFacade archive,
+        IServiceProvider services, ModuleReadModelCatalog? readModels = null, ModuleIdentityAccessor? identity = null)
+    {
+        _dbContext = dbContext;
+        _catalog = catalog;
+        _archive = archive;
+        _services = services;
+        _readModels = readModels ?? ModuleReadModelCatalog.Empty;
+        _identity = identity;
+    }
+
+    /// <summary>The machine's module becomes the scope's acting module (ADR 0736): every facade read the
+    /// evaluation or a handler makes is gated by THAT module's principal — its consented grants.</summary>
+    private void ActAs(StateMachineCatalog.MachineDefinition machine)
+    {
+        if (_identity is not null)
+        {
+            _identity.ModuleId = machine.ModuleId;
+        }
+    }
+
+    public async Task<StatusResult> EvaluateStatusAsync(string machineId, string statusName, Guid subjectDocumentId, DateTimeOffset asOf, CancellationToken cancellationToken = default)
+    {
+        var machine = Require(machineId);
+        ActAs(machine);
+        if (!machine.Statuses.TryGetValue(statusName, out var conditions))
+        {
+            throw new ArgumentException($"Machine '{machineId}' declares no status '{statusName}'.", nameof(statusName));
+        }
+
+        return await EvaluateAsync(conditions, subjectDocumentId, asOf, cancellationToken);
+    }
+
+    /// <summary>Runs a transition: guard first, handler only on green. The refusal IS the explanation.</summary>
+    /// <remarks>
+    /// The ENGINE owns the transaction (ADR 0737): the handler's facade writes — each a SaveChanges of its
+    /// own — join one database transaction, committed only when the handler returns. A handler that throws
+    /// rolls the whole act back, so a half-performed transition is a state the archive cannot hold; the
+    /// exception itself propagates, refusal semantics for free.
+    /// </remarks>
+    public async Task<StatusResult> ExecuteTransitionAsync(string machineId, string transitionName, Guid subjectDocumentId, DateTimeOffset asOf, CancellationToken cancellationToken = default)
+    {
+        var machine = Require(machineId);
+        ActAs(machine);
+        if (!machine.Transitions.TryGetValue(transitionName, out var transition))
+        {
+            throw new ArgumentException($"Machine '{machineId}' declares no transition '{transitionName}'.", nameof(transitionName));
+        }
+
+        var verdict = await EvaluateAsync(transition.Guard, subjectDocumentId, asOf, cancellationToken);
+        if (!verdict.Satisfied)
+        {
+            return verdict;
+        }
+
+        // The act's one transaction (ADRs 0737/0738): the handler's document + projection writes are one
+        // commit, and one rollback when it throws (InEngineTransactionAsync owns the enlist/rollback).
+        await InEngineTransactionAsync(async () =>
+        {
+            await transition.Handler(new TransitionContext(subjectDocumentId, _archive, _services));
+            return true;
+        }, cancellationToken);
+
+        return verdict;
+    }
+
+    /// <summary>Runs a proposal (ABI 0.11, ADR 0769): act-as-the-module, READ-ONLY — no engine
+    /// transaction, because a proposal that writes is a bug the contract forbids. Returns the module's
+    /// already-filtered items; the controller shapes the wire.</summary>
+    public async Task<(StateMachineCatalog.ProposalDefinition Definition, IReadOnlyList<ProposalItem> Items)> ExecuteProposalAsync(
+        string machineId, string proposalName, Guid subjectDocumentId, CancellationToken cancellationToken = default)
+    {
+        var machine = Require(machineId);
+        ActAs(machine);
+        if (!machine.Proposals.TryGetValue(proposalName, out var proposal))
+        {
+            throw new ArgumentException($"Machine '{machineId}' declares no proposal '{proposalName}'.", nameof(proposalName));
+        }
+
+        return (proposal, await proposal.Handler(new TransitionContext(subjectDocumentId, _archive, _services)));
+    }
+
+    /// <summary>
+    /// Evaluates a status and, WHILE it holds, runs the module's escalation handler for it (ABI 0.5): the
+    /// same act-as-the-module + engine-owned-transaction contract as a transition, so the handler's OWN
+    /// idempotency-marker write commits (or rolls back with a throw). Returns the notices the module wants
+    /// delivered — empty when the status does not hold (the subject is not in that state) or the module has
+    /// already warned (its handler returns empty). The core delivers what comes back; it never composes the
+    /// message or picks the audience (ADR 0736: who-and-what is the module's, the arithmetic is the engine's).
+    /// </summary>
+    public async Task<IReadOnlyList<EscalationNotice>> ExecuteEscalationAsync(string machineId, string statusName, Guid subjectDocumentId, DateTimeOffset asOf, CancellationToken cancellationToken = default)
+    {
+        var machine = Require(machineId);
+        ActAs(machine);
+        if (!machine.Escalations.TryGetValue(statusName, out var handler))
+        {
+            throw new ArgumentException($"Machine '{machineId}' declares no escalation on status '{statusName}'.", nameof(statusName));
+        }
+
+        if (!machine.Statuses.TryGetValue(statusName, out var conditions))
+        {
+            throw new ArgumentException($"Machine '{machineId}' declares no status '{statusName}'.", nameof(statusName));
+        }
+
+        // The status is the gate: only a subject actually in that state escalates.
+        if (!(await EvaluateAsync(conditions, subjectDocumentId, asOf, cancellationToken)).Satisfied)
+        {
+            return [];
+        }
+
+        return await InEngineTransactionAsync(
+            () => handler(new TransitionContext(subjectDocumentId, _archive, _services)), cancellationToken);
+    }
+
+    /// <summary>Runs <paramref name="body"/> inside the engine-owned transaction, or joins one in flight (ADR 0902).</summary>
+    private Task<T> InEngineTransactionAsync<T>(Func<Task<T>> body, CancellationToken cancellationToken) =>
+        ModuleTransaction.RunAsync(_dbContext, _readModels, _services, body, cancellationToken);
+
+    private StateMachineCatalog.MachineDefinition Require(string machineId) =>
+        _catalog.Machines.TryGetValue(machineId, out var machine)
+            ? machine
+            : throw new ArgumentException($"No module declared a machine '{machineId}'.", nameof(machineId));
+
+    private IEnumerable<ModuleLoader.LoadedModule> Modules() =>
+        _services.GetService(typeof(IReadOnlyList<ModuleLoader.LoadedModule>)) as IReadOnlyList<ModuleLoader.LoadedModule> ?? [];
+
+    private async Task<StatusResult> EvaluateAsync(IReadOnlyList<StateCondition> conditions, Guid subjectDocumentId, DateTimeOffset asOf, CancellationToken cancellationToken)
+    {
+        var failed = new List<ConditionExplanation>();
+        foreach (var condition in conditions)
+        {
+            var value = condition switch
+            {
+                { Field: { } field } => await FieldValueAsync(field, subjectDocumentId, cancellationToken),
+                { Fact: { } fact } => await FactValueAsync(fact, subjectDocumentId, asOf, cancellationToken),
+                _ => null,
+            };
+
+            if (!Holds(condition, value, asOf))
+            {
+                // The diagnosis: the code tests branch on, the VALUE that failed, the module's sentence
+                // with the value substituted — never a bare refusal (ADR 0742). The sentence is the
+                // CATALOG's for the request culture when the module ships one (ABI 0.10, ADR 0767) —
+                // ActAs() stamped the acting module just above — else the condition's composed invariant.
+                var template = ModuleTextResolver.Resolve(
+                        Modules(), _identity?.ModuleId, condition.FailCode, null, System.Globalization.CultureInfo.CurrentUICulture)
+                    ?.Template ?? condition.FailText;
+                failed.Add(new ConditionExplanation(condition.FailCode, value,
+                    template.Replace("{value}", value ?? "—", StringComparison.Ordinal)));
+            }
+        }
+
+        return new StatusResult(failed.Count == 0, failed);
+    }
+
+    private async Task<string?> FieldValueAsync(DocumentFieldCondition field, Guid subjectDocumentId, CancellationToken cancellationToken)
+    {
+        var documentId = subjectDocumentId;
+        if (field.ChildMaskId is { } childMaskId)
+        {
+            // The NEWEST child wearing the mask — a dossier's current Medical is the last one filed, and
+            // an older certificate beside it must not answer for it.
+            var children = await _archive.GetChildrenAsync(subjectDocumentId, childMaskId, cancellationToken);
+            if (children.Count == 0)
+            {
+                return null; // absence of evidence is absence of the right.
+            }
+
+            documentId = children[^1].Id;
+        }
+
+        var maskVersionId = await _dbContext.Documents
+            .Where(d => d.Id == documentId)
+            .Select(d => d.MaskVersionId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (maskVersionId == Guid.Empty)
+        {
+            return null;
+        }
+
+        // By name within the document's own mask version — the facade's rule, applied to reads.
+        return await _dbContext.FieldValues
+            .Where(v => v.DocumentId == documentId)
+            .Join(_dbContext.FieldDefinitions, v => v.FieldDefinitionId, f => f.Id, (v, f) => new { f.Name, v.Value })
+            .Where(x => x.Name == field.FieldName)
+            .Select(x => x.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<string?> FactValueAsync(FactCondition fact, Guid subjectDocumentId, DateTimeOffset asOf, CancellationToken cancellationToken)
+    {
+        // Providers are resolved by name from whatever the modules registered (ADR 0736); an unclaimed
+        // fact name is a definition bug and says so, rather than quietly evaluating to false.
+        var provider = _services.GetServices<IModuleFactProvider>()
+            .FirstOrDefault(p => p.FactNames.Contains(fact.FactName, StringComparer.Ordinal))
+            ?? throw new InvalidOperationException($"No registered fact provider answers '{fact.FactName}'.");
+
+        return (await provider.GetAsync(fact.FactName, subjectDocumentId, asOf, cancellationToken)).Value;
+    }
+
+    private static bool Holds(StateCondition condition, string? value, DateTimeOffset asOf)
+    {
+        // Branched explicitly, not null-coalesced: a field condition's operand is LEGITIMATELY null
+        // (DateNotPast needs none), and `Field?.Operand ?? Fact!.Operand` walked into the null Fact
+        // exactly then.
+        var (test, operand) = condition.Field is { } field
+            ? (field.Test, field.Operand)
+            : (condition.Fact!.Test, condition.Fact.Operand);
+
+        return test switch
+        {
+            ConditionTest.DateNotPast =>
+                value is not null
+                && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var date)
+                && date >= asOf,
+            // The clean inverse of DateNotPast — a declared Lapsed rather than a handler-evaluated one (0.4).
+            ConditionTest.DatePast =>
+                value is not null
+                && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var pastDate)
+                && pastDate < asOf,
+            // The approaching edge: not past AND within Operand days of now (0.4). A non-integer or absent
+            // operand cannot describe a window, so it never holds rather than throwing.
+            ConditionTest.DateWithinDays =>
+                value is not null
+                && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var soonDate)
+                && operand is not null
+                && int.TryParse(operand, NumberStyles.Integer, CultureInfo.InvariantCulture, out var days)
+                && soonDate >= asOf
+                && soonDate <= asOf.AddDays(days),
+            ConditionTest.Equals => value is not null && string.Equals(value, operand, StringComparison.Ordinal),
+            ConditionTest.NotEquals => !string.Equals(value, operand, StringComparison.Ordinal),
+            ConditionTest.AtLeast =>
+                value is not null
+                && decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+                && operand is not null
+                && number >= decimal.Parse(operand, CultureInfo.InvariantCulture),
+            // Filled means non-blank (ABI 0.2, #1014): a saved-then-cleared field leaves an empty row,
+            // and "names a pilot" must not be satisfied by whitespace.
+            ConditionTest.Present => !string.IsNullOrWhiteSpace(value),
+            _ => false,
+        };
+    }
+}

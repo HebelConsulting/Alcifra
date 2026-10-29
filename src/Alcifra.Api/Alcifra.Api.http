@@ -1,0 +1,6 @@
+@Alcifra.Api_HostAddress = http://localhost:5092
+
+GET {{Alcifra.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

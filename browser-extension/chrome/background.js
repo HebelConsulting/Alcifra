@@ -24,7 +24,7 @@ async function request(command) {
     }
   }
 
-  throw new Error(lastError ? lastError.message : "No SimplArchive autofill host is installed.");
+  throw new Error(lastError ? lastError.message : "No Alcifra autofill host is installed.");
 }
 
 function once(host, message) {

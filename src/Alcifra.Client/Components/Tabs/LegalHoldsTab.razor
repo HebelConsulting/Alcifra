@@ -1,0 +1,250 @@
+@using System.Net
+@inject HttpClient Http
+@inject Alcifra.Client.Services.ApiRoot ApiRoot
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* The Legal holds tab of the workbench (ADR "Legal hold & retention enforcement"), extracted from
+   Home.razor per ADR 0558. Places and releases holds, and lists what each one freezes.
+
+   Self-contained: the actions it offers come from the rels each hold advertises — a released hold offers
+   neither release nor add-item — so it never re-derives from an IsActive flag what the server already said. *@
+            <div class="wb-legalholds" style="height:100%; display:flex; flex-direction:column;">
+                @* The toolbar in the Repositories shape (#530 tranche 5): new first; release SEPARATED by
+                   decision — not a delete, but it removes legal protection from every frozen document.
+                   Release is greyed unless the SELECTED hold advertised the rel (a released hold offers
+                   none, ADR 0543); the row menu hides the same case (ADR 0554). Refresh last. *@
+                <div class="wb-search-bar pa-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudButton Class="wb-rib-btn" Size="Size.Small" OnClick="NewLegalHoldAsync"
+                               title="@Strings.Get("LhNewHold")" aria-label="@Strings.Get("LhNewHold")">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("LhNewHold")</span>
+                    </MudButton>
+                    <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" Disabled="@(_selectedHold is null || Links.Href(_selectedHold.Links, "release") is null)"
+                               OnClick="@(() => ReleaseHoldAsync(_selectedHold!))"
+                               title="@Strings.Get("LhRelease")" aria-label="@Strings.Get("LhRelease")">
+                        <MudIcon Icon="@Icons.Material.Filled.LockOpen" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("LhRelease")</span>
+                    </MudButton>
+                    @* The DOCUMENT group (review finding): Go to jumps to the selected held document in
+                       Repositories — the Search tab's affordance, acting on the item selection here. *@
+                    <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" Disabled="@(_selectedHoldItem is null)"
+                               OnClick="@(() => OnOpenDocument.InvokeAsync(_selectedHoldItem!))"
+                               title="@Strings.Get("SearchGoToDocument")" aria-label="@Strings.Get("SearchGoToDocument")">
+                        <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("SearchGoToDocument")</span>
+                    </MudButton>
+                    <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" OnClick="LoadLegalHoldsAsync"
+                               title="@Strings.Get("RibbonRefresh")" aria-label="@Strings.Get("RibbonRefresh")">
+                        <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RibbonRefresh")</span>
+                    </MudButton>
+                </div>
+                <div style="flex:1 1 auto; display:flex; min-height:0;">
+                    <div style="width:320px; overflow:auto; border-right:1px solid var(--mud-palette-lines-default);">
+                        @foreach (var h in _legalHolds)
+                        {
+                            <div class="wb-list-row @(ReferenceEquals(h, _selectedHold) ? "wb-list-row-selected" : "")" @onclick="() => SelectHoldAsync(h)">
+                                <MudIcon Icon="@Icons.Material.Filled.Gavel" Size="Size.Small" Color="@(h.IsActive ? Color.Warning : Color.Default)" />
+                                <span style="flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@h.Name @(h.IsActive ? "" : Strings.Get("LhReleased"))</span>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@h.ItemCount</MudText>
+                                @* What can be done to THIS row lives in its ⋮ menu (#521's split) — the row
+                                   carries its own rels, so release is addressed from the row (ADR 0555/0559).
+                                   The whole ⋮ hides when the server offered nothing (ADR 0554). *@
+                                @if (Links.Href(h.Links, "release") is not null)
+                                {
+                                    <span @onclick:stopPropagation="true">
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomLeft">
+                                            <MudMenuItem Icon="@Icons.Material.Filled.LockOpen" OnClick="() => ReleaseHoldAsync(h)">@Strings.Get("LhRelease")</MudMenuItem>
+                                        </MudMenu>
+                                    </span>
+                                }
+                            </div>
+                        }
+                        @if (_legalHolds.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Class="pa-3 mud-text-secondary">@Strings.Get("LhNone")</MudText>
+                        }
+                    </div>
+                    <div style="flex:1 1 auto; min-height:0; overflow:auto;" class="pa-3">
+                        @if (_selectedHold is { } sel)
+                        {
+                            <MudText Typo="Typo.h6">@sel.Name</MudText>
+                            @if (!string.IsNullOrWhiteSpace(sel.Reason))
+                            {
+                                <MudText Typo="Typo.body2" Class="mb-1">@sel.Reason</MudText>
+                            }
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @string.Format(Strings.Get("LhPlaced"), sel.PlacedAt.InZone(SessionTimeZone.Current).ToString("yyyy-MM-dd HH:mm"), sel.IsActive ? Strings.Get("LhActive") : Strings.Get("LhReleasedSuffix"))
+                            </MudText>
+                            @* Release left this header for the toolbar and the row menu (#530 tranche 5). *@
+                            <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">@string.Format(Strings.Get("LhDocuments"), sel.Items.Count)</MudText>
+                            @foreach (var it in sel.Items)
+                            {
+                                <div class="wb-list-row @(ReferenceEquals(it, _selectedHoldItem) ? "wb-list-row-selected" : "")"
+                                     @onclick="() => _selectedHoldItem = it" @ondblclick="() => OnOpenDocument.InvokeAsync(it)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" />
+                                    <span style="flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@it.DocumentName</span>
+                                    @* What can be done to THIS row lives in its ⋮ menu (#521's split): Go to
+                                       always; remove gated on the REL, not a client-side IsActive flag — the
+                                       server already withholds `remove` for a released hold, and re-deriving
+                                       that here is a second copy of the rule that can disagree with the first
+                                       (ADR 0543). A divider keeps go-to and un-freeze apart (review decision). *@
+                                    <span @onclick:stopPropagation="true">
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomLeft">
+                                            <MudMenuItem Icon="@Icons.Material.Filled.OpenInNew" OnClick="() => OnOpenDocument.InvokeAsync(it)">@Strings.Get("SearchGoToDocument")</MudMenuItem>
+                                            @if (Links.Href(it.Links, "remove") is not null)
+                                            {
+                                                <MudDivider />
+                                                <MudMenuItem Icon="@Icons.Material.Filled.Close" OnClick="() => RemoveHoldItemAsync(it)">@Strings.Get("LhRemoveFromHold")</MudMenuItem>
+                                            }
+                                        </MudMenu>
+                                    </span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("LhSelect")</MudText>
+                        }
+                    </div>
+                </div>
+            </div>
+
+
+@code {
+    /// <summary>
+    /// Raised after a hold is placed or released, so whatever else is on screen can refresh what a hold
+    /// changes — the Repositories list draws a lock indicator per row.
+    /// </summary>
+    /// <remarks>
+    /// An event rather than a reference to the Repositories pane's state. This tab knows that holds changed;
+    /// it has no business knowing which folder is open or how to reload it, and reaching into that state is
+    /// precisely the entanglement the decomposition exists to remove (ADR 0558).
+    /// </remarks>
+    [Parameter]
+    public EventCallback HoldsChanged { get; set; }
+
+    /// <summary>Go to the held document in Repositories — navigation is the shell's (ADR 0558).</summary>
+    [Parameter]
+    public EventCallback<LegalHoldItemDto> OnOpenDocument { get; set; }
+
+    // The tab loads itself; SetTab's LegalHolds branch is deleted rather than relocated (ADR 0558).
+    protected override async Task OnInitializedAsync() => await LoadLegalHoldsAsync();
+
+    // ---- Legal holds (ADR "Legal hold & retention enforcement") --------------------------------------
+    private readonly List<LegalHoldDto> _legalHolds = new();
+    private LegalHoldDto? _selectedHold;
+    private LegalHoldItemDto? _selectedHoldItem;
+
+    private async Task LoadLegalHoldsAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<LegalHoldsListDto>(await ApiRoot.RequireAsync("legalHolds"));
+            _legalHolds.Clear();
+            if (response?.Holds is { } holds)
+            {
+                _legalHolds.AddRange(holds);
+            }
+            // Keep the current selection if it still exists (refresh after a change).
+            _selectedHold = _selectedHold is { } sel ? _legalHolds.FirstOrDefault(h => h.Id == sel.Id) : null;
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("StErrLoadHolds"), Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    private async Task SelectHoldAsync(LegalHoldDto hold)
+    {
+        // Fetch the full hold (with its items).
+        try
+        {
+            _selectedHold = await Http.GetFromJsonAsync<LegalHoldDto>(Href(hold.Links, "self")) ?? hold;
+        }
+        catch (Exception)
+        {
+            _selectedHold = hold;
+        }
+        _selectedHoldItem = null; // the items were re-fetched — a held-over selection is a stale subject (ADR 0559)
+        StateHasChanged();
+    }
+
+    private async Task NewLegalHoldAsync()
+    {
+        if (await LegalHoldPrompt.ShowAsync(DialogService) is not { } result)
+        {
+            return;
+        }
+
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(await ApiRoot.RequireAsync("legalHolds"), new { name = result.Name, reason = result.Reason });
+            response.EnsureSuccessStatusCode();
+            Snackbar.Add(string.Format(Strings.Get("StHoldCreated"), result.Name), Severity.Success);
+            await LoadLegalHoldsAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("StErrCreateHold"), Severity.Error);
+        }
+    }
+
+    // Takes the hold rather than reading the selection: the toolbar passes the selected one, the row menu
+    // the row it was opened from (ADR 0555/0559 — the row carries its own rels).
+    private async Task ReleaseHoldAsync(LegalHoldDto sel)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Release legal hold",
+            Message = $"Release '{sel.Name}'? Its documents are unfrozen unless another active hold still covers them.",
+            YesText = "Release", CancelText = "Cancel",
+        });
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        try
+        {
+            using var response = await Links.SendAsync(Http, sel.Links, "release");
+            response.EnsureSuccessStatusCode();
+            Snackbar.Add(Strings.Get("StHoldReleased"), Severity.Success);
+            await LoadLegalHoldsAsync();
+            await SelectHoldAsync(sel);
+            await HoldsChanged.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("StErrReleaseHold"), Severity.Error);
+        }
+    }
+
+    private async Task RemoveHoldItemAsync(LegalHoldItemDto item)
+    {
+        if (_selectedHold is not { } sel)
+        {
+            return;
+        }
+
+        try
+        {
+            using var response = await Links.SendAsync(Http, item.Links, "remove");
+            response.EnsureSuccessStatusCode();
+            await SelectHoldAsync(sel);
+            await LoadLegalHoldsAsync();
+            await HoldsChanged.InvokeAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("StErrRemoveFromHold"), Severity.Error);
+        }
+    }
+
+    // Addressed from the resource that advertised it, never composed (ADR 0543). A released hold advertises no
+    // `release` and its items no `remove`, so reaching for one is a bug in the caller rather than a refusal to
+    // handle — hence the throw.
+    private static string Href(List<LinkResponse> links, string rel) =>
+        Links.Href(links, rel) ?? throw new InvalidOperationException($"Legal hold advertised no '{rel}' rel (ADR 0543).");
+
+    private record LegalHoldsListDto { public List<LegalHoldDto> Holds { get; set; } = new(); }
+
+}

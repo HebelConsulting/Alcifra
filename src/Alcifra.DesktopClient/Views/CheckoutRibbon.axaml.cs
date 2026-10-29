@@ -1,0 +1,42 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.Markup.Xaml;
+
+namespace Alcifra.DesktopClient.Views;
+
+/// <summary>
+/// The Check-out tab's ribbon — refresh, and the one WebDAV button (#500).
+/// </summary>
+/// <remarks>
+/// <para>
+/// Its own control from the start rather than more markup in <c>MainWindow.axaml</c>, which is on the 1000-line
+/// standing-debt list: the Intray's ribbon became <see cref="IntrayRibbon"/> only after it had grown a group per
+/// feature inside that file (ADR 0577), and the lesson is cheaper to apply than to relearn.
+/// </para>
+/// <para>
+/// <b>The WebDAV handler stays on the window</b>, for the same reason the Intray's does — it needs a parent for a
+/// modal dialog, which only the window has. Refresh needs nothing, so it binds to the view-model directly and
+/// has no forwarder here at all.
+/// </para>
+/// </remarks>
+public partial class CheckoutRibbon : UserControl
+{
+    public CheckoutRibbon() => AvaloniaXamlLoader.Load(this);
+
+    // No Tag: the window's handlers fall back to the selection, which is exactly the ribbon's scope (#521).
+    private void OnCheckoutCompare(object? sender, RoutedEventArgs e) => Window()?.OnCheckoutCompare(sender, e);
+
+    private void OnCheckoutBeyondCompare(object? sender, RoutedEventArgs e) => Window()?.OnCheckoutBeyondCompare(sender, e);
+
+    private void OnCheckoutSortPages(object? sender, RoutedEventArgs e) => Window()?.OnCheckoutSortPages(sender, e);
+
+    private void OnCheckoutCheckIn(object? sender, RoutedEventArgs e) => Window()?.OnCheckoutCheckIn(sender, e);
+
+    private void OnCheckoutDiscard(object? sender, RoutedEventArgs e) => Window()?.OnCheckoutDiscard(sender, e);
+
+    private void OnWebDavTabButton(object? sender, RoutedEventArgs e) => Window()?.OnWebDavTabButton(sender, e);
+
+    // Null in the headless screenshot renders, which host panes without a window — so the forwarder tolerates it
+    // rather than throwing where nothing could have been clicked anyway.
+    private MainWindow? Window() => TopLevel.GetTopLevel(this) as MainWindow;
+}

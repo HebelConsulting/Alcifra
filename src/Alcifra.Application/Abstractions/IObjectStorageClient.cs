@@ -1,0 +1,314 @@
+using Alcifra.Domain.Tenants;
+
+namespace Alcifra.Application.Abstractions;
+
+// One object listed under a prefix (ADR "S3-backed inbox") — its full key, byte size, and last-modified time.
+/// <param name="ETag">
+/// The store's own entity tag for these bytes, when it gave one — a CONTENT validator, unlike the other two.
+/// Optional because not every implementation has one, and null is the honest answer where it does not.
+/// </param>
+public sealed record StorageObject(string Key, long Size, DateTimeOffset LastModified, string? ETag = null);
+
+/// <summary>An object's bytes together with its user metadata (one GET) — the decrypting read's shape
+/// (ADR 0818). Length is the STORED length (-1 when the default adapter couldn't know it).</summary>
+public sealed record StoredObject(Stream Content, long Length, IReadOnlyDictionary<string, string> Metadata);
+
+/// <summary>An object's size, content type and user metadata (one HEAD) — the decorator's cheap probe
+/// (ADR 0818); the content type rides along so a re-encrypting copy can restate it.</summary>
+public sealed record StoredObjectInfo(long Size, string? ContentType, IReadOnlyDictionary<string, string> Metadata);
+
+/// <summary>One VERSION of an object with its own user metadata (ADR 0014). A historical version carries
+/// the wrapped DEK it was written with, which is why a KEK retirement check must look past the current
+/// version: an immutable WORM version can never be re-wrapped, so its generation must outlive it.</summary>
+public sealed record StoredObjectVersion(
+    string Key, string? VersionId, bool IsLatest, IReadOnlyDictionary<string, string> Metadata);
+
+// The S3 Object Lock state of an object (ADR "WORM / immutable document versions"): a retain-until date (null
+// = no retention lock) and whether an object legal hold is on. An object is immutable while RetainUntil is in
+// the future OR LegalHold is on.
+public sealed record ObjectLockStatus(DateTimeOffset? RetainUntil, bool LegalHold)
+{
+    public bool IsLocked(DateTimeOffset now) => LegalHold || (RetainUntil is { } until && until > now);
+}
+
+// A storage abstraction over an S3-compatible object store — see ADR "Document storage model", ADR
+// "File upload / download API design". The API never proxies file bytes; it issues short-lived
+// presigned URLs and the client talks to storage directly. Implemented in Alcifra.Infrastructure,
+// where the actual S3 client SDK usage lives — see ADR "Object storage client abstraction
+// (foundation slice)".
+public interface IObjectStorageClient
+{
+    // Idempotently creates a tenant's own object-storage bucket (ADR "Per-tenant object-storage bucket") —
+    // object-lock-enabled (for WORM) + browser CORS + ops tags (ADR "Per-tenant bucket policy knobs"). Called at
+    // tenant provisioning; every object key is tenant-scoped, so all other methods route to the right bucket.
+    Task EnsureTenantBucketAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
+    // Applies (or, when 0, removes) the tenant bucket's lifecycle policy (ADR "Per-tenant bucket policy knobs"):
+    // abort incomplete multipart uploads after incompleteUploadCleanupDays. Called at provisioning + whenever the
+    // tenant setting changes. Best-effort against a backend that doesn't run lifecycle.
+    Task SetBucketLifecycleAsync(Guid tenantId, int incompleteUploadCleanupDays, CancellationToken cancellationToken = default);
+
+    Task<Uri> GetPresignedUploadUrlAsync(string objectKey, TimeSpan expiry, CancellationToken cancellationToken = default);
+
+    // downloadFileName (optional): overrides the filename the browser saves the download as, via the S3
+    // response-content-disposition parameter (signed into the URL) — see ADR "Download filename from Short
+    // Description". When null, the object key's own last segment is used, as before.
+    // contentType (optional): overrides the response Content-Type via the S3 response-content-type parameter,
+    // exactly as the preview call below does. A SEALED document needs it (ADR 0975): its stored bytes ARE a CMS
+    // envelope, and the clients' one content funnel decides whether to open a response by the type it was
+    // SERVED — so serving the envelope as the object's upload type would hand the device ciphertext it never
+    // decrypts. The stored type is the uploader's guess and cannot be relied on for that question.
+    /// <remarks>
+    /// <b>NULL means this installation will not serve these bytes as plaintext</b> — the strict encryption
+    /// tier (#1376, ADR 0825), where content leaves only as a CMS envelope addressed to the reader's card.
+    /// A caller building a resource omits the link, which is ADR 0543's own signal: a missing rel means
+    /// "not available to you, here, now", and the client disables the affordance rather than trying.
+    ///
+    /// The return is nullable rather than the seam throwing, because presigning happens while BUILDING
+    /// resources — a thrown refusal would take the document's metadata with it. And it is nullable rather
+    /// than a convention, because twenty files reach content: a nullable return turns "did this caller
+    /// handle it?" from a review question into a build error.
+    /// </remarks>
+    Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, string? contentType = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// A short-lived URL to an object's STORED bytes — its ciphertext — for the encryption service to fetch
+    /// (ADR 0862). Refuses when the object is not encrypted.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This is not a door, and the refusal is what keeps it from becoming one.</b> Storage is mixed state
+    /// by design (ADR 0818) — an object either carries a wrapped DEK or is plaintext — so a method named for
+    /// ciphertext, called on a plaintext object, would hand out exactly the plaintext URL the strict tier
+    /// refuses. It therefore <b>throws</b> for an unencrypted object rather than presigning it: the caller
+    /// asked for ciphertext and there is none, which is a programming error and not a degraded case.
+    /// </para>
+    /// <para>
+    /// <b>Why it is on the seam at all.</b> CLAUDE.md forbids a storage path that bypasses this interface,
+    /// and the one consumer needs a URL the encryption service can fetch while the client-facing presign
+    /// stays refused. Handing out ciphertext is safe in a way handing out plaintext is not: whoever holds
+    /// this URL without the HSM holds a blob they cannot read, which is the whole premise of at-rest
+    /// encryption.
+    /// </para>
+    /// <para>
+    /// Signed against the INTERNAL endpoint, not the public one: the fetcher is a sidecar on the same
+    /// network, and a URL signed for the browser's hostname is one it cannot resolve (ADR 0213's split
+    /// endpoints).
+    /// </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The object carries no wrapped DEK, so it has no
+    /// ciphertext to serve.</exception>
+    Task<Uri> GetPresignedCiphertextUrlAsync(string objectKey, TimeSpan expiry, CancellationToken cancellationToken = default);
+
+    // Like the download URL but with Content-Disposition: inline so the browser renders the content in place
+    // (used by the document preview) rather than forcing a download — see ADR "Repositories workbench UI".
+    // contentType (optional) overrides the response Content-Type via the S3 response-content-type parameter
+    // — used to force text/plain for .txt so the browser renders it inline regardless of the stored type
+    // (ADR "Plain-text inline preview").
+    Task<Uri?> GetPresignedPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default);
+
+    // Used only at finalize-upload time to compute the SHA256 hash server-side rather than trusting a
+    // client-supplied value — see ADR "Document version upload/download endpoints (pragmatic slice)".
+    // Not part of the direct-to-storage bulk-transfer path; the caller is expected to read and dispose
+    // the stream promptly.
+    Task<Stream> GetObjectAsync(string objectKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The same read, declared as one whose bytes are about to be SERVED TO A CLIENT.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The strict tier refuses this and lets <see cref="GetObjectAsync"/> through, because the distinction
+    /// that matters is not <i>which store</i> but <i>what the bytes are for</i>: the envelope path, the
+    /// finalizer's hash check and the classifier all read plaintext legitimately, while a mounted drive or a
+    /// zip stream hands it to software that cannot decrypt anything.
+    /// </para>
+    /// <para>
+    /// A seam rather than a check at each door — #1394 found a dozen doors serving plaintext because #1376's
+    /// refusal sat on the PRESIGN and these never presign. Twelve patched call sites would have been twelve
+    /// chances to forget the thirteenth; one declared intent per door is a line a guard can read.
+    /// </para>
+    /// <para>
+    /// <paramref name="door"/> names the thing to stop using, because the reader's remedy is to open the
+    /// document somewhere else. Defaults to a plain read, so every store but the encrypting one is unaffected.
+    /// </para>
+    /// </remarks>
+    Task<Stream> GetObjectForClientAsync(string objectKey, string door, CancellationToken cancellationToken = default) =>
+        GetObjectAsync(objectKey, cancellationToken);
+
+    /// <summary>A byte RANGE declared the same way — what a mounted drive asks for when it seeks.</summary>
+    Task<Stream> GetObjectRangeForClientAsync(string objectKey, long from, long to, string door, CancellationToken cancellationToken = default) =>
+        GetObjectRangeAsync(objectKey, from, to, cancellationToken);
+
+    // The object's bytes TOGETHER with its user metadata — one GET, both facts. The at-rest encryption
+    // decorator (ADR 0818) rides on this: the wrapped DEK travels as object metadata, so a decrypting read
+    // must see both in one call. Default: the plain stream with no metadata, so fakes needn't implement it.
+    async Task<StoredObject> GetObjectWithMetadataAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        var content = await GetObjectAsync(objectKey, cancellationToken);
+        return new StoredObject(content, -1, new Dictionary<string, string>());
+    }
+
+    // The object's size and user metadata in one HEAD — the decorator's gate for size arithmetic and the
+    // cheap "is this encrypted?" probe. Default: size with no metadata.
+    async Task<StoredObjectInfo> GetObjectInfoAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        new(await GetObjectSizeAsync(objectKey, cancellationToken), null, new Dictionary<string, string>());
+
+    // Reads an inclusive byte range [from, to] of an object (server-side range request) — backs WebDAV Range
+    // GET / 206 Partial Content (ADR "WebDAV hardening"). Default: read the whole object and slice; the S3
+    // client overrides this with a real range request. (A default method so test fakes needn't implement it.)
+    async Task<Stream> GetObjectRangeAsync(string objectKey, long from, long to, CancellationToken cancellationToken = default)
+    {
+        await using var full = await GetObjectAsync(objectKey, cancellationToken);
+        var buffer = new MemoryStream();
+        await full.CopyToAsync(buffer, cancellationToken);
+        var length = (int)Math.Max(0, Math.Min(to, buffer.Length - 1) - from + 1);
+        return new MemoryStream(buffer.GetBuffer(), (int)from, length, writable: false);
+    }
+
+    // Server-side existence check (a HEAD) — used to see whether a cached preview rendition already exists
+    // before regenerating it. See ADR "Server-side preview renditions for non-browser-viewable images".
+    Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken = default);
+
+    // The object's size in bytes (a HEAD) — used for storage-quota accounting/enforcement at finalize (ADR
+    // "Per-tenant storage quota").
+    Task<long> GetObjectSizeAsync(string objectKey, CancellationToken cancellationToken = default);
+
+    // Server-side write — the Api itself uploads bytes (not the direct-to-storage presigned path), used to
+    // store a generated preview rendition. See ADR "Server-side preview renditions for non-browser-viewable
+    // images".
+    Task PutObjectAsync(string objectKey, Stream content, string contentType, CancellationToken cancellationToken = default);
+
+    // The metadata-carrying write: user metadata stored on the object — the at-rest decorator's wrapped-DEK
+    // carrier (ADR 0818); S3's server-side COPY carries it through every re-keying flow for free. A separate
+    // overload rather than a widened signature so the sixty positional callers of the plain form stay
+    // untouched. Default: drops the metadata — the S3 client and the decorator both override, and a fake
+    // that reaches this default is a fake no encryption test should be running against.
+    Task PutObjectAsync(string objectKey, Stream content, string contentType,
+        IReadOnlyDictionary<string, string> metadata, CancellationToken cancellationToken = default) =>
+        PutObjectAsync(objectKey, content, contentType, cancellationToken);
+
+    /// <summary>
+    /// Writes an object ONLY if that key does not already exist, and reports whether this caller wrote it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Mutual exclusion for a sweep whose state lives in storage</b> (#1427). Every other periodic sweep
+    /// claims its work with one <c>ExecuteUpdate</c> that compare-and-swaps a database column, so the database
+    /// picks the winner (ADR 0836). The intray ingest sweep cannot: its "already done" marker is an OBJECT, and
+    /// list-then-put is two operations that no read-after-write consistency makes atomic. Two instances both
+    /// listed before either wrote, so one dropped file became two documents — a duplicate the user explains to
+    /// themselves as having dropped it twice.
+    /// </para>
+    /// <para>
+    /// <b>Returns false rather than throwing</b>, because losing is the ordinary case: another instance got
+    /// there first and this one has nothing to do. An exception would make the normal path the exceptional one.
+    /// </para>
+    /// <para>
+    /// <b>Not every S3-compatible store honours this</b>, and the failure is silent: a store that IGNORES
+    /// <c>If-None-Match</c> answers 200 to both writers and restores the duplicate exactly. So the capability is
+    /// PROBED before the sweep is allowed to run — see <c>ConditionalWriteProbe</c>. Measured on the pinned
+    /// SeaweedFS: the second conditional write answers 412 and the first writer's bytes survive.
+    /// </para>
+    /// </remarks>
+    /// <remarks>
+    /// Defaulted so the test fakes that implement this interface keep compiling — but defaulted to a REFUSAL
+    /// rather than to a plain write. A default that just wrote would hand every fake the appearance of mutual
+    /// exclusion while providing none, which is the failure this method exists to remove, reproduced in the
+    /// one place nobody would look for it.
+    /// </remarks>
+    Task<bool> TryPutIfAbsentAsync(string objectKey, Stream content, string contentType,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException(
+            $"{GetType().Name} does not implement conditional writes, so it cannot be used where one claim must "
+            + "exclude another (#1427). Implement TryPutIfAbsentAsync with real exclusion semantics.");
+
+    /// <summary>
+    /// Overwrites an object ONLY if it still carries <paramref name="eTag"/>, and reports whether it did.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The other half of the storage-side lease (#1427). <see cref="TryPutIfAbsentAsync"/> decides who takes an
+    /// UNHELD claim; this decides who may touch one that is already held — which is needed twice: the holder
+    /// renews its own lease with it, and another instance takes over a lease whose holder has gone.
+    /// </para>
+    /// <para>
+    /// <b>Why a conditional overwrite rather than delete-then-create.</b> Deleting a stale claim and racing to
+    /// re-create it looks equivalent and is not: a slow reclaimer's DELETE can land AFTER a third instance has
+    /// already created a fresh claim, wiping it, after which both believe they hold the lease — the duplicate
+    /// this whole issue is about, reintroduced by its own fix. Conditioning on the exact ETag the reclaimer
+    /// SAW makes that unrepresentable.
+    /// </para>
+    /// <para>
+    /// <b>It is also how a holder learns it was dispossessed.</b> A renewal that returns false means somebody
+    /// judged this lease stale and took it, so the holder must abandon its work rather than finish and write a
+    /// second document.
+    /// </para>
+    /// <para>
+    /// Measured on the pinned SeaweedFS: overwriting with the current ETag answers 200, with a stale one 412,
+    /// and the refused write leaves the object alone.
+    /// </para>
+    /// </remarks>
+    Task<bool> TryPutIfMatchAsync(string objectKey, string eTag, Stream content, string contentType,
+        CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException(
+            $"{GetType().Name} does not implement conditional overwrites, so it cannot arbitrate a lease "
+            + "takeover (#1427). Implement TryPutIfMatchAsync with real compare-and-set semantics.");
+
+    // Lists every object under a key prefix — the S3-backed intray (`{tenantId}/users/{userId}/inbox/`) enumerates
+    // itself this way. See ADR "S3-backed inbox".
+    Task<IReadOnlyList<StorageObject>> ListObjectsAsync(string prefix, CancellationToken cancellationToken = default);
+
+    // Every VERSION under a prefix, current and historical, with each version's user metadata — what a KEK
+    // retirement check must consult (ADR 0014). ListObjectsAsync answers only about CURRENT versions, and a
+    // WORM-locked historical version keeps its own wrapped DEK forever: retiring a generation those
+    // versions still reference would destroy exactly the records Object Lock exists to guarantee.
+    // Default: the current versions, so a fake without version support still gives a truthful subset.
+    async Task<IReadOnlyList<StoredObjectVersion>> ListObjectVersionsAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        var current = new List<StoredObjectVersion>();
+        foreach (var stored in await ListObjectsAsync(prefix, cancellationToken))
+        {
+            var info = await GetObjectInfoAsync(stored.Key, cancellationToken);
+            current.Add(new StoredObjectVersion(stored.Key, null, true, info.Metadata));
+        }
+
+        return current;
+    }
+
+    // Server-side copy within the bucket (no bytes leave storage) — filing an intray item moves its object to
+    // a document key with a copy + delete. See ADR "S3-backed inbox".
+    Task CopyObjectAsync(string sourceKey, string destinationKey, CancellationToken cancellationToken = default);
+
+    // Replaces the object's user metadata in place (a self-COPY with metadata REPLACE, content untouched) —
+    // how a client-encrypted upload gets its wrapped DEK attached at finalize (ADR 0818): a presigned PUT
+    // cannot carry metadata the client only mints after receiving the URL. Content-Type is preserved.
+    // Default: drops the metadata, so the test fakes needn't implement it — same rationale as the
+    // metadata-carrying PutObjectAsync overload above.
+    Task SetObjectMetadataAsync(string objectKey, IReadOnlyDictionary<string, string> metadata, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
+
+    Task DeleteObjectAsync(string objectKey, CancellationToken cancellationToken = default);
+
+    // Deletes the object FOR GOOD (ADR 0964): on a versioned bucket every stored version and delete marker of the key, so
+    // nothing of it stays behind a delete marker. For a superseded password-entry version, whose sealed bytes the owner
+    // decided should not outlive their undo window. Default: the plain delete, which is all an unversioned store has.
+    Task DeleteObjectForGoodAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        DeleteObjectAsync(objectKey, cancellationToken);
+
+    // ---- WORM / S3 Object Lock (ADR "WORM / immutable document versions") ----
+    // The bucket must be object-lock-enabled (versioning + object lock) for these to have effect.
+
+    // Sets (or extends) an Object Lock retention on the object until retainUntil, in the given mode. Retention
+    // can only be extended — attempting to shorten it (Compliance always; Governance without bypass) fails at
+    // the storage layer; the caller treats that as a no-op.
+    Task SetRetentionAsync(string objectKey, DateTimeOffset retainUntil, WormLockMode mode, CancellationToken cancellationToken = default);
+
+    // Turns the object's mode-less legal hold on or off. A legal hold blocks deletion independently of, and
+    // with no expiry unlike, a retention lock.
+    Task SetLegalHoldAsync(string objectKey, bool held, CancellationToken cancellationToken = default);
+
+    // Reads the object's current lock state (retain-until + legal hold). Used to refuse a purge of a still-locked
+    // blob. Returns an all-null/false status when the object has no lock configuration.
+    Task<ObjectLockStatus> GetLockStatusAsync(string objectKey, CancellationToken cancellationToken = default);
+}

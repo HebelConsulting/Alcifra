@@ -1,5 +1,5 @@
 #!/bin/sh
-# Postfix configuration for SimplArchive (ADR 0628). Generated at start from the environment so the image
+# Postfix configuration for Alcifra (ADR 0628). Generated at start from the environment so the image
 # carries no deployment's settings, and so the one thing that must not be duplicated — the list of accepted
 # domains — is read from the application's own database rather than restated here.
 set -eu

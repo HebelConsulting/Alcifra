@@ -1,0 +1,170 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- The version reported by GET /api (ADR 0512) when nothing stamps one. A release build overrides it with
+         -p:Version=<tag> (the Dockerfile does this from the release tag).
+
+         0.0.0-dev, NOT the SDK's implicit 1.0.0: serverVersion tells the desktop whether it is behind THIS
+         deployment, so an unstamped build reporting 1.0.0 claimed to be ahead of every release that exists —
+         harmless only because looking up a non-existent v1.0.0 release 404s, and not harmless the day a real
+         1.0.0 is tagged. A sentinel that sorts below every release cannot make that mistake, and reads as
+         "unstamped" rather than as a version (issue #425). -->
+    <Version>0.0.0-dev</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Demo document PDFs the Demo:* seed uploads (ADR 0214 / 0502). Embedded so they ship inside the API
+         assembly and work in the container. Regenerate from the .typ sources with Typst. The invoice is
+         "Invoice 2025-001"; the offer's two revisions are versions 1 + 2 of "Offer 2026-014" (for Compare). -->
+    <EmbeddedResource Include="DemoData/sample-invoice.pdf" LogicalName="DemoInvoice.pdf" />
+    <!-- The seed's only MULTI-PAGE document (#492). The patch-code sample batch needs one: with every
+         document single-page, "cut at the separator sheets" and "split every page" give the same answer and
+         the fixture stops testing the feature. It also fills a real gap — nothing else in the seed had a
+         second page for preview paging or page reordering to work with. -->
+    <EmbeddedResource Include="DemoData/maintenance-agreement.pdf" LogicalName="DemoMaintenanceAgreement.pdf" />
+    <EmbeddedResource Include="DemoData/crypto-board-minutes.pdf" LogicalName="CryptoBoardMinutes.pdf" />
+    <EmbeddedResource Include="DemoData/crypto-salary-review.pdf" LogicalName="CryptoSalaryReview.pdf" />
+    <!-- The Manual tenant's samples (ManualDemoSeeder, #1787), each built from its text source by DemoData/manual/build.sh. -->
+    <EmbeddedResource Include="DemoData/manual/alpenglas-invoice.pdf" LogicalName="ManualAlpenglasInvoice.pdf" />
+    <EmbeddedResource Include="DemoData/manual/alpenglas-maintenance.pdf" LogicalName="ManualAlpenglasMaintenance.pdf" />
+    <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v1.pdf" LogicalName="ManualAlpenglasOfferV1.pdf" />
+    <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v2.pdf" LogicalName="ManualAlpenglasOfferV2.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-contract.pdf" LogicalName="ManualSeewelleContract.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-invoice-1.pdf" LogicalName="ManualSeewelleInvoice1.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-invoice-2.pdf" LogicalName="ManualSeewelleInvoice2.pdf" />
+    <EmbeddedResource Include="DemoData/manual/seewelle-invoice-3.pdf" LogicalName="ManualSeewelleInvoice3.pdf" />
+    <EmbeddedResource Include="DemoData/manual/catering-invoice-v1.pdf" LogicalName="ManualCateringInvoiceV1.pdf" />
+    <EmbeddedResource Include="DemoData/manual/catering-invoice-v2.pdf" LogicalName="ManualCateringInvoiceV2.pdf" />
+    <EmbeddedResource Include="DemoData/manual/delivery-note.pdf" LogicalName="ManualDeliveryNote.pdf" />
+    <EmbeddedResource Include="DemoData/manual/press-release-draft.pdf" LogicalName="ManualPressReleaseDraft.pdf" />
+    <EmbeddedResource Include="DemoData/manual/price-list-2025.pdf" LogicalName="ManualPriceList2025.pdf" />
+    <EmbeddedResource Include="DemoData/manual/train-ticket.eml" LogicalName="ManualTrainTicket.eml" />
+    <EmbeddedResource Include="DemoData/manual/bergkraft-forecast.xlsx" LogicalName="ManualBergkraftForecast.xlsx" />
+    <EmbeddedResource Include="DemoData/manual/lease-letter.docx" LogicalName="ManualLeaseLetter.docx" />
+    <EmbeddedResource Include="DemoData/manual/letterhead.odt" LogicalName="ManualLetterhead.odt" />
+    <EmbeddedResource Include="DemoData/manual/invoice-template.ods" LogicalName="ManualInvoiceTemplate.ods" />
+    <EmbeddedResource Include="DemoData/manual/site-plan.png" LogicalName="ManualSitePlan.png" />
+    <EmbeddedResource Include="DemoData/manual/contact-rigiblick.vcf" LogicalName="ManualContactRigiblick.vcf" />
+    <EmbeddedResource Include="DemoData/manual/contact-weber.vcf" LogicalName="ManualContactWeber.vcf" />
+    <EmbeddedResource Include="DemoData/manual/contact-seecafe.vcf" LogicalName="ManualContactSeecafe.vcf" />
+    <EmbeddedResource Include="DemoData/manual/personal-gerber.vcf" LogicalName="ManualPersonalGerber.vcf" />
+    <EmbeddedResource Include="DemoData/manual/personal-treuhand.vcf" LogicalName="ManualPersonalTreuhand.vcf" />
+    <!-- The same batch as a SCAN (#492): seven 200-dpi bilevel G4 pages rasterised from the documents above,
+         separators at 2 and 6, page 4 fed in upside-down, page 5 the blank duplex back, page 7 crooked by 3.5
+         degrees. G4 because that is what a document scanner emits — and it is 78 KB against 906 KB grayscale.
+         Checked in rather than generated per request because building it needs a PDF rasteriser, which is
+         precisely what the Api image does not have. Verified against the real detector: patchPages [2, 6].
+         Regenerate with scripts/generate-scan-sample.sh. -->
+    <EmbeddedResource Include="DemoData/patch-code-sample-batch.tif" LogicalName="DemoPatchCodeSampleBatch.tif" />
+    <!-- Two real contacts for the demo user's own addressbook (#648). Both carry an X-ABShowAs the structured
+         form does not model, so they double as the demo of the raw disclosure — which has nothing to show on a
+         card this product composed itself. Source: samples/. -->
+    <EmbeddedResource Include="DemoData/volmet-geneva.vcf" LogicalName="DemoVolmetGeneva.vcf" />
+    <EmbeddedResource Include="DemoData/volmet-zurich.vcf" LogicalName="DemoVolmetZurich.vcf" />
+    <EmbeddedResource Include="DemoData/sample-offer-v1.pdf" LogicalName="DemoOfferV1.pdf" />
+    <EmbeddedResource Include="DemoData/sample-offer-v2.pdf" LogicalName="DemoOfferV2.pdf" />
+    <!-- Richer demo tree (ADR 0214, issue #354): Business Years / Contracts / General folders with varied file
+         types. PDFs compile from the .typ sources with Typst; the office/email files are checked-in fixtures. -->
+    <EmbeddedResource Include="DemoData/choc-invoice-v1.pdf" LogicalName="DemoChocInvoiceV1.pdf" />
+    <EmbeddedResource Include="DemoData/choc-invoice-v2.pdf" LogicalName="DemoChocInvoiceV2.pdf" />
+    <EmbeddedResource Include="DemoData/telekom-contract.pdf" LogicalName="DemoTelekomContract.pdf" />
+    <EmbeddedResource Include="DemoData/telekom-invoice-jan.pdf" LogicalName="DemoTelekomInvoiceJan.pdf" />
+    <EmbeddedResource Include="DemoData/telekom-invoice-feb.pdf" LogicalName="DemoTelekomInvoiceFeb.pdf" />
+    <EmbeddedResource Include="DemoData/telekom-invoice-mar.pdf" LogicalName="DemoTelekomInvoiceMar.pdf" />
+    <EmbeddedResource Include="DemoData/contoso-forecast.xlsx" LogicalName="DemoContosoForecast.xlsx" />
+    <EmbeddedResource Include="DemoData/rental-complaint.docx" LogicalName="DemoRentalComplaint.docx" />
+    <EmbeddedResource Include="DemoData/letterhead-template.odt" LogicalName="DemoLetterheadTemplate.odt" />
+    <EmbeddedResource Include="DemoData/invoice-template.ods" LogicalName="DemoInvoiceTemplate.ods" />
+    <EmbeddedResource Include="DemoData/transport-ticket.eml" LogicalName="DemoTransportTicket.eml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alcifra.Application\Alcifra.Application.csproj" />
+    <ProjectReference Include="..\Alcifra.Presentation\Alcifra.Presentation.csproj" />
+    <ProjectReference Include="..\Alcifra.Infrastructure\Alcifra.Infrastructure.csproj" />
+    <ProjectReference Include="..\Alcifra.Auth\Alcifra.Auth.csproj" />
+    <ProjectReference Include="..\Alcifra.Client\Alcifra.Client.csproj" />
+    <ProjectReference Include="..\Alcifra.Localization\Alcifra.Localization.csproj" />
+    <!-- The design tokens (ADR 0578): the shipped palette, and the loader that reads an
+         installation's custom/theme.json over it. -->
+    <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
+    <!-- The .simplarchive container (ADR 0961): the server WRITES road copies with the same code the clients read them with. -->
+    <ProjectReference Include="..\Alcifra.SealedArchive\Alcifra.SealedArchive.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pinned above what other packages bring (10.0.0/10.0.9): CVE-2026-84008 and CVE-2026-70162, fixed in 10.0.13. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageReference Include="Asp.Versioning.Mvc" Version="10.0.0" />
+    <PackageReference Include="Fido2" Version="4.0.1" />
+    <PackageReference Include="Fido2.AspNet" Version="4.0.1" />
+    <PackageReference Include="FolkerKinzel.VCards" Version="8.2.0" />
+    <PackageReference Include="Ical.Net" Version="5.2.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.13" />
+    <!-- OpenAPI (ADR "OpenAPI definition endpoint"): Microsoft.AspNetCore.OpenApi generates /openapi/v1.json;
+         Scalar renders the browsable UI. Both MIT. Microsoft.OpenApi is pinned to 2.0.1 (a transitive of
+         Microsoft.AspNetCore.OpenApi, which floors it at the vulnerable 2.0.0) to 2.7.5 — the first patched
+         release in the 2.x line (advisory GHSA-v5pm-xwqc-g5wc / NU1903, vulnerable ≤ 2.7.4) — to keep the CVE
+         gate green, same transitive-security-pin pattern as System.Security.Cryptography.Xml. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="OpenIddict.AspNetCore" Version="7.5.0" />
+    <!-- Enterprise structured logging (ADR "Enterprise-grade structured logging with Serilog"). Serilog.AspNetCore
+         (Apache-2.0) bundles the Serilog core, the console sink, the compact JSON formatter, request logging, and
+         the host integration. Its six levels (Verbose/Debug/Information/Warning/Error/Fatal) are exactly the ones
+         the logging principle in CLAUDE.md defines. -->
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <!-- SignalR Valkey/Redis backplane (ADR "SignalR Valkey backplane") so real-time notifications fan out across
+         API replicas. Microsoft.AspNetCore.SignalR.StackExchangeRedis + StackExchange.Redis are both MIT and speak
+         the Redis protocol, so Valkey works unchanged. Only active when ConnectionStrings:Valkey is configured. -->
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.13" />
+    <!-- Two-factor auth (ADR "MFA (interactive login, TOTP)"): Otp.NET generates/verifies TOTP codes, QRCoder
+         renders the enrollment QR. Both MIT. -->
+    <PackageReference Include="Otp.NET" Version="1.4.0" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="WebPush" Version="1.0.13" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The unit suite asserts one security-relevant invariant on the IMAP session: that a credential-bearing
+         command's arguments are never returned for logging. That rule is worth a test, and a test needs to see it. -->
+    <InternalsVisibleTo Include="Alcifra.UnitTests" />
+    <!-- The password history's claim is tested as two instances acting on one stale read (ADR 0964), which needs
+         its per-item delete; nothing else in the integration suite reaches inside this assembly. -->
+    <InternalsVisibleTo Include="Alcifra.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The brand's assets for the web (ADRs 0991, 0992): fonts, wordmark and licences, copied into the published
+         wwwroot/brand and served at /brand by BrandAssetFiles. The static .ttf faces are the desktop's and the
+         manual's, not the web's. Taken from brand/, so a white-label build changes brand/ and nothing here.
+         Deliberately None, not Content: as a static web asset a linked file is mapped, under `dotnet run`, to
+         this project's wwwroot, where it does not exist. -->
+    <None Include="..\..\brand\assets\**\*" Exclude="..\..\brand\assets\**\*.ttf" Link="wwwroot\brand\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The brand's web icons (ADR 0993): favicons and the per-style tab icons, generated at build time into
+       $(BrandIconsDir)web, laid out as they sit in wwwroot. Copied after publishing, because they do not exist until
+       the generator ran, which is after this file was evaluated. -->
+  <PropertyGroup>
+    <UsesBrandIcons>true</UsesBrandIcons>
+  </PropertyGroup>
+  <Target Name="PublishBrandIcons" AfterTargets="Publish">
+    <ItemGroup>
+      <BrandWebIcon Include="$(BrandIconsDir)web\**\*" />
+    </ItemGroup>
+    <Error Condition="'@(BrandWebIcon)' == ''" Text="No brand icons in $(BrandIconsDir)web. They are generated by Alcifra.BrandIcons (ADR 0993); a build with GenerateBrandIcons=false must pass a BrandIconsDir that holds them." />
+    <Copy SourceFiles="@(BrandWebIcon)" DestinationFiles="@(BrandWebIcon->'$(PublishDir)wwwroot\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+</Project>

@@ -1,6 +1,6 @@
 <Project>
   <!-- Package metadata shared by the client libraries the mobile app consumes as packages (ADR 0917, #1687):
-       SimplArchive.ApiClient and the four leaves it references, Presentation, Localization, TextLayout and SealedArchive.
+       Alcifra.ApiClient and the four leaves it references, Presentation, Localization, TextLayout and SealedArchive.
        One file, so the five cannot drift. The VERSION is not here: client-packages-publish.yml stamps <major>.0.<run number>
        whenever one of them changes on main (owner decision 2026-10-09), and a local build stays 0.0.0-dev. -->
   <PropertyGroup>

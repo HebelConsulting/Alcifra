@@ -1594,12 +1594,12 @@ and no source tree to build.
 
 ```sh
 # The installed executable. This is the macOS path; the others are below.
-SA=/Applications/SimplArchive.app/Contents/MacOS/SimplArchive.DesktopClient
+SA=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
 ```
 
-/ macOS: #linebreak() `/Applications/SimplArchive.app/Contents/MacOS/SimplArchive.DesktopClient`
-/ Windows, in the unpacked folder: #linebreak() `SimplArchive.DesktopClient.exe`
-/ Linux, in the unpacked folder: #linebreak() `./SimplArchive.DesktopClient`
+/ macOS: #linebreak() `/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient`
+/ Windows, in the unpacked folder: #linebreak() `Alcifra.DesktopClient.exe`
+/ Linux, in the unpacked folder: #linebreak() `./Alcifra.DesktopClient`
 
 *What the client can see* — no PIN, because certificates are public:
 
@@ -1946,9 +1946,9 @@ detail, so there is nothing to switch on after the fact: whatever just went wron
 *Where to find it.* The easiest way is in the app itself: *Help ▸ Show log folder* opens the folder directly.
 The location by operating system:
 
-- Windows — `%APPDATA%\SimplArchive\logs`
-- macOS — `~/Library/Application Support/SimplArchive/logs`
-- Linux — `~/.config/SimplArchive/logs`
+- Windows — `%APPDATA%\Alcifra\logs`
+- macOS — `~/Library/Application Support/Alcifra/logs`
+- Linux — `~/.config/Alcifra/logs`
 
 Files are named `simplarchive-YYYYMMDD.log`; the newest one is today's. The log is small by design (it rolls at
 4 MB and keeps seven files) and never contains a password or a token, so it is safe to attach to a support
@@ -1957,9 +1957,9 @@ request as it is.
 *Watching it live.* Start the client from a terminal with the `--verbose` flag and the same full detail is
 printed to the terminal as it happens — useful when reproducing a problem step by step:
 
-- Windows — `SimplArchive.DesktopClient.exe --verbose`
-- macOS — `SimplArchive.app/Contents/MacOS/SimplArchive.DesktopClient --verbose`
-- Linux — `./SimplArchive.DesktopClient --verbose`
+- Windows — `Alcifra.DesktopClient.exe --verbose`
+- macOS — `Alcifra.app/Contents/MacOS/Alcifra.DesktopClient --verbose`
+- Linux — `./Alcifra.DesktopClient --verbose`
 
 Without the flag a terminal shows only the important lines; the file always carries everything, flag or no
 flag.

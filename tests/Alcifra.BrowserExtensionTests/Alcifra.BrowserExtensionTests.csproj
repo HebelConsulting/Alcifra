@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The browser extension, end to end (ADR 0980): Playwright's own Chromium loads browser-extension/chrome
+       unpacked into a throwaway profile, and the profile's native-messaging manifests point at THIS assembly,
+       which runs the real AutofillHost over a fake store. No server, no card, no Docker — so it runs in CI's fast
+       tier. The assembly is its own host executable, hence our own Main instead of the test SDK's empty one. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <GenerateProgramFile>false</GenerateProgramFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.49.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Alcifra.BrowserHost\Alcifra.BrowserHost.csproj" />
+  </ItemGroup>
+
+</Project>

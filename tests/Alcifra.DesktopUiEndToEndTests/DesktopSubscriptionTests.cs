@@ -1,0 +1,39 @@
+using System.Text;
+using Alcifra.DesktopClient;
+using Alcifra.DesktopClient.Services;
+
+namespace Alcifra.UiEndToEndTests;
+
+// The desktop half of document subscriptions (ADR "Document subscriptions"): the real AlcifraApiClient
+// follows/unfollows a document and reads the current state back.
+[Collection(UiCollection.Name)]
+public class DesktopSubscriptionTests
+{
+    private readonly SelfHostedAppFixture _app;
+
+    public DesktopSubscriptionTests(SelfHostedAppFixture app) => _app = app;
+
+    [Fact]
+    public async Task Follow_and_unfollow_round_trips()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+
+        var repo = (await api.Documents.GetRepositoriesAsync()).Single(n => n.Name == "Demo Repository");
+        var name = $"sub-{Guid.NewGuid():N}.txt";
+        await api.Documents.UploadFileAsync(repo.Href("children"), name, Encoding.UTF8.GetBytes("follow me"));
+        var doc = (await api.Documents.GetChildrenAsync(repo.Href("children"))).Single(n => n.Name == Path.GetFileNameWithoutExtension(name));
+
+        Assert.False(await api.Documents.GetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription"))); // not following by default
+
+        await api.Documents.SetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription"), subscribe: true);
+        Assert.True(await api.Documents.GetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription")));
+
+        // Idempotent: following again stays true.
+        await api.Documents.SetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription"), subscribe: true);
+        Assert.True(await api.Documents.GetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription")));
+
+        await api.Documents.SetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription"), subscribe: false);
+        Assert.False(await api.Documents.GetSubscriptionAsync(await api.Documents.RelViaSelfAsync(doc.Href("self"), "subscription")));
+    }
+}

@@ -1,0 +1,413 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Alcifra.Domain.Masks;
+using Alcifra.Domain.Tenants;
+using Alcifra.Infrastructure.Masks;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.IntegrationTests;
+
+// The other half of the upgrade-path defect that PersonalNotesMaskHealTests covers. That one is about a well-known
+// mask that does not EXIST yet in an older tenant; this one is about a well-known mask that exists but is MISSING
+// FIELDS, because its field set was fixed when the tenant was seeded and every field added afterwards reached only
+// tenants provisioned later. ADR 0587 added three fields to the eMail mask and they never arrived anywhere they
+// were needed: the mask existed, so the seeder returned early and never looked at its fields.
+public class WellKnownMaskFieldHealTests
+{
+    private readonly Guid _tenantId = Guid.NewGuid();
+
+    private AlcifraDbContext Ctx(SqliteConnection c, CurrentTenantAccessor a) =>
+        new(new DbContextOptionsBuilder<AlcifraDbContext>().UseSqlite(c).Options, a);
+
+    private static WellKnownMaskSeeder Seeder(AlcifraDbContext db) =>
+        new(db, NullLogger<WellKnownMaskSeeder>.Instance);
+
+    private async Task<List<string>> FieldNamesAsync(AlcifraDbContext db, Guid maskId) =>
+        await db.MaskVersions.IgnoreQueryFilters()
+            .Where(v => v.TenantId == _tenantId && v.MaskId == maskId && v.IsCurrent)
+            .Join(db.FieldDefinitions.IgnoreQueryFilters(), v => v.Id, f => f.MaskVersionId, (_, f) => f.Name)
+            .ToListAsync();
+
+    [Fact]
+    public async Task A_field_added_to_a_well_known_mask_reaches_a_tenant_that_predates_it()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Older", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        // The tenant is seeded, then its eMail mask is cut back to the six fields it had before ADR 0587 — this is
+        // what every tenant provisioned before that ADR actually looks like today.
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        var addedByAdr0587 = new[] { "Conversation ID", "Mailbox path", "Reference" };
+        using (var db = Ctx(connection, accessor))
+        {
+            var stale = await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => addedByAdr0587.Contains(f.Name)).ToListAsync();
+            db.FieldDefinitions.RemoveRange(stale);
+            await db.SaveChangesAsync();
+            Assert.Equal(6, (await FieldNamesAsync(db, WellKnownMaskIds.EMail)).Count);
+        }
+
+        // The upgrade arrives: the startup backfill runs for the existing tenant, as Program.cs does per tenant.
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            var names = await FieldNamesAsync(db, WellKnownMaskIds.EMail);
+            Assert.Equal(9, names.Count);
+            foreach (var field in addedByAdr0587)
+            {
+                Assert.Contains(field, names);
+            }
+
+            // Added as OPTIONAL — a required one would retroactively invalidate every document already on the mask.
+            var added = await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => addedByAdr0587.Contains(f.Name)).ToListAsync();
+            Assert.All(added, f => Assert.False(f.IsRequired));
+
+            // Healed onto the mask's CURRENT version, not a new one: no version bump, so nothing needs re-pointing
+            // and every document already carrying the mask sees the new fields immediately.
+            Assert.Equal(1, await db.MaskVersions.IgnoreQueryFilters()
+                .CountAsync(v => v.TenantId == _tenantId && v.MaskId == WellKnownMaskIds.EMail));
+        }
+    }
+
+    [Fact]
+    public async Task The_heal_is_idempotent_and_does_not_duplicate_fields()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Older", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        // Three startups in a row — the seeder runs per tenant on every one of them.
+        for (var i = 0; i < 3; i++)
+        {
+            using var db = Ctx(connection, accessor);
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            var names = await FieldNamesAsync(db, WellKnownMaskIds.EMail);
+            Assert.Equal(names.Count, names.Distinct().Count());
+            Assert.Equal(9, names.Count);
+
+            // Every well-known mask stays on exactly one version — the probe must never mint one. The count
+            // tracks the well-known set (11 since #564 added the Contact/Calendar pairs and then the notebook
+            // Section): asserting the two counts are EQUAL is the invariant, and the literal additionally
+            // catches a mask appearing by accident, so both are kept.
+            //
+            // Note the Notebook itself is NOT a new mask here — "Note Folder" → "Notebook" is a rename on the
+            // same id, which is what keeps the upgrade free of any document movement.
+            //
+            // 11 → 12 with Repository (ADR 0627, #596), which unlike the Notebook case IS a genuinely new mask:
+            // a repository previously wore the plain Folder mask, so this one has its own id and existing
+            // repositories are moved onto it by the seeder's backfill. 12 → 13 with Mailbox (ADR 0628),
+            // 13 → 14 with IMAP Special (#596) — the mask that marks a mailbox's standing folders ephemeral.
+            // 15 → 16 with IMAP Folder (#802) — the user-created mail folder inside the staging tier.
+            // 16 → 18 with Meeting room + Room booking (ADR 0735) — the booking primitive's thin core proof.
+            // 18 → 19 with License (ADRs 0740/0743) — the filed license artefact's core mask.
+            // 19 → 20 with Schedule (ADR 0744) — the room's booking calendar, a calendar kind of its own so
+            // its containment (only Bookings, only inside a room) stays non-contextual.
+            // 20 → 22 with Blockers + Block (ADR 0778) — the Schedule's counterpart: when a
+            // resource is UNAVAILABLE, as against when it is spoken for. Two masks for the same reason the
+            // booking pair is two: the collection types the folder, the item carries the window.
+            // 22 → 24 with Availability + Availability window (ADR 0780) — the third question a resource's
+            // timeline answers: when it is OFFERED, as against spoken for or withdrawn.
+            // 24 → 25 with Certificate (ADR 0844) — core-owned and GENERIC, so a module that enrols
+            // certificates wears it rather than declaring its own and leaving a tenant holding one
+            // "Certificate" mask per vendor. Core seeds it and does not yet write to it.
+            // 25 → 27 with Alcifra Documentation + Manual (ADR 0891) — the manuals folder and what it holds.
+            var maskCount = await db.Masks.IgnoreQueryFilters().CountAsync(m => m.TenantId == _tenantId);
+            // 29 → 32 with Password Store, Password Folder and Password Entry (ADR 0964).
+            // 32 → 33 with Sealed document (owner decision 2026-10-24) — content sealed to an audience, the name
+            // hidden at the author's choice.
+            Assert.Equal(33, maskCount); // + Alcifra Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
+            Assert.Equal(maskCount, await db.MaskVersions.IgnoreQueryFilters().CountAsync(v => v.TenantId == _tenantId));
+        }
+    }
+
+    [Fact]
+    public async Task An_existing_mask_missing_a_REQUIRED_field_heals_it_in_place_with_its_requiredness()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Older", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        // Simulate a release that dropped a REQUIRED field into a well-known mask's spec: remove one the seeder
+        // declares as required, so the next probe finds it missing.
+        using (var db = Ctx(connection, accessor))
+        {
+            var subject = await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => db.MaskVersions.Any(v => v.Id == f.MaskVersionId && v.MaskId == WellKnownMaskIds.EMail))
+                .SingleAsync(f => f.Name == "Subject");
+            db.FieldDefinitions.Remove(subject);
+            await db.SaveChangesAsync();
+        }
+
+        // It heals, requiredness included (ADR 0748, #1018 — supersedes ADR 0616's refusal, which
+        // boot-crashed every pre-reshape database: v0.13 → v0.14 crash-looped on Room booking's new
+        // required Event UID). Existing documents stay usable because required-field validation applies on
+        // (re)assignment only (ADR 0176). The revisit trigger — a real user base — is recorded at the seeder.
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            var healed = await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => db.MaskVersions.Any(v => v.Id == f.MaskVersionId && v.MaskId == WellKnownMaskIds.EMail))
+                .SingleAsync(f => f.Name == "Subject");
+            Assert.True(healed.IsRequired); // spec'd requiredness arrives with the heal, not a demotion
+        }
+    }
+
+    [Fact]
+    public async Task The_Mailbox_address_list_arrives_with_its_multiplicity_on_both_paths()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Fresh", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        // The CREATE path: a fresh tenant's Mailbox mask carries "eMail Addresses" as an EmailAddress LIST.
+        // This is the first well-known list field, so it is also what finally exercises the IsList carry the
+        // seeder gained in #703 PR 1 — two assignment lines no test could reach while no spec declared one.
+        using (var db = Ctx(connection, accessor))
+        {
+            var field = await AddressFieldAsync(db);
+            Assert.Equal(FieldDataType.EmailAddress, field.DataType);
+            Assert.True(field.IsList);
+            Assert.False(field.IsRequired); // the SPEC says optional; the heal carries spec'd requiredness (ADR 0748)
+        }
+
+        // The HEAL path: a tenant seeded before the field existed gains it at next startup, multiplicity and
+        // type included — strip it, re-run, and it is back whole.
+        using (var db = Ctx(connection, accessor))
+        {
+            db.FieldDefinitions.Remove(await AddressFieldAsync(db));
+            await db.SaveChangesAsync();
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            var healed = await AddressFieldAsync(db);
+            Assert.Equal(FieldDataType.EmailAddress, healed.DataType);
+            Assert.True(healed.IsList);
+        }
+    }
+
+    private async Task<FieldDefinition> AddressFieldAsync(AlcifraDbContext db) =>
+        await db.MaskVersions.IgnoreQueryFilters()
+            .Where(v => v.TenantId == _tenantId && v.MaskId == WellKnownMaskIds.Mailbox && v.IsCurrent)
+            .Join(db.FieldDefinitions.IgnoreQueryFilters(), v => v.Id, f => f.MaskVersionId, (_, f) => f)
+            .SingleAsync(f => f.Name == "eMail Addresses");
+
+    [Fact]
+    public async Task A_field_whose_MULTIPLICITY_drifted_is_corrected_in_place()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Older", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        // Multiplicity drifts exactly as the TYPE does, and for exactly the same reason (#703): a field
+        // defined before IsList existed says "single-valued" forever, so a tenant seeded earlier would keep a
+        // one-line editor for a field the app declares a list — and, worse, the API would refuse its second
+        // value while a freshly provisioned tenant accepted it. Both tenants look fine; only they disagree.
+        //
+        // Driven from the `true → false` side because no well-known mask declares a list yet — that arrives
+        // with the Mailbox's address list. It is the same branch either way, and this direction has the
+        // advantage of being a real regression test the moment one does.
+        using (var db = Ctx(connection, accessor))
+        {
+            var subject = await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => db.MaskVersions.Any(v => v.Id == f.MaskVersionId && v.MaskId == WellKnownMaskIds.EMail))
+                .SingleAsync(f => f.Name == "Subject");
+            subject.IsList = true;
+            await db.SaveChangesAsync();
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            Assert.False(await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => f.Name == "Subject"
+                    && db.MaskVersions.Any(v => v.Id == f.MaskVersionId && v.MaskId == WellKnownMaskIds.EMail))
+                .Select(f => f.IsList).SingleAsync());
+        }
+    }
+
+    [Fact]
+    public async Task A_certificates_validity_and_revocation_heal_from_days_to_instants()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Older", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        // A tenant seeded before 2026-10-05 holds the three as DATES, which dropped the time a certificate
+        // actually carries: it becomes valid and expires at a moment, and a CA revokes at one.
+        string[] instants = ["Valid from", "Valid until", "Revoked on"];
+        using (var db = Ctx(connection, accessor))
+        {
+            foreach (var field in await CertificateFields(db, instants))
+            {
+                field.DataType = FieldDataType.Date;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            var healed = await CertificateFields(db, instants);
+            Assert.Equal(instants.Length, healed.Count);
+            Assert.All(healed, f => Assert.Equal(FieldDataType.DateTime, f.DataType));
+        }
+
+        static Task<List<FieldDefinition>> CertificateFields(AlcifraDbContext db, string[] names) =>
+            db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => names.Contains(f.Name)
+                    && db.MaskVersions.Any(v => v.Id == f.MaskVersionId && v.MaskId == WellKnownMaskIds.Certificate))
+                .ToListAsync();
+    }
+
+    [Fact]
+    public async Task The_booking_masks_room_specific_name_heals_to_the_resource_agnostic_one()
+    {
+        // The Booking mask began life as "Room booking" (ADR 0744's meeting-room proof) and went
+        // resource-agnostic when aircraft became bookable (ADR 0760): a pre-rename tenant still carries the
+        // old name, and the startup backfill's RenameIfNeededAsync is what corrects it — the Notebook
+        // precedent, re-pinned for this rename.
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor();
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "T", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        // Backdate to the pre-rename name, as a tenant seeded before ADR 0760 would hold it.
+        using (var db = Ctx(connection, accessor))
+        {
+            var current = await db.MaskVersions.IgnoreQueryFilters()
+                .SingleAsync(v => v.TenantId == _tenantId && v.MaskId == WellKnownMaskIds.Booking && v.IsCurrent);
+            current.Name = "Room booking";
+            await db.SaveChangesAsync();
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using var check = Ctx(connection, accessor);
+        Assert.Equal("Booking", (await check.MaskVersions.IgnoreQueryFilters()
+            .SingleAsync(v => v.TenantId == _tenantId && v.MaskId == WellKnownMaskIds.Booking && v.IsCurrent)).Name);
+    }
+
+    [Fact]
+    public async Task Field_display_order_heals_to_the_seed_lists_index()
+    {
+        // ADR 0761: SortOrder is the seed list's index, assigned unconditionally by the heal — so a tenant
+        // seeded before the column existed (all rows 0), or before a deliberate reorder, converges on the
+        // declared order at the next startup backfill.
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor();
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "T", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        // Scramble, as a pre-column tenant would read (every row 0 → undefined order).
+        using (var db = Ctx(connection, accessor))
+        {
+            foreach (var field in await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => f.TenantId == _tenantId).ToListAsync())
+            {
+                field.SortOrder = 0;
+            }
+
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using var check = Ctx(connection, accessor);
+        var emailVersion = await check.MaskVersions.IgnoreQueryFilters()
+            .SingleAsync(v => v.TenantId == _tenantId && v.MaskId == WellKnownMaskIds.EMail && v.IsCurrent);
+        var ordered = await check.FieldDefinitions.IgnoreQueryFilters()
+            .Where(f => f.MaskVersionId == emailVersion.Id)
+            .OrderBy(f => f.SortOrder).Select(f => new { f.Name, f.SortOrder }).ToListAsync();
+        Assert.Equal(Enumerable.Range(0, ordered.Count), ordered.Select(f => f.SortOrder)); // distinct, 0..n-1
+        Assert.Equal("From", ordered[0].Name); // the seed list's first field leads
+    }
+
+}

@@ -1,0 +1,540 @@
+@using System.Net
+@using Alcifra.Client.Pages
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@implements IAsyncDisposable
+@implements IAnnotationSurface
+
+@* The workbench's document preview (ADRs 0268/0269/0282/0294/0295), extracted from Home.razor per ADR 0558.
+
+   Images and PDFs render via pdf.js into a JS-OWNED host div with the search hit-overlay and click-to-copy;
+   text formats show as text; anything else shows a placeholder. This component owns the host, the preview.js
+   module, the display state and — crucially — its OWN DotNetObjectReference, so each place that shows a
+   preview gets an independent one.
+
+   That independence is the point of extracting it. Before, the Repositories and Intray tabs SHARED one host and
+   one state object, "mutually exclusive in the DOM", and relied on a reset during tab-switch to stop one tab's
+   preview leaking into the other's host. Two tabs sharing a JS-owned div is a hazard that no amount of resetting
+   makes safe; one instance each removes the question. The recycle bin had already been given its own duplicate
+   host for exactly this reason, which was the third copy of the same markup.
+
+   What it does NOT own is annotations: acting on a gesture means writing to a document version's annotation
+   collection, which is document state. Gestures arrive here (JS calls this component) and are forwarded to
+   IPreviewAnnotationHost. The annotation TOOLBAR arrives the same way — as a Toolbar fragment — so a pane with
+   nothing to annotate simply passes neither. *@
+
+@if (CollapseGutter)
+{
+    @* The pane's own collapse gutter, rendered as a preceding flex SIBLING so it stands between this pane and
+       its left neighbour in the host row. Only the Repositories tab opts in (wbLayout.js keys on "preview"). *@
+    <WbGutter Name="preview" />
+}
+<div class="wb-preview @(_fullscreen ? "wb-pv-fullscreen" : "")" style="@Style" data-pane="@DataPane" data-tour="@DataTour">
+    @* min-height:0 or this column's content-driven minimum wins over the pane's bounds, and a tall document
+       stretches the pane to the document's own height — on the Intray tab, whose ancestor chain has no
+       overflow backstop, the pages then painted straight over the bottom tab bar. Repositories never showed
+       it only because its pane happens to sit inside an overflow:auto container. *@
+    <div style="display:flex; flex-direction:column; flex:1 1 auto; min-width:0; min-height:0;">
+        @* The toolbar shows for a page preview (find + zoom + full-screen) or a text preview (full-screen only). *@
+        <div class="wb-pv-findbar" style="@((ShowToolbar && (State.HasPages || State.Kind == "text")) ? "" : "display:none;")">
+            @if (State.HasPages || State.Kind == "text")
+            {
+                <span class="wb-pv-findgrp">
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" />
+                    @* Value needs the @: on a STRING parameter, Value="State.FindQuery" passes the literal
+                       expression TEXT, builds clean, and renders "State.FindQuery" in the box — the exact
+                       razor-string-parameter trap this codebase has hit before. *@
+                    <SearchField Value="@State.FindQuery" ValueChanged="ApplyFindAsync" Immediate="true"
+                                 Placeholder="@Strings.Get("FindInDocument")" Style="max-width:220px;" />
+                    <span class="mud-text-secondary" style="font-size:.8em; min-width:46px;">@State.Index / @State.Count</span>
+                    <MudIconButton Class="wb-pv-find-prev" Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="Size.Small" Disabled="@(State.Count == 0)" OnClick="FindPrevAsync" />
+                    <MudIconButton Class="wb-pv-find-next" Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" Disabled="@(State.Count == 0)" OnClick="FindNextAsync" />
+                </span>
+            }
+            @Toolbar
+            <span class="wb-pv-rightgrp">
+                @if (State.Kind == "text")
+                {
+                    @* Wrap toggle (#1317): one button; the horizontal scrollbar FOLLOWS from it rather than
+                       being a second control — wrap on means nothing overflows sideways, wrap off means it
+                       can and the scrollbar appears. State semantics per ADR 0581: the accent GLYPH is the
+                       toggles' on-state channel, same as the annotation tools. *@
+                    <MudIconButton Class="@("wb-pv-wrap-btn" + (_textWrap ? " mud-primary-text" : ""))" Icon="@Icons.Material.Filled.WrapText"
+                                   Size="Size.Small" OnClick="@(() => _textWrap = !_textWrap)" title="@Strings.Get("PvWrap")" />
+                }
+                @if (State.HasPages)
+                {
+                    @* Preview zoom (#357): fit ↔ 4×; pinch + ⌘/Ctrl-wheel also zoom (preview.js). *@
+                    <MudIconButton Class="wb-pv-zoom-out" Icon="@Icons.Material.Filled.Remove" Size="Size.Small" OnClick="@(() => ZoomAsync(1d / 1.25))" title="@Strings.Get("PvZoomOut")" />
+                    <MudIconButton Class="wb-pv-zoom-reset" Icon="@Icons.Material.Filled.FilterCenterFocus" Size="Size.Small" OnClick="ZoomResetAsync" title="@Strings.Get("PvZoomReset")" />
+                    @* Fit the whole page (#480). Distinct from fit-WIDTH above: for a portrait page in a pane
+                       wider than it is tall, fitting the width pushes the bottom off screen. *@
+                    @* FitScreen, not Fullscreen: the full-screen toggle sits two buttons away and wore the same icon. *@
+                    <MudIconButton Class="wb-pv-zoom-fit-page" Icon="@Icons.Material.Filled.FitScreen" Size="Size.Small" OnClick="FitPageAsync" title="@Strings.Get("PvFitPage")" />
+                    <MudIconButton Class="wb-pv-zoom-in" Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => ZoomAsync(1.25))" title="@Strings.Get("PvZoomIn")" />
+                }
+                <MudIconButton Class="wb-pv-fs-btn" Icon="@(_fullscreen ? Icons.Material.Filled.FullscreenExit : Icons.Material.Filled.Fullscreen)" Size="Size.Small" OnClick="ToggleFullscreenAsync" title="@(_fullscreen ? Strings.Get("PvExitFullscreen") : Strings.Get("PvFullscreen"))" />
+            </span>
+        </div>
+        <div class="wb-pv-host" @ref="_host" style="@(State.HasPages ? "" : "display:none;")"></div>
+        @if (State.HasPages || State.Kind == "text")
+        {
+            @Overlay
+        }
+        @if (!State.HasPages)
+        {
+            @if (State.Kind == "text")
+            {
+                @* Inline mark styles, deliberately: index.html does not link the scoped-CSS bundle, and a
+                   class with no ruleset is the invisible-control trap — a find that "works" but shows nothing.
+
+                   ONE ROW PER LOGICAL LINE (#1317), which is what keeps the always-on line numbers aligned
+                   when wrapping is on: a wrapped line grows its own row and pushes the next number down,
+                   instead of shearing a separately-rendered number column. The gutter is sticky (it must not
+                   ride away under horizontal scroll with wrap off) and unselectable — a .log is read to be
+                   COPIED out of, and numbers inside the selection would come along with every paste. *@
+                <div class="wb-pv-text" style="flex:1 1 auto; min-height:0; overflow:auto; padding:12px 0; font-family:Menlo,Consolas,monospace; font-size:.82em; line-height:1.45;">
+                    @{ var lineNo = 0; }
+                    @foreach (var row in State.TextLineRows())
+                    {
+                        lineNo++;
+                        @* width:max-content only when NOT wrapping — max-content measures the UNWRAPPED
+                           intrinsic width, so with wrap on it would widen every row right back past the
+                           pane and re-create the sideways overflow the wrap exists to prevent. *@
+                        <div style="display:flex; align-items:flex-start; min-width:100%; @(_textWrap ? "" : "width:max-content;")">
+                            <span class="wb-pv-linenum" style="position:sticky; left:0; flex:0 0 auto; user-select:none; -webkit-user-select:none; text-align:right; min-width:3.5em; padding:0 10px 0 12px; color:var(--mud-palette-text-secondary); background:var(--mud-palette-surface); opacity:.95;">@lineNo</span>
+                            <pre style="white-space:@(_textWrap ? "pre-wrap" : "pre"); overflow-wrap:@(_textWrap ? "anywhere" : "normal"); margin:0; padding-right:12px; font:inherit; min-height:1.45em; flex:@(_textWrap ? "1 1 0" : "0 0 auto"); min-width:0;">@foreach (var (segment, isHit, isActive, hitOrdinal) in row)
+{
+    if (isHit && hitOrdinal > 0)
+    {
+        <mark id="@($"wb-pv-thit-{hitOrdinal}")" style="@(isActive ? "background:#f6a821; color:#000;" : "background:#ffe58a; color:#000;")">@segment</mark>
+    }
+    else if (isHit)
+    {
+        <mark style="@(isActive ? "background:#f6a821; color:#000;" : "background:#ffe58a; color:#000;")">@segment</mark>
+    }
+    else
+    {
+        @segment
+    }
+}</pre>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="wb-preview-empty">
+                    <MudText Typo="Typo.body2">@EmptyText</MudText>
+                </div>
+            }
+        }
+    </div>
+    @if (State.Url is not null && State.Converted)
+    {
+        @* Badge on renditions (converted from the original) — not shown for a PDF/image/text displayed as-is.
+           See ADR "Converted-preview overlay badge". *@
+        <div class="wb-preview-badge" title="@ConvertedBadgeTooltip">
+            <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Small" />
+            <span>@Strings.Get("ConvertedPreview")</span>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Inline style for the pane's root (the panes are laid out differently per tab).</summary>
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>`data-pane` for the resizable-layout script; omitted when null.</summary>
+    [Parameter]
+    public string? DataPane { get; set; }
+
+    /// <summary>Render the pane's collapse gutter before it (the Repositories tab's wbLayout collapse).</summary>
+    [Parameter] public bool CollapseGutter { get; set; }
+
+    /// <summary>`data-tour` anchor — a PUBLISHED contract (issue #414), so keep the name stable.</summary>
+    [Parameter]
+    public string? DataTour { get; set; }
+
+    /// <summary>What to say when there is nothing to show — each tab words this differently.</summary>
+    [Parameter]
+    public string EmptyText { get; set; } = string.Empty;
+
+    /// <summary>Tooltip for the converted-rendition badge.</summary>
+    [Parameter]
+    public string? ConvertedBadgeTooltip { get; set; }
+
+    /// <summary>
+    /// Whether to show the find/zoom/full-screen bar. The recycle bin's preview has never had one — it is a
+    /// glance at what is about to be restored or purged, not a reading surface — and this extraction is a move,
+    /// so it must not quietly hand that tab three new affordances.
+    /// </summary>
+    [Parameter]
+    public bool ShowToolbar { get; set; } = true;
+
+    /// <summary>
+    /// Extra toolbar controls, rendered between the find group and the zoom group. The annotation tools go here,
+    /// which is how they stay out of a pane that has nothing to annotate.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? Toolbar { get; set; }
+
+    /// <summary>Overlaid on the rendered preview — the sensitivity watermark (ADR "Document watermarking").</summary>
+    [Parameter]
+    public RenderFragment? Overlay { get; set; }
+
+    /// <summary>Where annotation gestures go; <c>null</c> for a pane without annotations.</summary>
+    [Parameter]
+    public IPreviewAnnotationHost? AnnotationHost { get; set; }
+
+    /// <summary>
+    /// The display state (kind/text/find/converted/url). Exposed because parents read it — the Repositories
+    /// pane hides its watermark unless something is rendered, for instance.
+    /// </summary>
+    public PreviewPaneState State { get; } = new();
+
+    private ElementReference _host;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<PreviewPane>? _selfRef;
+    private bool _fullscreen;                  // in-app maximize of the preview pane (ADR 0295)
+    private bool _textWrap = true;             // text-path line wrapping (#1317); ephemeral, reset per document
+
+    private record PvResult { public string Kind { get; set; } = string.Empty; public string Text { get; set; } = string.Empty; }
+
+    /// <summary>
+    /// Renders a preview (image/pdf/text) with its hit-overlay into the JS host. <paramref name="previewUrl"/>
+    /// is the presigned rendition URL; <paramref name="textLayoutUrl"/> is the version's text-layout link
+    /// (may be null, or 204 when there is no overlay).
+    /// </summary>
+    public async Task RenderAsync(string? previewUrl, string? textLayoutUrl, bool converted = false, string? seedQuery = null)
+    {
+        State.Kind = string.Empty;
+        State.Text = null;
+        State.Count = 0;
+        State.Index = 0;
+        State.FindQuery = seedQuery ?? "";
+        // Wrap is EPHEMERAL, per document (#1317) — same lifetime as the fullscreen toggle (ADRs 0295/0297),
+        // and ON by default so nothing is ever silently clipped for a user who never finds the toggle.
+        _textWrap = true;
+
+        // Set here rather than by the caller: both drive the converted-rendition badge this component renders,
+        // and a caller that assigned them around the render call could leave a stale badge on the next document.
+        State.Url = previewUrl;
+        State.Converted = converted;
+
+        if (previewUrl is null)
+        {
+            State.Kind = "unsupported";
+            return;
+        }
+
+        // Fetch the per-page word boxes (may be 204 = no overlay).
+        List<TextLayoutPage>? layout = null;
+        if (textLayoutUrl is not null)
+        {
+            try
+            {
+                using var r = await Http.GetAsync(textLayoutUrl.TrimStart('/'));
+                if (r.IsSuccessStatusCode && r.StatusCode != HttpStatusCode.NoContent)
+                {
+                    layout = (await r.Content.ReadFromJsonAsync<TextLayoutResponse>())?.Pages;
+                }
+            }
+            catch (Exception) { /* no overlay */ }
+        }
+
+        _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./preview.js");
+        _selfRef ??= DotNetObjectReference.Create(this);
+        StateHasChanged(); // make sure the host div is in the DOM before JS fills it
+
+        try
+        {
+            var result = await _module.InvokeAsync<PvResult>("load", _host, previewUrl, layout, _selfRef);
+            State.Kind = result.Kind;
+            State.Text = result.Text;
+            if (State.HasPages && !string.IsNullOrWhiteSpace(State.FindQuery))
+            {
+                State.Count = await _module.InvokeAsync<int>("setFind", State.FindQuery);
+                State.Index = State.Count > 0 ? 1 : 0;
+            }
+        }
+        catch (Exception)
+        {
+            State.Kind = "error";
+        }
+        finally
+        {
+            // The pane renders from state it owns and mutated AFTER the last render, so it must ask for the
+            // re-render itself. The page used to get this for free: the state was its own field, so the render
+            // that followed the event handler picked it up. A child does not — and when RenderAsync is replayed
+            // from the parent's OnAfterRenderAsync there is no following event render at all, so without this
+            // the preview loads and is never shown.
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Drops what is displayed and leaves full-screen. The parent calls this when its selection changes or goes
+    /// away; the state reset itself is pure (and unit-tested via <see cref="PreviewPaneState"/>), while exiting
+    /// full-screen is an async JS side effect, which is why it lives here rather than on the state object.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately SYNCHRONOUS. Callers clear and then immediately render the new selection, so an awaitable
+    /// clear invites the fire-and-forget form — and a clear that lands after the render blanks the preview that
+    /// just loaded. That is exactly what happened to the intray pane when this returned a Task. Leaving
+    /// full-screen stays fire-and-forget because it only touches the JS overlay, never what is displayed.
+    /// </remarks>
+    public void Clear()
+    {
+        State.Clear();
+        if (_fullscreen)
+        {
+            _fullscreen = false;
+            _ = ExitFullscreenAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    // ---- The annotation overlay, driven by whoever owns the annotations --------------------------------
+
+    /// <summary>Whether pages have rendered — there is nothing to draw markers on otherwise (IAnnotationSurface).</summary>
+    public bool HasPages => State.HasPages;
+
+    /// <summary>Hands preview.js the markers to draw over the pages.</summary>
+    public async Task SetAnnotationsAsync(object markers)
+    {
+        if (_module is null || !State.HasPages)
+        {
+            return;
+        }
+
+        await _module.InvokeVoidAsync("setAnnotations", markers);
+    }
+
+    /// <summary>Arms/disarms "the next click places a note".</summary>
+    public async Task SetAddModeAsync(bool on)
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("setAddMode", on);
+        }
+    }
+
+    /// <summary>Selects the markup tool a drag will draw (0 = none).</summary>
+    public async Task SetDrawModeAsync(int kind)
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("setDrawMode", kind);
+        }
+    }
+
+    /// <summary>Tells the overlay which markers are currently selected, so it can draw their handles.</summary>
+    public async Task SetSelectionAsync(string[] ids)
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("setSelection", (object)ids);
+        }
+    }
+
+    // ---- Find ------------------------------------------------------------------------------------------
+
+    private async Task ApplyFindAsync(string query)
+    {
+        State.FindQuery = query;
+        if (State.Kind == "text")
+        {
+            State.ApplyTextFind();
+            await ScrollToActiveTextHitAsync();
+            return;
+        }
+
+        if (_module is null || !State.HasPages)
+        {
+            return;
+        }
+
+        State.Count = await _module.InvokeAsync<int>("setFind", query);
+        State.Index = State.Count > 0 ? 1 : 0;
+    }
+
+    private async Task FindNextAsync()
+    {
+        if (State.Kind == "text")
+        {
+            State.CycleTextFind(+1);
+            await ScrollToActiveTextHitAsync();
+        }
+        else if (_module is not null && State.Count > 0)
+        {
+            State.Index = await _module.InvokeAsync<int>("next");
+        }
+    }
+
+    private async Task FindPrevAsync()
+    {
+        if (State.Kind == "text")
+        {
+            State.CycleTextFind(-1);
+            await ScrollToActiveTextHitAsync();
+        }
+        else if (_module is not null && State.Count > 0)
+        {
+            State.Index = await _module.InvokeAsync<int>("prev");
+        }
+    }
+
+    /// <summary>Brings the active text match into view. After the state change the mark is (re)rendered
+    /// with its ordinal id, so the scroll waits for the render before asking the DOM.</summary>
+    private async Task ScrollToActiveTextHitAsync()
+    {
+        if (State.Count == 0)
+        {
+            return;
+        }
+
+        StateHasChanged();
+        await Task.Yield();
+        _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./preview.js");
+        await _module.InvokeVoidAsync("scrollToTextHit", $"wb-pv-thit-{State.Index}");
+    }
+
+    // ---- Zoom + full-screen ----------------------------------------------------------------------------
+
+    // Preview zoom (#357): multiply the current zoom (clamped 1..4 in preview.js), or reset to fit. The zoom
+    // state lives on the host in JS, so this just nudges it — pinch / ⌘-wheel drive the same applyZoom.
+    private async Task ZoomAsync(double multiplier)
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("zoomBy", _host, multiplier);
+        }
+    }
+
+    // Fit the whole page in view. The scale is measured in JS from the page as rendered — the pane is
+    // user-resizable, so there is no width the C# side could assume.
+    private async Task FitPageAsync()
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("fitPage", _host);
+        }
+    }
+
+    private async Task ZoomResetAsync()
+    {
+        if (_module is not null)
+        {
+            await _module.InvokeVoidAsync("zoomReset", _host);
+        }
+    }
+
+    // Toggles the pane's in-app full-screen (a fixed overlay stopping above the tab bar, ADR 0295). preview.js
+    // measures the tab bar (so the overlay leaves it clickable) and manages a document-level Esc listener that
+    // calls OnPreviewEscape to exit — kept in JS because the JS-owned host steals focus from any Blazor parent,
+    // so an @onkeydown here would not reliably receive Escape.
+    private async Task ToggleFullscreenAsync()
+    {
+        _fullscreen = !_fullscreen;
+        if (_module is not null && _selfRef is not null)
+        {
+            await _module.InvokeVoidAsync("setFullscreen", _selfRef, _fullscreen);
+        }
+    }
+
+    private async Task ExitFullscreenAsync()
+    {
+        if (_module is not null && _selfRef is not null)
+        {
+            await _module.InvokeVoidAsync("setFullscreen", _selfRef, false);
+        }
+    }
+
+    // ---- Called from preview.js ------------------------------------------------------------------------
+
+    [JSInvokable]
+    public async Task OnPreviewEscape()
+    {
+        if (_fullscreen)
+        {
+            _fullscreen = false;
+            await ExitFullscreenAsync();
+            StateHasChanged();
+        }
+    }
+
+    // A word was ⌥/Alt-clicked in the hit-overlay to copy it. preview.js does the copying; this is only the
+    // confirmation — and it belongs HERE rather than to each caller, because all five of them want the same
+    // sentence. It used to be a WordCopied callback, and four of the five never wired it: Check-out, Intray,
+    // Recycle bin and — worst — Search, where hit-word copy is the whole point, copied silently. The desktop
+    // confirmed on all five surfaces the whole time (ADR 0511). A callback every caller must implement
+    // identically is not a seam, it is the component's own behaviour with four chances to forget it.
+    [JSInvokable]
+    public Task OnPreviewWordCopied(string word, bool append)
+    {
+        Snackbar.Add(string.Format(Strings.Get(append ? "StAppendedWord" : "StCopiedWord"), word), Severity.Success);
+        return Task.CompletedTask;
+    }
+
+    // Every gesture below belongs to the annotations, not to the preview — see IPreviewAnnotationHost. A pane
+    // with no host silently ignores them, which is what a staged file or a deleted document should do.
+    [JSInvokable]
+    public Task OnShapeDrawn(int pageIndex, int kind, double x, double y, double width, double height) =>
+        AnnotationHost?.OnShapeDrawnAsync(pageIndex, kind, x, y, width, height) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationPlaced(int pageIndex, double x, double y) =>
+        AnnotationHost?.OnAnnotationPlacedAsync(pageIndex, x, y) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationClicked(Guid id) =>
+        AnnotationHost?.OnAnnotationClickedAsync(id) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationMoved(Guid id, int pageIndex, double x, double y) =>
+        AnnotationHost?.OnAnnotationMovedAsync(id, pageIndex, x, y) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationResized(Guid id, int pageIndex, double width, double height) =>
+        AnnotationHost?.OnAnnotationResizedAsync(id, pageIndex, width, height) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationSelect(Guid id, bool toggle) =>
+        AnnotationHost?.OnAnnotationSelectAsync(id, toggle) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationMarquee(Guid[] ids, bool additive) =>
+        AnnotationHost?.OnAnnotationMarqueeAsync(ids, additive) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationClearSelection() =>
+        AnnotationHost?.OnAnnotationClearSelectionAsync() ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnAnnotationGroupMove(int pageIndex, double dx, double dy) =>
+        AnnotationHost?.OnAnnotationGroupMoveAsync(pageIndex, dx, dy) ?? Task.CompletedTask;
+
+    /// <summary>Re-renders the pane from outside — parents mutate <see cref="State"/> (e.g. Converted) directly.</summary>
+    public void Refresh() => StateHasChanged();
+
+    public async ValueTask DisposeAsync()
+    {
+        _selfRef?.Dispose();
+
+        // The module is this component's own import; dropping it with the component is what makes one pane per
+        // tab safe. A JSDisconnectedException is normal when the circuit/page is already going away.
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { /* page is going away */ }
+            catch (JSException) { /* module already torn down */ }
+        }
+    }
+}

@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:vm="clr-namespace:Alcifra.DesktopClient.ViewModels"
+        x:Class="Alcifra.DesktopClient.Views.SensitivityLabelsDialog"
+        x:DataType="vm:SensitivityLabelsViewModel"
+        Title="{loc:Tr SlTitle}" Width="640" Height="480" CanResize="True"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="16">
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="{DynamicResource WbMuted}" Margin="0,0,0,10"
+                   Text="{loc:Tr SlBody}" />
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,10">
+            <TextBox Text="{Binding NewName}" Watermark="new label…" Width="160" />
+            <TextBox Text="{Binding NewColor}" Watermark="#RRGGBB" Width="100" />
+            <NumericUpDown Value="{Binding NewRank}" Minimum="0" Maximum="100" Width="90" />
+            <CheckBox Content="{loc:Tr SlColWatermark}" IsChecked="{Binding NewWatermark}" />
+            <!-- On the server's own canManage answer (#873), which the client was already receiving and
+                 discarding. Absence means the affordance is not offered, not that the click 403s. -->
+            <Button Content="Add" Command="{Binding CreateCommand}" IsVisible="{Binding CanManage}" />
+        </StackPanel>
+
+        <SelectableTextBlock DockPanel.Dock="Bottom" Text="{Binding Status}" Foreground="#c62828" Margin="0,8,0,0" />
+        <Button DockPanel.Dock="Bottom" Content="{loc:Tr Close}" Click="OnClose" HorizontalAlignment="Right" Margin="0,8,0,0" />
+
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Labels}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SensitivityLabelRow">
+                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
+                            <Border Width="14" Height="14" CornerRadius="3" VerticalAlignment="Center" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1"
+                                    Background="{Binding Color}" />
+                            <TextBox Text="{Binding Name}" Width="150" />
+                            <TextBox Text="{Binding Color}" Watermark="#RRGGBB" Width="90" />
+                            <NumericUpDown Value="{Binding Rank}" Minimum="0" Maximum="100" Width="90" />
+                            <CheckBox Content="WM" IsChecked="{Binding Watermark}" VerticalAlignment="Center" />
+                            <Button Content="{loc:Tr Save}"
+                                    IsVisible="{Binding $parent[ItemsControl].((vm:SensitivityLabelsViewModel)DataContext).CanManage}"
+                                    Command="{Binding $parent[ItemsControl].((vm:SensitivityLabelsViewModel)DataContext).SaveCommand}" CommandParameter="{Binding}" />
+                            <Button Content="{Binding RetireLabel}"
+                                    IsVisible="{Binding $parent[ItemsControl].((vm:SensitivityLabelsViewModel)DataContext).CanManage}"
+                                    Command="{Binding $parent[ItemsControl].((vm:SensitivityLabelsViewModel)DataContext).RetireCommand}" CommandParameter="{Binding}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

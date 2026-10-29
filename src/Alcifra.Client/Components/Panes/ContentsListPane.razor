@@ -1,0 +1,309 @@
+@using Microsoft.AspNetCore.Components.Web
+@using Alcifra.Client.Models
+@using Alcifra.Client.Services
+@using Alcifra.Presentation
+
+<style>
+    /* Contents-list columns (ADR "List-row columns and sorting" + "Pane-adaptive contents columns") — a grid
+       modifier on .wb-list-row (higher specificity so it overrides the base flex layout), keeping the base
+       hover/cursor/selected + test hooks. Every track is minmax(0, …) so the cells SHRINK + ellipsize rather than
+       overflow the pane, and the trailing `auto` track is the ⋮ row-menu — it never shrinks and is always the last
+       visible column, so the menu can never be clipped/scrolled off. The `.wb-list` pane is an inline-size query
+       container (above), so the breakpoints below react to the *pane's own width*, not the viewport — collapsing
+       lower-priority columns as the user narrows the split, uniformly on computer/tablet/phone. */
+    .wb-list-row.wb-cols, .wb-chead, .wb-cfilters { display: grid; grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 92px) minmax(0, 70px) minmax(0, 1.3fr) minmax(0, 1.1fr) auto; align-items: center; gap: 8px; }
+    .wb-cheadwrap { position: sticky; top: 0; z-index: 1; background: var(--mud-palette-surface); }
+    .wb-chead { padding: 4px 12px; font-size: .72rem; font-weight: 600; color: var(--mud-palette-text-secondary); }
+    .wb-cfilters { padding: 0 12px 3px 12px; border-bottom: 1px solid var(--mud-palette-lines-default); }
+    .wb-cfilters .mud-input-control { margin: 0; }
+    .wb-cfilters input { font-size: .75rem; padding: 3px 6px; }
+    .wb-cfilter-hint { padding: 0 12px 3px 12px; font-size: .7rem; color: var(--mud-palette-text-secondary); }
+    .wb-chead > span { cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wb-ccell { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; color: var(--mud-palette-text-secondary); }
+    .wb-cname { display: flex; align-items: center; gap: 6px; color: var(--mud-palette-text-primary); font-size: unset; }
+    /* Wide-but-not-wide-enough: drop Owner (6th) first — it is the newest column and the least often the
+       reason someone widened the pane. */
+    @@container (max-width: 739px) {
+        .wb-list-row.wb-cols, .wb-chead, .wb-cfilters { grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 92px) minmax(0, 70px) minmax(0, 1.3fr) auto; }
+        .wb-list-row.wb-cols > :nth-child(6), .wb-chead > :nth-child(6), .wb-cfilters > :nth-child(6) { display: none; }
+    }
+    /* Medium pane: drop Size (4th) + Tags (5th), keeping Name · Type · Doc date · ⋮. */
+    @@container (max-width: 519px) {
+        .wb-list-row.wb-cols, .wb-chead, .wb-cfilters { grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 92px) auto; }
+        .wb-list-row.wb-cols > :nth-child(4), .wb-list-row.wb-cols > :nth-child(5), .wb-list-row.wb-cols > :nth-child(6),
+        .wb-chead > :nth-child(4), .wb-chead > :nth-child(5), .wb-chead > :nth-child(6),
+        .wb-cfilters > :nth-child(4), .wb-cfilters > :nth-child(5), .wb-cfilters > :nth-child(6) { display: none; }
+    }
+    /* Narrow pane: Name + ⋮ only (the menu stays — it isn't a .wb-ccell). */
+    @@container (max-width: 399px) {
+        .wb-list-row.wb-cols, .wb-chead, .wb-cfilters { grid-template-columns: minmax(0, 1fr) auto; }
+        .wb-list-row.wb-cols > .wb-ccell:not(.wb-cname), .wb-chead > span:not(:first-child),
+        .wb-cfilters > :not(:first-child) { display: none; }
+    }
+</style>
+
+
+@* The workbench's middle pane: what is in the open folder. It owns how a row is drawn and the ephemeral
+   column-header ordering; WHAT a row offers, and what the bulk bar does, are the shell's (ADR 0558). The rows
+   themselves stay in the shell — `_folderContents` answers "what is currently listed" for the drag handler, the
+   bulk operations and the post-rename refresh, so it is not this pane's state to hold. *@
+@* Clicking the pane's EMPTY area clears the selection, so the detail pane falls back to the folder you are
+   standing in. Without it a selection could be made but never unmade: the only way back to the folder's own
+   details was to re-open the folder, and on desktop there was no gesture at all — the fallback existed in the
+   model and was unreachable in the UI. Rows stop propagation, so this fires only for the background. *@
+@* tabindex so the pane can receive Esc at all: a click on a row focuses it, which is where a user's Esc
+   goes. The detail pane has its own Esc (cancel edit, ADR 0550) and this does not compete with it — they are
+   different panes, and whichever holds focus is the one the key was meant for. *@
+<div class="wb-pane wb-list" data-pane="list" data-tour="pane-list" data-tour-rows="@Rows.Count" tabindex="0"
+     @onclick="() => BackgroundClick.InvokeAsync()" @onkeydown="OnKeyDownAsync" @attributes="PaneDropAttributes()">
+    @BulkBar
+
+    @if (ShowArchive)
+    {
+        @* Browsing a .zip's entries virtually — read on demand, nothing unpacked (ADR "Zip file browsing").
+           Supplied by the shell, which owns the entries and the download; this pane owns only that the mode
+           REPLACES the listing. *@
+        @ArchiveView
+    }
+    else if (SelectedFolder is null)
+    {
+        <MudText Typo="Typo.body2" Class="pa-3 mud-text-secondary">@Strings.Get("SelectFolderTree")</MudText>
+    }
+    else if (Rows.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="pa-3 mud-text-secondary">@Strings.Get("EmptyFolderDrop")</MudText>
+    }
+    else
+    {
+        @* Sortable column header (ADR "List-row columns and sorting") + the filter row (the Tasks tab's
+           pattern on the contents list): both ride one sticky wrapper so scrolling the rows keeps the
+           filters reachable — a filter you must scroll back up to is an affordance behind a discovery step
+           (ADR 0550). Date and Size keep spacer cells: filtering them is a range question, not a text one. *@
+        <div class="wb-cheadwrap">
+            <div class="wb-chead">
+                <span @onclick="() => SortBy(ContentSort.Name)">@Strings.Get("Name") @SortArrow(ContentSort.Name)</span>
+                <span @onclick="() => SortBy(ContentSort.Type)">@Strings.Get("FacetType") @SortArrow(ContentSort.Type)</span>
+                <span @onclick="() => SortBy(ContentSort.Date)">@Strings.Get("SortDocDate") @SortArrow(ContentSort.Date)</span>
+                <span @onclick="() => SortBy(ContentSort.Size)">@Strings.Get("SortSize") @SortArrow(ContentSort.Size)</span>
+                <span @onclick="() => SortBy(ContentSort.Tags)">@Strings.Get("TagsLabel") @SortArrow(ContentSort.Tags)</span>
+                <span @onclick="() => SortBy(ContentSort.Owner)">@Strings.Get("SortOwner") @SortArrow(ContentSort.Owner)</span>
+                <span></span>
+            </div>
+            <div class="wb-cfilters">
+                <MudTextField T="string" @bind-Value="_filterName" Immediate="true" Placeholder="@Strings.Get("FilterHint")" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                <MudTextField T="string" @bind-Value="_filterType" Immediate="true" Placeholder="@Strings.Get("FilterHint")" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                <span></span>
+                <span></span>
+                <MudTextField T="string" @bind-Value="_filterTags" Immediate="true" Placeholder="@Strings.Get("FilterHint")" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                <MudTextField T="string" @bind-Value="_filterOwner" Immediate="true" Placeholder="@Strings.Get("FilterHint")" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                <span></span>
+            </div>
+        </div>
+        @if (FilterActive)
+        {
+            @* "Where did my rows go?" — the desktop's hint, matched here (ADR 0511). A list narrowed to
+               nothing looks exactly like an empty folder, and only the counts tell the two apart, which is
+               why the numbers are the content rather than the word "filtered". Outside the scrolling rows so
+               it stays put, and absent entirely when nothing is filtered: a permanent row count would spend
+               pane height the preview wants (ADR 0550). *@
+            <div class="wb-cfilter-hint" data-testid="contents-filter-hint">
+                @string.Format(Strings.Get("ContentsFilterActiveHint"), Rows.Count(Matches), Rows.Count)
+            </div>
+        }
+        @foreach (var node in SortedContents())
+        {
+            var attrs = BrowseService.DropAttributes(node);
+            <div class="wb-list-row wb-cols @(BulkIds.Contains(node.Id) || ReferenceEquals(node, SelectedNode) ? "wb-list-row-selected" : "")"
+                 @onclick="(e) => RowClick.InvokeAsync((node, e))" @onclick:stopPropagation="true"
+                 @ondblclick="() => RowDoubleClick.InvokeAsync(node)" @attributes="attrs">
+                <span class="wb-ccell wb-cname" title="@node.DisplayName">
+                    <MudIcon Icon="@BrowseService.TreeIcon(node)" Size="Size.Small"
+                             Class="@(node.IsFolder ? (node.IsEmptyFolder ? "wb-glyph-empty" : "wb-glyph-folder") : "")" />
+                    <span style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@node.DisplayName</span>
+                    @if (node.OnLegalHold)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" title="@Strings.Get("LhUnderHold")" />
+                    }
+                    @if (node.CheckedOutByMe)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.LockOpen" Size="Size.Small" Color="Color.Success" title="@Strings.Get("CoLockedMine")" />
+                    }
+                    else if (node.CheckedOutByOther)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Error" title="@Strings.Get("CoLockedOther")" />
+                    }
+                    @* Encrypted content the caller can see but not open (ADR 0983), said before it is opened. *@
+                    @if (node.NotEncryptedForMe)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.NoEncryption" Size="Size.Small" Color="Color.Error" title="@Strings.Get("AudSignNotYou")" />
+                    }
+                    else if (node.NotYetEncryptedForMe)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.LockClock" Size="Size.Small" Color="Color.Warning" title="@Strings.Get("AudSignNotYet")" />
+                    }
+                    @if (!string.IsNullOrEmpty(node.SensitivityLabelName))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="ma-0"
+                                 Style="@($"{Styling.ChipStyle(node.SensitivityLabelColor)}height:16px; font-size:.62rem;")" title="@string.Format(Strings.Get("SensitivityTip"), node.SensitivityLabelName)">@node.SensitivityLabelName</MudChip>
+                    }
+                </span>
+                @* The SERVER's type, which for a typed folder is the mask name ("Addressbook", "Calendar", "Notebook") —
+                   flattening every folder to the generic word predates typed folders and discarded an answer the
+                   server was already giving (#824). Only the genuine plain Folder is localised; a mask name is
+                   tenant data and renders as itself, exactly as the mask line in the detail pane does. *@
+                <span class="wb-ccell" title="@node.DocumentType">@(node.IsFolder && (node.DocumentType.Length == 0 || node.DocumentType == "Folder") ? Strings.Get("FolderType") : node.DocumentType)</span>
+                <span class="wb-ccell" title="@(node.DocumentDate is { } dd ? DocumentDateFormat.Display(dd, node.DocumentTime, SessionTimeZone.Current) : "")">@(node.DocumentDate is { } dd2 ? DocumentDateFormat.Display(dd2, node.DocumentTime, SessionTimeZone.Current) : "")</span>
+                <span class="wb-ccell" title="@ByteSize.Format(node.SizeBytes)">@ByteSize.Format(node.SizeBytes)</span>
+                <span class="wb-ccell" title="@string.Join(", ", node.TagList)">@string.Join(", ", node.TagList)</span>
+                <span class="wb-ccell" title="@node.CreatedBy">@node.CreatedBy</span>
+                <div @onclick:stopPropagation="true">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomLeft">
+                        @RowMenu?.Invoke(node)
+                    </MudMenu>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>The open folder's contents, as the shell holds them.</summary>
+    [Parameter] public IReadOnlyList<BrowseNode> Rows { get; set; } = [];
+
+    /// <summary>The open folder — <c>null</c> means nothing is selected, which is a different empty state.</summary>
+    [Parameter] public BrowseNode? SelectedFolder { get; set; }
+
+    /// <summary>The open folder's PERSISTED order, the default this listing sorts by until a header is clicked.</summary>
+    [Parameter] public FolderContentsSortOrder FolderSortOrder { get; set; } = FolderContentsSortOrder.DocumentDate;
+
+    /// <summary>The Ctrl/Shift-selected rows, which draw as selected.</summary>
+    [Parameter] public IReadOnlySet<Guid> BulkIds { get; set; } = new HashSet<Guid>();
+
+    /// <summary>The row whose chat thread is open — also drawn as selected.</summary>
+    [Parameter] public BrowseNode? SelectedNode { get; set; }
+
+    /// <summary>A row click, with its modifiers — the shell owns what selection means.</summary>
+    [Parameter, EditorRequired] public EventCallback<(BrowseNode Node, MouseEventArgs Args)> RowClick { get; set; }
+
+    /// <summary>A row double-click: drill into a folder, open a document.</summary>
+    [Parameter, EditorRequired] public EventCallback<BrowseNode> RowDoubleClick { get; set; }
+
+    /// <summary>Raised when the pane's empty area is clicked — "nothing is selected any more".</summary>
+    [Parameter, EditorRequired] public EventCallback BackgroundClick { get; set; }
+
+    /// <summary>Raised on Esc in this pane. The SHELL decides what it means; the pane only reports the gesture.</summary>
+    [Parameter, EditorRequired] public EventCallback EscapePressed { get; set; }
+
+    // No preventDefault: Escape has nothing worth suppressing, and suppressing keys wholesale in a pane is what
+    // broke text entry elsewhere in this workbench.
+    private Task OnKeyDownAsync(KeyboardEventArgs e)
+        => e.Key == "Escape" ? EscapePressed.InvokeAsync() : Task.CompletedTask;
+
+    /// <summary>The context-menu items for one row — shell operations, so supplied rather than owned here.</summary>
+    [Parameter] public RenderFragment<BrowseNode>? RowMenu { get; set; }
+
+    /// <summary>The bulk-action bar, shown by the shell when it decides enough rows are selected.</summary>
+    [Parameter] public RenderFragment? BulkBar { get; set; }
+
+    /// <summary>The zip-entry browser, shown INSTEAD of the listing while <see cref="ShowArchive"/> is set.</summary>
+    [Parameter] public RenderFragment? ArchiveView { get; set; }
+
+    /// <summary>Whether the pane is in archive-browsing mode. A separate flag, because the fragment is always
+    /// supplied — its presence says the shell CAN show it, not that it should.</summary>
+    [Parameter] public bool ShowArchive { get; set; }
+
+    // Makes the whole contents pane a drop target for the currently-selected folder, so files can be dropped
+    // anywhere in it (empty area or a document row), not only onto a sub-folder row — see ADR "Content-pane drop
+    // target". A sub-folder row's own data-drop-folder still wins (closest() finds the nearest one).
+    // …and only where a child may actually be created, on the capability that gates New folder and
+    // Upload — a dropped file IS that create (#634, ADR 0637). With `Personal` open the pane must not be a
+    // drop target at all: the server refuses the upload before any bytes move, so offering the whole pane as a
+    // target is offering a refusal. Returning the shared EmptyAttributes is safe here, unlike in
+    // DropAttributes, because nothing writes into what this returns.
+    private Dictionary<string, object> PaneDropAttributes()
+        => SelectedFolder is { CanCreateChildren: true } folder
+            ? new() { ["data-drop-folder"] = folder.Id.ToString() }
+            : BrowseService.EmptyAttributes;
+
+    // ---- Ephemeral column-header ordering (ADR "List-row columns and sorting") -----------------------
+    // Folders are ALWAYS listed on top; within each group the default is the open folder's persisted order
+    // (FolderSortOrder). Clicking a column header is an EPHEMERAL override that lasts until another folder is
+    // opened — which the shell signals by calling ResetHeaderSort. Client-side over the fully-loaded rows.
+    private enum ContentSort { Name, Type, Date, Size, Tags, Owner }
+    private ContentSort _contentSort = ContentSort.Name;
+    private bool _contentSortAsc = true;
+    private bool _headerSortActive;
+
+    private string _filterName = string.Empty;
+    private string _filterType = string.Empty;
+    private string _filterTags = string.Empty;
+    private string _filterOwner = string.Empty;
+
+    /// <summary>True while any column filter narrows the list — mirrors the desktop's ContentsFilterActive.</summary>
+    private bool FilterActive =>
+        _filterName.Length > 0 || _filterType.Length > 0 || _filterTags.Length > 0 || _filterOwner.Length > 0;
+
+    /// <summary>Drops the header override AND the column filters — both are ephemeral per-folder view state,
+    /// and a filter that silently survives into the next folder reads as missing rows, not as a filter.</summary>
+    public void ResetHeaderSort()
+    {
+        _headerSortActive = false;
+        _filterName = _filterType = _filterTags = _filterOwner = string.Empty;
+        // Called from OUTSIDE (the shell, via @ref) — Blazor does not re-render for an external method call,
+        // so without this the cleared filter still SHOWS its old text while no longer filtering anything:
+        // worse than either state (the [JSInvokable] lesson, generalised).
+        StateHasChanged();
+    }
+
+    private bool Matches(BrowseNode n) =>
+        (_filterName.Length == 0 || n.DisplayName.Contains(_filterName, StringComparison.OrdinalIgnoreCase))
+        && (_filterType.Length == 0 || n.DocumentType.Contains(_filterType, StringComparison.OrdinalIgnoreCase))
+        && (_filterTags.Length == 0 || n.TagList.Any(t => t.Contains(_filterTags, StringComparison.OrdinalIgnoreCase)))
+        && (_filterOwner.Length == 0 || n.CreatedBy.Contains(_filterOwner, StringComparison.OrdinalIgnoreCase));
+
+    private void SortBy(ContentSort col)
+    {
+        if (_headerSortActive && _contentSort == col)
+        {
+            _contentSortAsc = !_contentSortAsc;
+        }
+        else
+        {
+            _contentSort = col;
+            _contentSortAsc = true;
+            _headerSortActive = true; // an ephemeral override, until the next folder is opened
+        }
+    }
+
+    private string SortArrow(ContentSort col) => _headerSortActive && _contentSort == col ? (_contentSortAsc ? "▲" : "▼") : "";
+
+    private IEnumerable<BrowseNode> SortedContents()
+    {
+        // Folders on top (always alphabetical, issue #339), then documents ordered by the active criterion (default
+        // DocumentDate). A column-header click is an explicit ephemeral override of the whole list.
+        var rows = Rows.Where(Matches).ToList();
+        var folders = rows.Where(n => n.IsFolder);
+        var docs = rows.Where(n => !n.IsFolder);
+        if (_headerSortActive)
+        {
+            return ApplyHeaderSort(folders).Concat(ApplyHeaderSort(docs));
+        }
+        // The shared rule (Alcifra.Presentation.FolderContentsOrder), which the desktop and the phone answer identically.
+        return Alcifra.Presentation.FolderContentsOrder.Arrange(rows, (int)FolderSortOrder,
+            n => new Alcifra.Presentation.FolderContentsOrder.Keys(n.IsFolder, n.DisplayName, n.DocumentDate, n.DocumentTime, n.VersionCreatedAt));
+    }
+
+    private IEnumerable<BrowseNode> ApplyHeaderSort(IEnumerable<BrowseNode> items)
+    {
+        IEnumerable<BrowseNode> ordered = _contentSort switch
+        {
+            ContentSort.Type => items.OrderBy(n => n.DocumentType, StringComparer.OrdinalIgnoreCase),
+            ContentSort.Date => items.OrderBy(n => n.DocumentDate ?? DateOnly.MinValue).ThenBy(n => n.DocumentTime ?? TimeOnly.MinValue),
+            ContentSort.Size => items.OrderBy(n => n.SizeBytes ?? -1),
+            ContentSort.Tags => items.OrderBy(n => string.Join(",", n.TagList), StringComparer.OrdinalIgnoreCase),
+            ContentSort.Owner => items.OrderBy(n => n.CreatedBy, StringComparer.OrdinalIgnoreCase),
+            _ => items.OrderBy(n => n.DisplayName, StringComparer.OrdinalIgnoreCase),
+        };
+        return _contentSortAsc ? ordered : ordered.Reverse();
+    }
+}

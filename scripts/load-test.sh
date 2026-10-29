@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Load-test a running SimplArchive deployment (#705, ADR 0700) — MANUAL ONLY, never CI.
+# Load-test a running Alcifra deployment (#705, ADR 0700) — MANUAL ONLY, never CI.
 #
 # WHY NEVER CI. A load test in a PR gate is cost with no verdict value: it cannot fail a change honestly (the
 # runner is not the deployment) and it cannot pass one meaningfully. It is a question somebody asks on purpose,
@@ -52,7 +52,7 @@ if [ "$LOCAL" = 1 ]; then
   # No target at all: the harness self-hosts an instance. This is the calibration path — prove the workload and
   # the report here, where a mistake costs nothing, before ever pointing it at a live deployment.
   echo "Local calibration run (self-hosted instance, not the kiosk)."
-  exec dotnet run --project "$ROOT/tests/SimplArchive.LoadTest" -c Release -- \
+  exec dotnet run --project "$ROOT/tests/Alcifra.LoadTest" -c Release -- \
     --scenario "$SCENARIO" ${EXTRA+"${EXTRA[@]}"}
 fi
 
@@ -107,5 +107,5 @@ if [ "$AGGRESSIVE" = 1 ]; then
 fi
 
 echo "Load-testing $TARGET as $EMAIL — scenario $SCENARIO"
-exec dotnet run --project "$ROOT/tests/SimplArchive.LoadTest" -c Release -- \
+exec dotnet run --project "$ROOT/tests/Alcifra.LoadTest" -c Release -- \
   --scenario "$SCENARIO" --target "$TARGET" --email "$EMAIL" --password "$PASSWORD" ${EXTRA+"${EXTRA[@]}"}

@@ -18,7 +18,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 source scripts/brand.sh
 
-dir="src/SimplArchive.Api/wwwroot/download/manual"
+dir="src/Alcifra.Api/wwwroot/download/manual"
 manual="$dir/$BRAND_FILE_STEM-Manual.pdf"
 
 if [[ "${1:-}" == "--white-label" ]]; then

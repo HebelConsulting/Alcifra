@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Stage the SimplArchive desktop-client packages into the served download area (ADR 0490):
-#   src/SimplArchive.Api/wwwroot/download/clients/{windows,linux,macos}/
+# Stage the Alcifra desktop-client packages into the served download area (ADR 0490):
+#   src/Alcifra.Api/wwwroot/download/clients/{windows,linux,macos}/
 # named with the git release tag (if HEAD is exactly on a tag) or the short commit SHA — matching the naming the
 # Dockerfile bakes in (<fileStem>-<version>-{win-x64.zip,linux-x64.tar.gz,arm64.dmg,x64.dmg}).
 #
@@ -30,7 +30,7 @@ else
 fi
 echo "==> Packaging desktop clients as version: $version"
 
-dest="src/SimplArchive.Api/wwwroot/download/clients"
+dest="src/Alcifra.Api/wwwroot/download/clients"
 # The packages are named from the brand's file stem (ADR 0994).
 source "$(dirname "$0")/brand.sh"
 stem="$BRAND_FILE_STEM"

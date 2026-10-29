@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l10n="using:Alcifra.Localization"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        x:Class="Alcifra.DesktopClient.Views.AboutDialog"
+        Title="{loc:Tr HelpAbout}" Width="360" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="24" Spacing="4" HorizontalAlignment="Center">
+        <TextBlock Text="{x:Static l10n:Strings.ProductName}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <!-- The publisher's imprint and, in a white-label edition, the credit, from the brand (ADR 0995). -->
+        <StackPanel x:Name="ImprintPanel" Spacing="4" Margin="0,12,0,0" HorizontalAlignment="Center" />
+        <TextBlock x:Name="VersionBlock" Margin="0,16,0,0" Opacity="0.7" HorizontalAlignment="Center" />
+        <Button Content="{loc:Tr Close}" Click="OnClose" IsDefault="True" IsCancel="True"
+                Margin="0,16,0,0" HorizontalAlignment="Center" />
+    </StackPanel>
+</Window>

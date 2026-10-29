@@ -1,0 +1,36 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Alcifra.Api/Alcifra.Api.csproj" />
+    <Project Path="src/Alcifra.ApiClient/Alcifra.ApiClient.csproj" />
+    <Project Path="src/Alcifra.Application/Alcifra.Application.csproj" />
+    <Project Path="src/Alcifra.Auth/Alcifra.Auth.csproj" />
+    <Project Path="src/Alcifra.BrowserHost/Alcifra.BrowserHost.csproj" />
+    <Project Path="src/Alcifra.Cli/Alcifra.Cli.csproj" />
+    <Project Path="src/Alcifra.BrandIcons/Alcifra.BrandIcons.csproj" />
+    <Project Path="src/Alcifra.Client/Alcifra.Client.csproj" />
+    <Project Path="src/Alcifra.ConsoleLogging/Alcifra.ConsoleLogging.csproj" />
+    <Project Path="src/Alcifra.DesktopClient/Alcifra.DesktopClient.csproj" />
+    <Project Path="src/Alcifra.Domain/Alcifra.Domain.csproj" />
+    <Project Path="src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj" />
+    <Project Path="src/Alcifra.Infrastructure/Alcifra.Infrastructure.csproj" />
+    <Project Path="src/Alcifra.Localization/Alcifra.Localization.csproj" />
+    <Project Path="src/SimplArchive.ModuleAbi/SimplArchive.ModuleAbi.csproj" />
+    <Project Path="src/Alcifra.Presentation/Alcifra.Presentation.csproj" />
+    <Project Path="src/Alcifra.Sapass/Alcifra.Sapass.csproj" />
+    <Project Path="src/Alcifra.SealedArchive/Alcifra.SealedArchive.csproj" />
+    <Project Path="src/Alcifra.TextLayout/Alcifra.TextLayout.csproj" />
+    <Project Path="src/Alcifra.Theming/Alcifra.Theming.csproj" />
+    <Project Path="src/Alcifra.Worker/Alcifra.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Alcifra.EndToEndTests/Alcifra.EndToEndTests.csproj" />
+    <Project Path="tests/Alcifra.SelfHosting/Alcifra.SelfHosting.csproj" />
+    <Project Path="tests/Alcifra.UiEndToEndTests/Alcifra.UiEndToEndTests.csproj" />
+    <Project Path="tests/Alcifra.BrowserExtensionTests/Alcifra.BrowserExtensionTests.csproj" />
+    <Project Path="tests/Alcifra.DesktopUiEndToEndTests/Alcifra.DesktopUiEndToEndTests.csproj" />
+    <Project Path="tests/Alcifra.IntegrationTests/Alcifra.IntegrationTests.csproj" />
+    <Project Path="tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj" />
+    <Project Path="tests/Alcifra.LoadTest/Alcifra.LoadTest.csproj" />
+    <Project Path="tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj" />
+  </Folder>
+</Solution>

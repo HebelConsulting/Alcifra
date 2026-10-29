@@ -155,17 +155,17 @@ jobs:
       # Builds the harness and — via its project references — the API + desktop client, so the capture subprocesses
       # can run with --no-build.
       - name: Build the capture harness
-        run: dotnet build tests/SimplArchive.ManualCapture/SimplArchive.ManualCapture.csproj -c Debug
+        run: dotnet build tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj -c Debug
 
       # Cheap, self-contained (in-process demo data — no backend). The gate on every PR.
       - name: Capture desktop screens
-        run: dotnet run --project tests/SimplArchive.ManualCapture --no-build -- --desktop
+        run: dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop
 
       # Heavy (Testcontainers + Chrome) — main only, so PRs stay cheap. The hosted Ubuntu image ships Docker +
       # Google Chrome, which the self-host fleet + Playwright ("chrome" channel) use (same as the heavy CI tier).
       - name: Capture web screens
         if: ${{ github.event_name == 'push' }}
-        run: dotnet run --project tests/SimplArchive.ManualCapture --no-build -- --web
+        run: dotnet run --project tests/Alcifra.ManualCapture --no-build -- --web
 
       # The desktop screens classified Capture.Live, against the same real seeded app (#1358) — so the PUBLISHED
       # desktop figures stop coming from a hand-written fixture that cannot fail when the product moves. Needs
@@ -175,7 +175,7 @@ jobs:
       # ones, so this must overwrite them rather than be overwritten — the published figure is the live one.
       - name: Capture desktop screens from the live app
         if: ${{ github.event_name == 'push' }}
-        run: dotnet run --project tests/SimplArchive.ManualCapture --no-build -- --desktop-live
+        run: dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop-live
 
       # A regenerated PNG whose every pixel is within ±1 of the committed one is raster noise, not a change
       # (#832) — revert those BEFORE the compile, so neither the PNG nor the PDF that embeds it re-commits
@@ -193,7 +193,7 @@ jobs:
           set -euo pipefail
           source scripts/brand.sh
           # Named from the brand's file stem (ADR 0997).
-          pdf="src/SimplArchive.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
+          pdf="src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
           SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
           echo "MANUAL_PDF=$pdf" >> "$GITHUB_ENV"
 
@@ -214,7 +214,7 @@ jobs:
         run: |
           git config user.name "simplarchive-manual-bot"
           git config user.email "manual-bot@users.noreply.github.com"
-          git add -A manual/screenshots src/SimplArchive.Api/wwwroot/download/manual
+          git add -A manual/screenshots src/Alcifra.Api/wwwroot/download/manual
           if git diff --cached --quiet; then
             echo "Manual unchanged — nothing to commit."
           else

@@ -1,0 +1,228 @@
+using System.Net;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Alcifra.EndToEndTests;
+
+// Renewing a session without the user present. The desktop client held ONE access token from login and sent it
+// for ever, so an hour later every request came back 401 with nothing renewing anything — reported as "I thought
+// the client rotates the tokens even in the background", which it did not, because the server issued nothing to
+// rotate with: no refresh flow, no offline_access scope, no grant on the desktop client's registration.
+//
+// Driven through the REAL authorization-code flow against the real OpenIddict server rather than through a
+// stubbed token endpoint, because every one of those three was missing independently and a stub would have
+// proved only that the client can parse a response we wrote ourselves.
+[Collection(E2ECollection.Name)]
+[Trait("Area", "e2e-2")]
+public class RefreshTokenTests
+{
+    private readonly E2EApiFactory _factory;
+
+    public RefreshTokenTests(E2EApiFactory factory) => _factory = factory;
+
+    private const string DesktopClientId = "simplarchive-desktop";
+    private const string DesktopRedirect = "http://127.0.0.1:8765/callback";
+
+    /// <summary>The native apps' public clients (ADR 0916): each signs in with PKCE, renews, and revokes alike.</summary>
+    public static TheoryData<string, string> NativeClients => new()
+    {
+        { DesktopClientId, DesktopRedirect },
+        { "simplarchive-mobile", "dev.simplarchive.mobile:/oauth2redirect" },
+    };
+
+    [Theory]
+    [MemberData(nameof(NativeClients))]
+    public async Task A_native_app_login_yields_a_refresh_token_that_renews_the_session(string clientId, string redirect)
+    {
+        var (email, password, _) = await SeedUserAsync();
+
+        var tokens = await SignInAsync(email, password, clientId, redirect);
+
+        // offline_access asked for it, and the client registration is what permits it. Before this change all
+        // three were absent, so this property simply did not exist on the response.
+        Assert.True(tokens.TryGetProperty("refresh_token", out var refresh), "the login issued no refresh token.");
+        var refreshToken = refresh.GetString()!;
+        var firstAccess = tokens.GetProperty("access_token").GetString()!;
+
+        var renewed = await RenewAsync(refreshToken, clientId);
+        var secondAccess = renewed.GetProperty("access_token").GetString()!;
+
+        // A genuinely new token, not the same one handed back.
+        Assert.NotEqual(firstAccess, secondAccess);
+
+        // And it WORKS — the point of the exercise. Asserted by using it, not by inspecting its claims.
+        using var api = _factory.CreateAuthedClient(secondAccess);
+        var whoami = await api.GetAsync("/api/diagnostics/whoami");
+        Assert.Equal(HttpStatusCode.OK, whoami.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_refresh_token_rotates_and_the_spent_one_is_refused()
+    {
+        var (email, password, _) = await SeedUserAsync();
+        var tokens = await SignInAsync(email, password);
+        var first = tokens.GetProperty("refresh_token").GetString()!;
+
+        var renewed = await RenewAsync(first);
+        var second = renewed.GetProperty("refresh_token").GetString()!;
+
+        // Rotation: a new refresh token comes back, and it is not the one just spent. This is what makes a
+        // leaked token good for a single use rather than for its whole lifetime — and it is why the client must
+        // store the rotated one, since keeping the old would fail its NEXT renewal.
+        Assert.NotEqual(first, second);
+
+        using var client = _factory.CreateClient();
+
+        // INSIDE the reuse leeway the spent token still works, and that is deliberate rather than a hole: a
+        // client whose refresh response was lost to a network blip retries with the token it still holds, and
+        // without the grace that ordinary event would sign the user out. Asserted rather than glossed over,
+        // because the first version of this test expected an immediate refusal and was simply wrong about
+        // what the server does.
+        var withinLeeway = await PostRefreshAsync(client, first);
+        Assert.Equal(HttpStatusCode.OK, withinLeeway.StatusCode);
+
+        // PAST it, the redeemed token is refused — the property that actually matters. The window is one
+        // second in the test host (30 in production), which is the only reason this is cheap enough to assert.
+        await Task.Delay(TimeSpan.FromSeconds(2));
+
+        var afterLeeway = await PostRefreshAsync(client, first);
+        Assert.Equal(HttpStatusCode.BadRequest, afterLeeway.StatusCode);
+    }
+
+    // REUSE DETECTION REVOKES THE WHOLE FAMILY — and, since #1578, that reaches the access tokens too. The refresh
+    // half was always OpenIddict's own behaviour and was simply never pinned: #1578 claimed it was missing, and a
+    // probe measured the rotated sibling refused with ID2018. The ACCESS half was the real gap — the stored entries
+    // were marked revoked while the token itself still answered 200, because nothing on the request path asked.
+    [Fact]
+    public async Task A_refresh_token_reused_past_the_leeway_revokes_its_whole_family_including_the_access_token()
+    {
+        var (email, password, _) = await SeedUserAsync();
+        var tokens = await SignInAsync(email, password);
+        var first = tokens.GetProperty("refresh_token").GetString()!;
+        var renewed = await RenewAsync(first);
+        var sibling = renewed.GetProperty("refresh_token").GetString()!;
+        var access = renewed.GetProperty("access_token").GetString()!;
+        Assert.Equal(HttpStatusCode.OK, await WhoAmIAsync(access));
+
+        await Task.Delay(TimeSpan.FromSeconds(2)); // past the test host's one-second leeway
+        using var client = _factory.CreateClient();
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostRefreshAsync(client, first)).StatusCode);
+
+        // The family: the rotated refresh token the thief would try next, and the access token already issued.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostRefreshAsync(client, sibling)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, await WhoAmIAsync(access));
+    }
+
+    // The desktop's sign-out (ApiCore.RevokeSessionAsync): RFC 7009 revocation of both tokens, which used to be
+    // nothing at all — the tokens outlived the sign-out by up to 15 minutes and 30 days.
+    [Theory]
+    [MemberData(nameof(NativeClients))]
+    public async Task Revoking_the_tokens_ends_a_native_apps_session_on_the_server_at_once(string clientId, string redirect)
+    {
+        var (email, password, _) = await SeedUserAsync();
+        var tokens = await SignInAsync(email, password, clientId, redirect);
+        var access = tokens.GetProperty("access_token").GetString()!;
+        var refresh = tokens.GetProperty("refresh_token").GetString()!;
+        Assert.Equal(HttpStatusCode.OK, await WhoAmIAsync(access));
+
+        using var client = _factory.CreateClient();
+        foreach (var (token, hint) in new[] { (refresh, "refresh_token"), (access, "access_token") })
+        {
+            using var revoked = await client.PostAsync("/connect/revoke", new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["token"] = token,
+                ["token_type_hint"] = hint,
+                ["client_id"] = clientId,
+            }));
+            Assert.Equal(HttpStatusCode.OK, revoked.StatusCode);
+        }
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await WhoAmIAsync(access));
+        Assert.Equal(HttpStatusCode.BadRequest, (await PostRefreshAsync(client, refresh, clientId)).StatusCode);
+    }
+
+    // …and the other half of the owner's rule: a WEB sign-out ends the web client's sessions and leaves the same
+    // user's DESKTOP alone. Here rather than beside the web tests because only this class signs in as the desktop.
+    [Fact]
+    public async Task A_web_sign_out_leaves_the_same_users_desktop_session_alive()
+    {
+        var (email, password, _) = await SeedUserAsync();
+        var desktop = await SignInAsync(email, password);
+        var desktopAccess = desktop.GetProperty("access_token").GetString()!;
+
+        var (browser, webToken) = await _factory.SignInBrowserAsync(email, password);
+        using (browser)
+        {
+            using var _ = await browser.GetAsync("/Account/Logout");
+        }
+
+        Assert.Equal(HttpStatusCode.Unauthorized, await WhoAmIAsync(webToken));
+        Assert.Equal(HttpStatusCode.OK, await WhoAmIAsync(desktopAccess));
+        using var client = _factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await PostRefreshAsync(client, desktop.GetProperty("refresh_token").GetString()!)).StatusCode);
+    }
+
+    private async Task<HttpStatusCode> WhoAmIAsync(string accessToken)
+    {
+        using var client = _factory.CreateAuthedClient(accessToken);
+        using var response = await client.GetAsync("/api/diagnostics/whoami");
+        return response.StatusCode;
+    }
+
+    // A refresh token outlives the access token by design, so without a re-check a user deactivated ten minutes
+    // ago would go on minting fresh access tokens until it expired. The token pipeline gets exactly one chance
+    // to ask, and this is it.
+    [Fact]
+    public async Task A_deactivated_user_cannot_renew()
+    {
+        var (email, password, userId) = await SeedUserAsync();
+        var tokens = await SignInAsync(email, password);
+        var refreshToken = tokens.GetProperty("refresh_token").GetString()!;
+
+        // Deactivated directly — the same scope-off-the-factory pattern the other E2E tests use to arrange
+        // state the API has no endpoint for (see TokenEndpointRefusalTests).
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider
+                .GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+            var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.Id == userId);
+            user.IsActive = false;
+            await db.SaveChangesAsync();
+        }
+
+        using var client = _factory.CreateClient();
+        var refused = await PostRefreshAsync(client, refreshToken);
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+    }
+
+    // ---- helpers -------------------------------------------------------------------------------------------
+
+    private async Task<(string Email, string Password, Guid UserId)> SeedUserAsync()
+    {
+        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
+        var email = $"refresh-{Guid.NewGuid():N}@e2e.local";
+        const string password = "refresh-1234";
+        var userId = await _factory.SeedUserAsync(tenantId, email, password, "Refresh User");
+        return (email, password, userId);
+    }
+
+    private async Task<JsonElement> RenewAsync(string refreshToken, string clientId = DesktopClientId)
+    {
+        using var client = _factory.CreateClient();
+        var response = await PostRefreshAsync(client, refreshToken, clientId);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();
+    }
+
+    private static Task<HttpResponseMessage> PostRefreshAsync(HttpClient client, string refreshToken, string clientId = DesktopClientId) =>
+        client.PostAsync("/connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken,
+            ["client_id"] = clientId,
+        }));
+
+    private Task<JsonElement> SignInAsync(string email, string password, string clientId = DesktopClientId, string redirect = DesktopRedirect) =>
+        _factory.SignInNativeAppAsync(email, password, clientId, redirect);
+}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Package the SimplArchive DesktopClient (Avalonia) as self-contained, portable x64 archives for Windows and
+# Package the Alcifra DesktopClient (Avalonia) as self-contained, portable x64 archives for Windows and
 # Linux — one Windows .zip and one Linux .tar.gz. See ADR "Windows + Linux desktop packaging".
 #
 #   - Self-contained + single-file: each archive holds ONE launcher that bundles the .NET runtime, so the
@@ -9,14 +9,14 @@
 #     Windows box or extra tooling needed, just the .NET SDK plus `zip` and `tar`.
 #   - Portable, not an installer: unzip/untar and run. UNSIGNED — Windows SmartScreen warns on first run
 #     ("More info" → "Run anyway"); on Linux mark it executable (the tar preserves the bit, but a browser
-#     download may drop it: `chmod +x SimplArchive.DesktopClient`). Unsigned because a code-signing
+#     download may drop it: `chmod +x Alcifra.DesktopClient`). Unsigned because a code-signing
 #     certificate is a paid, annual thing — not because the build is unfit to run (ADR 0714).
 #
 # Usage:   scripts/package-windows-linux.sh [version]
 #            version  optional (default 0.1.0) — stamped into the assembly + the archive file names.
 #
-# Output:  dist/SimplArchive-<version>-win-x64.zip
-#          dist/SimplArchive-<version>-linux-x64.tar.gz
+# Output:  dist/Alcifra-<version>-win-x64.zip
+#          dist/Alcifra-<version>-linux-x64.tar.gz
 
 set -euo pipefail
 
@@ -26,8 +26,8 @@ VERSION="${1:-0.1.0}"
 # "simplarchive", until the code rebrand (#1117 phase 5): renaming them would orphan every installed entry.
 source "$(dirname "$0")/brand.sh"
 APP_NAME="$BRAND_FILE_STEM"
-EXE_NAME="SimplArchive.DesktopClient"   # the apphost `dotnet publish` produces (the project name)
-PROJECT="src/SimplArchive.DesktopClient/SimplArchive.DesktopClient.csproj"
+EXE_NAME="Alcifra.DesktopClient"   # the apphost `dotnet publish` produces (the project name)
+PROJECT="src/Alcifra.DesktopClient/Alcifra.DesktopClient.csproj"
 OUT_DIR="dist"
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -73,7 +73,7 @@ build_one() {
   cp -R "$publish_dir/." "$stage/"
 
   cat > "$stage/README.txt" <<README
-SimplArchive desktop client ${VERSION} (${rid})
+Alcifra desktop client ${VERSION} (${rid})
 
 Self-contained — no .NET installation required.
 
@@ -86,7 +86,7 @@ Linux:    run  ./${EXE_NAME}
           (installs a .desktop entry + icons under ~/.local/share; ./uninstall.sh removes them.
            The binary stays where you unpacked it, so do not move it afterwards.)
 
-The client connects to a SimplArchive API; pick/enter the server on the logon window.
+The client connects to a Alcifra API; pick/enter the server on the logon window.
 Unsigned — a code-signing certificate is a paid, annual thing (ADR 0714).
 README
 
@@ -111,9 +111,9 @@ README
     cat > "$stage/share/applications/simplarchive.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
-Name=SimplArchive
+Name=Alcifra
 GenericName=Document Management
-Comment=Browse, file and search documents in a SimplArchive archive
+Comment=Browse, file and search documents in a Alcifra archive
 Exec=__EXEC__ %u
 MimeType=x-scheme-handler/simplarchive;
 Icon=simplarchive
@@ -132,9 +132,9 @@ apps="$HOME/.local/share/applications"
 icons="$HOME/.local/share/icons/hicolor"
 
 mkdir -p "$apps"
-sed "s|__EXEC__|$here/SimplArchive.DesktopClient|" "$here/share/applications/simplarchive.desktop" \
+sed "s|__EXEC__|$here/Alcifra.DesktopClient|" "$here/share/applications/simplarchive.desktop" \
     > "$apps/simplarchive.desktop"
-chmod +x "$here/SimplArchive.DesktopClient" 2>/dev/null || true
+chmod +x "$here/Alcifra.DesktopClient" 2>/dev/null || true
 
 for size in 48 64 128 256; do
     mkdir -p "$icons/${size}x${size}/apps"
@@ -145,7 +145,7 @@ done
 update-desktop-database "$apps" 2>/dev/null || true
 gtk-update-icon-cache -f -t "$icons" 2>/dev/null || true
 
-echo "Installed. SimplArchive should appear in your applications menu."
+echo "Installed. Alcifra should appear in your applications menu."
 echo "If it does not, log out and back in — some desktops only rescan then."
 INSTALL
 
@@ -197,5 +197,5 @@ cat <<'NOTE'
 
 These archives are self-contained and UNSIGNED (a showcase build):
   - Windows: SmartScreen warns on first run — "More info" -> "Run anyway".
-  - Linux:   if the launcher lost its executable bit on download, run: chmod +x SimplArchive.DesktopClient
+  - Linux:   if the launcher lost its executable bit on download, run: chmod +x Alcifra.DesktopClient
 NOTE

@@ -1,8 +1,8 @@
-# SimplArchive
+# Alcifra
 
 **A showcase of how a senior, AI-driven software developer can produce a complex, enterprise-grade system in a relatively short period of time.**
 
-**Alcifra** (this repository's working name: SimplArchive) is a multi-tenant **sovereign workspace**: a document management system (DMS) with encryption to each person's own key and open protocols (IMAP, WebDAV, CalDAV, CardDAV) for bring-your-own-device. It is a working system, built end-to-end as a demonstration of AI-assisted software engineering: Clean Architecture, a hypermedia REST API, two clients (a Blazor WebAssembly web app and a cross-platform Avalonia desktop app), OAuth/OIDC auth with MFA and passkeys, full-text + OCR search, document previews, versioning, ACLs, workflow, audit trails, legal hold & retention, WebDAV, a **fully localized UI (English, German, Italian, Spanish)**, and a production Helm chart — with an extensive automated test suite (unit, integration, container-backed E2E, and browser/desktop UI E2E) and a hardened CI pipeline.
+**Alcifra** (this repository's working name: Alcifra) is a multi-tenant **sovereign workspace**: a document management system (DMS) with encryption to each person's own key and open protocols (IMAP, WebDAV, CalDAV, CardDAV) for bring-your-own-device. It is a working system, built end-to-end as a demonstration of AI-assisted software engineering: Clean Architecture, a hypermedia REST API, two clients (a Blazor WebAssembly web app and a cross-platform Avalonia desktop app), OAuth/OIDC auth with MFA and passkeys, full-text + OCR search, document previews, versioning, ACLs, workflow, audit trails, legal hold & retention, WebDAV, a **fully localized UI (English, German, Italian, Spanish)**, and a production Helm chart — with an extensive automated test suite (unit, integration, container-backed E2E, and browser/desktop UI E2E) and a hardened CI pipeline.
 
 ## ▶ Try the live demo
 
@@ -51,7 +51,7 @@ On the device, first visit **https://192.168.1.50:9444** once and accept the sel
 
 ## Native desktop app
 
-Alongside the web client, SimplArchive ships a cross-platform **Avalonia desktop client**. Build self-contained installers/archives — no .NET needed on the target machine:
+Alongside the web client, Alcifra ships a cross-platform **Avalonia desktop client**. Build self-contained installers/archives — no .NET needed on the target machine:
 
 ```bash
 scripts/package-macos-dmg.sh          # macOS → dist/Alcifra-<version>-{arm64,x64}.dmg        (run on macOS)
@@ -101,7 +101,7 @@ helm upgrade --install simplarchive oci://ghcr.io/hebelconsulting/charts/simplar
 
 ## Encryption — two paid extras, in development
 
-Encryption for SimplArchive is being built as **two separate products**, and the line between them is not
+Encryption for Alcifra is being built as **two separate products**, and the line between them is not
 packaging: it is **whether the component holds a secret.**
 
 **The Encryption Module — encrypted delivery.** Content leaves the archive as an envelope addressed to the
@@ -155,7 +155,7 @@ was addressed to — and, where it is used without the Service, **what is stored
 
 ## Support the project
 
-SimplArchive is free and open source under Apache 2.0, and it stays that way — there is no paid tier, no
+Alcifra is free and open source under Apache 2.0, and it stays that way — there is no paid tier, no
 telemetry and nothing held back for a commercial edition. The public demo, the container images and the
 desktop builds all cost something to run and publish.
 

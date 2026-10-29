@@ -1,0 +1,1296 @@
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
+using System.Text.Json;
+using Avalonia.Controls;
+using Avalonia.Media.Imaging;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Alcifra.DesktopClient.Services;
+using Alcifra.Localization;
+using Alcifra.Presentation;
+using Alcifra.Theming;
+
+namespace Alcifra.DesktopClient.ViewModels;
+
+// The desktop workbench — mirrors the web Repositories tab: bottom tabs, a ribbon, and the
+// tree │ contents-list │ (index-data over (preview │ chat)) panes. See ADR "Desktop workbench UI".
+public sealed partial class MainWindowViewModel : ObservableObject, IShellContext
+{
+    private readonly OidcLoopbackAuthenticator _authenticator = new();
+    private AlcifraApiClient? _api;
+    private Guid? _currentFolderId;
+    private Guid? _currentRepositoryId;
+    private Guid? _selectedDocumentId;
+
+    // The .zip document whose entries the contents list is currently showing (ADR "Zip file browsing"), or
+    // null when not browsing an archive.
+    private Guid? _archiveDocumentId;
+
+    // ---- Session / tabs -------------------------------------------------------------------------------
+
+    [ObservableProperty] private bool _isLoggedIn;
+    [ObservableProperty] private string _userEmail = string.Empty;
+    [ObservableProperty] private string _status = "Not logged in.";
+
+    // The bottom TabControl's selected index (0 = Repositories) — bound so opening a search result can switch
+    // back to the workbench.
+    [ObservableProperty] private int _selectedTab;
+
+    // The bottom tabs (Repositories/Intray/Tasks/Search) are a TabControl in the view; only Repositories has
+    // content in this slice.
+
+    // The Recycle bin tab (ADR "Desktop recycle bin parity") — its own master-detail VM with an INDEPENDENT
+    // preview (RecycleBin.Preview), so a deleted document's preview never entangles the Repositories/Intray one.
+    public RecycleBinTabViewModel RecycleBin { get; }
+
+    // The Search tab's own state (#517 tranche 2) — see SearchTabViewModel for what moved and why.
+    public SearchTabViewModel Search { get; }
+
+    // The Check-out tab (ADR "Document check-out / check-in") — the caller's checked-out documents + their
+    // local working-copy status.
+    public CheckoutTabViewModel Checkout { get; }
+
+    // The Contacts and Calendar tabs (#564) — the caller's addressbooks and calendars. Their own VMs, like
+    // Check-out above: a tab's worth of state belongs to the tab, and this file is far over the 1000-line
+    // ceiling. Treated as ONE surface in review (ADR 0511), so they are declared together.
+    public ContactsTabViewModel ContactsTab { get; }
+
+    public CalendarTabViewModel CalendarTab { get; }
+
+    // The environment strip (#501) — set from the chosen server profile at login, empty for the normal case.
+    public EnvironmentBannerViewModel EnvBanner { get; } = new();
+
+    public MainWindowViewModel()
+    {
+        // Everything the window owns is constructed FIRST: each takes this as its context, and LoadLayout
+        // below asks a tab to restore its own pane rows, so a tab built after it would be null (#517).
+        Preview = new PreviewViewModel(this);
+        Intray = new IntrayTabViewModel(this);
+        RecycleBin = new RecycleBinTabViewModel(this);
+        Search = new SearchTabViewModel(this);
+        Checkout = new CheckoutTabViewModel(this);
+        Audit = new AuditTabViewModel(this);
+        ContactsTab = new ContactsTabViewModel(this);
+        CalendarTab = new CalendarTabViewModel(this);
+
+        LoadLayout();
+        WireContentsFilter(); // VisibleItems follows Items through every mutation site (see the partial)
+    }
+
+
+    // Sets the authenticated api client for the whole workbench, including both preview surfaces + the Recycle
+    // bin tab (so every surface shares the same session token).
+    private void UseApi(AlcifraApiClient api)
+    {
+        _api = api;
+        UseSessionInSurfaces(api);
+        _ocrLanguages = new OcrLanguageCatalog(api);
+        RecycleBin.SetApi(api);
+        Search.SetApi(api);
+        Search.OpenResultRequested = OpenSearchResultAsync;
+        ContactsTab.SetApi(api);
+        CalendarTab.SetApi(api);
+        Intray.SetApi(api);
+
+        // Read the API root's link relations once per session (ADR 0543): the root is the one URL a client may
+        // know, and everything else is discovered from it. Fire-and-forget — a workbench that cannot reach the
+        // root has larger problems, and the only consequence here is that the affordance stays hidden.
+        _ = LoadRootLinksAsync(api);
+
+        // Browser autofill (ADR 0978): the bridge speaks for THIS session, so it is started when one exists and
+        // only if the user switched it on. Stopping is the sign-out hook's job (App.axaml.cs).
+        Services.BrowserAutofill.Apply(api);
+    }
+
+    private async Task LoadRootLinksAsync(AlcifraApiClient api)
+    {
+        try
+        {
+            var links = await api.GetRootLinksAsync();
+            _myExternalLinksHref = links.GetValueOrDefault("externalLinks") is { } href ? href : null;
+            HasMyExternalLinks = _myExternalLinksHref is not null;
+        }
+        catch (HttpRequestException)
+        {
+            _myExternalLinksHref = null;
+            HasMyExternalLinks = false;
+        }
+    }
+
+    /// <summary>
+    /// What the single WebDAV ribbon button would do next (#461). Its own type rather than four more members
+    /// here — this class is already the largest entry on the 1000-line debt list (#466), and the button's state
+    /// is genuinely a separate concern.
+    /// </summary>
+    public WebDavRibbonState WebDav { get; } = new();
+
+    /// <summary>Re-reads the WebDAV button's state; safe to call whenever the session or the mount may have changed.</summary>
+    public Task RefreshWebDavStateAsync() =>
+        WebDav.RefreshAsync(Api is { } api ? async () => (await api.Profile.GetWebDavStatusAsync()).Enabled : null);
+
+    // ---- Panes ----------------------------------------------------------------------------------------
+
+    public ObservableCollection<TreeNodeViewModel> Tree { get; } = [];
+    public ObservableCollection<NodeViewModel> Items { get; } = [];
+    public ObservableCollection<IndexFieldViewModel> IndexFields { get; } = [];
+    public ObservableCollection<ChatMessageViewModel> Comments { get; } = [];
+
+    [ObservableProperty] private TreeNodeViewModel? _selectedTreeNode;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(OpenCommand))]
+    private NodeViewModel? _selectedItem;
+
+    public ObservableCollection<BreadcrumbViewModel> Breadcrumbs { get; } = [];
+    [ObservableProperty] private string _detailTitle = string.Empty;
+    [ObservableProperty] private string _maskLine = string.Empty;
+
+    // System fields — always shown, separate from the mask (ADR "System fields + OCR-language mask field").
+    // Name / DocumentDate / OCR languages are read-write; Created / CreatedBy / File extension are read-only.
+    // Every read-write field is only editable while the whole pane is in edit mode (ADR "Single pane-level
+    // edit toggle on the detail pane"). OCR languages shows only for a TIFF-sourced document.
+    [ObservableProperty] private string _sysName = string.Empty;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(SysDocumentDateText))] private DateTime? _sysDocumentDate;
+
+    // The document date's optional UTC time (ADR 0758): SysDocumentTime is the wire "HH:mm" (display);
+    // DocumentTimeEntry is what the user TYPES in edit mode (keyboard-first), normalized on save.
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(SysDocumentDateText))] private string? _sysDocumentTime;
+    [ObservableProperty] private string _documentTimeEntry = string.Empty;
+    [ObservableProperty] private string _sysCreatedBy = string.Empty;
+    [ObservableProperty] private string _sysFileExtension = string.Empty;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(CanEditOcr))] private bool _sysOcrCandidate;
+    [ObservableProperty] private string _sysOcrLanguages = string.Empty;
+    // The document's current (latest confirmed) version number — the last line of the detail pane (ADR "Mask-pane
+    // current-version line"). Empty for a folder / a document with no confirmed version.
+    [ObservableProperty] private string _sysCurrentVersion = string.Empty;
+
+    // Sensitivity label (ADR "Configurable sensitivity labels + upload defaults"): the current per-tenant label
+    // (read-only display: name + colour) + the staged edit value bound to the ComboBox (a picker item).
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasSensitivity))][NotifyPropertyChangedFor(nameof(DetailSensitivityText))][NotifyPropertyChangedFor(nameof(DetailSensitivityBrush))] private Guid? _detailSensitivityId;
+    private string _detailSensitivityName = string.Empty;
+    private string? _detailSensitivityColor;
+    private bool _detailSensitivityWatermark;
+    public string DetailSensitivityText => _detailSensitivityName;
+    // A label with no colour of its own falls back to the accent. Taken from the design tokens rather than
+    // written here (ADR 0578) — the light value specifically, because this is a filled chip whose text is
+    // white in both themes, so the darker of the two accents is the one that keeps it readable.
+    public string DetailSensitivityBrush => string.IsNullOrEmpty(_detailSensitivityColor)
+        ? ThemeTokensReader.Shipped.Light.Accent.Primary
+        : _detailSensitivityColor;
+    public bool HasSensitivity => DetailSensitivityId != null;
+
+    // The picker: "(None)" + the tenant's active labels; SelectedSensitivityItem is the staged edit value.
+    public ObservableCollection<SensitivityPickerItem> SensitivityPickerItems { get; } = [];
+    [ObservableProperty] private SensitivityPickerItem? _selectedSensitivityItem;
+    // The full label catalog (for the management dialog + the picker), loaded on login.
+    public ObservableCollection<AdminClient.SensitivityLabelInfo> SensitivityCatalog { get; } = [];
+
+    public sealed record SensitivityPickerItem(Guid? Id, string Name);
+
+    private void RebuildSensitivityPicker()
+    {
+        SensitivityPickerItems.Clear();
+        SensitivityPickerItems.Add(new SensitivityPickerItem(null, "(None)"));
+        foreach (var l in SensitivityCatalog.Where(l => !l.Retired))
+        {
+            SensitivityPickerItems.Add(new SensitivityPickerItem(l.Id, l.Name));
+        }
+    }
+
+    public async Task LoadSensitivityCatalogAsync()
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var catalog = await _api.Admin.GetSensitivityLabelsAsync();
+            SensitivityCatalog.Clear();
+            foreach (var l in catalog.Items)
+            {
+                SensitivityCatalog.Add(l);
+            }
+
+            CanManageSensitivity = catalog.CanManage;
+            RebuildSensitivityPicker();
+            RebuildClearanceOptions();
+        }
+        catch (Exception) { }
+    }
+
+    // Clearance options for the Users & groups clearance combo (ADR "Sensitivity clearance enforcement"): rank 0
+    // (none) plus one per active label rank.
+    public sealed record ClearanceOption(int Rank, string Label);
+
+    public ObservableCollection<ClearanceOption> ClearanceOptions { get; } = [];
+
+    private void RebuildClearanceOptions()
+    {
+        ClearanceOptions.Clear();
+        ClearanceOptions.Add(new ClearanceOption(0, "0 — None (unlabelled only)"));
+        foreach (var l in SensitivityCatalog.Where(l => !l.Retired).OrderBy(l => l.Rank))
+        {
+            ClearanceOptions.Add(new ClearanceOption(l.Rank, $"{l.Rank} — {l.Name}"));
+        }
+    }
+
+    // The selected principal's clearance rank (edited alongside the rights matrix, saved together).
+    [ObservableProperty] private int _selectedPrincipalClearance;
+
+    [ObservableProperty] private bool _canManageSensitivity;
+
+    // The tenant-administration dialogs' view-models; null when not signed in. The labels' caller reloads the
+    // catalog on close (it feeds a picker); the domains' does not, because nothing caches them (#667).
+    public SensitivityLabelsViewModel? CreateSensitivityLabelsViewModel() => _api is { } api ? new SensitivityLabelsViewModel(api) : null;
+    public MailDomainsViewModel? CreateMailDomainsViewModel() => _api is { } api ? new MailDomainsViewModel(api) : null;
+
+    // Free-form tags (ADR "Document tags"): the selected document's tags (read-only chips), the edit working
+    // copy (chips with a remove + an add box over the tenant catalog), and the pending new-tag value.
+    public ObservableCollection<string> DetailTags { get; } = [];
+    public ObservableCollection<string> EditTags { get; } = [];
+    public ObservableCollection<string> TagCatalog { get; } = [];
+    [ObservableProperty] private bool _hasDetailTags;
+    [ObservableProperty] private string _newTag = string.Empty;
+    private List<string> _origTags = [];
+
+    // Follow / unfollow the selected document (ADR "Document subscriptions") — set from the detail load; the
+    // toggle's glyph, tooltip and menu label (MainWindowViewModel.DocumentActions) switch on it.
+    [ObservableProperty] private bool _detailSubscribed;
+
+    [RelayCommand]
+    private async Task ToggleSubscriptionAsync()
+    {
+        if (_api is not { } api || _detailLinks is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var target = !DetailSubscribed;
+            await api.Documents.SetSubscriptionAsync(DetailHref("subscription"), target);
+            DetailSubscribed = target;
+            Status = target ? "Following this document." : "Unfollowed.";
+        }
+        catch (Exception)
+        {
+            ReportError(Strings.Get("StErrSubscription"));
+        }
+    }
+
+    // Read-only display of the document date + its optional time (edit mode uses the DatePicker + a typed time
+    // field). Stored in UTC, shown in the viewer's zone (ADR 0801): "2026-09-06 11:50 +02:00".
+    public string SysDocumentDateText => DocumentDateFormat.Display(
+        SysDocumentDate?.ToString("yyyy-MM-dd"), SysDocumentTime, Alcifra.ApiClient.SessionTimeZone.Current);
+
+    private Guid _sysCurrentVersionId;
+
+    // The current version's advertised `document-date` address (ADR 0543) — null until the system fields load.
+    private string? _sysDocumentDateHref;
+
+    // The notification collection's advertised `read-all` address — null until the bell has loaded once.
+    private string? _notificationsReadAllHref;
+    private IReadOnlyList<string> _sysOcrCodes = [];  // persisted (original) OCR codes
+    private IReadOnlyList<string> _stagedOcrCodes = []; // picker-staged codes, persisted on Save
+    // The OCR language catalogue, shared with the tenant and detail panes (#517). A service because nothing
+    // binds to it and it was three copies of the same lazy-load; see OcrLanguageCatalog.
+    private OcrLanguageCatalog? _ocrLanguages;
+
+    // The Repositories + Intray preview surface (state + render + find + hit-overlay + full-screen). Extracted to
+    // its own PreviewViewModel so the Recycle bin tab can own a SEPARATE instance (RecycleBin.Preview) and the
+    // two previews are never entangled — see ADR "Desktop recycle bin parity". Bound by the PreviewPane control.
+    public PreviewViewModel Preview { get; }
+
+
+    // The Search tab's own preview instance, for the same reason as the Intray's (#462): a preview shown while
+    // browsing search results must not leak into the Repositories tab, and vice versa.
+
+    // Leaves full-screen for ALL preview surfaces (the Esc key binding + a tab switch) — only the active tab's
+    // preview can actually be full-screen, so clearing all is safe.
+    [RelayCommand]
+    private void ExitPreviewFullscreen()
+    {
+        Preview.ExitFullscreen();
+        Intray.Preview.ExitFullscreen();
+        RecycleBin.Preview.ExitFullscreen();
+    }
+
+    [ObservableProperty] private string _newComment = string.Empty;
+
+    // ---- Login ----------------------------------------------------------------------------------------
+
+    // Set by Log out so the next sign-in forces a fresh browser login (prompt=login) rather than silently
+    // re-using the browser's session cookie — letting a different tenant/user log in (ADR "Desktop logout").
+    private bool _forceLoginNext;
+
+    [RelayCommand]
+    private async Task LoginAsync()
+    {
+        Status = Strings.Get("StOpeningBrowser");
+        try
+        {
+            var result = await _authenticator.AuthenticateAsync(forceLogin: _forceLoginNext);
+            if (result is null)
+            {
+                ReportError(Strings.Get("StSignInFailed"));
+                return;
+            }
+
+            _forceLoginNext = false;
+            UseApi(AlcifraApiClient.SignedIn(result));
+            UserEmail = result.Email ?? "(unknown)";
+            IsLoggedIn = true;
+            await SetupUserContextAsync();
+            await LoadRootAsync();
+
+            // A scheme-launched deep link (#761) parked by Program.Main waits for exactly this moment: the
+            // workbench is loaded and the tree exists to reveal into.
+            if (PendingDeepLink is { } pending)
+            {
+                PendingDeepLink = null;
+                await GoToDeepLinkAsync(pending);
+            }
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrSignIn"), e.Message));
+        }
+    }
+
+    // Log out: drop the in-memory session + all loaded state, and force the next sign-in to re-authenticate in
+    // the browser (so a different tenant/user can log in). See ADR "Desktop logout / switch user".
+    [RelayCommand]
+    private void Logout()
+    {
+        EndSession();
+        IsLoggedIn = false;
+        _forceLoginNext = true;
+        _ = StopRealtimeNotificationsAsync(); // drop the live hub connection with the session
+
+        // Clear loaded state so nothing from the previous session lingers behind the login prompt.
+        Tree.Clear();
+        Items.Clear();
+        ClearContentsFilter(); // one user's filter must not narrow the next user's list (#1275)
+        Breadcrumbs.Clear();
+        SelectedItem = null;
+        SelectedTreeNode = null;
+        ClearDetail();
+        _currentFolderId = null;
+        _currentRepositoryId = null;
+        _archiveDocumentId = null;
+        _localFolders = null;
+        _currentUserId = null;
+        UserEmail = string.Empty;
+        UserDisplayName = string.Empty;
+        Alcifra.ApiClient.SessionTimeZone.Reset();   // this user's preference; the next to sign in must not inherit it
+
+        // Reset the right-gated tabs so the next user's rights apply cleanly.
+        IsTenantAdmin = false;
+        CanManageUsers = false;
+        CanManageServiceAccounts = false;
+        CanImpersonate = false;
+        IsImpersonating = false;
+        ImpersonatedName = null;
+        _adminApi = null;
+        CanViewAuditLog = false;
+        Audit.Reset();
+        CanLegalHold = false;
+        CanManageClassification = false;
+        CanOverrideCheckout = false;
+        HasExportRight = false;
+        HasImportRight = false;
+        TenantSettingsLoaded = false;
+        TenantEditingGroup = null;
+        Notifications.Clear();
+        UnreadNotificationCount = 0;
+        Search.SavedSearches.Clear();
+        Search.LastSearchQueryString = string.Empty;
+        SelectedTab = 0;
+        Status = Strings.Get("StSignedOut");
+
+        // Return to the startup logon window (ADR "Desktop logon window") — the app re-shows it and closes this
+        // window. Falls back to the in-window state if nothing is subscribed.
+        LogoutRequested?.Invoke();
+    }
+
+    // Raised by Logout so the app can return to the logon window (login redesign slice B).
+    public event Action? LogoutRequested;
+
+    // Bootstraps an already-authenticated session (the logon window did the OAuth, ADR "Desktop logon window") —
+    // mirrors LoginAsync's post-authentication steps without opening the browser here.
+    public async Task InitializeSessionAsync(AlcifraApiClient api, string email)
+    {
+        UseApi(api);
+        UserEmail = email;
+        IsLoggedIn = true;
+        try
+        {
+            await SetupUserContextAsync();
+            await LoadRootAsync();
+        }
+        catch (Exception e)
+        {
+            // The bootstrap owns its failure (#1077). Its one caller fires and forgets, so an exception
+            // escaping here reached nothing but the finalizer's unobserved-task log: after a SUCCESSFUL
+            // sign-in the workbench sat at its default "Not logged in." with no error, no modal, and no clue.
+            // Reported HERE because this is where we know what failed — the status line carries the sentence
+            // for the user already looking at it, and AppExceptions decides between the reconnect modal (a
+            // server unreachable or answering badly) and the crash dialog. The session stays signed IN:
+            // authentication genuinely succeeded, and the reconnect modal is the path back.
+            ReportError(string.Format(Strings.Get("StErrSignIn"), e.Message));
+            Services.AppExceptions.Report(e);
+        }
+    }
+
+    // ---- Contents / breadcrumb ------------------------------------------------------------------------
+
+    // folderLinks: the addresses the caller already holds — a tree node's or a list row's. When null (a restored
+    // selection, an import that only knows an id) this reads the folder resource ONCE and follows its rels from
+    // there: `children` for the contents and `references` for the shortcuts, with the contents order riding in
+    // the children envelope. One read, three follows — never a composed sub-resource path, and never a fetch per
+    // rel, which is the failure mode that talks a codebase back into string paths (ADR 0543, issue #416).
+    private async Task LoadFolderContentsAsync(Guid folderId, LinkMap? folderLinks = null)
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        // Navigating to a *different* folder resets the panes right of the list (index-data / preview / comments)
+        // so they don't keep showing the previously-selected document — parity with the web client, whose
+        // SelectFolderAsync clears the detail on every folder selection (ADR 0516). A same-folder reload (after an
+        // in-place operation such as a legal-hold toggle or an upload) deliberately keeps the current detail; the
+        // operation handlers that need to clear it call ClearDetail() themselves.
+        if (_currentFolderId != folderId)
+        {
+            SelectedItem = null;
+            ClearDetail();
+            ClearContentsFilter(); // the filter described the folder being left (#1275; see the partial)
+        }
+
+        var isReload = _currentFolderId == folderId;
+        _archiveDocumentId = null; // leave any archive-browsing view
+        _currentFolderId = folderId;
+        // Cleared here, decided below once the folder's links are in hand: the `folders` rel is what says whether
+        // this folder takes a subfolder (#634). Leaving the PREVIOUS folder's answer standing across the load is
+        // the ADR 0559 mistake — the button stays clickable throughout it.
+        CanCreateFolder = false;
+        CanExport = true;
+        Status = Strings.Get("StLoading");
+        try
+        {
+            // Use the caller's links only when they carry BOTH addresses this needs. A listing advertises a
+            // fixed set, and not every listing advertises the same one — so "the caller passed something" is not
+            // the same as "the caller passed enough". A partial set is completed by reading the resource at ITS
+            // OWN advertised document address (a repository row calls the document view `document`, ADR 0200);
+            // a reload of the folder already open reuses its stored links. There is no id fallback any more —
+            // an id alone has no address (ADR 0543, #443).
+            var links = folderLinks is not null && folderLinks?.Has("children") == true && folderLinks?.Has("references") == true
+                ? folderLinks
+                : folderLinks is not null && (folderLinks.Href("document") ?? folderLinks.Href("self")) is { } ownAddress
+                    ? await _api.Documents.GetDocumentLinksAsync(ownAddress)
+                    : isReload && _currentFolderLinks is { } stored
+                        ? stored
+                        : throw new InvalidOperationException($"No advertised address for folder '{folderId}' (ADR 0543).");
+            _currentFolderLinks = links;
+            // The folder's persisted default contents order (ADR "Per-folder contents sort order") arrives with
+            // the contents; opening a fresh folder resets any ephemeral column-header sort back to that default.
+            (var children, var sortOrder, CanCreateFolder) = await _api.Documents.GetFolderContentsAsync(links.Href("children")!);
+            var references = await _api.References.GetReferencesAsync(links.Href("references")!);
+            _folderSortOrder = sortOrder;
+            _headerSortActive = false;
+            OnPropertyChanged(nameof(DetailSortText));
+            OnPropertyChanged(nameof(DetailIsFolder));
+            Items.Clear();
+            foreach (var child in children)
+            {
+                Items.Add(new NodeViewModel
+                {
+                    Links = child.Links,
+                    CanDelete = child.CanDelete,
+                    CanEditIndexData = child.CanEditIndexData,
+                    CanMove = child.CanMove,
+                    CanManagePermissions = child.CanManagePermissions,
+                    CanCreateChildren = child.CanCreateChildren,
+                    Id = child.Id,
+                    Name = child.Name,
+                    HasChildren = child.HasChildren,
+                    HasVersions = child.HasVersions,
+                    Folder = child.IsFolder,
+                    HasReferences = child.HasReferences,
+                    OnLegalHold = child.OnLegalHold,
+                    EncryptedFor = child.EncryptedFor,
+                    CheckedOut = child.CheckedOut,
+                    CheckedOutByMe = child.CheckedOutByMe,
+                    CheckedOutByName = child.CheckedOutByName,
+                    DocumentType = child.DocumentType,
+                    DocumentDate = child.DocumentDate,
+                    DocumentTime = child.DocumentTime,
+                    SizeBytes = child.SizeBytes,
+                    Tags = child.Tags ?? [],
+                    CreatedBy = child.CreatedBy,
+                    SensitivityLabelName = child.SensitivityLabelName,
+                    SensitivityLabelColor = child.SensitivityLabelColor,
+                    VersionCount = child.VersionCount,
+                    VersionCreatedAt = child.VersionCreatedAt,
+                    MaskIconToken = child.Icon,
+                });
+            }
+
+            // References (shortcuts) filed in this folder, rendered with a shortcut icon — see ADR "Desktop
+            // drag-and-drop move and reference". The row is built where the references live (ReferenceRow).
+            foreach (var reference in references)
+            {
+                Items.Add(ReferenceRow(reference));
+            }
+
+            ApplyContentSort(); // keep the chosen column sort across folder navigation
+            Status = string.Format(Strings.Get("StItems"), Items.Count);
+
+            // Where you are, said in the tree — after the load, because the folder is only definitely open once
+            // its contents are.
+            await MarkOpenFolderInTreeAsync();
+
+            // With nothing selected, the detail pane describes the folder you are standing in. Without this the
+            // pane simply went blank on every folder change, so a folder's own mask and index fields were
+            // reachable only by selecting its ROW from the parent — and not at all for a repository root, which
+            // has no parent to be listed in. The web has described a selected folder since #408; this is the
+            // same subject rule, for the open folder (ADR 0511 keeps the two clients one surface).
+            if (SelectedItem is null && !isReload)
+            {
+                await ShowOpenFolderDetailAsync();
+
+                // The populate-on-open hook (ADR 0756): if the folder just opened advertises a
+                // machine-auto-refresh rel (now loaded into DetailGenericActions), invoke it and reload — a
+                // module stages fresh content (a DABS chart, a METAR) the moment the folder is opened.
+                await AutoRefreshOpenFolderAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrLoad"), e.Message));
+        }
+    }
+
+    // ---- Contents-list column sorting (ADR "List-row columns and sorting") — client-side over the loaded
+    // rows, since the listing is cursor-paginated by creation order. -----------------------------------
+    // Folders are ALWAYS listed on top (ADR "Per-folder contents sort order"); within each group the default is
+    // the open folder's persisted _folderSortOrder (0=Name/1=DocumentDate/2=Created). Clicking a column header is
+    // an EPHEMERAL override (_headerSortActive) that resets when another folder is opened.
+    // The open folder's advertised addresses, stored with its id so a same-folder reload and the
+    // folder-scoped actions (create folder, upload, export, import) follow what the navigation row carried
+    // (ADR 0555) instead of re-deriving anything from the id.
+    private LinkMap? _currentFolderLinks;
+
+    private int _folderSortOrder = 1; // DocumentDate
+    private bool _headerSortActive;
+    private string _contentSortColumn = "name";
+    private bool _contentSortAscending = true;
+
+    public string NameHeader => ColumnHeader("name", "Name");
+    public string TypeHeader => ColumnHeader("type", "Type");
+    public string DateHeader => ColumnHeader("date", "Doc date");
+    public string SizeHeader => ColumnHeader("size", "Size");
+    public string TagsHeader => ColumnHeader("tags", "Tags");
+    public string OwnerHeader => ColumnHeader("owner", Strings.Get("SortOwner"));
+    private string ColumnHeader(string col, string label) => _headerSortActive && _contentSortColumn == col ? $"{label} {(_contentSortAscending ? "▲" : "▼")}" : label;
+
+    [RelayCommand]
+    private void SortContents(string column)
+    {
+        if (_headerSortActive && _contentSortColumn == column)
+        {
+            _contentSortAscending = !_contentSortAscending;
+        }
+        else
+        {
+            _contentSortColumn = column;
+            _contentSortAscending = true;
+            _headerSortActive = true; // an ephemeral override, until the next folder is opened
+        }
+
+        OnPropertyChanged(nameof(NameHeader));
+        OnPropertyChanged(nameof(TypeHeader));
+        OnPropertyChanged(nameof(DateHeader));
+        OnPropertyChanged(nameof(SizeHeader));
+        OnPropertyChanged(nameof(TagsHeader));
+        OnPropertyChanged(nameof(OwnerHeader));
+        ApplyContentSort();
+    }
+
+    // ---- Folder contents sort order — extracted to MainWindowViewModel.FolderSortOrder.cs (#941) ----
+
+    // ---- Detail pane: the subject's glyph, and whether it is a folder ---------------------------
+
+    // A folder is open and no document is selected → show the folder detail pane instead of the placeholder.
+    // The pane describes a SUBJECT — a selected row, else the open folder — so a folder gets the document's pane
+    // wherever you reached it from (issue #408). ShowFolderDetail, which used to gate a pane of its own, is gone.
+    public bool DetailIsFolder => _detailIsFolder;
+
+    // The glyph and colour the TREE would give this same object (ADR 0547), so a folder looks like a folder — and
+    // an empty one like an empty one — in the detail pane too, rather than changing style per pane. Reuses
+    // TreeNodeViewModel's rules rather than restating them, so the two cannot drift.
+    public string DetailGlyph => _detailGlyphNode?.IconValue ?? "mdi-file-document-outline";
+
+    public string DetailGlyphBrushKey => _detailGlyphNode?.IconBrushKey ?? "WbMuted";
+
+    private TreeNodeViewModel? _detailGlyphNode;
+
+    private bool _detailIsFolder;
+
+
+    // ---- The open folder, the breadcrumb, and creating a folder in it ---------------------------
+    public Guid? CurrentFolderId => _currentFolderId;
+
+    // Rebuilds the breadcrumb from a tree node's ancestry (root → … → node).
+    private void SetBreadcrumbFromTreeNode(TreeNodeViewModel node)
+    {
+        var chain = new List<TreeNodeViewModel>();
+        for (var current = node; current is not null; current = current.Parent)
+        {
+            chain.Add(current);
+        }
+
+        chain.Reverse();
+
+        // The top-level ancestor is the repository root — the scope the recycle bin lists against.
+        _currentRepositoryId = chain[0].Id;
+
+        Breadcrumbs.Clear();
+        Breadcrumbs.Add(new BreadcrumbViewModel { Name = "Repositories", FolderId = null, ShowSeparator = false });
+        foreach (var ancestor in chain)
+        {
+            Breadcrumbs.Add(new BreadcrumbViewModel { Name = ancestor.Name, FolderId = ancestor.Id, Links = ancestor.Links, ShowSeparator = true });
+        }
+    }
+
+    // Navigate to a clicked crumb: the root crumb reloads repositories; a folder crumb truncates the path
+    // back to it and loads its contents.
+    [RelayCommand]
+    private async Task NavigateToBreadcrumb(BreadcrumbViewModel? crumb)
+    {
+        if (crumb is null)
+        {
+            return;
+        }
+
+        if (crumb.FolderId is not { } folderId)
+        {
+            await LoadRootAsync();
+            return;
+        }
+
+        var index = Breadcrumbs.IndexOf(crumb);
+        for (var i = Breadcrumbs.Count - 1; i > index; i--)
+        {
+            Breadcrumbs.RemoveAt(i);
+        }
+
+        await LoadFolderContentsAsync(folderId, crumb.Links);
+    }
+
+    // Creates a folder in the currently-open folder (the view collects the name via a dialog and calls this).
+    public async Task CreateFolderAsync(string name)
+    {
+        if (_api is null || _currentFolderId is not { } folderId || _currentFolderLinks is not { } folderLinks)
+        {
+            return;
+        }
+
+        try
+        {
+            // The `folders` rel the button is gated on, not `children` (#634): same address, different method,
+            // and following the one that enabled the affordance keeps gate and action from drifting.
+            await _api.Documents.CreateFolderAsync(folderLinks.Href("children")!, name);
+            Status = string.Format(Strings.Get("StCreatedFolder"), name);
+            await ShowNewChildInTreeAsync(folderId); // refresh the parent's children in the tree, keep it expanded
+            await LoadFolderContentsAsync(folderId);
+        }
+        catch (Alcifra.ApiClient.ApiActionException e)
+        {
+            ReportError(e.Message);
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrCreateFolder"), e.Message));
+        }
+    }
+
+    // ---- Intray (ADR "S3-backed inbox", phase 2) -------------------------------------------------------
+
+    // Still used by the Check-out tab (local working-copy folder) + native-open temp dir; the local INTRAY half
+    // was removed in favour of the WebDAV mount (ADR "Desktop inbox via WebDAV").
+    private LocalFolders? _localFolders;
+
+    // After login: resolve the tenant/user display names and create the local ~/Alcifra/{Tenant}/{User}/
+    // {intray,temp} folders; point native-open at the temp folder.
+    private async Task SetupUserContextAsync()
+    {
+        // "Not logged in." is this line's INITIAL value, and only a folder-contents load overwrites it — so a
+        // user who signs in and goes straight to Users, Tenant or Contacts read it under their own name, all
+        // session (#1358, found by the manual's live capture of those tabs).
+        Status = string.Empty;
+
+        if (_api is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Once for the session, before anything renders a document date (ADR 0801): two view-models
+            // resolving their own zone would show one document at two different times.
+            Alcifra.ApiClient.SessionTimeZone.Set(await _api.Profile.MyTimeZoneIdAsync());
+            var me = await _api.GetWhoAmIAsync();
+            IsTenantAdmin = me.IsTenantAdmin;
+            RecycleBin.IsTenantAdmin = me.IsTenantAdmin;
+            CanManageUsers = me.CanManageUsers;
+            CanManageServiceAccounts = me.CanManageServiceAccounts;
+            CanViewAuditLog = me.CanViewAuditLog;
+            Audit.IsTenantAdmin = me.IsTenantAdmin;
+            MfaEnabled = me.MfaEnabled;
+            CanSelfEnrol = await OffersSelfEnrolmentAsync();
+            CanResetMfa = me.CanResetMfa;
+            CanLegalHold = me.CanLegalHold;
+            CanManageClassification = me.CanManageClassification;
+            CanOverrideCheckout = me.CanOverrideCheckout;
+            CanImpersonate = me.CanImpersonate;
+            HasExportRight = me.CanExport;
+            HasImportRight = me.CanImport;
+            Intray.CanManageIntrays = me.CanManageIntrays;
+            CanManageMailRouting = me.CanManageMailRouting;
+            IsImpersonating = me.ImpersonatedBy is not null;
+            ImpersonatedName = me.ImpersonatedBy is not null ? me.UserName : null;
+            _currentUserId = me.UserId;
+            UserDisplayName = me.UserName ?? "";
+            await LoadMyPhotoAsync();
+            if (me.TenantName is { } tenantName && me.UserName is { } userName)
+            {
+                _localFolders = new LocalFolders(tenantName, userName);
+                NativeFileOpener.TempDirectoryOverride = _localFolders.TempDirectory;
+                Checkout.SetApi(_api);
+                Audit.SetApi(_api);
+            }
+
+            await LoadTasksAsync(); // for the Tasks tab count badge
+            await LoadNotificationsAsync(); // for the notifications bell badge
+            await StartRealtimeNotificationsAsync(); // live bell updates (ADR "Real-time notifications (SignalR)")
+            await LoadSensitivityCatalogAsync(); // the tenant's sensitivity labels for the picker + admin
+            // The Check-out tab reads its modified state from the server (ADR 0513) — no local working copy to restore.
+            await Checkout.LoadAsync();
+            OnPropertyChanged(nameof(CheckoutCount));
+            OnPropertyChanged(nameof(HasCheckouts));
+        }
+        catch (Exception)
+        {
+            // Non-fatal — the intray still works without the local folders.
+        }
+    }
+
+    // Tenant-admin-only actions (e.g. the searchable-PDF backfill) are gated on this, set from whoami on login.
+    [ObservableProperty] private bool _isTenantAdmin;
+
+    // Whether the caller may force-release another user's check-out (ADR "Document check-out / check-in") — gates
+    // the "Override check-out" context-menu action; set from whoami on login.
+    [ObservableProperty] private bool _canOverrideCheckout;
+
+    // Whether the caller holds CanExport / CanImport (ADR "Dedicated CanExport/CanImport rights") — gates the
+    // visibility of the ribbon Export…/Import… buttons (replacing the old tenant-admin gate). Distinct from the
+    // CanExport property above, which is the folder-open enabled-state of the Export button.
+    [ObservableProperty] private bool _hasExportRight;
+
+    [ObservableProperty] private bool _hasImportRight;
+
+
+    // Whether the caller may change mail routing (#703) — without it a Mailbox's address field renders
+    // read-only instead of offering an edit the server would 403; set from whoami on login.
+    [ObservableProperty] private bool _canManageMailRouting;
+
+    // Reconnect action for the crash-guard dialog (ADR "Desktop crash guard"): re-check the session and reload
+    // the current view. May throw again if still offline — the dialog swallows that rather than looping.
+    public async Task ReconnectAsync()
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        await SetupUserContextAsync();
+        await LoadRootAsync();
+        if (_currentFolderId is { } folderId)
+        {
+            await LoadFolderContentsAsync(folderId);
+        }
+
+        Status = Strings.Get("StReconnected");
+    }
+
+    // How many existing "current TIFF" documents still need a searchable-PDF successor (ADR "Backfill
+    // searchable PDFs for existing TIFFs") — the view confirms with this before triggering.
+    public async Task<int> GetTiffBackfillPendingAsync() => _api is null ? 0 : await _api.GetTiffBackfillPendingAsync();
+
+    // Triggers the backfill and reports the count queued.
+    public async Task RunTiffBackfillAsync()
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var count = await _api.TriggerTiffBackfillAsync();
+            Status = count == 0
+                ? "No documents needed conversion."
+                : $"Queued {count} document(s) for searchable-PDF conversion.";
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrStartConversion"), e.Message));
+        }
+    }
+
+
+    // ---- Intray view filters (ADR 0532): own-items-only by default; a toggle reveals group intrays, and a
+    // CanManageIntrays holder can open a specific user's intray via the picker (mutually exclusive with groups). ----
+
+    // Upload OS files dropped onto the intray file-list straight into the S3-backed intray (ADR "Inbox file-list
+    // drop-zone"). The view reads each dropped file into (name, bytes); this uploads them, then refreshes.
+    // Drops onto the Personal ▸ Intray / Check-out tree launchers (#467). The work is in DropFiling — this class
+    // is already the largest entry on the 1000-line debt list (#466) — and what stays here is what only the
+    // view-model can do: own the status line and know what to refresh.
+    private DropFiling? _dropFiling;
+
+
+    public async Task StashDroppedFilesAsync(IReadOnlyList<(string Name, byte[] Bytes)> files)
+    {
+        if (_api is not { } api)
+        {
+            return;
+        }
+
+        _dropFiling ??= new DropFiling(api);
+        var items = Checkout.Items.Select(r => r.Item).OfType<CheckoutClient.CheckoutItem>().ToList();
+        if (await _dropFiling.StashAsync(files, items, message => Status = message) > 0)
+        {
+            await Checkout.LoadAsync();
+        }
+    }
+
+
+    // "Open in file manager" + "WebDAV settings" (Intray tab) now live in the code-behind (MainWindow.axaml.cs
+    // OnOpenWebDavIntray / OnManageWebDav), since opening the settings dialog when WebDAV isn't configured needs
+    // the Window (ADR "Desktop inbox WebDAV buttons"). The mount logic stays in Services/OsFileManager.
+
+    // ---- Intray item detail (right panes): a mask/index-data editor + the shared preview -------------------
+    // The panes are driven by the focused server item; the mask edits are staged to a `{name}.mask.json`
+    // sidecar (ADR "Inbox item classification + preview"). The mask pane is only editable for a server item.
+
+    // 2+ server items are selected → the "File multiple items" button is offered (ADR "Bulk-file multiple
+    // inbox items"). Set from the list's selection in code-behind.
+    [ObservableProperty] private bool _canFileMultiple;
+
+    // Files several server intray items into one folder, best-effort, each with the same optional feed comment.
+    public async Task FileMultipleServerItemsAsync(IReadOnlyList<IntrayItemViewModel> items, Guid folderId, string? comment)
+    {
+        if (_api is null || items.Count == 0)
+        {
+            return;
+        }
+
+        var filed = 0;
+        foreach (var item in items)
+        {
+            try
+            {
+                await _api.Intray.FileIntrayItemAsync(item.Item!, folderId, comment);
+                filed++;
+            }
+            catch (Exception)
+            {
+                // Best-effort: skip an item that can't be filed (e.g. a permission error), keep filing the rest.
+            }
+        }
+
+        Status = string.Format(Strings.Get("StFiledOf"), filed, items.Count);
+        await Intray.RefreshAsync();
+    }
+    // Builds the filing dialog VM, passing the Repositories tab's selected document (if any) so the dialog can
+    // offer filing as a new version of it / into its folder (ADR "Context-aware inbox filing dialog").
+    public FolderPickerViewModel CreateFolderPickerViewModel()
+    {
+        if (_api is null)
+        {
+            return null!;
+        }
+
+        DocumentFilingContext? context = null;
+        if (SelectedItem is { IsFolder: false, IsReference: false, IsArchiveEntry: false, IsArchiveBack: false } doc
+            && _currentFolderId is { } folderId)
+        {
+            var folderPath = string.Join(" / ", Breadcrumbs.Select(b => b.Name));
+            var folderName = Breadcrumbs.LastOrDefault()?.Name ?? "";
+            context = new DocumentFilingContext(doc.Id, doc.Name, $"{folderPath} / {doc.Name}", folderId, folderName, folderPath);
+        }
+
+        return new FolderPickerViewModel(_api, context);
+    }
+
+    // The bulk filing dialog VM (ADR "Bulk-file multiple inbox items"): only file-in-folder / pick (no
+    // as-version). The "in folder" target is the selected repo folder itself, or the selected document's folder.
+    public FolderPickerViewModel CreateBulkFolderPickerViewModel()
+    {
+        if (_api is null)
+        {
+            return null!;
+        }
+
+        DocumentFilingContext? context = null;
+        if (SelectedItem is { IsReference: false, IsArchiveEntry: false, IsArchiveBack: false } item)
+        {
+            var folderPath = string.Join(" / ", Breadcrumbs.Select(b => b.Name));
+            if (item.IsFolder)
+            {
+                context = new DocumentFilingContext(Guid.Empty, "", "", item.Id, item.Name, $"{folderPath} / {item.Name}");
+            }
+            else if (_currentFolderId is { } folderId)
+            {
+                context = new DocumentFilingContext(Guid.Empty, "", "", folderId, Breadcrumbs.LastOrDefault()?.Name ?? "", folderPath);
+            }
+        }
+
+        return new FolderPickerViewModel(_api, context, bulk: true);
+    }
+
+
+    // ---- Refinement panel (ADR "Search-refinement UI", phase 2) ---------------------------------------
+
+    // Tab order: 0 Repositories · 1 Intray · 2 Check-out · 3 Search · 4 Recycle bin · 5 Tasks · 6 Users/Groups
+    // · 7 Audit · 8 Legal holds · 9 Retention · 10 Tenant · 11 My work · 12 Tag catalog · 13 Contacts
+    // · 14 Calendar. Each new tab is APPENDED so the indices above stay put — they are also written out in
+    // Program.cs and the tour deep-links, and renumbering them silently opens the wrong tab.
+    //
+    // A switch expression rather than the if-chain this grew into: fourteen `if (value == n)` blocks read as
+    // fourteen independent decisions when they are one, and the chain is what made every added tab cost this
+    // file another dozen lines (#517). Each arm hands back the Task the activation needs; anything with more
+    // than one statement gets a local function rather than being flattened into the arm.
+    partial void OnSelectedTabChanged(int value) => Services.Safe.Fire(() => OnSelectedTabChangedAsync(value));
+
+    private async Task OnSelectedTabChangedAsync(int value)
+    {
+        Preview.ExitFullscreen(); // leave full screen when switching tabs (the tab strip stays reachable while maximized)
+        Intray.Preview.ExitFullscreen();
+        RecycleBin.Preview.ExitFullscreen();
+
+        await (value switch
+        {
+            0 => RefreshRepositoriesViewAsync(),
+            1 => Intray.RefreshAsync(),
+            2 => ActivateCheckoutAsync(),
+            3 => ActivateSearchAsync(),
+            4 => LoadRecycleBinAsync(),
+            5 => LoadTasksAsync(),
+            6 => LoadPrincipalsAsync(),
+            7 => Audit.ActivateAsync(),
+            8 => LoadLegalHoldsAsync(),
+            9 => LoadRetentionScheduleAsync(),
+            10 => LoadTenantSettingsAsync(),
+            11 => LoadMyWorkAsync(),
+            12 => LoadTagCatalogAsync(),
+            // Contacts and Calendar load on ACTIVATION, not at login: each costs a request per collection and
+            // most sessions never open either tab.
+            13 => ContactsTab.LoadAsync(),
+            14 => CalendarTab.LoadAsync(),
+            _ => ActivateLaterTabAsync(value),
+        });
+    }
+
+    private async Task ActivateCheckoutAsync()
+    {
+        await Checkout.LoadAsync();
+        OnPropertyChanged(nameof(CheckoutCount));
+        OnPropertyChanged(nameof(HasCheckouts));
+    }
+
+    private async Task ActivateSearchAsync() => await Search.ActivateAsync();
+
+    // Returning to the Repositories tab reloads the open folder's contents — so a document filed or re-versioned
+    // from another tab (e.g. the Intray) appears — while keeping focus on the selected document (re-selected by
+    // id, which re-renders its detail + preview so a new version shows). See ADR "Desktop recycle bin parity".
+    private async Task RefreshRepositoriesViewAsync()
+    {
+        if (_api is null || _currentFolderId is not { } folderId || _archiveDocumentId is not null)
+        {
+            return;
+        }
+
+        var selectedId = SelectedItem?.Id;
+        await LoadFolderContentsAsync(folderId);
+        if (selectedId is { } id && Items.FirstOrDefault(n => n.Id == id) is { } fresh)
+        {
+            SelectedItem = fresh;
+        }
+    }
+
+    // Entering the Recycle bin tab loads its tenant-wide list (ADR "Desktop recycle bin parity").
+    private async Task LoadRecycleBinAsync() => await RecycleBin.LoadAsync();
+
+    // ---- Tag chips (ADR "Document tags") -------------------------------------------------------------
+    [RelayCommand]
+    private void AddTag()
+    {
+        var t = NewTag.Trim().ToLowerInvariant();
+        if (t.Length is > 0 and <= 100 && !EditTags.Contains(t))
+        {
+            EditTags.Add(t);
+        }
+
+        NewTag = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RemoveTag(string? tag)
+    {
+        if (tag is not null)
+        {
+            EditTags.Remove(tag);
+        }
+    }
+
+    // A read-only tag chip click → a filter-only search by that tag on the Search tab.
+    [RelayCommand]
+    private async Task SearchByTag(string? tag)
+    {
+        if (tag is null)
+        {
+            return;
+        }
+
+        // The one cross-tab hop the extraction leaves on the shell: switching tab is the shell's job, running
+        // the query is the tab's (#517 tranche 2).
+        SelectedTab = 3; // Search
+        await Search.RunForTagAsync(tag);
+    }
+
+    // Refresh reloads both the folders-only tree (LoadRootAsync/ReloadTreeAsync) and the current folder's
+    // contents — the tree caches lazily-loaded children, so without an explicit rebuild it never picks up
+    // structural changes.
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        if (_currentFolderId is { } id)
+        {
+            await ReloadTreeAsync();
+            await LoadFolderContentsAsync(id);
+        }
+        else
+        {
+            await LoadRootAsync();
+        }
+    }
+
+    // ---- Detail (index-data + preview + chat) ---------------------------------------------------------
+
+    // Reloads the selected document's detail (e.g. after a version restore, ADR "Version restore", so the
+    // preview + system fields reflect the new current version).
+    public async Task ReloadSelectedDetailAsync()
+    {
+        // Folders included since issue #408: a folder is a Document with a mask, and it now gets the same pane
+        // rather than a thinner one of its own. Archive entries stay out — they are zip contents, not documents.
+        if (SelectedItem is { IsArchiveEntry: false, IsArchiveBack: false } document)
+        {
+            await LoadDetailAsync(document);
+        }
+    }
+
+    private async Task LoadDetailAsync(NodeViewModel document)
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        // The detail pane fits its CONTENT (ADR 0550): its right height is decided by what is selected — a few
+        // rows for a folder, many for a long mask — so a height dragged for one document is wrong for the next.
+        // A drag overrides it only until the selection changes, which is now; it is never persisted.
+        //
+        // Not while the bottom half is collapsed, though: there the pane is meant to FILL what it is given, and
+        // resetting to Auto would quietly undo the collapse on the very next click.
+        if (!IndexCollapsed && !BottomCollapsed)
+        {
+            IndexHeight = GridLength.Auto;
+        }
+
+        _selectedDocumentId = document.Id;
+        _detailIsFolder = document.IsFolder;
+        // A stand-in node purely to borrow the tree's glyph rules — hasChildren drives the empty-folder variant.
+        _detailGlyphNode = document.IsFolder
+            ? new TreeNodeViewModel(document.Id, document.Name, false, null, hasChildren: document.HasChildren)
+            : null;
+        OnPropertyChanged(nameof(DetailIsFolder));
+        OnPropertyChanged(nameof(DetailGlyph));
+        OnPropertyChanged(nameof(DetailGlyphBrushKey));
+        DetailTitle = document.Name;
+        IndexFields.Clear();
+        Comments.Clear();
+        IsEditing = false;
+        CanEditDetail = true;
+        Preview.Reset("Loading…");
+
+        // Every write below happens AFTER an await, and a user can select again while one is in flight. Two
+        // loads then race, and the one that started EARLIER can finish last and repaint the pane with the
+        // previous subject — which is the same defect from the other end: the pane describing something other
+        // than what is selected (ADR 0559). Found by #686's test, which saw a folder's title beside a
+        // document's mask line.
+        //
+        // _selectedDocumentId was stamped above, so a stale load can see that it has been superseded and stop.
+        bool Superseded() => _selectedDocumentId != document.Id;
+
+        try
+        {
+            await LoadMaskAndIndexAsync(document);
+            if (Superseded()) { return; }
+
+            // A folder advertises no `versions`, and that absence is the ANSWER rather than a mistake — there
+            // is nothing to preview and no current version to name. Asked with TryHref so a folder takes the
+            // branch instead of throwing halfway through and leaving the pane half-loaded under a Status line.
+            var versions = document.TryHref("versions");
+            await LoadSystemFieldsAsync(document.DocumentSelfHref, versions, document.Name);
+            if (Superseded()) { return; }
+
+            if (versions is not null)
+            {
+                await LoadPreviewAsync(versions);
+            }
+            else
+            {
+                Preview.Reset(Strings.Get("NoPreview"));
+            }
+
+            if (document.TryHref("chat") is { } chat && !Superseded())
+            {
+                await LoadCommentsAsync(chat);
+            }
+
+            if (!Superseded())
+            {
+                await AutoRefreshSelectionAsync(document); // the populate hook follows selection (ADR 0764)
+            }
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrLoad2"), document.Name, e.Message));
+        }
+    }
+    // ---- Retention schedule — extracted to MainWindowViewModel.Retention.cs (#941) --------------
+
+    // Gates the Retention TabItem's visibility (set from whoami on login), the same shape as
+    // CanViewAuditLog below: the gate stays with the shell that owns the tab strip, while the tab's own
+    // state lives in its partial.
+    [ObservableProperty] private bool _canManageClassification;
+
+    // ---- Upload conflict dialogs: the three questions only a VIEW can ask ----------------------------
+    //
+    // Callbacks rather than constructor arguments, deliberately (ADR 0730): each needs a window, and a
+    // window does not exist when the view-model is built. They sat under the retention banner, which is how a
+    // reader came to meet duplicate-upload handling while looking for disposition rules.
+
+    // Set by the view: shows the upload-time duplicate modal (ADR "Duplicate document detection") and returns the
+    // user's choice (reference / file / cancel), or null if dismissed.
+    public Func<DuplicatePromptRequest, Task<DuplicatePromptResult?>>? DuplicateUploadDialog { get; set; }
+
+    // The duplicate-address-claim question (#703), provided by the view (the AnnotationDialog pattern): the
+    // message names the mailbox already claiming the address; true = deliver to both, and the save retries
+    // with the confirmation.
+    public Func<string, Task<bool>>? ConfirmDuplicateClaimDialog { get; set; }
+
+    // Set by the view: shows the name-conflict modal when a dropped file's name is already taken in the target
+    // folder, and returns what the user meant (a new version / a new name), or null if dismissed. The decision
+    // and the filing that follows live in Services.UploadConflictResolver — only the window is the view's job.
+    public Func<Services.UploadConflictResolver.NameConflictRequest, Task<Services.UploadConflictResolver.NameConflictChoice?>>? NameConflictDialog { get; set; }
+
+    public sealed record DuplicatePromptRequest(string FileName, IReadOnlyList<DocumentsClient.DuplicateInfo> Duplicates);
+    public sealed record DuplicatePromptResult(string Action, Guid TargetId);
+
+    // ---- Create a repository -------------------------------------------------------------------
+    public async Task CreateRepositoryAsync(string name)
+    {
+        if (_api is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _api.Documents.CreateRepositoryAsync(name.Trim());
+            Status = string.Format(Strings.Get("StCreatedRepo"), name.Trim());
+            await ReloadTreeAsync();
+        }
+        catch (ApiActionException ex)
+        {
+            ReportError(ex.Message);
+        }
+    }
+
+
+    // ---- The signed-in user's identity, as the app bar shows it ---------------------------------
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(UserInitials))] private string _userDisplayName = string.Empty;
+
+    // ---- Detail pane + selection: clearing, and the gate every row command shares ----------------
+
+    private void ClearDetail()
+    {
+        _selectedDocumentId = null;
+        DetailTitle = string.Empty;
+        MaskLine = string.Empty;
+        _detailSensitivityName = string.Empty;
+        _detailSensitivityColor = null;
+        _detailSensitivityWatermark = false;
+        DetailSensitivityId = null;
+        DetailSubscribed = false;
+        CanToggleSubscription = false;
+        DetailTags.Clear();
+        HasDetailTags = false;
+        IndexFields.Clear();
+        Comments.Clear();
+        Preview.WatermarkText = string.Empty;
+        Preview.Reset("Select a document.");
+        Preview.PreviewConverted = false;
+        SysName = string.Empty;
+        SysDocumentDate = null;
+        SysCreatedAt = null;
+        SysCreatedBy = string.Empty;
+        SysWorkflowStatus = null;
+        ClearWorkflowTransitions();
+        SysFileExtension = string.Empty;
+        SysOcrCandidate = false;
+        SysOcrLanguages = string.Empty;
+        SysCurrentVersion = string.Empty;
+        _sysOcrCodes = [];
+        _stagedOcrCodes = [];
+        _sysCurrentVersionId = Guid.Empty;
+        _sysDocumentDateHref = null;
+        IsEditing = false;
+        CanEditDetail = false;
+        MaskEditFields.Clear();
+        AvailableMasks.Clear();
+    }
+
+    private bool HasSelection() => SelectedItem is not null;
+
+    // ---- Audit tab (ADR "Desktop audit viewer") — extracted to AuditTabViewModel (#517, tranche 1) --------
+
+    // Gates the Audit TabItem's visibility (set from whoami on login); the tab's own state lives on Audit.
+    [ObservableProperty] private bool _canViewAuditLog;
+
+    public AuditTabViewModel Audit { get; }
+
+}

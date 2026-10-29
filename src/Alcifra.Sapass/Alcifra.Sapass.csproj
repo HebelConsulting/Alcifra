@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>sapass</AssemblyName>
+    <RootNamespace>Alcifra.Sapass</RootNamespace>
+    <!-- A CLI installed from the feed, like saconsole: it talks to the Api over HTTP and references no application
+         project. Its key path is the shared HardwareKeys leaf, so the desktop and this tool open the same envelopes
+         through ONE implementation (C_Initialize is per process, ADR 0832). -->
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>apass</ToolCommandName>
+    <PackageId>Alcifra.Pass</PackageId>
+    <!-- Until phase 5 of the rename (#1117, ADR 0988) the release also packs this under its earlier id, with
+         -p:LegacyPackageId=true: a switch this project reads, because a PackageId passed on the command line
+         reaches every referenced project too and restore refuses the duplicate. -->
+    <PackageId Condition="'$(LegacyPackageId)' == 'true'">Alcifra.Sapass</PackageId>
+    <ToolCommandName Condition="'$(LegacyPackageId)' == 'true'">sapass</ToolCommandName>
+    <Description>apass — a pass-like store of passwords and secrets, sealed on your machine and opened only with your hardware key: list, search, read, add, generate, edit and re-seal entries from the terminal, and serve the browser autofill.</Description>
+    <PackageProjectUrl>https://github.com/HebelConsulting/SimplArchive</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Alcifra.ApiClient/Alcifra.ApiClient.csproj" />
+    <ProjectReference Include="../Alcifra.BrowserHost/Alcifra.BrowserHost.csproj" />
+    <ProjectReference Include="../Alcifra.ConsoleLogging/Alcifra.ConsoleLogging.csproj" />
+    <ProjectReference Include="../Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The tree's path building and the completion candidates are pure functions worth asserting directly; the
+         types themselves stay internal to the tool. -->
+    <InternalsVisibleTo Include="Alcifra.UnitTests" />
+    <InternalsVisibleTo Include="Alcifra.EndToEndTests" />
+  </ItemGroup>
+
+</Project>

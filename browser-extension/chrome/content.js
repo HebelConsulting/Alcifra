@@ -137,12 +137,12 @@
     try {
       const answer = await ask({ type: "host", command: { command: "match", site: SITE } });
       if (!answer.entries || answer.entries.length === 0) {
-        showChip(input, "SimplArchive: no match", () => showMenu(input, []));
+        showChip(input, "Alcifra: no match", () => showMenu(input, []));
         return;
       }
-      showChip(input, `SimplArchive (${answer.entries.length})`, () => showMenu(input, answer.entries));
+      showChip(input, `Alcifra (${answer.entries.length})`, () => showMenu(input, answer.entries));
     } catch (error) {
-      showChip(input, "SimplArchive: unavailable", () => note(error.message));
+      showChip(input, "Alcifra: unavailable", () => note(error.message));
     }
   }
 
@@ -151,7 +151,7 @@
     bridge.className = "sa-menu";
     const head = document.createElement("div");
     head.className = "sa-note";
-    head.textContent = "Keep this login in SimplArchive?";
+    head.textContent = "Keep this login in Alcifra?";
     bridge.appendChild(head);
 
     const keep = document.createElement("button");

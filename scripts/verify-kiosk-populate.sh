@@ -4,7 +4,7 @@
 # WHAT THIS PROVES, AND WHY NOTHING ELSE DOES IT
 #
 # The populate-on-open hook (core ADR 0756) is what fills a weather folder, and until ABI 0.27 (ADR 0810) it
-# was invoked by the two SimplArchive clients and by nothing else. Meanwhile the ephemeral sweep kept purging
+# was invoked by the two Alcifra clients and by nothing else. Meanwhile the ephemeral sweep kept purging
 # expired content on schedule. So a user who reached the archive only over a mounted drive or a mail client
 # saw an EMPTY folder — not stale, not an error, empty — and no surface on that path could say why.
 #

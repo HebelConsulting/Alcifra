@@ -1,0 +1,12 @@
+BEGIN:VCARD
+VERSION:3.0
+UID:manual-personal-gerber
+FN:Michael Gerber
+N:Gerber;Michael;;;
+ORG:Alpenglas AG
+TITLE:Projektleiter / Project lead
+TEL;TYPE=WORK:+41 41 555 04 40
+EMAIL;TYPE=WORK:m.gerber@alpenglas.example
+ADR;TYPE=WORK:;;;Kriens;;;CH
+NOTE:Fiktiver Demo-Kontakt / A fictional Alcifra demo contact.
+END:VCARD

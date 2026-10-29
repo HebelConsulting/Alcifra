@@ -1,0 +1,457 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore; // OpenIddictServerAspNetCoreHelpers.GetOpenIddictServerRequest extension method
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
+using OpenIddict.Server.AspNetCore;
+using OpenIddict.Validation;
+using Alcifra.Api.Authentication;
+using Alcifra.Api.Provisioning;
+using Alcifra.Application.Abstractions;
+using Alcifra.Auth;
+using Alcifra.Domain.Audit;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Controllers;
+
+/// <summary>
+/// Handles /connect/token (passthrough enabled in AddAuthServer — see Alcifra.Auth.DependencyInjection).
+/// Resolves the calling ServiceAccount and embeds its identity/tenant as claims — see ADR "ServiceAccount
+/// request authentication foundation". Also resolves PlatformAdministrator when client_id doesn't match
+/// any ServiceAccount — see ADR "Tenant onboarding and platform-admin mechanism". Also handles the
+/// authorization_code grant for the interactive User login flow — see ADR "Interactive User login
+/// (foundation slice)": no new lookup logic needed there, since AuthorizationController already built the
+/// identity once at the authorization step and OpenIddict itself persists/validates the code.
+/// </summary>
+[ApiController]
+public class TokenController : ControllerBase
+{
+    private readonly AlcifraDbContext _dbContext;
+    private readonly IUserSystemRightsResolver _systemRights;
+    private readonly CurrentTenantAccessor _tenantAccessor;
+    private readonly IAuditRecorder _audit;
+    private readonly OpenIddictValidationService _validation;
+    private readonly ILogger<TokenController> _logger;
+
+    public TokenController(
+        AlcifraDbContext dbContext,
+        IUserSystemRightsResolver systemRights,
+        CurrentTenantAccessor tenantAccessor,
+        IAuditRecorder audit,
+        OpenIddictValidationService validation,
+        ILogger<TokenController> logger)
+    {
+        _dbContext = dbContext;
+        _systemRights = systemRights;
+        _tenantAccessor = tenantAccessor;
+        _audit = audit;
+        _validation = validation;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// A refused token request, logged once at Warning and answered with the opaque OAuth error.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The response deliberately says almost nothing — an unknown client, a wrong secret and a deactivated
+    /// account are all <c>invalid_client</c>, so a prober learns nothing about which accounts exist. That is
+    /// correct, and it is exactly why the SERVER has to say something: with no log, a refusal here is
+    /// invisible from both sides, and neither an operator diagnosing a misconfigured integration nor a SIEM
+    /// watching for a brute-force run has anything to work with (ADR 0626, ADR 0430's Warning definition —
+    /// "a failed login").
+    /// </para>
+    /// <para>
+    /// The <c>client_id</c> is an identifier, not a credential, so it is logged. The secret, the subject
+    /// token and the authorization code never are.
+    /// </para>
+    /// </remarks>
+    private IActionResult Refuse(string error, string reason, string? clientId = null)
+    {
+        _logger.LogWarning(
+            "Token request refused ({Error}) for client {ClientId}: {Reason}",
+            error, clientId ?? "(none)", reason);
+
+        return BadRequest(new OpenIddictResponse { Error = error });
+    }
+
+    [HttpPost("~/connect/token")]
+    [IgnoreAntiforgeryToken]
+    [AllowAnonymous]
+    public async Task<IActionResult> Exchange()
+    {
+        var request = HttpContext.GetOpenIddictServerRequest()
+            ?? throw new InvalidOperationException("The OpenIddict server request cannot be retrieved.");
+
+        if (request.IsAuthorizationCodeGrantType())
+        {
+            var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            return SignIn(result.Principal!, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        // The device grant (ADR 0823). Nothing is decided here: by the time a device code is redeemable, a
+        // PERSON has approved it on the verification page, and OpenIddict has attached the principal that
+        // approval produced. Redeeming before that answers authorization_pending, which is the tool's cue to
+        // keep polling — so this branch is deliberately as thin as the authorization-code one above.
+        if (request.IsDeviceCodeGrantType())
+        {
+            var approved = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            return SignIn(approved.Principal!, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        if (request.IsRefreshTokenGrantType())
+        {
+            return await HandleRefreshAsync();
+        }
+
+        // Two different exchanges share the RFC 8693 grant, told apart by the CALLING client: the autofill client's is
+        // a new session for the same user (ADR 0981), every other client's is impersonation (ADR 0354). The client
+        // permission decides which may send the grant at all; this only routes, so neither branch reads the other's
+        // parameters.
+        if (request.GrantType == ImpersonationConstants.TokenExchangeGrantType)
+        {
+            return request.ClientId is { } client && AutofillClientSeeder.ClientIds.Contains(client)
+                ? await HandleAutofillSessionAsync(request)
+                : await HandleImpersonationAsync(request);
+        }
+
+        if (!request.IsClientCredentialsGrantType())
+        {
+            return BadRequest(new OpenIddictResponse
+            {
+                Error = OpenIddictConstants.Errors.UnsupportedGrantType,
+            });
+        }
+
+        // client_id/client_secret were already validated by OpenIddict's own handlers before this action
+        // runs. The tenant isn't known yet at this point, so the lookup ignores the tenant query filter —
+        // same pattern already used for cross-tenant group-parent lookups (ADR "Cross-tenant group parent
+        // enforcement").
+        var serviceAccount = await _dbContext.ServiceAccounts
+            .IgnoreQueryFilters()
+            .Where(s => s.OpenIddictApplicationClientId == request.ClientId)
+            .Select(s => new { s.Id, s.TenantId, s.IsActive })
+            .SingleOrDefaultAsync();
+
+        if (serviceAccount is not null)
+        {
+            if (!serviceAccount.IsActive)
+            {
+                return Refuse(OpenIddictConstants.Errors.InvalidClient,
+                    "the service account is deactivated", request.ClientId);
+            }
+
+            var serviceAccountIdentity = new ClaimsIdentity(
+                authenticationType: "openiddict",
+                nameType: OpenIddictConstants.Claims.Name,
+                roleType: OpenIddictConstants.Claims.Role);
+
+            serviceAccountIdentity.SetClaim(OpenIddictConstants.Claims.Subject, serviceAccount.Id.ToString());
+            serviceAccountIdentity.SetClaim(ServiceAccountClaimTypes.TenantId, serviceAccount.TenantId.ToString());
+            serviceAccountIdentity.SetDestinations(static claim => [OpenIddictConstants.Destinations.AccessToken]);
+
+            return SignIn(new ClaimsPrincipal(serviceAccountIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        // PlatformAdministrator isn't ITenantScoped, so no IgnoreQueryFilters() is needed here — no
+        // tenant filter ever applies to it. See ADR "Tenant onboarding and platform-admin mechanism".
+        var platformAdministrator = await _dbContext.PlatformAdministrators
+            .Where(p => p.OpenIddictApplicationClientId == request.ClientId)
+            .Select(p => new { p.Id, p.IsActive })
+            .SingleOrDefaultAsync();
+
+        if (platformAdministrator is not null)
+        {
+            if (!platformAdministrator.IsActive)
+            {
+                return Refuse(OpenIddictConstants.Errors.InvalidClient,
+                    "the platform administrator is deactivated", request.ClientId);
+            }
+
+            var platformAdministratorIdentity = new ClaimsIdentity(
+                authenticationType: "openiddict",
+                nameType: OpenIddictConstants.Claims.Name,
+                roleType: OpenIddictConstants.Claims.Role);
+
+            platformAdministratorIdentity.SetClaim(OpenIddictConstants.Claims.Subject, platformAdministrator.Id.ToString());
+            platformAdministratorIdentity.SetClaim(PlatformAdministratorClaimTypes.IsPlatformAdministrator, "true");
+            platformAdministratorIdentity.SetDestinations(static claim => [OpenIddictConstants.Destinations.AccessToken]);
+
+            return SignIn(new ClaimsPrincipal(platformAdministratorIdentity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        return Refuse(OpenIddictConstants.Errors.InvalidClient,
+            "no service account or platform administrator has this client id", request.ClientId);
+    }
+
+    // RFC 8693 token exchange for User impersonation (ADR "User impersonation"). The acting admin authenticates
+    // via their bearer token (Authorization header); `requested_subject` names the target User. Enforces that the
+    // actor is an active User holding CanImpersonate and isn't already impersonating, and that the target is an
+    // active, same-tenant, non-admin User. Issues a token whose Subject is the target + an `impersonated_by`
+    // claim naming the actor, so every subsequent action is attributable.
+    /// <summary>
+    /// Renews an access token from a refresh token, so a client can keep working without the user present.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// OpenIddict has already validated the refresh token and rebuilt the principal by the time this runs, so
+    /// the shape mirrors the authorization-code branch above. What it adds is a RE-CHECK of the user: a refresh
+    /// token outlives the access token by design, and without this a user deactivated ten minutes ago would go
+    /// on minting fresh access tokens until their refresh token expired.
+    /// </para>
+    /// <para>
+    /// The same reasoning the rights calculator applies on every request (ADRs 0174/0153: a deactivated user or
+    /// a non-Active tenant short-circuits to no rights, BEFORE any admin bypass). Renewal is the one moment the
+    /// token pipeline gets to ask the same question, so it asks it.
+    /// </para>
+    /// </remarks>
+    private async Task<IActionResult> HandleRefreshAsync()
+    {
+        var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        if (result.Principal is not { } principal)
+        {
+            return Forbid(
+                new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidGrant,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                        "The refresh token is no longer valid.",
+                }),
+                OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        // The subject is the User id for an interactive login — the only principal kind that gets here, since
+        // client-credentials callers have no refresh token to present.
+        if (Guid.TryParse(principal.GetClaim(OpenIddictConstants.Claims.Subject), out var userId))
+        {
+            var user = await _dbContext.Users
+                .IgnoreQueryFilters()
+                .Where(u => u.Id == userId)
+                .Join(
+                    _dbContext.Tenants.IgnoreQueryFilters(),
+                    u => u.TenantId,
+                    t => t.Id,
+                    (u, t) => new { u.IsActive, TenantStatus = t.Status })
+                .SingleOrDefaultAsync();
+
+            if (user is null || !user.IsActive || user.TenantStatus != Alcifra.Domain.Tenants.TenantStatus.Active)
+            {
+                _logger.LogInformation(
+                    "Refused to renew a token for {UserId}: the user or tenant is no longer active", userId);
+
+                return Forbid(
+                    new AuthenticationProperties(new Dictionary<string, string?>
+                    {
+                        [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidGrant,
+                        [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                            "The account is no longer active.",
+                    }),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+        }
+
+        return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    private async Task<IActionResult> HandleImpersonationAsync(OpenIddictRequest request)
+    {
+        var requestedSubject = request.GetParameter(ImpersonationConstants.RequestedSubjectParameter)?.ToString();
+        if (!Guid.TryParse(requestedSubject, out var targetUserId))
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidRequest, "A 'requested_subject' (target user id) is required.");
+        }
+
+        // The actor's own access token (RFC 8693 subject_token) proves who is acting.
+        var subjectToken = request.GetParameter(OpenIddictConstants.Parameters.SubjectToken)?.ToString();
+        if (string.IsNullOrEmpty(subjectToken))
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidRequest, "A 'subject_token' is required.");
+        }
+
+        ClaimsPrincipal actorPrincipal;
+        try
+        {
+            actorPrincipal = await _validation.ValidateAccessTokenAsync(subjectToken);
+        }
+        catch
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidGrant, "The subject token is invalid.");
+        }
+
+        if (actorPrincipal.GetClaim(UserClaimTypes.IsUser) != "true"
+            || actorPrincipal.GetClaim(ImpersonationConstants.ImpersonatedByClaim) is not null
+            || !Guid.TryParse(actorPrincipal.GetClaim(OpenIddictConstants.Claims.Subject), out var actorUserId)
+            || !Guid.TryParse(actorPrincipal.GetClaim(ServiceAccountClaimTypes.TenantId), out var tenantId))
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidGrant, "Impersonation requires an interactive, non-impersonating user token.");
+        }
+
+        // Scope the DbContext + rights resolver to the actor's tenant (nothing set it yet on the token endpoint).
+        _tenantAccessor.TenantId = tenantId;
+
+        var actor = await _dbContext.Users.SingleOrDefaultAsync(u => u.Id == actorUserId);
+        if (actor is null || !actor.IsActive)
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidGrant, "The acting user is not valid.");
+        }
+
+        if (!(await _systemRights.GetEffectiveSystemRightsAsync(actorUserId)).CanImpersonate)
+        {
+            return TokenError(OpenIddictConstants.Errors.AccessDenied, "You do not have permission to impersonate users.");
+        }
+
+        var target = await _dbContext.Users.SingleOrDefaultAsync(u => u.Id == targetUserId);
+        if (target is null || !target.IsActive || targetUserId == actorUserId)
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidGrant, "The impersonation target is not a valid user.");
+        }
+
+        // The SAME call the principal listing makes when it decides whether to advertise `impersonate`
+        // (ADR 0722): the rel is a promise, and a promise backed by a second computation is only as good as the
+        // two staying in step — which they were not, since the listing sent DIRECT rights (#875).
+        var targetRights = await _systemRights.GetEffectiveSystemRightsAsync(targetUserId);
+        var actorRights = await _systemRights.GetEffectiveSystemRightsAsync(actorUserId);
+        if (!Users.ImpersonationPolicy.MayImpersonate(actorUserId, actorRights, actorIsAlreadyImpersonating: false, target, targetRights))
+        {
+            return TokenError(OpenIddictConstants.Errors.InvalidGrant, "An administrator cannot be impersonated.");
+        }
+
+        var identity = new ClaimsIdentity("openiddict", OpenIddictConstants.Claims.Name, OpenIddictConstants.Claims.Role);
+        identity.SetClaim(OpenIddictConstants.Claims.Subject, targetUserId.ToString());
+        identity.SetClaim(ServiceAccountClaimTypes.TenantId, tenantId.ToString());
+        identity.SetClaim(UserClaimTypes.IsUser, "true");
+        identity.SetClaim(ImpersonationConstants.ImpersonatedByClaim, actorUserId.ToString());
+        identity.SetDestinations(static claim => [OpenIddictConstants.Destinations.AccessToken]);
+
+        await _audit.RecordForActorAsync(AuditActorType.User, actorUserId, actor.DisplayName, tenantId,
+            AuditActions.ImpersonationStarted, "User", targetUserId, target.DisplayName);
+
+        return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Opens the autofill extension's own session (ADR 0981): the mobile app's access token is exchanged for a NEW
+    /// authorization of <see cref="AutofillClientSeeder.ClientId"/> for the same user, so the extension renews in its
+    /// own process and never presents the app's rotating refresh token.
+    /// </summary>
+    /// <remarks>
+    /// The subject token is validated by the same service the API uses on every request, entry validation included,
+    /// so a revoked app token opens nothing. The identity is rebuilt from the database exactly as an interactive
+    /// sign-in builds it, never copied from the subject token, and carries no authorization id: OpenIddict therefore
+    /// creates a new authorization for the refresh token, which is what keeps the two sessions independent.
+    /// </remarks>
+    private async Task<IActionResult> HandleAutofillSessionAsync(OpenIddictRequest request)
+    {
+        if (request.GetParameter(ImpersonationConstants.RequestedSubjectParameter) is not null)
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidRequest, "An autofill session is the caller's own; 'requested_subject' is not accepted.");
+        }
+
+        var subjectToken = request.GetParameter(OpenIddictConstants.Parameters.SubjectToken)?.ToString();
+        if (string.IsNullOrEmpty(subjectToken))
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidRequest, "A 'subject_token' is required.");
+        }
+
+        ClaimsPrincipal subject;
+        try
+        {
+            subject = await _validation.ValidateAccessTokenAsync(subjectToken);
+        }
+        catch
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidGrant, "The subject token is invalid.");
+        }
+
+        var tokenRefusal = AutofillSession.RefusalForToken(
+            subject.GetClaim(OpenIddictConstants.Claims.ClientId),
+            isUser: subject.GetClaim(UserClaimTypes.IsUser) == "true",
+            isImpersonating: subject.GetClaim(ImpersonationConstants.ImpersonatedByClaim) is not null);
+        if (tokenRefusal is not null
+            || !Guid.TryParse(subject.GetClaim(OpenIddictConstants.Claims.Subject), out var userId)
+            || !Guid.TryParse(subject.GetClaim(ServiceAccountClaimTypes.TenantId), out var tenantId))
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidGrant, tokenRefusal ?? "the subject token names no user or tenant");
+        }
+
+        // The tenant is not known on the token endpoint, so the lookup names it itself (as the refresh branch does).
+        var user = await _dbContext.Users
+            .IgnoreQueryFilters(["TenantFilter"])
+            .Where(u => u.Id == userId && u.TenantId == tenantId)
+            .Join(
+                _dbContext.Tenants.IgnoreQueryFilters(),
+                u => u.TenantId,
+                t => t.Id,
+                (u, t) => new { u.Email, u.DisplayName, u.IsActive, TenantStatus = t.Status })
+            .SingleOrDefaultAsync();
+
+        var accountRefusal = AutofillSession.RefusalForAccount(
+            user is not null, user?.IsActive ?? false, user?.TenantStatus ?? Alcifra.Domain.Tenants.TenantStatus.Active);
+        if (accountRefusal is not null)
+        {
+            return AutofillError(OpenIddictConstants.Errors.InvalidGrant, accountRefusal);
+        }
+
+        // The same claims, scopes and destinations as an interactive sign-in (AuthorizationController).
+        var identity = new ClaimsIdentity("openiddict", OpenIddictConstants.Claims.Name, OpenIddictConstants.Claims.Role);
+        identity.SetClaim(OpenIddictConstants.Claims.Subject, userId.ToString());
+        identity.SetClaim(OpenIddictConstants.Claims.Email, user!.Email);
+        identity.SetClaim(ServiceAccountClaimTypes.TenantId, tenantId.ToString());
+        identity.SetClaim(UserClaimTypes.IsUser, "true");
+        var principal = new ClaimsPrincipal(identity);
+        principal.SetScopes(request.GetScopes());
+        principal.SetDestinations(claim => claim.Type switch
+        {
+            OpenIddictConstants.Claims.Subject or OpenIddictConstants.Claims.Email =>
+                [OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken],
+            _ => [OpenIddictConstants.Destinations.AccessToken],
+        });
+
+        _tenantAccessor.TenantId = tenantId;
+        await _audit.RecordForActorAsync(AuditActorType.User, userId, user.DisplayName, tenantId,
+            AuditActions.AutofillSessionStarted, "User", userId, user.DisplayName);
+        _logger.LogInformation("Opened an autofill session for user {UserId}", userId);
+
+        return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>A refused autofill session exchange: the caller holds a valid app token, so it is told why.</summary>
+    /// <remarks>Warning because a refusal names something the extension cannot repair by itself (a deactivated user, a
+    /// token from the wrong client), and the reason is logged; the subject token never is.</remarks>
+    private BadRequestObjectResult AutofillError(string error, string description)
+    {
+        _logger.LogWarning("Autofill session exchange refused ({Error}): {Reason}", error, description);
+
+        return BadRequest(new OpenIddictResponse
+        {
+            Error = error,
+            ErrorDescription = description,
+        });
+    }
+
+    /// <summary>
+    /// A refused IMPERSONATION exchange. Unlike <see cref="Refuse"/> the caller is told the reason — this
+    /// grant is used by an administrator with a valid token, so a precise error is a diagnostic, not an oracle
+    /// for a prober.
+    /// </summary>
+    /// <remarks>
+    /// Logged at Warning regardless, because impersonation is the one grant where a REFUSAL is itself
+    /// security-relevant: somebody with a valid administrative token asked to act as another user and was told
+    /// no. A SIEM wants those whether or not they succeeded, and until now none of them were recorded
+    /// anywhere (ADR 0626).
+    /// </remarks>
+    private BadRequestObjectResult TokenError(string error, string description)
+    {
+        _logger.LogWarning("Impersonation exchange refused ({Error}): {Reason}", error, description);
+
+        return BadRequest(new OpenIddictResponse
+        {
+            Error = error,
+            ErrorDescription = description,
+        });
+    }
+}

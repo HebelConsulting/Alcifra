@@ -24,7 +24,7 @@
 #     exchange fails — and that environment has to exist in the PUBLIC repo, which is where this runs;
 #   * renaming this file breaks the policy match SILENTLY. Update the policy on nuget.org in the same change.
 #
-# The package id is `SimplArchive.Cli` since 0.47.0 (ADR 0941); `HebelConsulting.SimplArchive.Cli` stays on
+# The package id is `Alcifra.Cli` since 0.47.0 (ADR 0941); `HebelConsulting.Alcifra.Cli` stays on
 # nuget.org deprecated in its favour, and nothing publishes it any more.
 #
 # This file must NOT join publish/publish-public.sh's withheld set: it is useless in the private repo and is
@@ -78,7 +78,7 @@ jobs:
           set -euo pipefail
           version=${{ steps.version.outputs.value }}
           # The earlier id and command come from each project's own LegacyPackageId switch (ADR 0988).
-          for project in src/SimplArchive.Cli/SimplArchive.Cli.csproj src/SimplArchive.Sapass/SimplArchive.Sapass.csproj; do
+          for project in src/Alcifra.Cli/Alcifra.Cli.csproj src/Alcifra.Sapass/Alcifra.Sapass.csproj; do
             dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version"
             dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version" -p:LegacyPackageId=true
           done
@@ -89,7 +89,7 @@ jobs:
         # so a refused new id must not keep the earlier ones from updating (ADR 0988).
         run: |
           set -euo pipefail
-          for glob in "dist/nuget/SimplArchive.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
+          for glob in "dist/nuget/Alcifra.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
             dotnet nuget push "$glob" --source "https://nuget.pkg.github.com/HebelConsulting/index.json" --api-key "${{ secrets.GITHUB_TOKEN }}" --skip-duplicate
           done
 
@@ -104,7 +104,7 @@ jobs:
         # so a refused new id must not keep the earlier ones from updating (ADR 0988).
         run: |
           set -euo pipefail
-          for glob in "dist/nuget/SimplArchive.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
+          for glob in "dist/nuget/Alcifra.*.nupkg" "dist/nuget/Alcifra.*.nupkg"; do
             dotnet nuget push "$glob" --source "https://api.nuget.org/v3/index.json" --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --skip-duplicate
           done
 

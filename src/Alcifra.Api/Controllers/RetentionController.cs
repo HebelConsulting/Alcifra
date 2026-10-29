@@ -1,0 +1,296 @@
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Alcifra.Api.Errors.Exceptions.LegalHolds;
+using Alcifra.Api.Errors.Exceptions.Retention;
+using Alcifra.Api.Hypermedia;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Documents;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Controllers;
+
+/// <summary>
+/// The records-retention schedule (ADR "Retention policies (auto-disposition)") — the documents that carry a
+/// retention period (via their assigned mask), with the computed disposition date + status, so an admin can see
+/// what the retention sweep will auto-dispose. Read-only; the disposition itself happens automatically in the
+/// background (RetentionWorker). Gated on <c>CanManageClassification</c> — the dedicated records-management
+/// right (a User-only right; a ServiceAccount has none). The computed disposition date can't be expressed in a
+/// keyset cursor, so this bounded admin view returns up to a cap (soonest-first) with a <c>truncated</c> flag
+/// rather than paginating — the same "small bounded catalog" treatment as the masks/reviewers lists.
+/// </summary>
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/retention")]
+[Authorize]
+public class RetentionController : ControllerBase
+{
+    private const int MaxItems = 500;
+
+    private readonly AlcifraDbContext _dbContext;
+    private readonly Concurrency.DocumentVerbs _documents;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
+    private readonly ICurrentTenantAccessor _currentTenantAccessor;
+    private readonly IUserSystemRightsResolver _userSystemRights;
+    private readonly ILegalHoldService _legalHold;
+    private readonly IDocumentIndexQueue _indexQueue;
+    private readonly IAuditRecorder _audit;
+
+    // Masks a module declares outside retention (ABI 1.18, ADR 0937): never on the schedule, never disposed of here.
+    private readonly List<Guid> _notRetained;
+
+    public RetentionController(
+        AlcifraDbContext dbContext,
+        ICurrentUserAccessor currentUserAccessor,
+        ICurrentTenantAccessor currentTenantAccessor,
+        IUserSystemRightsResolver userSystemRights,
+        ILegalHoldService legalHold,
+        IDocumentIndexQueue indexQueue,
+        IAuditRecorder audit,
+        Concurrency.DocumentVerbs documents,
+        IModuleMaskDeclarations declarations)
+    {
+        _notRetained = [.. declarations.NotRetained];
+        _dbContext = dbContext;
+        _documents = documents;
+        _currentUserAccessor = currentUserAccessor;
+        _currentTenantAccessor = currentTenantAccessor;
+        _userSystemRights = userSystemRights;
+        _legalHold = legalHold;
+        _indexQueue = indexQueue;
+        _audit = audit;
+    }
+
+    public class RetentionScheduleResource : HypermediaResource
+    {
+        public List<RetentionItemResource> Items { get; set; } = [];
+
+        // True when more documents carry a retention period than the returned cap.
+        public bool Truncated { get; set; }
+
+        // Whether this tenant requires disposition review (ADR "Retention review-before-disposition") — the
+        // client shows the Dispose/Extend actions as a review queue and notes the auto-sweep is off.
+        public bool RequiresReview { get; set; }
+    }
+
+    public class RetentionItemResource : HypermediaResource
+    {
+        public Guid DocumentId { get; set; }
+        public string DocumentName { get; set; } = string.Empty;
+        public int RetentionYears { get; set; }
+
+        // The date the document becomes eligible for auto-disposition (anchor + RetentionYears), "yyyy-MM-dd".
+        public string DispositionDate { get; set; } = string.Empty;
+
+        // Past its disposition date but not yet swept (the sweep runs periodically).
+        public bool Overdue { get; set; }
+
+        // Under an active legal hold — disposition is suspended until the hold is released.
+        public bool SuspendedByHold { get; set; }
+
+        // A records manager's retention extension (ADR "Retention review-before-disposition"), "yyyy-MM-dd" or
+        // null. While in the future, the document is retained past its mask-computed disposition date.
+        public string? RetentionOverrideUntil { get; set; }
+    }
+
+    [HttpGet("schedule")]
+    public async Task<IActionResult> Schedule(CancellationToken cancellationToken)
+    {
+        if (!await CanManageClassificationAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
+
+        // Leaf documents (no children) whose assigned mask version carries a retention period. Cap the scan.
+        var candidates = await (
+            from d in _dbContext.Documents
+            where !_dbContext.Documents.Any(c => c.ParentId == d.Id)
+            join mv in _dbContext.MaskVersions on d.MaskVersionId equals mv.Id
+            where mv.RetentionYears != null && !_notRetained.Contains(mv.MaskId)
+            select new { d.Id, d.Name, d.CreatedAt, d.RetentionOverrideUntil, d.CurrentVersionId, RetentionYears = mv.RetentionYears!.Value })
+            .Take(MaxItems + 1)
+            .ToListAsync(cancellationToken);
+
+        var truncated = candidates.Count > MaxItems;
+        var items = new List<RetentionItemResource>();
+        foreach (var candidate in candidates.Take(MaxItems))
+        {
+            var currentVersion = await CurrentVersion.ResolveAsync(_dbContext.DocumentVersions, candidate.Id, candidate.CurrentVersionId, cancellationToken);
+            var anchor = currentVersion?.DocumentDate ?? DateOnly.FromDateTime(candidate.CreatedAt.UtcDateTime);
+
+            items.Add(new RetentionItemResource
+            {
+                DocumentId = candidate.Id,
+                DocumentName = candidate.Name,
+                RetentionYears = candidate.RetentionYears,
+                DispositionDate = Documents.RetentionSchedule.DispositionDateOf(anchor, candidate.RetentionYears).ToString("yyyy-MM-dd"),
+                // The SAME call the dispose endpoint's eligibility check makes (#871) — not a second computation
+                // that happens to agree, because the `dispose` rel below promises the endpoint will accept.
+                Overdue = Documents.RetentionSchedule.IsDue(anchor, candidate.RetentionYears, candidate.RetentionOverrideUntil, today),
+                SuspendedByHold = await _legalHold.IsFrozenAsync(candidate.Id, cancellationToken),
+                RetentionOverrideUntil = candidate.RetentionOverrideUntil?.ToString("yyyy-MM-dd"),
+            });
+        }
+
+        // Soonest disposition first.
+        items.Sort((a, b) => string.CompareOrdinal(a.DispositionDate, b.DispositionDate));
+
+        var requiresReview = _currentTenantAccessor.TenantId is { } tenantId
+            && await _dbContext.Tenants.Where(t => t.Id == tenantId).Select(t => t.RequireDispositionReview).FirstOrDefaultAsync(cancellationToken);
+
+        // `dispose` is offered exactly where the endpoint will accept it, which takes THREE conditions and used
+        // to take one (#871). The tenant-wide review policy was the only one applied, so the rel appeared on
+        // rows that are not yet due and on rows frozen by a legal hold — and a client that trusted it, as ADR
+        // 0543 says a client should, was told an action would work that the endpoint refuses.
+        //
+        // The per-row halves mirror `IsEligibleForDispositionAsync` and the legal-hold check in Dispose, via the
+        // shared rule rather than a second computation (RetentionSchedule) — the rel is a PROMISE, and a promise
+        // backed by a copy is only as good as the copies agreeing.
+        //
+        // `extend` stays unconditional: extending is what a not-yet-due or held document is FOR, and it is the
+        // one action review-before-disposition never blocks.
+        foreach (var item in items)
+        {
+            var mayDispose = !requiresReview && item.Overdue && !item.SuspendedByHold;
+
+            item.Links = mayDispose
+                ?
+                [
+                    new Link("dispose", $"/api/retention/{item.DocumentId}/dispose", "POST"),
+                    new Link("extend", $"/api/retention/{item.DocumentId}/extend", "POST"),
+                ]
+                : [new Link("extend", $"/api/retention/{item.DocumentId}/extend", "POST")];
+        }
+
+        return Ok(new RetentionScheduleResource
+        {
+            Items = items,
+            Truncated = truncated,
+            RequiresReview = requiresReview,
+            Links = [new Link("self", "/api/retention/schedule", "GET")],
+        });
+    }
+
+    [HttpHead("schedule")]
+    public async Task<IActionResult> HeadSchedule(CancellationToken cancellationToken) =>
+        await CanManageClassificationAsync(cancellationToken) ? NoContent() : Forbid();
+
+    // ---- Disposition review (ADR "Retention review-before-disposition") ---------------------------------
+
+    public class ExtendRetentionRequest
+    {
+        // The new "retain until" date, "yyyy-MM-dd". Must be in the future.
+        public string? Until { get; set; }
+    }
+
+    // Manually disposes an eligible document — the review-mode equivalent of the auto-sweep (a POST action
+    // sub-resource, a genuine state change like restore/purge). Soft-deletes it to the recycle bin; the manager
+    // is recorded as the actor (not System). Refused for a document that isn't past its (possibly extended)
+    // disposition date, or one under an active legal hold.
+    [HttpPost("{documentId:guid}/dispose")]
+    public async Task<IActionResult> Dispose(Guid documentId, CancellationToken cancellationToken)
+    {
+        if (!await CanManageClassificationAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var document = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken);
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        if (!await IsEligibleForDispositionAsync(document, cancellationToken))
+        {
+            throw new DocumentNotEligibleForDispositionException();
+        }
+
+        if (await _legalHold.IsFrozenAsync(documentId, cancellationToken))
+        {
+            throw new DocumentUnderLegalHoldException(); // compliance overrides disposition
+        }
+
+        // Through the document's verb contract (ADR 0795). Disposition and extension are the two halves of one
+        // compliance decision, and they race each other by design: a reviewer disposes while a colleague
+        // extends, and last-write-wins decides whether the document survives. Tolerant of an absent If-Match —
+        // the clients do not send one yet — but honoured when it is there.
+        document.DeletedAt = DateTimeOffset.UtcNow;
+        await _documents.MutateAsync(Request, document, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+
+        await _indexQueue.EnqueueAsync(documentId, cancellationToken);
+        await _audit.RecordAsync(AuditActions.DocumentRetentionDisposed, "Document", documentId, document.Name, "Disposed on review", cancellationToken: cancellationToken);
+        return NoContent();
+    }
+
+    // Extends a document's retention to a future date — the "retain, don't destroy" decision. Sets the
+    // per-document override so neither the auto-sweep nor a manual dispose will act until then.
+    [HttpPost("{documentId:guid}/extend")]
+    public async Task<IActionResult> Extend(Guid documentId, [FromBody] ExtendRetentionRequest request, CancellationToken cancellationToken)
+    {
+        if (!await CanManageClassificationAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
+        if (!DateOnly.TryParseExact(request.Until, "yyyy-MM-dd", out var until) || until <= today)
+        {
+            throw new InvalidRetentionExtensionException();
+        }
+
+        var document = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken);
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        document.RetentionOverrideUntil = until;
+        await _documents.MutateAsync(Request, document, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+
+        await _audit.RecordAsync(AuditActions.DocumentRetentionExtended, "Document", documentId, document.Name, $"Retained until {until:yyyy-MM-dd}", cancellationToken: cancellationToken);
+        return NoContent();
+    }
+
+    // Eligible = a leaf document whose assigned mask carries a retention period, past its (override-adjusted)
+    // disposition date. Mirrors RetentionService's sweep eligibility (minus the legal-hold check, done at the
+    // call site so it can raise the specific LEGAL_HOLD error).
+    private async Task<bool> IsEligibleForDispositionAsync(Document document, CancellationToken cancellationToken)
+    {
+        var maskVersionId = document.MaskVersionId;
+        if (maskVersionId == Guid.Empty)
+        {
+            return false;
+        }
+
+        if (await _dbContext.Documents.AnyAsync(c => c.ParentId == document.Id, cancellationToken))
+        {
+            return false; // not a leaf
+        }
+
+        var retentionYears = await _dbContext.MaskVersions.Where(mv => mv.Id == maskVersionId && !_notRetained.Contains(mv.MaskId)).Select(mv => mv.RetentionYears).FirstOrDefaultAsync(cancellationToken);
+        if (retentionYears is not { } years)
+        {
+            return false;
+        }
+
+        var currentVersion = await CurrentVersion.ResolveAsync(_dbContext.DocumentVersions, document.Id, document.CurrentVersionId, cancellationToken);
+        var anchor = currentVersion?.DocumentDate ?? DateOnly.FromDateTime(document.CreatedAt.UtcDateTime);
+
+        // The same call the schedule makes when it decides whether to advertise `dispose` (#871).
+        return Documents.RetentionSchedule.IsDue(anchor, years, document.RetentionOverrideUntil, Documents.RetentionSchedule.Today());
+    }
+
+    private async Task<bool> CanManageClassificationAsync(CancellationToken cancellationToken)
+    {
+        if (_currentUserAccessor.UserId is { } userId)
+        {
+            return (await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken)).CanManageClassification;
+        }
+
+        return false;
+    }
+}

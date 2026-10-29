@@ -1,0 +1,198 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Alcifra.DesktopClient.Services;
+using Alcifra.Localization;
+using Alcifra.Presentation;
+
+namespace Alcifra.DesktopClient.ViewModels;
+
+// Backs the workflow window, opened on demand from the Repositories ribbon / row context menu (ADR
+// "Workflow start on demand", superseding the inline detail-pane panel of ADR 0298/0299). Resolves the
+// document's latest confirmed version workflow, shows the current status + whichever transitions are valid +
+// the history, and drives Submit/Approve/Reject/Release. `Changed` is set once any action succeeds, so the
+// caller can refresh the Tasks badge.
+public sealed partial class WorkflowWindowViewModel : ObservableObject
+{
+    private readonly AlcifraApiClient _api;
+
+    // The row's own addresses (ADR 0555/0559): the versions collection carries the workflow, and the document
+    // address resolves the reviewer catalog when a submit/reassign is offered.
+    private readonly string _versionsHref;
+    private readonly string _documentSelfHref;
+    private LinkMap _links = LinkMap.Empty;
+
+    public WorkflowWindowViewModel(AlcifraApiClient api, string versionsHref, string documentSelfHref)
+    {
+        _api = api;
+        _versionsHref = versionsHref;
+        _documentSelfHref = documentSelfHref;
+    }
+
+    public bool Changed { get; private set; }
+
+    [ObservableProperty] private bool _hasWorkflow;
+    [ObservableProperty] private string _statusName = string.Empty;
+    [ObservableProperty] private string? _assignedTo;
+    [ObservableProperty] private bool _canSubmit;
+    [ObservableProperty] private bool _canReview;   // the review SECTION is shown when either action is offered
+
+    // Asked separately, because they are separate answers (#865). Gating Reject on `approve` was correct only
+    // while the server emits the pair together — and a rel emitted unconditionally alongside another is a rel
+    // that never needed to be conditional. The failure it hid: Reject rendered, POSTed to `reject`, and the
+    // missing rel made that a silent no-op.
+    [ObservableProperty] private bool _canApprove;
+
+    [ObservableProperty] private bool _canReject;
+    [ObservableProperty] private bool _canRelease;
+    [ObservableProperty] private bool _canReassign;  // delegate/re-route (reviewer or editor)
+    [ObservableProperty] private bool _hasHistory;
+    [ObservableProperty] private UserOptionInfo? _selectedReviewer;
+    [ObservableProperty] private string _rejectReason = string.Empty;
+    [ObservableProperty] private bool _busy;
+    [ObservableProperty] private string _status = string.Empty;
+
+    public ObservableCollection<WorkflowHistoryItemViewModel> History { get; } = [];
+    public ObservableCollection<UserOptionInfo> Reviewers { get; } = [];
+
+    public async Task LoadAsync()
+    {
+        HasWorkflow = false;
+        History.Clear();
+        CanSubmit = CanReview = CanRelease = CanReassign = CanApprove = CanReject = false;
+        RejectReason = string.Empty;
+        SelectedReviewer = null;
+
+        WorkflowClient.WorkflowInfo? wf;
+        try
+        {
+            wf = await _api.Documents.GetWorkflowAsync(_versionsHref);
+        }
+        catch (Exception e)
+        {
+            Status = string.Format(Strings.Get("StErrLoad"), e.Message);
+            return;
+        }
+
+        if (wf is null)
+        {
+            Status = Strings.Get("WfNoVersion");
+            return;
+        }
+
+        HasWorkflow = true;
+        StatusName = wf.StatusName;
+        AssignedTo = wf.AssignedToName is { } a ? $"reviewer: {a}" : null;
+        _links = wf.Links;
+        CanSubmit = wf.Links?.Has("submit") == true;
+        // Approve and Reject are asked SEPARATELY (#865). They were both gated on `approve`, on the assumption
+        // that the two travel together — true today, and precisely the assumption that makes a conditional rel
+        // pointless. The moment they diverge, which is the only reason to emit them conditionally at all,
+        // Reject was offered on the strength of approve and then silently did nothing (it POSTs to `reject`).
+        CanApprove = wf.Links?.Has("approve") == true;
+        CanReject = wf.Links?.Has("reject") == true;
+        CanReview = CanApprove || CanReject; // the section is shown when EITHER is on offer
+        CanRelease = wf.Links?.Has("release") == true;
+        CanReassign = wf.Links?.Has("reassign") == true;
+
+        foreach (var h in wf.History)
+        {
+            var detail = $"by {h.PerformedByName}"
+                + (h.AssignedToName is { } to ? $" → {to}" : "")
+                + (h.RejectionReason is { } r ? $" · {r}" : "");
+            History.Add(new WorkflowHistoryItemViewModel { ToStatusName = h.ToStatusName, Detail = detail });
+        }
+
+        HasHistory = History.Count > 0;
+
+        // Populate the reviewer picker when a submit or reassign is offered — any editor may read this catalog
+        // (ADR "Workflow assignable-reviewers endpoint"), no CanManageUsers needed.
+        if ((CanSubmit || CanReassign) && Reviewers.Count == 0)
+        {
+            foreach (var u in await _api.Documents.GetAssignableReviewersAsync(await _api.Documents.RelViaSelfAsync(_documentSelfHref, "assignable-reviewers")))
+            {
+                Reviewers.Add(u);
+            }
+        }
+    }
+
+    [RelayCommand]
+    private Task Submit() => PostAsync("submit", new { reviewerId = SelectedReviewer?.Id });
+
+    [RelayCommand]
+    private Task Approve() => PostAsync("approve", null);
+
+    [RelayCommand]
+    private Task Reject() => PostAsync("reject", new { reason = RejectReason });
+
+    [RelayCommand]
+    private Task Release() => PostAsync("release", null);
+
+    [RelayCommand]
+    private Task Reassign() => PostAsync("reassign", new { reviewerId = SelectedReviewer?.Id });
+
+    private async Task PostAsync(string rel, object? body)
+    {
+        if (_links.Href(rel) is not { } href)
+        {
+            return;
+        }
+
+        if (rel is "submit" or "reassign" && SelectedReviewer is null)
+        {
+            Status = Strings.Get("StPickReviewer");
+            return;
+        }
+
+        if (rel == "reject" && string.IsNullOrWhiteSpace(RejectReason))
+        {
+            Status = Strings.Get("StRejectReasonReq");
+            return;
+        }
+
+        Busy = true;
+        try
+        {
+            await _api.Workflow.PostWorkflowActionAsync(href, body);
+            Changed = true;
+            await LoadAsync();
+            Status = string.Format(Strings.Get("StWorkflowStatus"), StatusName);
+        }
+        catch (ApiActionException e)
+        {
+            Status = e.Message;
+        }
+        finally
+        {
+            Busy = false;
+        }
+    }
+}
+
+// A row in the Tasks tab — a pending review task assigned to the current user (ADR "Workflow / document
+// state model", 0009).
+public sealed class TaskItemViewModel
+{
+    public required Guid DocumentId { get; init; }
+    public Guid? ParentId { get; init; }
+
+    /// <summary>The row's advertised addresses (`document`, `parent`, `workflow`) — opening follows these (#443).</summary>
+    public LinkMap? Links { get; init; }
+    public required string DocumentName { get; init; }
+    public int? VersionNumber { get; init; }
+    public DateTimeOffset AssignedAt { get; init; }
+
+    public DateTimeOffset? DueAt { get; init; }
+
+    public string VersionText => VersionNumber is { } n ? $"v{n}" : "—";
+    public string AssignedText => AssignedAt.InZone(SessionTimeZone.Current).DateTime.ToString("yyyy-MM-dd HH:mm");
+    public string DueText => DueAt is { } due ? due.InZone(SessionTimeZone.Current).DateTime.ToString("yyyy-MM-dd") : "—";
+    public bool IsOverdue => DueAt is { } d && DateTimeOffset.Now > d;
+}
+
+// A row in the workflow history (a single transition, pre-formatted for display).
+public sealed class WorkflowHistoryItemViewModel
+{
+    public required string ToStatusName { get; init; }
+    public required string Detail { get; init; }
+}

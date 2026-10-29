@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The native libvips for the platforms TESTS run on, version-matched to the NetVips managed package.
+         NOT a product dependency: the Api image is Alpine and carries the linux-musl natives, and these are
+         referenced only by test projects, so nothing ships with them.
+
+         This replaces installing libvips from the distro, which was wrong in a way local runs could never
+         show: `apt-get install libvips42t64` on Ubuntu 24.04 gives 8.15.1, while NetVips 3.2.0 is paired with
+         8.18.4 — so the test host CRASHED on CI (a native fault, not a test failure) while passing locally on
+         Homebrew's 8.18. Pinning the native to the managed package is the only version-matched answer, and it
+         removes the `brew install vips` prerequisite and the DYLD path fix-up with it. -->
+    <PackageReference Include="NetVips.Native.linux-x64" Version="8.18.4" />
+    <PackageReference Include="NetVips.Native.linux-arm64" Version="8.18.4" />
+    <PackageReference Include="NetVips.Native.osx-arm64" Version="8.18.4" />
+    <PackageReference Include="NetVips.Native.osx-x64" Version="8.18.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.13" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.0.0" />
+    <!-- Security-driven transitive pin (ADR 0379 "Security and dependency scanning"): Testcontainers pulls
+         SSH.NET, and every version up to and including 2025.1.0 carries GHSA-q939-rpr3-3284 (High — ScpClient
+         recursive download allows arbitrary file write via server-controlled filenames), fixed in 2026.0.0.
+         Bumping Testcontainers does NOT help: even 4.13.0 asks only for [2025.1.0, ). Re-check on the next
+         Testcontainers bump; remove once its own floor moves past 2026.0.0. -->
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.100.3" />
+    <PackageReference Include="MailKit" Version="4.17.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alcifra.SelfHosting\Alcifra.SelfHosting.csproj" />
+    <!-- The module fixture (ADR 0737): staged into a Modules/ dir by E2EApiFactory so the real loader
+         serves its controller; referencing it also lands the dll in this test bin to stage FROM. -->
+    <ProjectReference Include="..\Alcifra.TestModule\Alcifra.TestModule.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.Api\Alcifra.Api.csproj" />
+    <!-- saconsole, so the device-flow CLIENT is exercised against a real server rather than only compiled.
+         The polling contract (interval, slow_down, access_denied) is the half a unit test cannot check. -->
+    <ProjectReference Include="..\..\src\Alcifra.Cli\Alcifra.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.Sapass\Alcifra.Sapass.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.Infrastructure\Alcifra.Infrastructure.csproj" />
+    <!-- The password store's shared client (ADR 0964), driven against the real API through ApiCore.Over. -->
+    <ProjectReference Include="..\..\src\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The generated test attestation hierarchy (ADR 0963), shared by the suites that verify attested enrolment. -->
+    <Compile Include="..\Shared\TestAttestationHierarchy.cs" Link="Shared\TestAttestationHierarchy.cs" />
+  </ItemGroup>
+
+</Project>

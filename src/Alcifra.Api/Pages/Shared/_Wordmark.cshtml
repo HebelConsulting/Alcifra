@@ -1,0 +1,14 @@
+@using Alcifra.Localization
+@using Alcifra.Theming
+@* The product's mark on a server-rendered account page (ADR 0992): the brand's wordmark while the product carries the
+   brand's own name, else that name as text. Both files are on the page; /api/theme.css shows the one matching the
+   theme. *@
+@if (Brand.ShowsWordmark(Strings.ProductName))
+{
+    <img class="sa-wordmark-light" src="@($"{BrandWordmark.UrlRoot}{Brand.Shipped.Wordmark.Light}")" alt="@Strings.ProductName" />
+    <img class="sa-wordmark-dark" src="@($"{BrandWordmark.UrlRoot}{Brand.Shipped.Wordmark.Dark}")" alt="@Strings.ProductName" />
+}
+else
+{
+    @Strings.ProductName
+}

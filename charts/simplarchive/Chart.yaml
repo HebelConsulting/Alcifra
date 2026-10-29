@@ -1,7 +1,7 @@
 apiVersion: v2
 name: simplarchive
 description: |
-  SimplArchive — the single-deployable API that also serves the Blazor WASM client. This chart deploys the API;
+  Alcifra — the single-deployable API that also serves the Blazor WASM client. This chart deploys the API;
   its dependencies (PostgreSQL, S3-compatible object storage, OpenBao, OpenSearch+Tika, Gotenberg, OCR, SMTP) are
   expected to be external/managed in production and are configured via values. See docs/deploy/README.md.
 type: application
@@ -12,4 +12,4 @@ home: https://github.com/HebelConsulting/SimplArchive
 sources:
   - https://github.com/HebelConsulting/SimplArchive
 maintainers:
-  - name: SimplArchive
+  - name: Alcifra

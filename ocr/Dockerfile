@@ -4,7 +4,7 @@
 FROM python:3.14-slim
 
 # ocrmypdf pulls in tesseract-ocr (eng), ghostscript, qpdf, etc.; add the other supported OCR languages
-# (must stay in sync with SimplArchive.Domain.Documents.OcrLanguages). "All versions" = the base pack plus
+# (must stay in sync with Alcifra.Domain.Documents.OcrLanguages). "All versions" = the base pack plus
 # Tesseract's variant packs (Middle English enm, old-orthography Spanish spa_old).
 # pngquant unlocks OCRmyPDF's --optimize 2/3, which is not a nicety: straightening a COLOUR scan rasterises
 # and re-encodes it, and at the default --optimize 1 a 2.2 MB scan came back 10 MB — a 4.4x inflation on a

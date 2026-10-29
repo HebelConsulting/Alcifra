@@ -1,0 +1,206 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Auth;
+
+public static class DependencyInjection
+{
+    /// <summary>
+    /// Registers OpenIddict as the solution's sole token issuer (see ADR: Planned authentication).
+    /// Assumes `AddInfrastructure` has already registered AlcifraDbContext.
+    ///
+    /// Both the client-credentials grant (ServiceAccount/PlatformAdministrator) and the interactive
+    /// Authorization Code + PKCE grant (User, see ADR "Interactive User login (foundation slice)") are
+    /// wired up. The "openid" scope/identity token are now registered too (ADR "Blazor Client-side login
+    /// wiring" — the standard Blazor WASM auth library needs real OIDC, not just an access token, to build
+    /// a ClaimsPrincipal), superseding ADR 0208's original "plain OAuth 2.0 only" stance. Deliberately
+    /// still NOT implemented: a userinfo endpoint or RP-initiated logout, MFA (see MFA / authentication
+    /// credential policy), the custom impersonation token-exchange grant (RFC 8693 — see Admin user
+    /// impersonation), and rotating-refresh-token reuse detection (see Session / token lifetime and
+    /// refresh strategy) — each is real, separate work.
+    /// </summary>
+    public static IServiceCollection AddAuthServer(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    {
+        // Sets OpenIddict's own validation handler as the default authentication scheme, so a plain
+        // [Authorize] (no AuthenticationSchemes specified) resolves correctly on every protected endpoint
+        // — without this, ASP.NET Core has no default scheme to challenge against and every [Authorize]
+        // request fails with an InvalidOperationException instead of a 401. See ADR "ServiceAccount
+        // request authentication foundation". Cookie authentication is also registered, but NOT as the
+        // default scheme — it's used only by the interactive login page/authorization endpoint, entirely
+        // separate from bearer-token validation on every other Api call. See ADR "Interactive User login
+        // (foundation slice)".
+        services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
+            .AddCookie(options =>
+            {
+                options.LoginPath = "/Account/Login";
+            });
+
+        services.AddOpenIddict()
+            .AddCore(options =>
+            {
+                options.UseEntityFrameworkCore()
+                    .UseDbContext<AlcifraDbContext>();
+            })
+            .AddServer(options =>
+            {
+                options.SetTokenEndpointUris("connect/token");
+                options.SetAuthorizationEndpointUris("connect/authorize");
+                // The standard Blazor WASM auth library (oidc-client) defaults to loadUserInfo=true, so
+                // after the code exchange it calls the userinfo endpoint — without one advertised in the
+                // discovery document it aborts sign-in with "There was an error signing in." See
+                // Alcifra.Api's UserInfoController and ADR "Blazor Client-side login wiring".
+                options.SetUserInfoEndpointUris("connect/userinfo");
+                // RFC 7009 revocation (#1578): the desktop presents its tokens here when it signs out. Handled by
+                // OpenIddict itself — no passthrough — because revoking a token needs nothing of ours.
+                options.SetRevocationEndpointUris("connect/revoke");
+
+                options.AllowClientCredentialsFlow();
+
+                // The device authorization grant (RFC 8628), for alcifra (ADR 0823). An administrative CLI
+                // is typically run over SSH on a host with no browser and no desktop session, where the
+                // loopback flow the desktop client uses cannot work at all: it needs a browser on the machine
+                // running the command. Here the tool prints a code, and the approval happens in whatever
+                // browser the administrator already has, on whatever machine they are sitting at.
+                options.AllowDeviceAuthorizationFlow();
+                options.SetDeviceAuthorizationEndpointUris("connect/device");
+                options.SetEndUserVerificationEndpointUris("connect/verify");
+
+                // PKCE is required unconditionally for the Authorization Code flow — the Blazor Client is
+                // a public client (no client secret), so proof-of-possession is the only protection
+                // against authorization-code interception.
+                options.AllowAuthorizationCodeFlow()
+                    .RequireProofKeyForCodeExchange();
+
+                // Refresh tokens, so a client can renew WITHOUT the user present. The desktop client held a
+                // single access token from login until it expired and then 401'd on every request — reported as
+                // "I thought the client rotates the tokens even in the background", which it did not, because
+                // nothing here issued a refresh token to rotate with.
+                //
+                // Rolling refresh tokens are OpenIddict's default and are kept: each refresh issues a new token
+                // and marks the presented one REDEEMED, so a leaked token is good for one use rather than for
+                // its whole lifetime.
+                //
+                // A redeemed token nevertheless stays usable for a REUSE LEEWAY — 30 seconds by default — and
+                // that is deliberate on OpenIddict's part, not an oversight: a client whose refresh response is
+                // lost to a network blip retries with the token it still holds, and without the leeway that
+                // ordinary event would sign the user out. Measured, not assumed: a replay inside the window
+                // returns 200, which is what the test asserting instant invalidation discovered.
+                //
+                // Made EXPLICIT rather than inherited, so the window is a decision with a number attached, and
+                // so the test host can shorten it to prove that reuse past the window really is refused —
+                // otherwise the security property costs 30 seconds per assertion and quietly goes untested.
+                options.AllowRefreshTokenFlow();
+
+                var leeway = configuration.GetValue<int?>("OpenIddict:RefreshTokenReuseLeewaySeconds");
+                options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(leeway ?? 30));
+
+                // LIFETIMES, from ADR 0083 — which chose 15 minutes and 30 days and was then never
+                // implemented, so OpenIddict's own defaults (~1 h / 14 d) applied and the drift was
+                // undocumented (#847, A07).
+                //
+                // The short access token is the half that matters, and the reason is what ADR 0083 did NOT
+                // get: its revocation denylist was never built, so there is no way to invalidate an issued
+                // access token at all. Signing out clears the cookie and the client's copy; a token already
+                // in someone's hands keeps working until it expires on its own. That window WAS about an
+                // hour. Fifteen minutes does not make revocation exist, but it is the only lever that
+                // currently shortens the gap, and it shortens it four-fold.
+                //
+                // The longer refresh token is not a relaxation: rotation is on, reuse past the leeway above
+                // is refused, and a stolen refresh token is detectable in a way a stolen access token is
+                // not. Trading a longer refresh for a shorter access is the standard shape, and it costs
+                // only that clients refresh more often — which they already do, silently.
+                //
+                // Configurable because a deployment may have a reason to differ and finding out mid-incident
+                // that it cannot is the wrong time; the DEFAULTS are the ADR's numbers.
+                var accessMinutes = configuration.GetValue<int?>("OpenIddict:AccessTokenLifetimeMinutes");
+                var refreshDays = configuration.GetValue<int?>("OpenIddict:RefreshTokenLifetimeDays");
+                options.SetAccessTokenLifetime(TimeSpan.FromMinutes(accessMinutes ?? 15));
+                options.SetRefreshTokenLifetime(TimeSpan.FromDays(refreshDays ?? 30));
+
+                // RFC 8693 token exchange, used only for User impersonation (ADR "User impersonation") — a
+                // CanImpersonate admin exchanges their access token for one representing a target User.
+                options.AllowCustomFlow(ImpersonationConstants.TokenExchangeGrantType);
+
+                // "openid" is a well-known scope — RegisterScopes is a lightweight in-memory declaration,
+                // not a DB-backed scope entity (no IOpenIddictScopeManager round-trip needed). Its
+                // presence on a token request is what makes OpenIddict actually issue an identity token —
+                // see ADR "Blazor Client-side login wiring".
+                //
+                // "offline_access" is the scope that ASKS for a refresh token: without it on the request,
+                // OpenIddict issues none however many flows are allowed above.
+                options.RegisterScopes(OpenIddictConstants.Scopes.OpenId, OpenIddictConstants.Scopes.OfflineAccess);
+
+                // Signing/encryption certificates: sourced from OpenBao when configured (ADR "OpenIddict
+                // certificates from OpenBao" — the OpenBao config provider maps the PKI-issued cert/key PEMs to
+                // these config keys), else the dev-only ephemeral certificates. Real deployments must run with
+                // OpenBao (or another sourced cert), never the dev certs.
+                var signingCertPem = configuration["OpenIddict:SigningCertificatePem"];
+                var signingKeyPem = configuration["OpenIddict:SigningKeyPem"];
+                var encryptionCertPem = configuration["OpenIddict:EncryptionCertificatePem"];
+                var encryptionKeyPem = configuration["OpenIddict:EncryptionKeyPem"];
+                if (configuration.GetValue<bool>("OpenIddict:UseEphemeralKeys"))
+                {
+                    // Hermetic in-memory signing/encryption keys — used only by the test hosts (E2E + UI E2E). The
+                    // dev certificates persist to a per-user X.509 store, which fails in a headless CI runner
+                    // environment (a different HOME / no interactive session); ephemeral keys need no store and are
+                    // fine for a within-run token round-trip. NEVER set in a real deployment.
+                    options.AddEphemeralEncryptionKey().AddEphemeralSigningKey();
+                }
+                else if (!string.IsNullOrWhiteSpace(signingCertPem) && !string.IsNullOrWhiteSpace(signingKeyPem)
+                    && !string.IsNullOrWhiteSpace(encryptionCertPem) && !string.IsNullOrWhiteSpace(encryptionKeyPem))
+                {
+                    options.AddSigningCertificate(OpenIddictCertificateLoader.FromPem(signingCertPem, signingKeyPem))
+                        .AddEncryptionCertificate(OpenIddictCertificateLoader.FromPem(encryptionCertPem, encryptionKeyPem));
+                }
+                else
+                {
+                    options.AddDevelopmentEncryptionCertificate()
+                        .AddDevelopmentSigningCertificate();
+                }
+
+                // Passthrough is required for both endpoints: OpenIddict has no principal to build a
+                // token from on its own for client-credentials (there's no user to authenticate), and the
+                // authorization endpoint needs a custom controller to challenge the cookie scheme and
+                // show the login page — see Alcifra.Api's TokenController/AuthorizationController.
+                var aspNetCoreBuilder = options.UseAspNetCore()
+                    .EnableTokenEndpointPassthrough()
+                    .EnableAuthorizationEndpointPassthrough()
+                    .EnableUserInfoEndpointPassthrough()
+                    // Device flow: ONLY the verification endpoint is passed through, and the asymmetry is the
+                    // point. Issuing the device and user codes needs no decision, so OpenIddict does it
+                    // itself; approving one needs a PERSON, which is the entire security value of this grant
+                    // and is not something middleware can supply.
+                    .EnableEndUserVerificationEndpointPassthrough();
+
+                // OpenIddict requires HTTPS by default (a secure-by-default behavior we keep everywhere
+                // except local development, where the API commonly runs over plain HTTP). Real
+                // deployments terminate TLS in front of the API and must never disable this.
+                if (environment.IsDevelopment())
+                {
+                    aspNetCoreBuilder.DisableTransportSecurityRequirement();
+                }
+            })
+            .AddValidation(options =>
+            {
+                options.UseLocalServer();
+
+                // REVOCATION MEANS SOMETHING ON THE REQUEST PATH (#1578). OpenIddict stores every token it issues
+                // and marks a family revoked when a refresh token is reused past its leeway — measured: the stored
+                // access tokens were `revoked` while the token itself still answered 200, because a self-contained
+                // JWT was validated without ever consulting its entry. These two checks make the API ask: is this
+                // token's entry still valid, and is the authorization it belongs to? One indexed lookup each, on the
+                // database every request already needs — so it adds no dependency that could fail on its own, which
+                // is what ADR 0083's Valkey denylist would have done (superseded by ADR 0895).
+                options.EnableTokenEntryValidation();
+                options.EnableAuthorizationEntryValidation();
+                options.UseAspNetCore();
+            });
+
+        return services;
+    }
+}

@@ -1,0 +1,234 @@
+namespace Alcifra.UnitTests;
+
+// A CEILING on the workbench page's size, so it cannot drift back upward between decomposition tranches
+// (ADR 0558; CLAUDE.md's 1000-line standing principle).
+//
+// Home.razor reached 9,479 lines, and it did so the way every file like it does: nobody added a thousand lines,
+// everybody added twenty. No single commit looked unreasonable, and there was nothing that made the growth
+// visible at the moment it happened. This test is that thing. It is the only mechanism here that acts BETWEEN
+// tranches, which is when the regression would occur.
+//
+// Deliberately a ceiling, not the hypermedia budget's assert-and-lower ratchet. The trade is real and was
+// chosen with it stated: a ceiling costs no bookkeeping commit when a tranche lands, but a landed tranche leaves
+// the number stale — it no longer states the real figure, only a bound the file is under. Lower it when you
+// notice; the guard still does its one job either way.
+//
+// THE FINISH LINE IS NOT 1,000. Extracting every remaining region — tree/list navigation, annotations, bulk
+// actions, upload, drop filing, mentions, export/import, rename, WebDAV, workflow, ribbon, check-out — removes
+// about 2,300 lines and leaves roughly 1,450: the workbench LAYOUT MARKUP (~940) plus the shell's own
+// coordination (~510: the fields, the three lifecycle hooks, SetTab, the selection, the viewport/phone
+// handling, the JS interop wiring). That remainder is one thing, and it is a confirmed exception to the
+// 1000-line principle at that floor rather than a debt still being worked down. Going below it would mean
+// decomposing the layout markup itself, which buys file count rather than cohesion — the alternative ADR 0558
+// already rejected in its "code-behind partial classes only" form.
+public class WorkbenchShellSizeTests
+{
+    private const string ShellFile = "src/Alcifra.Client/Pages/Home.razor";
+
+    // 9,479 at the start of ADR 0558. Lower this as tranches land.
+    //
+    // RAISED TWICE, deliberately and on the record. The reminder fix (#420, ADR 0559), and the WebDAV ribbon
+    // button (#461) — a ribbon affordance genuinely belongs to the shell, since the ribbon IS the shell. Both
+    // times the guard forced the growth to be argued for and both times it shrank first: commentary that
+    // belonged in a commit message came out, and only the code stayed. A
+    // one-line expression-bodied handler became a real method with a fetch fallback, because taking the address
+    // from pane state was a bug that made "Set reminder" silently do nothing. The guard did its job here — it
+    // caught +16, most of which was commentary that belonged in the commit message, and only the 11 lines that
+    // are actually code survived the trim. That is the intended interaction: growth has to be argued for, not
+    // noticed later.
+    // 3,204 → 3,190 with the Contacts and Calendar tabs ADDED (#564, ADR 0624): their markup would have cost
+    // +18, so the bottom tab bar was extracted into <WorkbenchTab> first. It was fifteen copies of the same
+    // four lines differing in an icon, a label and a tour id — which is why every tab added cost the shell
+    // another four. Paying rather than raising is the point of this guard: the growth got argued for, and the
+    // argument produced a component instead of a bigger number.
+    // 3,190 → 3,196 for the notebook affordances (#564, ADR 0625): two menu entries and the `@if` that gates
+    // them on the rels the row advertised. The BEHAVIOUR cost nothing here — it went to DocumentActions, where
+    // the other row actions already live — so what the shell is charged for is six lines of menu markup, which
+    // is what a menu entry genuinely costs. A component wrapping two MudMenuItems would have bought the number
+    // back at the price of a file that exists only to hold them.
+    // 3,196 → 3,204 for #634: the `folders` rel gate around "New subfolder", so the entry is absent
+    // where the server would refuse it rather than present and failing. Shell-level because the tree
+    // pane's node menu is supplied by the shell, not owned by the pane.
+    // 3,204 → 3,212 finishing that gate, and it is the same interaction again: the raise is eight lines, of
+    // which three are code. NewFolderAsync now takes the node it acts on (the menu passed the row while the
+    // handler read the selection — ADR 0559), and NavigateToFolderAsync keeps the LINKS of the resource it was
+    // already fetching instead of only its name, which is what made every rel-gated affordance read as
+    // unavailable after a Go to. Both are one-line changes wearing the comment that explains a non-obvious gate.
+    // 3,212 → 3,217 for #634's last part (ADR 0637): Upload joins New folder on the `create-child` rel — the
+    // ribbon button, and the tree menu entry which now needs an `@if` around it. Five lines, three of them the
+    // markup a gated menu entry costs; the drop-zone half of the same change cost the shell nothing, because it
+    // lives in BrowseService and ContentsListPane where the attributes are decided.
+    // 3,216 → 3,225 for #673: the creates are now built from what the folder ADMITS — one loop over a
+    // server-supplied list, replacing the per-rel `@if`s the two raises above paid for — nested under a "New"
+    // submenu that matches the desktop (ADR 0511). Nine lines, and only four of them markup: the loop is
+    // SHORTER than what it replaced, and would stay that length if a tenant-authored folder mask arrived
+    // tomorrow. What is charged here is the comment saying why "New" is a submenu rather than a flat list,
+    // which is the decision a reader would otherwise re-litigate — the label is the mask's own name, so a flat
+    // entry reads as a noun among verbs, and no client can prefix a verb onto it across four languages.
+    // Five of those lines are a note that cost three suite runs to write: a submenu is a nested MudMenu (a
+    // MudMenuItem wrapping items renders NOTHING) and takes StartIcon, not Icon (which renders a bare
+    // icon-button activator with no label). Both compile clean, so the build says nothing and the menu is
+    // silently wrong — the kind of thing the next person pays for again unless it is written down here.
+    // 3,230 → 3,299 for the tablet tier (#684): a media query for a tablet held upright (folded into the
+    // single-pane block as a second condition rather than a copy of it), one for a tablet held sideways, and
+    // the viewport-mode callback that replaced the phone bool.
+    //
+    // The biggest raise this guard has taken, and argued rather than assumed. EXTRACTION WAS CONSIDERED AND
+    // REJECTED: ADR 0491 records that these queries must come LAST in this <style> block to beat the base
+    // .wb-* pane widths at equal specificity, and an external sheet in <head> loads EARLIER, which inverts
+    // that. Moving them would trade 90 lines for a cascade bug the tests would not obviously catch.
+    // The comments were trimmed by 12 lines first; what is left is the third tier of a layout the shell owns.
+    // 3,299 → 3,313 for #686: the tree marks the SELECTED node rather than the open folder, and a folder row
+    // selection reveals it. Fourteen lines, of which four are code — the reveal itself went to TreeState,
+    // which owns the tree's shape, rather than here. What is charged is the selection highlight's CSS and the
+    // note on why an outline and not a fill (the tree already spends its accent on the glyphs, ADR 0581).
+    // 3,313 → 3,331 for #692: the reveal now brings the marked node into view. Eighteen lines, of which four
+    // are code — the flag, its consumption after the render that applies the mark, and the guarded interop
+    // call. The scroll arithmetic itself is in wbLayout.js, where the DOM measuring belongs.
+    // 3_307 -> 3_322 for #691, owner-confirmed: the detail pane's workflow slot now renders the transitions the
+    // SERVER advertises instead of a permanent "Start workflow" button. Fifteen lines, and they are the shell's
+    // genuine share — following the current version's workflow rel during the detail load, clearing it with the
+    // other addresses (ADR 0559), and reselecting after a transition, which needs SelectItemAsync. It was +33
+    // until the act-or-dialog decision moved to DocumentActions, which is where per-document actions live.
+    //
+    // 3_331 -> 3_307: the per-document action row moved into DocumentActionsRow (ADR 0664). It went the RIGHT
+    // way under pressure — adding Compare versions to that row put the shell 16 lines over, and this guard's
+    // own advice ("put the new code in the component that owns the responsibility") was cheaper than the
+    // exception it offers as the alternative. (The extracted row takes its state as parameters rather than
+    // injecting it, which costs five lines here and is what makes it re-render at all — see the component.)
+    // 3_322 -> 3_331 for #702 PR 3, owner-confirmed: the tree context menu gains "Take over…", drawn only where
+    // the listing advertised the rel. The action itself lives in DocumentActions — what is here is the menu
+    // item and its gate, which is the one part that cannot live anywhere else while the menu does.
+    // 3,331 → 3,353 for #703 (owner-confirmed 2026-08-23): the duplicate-address-claim question in
+    // SaveDetailAsync — show the localized MessageBox, on yes re-save with the confirmation — plus the whoami
+    // flag reaching DetailCatalogs. Outcome reporting is explicitly this shell's job (ADR 0558), and the
+    // ask-and-retry it reports on lives in DetailEditor.
+    // 3,353 → 3,360 for #704 (owner-confirmed 2026-08-23): PrepareUploadAsync takes the .eml header text
+    // from JS and puts the shared-extracted Message-ID onto the duplicate probe. Seven lines, half comment.
+    // 3,360 → 3,392 for #686 (ADR 0703, owner-confirmed 2026-08-26): the ring marks the open folder, and
+    // deselecting exists. The same interaction as every raise above — it was +49, and the trim took it to +32
+    // by moving the reasoning into the ADR and leaving only the code. What is charged here is shell
+    // coordination and nothing else: the shell owns the selection, so clearing it, and describing the folder
+    // when nothing is selected, are its own work. The gesture that reports it went to ContentsListPane, and
+    // the choice of node went to the desktop's OpenFolderMark.
+    // 3,392 → 3,398 for #768 (owner-confirmed 2026-08-26): six lines, and all six are the grid TRACKS and the
+    // breakpoint that collapses the new Owner column first. The column itself — header, cell, sort — went to
+    // ContentsListPane, which is where a list row belongs; what the shell is charged for is the layout, which
+    // is what the shell owns.
+    // 3,398 → 3,417 for the selection-survives-its-load fix found while finishing #768/#769: a row selected
+    // while a folder was still loading was silently discarded when the rows arrived, emptying the detail and
+    // preview panes with no error. Shell-level by definition — the shell owns the selection and owns the load
+    // that was clobbering it.
+    // 3,417 → 3,426 for the same fix's second half (#811): the survival rule covered document rows only, and
+    // a FOLDER row clicked during the reload was reverted to the parent. Same seam, same owner, same reason.
+    // 2,930 → 2,510: the filing tranche. Every path that puts BYTES into the workbench — an ordinary drop, a
+    // new version onto a document row, a working copy returning to Check-out, and the Intray's drop and
+    // template paths — moved to Home.Filing.razor.cs, 407 lines under five headings that had accumulated
+    // beneath one saying "Upload orchestration". Not shell coordination: the shell owns WHERE a drop lands,
+    // which stays; creating the version, PUTting the bytes and finalizing against the advertised address is
+    // the filing subject, and it has no markup of its own to bring (ADR 0733 — a partial, not a component).
+    // 2,510 -> 2,360: a REDISTRIBUTION rather than an extraction, and the difference is the point. The heading
+    // "Rename / delete / recycle bin" contained no rename, no delete and no recycle bin -- it named three things
+    // and held none of them (#941), so its 117 lines were not a mislabelled subject but a grab-bag, and its
+    // members went to three different places: NavigateToFolderAsync/FetchFolderAsync and the two "Go to" entry
+    // points (a search hit, a legal-hold finding) to Home.Navigation, where navigation already lives; the tag
+    // chips stayed with an accurate heading; DisposeAsync stayed as shell lifecycle. The viewport tiers left the
+    // "Annotations" tombstone for Home.Responsive at the same time. A stale banner over a cohesive section is
+    // replaced by the extraction's own header; a section that is not a subject at all has to be dealt out.
+    // 2,360 -> 2,170: the single-row actions. Delete a row, show what references it, label it, copy a deep link
+    // to it, go to it, drop it on a folder as a move or a reference, promote a reference to be the primary
+    // location -- plus creating a repository, the same shape one level up. Home.RowActions.razor.cs.
+    //
+    // Deliberately not the BULK actions, which act on the multi-selection: four single-row actions had drifted
+    // under the heading "Bulk actions on the multi-selection", so it described eleven members of which seven
+    // were bulk. It now holds seven, all bulk.
+    //
+    // The heading these belong under already existed -- "Move / reference (row action menu)" -- and was EMPTY:
+    // three lines, no members, immediately followed by the bulk heading that had absorbed them. A heading
+    // outliving its contents is #941's usual shape; a heading whose contents migrated to the NEXT one, leaving
+    // the original standing empty, is the same decay caught in the act. Two orphan comments went with it.
+    // 2,170 -> 2,065: the detail pane's edit mode, to Home.DetailEdit.razor.cs -- named to MATCH the desktop's
+    // MainWindowViewModel.DetailEdit.cs, which holds the same subject. ADR 0511 asks that a web/desktop pair be
+    // reviewed as a single surface, and that is only possible when both halves can be found under one name.
+    //
+    // Its heading covered three further methods -- the versions dialog, compare-versions and a workflow
+    // transition -- which are pane ACTIONS rather than its edit mode. They stayed, under a heading that now
+    // says so, and a comment describing compare-versions moved to the method it names from forty lines above
+    // it, where it had been sitting over the versions dialog instead (#941).
+    // 2,065 -> 1,890: the comment thread, to Home.Chat.razor.cs -- loading it, replying, composing with an
+    // @-mention, posting. ONE subject that was living in three places: its state stranded in the shell's field
+    // block, its loading under a "Chat thread" heading, its composing under an "@-mentions" heading directly
+    // after it.
+    //
+    // Both headings were accurate, so this is a merge rather than a rescue: the split ran along the seam of two
+    // ISSUES (the thread, then #383's picker) rather than along a seam in the subject. Posting is the commit of
+    // a composed message and a composed message is where a mention comes from, so they answer to each other.
+    // Worth recording because #941's usual finding is a heading that lies; this is two that told the truth and
+    // still described one thing twice.
+    // 1,890 -> 1,785: wiring the workbench's JavaScript to the DOM, to Home.Interop.razor.cs -- importing
+    // dropUpload.js and wbLayout.js, attaching the drop root and the resizable panes, starting the viewport
+    // watch, scrolling the tree to a folder opened from elsewhere.
+    //
+    // It is one subject rather than incidental plumbing because two rules govern all of it: the DOM-dependent
+    // wiring must run in the ALWAYS-EXECUTED part of OnAfterRenderAsync (the markup is inside <Authorized>, so
+    // on a reload the elements do not exist yet at firstRender and wiring there silently never happens), and
+    // every wbLayout.js call is wrapped so a stale cached module degrades to the CSS default instead of
+    // throwing through the render loop (ADR 0500, #267). Both are easy to undo by accident once the code is
+    // spread through a 1,900-line file, and hard to undo when it is stated once at the top of its own.
+    // 1,785 -> 1,730: the tenant-admin searchable-PDF backfill (ADR 0274), to Home.TiffBackfill.razor.cs.
+    //
+    // Not shell coordination at all: a one-off MAINTENANCE action that happens to be reachable from the ribbon.
+    // It touches no selection, no tree and no pane -- it asks the API a question, shows a number, and enqueues
+    // work. The lifecycle members it used to sit beside share none of that.
+    //
+    // It was the last extractable thing in the "Annotations" tombstone (#941). What remains there is genuine
+    // shell work -- the selection, the auth cascade, the tab switch, and the caller's rights, which the markup
+    // gates on -- so that heading now needs correcting rather than emptying.
+    // 1,730 is OWNER-ACCEPTED as of 2026-09-02, and the acceptance is recorded here rather than left implied.
+    // CLAUDE.md's size rule says an exception is not the author's to grant, so a file that stops shrinking
+    // needs someone to say it may -- otherwise "we ran out of technique" is indistinguishable from "this is
+    // fine", and a year later nobody can tell which it was.
+    //
+    // WHY IT STOPPED HERE, which is the part that decides what a future pass should do. Of these 1,730 lines,
+    // 970 are MARKUP and 760 are @code. The code block is decomposed: its largest section is 185 lines of
+    // shell state and lifecycle, which is the shell's own work, and the rest are 99, 76, 70, 45 and 40 -- each
+    // an ADR-backed subject sitting where it belongs. A PARTIAL cannot take markup, so the technique that
+    // removed 1,179 lines from this file has nothing left to remove.
+    //
+    // Going below roughly 1,000 therefore means extracting markup into CHILD COMPONENTS, which is ADR 0733's
+    // other branch and a genuinely different decision: a component takes its markup with it but needs the
+    // shell's state passed down, which is the callback-bag trade that ADR weighs. That is deferred, not
+    // forgotten -- and it is a design decision, so it is the owner's to make rather than a tranche to schedule.
+    // 1,730 -> 1,701: the details pane keeps only the details' own actions (ADR 0970). The per-document row went,
+    // and what replaced it in the ribbon and the ⋮ menu is one component line each (DocumentActionsRibbon/Menu).
+    private const int Ceiling = 1_701;
+
+    [Fact]
+    public void The_workbench_shell_does_not_grow()
+    {
+        var path = Path.Combine(RepoPaths.Root(), ShellFile);
+        Assert.True(File.Exists(path), $"{ShellFile} not found — if the shell moved, update ShellFile.");
+
+        var lines = File.ReadAllLines(path).Length;
+
+        Assert.True(lines <= Ceiling,
+            $"{ShellFile} is {lines} lines, over its {Ceiling}-line ceiling by {lines - Ceiling}.\n"
+            + "The workbench page is being decomposed (ADR 0558), so it may only get smaller. Put the new code "
+            + "in the component or service that owns the responsibility — or, if it genuinely belongs to the "
+            + "shell, say why and raise the ceiling deliberately rather than as a side effect.");
+    }
+
+    // A ceiling far above the real figure asserts nothing while still looking like a guard. This does not force
+    // the bookkeeping (that is the ratchet's job, and it was not chosen), but it does make a ceiling that has
+    // gone badly stale fail loudly rather than sit there reassuring people.
+    [Fact]
+    public void The_ceiling_still_describes_the_file()
+    {
+        var lines = File.ReadAllLines(Path.Combine(RepoPaths.Root(), ShellFile)).Length;
+
+        Assert.True(Ceiling - lines <= 400,
+            $"{ShellFile} is {lines} lines but the ceiling is {Ceiling} — {Ceiling - lines} lines of slack, which "
+            + "is room for a whole tranche of new code to land unnoticed. Lower Ceiling to the real figure.");
+    }
+
+}

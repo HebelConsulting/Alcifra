@@ -1,0 +1,41 @@
+using Alcifra.DesktopClient;
+using Alcifra.DesktopClient.Services;
+
+namespace Alcifra.UiEndToEndTests;
+
+// The Tenant tab's Modules surface (ADRs 0740/0743) via the real desktop api client: the settings resource
+// advertises the modules rel to the demo admin, the catalog answers (empty — this host stages no module
+// assemblies), and the list's license-documents rel serves the Activate dialog's dropdown. The full
+// activation circle (a staged module + a signed license) is exercised at the integration seam
+// (ModuleActivationTests); staging a module assembly into the self-hosted Api is its own follow-up.
+[Collection(UiCollection.Name)]
+public class DesktopModulesTests
+{
+    private readonly SelfHostedAppFixture _app;
+
+    public DesktopModulesTests(SelfHostedAppFixture app) => _app = app;
+
+    [Fact]
+    public async Task The_modules_surface_is_advertised_and_answers()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+
+        var settings = await api.Admin.GetTenantSettingsAsync();
+        var catalog = await api.Admin.GetModulesAsync(settings);
+
+        // The rel is advertised to a tenant admin, and the catalog answers with what is INSTALLED: this host stages
+        // the TestModule so its Strict tenant may start (ADR 0890), and the demo tenant signed in here never
+        // activated it — installed, not active, which is the state the catalog exists to show.
+        Assert.NotNull(catalog);
+        var installed = Assert.Single(catalog!.Items);
+        Assert.Equal("test-module", installed.ModuleId);
+        Assert.True(installed.Installed);
+        Assert.False(installed.Activated);
+
+        // The dropdown's source is advertised where the collection was read (ADR 0557) — and it answers
+        // too: no documents wear the Module-license mask in the demo seed.
+        Assert.NotNull(catalog.LicenseDocumentsHref);
+        Assert.Empty(await api.Admin.GetLicenseDocumentsAsync(catalog.LicenseDocumentsHref!));
+    }
+}

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The hardware key, reachable from every host that has one: the desktop client and sapass (ADR 0964/0975,
+       sapass decisions 2026-10-25). A leaf like TextLayout, and for the same kind of reason: the PKCS#11 module is
+       loaded once per PROCESS (C_Initialize answers CKR_CRYPTOKI_ALREADY_INITIALIZED to a second copy), so the
+       session, the certificate reader and the envelope opener must be ONE implementation rather than one per client.
+       Referenced by the desktop and by sapass; NOT by ApiClient (the phone would drag a native PKCS#11 package it
+       cannot use) and never by a server project. -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The PKCS#11 wrapper over the platform's OpenSC module (ADR 0831: it ships two assemblies because of the
+         1-byte struct packing difference on Windows). -->
+    <PackageReference Include="HebelConsulting.CAManagement.Pkcs11" Version="0.9.0" />
+    <!-- Pinned above what other packages bring: CVE-2026-84008 and CVE-2026-70162, fixed in 10.0.13 (as ApiClient). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <!-- The S/MIME envelope shape the opener reads: a MIME entity around a bare CMS (ADR 0830/0975). -->
+    <PackageReference Include="MimeKit" Version="4.17.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The shared client: ApiClientSettings.Logger is the ONE logging seam both hosts already set, and the
+         envelope types (IEnvelopeOpener, SmimeEnvelope) are the shared content funnel's contract. -->
+    <ProjectReference Include="../Alcifra.ApiClient/Alcifra.ApiClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The card's step-by-step internals (how a key-agreement recipient is parsed, how the content cipher and
+         IV are read) are exercised by the desktop's hardware-key diagnostics and by their tests, which moved
+         apart from the code on 2026-10-25. Friends rather than a public surface: what a HOST calls is public
+         (CardSession, CardCertificates, CardEnvelopeOpener's openers); the pieces the diagnostics print are not
+         part of any contract a second implementation could hold us to. -->
+    <InternalsVisibleTo Include="Alcifra.DesktopClient" />
+    <InternalsVisibleTo Include="Alcifra.DesktopUiEndToEndTests" />
+  </ItemGroup>
+
+</Project>

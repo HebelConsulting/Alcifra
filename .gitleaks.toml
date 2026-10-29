@@ -1,13 +1,13 @@
 # gitleaks configuration (ADR 0436 "gitleaks secret scan in CI").
 #
 # Extends gitleaks' default high-confidence ruleset and pre-allowlists this repo's KNOWN dev-only credentials,
-# so a rules update never trips on them while a real leaked secret is still caught. SimplArchive is deliberately
+# so a rules update never trips on them while a real leaked secret is still caught. Alcifra is deliberately
 # "Not for production" (dev OpenIddict certs + plaintext dev credentials — see the CLAUDE.md "Path to
 # enterprise-grade" section), so the compose stack / dev appsettings / seed scripts intentionally carry throwaway
 # credentials. Today the default ruleset reports zero leaks across the full history; this allowlist is
 # precautionary + documents the accepted dev values.
 
-title = "SimplArchive gitleaks config"
+title = "Alcifra gitleaks config"
 
 [extend]
 useDefault = true
@@ -20,7 +20,7 @@ paths = [
   '''docker-compose\.yaml''',
   '''scripts/db-init\.sql''',
   '''scripts/seaweedfs-s3\.json''',
-  '''src/SimplArchive\.Api/appsettings\.Development\.json''',
+  '''src/Alcifra\.Api/appsettings\.Development\.json''',
   '''deploy/kiosk/.*''',
 ]
 

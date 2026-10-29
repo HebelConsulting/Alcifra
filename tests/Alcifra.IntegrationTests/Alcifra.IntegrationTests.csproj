@@ -1,0 +1,49 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The native libvips for the platforms TESTS run on, version-matched to the NetVips managed package.
+         NOT a product dependency: the Api image is Alpine and carries the linux-musl natives, and these are
+         referenced only by test projects, so nothing ships with them.
+
+         This replaces installing libvips from the distro, which was wrong in a way local runs could never
+         show: `apt-get install libvips42t64` on Ubuntu 24.04 gives 8.15.1, while NetVips 3.2.0 is paired with
+         8.18.4 — so the test host CRASHED on CI (a native fault, not a test failure) while passing locally on
+         Homebrew's 8.18. Pinning the native to the managed package is the only version-matched answer, and it
+         removes the `brew install vips` prerequisite and the DYLD path fix-up with it. -->
+    <PackageReference Include="NetVips.Native.linux-x64" Version="8.18.4" />
+    <PackageReference Include="NetVips.Native.linux-arm64" Version="8.18.4" />
+    <PackageReference Include="NetVips.Native.osx-arm64" Version="8.18.4" />
+    <PackageReference Include="NetVips.Native.osx-x64" Version="8.18.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alcifra.SelfHosting\Alcifra.SelfHosting.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.Api\Alcifra.Api.csproj" />
+    <!-- The offline copy's merger, tested against the real exporter (ADR 0927, #1759). -->
+    <ProjectReference Include="..\..\src\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.Infrastructure\Alcifra.Infrastructure.csproj" />
+    <ProjectReference Include="..\Alcifra.TestModule\Alcifra.TestModule.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The generated test attestation hierarchy (ADR 0963), shared by the suites that verify attested enrolment. -->
+    <Compile Include="..\Shared\TestAttestationHierarchy.cs" Link="Shared\TestAttestationHierarchy.cs" />
+  </ItemGroup>
+
+</Project>

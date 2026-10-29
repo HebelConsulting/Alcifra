@@ -1,0 +1,977 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.EntityFrameworkCore;
+using Alcifra.Api.Documents;
+using Alcifra.Api.Errors;
+using Alcifra.Api.Errors.Exceptions.Documents;
+using Alcifra.Api.Errors.Exceptions.Checkout;
+using Alcifra.Api.Errors.Exceptions.LegalHolds;
+using Alcifra.Api.Errors.Exceptions.Storage;
+using Alcifra.Api.Errors.Exceptions.Workflow;
+using Alcifra.Api.Hypermedia;
+using Alcifra.Api.Pagination;
+using Alcifra.Api.PasswordStores;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Documents;
+using Alcifra.Domain.Masks;
+using Alcifra.Domain.Workflow;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Controllers;
+
+/// <summary>
+/// Implements ADR "File upload / download API design" for Document content — see ADR
+/// "DocumentVersionsController resource-oriented redesign" for why this uses POST (create) / PUT
+/// (finalize, idempotent) / GET+HEAD (read a version, with a "download" link when confirmed) instead of
+/// verb-phrase routes. Authorization checks are Document-scope, and accept either a ServiceAccount or a
+/// logged-in User caller (see ADR "Document-scope authorization retrofit for User, and
+/// tenant-administrator-driven onboarding") — every check is against the Document the version belongs to,
+/// not its Repository.
+/// </summary>
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/documents/{documentId:guid}/versions")]
+[Authorize]
+public class DocumentVersionsController : ControllerBase
+{
+    private static readonly TimeSpan PresignedUrlExpiry = TimeSpan.FromMinutes(15);
+
+    private readonly AlcifraDbContext _dbContext;
+    private readonly Concurrency.DocumentVerbs _documents;
+    private readonly IObjectStorageClient _objectStorageClient;
+    private readonly Alcifra.Infrastructure.Storage.AtRestKeyService _atRestKeys;
+    private readonly IDocumentPreviewService _documentPreviewService;
+    private readonly IDocumentTextLayoutService _textLayoutService;
+    private readonly Documents.StrictEnvelopeDelivery _strictEnvelopes;
+    private readonly ICurrentUserAccessor _currentUserAccessor;
+    private readonly Documents.DocumentVersionAccess _versionAccess;
+
+    public DocumentVersionsController(
+        AlcifraDbContext dbContext,
+        IObjectStorageClient objectStorageClient,
+        IDocumentPreviewService documentPreviewService,
+        IDocumentTextLayoutService textLayoutService,
+        Documents.StrictEnvelopeDelivery strictEnvelopes,
+        ICurrentUserAccessor currentUserAccessor,
+        IDocumentIndexQueue queue,
+        DocumentFinalizer finalizer,
+        Documents.ChatSystemEntryRecorder chatEntries,
+        IWormLockService wormLock,
+        IStorageQuotaService storageQuota,
+        IAuditRecorder audit,
+        Documents.DocumentAccessService access,
+        Documents.DocumentVersionAccess versionAccess,
+        Alcifra.Infrastructure.Storage.AtRestKeyService atRestKeys,
+        Concurrency.DocumentVerbs documents,
+        Documents.DocumentVersionResourceBuilder versionResources,
+        PasswordStores.PasswordEntryVersions sealedVersions,
+        IModuleMaskDeclarations maskDeclarations)
+    {
+        _sealedVersions = sealedVersions;
+        _maskDeclarations = maskDeclarations;
+        _dbContext = dbContext;
+        _documents = documents;
+        _versionResources = versionResources;
+        _objectStorageClient = objectStorageClient;
+        _atRestKeys = atRestKeys;
+        _documentPreviewService = documentPreviewService;
+        _textLayoutService = textLayoutService;
+        _strictEnvelopes = strictEnvelopes;
+        _currentUserAccessor = currentUserAccessor;
+        _queue = queue;
+        _finalizer = finalizer;
+        _chatEntries = chatEntries;
+        _wormLock = wormLock;
+        _storageQuota = storageQuota;
+        _audit = audit;
+        _access = access;
+        _versionAccess = versionAccess;
+    }
+
+
+    // The caller's effective CanImport (ADR 0403/0520) gates backdating a version's filing date. Forwarded to
+    // DocumentAccessService — this controller carried verbatim COPIES of five of its members (issue #466), which
+    // is the drift the "same work is ONE implementation" principle names.
+    private Task<bool> HasImportRightAsync(CancellationToken cancellationToken) =>
+        _access.HasImportRightAsync(cancellationToken);
+
+    private readonly Documents.DocumentAccessService _access;
+    private readonly IAuditRecorder _audit;
+    private readonly IDocumentIndexQueue _queue;
+    private readonly IWormLockService _wormLock;
+    private readonly IStorageQuotaService _storageQuota;
+
+    private Task EnsureNotFrozenAsync(Guid documentId, CancellationToken cancellationToken) =>
+        _access.EnsureNotFrozenAsync(documentId, cancellationToken);
+
+    private Task EnsureNotCheckedOutByOtherAsync(Guid documentId, CancellationToken cancellationToken) =>
+        _access.EnsureNotCheckedOutByOtherAsync(documentId, cancellationToken);
+    private readonly DocumentFinalizer _finalizer;
+    private readonly Documents.ChatSystemEntryRecorder _chatEntries;
+    private readonly Documents.DocumentVersionResourceBuilder _versionResources;
+    private readonly PasswordStores.PasswordEntryVersions _sealedVersions;
+    private readonly IModuleMaskDeclarations _maskDeclarations;
+
+    // Plain mutable classes, not records — System.Xml.Serialization.XmlSerializer (ADR "JSON/XML content
+    // negotiation") needs a parameterless constructor and settable properties.
+    public class CreateVersionResponse : HypermediaResource
+    {
+        public Guid Id { get; set; }
+
+        public string ObjectKey { get; set; } = string.Empty;
+
+        public Uri UploadUrl { get; set; } = null!;
+
+        // Present ONLY on encryption-gated tenants (ADR 0818/B2): what the client must wrap a fresh DEK
+        // against before PUTting ciphertext (nonce‖ct‖tag) to the presigned URL. Absent = upload plaintext,
+        // exactly as before — the field's presence IS the "encrypt" instruction.
+        public UploadEncryption? Encryption { get; set; }
+    }
+
+    public class UploadEncryption
+    {
+        public string KekGeneration { get; set; } = string.Empty;
+
+        public string PublicKeyPem { get; set; } = string.Empty;
+
+        public string OaepHash { get; set; } = string.Empty;
+    }
+
+    // Optional body. DocumentDate is the issuing date ("yyyy-MM-dd") — omitted, it defaults to the version's
+    // filing date (CreatedAt). FileExtension carries the uploaded file's extension (e.g. ".tif") so the object
+    // key keeps the correct type now that Document.Name no longer holds it (ADR "Extension off Document.Name,
+    // derived from the object key"); omitted, it falls back to the document name's extension (back-compat).
+    // Strings on the wire (XmlSerializer doesn't support DateOnly).
+    public class CreateVersionRequest
+    {
+        public string? DocumentDate { get; set; }
+
+        public string? FileExtension { get; set; }
+
+        // Optional filing date (ADR 0520) — when supplied, drives BOTH the object-key year
+        // (tenants/{t}/{filingYear}/…) and DocumentVersion.CreatedAt, so an import honours the original filing date
+        // (e.g. 2003) instead of "now". Omitted → now. A PAST filing date requires CanImport (backdating).
+        public string? FiledAt { get; set; }
+
+        // Optional per-version comment (ADR 0528) — the "why this revision" note, shown in the versions dialog.
+        public string? Comment { get; set; }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateVersion(Guid documentId, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CreateVersionRequest? request, CancellationToken cancellationToken)
+    {
+        var document = await _dbContext.Documents
+            .Where(d => d.Id == documentId)
+            .Select(d => new { d.TenantId, d.Name, d.CreatedAt, d.StorageFolderId, d.MaskVersionId })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        if (!await _access.CanEditContentAsync(documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        await EnsureNotFrozenAsync(documentId, cancellationToken);
+        await EnsureNotCheckedOutByOtherAsync(documentId, cancellationToken);
+
+        // The object key carries the file extension so the stored blob keeps the correct type (ADR "Object key
+        // file extension"). It comes from the request's FileExtension (the client now sends the extension
+        // separately, since Document.Name no longer holds it — ADR "Extension off Document.Name"); for callers
+        // that still put the extension in the name, it falls back to the name's extension.
+        var fileExtension = string.IsNullOrWhiteSpace(request?.FileExtension)
+            ? Path.GetExtension(document.Name)
+            : request.FileExtension;
+        // Filing date (ADR 0520): a supplied FiledAt drives BOTH the object-key year (tenants/{t}/{filingYear}/…)
+        // and CreatedAt, so an import honours the original filing date (e.g. 2003); omitted → now. Backdating (a
+        // filing date before today) is an import concern and requires CanImport.
+        var now = DateTimeOffset.UtcNow;
+        var filedAt = now;
+        if (!string.IsNullOrWhiteSpace(request?.FiledAt))
+        {
+            if (!DateTimeOffset.TryParse(request.FiledAt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out filedAt))
+            {
+                throw new InvalidFilingDateException($"'{request.FiledAt}' is not a valid filing date/time.");
+            }
+
+            if (filedAt.UtcDateTime.Date < now.UtcDateTime.Date && !await HasImportRightAsync(cancellationToken))
+            {
+                throw new FilingDateBackdatingRequiresImportRightException();
+            }
+        }
+
+        // The key groups by the document's storage folder (ADR 0530), bucketed by the VERSION's filing year (ADR
+        // 0520) — versions of one year share a folder; the new version's id is the leaf. A backdated filing date
+        // (needs CanImport) therefore also drives the bucket year, matching the version's CreatedAt.
+        var versionId = Guid.NewGuid();
+        // A mask with a content segment of its own (a module's, ABI 1.18; the core's sealed Password Entry, ADR 0964)
+        // keeps its versions there whichever path files them, so the storage door knows them by their key.
+        var objectKey = await Alcifra.Infrastructure.Modules.ContentSegmentKeys.InSegmentAsync(_dbContext, _maskDeclarations,
+            ObjectKeyBuilder.Build(document.TenantId, filedAt, document.StorageFolderId, versionId, fileExtension),
+            document.MaskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
+        var uploadUrl = await _objectStorageClient.GetPresignedUploadUrlAsync(objectKey, PresignedUrlExpiry, cancellationToken);
+
+        // Client-side at-rest encryption (ADR 0818/B2): on a gated tenant the response tells the client to
+        // encrypt before the presigned PUT and hands it the current KEK. The gate answers per object key,
+        // so this is exactly the population whose SERVER-side writes the decorator already encrypts.
+        Alcifra.Infrastructure.Storage.AtRestKeyService.ClientKek? clientKek = null;
+        if (_atRestKeys.Enabled && await _atRestKeys.GatedAsync(objectKey, cancellationToken))
+        {
+            clientKek = await _atRestKeys.ClientKekAsync(cancellationToken);
+        }
+
+        var (createdByUserId, createdByServiceAccountId) = GetCallerIdentity();
+        var createdAt = filedAt;
+
+        // Issuing date: the client-supplied date, else the filing date (CreatedAt) by default.
+        DateOnly documentDate;
+        if (string.IsNullOrWhiteSpace(request?.DocumentDate))
+        {
+            documentDate = DateOnly.FromDateTime(createdAt.UtcDateTime);
+        }
+        else if (!DateOnly.TryParse(request.DocumentDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out documentDate))
+        {
+            throw new InvalidDocumentDateException($"'{request.DocumentDate}' is not a valid date (expected yyyy-MM-dd).");
+        }
+
+        var version = new DocumentVersion
+        {
+            Id = versionId,
+            TenantId = document.TenantId,
+            DocumentId = documentId,
+            Status = DocumentVersionStatus.Pending,
+            ObjectKey = objectKey,
+            CreatedByUserId = createdByUserId,
+            CreatedByServiceAccountId = createdByServiceAccountId,
+            CreatedAt = createdAt,
+            DocumentDate = documentDate,
+            Comment = string.IsNullOrWhiteSpace(request?.Comment) ? null : request.Comment.Trim(),
+        };
+
+        _dbContext.DocumentVersions.Add(version);
+
+        // TRANSLATING, not a bare save: a single-version mask refuses a second version here (#1466, ADR 0848),
+        // and the refusal is an InvalidOperationException subclass like every other DbContext invariant — so
+        // an untranslated save answers 500 for a policy the caller could act on. Measured: it did, and the
+        // E2E test asserting 409 was what said so.
+        await _dbContext.SaveTranslatingContainmentAsync(cancellationToken);
+
+        return CreatedAtAction(nameof(Get), new { documentId, versionId = version.Id }, new CreateVersionResponse
+        {
+            Id = version.Id,
+            ObjectKey = version.ObjectKey,
+            UploadUrl = uploadUrl,
+            Encryption = clientKek is null ? null : new UploadEncryption
+            {
+                KekGeneration = clientKek.KekGeneration,
+                PublicKeyPem = clientKek.PublicKeyPem,
+                OaepHash = clientKek.OaepHash,
+            },
+            Links = [new Link("self", $"/api/documents/{documentId}/versions/{version.Id}", "GET")],
+        });
+    }
+
+
+    public class DocumentVersionListResource : HypermediaResource
+    {
+        public List<DocumentVersionResource> Versions { get; set; } = [];
+
+        // The document's current version honoring the CurrentVersionId pointer (ADR "Version-restore via a
+        // current-version pointer", issue #265) — the clients read this instead of deriving "latest confirmed"
+        // themselves. Caller-aware: the pinned version if set + visible to this caller, else the caller's
+        // latest visible confirmed version (so ADR 0300 gating is respected). Null when the document has none.
+        public Guid? CurrentVersionId { get; set; }
+
+        public int? CurrentVersionNumber { get; set; }
+    }
+
+    // Cursor-based pagination (?cursor=&limit=), CreatedAt ascending / Id ascending as tiebreaker — same
+    // shape as every other list endpoint (ADR "Pagination for list endpoints"). Requires CanReadContent,
+    // the same right as the single-version GET below. See ADR "Blazor repository/document browsing
+    // (read-only tree)" — the browse detail pane needs to enumerate a document's versions, which only the
+    // single-version GET could serve before.
+    [HttpGet]
+    public async Task<IActionResult> List(Guid documentId, [FromQuery] string? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
+    {
+        // Reads serve soft-deleted (recycle-bin) documents too (ADR "Recycle bin tab") — the detail pane's
+        // preview needs a deleted item's versions; auth still applies, mutations keep the filter.
+        var docInfo = await _dbContext.Documents.IgnoreQueryFilters(["SoftDeleteFilter"])
+            .Where(d => d.Id == documentId)
+            .Select(d => new { d.CurrentVersionId })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (docInfo is null)
+        {
+            return NotFound();
+        }
+
+        var rights = await GetCallerRightsAsync(documentId, cancellationToken);
+        if (!rights.CanReadContent)
+        {
+            return Forbid();
+        }
+
+        var pageSize = PageSize.Resolve(limit);
+
+        var query = _dbContext.DocumentVersions.Where(v => v.DocumentId == documentId);
+
+        // Workflow status-gating (ADR "Workflow status-gating"): hide gated versions (in a workflow, not yet
+        // Released) from a caller without CanEditContent, unless they're that version's assigned reviewer — so
+        // the latest *visible* version becomes their effective "current" one. EF Core null semantics make
+        // `AssignedToUserId != uid` true for a resolved (null-assignee) gated version, hiding those too; a
+        // caller with no user id (ServiceAccount) is never a reviewer, so every gated version is hidden.
+        if (!rights.CanEditContent)
+        {
+            var uid = _currentUserAccessor.UserId;
+            query = uid is { } reviewerId
+                ? query.Where(v => !_dbContext.WorkflowStates.Any(w => w.DocumentVersionId == v.Id && w.Status != WorkflowStatus.Released && w.AssignedToUserId != reviewerId))
+                : query.Where(v => !_dbContext.WorkflowStates.Any(w => w.DocumentVersionId == v.Id && w.Status != WorkflowStatus.Released));
+        }
+
+        // The caller-aware current version: the pinned version if set + visible, else the caller's latest visible
+        // confirmed version (gating already applied to `query`) — issue #265.
+        var current = await CurrentVersion.ResolveAsync(query, documentId, docInfo.CurrentVersionId, cancellationToken);
+
+        if (Cursor.TryDecode(cursor, out var cursorCreatedAt, out var cursorId))
+        {
+            query = query.Where(v => v.CreatedAt > cursorCreatedAt || (v.CreatedAt == cursorCreatedAt && v.Id > cursorId));
+        }
+
+        var fetched = await query
+            .OrderBy(v => v.CreatedAt).ThenBy(v => v.Id)
+            .Take(pageSize + 1)
+            .Select(v => new VersionRow(v.Id, v.DocumentId, v.Status, v.VersionNumber, v.ObjectKey, v.Sha256Hash, v.CreatedAt, v.DocumentDate, v.DocumentTime, v.CreatedByUserId, v.CreatedByServiceAccountId, v.OcrLanguages, v.Comment, v.OcrVerdict, v.IsSigned))
+            .ToListAsync(cancellationToken);
+
+        var (page, hasMore) = Cursor.Split(fetched, pageSize);
+
+        var links = new List<Link>
+        {
+            new("self", Url.Action(nameof(List), new { documentId, cursor, limit = pageSize })!, "GET"),
+        };
+
+        // Comparing two of these versions — the client appends ?from=&to= to this advertised address.
+        // WITHHELD where that endpoint refuses, exactly as `text-layout` is: a comparison IS both versions'
+        // plain text (#1485, ADR 0861; ADRs 0857/0543). A sealed document has no served text at all: its words
+        // are inside the envelope (ADR 0975), so the comparison would be two empty sides reported as "no
+        // differences" — the worst available answer.
+        if (!await _strictEnvelopes.RefusesPlaintextDoorsAsync(cancellationToken)
+            && !await _versionResources.ServesContentAsEnvelopeAsync(documentId, cancellationToken))
+        {
+            links.Add(new Link("compare", $"/api/documents/{documentId}/versions/compare", "GET"));
+        }
+
+        if (hasMore)
+        {
+            var nextCursor = Cursor.Encode(page[^1].CreatedAt, page[^1].Id);
+            links.Add(new Link("next", Url.Action(nameof(List), new { documentId, cursor = nextCursor, limit = pageSize })!, "GET"));
+        }
+
+        var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
+        var versions = new List<DocumentVersionResource>(page.Count);
+        foreach (var row in page)
+        {
+            versions.Add(await _versionResources.BuildAsync(row, documentName, cancellationToken));
+        }
+
+        return Ok(new DocumentVersionListResource
+        {
+            Versions = versions,
+            Links = links,
+            CurrentVersionId = current?.Id,
+            CurrentVersionNumber = current?.VersionNumber,
+        });
+    }
+
+    // Standing convention: every GET action gets a companion HEAD action — a separate action, not
+    // relying on ASP.NET Core to strip GET's body automatically.
+    [HttpHead]
+    public async Task<IActionResult> HeadList(Guid documentId, CancellationToken cancellationToken)
+    {
+        if (!await _dbContext.Documents.IgnoreQueryFilters(["SoftDeleteFilter"]).AnyAsync(d => d.Id == documentId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        if (!await _access.CanReadContentAsync(documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        return NoContent();
+    }
+
+    [HttpGet("{versionId:guid}")]
+    public async Task<IActionResult> Get(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var version = await LoadForReadAsync(documentId, versionId, cancellationToken);
+
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        if (!await CanAccessVersionContentAsync(version.Id, documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
+        return Ok(await _versionResources.BuildAsync(version, documentName, cancellationToken));
+    }
+
+    // Standing convention: every GET action gets a companion HEAD action — a separate action, not
+    // relying on ASP.NET Core to strip GET's body automatically.
+    [HttpHead("{versionId:guid}")]
+    public async Task<IActionResult> Head(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var version = await LoadForReadAsync(documentId, versionId, cancellationToken);
+
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        if (!await CanAccessVersionContentAsync(version.Id, documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        return NoContent();
+    }
+
+    // Per-page word boxes for search hit-overlay (ADR "Search hit overlay"). Computed/cached on demand:
+    // images via OCR (Tesseract hOCR), PDFs via their text layer (PdfPig), against the same rendition the
+    // client displays so the boxes line up. 204 when the version isn't confirmed or the format has no overlay
+    // (plain text, a scanned PDF with no text layer, OCR unavailable). Requires CanReadContent (same as the
+    // version content itself).
+    [HttpGet("{versionId:guid}/text-layout")]
+    public async Task<IActionResult> TextLayout(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var version = await LoadForReadAsync(documentId, versionId, cancellationToken);
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        if (!await CanAccessVersionContentAsync(version.Id, documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        if (version.Status != DocumentVersionStatus.Confirmed)
+        {
+            return NoContent();
+        }
+
+        // The words ARE the document (#1394, ADR 0829). A layout is every word with its coordinates, so this
+        // route reconstructs any document in full — through a rel advertised on every version, and one that
+        // never presigns anything, which is exactly why #1376's refusal did not reach it.
+        //
+        // Refused rather than enveloped (owner, 2026-09-25): the desktop holds the decrypted document anyway
+        // once it reads through the card, so find-in-document can be computed there — and the hit overlay it
+        // also feeds belongs to the content search this tier gives up regardless.
+        await _strictEnvelopes.RefuseIfStrictAsync("the find-in-document overlay", cancellationToken);
+
+        var layout = await _textLayoutService.GetTextLayoutAsync(version.ObjectKey, cancellationToken);
+        if (layout is null)
+        {
+            return NoContent();
+        }
+
+        return Ok(new TextLayoutResource
+        {
+            Pages = layout.Pages
+                .Select(p => new TextLayoutPageResource
+                {
+                    Words = p.Words
+                        .Select(w => new TextLayoutWordResource { Text = w.Text, X = w.X, Y = w.Y, Width = w.Width, Height = w.Height })
+                        .ToList(),
+                })
+                .ToList(),
+            Links = [new Link("self", $"/api/documents/{documentId}/versions/{versionId}/text-layout", "GET")],
+        });
+    }
+
+    [HttpHead("{versionId:guid}/text-layout")]
+    public async Task<IActionResult> TextLayoutHead(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var version = await LoadForReadAsync(documentId, versionId, cancellationToken);
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        return await CanAccessVersionContentAsync(version.Id, documentId, cancellationToken) ? NoContent() : Forbid();
+    }
+
+    // Ordered per-page image URLs for a multi-page TIFF (ADR "Multi-page TIFF preview pages") — each page is
+    // its own PNG rendition, so the client shows them as separate pages (like PDF pages). 204 for every other
+    // format (single image / PDF / office / text), where the client uses the single `preview` link. Requires
+    // CanReadContent (same as the content).
+    [HttpGet("{versionId:guid}/preview-pages")]
+    public async Task<IActionResult> PreviewPages(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var version = await LoadForReadAsync(documentId, versionId, cancellationToken);
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        if (!await CanAccessVersionContentAsync(version.Id, documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        if (version.Status != DocumentVersionStatus.Confirmed)
+        {
+            return NoContent();
+        }
+
+        var pages = await _documentPreviewService.GetPreviewPagesAsync(version.ObjectKey, PresignedUrlExpiry, cancellationToken: cancellationToken);
+        if (pages is null)
+        {
+            return NoContent();
+        }
+
+        return Ok(new PreviewPagesResource
+        {
+            Converted = pages.IsConverted,
+            Pages = pages.Urls.Select(u => new PreviewPageResource { Url = u.ToString() }).ToList(),
+            Links = [new Link("self", $"/api/documents/{documentId}/versions/{versionId}/preview-pages", "GET")],
+        });
+    }
+
+    [HttpHead("{versionId:guid}/preview-pages")]
+    public async Task<IActionResult> PreviewPagesHead(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var version = await LoadForReadAsync(documentId, versionId, cancellationToken);
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        return await CanAccessVersionContentAsync(version.Id, documentId, cancellationToken) ? NoContent() : Forbid();
+    }
+
+    public class PreviewPagesResource : HypermediaResource
+    {
+        public bool Converted { get; set; }
+
+        public List<PreviewPageResource> Pages { get; set; } = [];
+    }
+
+    public class PreviewPageResource
+    {
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class TextLayoutResource : HypermediaResource
+    {
+        public List<TextLayoutPageResource> Pages { get; set; } = [];
+    }
+
+    public class TextLayoutPageResource
+    {
+        public List<TextLayoutWordResource> Words { get; set; } = [];
+    }
+
+    // Coordinates are normalized 0..1 within the page (top-left origin) so the client scales them to whatever
+    // size it renders the page at.
+    public class TextLayoutWordResource
+    {
+        public string Text { get; set; } = string.Empty;
+
+        public double X { get; set; }
+
+        public double Y { get; set; }
+
+        public double Width { get; set; }
+
+        public double Height { get; set; }
+    }
+
+    // Optional finalize body — carries the version comment (ADR 0528) when the caller only has it at finalize time
+    // (the browser drop-upload creates the version first, then finalizes with the filing comment).
+    public class FinalizeVersionRequest
+    {
+        public string? Comment { get; set; }
+
+        // Client-side encryption's other half (ADR 0818/B2): the DEK the client wrapped against the KEK the
+        // initiate response published. Attached to the object as metadata BEFORE anything reads it, so the
+        // finalizer's hash/size/classification all see plaintext through the decorator.
+        public string? WrappedDek { get; set; }
+
+        public string? KekGeneration { get; set; }
+
+        // A system comment kind (ADR 0964): only a password entry's re-seal sends one, ResealedAfterAccessChange (2).
+        // Anything else is refused; omitted or 0 is the ordinary user comment.
+        public int? CommentKind { get; set; }
+
+        // A password entry's edit that files a NEW password (ADR 0964): the one change that clears "Exposed since". A
+        // re-seal keeps the old secret, so it never clears it, whatever this says.
+        public bool? PasswordChanged { get; set; }
+
+        // The autofill index the client derived from the content it just sealed (ADR 0973): the entry's site, user name
+        // and an Android package name. Present = these are the values now (an empty string clears one); absent = leave
+        // them as they are, which is what a client that predates the field, or another mask, sends.
+        public PasswordStores.PasswordIndex? Index { get; set; }
+    }
+
+    [HttpPut("{versionId:guid}")]
+    public async Task<IActionResult> Finalize(Guid documentId, Guid versionId, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] FinalizeVersionRequest? request, CancellationToken cancellationToken)
+    {
+        var version = await _dbContext.DocumentVersions.SingleOrDefaultAsync(v => v.Id == versionId && v.DocumentId == documentId, cancellationToken);
+
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        if (!await _access.CanEditContentAsync(documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        // A client-encrypted upload declares its wrapped DEK here; the attach must precede EVERY read of
+        // the object (quota size, the finalizer's hash) so those reads decrypt through the decorator and
+        // keep describing the PLAINTEXT (ADR 0818). Only on the first finalize — a re-finalize of a
+        // Confirmed version is a no-op and must not touch the object.
+        if (!string.IsNullOrWhiteSpace(request?.WrappedDek) && version.Status == DocumentVersionStatus.Pending)
+        {
+            if (string.IsNullOrWhiteSpace(request.KekGeneration))
+            {
+                throw new Errors.Exceptions.Encryption.EncryptedUploadRejectedException(
+                    "a wrapped DEK needs its KEK generation.");
+            }
+
+            if (!_atRestKeys.Enabled || !await _atRestKeys.GatedAsync(version.ObjectKey, cancellationToken))
+            {
+                // Storing ciphertext with no decorator to ever decrypt it would archive an unreadable blob
+                // that LOOKS filed — refuse loudly instead.
+                throw new Errors.Exceptions.Encryption.EncryptedUploadRejectedException(
+                    "this tenant is not encryption-gated; upload plaintext.");
+            }
+
+            // THE THUMBPRINT OF THE GENERATION THE CLIENT NAMED (ADR 0867). This is the path most encrypted
+            // objects arrive by — the app clients wrap their own DEK against the public key the
+            // initiate-upload response published — so leaving it unstamped here would have left the largest
+            // population of objects with no recorded key identity at all, which is most of the protection.
+            //
+            // Derived from the generation → key map rather than reported by the client. The honest objection
+            // is a race: if the token were re-provisioned between the client fetching the public key and
+            // this call, the stamp would name the NEW key while the blob was wrapped with the OLD one. That
+            // object is already unreadable either way — its DEK cannot be unwrapped by the current key — so
+            // the stamp being consistent merely means the failure arrives from the oracle, exactly as it did
+            // before this ADR. Having the client ECHO the thumbprint it wrapped against is the stronger
+            // form; it changes both clients' upload contract and is recorded in ADR 0867 as deferred.
+            var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            Alcifra.Infrastructure.Storage.AtRestMetadata.Stamp(metadata, request.WrappedDek, request.KekGeneration,
+                await _atRestKeys.GenerationThumbprintAsync(request.KekGeneration, cancellationToken));
+
+            await _objectStorageClient.SetObjectMetadataAsync(version.ObjectKey, metadata, cancellationToken);
+        }
+
+        // Set the version comment from the finalize body when it wasn't given at create (don't overwrite one).
+        //
+        // NOT under the document's precondition, unlike the document-date PUT below (#1220): this completes a
+        // CREATE, `IsNullOrEmpty` makes the comment fill-once, and the quota rejection below COMMITS its
+        // removal of the pending row before throwing — inside a contract-owned transaction that cleanup would
+        // roll back and strand the row it deletes. Still a #1171 unwrapped-finalizer site.
+        if (!string.IsNullOrWhiteSpace(request?.Comment) && string.IsNullOrEmpty(version.Comment))
+        {
+            version.Comment = request.Comment.Trim();
+        }
+
+        // Storage-quota enforcement (ADR "Per-tenant storage quota"): reject a not-yet-confirmed upload that would
+        // push the tenant past its quota, before it's counted. The uploaded blob is best-effort deleted and the
+        // pending version row removed, so a rejected upload leaves nothing behind. Skipped on a re-finalize (already
+        // Confirmed → already counted).
+        if (version.Status == DocumentVersionStatus.Pending)
+        {
+            var sizeBytes = await _objectStorageClient.GetObjectSizeAsync(version.ObjectKey, cancellationToken);
+            if (!await _storageQuota.CanStoreAsync(version.TenantId, sizeBytes, cancellationToken))
+            {
+                await _objectStorageClient.DeleteObjectAsync(version.ObjectKey, cancellationToken);
+                _dbContext.DocumentVersions.Remove(version);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                throw new StorageQuotaExceededException("This upload would exceed the tenant's storage quota.");
+            }
+        }
+
+        // Confirms (server-side hash + version number), auto-classifies, and files email attachments —
+        // idempotent, a no-op on an already-Confirmed version (ADR "DocumentVersionsController
+        // resource-oriented redesign"). Shared with intray filing via DocumentFinalizer.
+        // ONE unit of work for one finalize (#1171). This path is 58% of every unwrapped finalization measured
+        // across an E2E run — by far the biggest of them — and it let the finalizer's seven commits stand alone,
+        // so a failure part-way left a version confirmed against a document that had not been reclassified.
+        //
+        // The quota block ABOVE stays outside deliberately: it removes the pending row and COMMITS that removal
+        // before throwing, so a rejected upload leaves nothing behind. Inside this transaction that cleanup
+        // would roll back with the refusal and strand the very row it exists to delete.
+        var wasPending = version.Status == DocumentVersionStatus.Pending;
+
+        // A sealed core document (a Password Entry, ADR 0964): its bytes must be an envelope, and a change of one that
+        // already had content commits under the precondition of what its author saw, so two members re-sealing at
+        // once cannot overwrite each other: the second is refused 412 and skips the entry.
+        var sealedFinalize = await _sealedVersions.GuardAsync(version, request?.CommentKind, Request, cancellationToken);
+
+        // An index sent for a document that is not a sealed entry would look stored and never be (ADR 0973).
+        if (request?.Index is not null && sealedFinalize is null)
+        {
+            throw new Errors.Exceptions.PasswordStores.NotAPasswordStoreItemException();
+        }
+        if (sealedFinalize is { Gated: true })
+        {
+            await _documents.MutateAsync(Request, sealedFinalize.Document,
+                apply: async () =>
+                {
+                    if (!sealedFinalize.Reseal && request?.PasswordChanged == true)
+                    {
+                        await _sealedVersions.ClearExposureAsync(documentId, cancellationToken);
+                    }
+
+                    // The autofill index (ADR 0973), in the SAME transaction as the version it describes. Guarded on a
+                    // Pending version: a re-finalize of a Confirmed one is a no-op and must not rewrite metadata.
+                    if (wasPending)
+                    {
+                        await PasswordIndexWriter.ApplyAsync(_dbContext, documentId, request?.Index, cancellationToken);
+                    }
+
+                    await _finalizer.FileAsync(version, cancellationToken);
+                },
+                gateBeforeApply: true, cancellationToken: cancellationToken);
+        }
+        else
+        {
+            // A FIRST version takes this path (Gated is false for it), and an entry's autofill index must be written
+            // with it too — staged before the finalizer's SaveChanges, so both land in the same commit (ADR 0973).
+            if (wasPending)
+            {
+                await PasswordIndexWriter.ApplyAsync(_dbContext, documentId, request?.Index, cancellationToken);
+            }
+
+            await _finalizer.FileAsync(version, cancellationToken);
+        }
+
+        var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned);
+
+        var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
+
+        // Audit only the actual confirm (ADR "Audit every-mutation coverage — document lifecycle"); a re-finalize
+        // of an already-Confirmed version is a no-op and isn't re-recorded.
+        if (wasPending)
+        {
+            await _audit.RecordAsync(AuditActions.DocumentVersionAdded, "Document", documentId, documentName, $"Version {version.VersionNumber}", cancellationToken: cancellationToken);
+        }
+
+        if (wasPending && sealedFinalize is not null)
+        {
+            var action = sealedFinalize.FirstVersion ? AuditActions.PasswordEntryCreated
+                : sealedFinalize.Reseal ? AuditActions.PasswordEntryResealed
+                : AuditActions.PasswordEntryChanged;
+            await _audit.RecordAsync(action, "Document", documentId, documentName, $"Version {version.VersionNumber}", cancellationToken: cancellationToken);
+
+            // The history rules at once (ADR 0964): after a re-seal without a revoked key, what came before goes now.
+            await _sealedVersions.ReconcileHistoryAsync(documentId, cancellationToken);
+            _documents.EmitETag(Response, sealedFinalize.Document);
+        }
+
+        return Ok(await _versionResources.BuildAsync(row, documentName, cancellationToken));
+    }
+
+    // Makes an earlier version current (roll back) by setting the document's CurrentVersionId pointer to it —
+    // no blob copy, so the pinned version's annotations / document date / everything are preserved (ADR
+    // "Version-restore via a current-version pointer", issue #265). Non-destructive: history is untouched, no new
+    // version, no extra storage. Gated on CanEditContent; refused while the document is frozen (legal hold),
+    // checked out by another, or has an approval workflow in progress. Uploading a new version later clears the
+    // pointer back to null (DocumentFinalizer), so the new upload becomes current.
+    [HttpPost("{versionId:guid}/restore")]
+    public async Task<IActionResult> Restore(Guid documentId, Guid versionId, CancellationToken cancellationToken)
+    {
+        var document = await _dbContext.Documents.SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken);
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        var source = await _dbContext.DocumentVersions
+            .SingleOrDefaultAsync(v => v.Id == versionId && v.DocumentId == documentId && v.Status == DocumentVersionStatus.Confirmed, cancellationToken);
+        if (source is null)
+        {
+            return NotFound(); // no such confirmed version of this document
+        }
+
+        if (!await _access.CanEditContentAsync(documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        await EnsureNotFrozenAsync(documentId, cancellationToken);
+        await EnsureNotCheckedOutByOtherAsync(documentId, cancellationToken);
+        await EnsureNoWorkflowInProgressAsync(documentId, cancellationToken);
+
+        // Idempotent: pinning the already-current version is a no-op that still returns 200.
+        if (document.CurrentVersionId != source.Id)
+        {
+            document.CurrentVersionId = source.Id;
+
+            // Through the document's verb contract (ADR 0795). Restoring pins which version IS the document's
+            // content, so two people restoring different versions is a straight race whose loser is silent —
+            // and the winner is whoever saved last, not whoever the user watched succeed.
+            await _documents.MutateAsync(Request, document, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+            await _queue.EnqueueAsync(documentId, cancellationToken);            // the indexed "current" content changed
+            await _wormLock.ReconcileAsync(documentId, cancellationToken);        // the retention anchor (current version's date) moved
+
+            var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
+            await _audit.RecordAsync(AuditActions.DocumentVersionRestored, "Document", documentId, documentName,
+                $"Made version {source.VersionNumber} current", cancellationToken: cancellationToken);
+
+            // Recorded in the chat thread too (ADR 0545) — this is the one document action that changes what
+            // everyone else sees without adding anything, so it deserves to be visible rather than silent. Inside
+            // the idempotency branch, so re-pinning the current version stays a no-op. The author is the caller,
+            // not whoever uploaded the version originally.
+            var (restoredByUserId, restoredByServiceAccountId) = GetCallerIdentity();
+            await _chatEntries.RecordVersionActivatedAsync(
+                source.TenantId, documentId, source.Id, restoredByUserId, restoredByServiceAccountId, cancellationToken);
+        }
+
+        var name = await LoadDocumentNameAsync(documentId, cancellationToken);
+        var row = new VersionRow(source.Id, documentId, source.Status, source.VersionNumber, source.ObjectKey, source.Sha256Hash, source.CreatedAt, source.DocumentDate, source.DocumentTime, source.CreatedByUserId, source.CreatedByServiceAccountId, source.OcrLanguages, source.Comment, source.OcrVerdict, source.IsSigned);
+        return Ok(await _versionResources.BuildAsync(row, name, cancellationToken));
+    }
+
+    // Refuses an operation while the document has an approval workflow in progress — a version In Review or
+    // Approved but not yet Released (ADR "Version restore").
+    private Task EnsureNoWorkflowInProgressAsync(Guid documentId, CancellationToken cancellationToken) =>
+        _access.EnsureNoWorkflowInProgressAsync(documentId, cancellationToken);
+
+    // Edits a version's issuing date. Gated on CanEditIndexData (metadata, like the
+    // mask/index-data sub-resources) and enqueues a reindex so search reflects the new date. See ADR
+    // "System-field search (creator/dates + document date)".
+    [HttpPut("{versionId:guid}/document-date")]
+    public async Task<IActionResult> SetDocumentDate(Guid documentId, Guid versionId, [FromBody] SetDocumentDateRequest request, CancellationToken cancellationToken)
+    {
+        var version = await _dbContext.DocumentVersions.SingleOrDefaultAsync(v => v.Id == versionId && v.DocumentId == documentId, cancellationToken);
+
+        if (version is null)
+        {
+            return NotFound();
+        }
+
+        if (!await CanEditIndexDataAsync(documentId, cancellationToken))
+        {
+            return Forbid();
+        }
+
+        await EnsureNotFrozenAsync(documentId, cancellationToken);
+        await EnsureNotCheckedOutByOtherAsync(documentId, cancellationToken);
+
+        if (!DateOnly.TryParse(request.DocumentDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+        {
+            throw new InvalidDocumentDateException($"'{request.DocumentDate}' is not a valid date (expected yyyy-MM-dd).");
+        }
+
+        // Through the DOCUMENT's contract, not a token of the version's own (#1220): a version is a child
+        // guarded by a tracked parent, the editor holds the DOCUMENT's ETag, and a per-version token would put
+        // TWO preconditions on one user action (ADR 0794). touchEntity is what makes it bite — EF checks a
+        // token only on rows it updates, so a child-only write is otherwise gated by nothing (#1167). This PUT
+        // used to SaveChanges raw, so two people setting a document's date silently reverted each other; the
+        // pencil path was already safe via 0794's combined PUT .../detail.
+        var document = await _dbContext.Documents.SingleAsync(d => d.Id == documentId, cancellationToken);
+        await _documents.MutateAsync(Request, document,
+            apply: () =>
+            {
+                version.DocumentDate = date;
+                version.DocumentTime = ParseOptionalDocumentTime(request.DocumentTime);
+                return Task.CompletedTask;
+            },
+            afterCommit: async () =>
+            {
+                await _queue.EnqueueAsync(documentId, cancellationToken);
+                await _wormLock.ReconcileAsync(documentId, cancellationToken); // the retention anchor moved
+            },
+            cancellationToken: cancellationToken);
+
+        var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned);
+        var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
+        var stamp = version.DocumentTime is { } t ? $"{date:yyyy-MM-dd} {t:HH:mm} UTC" : $"{date:yyyy-MM-dd}";
+        await _audit.RecordAsync(AuditActions.DocumentDateChanged, "Document", documentId, documentName, $"Document date set to {stamp} (version {version.VersionNumber})", cancellationToken: cancellationToken);
+        return Ok(await _versionResources.BuildAsync(row, documentName, cancellationToken));
+    }
+
+    public class SetDocumentDateRequest
+    {
+        public string DocumentDate { get; set; } = string.Empty;
+
+        // Optional UTC time-of-day ("HH:mm"); null or empty CLEARS it (the "delete the time" action). The
+        // client normalizes typed input (0950 / 9:50 / 09:50) to HH:mm before sending (ADR "Optional time...").
+        public string? DocumentTime { get; set; }
+    }
+
+    // Null/empty means "no time" (date-only); otherwise the canonical wire form is HH:mm (24h, UTC).
+    private static TimeOnly? ParseOptionalDocumentTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (!TimeOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
+        {
+            throw new InvalidDocumentTimeException($"'{value}' is not a valid time (expected HH:mm, 24-hour UTC).");
+        }
+
+        return time;
+    }
+
+    // Forwarded to DocumentVersionAccess (ADR 0861) — extracted so the comparison controller on these same
+    // routes can ask the same two questions rather than carrying copies of them.
+    private Task<VersionRow?> LoadForReadAsync(Guid documentId, Guid versionId, CancellationToken cancellationToken) =>
+        _versionAccess.LoadForReadAsync(documentId, versionId, cancellationToken);
+
+    // The document's Name — used as the download filename (never the opaque object key). Loaded once per
+    // request and shared across a document's versions. Was previously the "Short Description" index field,
+    // dropped as a duplicate of Document.Name (ADR "Drop redundant Short Description / Doc Date mask
+    // fields", superseding ADR "Download filename from Short Description") — a document is named after its
+    // file, so Name already is the full filename, and using it directly also stays correct after a rename.
+    // Bypasses the soft-delete filter, like every other read on this controller: List and Get serve a
+    // RECYCLE-BIN document on purpose (the detail pane previews a deleted item), and without this the filter
+    // matched zero rows and SingleAsync threw — a bare 500 on GET /documents/{id}/versions for any deleted
+    // document. It stayed invisible because the recycle-bin pane reads its four detail addresses best-effort
+    // and swallows the failure, so the preview simply never appeared.
+    //
+    // Safe for the mutating callers too (Finalize/Restore/SetDocumentDate): those keep the filter on the
+    // document itself, so by the time they get here the document is not deleted and this resolves the same
+    // row. Only "SoftDeleteFilter" is named, so tenant isolation stays enforced.
+    private async Task<string> LoadDocumentNameAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Documents
+            .IgnoreQueryFilters(["SoftDeleteFilter"])
+            .Where(d => d.Id == documentId)
+            .Select(d => d.Name)
+            .SingleAsync(cancellationToken);
+    }
+
+
+    // The display name of a version's creator (exactly one of the two ids is set — see the CreatedBy CHECK).
+
+    private Task<EffectiveRights> GetCallerRightsAsync(Guid documentId, CancellationToken cancellationToken) =>
+        _access.GetCallerRightsAsync(documentId, cancellationToken);
+
+    private Task<bool> CanAccessVersionContentAsync(Guid versionId, Guid documentId, CancellationToken cancellationToken) =>
+        _versionAccess.CanAccessVersionContentAsync(versionId, documentId, cancellationToken);
+
+    private async Task<bool> CanEditIndexDataAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        return (await GetCallerRightsAsync(documentId, cancellationToken)).CanEditIndexData;
+    }
+
+    private (Guid? UserId, Guid? ServiceAccountId) GetCallerIdentity() => _access.GetCallerIdentity();
+}

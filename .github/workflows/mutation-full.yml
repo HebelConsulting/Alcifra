@@ -50,15 +50,15 @@ jobs:
       matrix:
         include:
           - name: domain
-            project: SimplArchive.Domain
+            project: Alcifra.Domain
             mutate: ""
           - name: infra-persistence
-            project: SimplArchive.Infrastructure
+            project: Alcifra.Infrastructure
             mutate: >-
               --mutate "**/Persistence/**"
               --mutate "!**/Migrations/*.cs"
           - name: infra-storage-io
-            project: SimplArchive.Infrastructure
+            project: Alcifra.Infrastructure
             mutate: >-
               --mutate "**/Storage/**"
               --mutate "**/Conversion/**"
@@ -66,13 +66,13 @@ jobs:
               --mutate "**/Http/**"
               --mutate "**/Intray/**"
           - name: infra-search-audit
-            project: SimplArchive.Infrastructure
+            project: Alcifra.Infrastructure
             mutate: >-
               --mutate "**/Search/**"
               --mutate "**/Audit/**"
               --mutate "**/Notifications/**"
           - name: infra-modules-masks
-            project: SimplArchive.Infrastructure
+            project: Alcifra.Infrastructure
             mutate: >-
               --mutate "**/Modules/**"
               --mutate "**/Masks/**"
@@ -80,7 +80,7 @@ jobs:
           # and every namespace that arrives later. Exclusion-only on purpose: an include list here would be
           # the silent cap this layout exists to avoid. Keep in lockstep with the named shards above.
           - name: infra-rest
-            project: SimplArchive.Infrastructure
+            project: Alcifra.Infrastructure
             mutate: >-
               --mutate "!**/Persistence/**"
               --mutate "!**/Storage/**"

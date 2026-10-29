@@ -1,0 +1,220 @@
+@using System.Net
+@inject HttpClient Http
+@inject Alcifra.Client.Services.ApiRoot ApiRoot
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* The Retention tab of the workbench (ADR "Retention policies (auto-disposition)"), extracted from
+   Home.razor per ADR 0558. The tenant's disposition schedule: what falls due when, what a legal hold has
+   suspended, and — where the server offers it — dispose-now and extend.
+
+   Self-contained: it takes no parameters, because everything it shows it reads for itself, and every action
+   it offers is a rel the schedule advertised per row rather than a right this client re-derives. *@
+
+            @* flex:1 1 auto, NOT height:100%. This root is a direct child of the workbench, which also holds the
+               bottom tab bar — so 100% claims the whole thing and leaves the bar nothing, pushing it below the
+               fold once the content is tall enough that nothing else absorbs the difference. Measured: the
+               workbench was 664px with a scrollHeight of 701, the 37px being exactly the bar. Taking the
+               REMAINING space is the same shape .wb-audit already uses. *@
+            <div class="wb-retention" style="flex:1 1 auto; min-height:0; display:flex; flex-direction:column;">
+                @* The toolbar in the Repositories shape (#530 tranche 2): extend first, dispose SEPARATED
+                   (the destructive one), refresh last — icon-only, acting on THE selected row. Single-select
+                   by decision: disposition is a records call made document-by-document. Dispose is greyed
+                   unless the selected row's server offered it (the row menu HIDES the same case, ADR 0554). *@
+                <div class="wb-search-bar pa-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(_retSelected is null)"
+                               OnClick="@(() => ExtendRetentionAsync(_retSelected!))"
+                               title="@Strings.Get("RetExtend")" aria-label="@Strings.Get("RetExtend")">
+                        <MudIcon Icon="@Icons.Material.Filled.MoreTime" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RetExtend")</span>
+                    </MudButton>
+                    <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" Disabled="@(_retSelected?.Href("dispose") is null)"
+                               OnClick="@(() => DisposeRetentionAsync(_retSelected!))"
+                               title="@Strings.Get("RetDispose")" aria-label="@Strings.Get("RetDispose")">
+                        <MudIcon Icon="@Icons.Material.Filled.AutoDelete" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RetDispose")</span>
+                    </MudButton>
+                    <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" OnClick="LoadRetentionScheduleAsync"
+                               title="@Strings.Get("RibbonRefresh")" aria-label="@Strings.Get("RibbonRefresh")">
+                        <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RibbonRefresh")</span>
+                    </MudButton>
+                </div>
+                @* The tenant's disposition-mode description is information, not an action — its own line. *@
+                <div class="pa-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @if (_retentionRequiresReview)
+                        {
+                            @((MarkupString)Strings.Get("RetDescReview"))
+                        }
+                        else
+                        {
+                            @((MarkupString)Strings.Get("RetDescAuto"))
+                        }
+                    </MudText>
+                </div>
+                <div style="flex:1 1 auto; min-height:0; overflow:auto;">
+                    <MudTable Items="_retentionItems" Dense="true" Hover="true" Bordered="false" Elevation="0" T="RetentionItemDto"
+                              OnRowClick="@((TableRowClickEventArgs<RetentionItemDto> e) => _retSelected = e.Item)"
+                              RowClassFunc="@((row, _) => row == _retSelected ? "wb-list-row-selected" : "")">
+                        <HeaderContent>
+                            <MudTh>@Strings.Get("ColDocument")</MudTh>
+                            <MudTh>@Strings.Get("RetColRetention")</MudTh>
+                            <MudTh>@Strings.Get("RetColDisposition")</MudTh>
+                            <MudTh>@Strings.Get("RetColStatus")</MudTh>
+                            <MudTh Style="width:1px;"></MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="row">
+                            <MudTd>@row.DocumentName</MudTd>
+                            <MudTd>@string.Format(Strings.Get("RetYears"), row.RetentionYears)</MudTd>
+                            <MudTd>@row.DispositionDate@(row.RetentionOverrideUntil is { } o ? string.Format(Strings.Get("RetRetainedUntil"), o) : "")</MudTd>
+                            <MudTd>
+                                @if (row.SuspendedByHold)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Lock">@Strings.Get("RetSuspended")</MudChip>
+                                }
+                                else if (row.Overdue)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error">@Strings.Get("RetDue")</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@Strings.Get("RetScheduled")</MudChip>
+                                }
+                            </MudTd>
+                            @* What can be done to THIS row lives in its ⋮ menu — the toolbar's twins act on
+                               the selection (#521's split). Dispose only where the server offered it — which
+                               this now actually checks. It used to say this while gating on `Overdue &&
+                               !SuspendedByHold`, a re-derivation missing the server's RequireDispositionReview
+                               condition, so the rel check happened only at DisposeRetentionAsync — after the
+                               confirmation dialog — and the user confirmed a disposition that silently did
+                               nothing (#870). *@
+                            <MudTd Style="text-align:right;" @onclick:stopPropagation="true">
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomLeft">
+                                    @if (row.Href("dispose") is not null)
+                                    {
+                                        <MudMenuItem Icon="@Icons.Material.Filled.AutoDelete" OnClick="() => DisposeRetentionAsync(row)">@Strings.Get("RetDispose")</MudMenuItem>
+                                    }
+                                    <MudMenuItem Icon="@Icons.Material.Filled.MoreTime" OnClick="() => ExtendRetentionAsync(row)">@Strings.Get("RetExtend")</MudMenuItem>
+                                </MudMenu>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                    @if (_retentionItems.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="pa-3 mud-text-secondary">@Strings.Get("RetNone")</MudText>
+                    }
+                    @if (_retentionTruncated)
+                    {
+                        <MudText Typo="Typo.caption" Class="pa-3 mud-text-secondary">@Strings.Get("RetTruncated")</MudText>
+                    }
+                </div>
+            </div>
+
+
+@code {
+    // The tab loads itself on first render; SetTab's Retention branch is deleted rather than relocated,
+    // because the component only exists while its tab is shown (ADR 0558).
+    protected override async Task OnInitializedAsync() => await LoadRetentionScheduleAsync();
+
+    // ---- Retention schedule (ADR "Retention policies (auto-disposition)") ----------------------------
+    private readonly List<RetentionItemDto> _retentionItems = new();
+    private bool _retentionTruncated;
+    private bool _retentionRequiresReview;
+
+    private async Task LoadRetentionScheduleAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<RetentionScheduleDto>(await ApiRoot.RequireAsync("retentionSchedule"));
+            _retentionItems.Clear();
+            if (response?.Items is { } items)
+            {
+                _retentionItems.AddRange(items);
+            }
+            _retentionTruncated = response?.Truncated ?? false;
+            _retentionRequiresReview = response?.RequiresReview ?? false;
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("StErrLoadRetention"), Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>The row the toolbar acts on (#530 tranche 2) — single-select by decision.</summary>
+    private RetentionItemDto? _retSelected;
+
+    private async Task DisposeRetentionAsync(RetentionItemDto row)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = "Dispose document",
+            Message = $"Dispose '{row.DocumentName}'? It will be moved to the recycle bin.",
+            YesText = "Dispose",
+            CancelText = "Cancel",
+        });
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        // Unreachable now that both entry points gate on this rel — kept as a guard, not as the gate. If it
+        // ever fires, the affordance was rendered against a stale row, which is a bug here rather than a
+        // condition to swallow: say so rather than returning silently (#863).
+        if (row.Href("dispose") is not { } disposeHref)
+        {
+            Snackbar.Add(Strings.Get("StErrDispose"), Severity.Warning);
+            return;
+        }
+
+        using var resp = await Http.PostAsync(disposeHref, null);
+        if (resp.IsSuccessStatusCode)
+        {
+            Snackbar.Add(Strings.Get("StDocumentDisposed"), Severity.Success);
+            await LoadRetentionScheduleAsync();
+        }
+        else
+        {
+            Snackbar.Add(Strings.Get(resp.StatusCode == HttpStatusCode.Conflict ? "StErrDisposeLegalHold" : "StErrDispose"), Severity.Warning);
+        }
+    }
+
+    private async Task ExtendRetentionAsync(RetentionItemDto row)
+    {
+        var parameters = new DialogParameters { [nameof(Dialogs.ExtendRetentionDialog.DocumentName)] = row.DocumentName };
+        var dialog = await DialogService.ShowAsync<Dialogs.ExtendRetentionDialog>(Strings.Get("ExtRetTitle"), parameters);
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not string until)
+        {
+            return;
+        }
+
+        if (row.Href("extend") is not { } extendHref) { return; }
+
+        using var resp = await Http.PostAsJsonAsync(extendHref, new { until });
+        if (resp.IsSuccessStatusCode)
+        {
+            Snackbar.Add(Strings.Get("StRetentionExtended"), Severity.Success);
+            await LoadRetentionScheduleAsync();
+        }
+        else
+        {
+            Snackbar.Add(Strings.Get("StErrExtendRetention"), Severity.Warning);
+        }
+    }
+
+    private record RetentionScheduleDto { public List<RetentionItemDto> Items { get; set; } = new(); public bool Truncated { get; set; } public bool RequiresReview { get; set; } }
+    private record RetentionItemDto
+    {
+        public List<LinkResponse> Links { get; set; } = [];
+
+        // `extend` always; `dispose` only where the tenant does not require a disposition review first.
+        public string? Href(string rel) => Links.FirstOrDefault(l => l.Rel == rel)?.Href.TrimStart('/');
+
+        public Guid DocumentId { get; set; }
+        public string DocumentName { get; set; } = string.Empty;
+        public int RetentionYears { get; set; }
+        public string DispositionDate { get; set; } = string.Empty;
+        public bool Overdue { get; set; }
+        public bool SuspendedByHold { get; set; }
+        public string? RetentionOverrideUntil { get; set; }
+    }
+}

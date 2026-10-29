@@ -1,0 +1,541 @@
+@using Alcifra.Client.Models
+@using Alcifra.Client.Services
+@using Alcifra.Presentation
+@inject DetailState Detail
+@inject DetailCatalogs Catalogs
+@inject HttpClient Http
+
+@* The workbench's index-data pane: what the selected object IS. (ADR 0558) *@
+<div class="wb-pane wb-index" data-pane="index" data-tour="pane-index" tabindex="-1"
+     @onkeydown="@((KeyboardEventArgs e) => KeyDown.InvokeAsync(e))">
+    @if (Detail.Node is null)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("SelectDocDetail")</MudText>
+    }
+    else
+    {
+        <div class="wb-detail-head @(Detail.Node?.TreeGlyphClass) @(IsEditing ? "wb-editing" : "")" style="display:flex; align-items:center; gap:4px;">
+            @* The SAME glyph the tree draws for this object (ADR 0547): a folder looks like a
+               folder — and an empty one like an empty one — wherever it appears, rather than
+               changing style depending on which pane you are looking at. *@
+            @if (Detail.Node is { } glyphNode)
+            {
+                <MudIcon Icon="@BrowseService.TreeIcon(glyphNode)" Size="Size.Small" Class="wb-detail-glyph" />
+            }
+            <MudText Typo="Typo.subtitle1" Style="flex:1 1 auto; min-width:0;">@Detail.SysName</MudText>
+            @* While EDITING, the actions that can do nothing disappear and the commit controls
+               take their slots (ADR 0550) — the row does not reflow under the cursor that just
+               clicked the pencil, and Save/Cancel are where that pencil was. *@
+            @if (IsEditing)
+            {
+                <MudTooltip Text="@Strings.Get("Save")">
+                    <MudIconButton data-tour="action-save-index" Size="Size.Small" aria-label="@Strings.Get("Save")" Color="Color.Primary"
+                                   Icon="@Icons.Material.Filled.Save" OnClick="@(() => Save.InvokeAsync())" Disabled="Detail.Busy" />
+                </MudTooltip>
+                <MudTooltip Text="@Strings.Get("Cancel")">
+                    <MudIconButton Size="Size.Small" aria-label="@Strings.Get("Cancel")"
+                                   Icon="@Icons.Material.Filled.Close" OnClick="@(() => Cancel.InvokeAsync())" Disabled="Detail.Busy" />
+                </MudTooltip>
+            }
+            else
+            {
+                @ReadActions
+            }
+        </div>
+
+        @* System fields (ADR 0273). Rendered for a FOLDER as well since issue #408 — the rows
+           that come from a VERSION stay conditional, because a folder has none, but Name and the
+           mask below are as real for a folder as for a document. *@
+        <table class="wb-sysfields">
+                <tr>
+                    <td>@Strings.Get("Name")</td>
+                    <td>
+                        @if (IsEditing)
+                        {
+                            <MudTextField @bind-Value="Detail.EditName" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                        }
+                        else
+                        {
+                            @Detail.SysName
+                        }
+                    </td>
+                </tr>
+                @if (Detail.SysHasVersion)
+                {
+                <tr><td>@Strings.Get("SysFileExtension")</td><td class="wb-sys-muted">@Detail.SysFileExtension</td></tr>
+                @* The workflow's state: a detail, so it stays. The transitions it offers (#691) act on the document
+                   and are in the ribbon and the row's ⋮ menu (owner decision, ADR 0970). *@
+                <tr>
+                    <td>@Strings.Get("WorkflowStatus")</td>
+                    <td><span class="@(Detail.SysWorkflowStatus is null ? "wb-sys-muted" : "")">@Detail.WorkflowStateName</span></td>
+                </tr>
+                <tr>
+                    <td>@Strings.Get("VerColDocDate")</td>
+                    <td>
+                        @if (IsEditing)
+                        {
+                            <MudDatePicker Editable="true" @bind-Date="Detail.EditDocumentDate" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                            @* Keyboard-first time entry (ADR 0758 / the typed-not-picked principle): a plain
+                               text field the user types HH:mm into; empty clears the time. The pair is EDITED
+                               in the viewer's own zone and stored in UTC (#1254) — the date picker above moves
+                               with it, because the two fields are one instant. *@
+                            <MudTextField @bind-Value="Detail.EditDocumentTime" Placeholder="@($"HH:mm {SessionTimeZone.IanaId}")" Clearable="true"
+                                          Margin="Margin.Dense" Variant="Variant.Outlined" Class="mt-1" />
+                        }
+                        else
+                        {
+                            @DocumentDateFormat.Display(Detail.SysDocumentDate?.ToString("yyyy-MM-dd"), Detail.SysDocumentTime, SessionTimeZone.Current)
+                        }
+                    </td>
+                </tr>
+                @if (Detail.SysOcrCandidate)
+                {
+                    <tr>
+                        <td>@Strings.Get("SysOcrLanguages")</td>
+                        <td>
+                            @if (IsEditing)
+                            {
+                                <div class="wb-ocr-chips">
+                                    @foreach (var lang in OcrCatalog)
+                                    {
+                                        var idx = Detail.EditOcrCodes.IndexOf(lang.Code);
+                                        <button type="button" class="wb-ocr-chip @(idx >= 0 ? "wb-ocr-chip-on" : "")" @onclick="() => ToggleOcrCode.InvokeAsync(lang.Code)">
+                                            @(idx >= 0 ? $"{idx + 1}. " : "")@lang.DisplayName
+                                        </button>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                @OcrDisplay(Detail.SysOcrCodes)
+                            }
+                        </td>
+                    </tr>
+                    @* The persisted verdict (#999): the quiet line says why the automatic OCR did or did not
+                       run — ADR 0626's principle in the pane, where the user who wonders why their scan is
+                       unsearchable is actually looking. Its override, Make searchable, acts on the document,
+                       so it is with the document actions in the ribbon and the row's ⋮ menu (ADR 0970). *@
+                    @if (!IsEditing && Detail.SysOcrVerdict is not null)
+                    {
+                        <tr>
+                            <td>@Strings.Get("SysOcrStatus")</td>
+                            <td>
+                                @if (Detail.SysOcrVerdict is { } verdict)
+                                {
+                                    <span class="wb-sys-muted">@VerdictText(verdict)</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                @* The filing instant in the viewer's zone, with the offset marker — so it reads alike to the document date
+                   above it. Without the marker a viewer whose device and preference differ cannot tell which clock
+                   either row is on, which is how the wrong one went unnoticed (#1315). *@
+                <tr><td>@Strings.Get("SysCreated")</td><td class="wb-sys-muted">@InstantFormat.Display(Detail.SysCreatedAt, SessionTimeZone.Current)</td></tr>
+                <tr><td>@Strings.Get("SysCreatedBy")</td><td class="wb-sys-muted">@Detail.SysCreatedBy</td></tr>
+                }
+                @* The document's current (latest confirmed) version number, directly below Created by
+                   (ADR "Mask-pane current-version line"). *@
+                @if (Detail.SysCurrentVersion is { } curVer)
+                {
+                    <tr><td>@Strings.Get("SysCurrentVersion")</td><td class="wb-current-version wb-sys-muted">@curVer</td></tr>
+                }
+                @* The version's size, directly below the version it belongs to. Added with the IMAP parity
+                   rule (#1301): the synthetic message had carried a Size row the pane did not, and the two
+                   surfaces must present the same list — so the missing side gains it rather than the other
+                   losing it. Same human formatting on both, from Alcifra.Presentation. *@
+                @if (Detail.SysSizeBytes is { } sizeBytes)
+                {
+                    <tr><td>@Strings.Get("SysSize")</td><td class="wb-sys-muted">@Alcifra.Presentation.HumanFileSize.Format(sizeBytes)</td></tr>
+                }
+                @if (Detail.Retention is { } ret)
+                {
+                    <tr>
+                        <td>@Strings.Get("SysRetention")</td>
+                        <td class="wb-sys-muted">
+                            @ret.RetentionYears years · disposition @ret.DispositionDate@(ret.SuspendedByHold ? " (suspended — legal hold)" : "")
+                        </td>
+                    </tr>
+                }
+                @* Folder-only: the order this folder lists its contents in (ADR "Per-folder
+                   contents sort order"). It rides in the same pane and the same edit as the
+                   mask now, rather than in a pane of its own with its own Edit button. *@
+                @if (Detail.Node?.IsFolder == true)
+                {
+                    <tr>
+                        <td>@Strings.Get("FolderSortLabel")</td>
+                        <td>
+                            @if (IsEditing)
+                            {
+                                <MudSelect T="FolderContentsSortOrder" @bind-Value="Detail.EditSortOrder" Margin="Margin.Dense" Variant="Variant.Outlined" Dense="true">
+                                    <MudSelectItem Value="FolderContentsSortOrder.Name">@Strings.Get("FolderSortName")</MudSelectItem>
+                                    <MudSelectItem Value="FolderContentsSortOrder.DocumentDate">@Strings.Get("FolderSortDocDate")</MudSelectItem>
+                                    <MudSelectItem Value="FolderContentsSortOrder.Created">@Strings.Get("FolderSortCreated")</MudSelectItem>
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                @FolderSortText(Detail.SortOrder)
+                            }
+                        </td>
+                    </tr>
+                }
+            </table>
+
+        @if (IsEditing)
+        {
+            @* Mask edit: pick the mask + type-aware field editors. *@
+            <div class="wb-mask-edit">
+                <div class="wb-mask-row">
+                    <span class="wb-mask-label">@Strings.Get("MaskLabel")</span>
+                    <MudSelect T="Guid?" Value="Detail.EditMaskId" ValueChanged="@((Guid? v) => EditMaskChanged.InvokeAsync(v))" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                        @* No "No mask" entry (#1240): a document without a mask has no index fields, so the option
+                           only ever let someone discard a document's typing with one click and gain nothing in
+                           return. Every document now wears one, and the desktop client never offered it — this is
+                           the web side catching up to the reference (ADR 0511). *@
+                        @* The document's CURRENT mask, when the catalogue does not carry it (#671 filters it to
+                           the freely-assignable ones). Without this entry MudSelect fell back to rendering its
+                           raw value — a bare GUID where a name belongs.
+
+                           ADDED rather than replacing the list: the catalogue's absence means "you may not
+                           CHOOSE this", not "you may not choose anything". Removing the alternatives froze every
+                           folder and every extension-claimed document, which is a rule nobody asked for —
+                           re-typing a Calendar costs only CalDAV subscribability. The masks that genuinely
+                           cannot be changed are enforced server-side, and are a different, smaller set. *@
+                        @if (CurrentMaskMissingFromCatalogue)
+                        {
+                            <MudSelectItem T="Guid?" Value="Detail.EditMaskId">@Alcifra.Localization.WellKnownLabels.For(Detail.MaskName)</MudSelectItem>
+                        }
+                        @foreach (var m in AvailableMasks)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)m.Id)">@Alcifra.Localization.WellKnownLabels.For(m.Name)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                @* Sensitivity label (ADR "Configurable sensitivity labels + upload defaults"). *@
+                <div class="wb-mask-row">
+                    <span class="wb-mask-label">@Strings.Get("BulkSensLabel")</span>
+                    <MudSelect T="Guid?" @bind-Value="Detail.EditSensitivityId" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Clearable="true">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">(None)</MudSelectItem>
+                        @foreach (var lbl in SensitivityLabels.Where(l => !l.Retired || l.Id == Detail.EditSensitivityId))
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)lbl.Id)">@lbl.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                @foreach (var f in Detail.EditFields)
+                {
+                    <div class="wb-mask-row">
+                        <span class="wb-mask-label">@f.DisplayLabel</span>
+                        @if (f.Locked)
+                        {
+                            @* Visible but not editable (#703): a Mailbox's address list for a caller without
+                               the routing right. The server would 403 the change — a control that cannot
+                               succeed is not offered (ADR 0543's spirit at field granularity). *@
+                            <MudTextField T="string" Value="@f.TextValue" ReadOnly="true" Lines="@(f.IsMultiLine ? 3 : 1)" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                        }
+                        else if (f.IsDate)
+                        {
+                            <MudDatePicker Editable="true" @bind-Date="f.DateValue" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                        }
+                        else if (f.IsDateTime)
+                        {
+                            @* A moment, not a day (#660): a date picker alone was the pane bug — the time
+                               was in the value and nowhere on the screen. Same pair the desktop shows. *@
+                            <div style="display:flex; gap:6px;">
+                                <MudDatePicker Editable="true" @bind-Date="f.DateValue" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                                <MudTimePicker Editable="true" @bind-Time="f.TimeValue" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                            </div>
+                        }
+                        else if (f.IsBoolean)
+                        {
+                            <MudCheckBox T="bool" @bind-Value="f.BoolValue" />
+                        }
+                        else if (f.IsMultiLine)
+                        {
+                            <MudTextField @bind-Value="f.TextValue" Lines="3" Placeholder="@Strings.Get("OneValuePerLine")" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                        }
+                        else if (Detail.Proposals.TryGetValue(f.Label, out var offer))
+                        {
+                            @* A machine proposal fills this field (ABI 0.11, ADR 0769): the picker writes a
+                               candidate's value into the editor; typing stays primary (the typed-not-picked
+                               rule) — the menu is the discovery aid beside it. *@
+                            <div style="display:flex; gap:4px; align-items:center; flex:1;">
+                                <MudTextField @bind-Value="f.TextValue" Margin="Margin.Dense" Variant="Variant.Outlined" Style="flex:1;" />
+                                <MudMenu Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Small" Dense="true"
+                                         AriaLabel="@offer.Label" title="@offer.Label">
+                                    @if (offer.Items.Count == 0)
+                                    {
+                                        <MudMenuItem Disabled="true">@Strings.Get("ProposalNone")</MudMenuItem>
+                                    }
+                                    @foreach (var item in offer.Items)
+                                    {
+                                        <MudMenuItem OnClick="@(() => f.TextValue = item.Value)">
+                                            @item.Label@(item.Detail is { Length: > 0 } ? $" — {item.Detail}" : string.Empty)
+                                        </MudMenuItem>
+                                    }
+                                </MudMenu>
+                            </div>
+                        }
+                        else if (f.ValuesHref is { } valuesHref)
+                        {
+                            @* A field the server offers values for completes as you type (#1127): an aerodrome,
+                               a cost centre, a project code — a vocabulary the tenant already uses and nobody
+                               should have to retype from memory. CoerceValue so an unlisted value is simply a
+                               new one: typing stays primary, the list is the discovery aid beside it. *@
+                            <MudAutocomplete T="string" Value="@f.TextValue" ValueChanged="@(v => f.TextValue = v ?? string.Empty)"
+                                             SearchFunc="@((string? typed, CancellationToken token) => Suggest(valuesHref, typed, token))"
+                                             CoerceValue="true" ResetValueOnEmptyText="false" MaxItems="20"
+                                             Margin="Margin.Dense" Variant="Variant.Outlined" />
+                        }
+                        else
+                        {
+                            <MudTextField @bind-Value="f.TextValue" Margin="Margin.Dense" Variant="Variant.Outlined" />
+                        }
+                    </div>
+                }
+                @* Free-form tags (ADR "Document tags") — chips + an autocomplete add box over the tenant catalog. *@
+                <div class="wb-mask-row">
+                    <span class="wb-mask-label">@Strings.Get("TagsLabel")</span>
+                    <div style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                        @if (Detail.EditTags.Count > 0)
+                        {
+                            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                                @foreach (var t in Detail.EditTags)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Style="@Styling.ChipStyle(TagColor(t))" OnClose="@(() => Detail.EditTags.Remove(t))">@t</MudChip>
+                                }
+                            </div>
+                        }
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            @TagAdd
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+                Mask: @(Detail.MaskName is null ? "none" : Alcifra.Localization.WellKnownLabels.For(Detail.MaskName))@(Detail.VersionNumber is { } vn ? $" · version {vn}" : "")
+            </MudText>
+            @if (Detail.SensitivityId is not null)
+            {
+                <MudChip T="string" Size="Size.Small" Style="@Styling.ChipStyle(Detail.SensitivityColor)" Variant="Variant.Filled" Class="mt-1" Icon="@Icons.Material.Filled.Shield">@Detail.SensitivityName</MudChip>
+            }
+            @if (Detail.IndexData is { Count: > 0 })
+            {
+                <MudSimpleTable Dense="true" Bordered="false" Class="mt-2">
+                    <tbody>
+                        @foreach (var field in Detail.IndexData)
+                        {
+                            <tr>
+                                <td>@Alcifra.Localization.WellKnownLabels.For(field.FieldName)</td>
+                                <td>
+                                    @if (field.IsUrl)
+                                    {
+                                        @* A Url field's values are LINKS (ADR 0763): new tab, no opener. *@
+                                        @foreach (var url in field.Values)
+                                        {
+                                            <a href="@url" target="_blank" rel="noopener noreferrer" class="mr-2">@url</a>
+                                        }
+                                    }
+                                    else if (field.IsDocumentReference)
+                                    {
+                                        @* A DocumentReference names another document (ADR 0773). It opens IN the
+                                           workbench — revealing the target the way a notification or a deep link
+                                           does — rather than in a new tab, because the target is not elsewhere. *@
+                                        @foreach (var target in field.Targets)
+                                        {
+                                            @if (target.CanOpen)
+                                            {
+                                                <MudLink Class="mr-2" Typo="Typo.body2" @onclick="@(() => OpenDocument.InvokeAsync(target.Id))">@target.Name</MudLink>
+                                            }
+                                            else
+                                            {
+                                                @* No name and no link came back: the server says this is not
+                                                   available to this reader (ADR 0543), and the id it does hold
+                                                   is not something to show a person. *@
+                                                <MudText Class="mr-2" Typo="Typo.body2" Style="opacity:.6">@Strings.Get("IdxTargetUnavailable")</MudText>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @field.Display
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            @if (Detail.Tags is { Count: > 0 })
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:4px;" class="mt-2">
+                    @foreach (var t in Detail.Tags)
+                    {
+                        <MudChip T="string" Size="Size.Small" Style="@Styling.ChipStyle(TagColor(t))" Icon="@Icons.Material.Filled.Label" OnClick="@(() => SearchByTag.InvokeAsync(t))">@t</MudChip>
+                    }
+                </div>
+            }
+            @* The Status section (#1062): the machine-derived statuses — currency, training windows, the
+               check-in verdict — with the server's per-condition diagnoses under each unmet one. A dispatcher
+               sees WHY, not just that; nothing renders for a document with no machine. Diagnosis texts are
+               module-composed pending the ABI localization seam (core ADR 0766's follow-up). *@
+            @if (Detail.MachineStatuses is { Count: > 0 } statuses)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary mt-3">@Strings.Get("StatusSection")</MudText>
+                @foreach (var status in statuses)
+                {
+                    <div class="mt-1" style="display:flex; align-items:flex-start; gap:6px;">
+                        <MudIcon Icon="@(status.Satisfied ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                 Color="@(status.Satisfied ? Color.Success : Color.Error)" Size="Size.Small" Style="margin-top:1px;" />
+                        <div style="min-width:0;">
+                            <MudText Typo="Typo.body2">@MachineStatusDisplay.Pretty(status.Name)</MudText>
+                            @if (!status.Satisfied)
+                            {
+                                @foreach (var failure in status.Failures)
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@failure.Text</MudText>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        }
+
+        @* Nothing lives down here any more. Save/Cancel went to the header row with the pencil that starts
+           the edit (ADR 0550); Compare versions followed them, and for the same reason rather than a
+           different one — it is a per-document action, and this pane's per-document actions are in the
+           header.
+
+           What forced it was that "stays" had a cost nobody had measured. On the demo offer this pane is
+           210px around 318px of content, so the row sat 60px below the fold of a scroller macOS draws no
+           bar for: the button was rendered, correct, and unreachable without discovering the pane scrolls.
+           It was reported from the live demo as version comparison being broken. Pinning the row (ADR 0550's
+           own remedy for a form long enough to scroll) worked, but sliced two field rows in half — on a pane
+           this short the honest answer was to stop spending the space at all.
+
+           The .wb-detail-actions class itself lives on — the Intray has its own row of it. *@
+    }
+
+
+</div>
+
+@code {
+    /// <summary>
+    /// The values already filed under one index field, narrowed by what has been typed (#1127).
+    /// </summary>
+    /// <remarks>
+    /// Followed from the field's own <c>values</c> rel (ADR 0543); the query is this client's filter on an
+    /// advertised href, which is following rather than composing (ADR 0557). Best-effort — a suggestion list
+    /// that cannot be read costs the completion, never the edit.
+    /// </remarks>
+    private async Task<IEnumerable<string>> Suggest(string valuesHref, string? typed, CancellationToken token)
+    {
+        var href = typed is { Length: > 0 }
+            ? $"{valuesHref}{(valuesHref.Contains('?') ? "&" : "?")}q={Uri.EscapeDataString(typed)}"
+            : valuesHref;
+
+        try
+        {
+            var response = await Http.GetFromJsonAsync<FieldValuesResponse>(href, token);
+            return response?.Values ?? [];
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    private sealed class FieldValuesResponse
+    {
+        public List<string> Values { get; set; } = [];
+    }
+
+    /// <summary>Whether the pane is in edit mode — which swaps the header's actions (ADR 0550).</summary>
+    /// <remarks>
+    /// Read from <see cref="DetailState"/> rather than taken as a parameter: the pane is disposed on a tab
+    /// switch, so an edit flag it owned (or received from a page field) would quietly revert an open form to
+    /// read mode and drop the input under it.
+    /// </remarks>
+    private bool IsEditing => Detail.IsEditing;
+
+    /// <summary>
+    /// The details' own action offered while READING — the pencil (ADR 0970: every other per-document action is in
+    /// the ribbon and the row's ⋮ menu).
+    /// </summary>
+    /// <remarks>
+    /// Supplied by the shell because every one of them acts on the document rather than on this pane. What the
+    /// pane owns is the SWAP: while editing, the actions that can do nothing disappear and Save/Cancel take
+    /// their slots, so the row does not reflow under the cursor that just clicked the pencil (ADR 0550). That
+    /// rule is a property of the transition, so it lives here; the buttons are not.
+    /// </remarks>
+    [Parameter] public RenderFragment? ReadActions { get; set; }
+
+    /// <summary>The tag entry box and its Add button — a self-contained widget the shell owns.</summary>
+    [Parameter] public RenderFragment? TagAdd { get; set; }
+
+    // The masks, OCR languages, sensitivity labels and tag colours the form offers all come from the shared
+    // catalogue service. They were four parameters, which made the shell hold four copies of tenant-wide lists
+    // it does not otherwise care about — and made a pane that merely DISPLAYS a label depend on someone having
+    // remembered to pass it.
+    private IReadOnlyList<MaskSummary> AvailableMasks => Catalogs.Masks;
+
+    /// <summary>Whether the current mask is one the catalogue does not offer, so the picker must supply it.</summary>
+    /// <remarks>
+    /// The catalogue is already filtered to the freely-assignable masks (#671), so "has a mask that isn't in
+    /// it" is exactly the fixed case: a typed folder (Mailbox, Calendar, Addressbook) or an extension-claimed
+    /// mask. Deliberately keyed on ABSENCE from the list rather than on a second flag — the server's answer
+    /// about what may be chosen is already here, and asking it twice is how the two clients came to disagree
+    /// before ADR 0653.
+    /// </remarks>
+    private bool CurrentMaskMissingFromCatalogue =>
+        Detail.EditMaskId is { } current && !AvailableMasks.Any(m => m.Id == current);
+    private IReadOnlyList<OcrLanguageOption> OcrCatalog => Catalogs.Ocr;
+    private IReadOnlyList<SensitivityLabel> SensitivityLabels => Catalogs.Sensitivity;
+
+    [Parameter, EditorRequired] public EventCallback Save { get; set; }
+    [Parameter, EditorRequired] public EventCallback Cancel { get; set; }
+    [Parameter, EditorRequired] public EventCallback<KeyboardEventArgs> KeyDown { get; set; }
+    [Parameter, EditorRequired] public EventCallback<Guid?> EditMaskChanged { get; set; }
+
+    /// <summary>Toggle one OCR language on the open edit — order matters, so the shell owns the list.</summary>
+    [Parameter, EditorRequired] public EventCallback<string> ToggleOcrCode { get; set; }
+
+    /// <summary>Clicking a tag chip searches for it, which is a workbench-level navigation.</summary>
+    [Parameter, EditorRequired] public EventCallback<string> SearchByTag { get; set; }
+
+    /// <summary>Reveal a DocumentReference field's target in the workbench (ADR 0773) — the shell owns the
+    /// selection (#686), so the pane asks rather than navigating.</summary>
+    [Parameter, EditorRequired] public EventCallback<Guid> OpenDocument { get; set; }
+
+
+    private static string VerdictText(string verdict)
+    {
+        var key = verdict switch
+        {
+            "ConvertibleScan" => "OcrVerdictConvertibleScan",
+            "Unreadable" => "OcrVerdictUnreadable",
+            _ => "OcrVerdictNotAScan",
+        };
+        return Strings.Get(key);
+    }
+
+    private string? TagColor(string name) => Catalogs.TagColor(name);
+
+    // The stored OCR codes as the catalog's display names, in the order they will be applied.
+    private string OcrDisplay(List<string> codes) =>
+        codes.Count == 0
+            ? "—"
+            : string.Join(", ", codes.Select(c => OcrCatalog.FirstOrDefault(l => l.Code == c)?.DisplayName ?? c));
+
+    private string FolderSortText(FolderContentsSortOrder order) => order switch
+    {
+        FolderContentsSortOrder.DocumentDate => Strings.Get("FolderSortDocDate"),
+        FolderContentsSortOrder.Created => Strings.Get("FolderSortCreated"),
+        _ => Strings.Get("FolderSortName"),
+    };
+}

@@ -1,0 +1,145 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:vm="clr-namespace:Alcifra.DesktopClient.ViewModels"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        x:Class="Alcifra.DesktopClient.Views.ManageAccessDialog"
+        x:DataType="vm:ManageAccessViewModel"
+        Title="{loc:Tr MaManageAccess}" Width="520" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="18" Spacing="10">
+
+        <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding Loading}" />
+
+        <TextBlock Text="{loc:Tr MaNoPermission}" TextWrapping="Wrap" IsVisible="{Binding Forbidden}"
+                   Foreground="{DynamicResource WbMuted}" />
+        <TextBlock Text="{loc:Tr MaLoadFailed}" TextWrapping="Wrap" IsVisible="{Binding LoadFailed}"
+                   Foreground="{DynamicResource WbMuted}" />
+
+        <StackPanel Spacing="10" IsVisible="{Binding Ready}">
+
+            <!-- Inheritance indicator + break/restore toggle. -->
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <i:Icon Grid.Column="0" Value="mdi-link-variant" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource WbMuted}" />
+                <SelectableTextBlock Grid.Column="1" Text="{Binding InheritanceText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Foreground="{DynamicResource WbMuted}" />
+                <Button Grid.Column="2" Content="{Binding InheritanceToggleLabel}" Command="{Binding ToggleInheritanceCommand}"
+                        IsVisible="{Binding CanToggleInheritance}"
+                        VerticalAlignment="Center" Margin="8,0,0,0" />
+            </Grid>
+
+            <TextBlock Text="{loc:Tr MaCurrentAccess}" FontWeight="SemiBold" />
+            <TextBlock Text="{loc:Tr MaNoGrants}" Foreground="{DynamicResource WbMuted}" IsVisible="{Binding !HasEntries}" />
+
+            <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4"
+                    IsVisible="{Binding HasEntries}" MaxHeight="220">
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding Entries}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AclRowViewModel">
+                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="8,4">
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <SelectableTextBlock Text="{Binding PrincipalLabel}" />
+                                        <SelectableTextBlock Text="{Binding TypeLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                                    </StackPanel>
+                                    <SelectableTextBlock Grid.Column="1" Text="{Binding RoleLabel}" VerticalAlignment="Center"
+                                               Margin="8,0" Foreground="{DynamicResource WbMuted}" />
+                                    <Button Grid.Column="2" Command="{Binding EditCommand}" ToolTip.Tip="{loc:Tr Edit}"
+                                            Background="Transparent" Padding="6,2"><i:Icon Value="mdi-pencil" /></Button>
+                                    <Button Grid.Column="3" Command="{Binding RemoveCommand}" ToolTip.Tip="{loc:Tr UgDelete}"
+                                            Background="Transparent" Padding="6,2"><i:Icon Value="mdi-delete" /></Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+            <Button Content="{loc:Tr MaAddAccess}" Command="{Binding BeginAddCommand}"
+                    IsVisible="{Binding !Editing}" IsEnabled="{Binding AddButtonEnabled}" HorizontalAlignment="Left" />
+
+            <!-- Editor (add / edit) -->
+            <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4" Padding="10"
+                    IsVisible="{Binding EditorVisible}">
+                <StackPanel Spacing="8">
+                    <ComboBox ItemsSource="{Binding AvailablePrincipals}" SelectedItem="{Binding SelectedPrincipal}"
+                              IsVisible="{Binding IsNew}" HorizontalAlignment="Stretch" PlaceholderText="{loc:Tr MaPrincipal}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GranteeOption">
+                                <TextBlock Text="{Binding Name}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <SelectableTextBlock Text="{Binding EditingPrincipalLabel}" FontWeight="SemiBold" IsVisible="{Binding !IsNew}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{loc:Tr MaRole}" VerticalAlignment="Center" />
+                        <SelectableTextBlock Text="{Binding PresetLabel}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <!-- A preset is offered only where the caller may grant EVERY right in it. Applying
+                             the intersection instead would move nine checkboxes and leave the button's label
+                             describing something the user did not get. -->
+                        <Button Content="{loc:Tr MaRoleViewer}" Command="{Binding ApplyViewerCommand}" IsEnabled="{Binding MayApplyViewer}" />
+                        <Button Content="{loc:Tr MaRoleEditor}" Command="{Binding ApplyEditorCommand}" IsEnabled="{Binding MayApplyEditor}" />
+                        <Button Content="{loc:Tr MaRoleManager}" Command="{Binding ApplyManagerCommand}" IsEnabled="{Binding MayApplyManager}" />
+                    </StackPanel>
+
+                    <Expander Header="{loc:Tr MaAdvanced}">
+                        <Grid ColumnDefinitions="*,*" Margin="0,4,0,0">
+                            <!-- Each right is DISABLED where the caller may not confer it (#877). Disabled
+                                 rather than hidden, because the box must still show the entry's CURRENT value:
+                                 hiding it would report a right the entry holds as absent, which is ADR 0724's
+                                 lying state wearing a different costume. -->
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <CheckBox Content="{loc:Tr MaRightCanSee}" IsChecked="{Binding CanSee}" IsEnabled="{Binding MayGrantSee}" />
+                                <CheckBox Content="{loc:Tr MaRightReadContent}" IsChecked="{Binding CanReadContent}" IsEnabled="{Binding MayGrantReadContent}" />
+                                <CheckBox Content="{loc:Tr MaRightEditContent}" IsChecked="{Binding CanEditContent}" IsEnabled="{Binding MayGrantEditContent}" />
+                                <CheckBox Content="{loc:Tr MaRightEditIndexData}" IsChecked="{Binding CanEditIndexData}" IsEnabled="{Binding MayGrantEditIndexData}" />
+                                <CheckBox Content="{loc:Tr MaRightCreateSubItems}" IsChecked="{Binding CanCreateSubItems}" IsEnabled="{Binding MayGrantCreateSubItems}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <CheckBox Content="{loc:Tr MaRightAnnotate}" IsChecked="{Binding CanAnnotate}" IsEnabled="{Binding MayGrantAnnotate}" />
+                                <CheckBox Content="{loc:Tr MaRightMove}" IsChecked="{Binding CanMove}" IsEnabled="{Binding MayGrantMove}" />
+                                <CheckBox Content="{loc:Tr MaRightDelete}" IsChecked="{Binding CanDelete}" IsEnabled="{Binding MayGrantDelete}" />
+                                <CheckBox Content="{loc:Tr MaRightManagePermissions}" IsChecked="{Binding CanManagePermissions}" IsEnabled="{Binding MayGrantManagePermissions}" />
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
+
+                    <SelectableTextBlock Text="{Binding Status}" Foreground="#c62828" TextWrapping="Wrap" IsVisible="{Binding HasStatus}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Content="{loc:Tr Cancel}" Command="{Binding CancelEditCommand}" />
+                        <Button Content="{loc:Tr Save}" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Effective access (ADR 0488): resolved to people, lazy-loaded on expand. -->
+            <Expander Header="{loc:Tr MaEffectiveAccess}" IsExpanded="{Binding EffectiveExpanded}">
+                <StackPanel Spacing="6" Margin="0,4,0,0">
+                    <ProgressBar IsIndeterminate="True" Height="4" IsVisible="{Binding EffectiveLoading}" />
+                    <SelectableTextBlock Text="{Binding InheritedFromText}" IsVisible="{Binding HasInheritedFrom}" FontStyle="Italic" Foreground="{DynamicResource WbMuted}" />
+                    <TextBlock Text="{loc:Tr MaEffNoAccess}" IsVisible="{Binding EffectiveEmpty}" Foreground="{DynamicResource WbMuted}" />
+                    <ItemsControl ItemsSource="{Binding Effective}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:EffectiveRowViewModel">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,2">
+                                    <i:Icon Grid.Column="0" Value="{Binding Icon}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource WbMuted}" />
+                                    <SelectableTextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" />
+                                    <SelectableTextBlock Grid.Column="2" Text="{Binding SourceLabel}" VerticalAlignment="Center" Margin="8,0" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                                    <SelectableTextBlock Grid.Column="3" Text="{Binding RoleLabel}" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="{loc:Tr Close}" Click="OnClose" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

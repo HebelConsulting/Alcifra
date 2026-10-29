@@ -1,4 +1,4 @@
-// Shared styling + helpers for the SimplArchive user manual (ADR 0502).
+// Shared styling + helpers for the Alcifra user manual (ADR 0502).
 // Kept deliberately minimal; its one typeface is the brand's, passed with --font-path, so `typst compile` is
 // reproducible in CI (ADR 0991).
 

@@ -3,7 +3,7 @@
   "parameters": "--include-transitive",
   "projects": [
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Api/SimplArchive.Api.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Api/Alcifra.Api.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -604,7 +604,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.ApiClient/SimplArchive.ApiClient.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.ApiClient/Alcifra.ApiClient.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -688,7 +688,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Application/SimplArchive.Application.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Application/Alcifra.Application.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -706,7 +706,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Auth/SimplArchive.Auth.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Auth/Alcifra.Auth.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1141,7 +1141,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Cli/SimplArchive.Cli.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Cli/Alcifra.Cli.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1215,7 +1215,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Client/SimplArchive.Client.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Client/Alcifra.Client.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1419,7 +1419,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.ConsoleLogging/SimplArchive.ConsoleLogging.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.ConsoleLogging/Alcifra.ConsoleLogging.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1480,7 +1480,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.DesktopClient/SimplArchive.DesktopClient.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.DesktopClient/Alcifra.DesktopClient.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2016,7 +2016,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Domain/SimplArchive.Domain.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Domain/Alcifra.Domain.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2037,7 +2037,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Infrastructure/SimplArchive.Infrastructure.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Infrastructure/Alcifra.Infrastructure.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2418,7 +2418,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Localization/SimplArchive.Localization.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Localization/Alcifra.Localization.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -2484,7 +2484,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Presentation/SimplArchive.Presentation.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Presentation/Alcifra.Presentation.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -2492,7 +2492,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.TextLayout/SimplArchive.TextLayout.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.TextLayout/Alcifra.TextLayout.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2525,7 +2525,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Theming/SimplArchive.Theming.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Theming/Alcifra.Theming.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -2533,7 +2533,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/src/SimplArchive.Worker/SimplArchive.Worker.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/src/Alcifra.Worker/Alcifra.Worker.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2874,7 +2874,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.DesktopUiEndToEndTests/SimplArchive.DesktopUiEndToEndTests.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.DesktopUiEndToEndTests/Alcifra.DesktopUiEndToEndTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -3276,7 +3276,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.EndToEndTests/SimplArchive.EndToEndTests.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.EndToEndTests/Alcifra.EndToEndTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -4134,7 +4134,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.IntegrationTests/SimplArchive.IntegrationTests.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.IntegrationTests/Alcifra.IntegrationTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -4931,7 +4931,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.LoadTest/SimplArchive.LoadTest.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.LoadTest/Alcifra.LoadTest.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5028,7 +5028,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.ManualCapture/SimplArchive.ManualCapture.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5165,7 +5165,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.SelfHosting/SimplArchive.SelfHosting.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.SelfHosting/Alcifra.SelfHosting.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5259,7 +5259,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.ThemeGen/SimplArchive.ThemeGen.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.ThemeGen/Alcifra.ThemeGen.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -5267,7 +5267,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.UiEndToEndTests/SimplArchive.UiEndToEndTests.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.UiEndToEndTests/Alcifra.UiEndToEndTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5460,7 +5460,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/SA-wt-prov/tests/SimplArchive.UnitTests/SimplArchive.UnitTests.csproj",
+      "path": "/Users/flhe/dev/SA-wt-prov/tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",

@@ -1,0 +1,245 @@
+@using System.Net
+@using System.Net.Http.Json
+@using Alcifra.Client.Hypermedia
+@using Alcifra.Localization
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+@* Who a Password Store or a Sealed document is encrypted for (ADR 0983): its members and managers, and the readers who
+   may be added. A browser holds no key and cannot seal (ADR 0830), so saving here DECLARES the audience — somebody
+   removed reads nothing from that moment, because the server withholds the envelopes — and a member's next re-seal
+   in the desktop or phone app seals it for anybody added. That is the platform exception ADR 0511 allows, and the
+   dialog says so rather than promising a re-seal it cannot make. *@
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 420px; max-width: 600px;" data-dialog="audience">
+            @if (_audience is null)
+            {
+                @if (_failed)
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true">@Strings.Get("AudLoadFailed")</MudAlert>
+                }
+                else
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.subtitle2">@Name</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">@Explanation</MudText>
+
+                @if (CanEdit)
+                {
+                    <div style="display:flex; gap:8px; align-items:center;" class="mb-2">
+                        <MudSelect T="Candidate" @bind-Value="_picked" Label="@Strings.Get("AudPickReader")" Dense="true" Variant="Variant.Outlined"
+                                   ToStringFunc="@(c => c?.DisplayName ?? string.Empty)" Style="flex:1 1 auto;">
+                            @foreach (var candidate in _candidates)
+                            {
+                                <MudSelectItem T="Candidate" Value="@candidate">@candidate.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Variant="Variant.Outlined" Disabled="@(_picked is null)" OnClick="Add">@Strings.Get("AudAdd")</MudButton>
+                    </div>
+                }
+
+                <MudList T="string" Dense="true">
+                    @foreach (var row in _rows)
+                    {
+                        <MudListItem T="string">
+                            <div style="display:flex; align-items:center; gap:8px;" class="wb-audience-row">
+                                <MudIcon Icon="@(row.GroupId is null ? Icons.Material.Outlined.Person : Icons.Material.Outlined.Group)" Size="Size.Small" />
+                                <div style="flex:1 1 auto;">
+                                    <div>@row.DisplayName</div>
+                                    @if (!row.InEffect)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("AudNotInEffect")</MudText>
+                                    }
+                                </div>
+                                @if (row.GroupId is null)
+                                {
+                                    <MudCheckBox T="bool" @bind-Value="row.IsManager" Disabled="@(!CanEdit)" Label="@Strings.Get("AudManager")" Dense="true" />
+                                }
+                                @if (CanEdit)
+                                {
+                                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => Remove(row))">@Strings.Get("AudRemove")</MudButton>
+                                }
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+
+                @if (CanEdit)
+                {
+                    @if (!_rows.Any(r => r.IsManager && r.GroupId is null))
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">@Strings.Get("AudNeedsManager")</MudAlert>
+                    }
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2" Style="display:block;">@Strings.Get("AudMissingReader")</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="display:block;">@Strings.Get("AudWebNoReseal")</MudText>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        @if (CanEdit)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
+                       Disabled="@(_busy || !_rows.Any(r => r.IsManager && r.GroupId is null))">@Strings.Get("AudSaveWeb")</MudButton>
+        }
+        <MudButton OnClick="@(() => Dialog.Close())">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
+
+    /// <summary>The audience's address: the <c>audience</c> rel the document or store advertised.</summary>
+    [Parameter] public string AudienceHref { get; set; } = string.Empty;
+
+    [Parameter] public string Name { get; set; } = string.Empty;
+
+    private AudienceDto? _audience;
+    private string? _eTag;
+    private bool _failed;
+    private bool _busy;
+    private List<Row> _rows = [];
+    private List<Candidate> _candidates = [];
+    private Candidate? _picked;
+
+    private bool CanEdit => _audience is { IsPersonal: false } a && (a.CanManage || a.CanAppointManager);
+
+    private string Explanation => _audience switch
+    {
+        { IsPersonal: true } => Strings.Get("AudPersonal"),
+        { CanManage: true } => Strings.Get("AudManagingWeb"),
+        { CanAppointManager: true } => Strings.Get("AudAppointing"),
+        _ => Strings.Get("AudReadOnly"),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var response = await Http.GetAsync(AudienceHref);
+            response.EnsureSuccessStatusCode();
+            _eTag = response.Headers.ETag?.Tag;
+            _audience = await response.Content.ReadFromJsonAsync<AudienceDto>();
+            _rows = _audience!.IsPersonal
+                ? [.. _audience.Recipients.Select(r => new Row { UserId = r.UserId, DisplayName = r.DisplayName, IsManager = true, InEffect = true })]
+                : [.. _audience.Members.Select(m => new Row { UserId = m.UserId, GroupId = m.GroupId, DisplayName = m.DisplayName, IsManager = m.IsManager, InEffect = m.InEffect })];
+            _candidates = [.. _audience.Candidates];
+        }
+        catch (Exception e) when (e is HttpRequestException or NotSupportedException or System.Text.Json.JsonException)
+        {
+            _failed = true;
+        }
+    }
+
+    private void Add()
+    {
+        if (_picked is not { } candidate)
+        {
+            return;
+        }
+
+        // An administrator appointing adds a manager, the only row they may add.
+        _rows.Add(new Row { UserId = candidate.UserId, GroupId = candidate.GroupId, DisplayName = candidate.DisplayName, IsManager = _audience!.CanAppointManager, InEffect = true });
+        _candidates.Remove(candidate);
+        _picked = null;
+    }
+
+    private void Remove(Row row)
+    {
+        _rows.Remove(row);
+        if (row.InEffect)
+        {
+            _candidates.Add(new Candidate { UserId = row.UserId, GroupId = row.GroupId, DisplayName = row.DisplayName });
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Put, AudienceHref)
+            {
+                // `self` serves GET and PUT (ADR 0719); whether this caller may PUT is the resource's capability flags.
+                Content = JsonContent.Create(new { members = _rows.Select(r => new { userId = r.UserId, groupId = r.GroupId, isManager = r.IsManager }) }),
+            };
+            request.Headers.TryAddWithoutValidation("If-Match", _eTag);
+            using var response = await Http.SendAsync(request);
+            if (response.StatusCode == HttpStatusCode.PreconditionFailed)
+            {
+                Snackbar.Add(Strings.Get("AudChangedMeanwhile"), Severity.Warning);
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // The CODE, never the server's English `detail` (issue #424): the client owns the words.
+                string? code = null;
+                try
+                {
+                    var problem = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                    code = problem.TryGetProperty("errorCode", out var c) ? c.GetString() : null;
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                }
+
+                Snackbar.Add(ApiErrorText.For(code) ?? Strings.Get("AudSaveFailed"), Severity.Error);
+                return;
+            }
+
+            Snackbar.Add(Strings.Get("AudSavedWeb"), Severity.Success);
+            Dialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed class AudienceDto
+    {
+        public bool IsPersonal { get; set; }
+        public bool CanManage { get; set; }
+        public bool CanAppointManager { get; set; }
+        public List<MemberDto> Members { get; set; } = [];
+        public List<RecipientDto> Recipients { get; set; } = [];
+        public List<Candidate> Candidates { get; set; } = [];
+    }
+
+    private sealed class MemberDto
+    {
+        public Guid? UserId { get; set; }
+        public Guid? GroupId { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public bool IsManager { get; set; }
+        public bool InEffect { get; set; }
+    }
+
+    private sealed class RecipientDto
+    {
+        public Guid UserId { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    private sealed class Candidate
+    {
+        public Guid? UserId { get; set; }
+        public Guid? GroupId { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+    }
+
+    private sealed class Row
+    {
+        public Guid? UserId { get; set; }
+        public Guid? GroupId { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public bool IsManager { get; set; }
+        public bool InEffect { get; set; }
+    }
+}

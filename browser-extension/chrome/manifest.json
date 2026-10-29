@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SimplArchive autofill",
+  "name": "Alcifra autofill",
   "version": "0.1.0",
-  "description": "Fills logins from your SimplArchive password store, opened with your hardware key.",
+  "description": "Fills logins from your Alcifra password store, opened with your hardware key.",
   "permissions": [
     "nativeMessaging",
     "storage"

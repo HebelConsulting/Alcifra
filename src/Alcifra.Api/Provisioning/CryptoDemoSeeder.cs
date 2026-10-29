@@ -1,0 +1,236 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Acl;
+using Alcifra.Domain.Masks;
+using Alcifra.Domain.Tenants;
+using Alcifra.Domain.Users;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Provisioning;
+
+// Env-driven idempotent seed of the ENCRYPTED demo tenant (ADR 0813) — the tenant the kiosk lists in
+// Encryption:Tenants so the encryption service (SimplArchiveEncryptionService ADR 0007) can be exercised on a live
+// stack WITHOUT touching the public demo tenant: same shape as DemoDataSeeder (ADR 0214) and
+// InteropTenantSeeder (ADR 0585), a no-op unless the CryptoDemo:* config is present.
+//
+// It seeds the tenant with crypt (the founding tenant administrator), florian, thomas and alex as further tenant
+// administrators (owner, 2026-10-24) and tanja and mihaela as regular users — all IMAP/WebDAV-enabled
+// with the one configured password, and a couple of documents in the repository's SampleData folder so a mail client has
+// something to fetch right after every nightly reset. Ids are deterministic (DemoId, #781) for the same
+// reason the demo tenant's are: the kiosk reseeds from scratch nightly, and fresh GUIDs each morning would
+// hand every caching IMAP client a brand-new server wearing yesterday's names.
+public static class CryptoDemoSeeder
+{
+    public static async Task SeedIfConfiguredAsync(IServiceProvider services, IConfiguration configuration)
+    {
+        var tenantName = configuration["CryptoDemo:Tenant:Name"];
+        var adminEmail = configuration["CryptoDemo:Administrator:Email"];
+        var password = configuration["CryptoDemo:Password"];
+
+        if (string.IsNullOrWhiteSpace(tenantName)
+            || string.IsNullOrWhiteSpace(adminEmail)
+            || string.IsNullOrWhiteSpace(password))
+        {
+            return;
+        }
+
+        var dbContext = services.GetRequiredService<AlcifraDbContext>();
+
+        // IgnoreQueryFilters: this runs at startup where the ambient tenant is whatever an earlier seeder
+        // left set (or none), so the tenant filter would make this existence check a lie.
+        if (await dbContext.Tenants.IgnoreQueryFilters()
+                .AnyAsync(t => t.Name == tenantName && t.Status == TenantStatus.Active))
+        {
+            return;
+        }
+
+        var tenantId = DemoId.Root(tenantName);
+        var provisioned = await services.GetRequiredService<ITenantProvisioningService>().ProvisionAsync(
+            tenantName,
+            adminEmail,
+            configuration["CryptoDemo:Administrator:DisplayName"] ?? "Crypto Admin",
+            configuration["CryptoDemo:RepositoryName"],
+            password,
+            idFor: slug => slug == "tenant" ? tenantId : DemoId.For(tenantId, slug));
+
+        // The document seeding below reads masks and relies on SaveChanges' required-field validation, all
+        // tenant-filtered — so point the accessor at the new tenant, like DemoDataSeeder does.
+        services.GetRequiredService<CurrentTenantAccessor>().TenantId = provisioned.TenantId;
+
+        var now = DateTimeOffset.UtcNow;
+        var hasher = new PasswordHasher<User>();
+
+        // The extra logins take the ADMIN's domain rather than a hardcoded one, same rule as the demo seed
+        // (issue #432): the kiosk configures crypt@its-domain and florian/thomas ride along.
+        var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "simplarchive.local";
+
+        User MakeUser(string localPart, string displayName, bool tenantAdministrator = false)
+        {
+            var user = new User
+            {
+                Id = DemoId.For(tenantId, $"user/{localPart}"),
+                TenantId = provisioned.TenantId,
+                Email = $"{localPart}@{domain}",
+                DisplayName = displayName,
+                IsActive = true,
+                CreatedAt = now,
+                // The proof of concept reads DOCUMENTS over IMAP, so the synthetic-message view must be on.
+                ImapShowAllDocuments = true,
+            };
+            if (tenantAdministrator)
+            {
+                TenantAdministratorRights.GrantAll(user);
+            }
+
+            user.PasswordHash = hasher.HashPassword(user, password);
+            return user;
+        }
+
+        // Tenant administrators like crypt (owner, 2026-10-24): they run the tenant together, so each holds every
+        // system right — the bypass then shows them the Administration folder too, which the plain users never see.
+        var florian = MakeUser("florian", "Florian", tenantAdministrator: true);
+        var thomas = MakeUser("thomas", "Thomas", tenantAdministrator: true);
+        var alex = MakeUser("alex", "Alex", tenantAdministrator: true);
+        var tanja = MakeUser("tanja", "Tanja");
+        var mihaela = MakeUser("mihaela", "Mihaela");
+        var people = new[] { ("florian", florian), ("thomas", thomas), ("alex", alex), ("tanja", tanja), ("mihaela", mihaela) };
+        dbContext.Users.AddRange(people.Select(p => p.Item2));
+
+        // The admin reads over IMAP too — and a phone signs in with the same password, so the IMAP/WebDAV
+        // credentials are seeded for everyone rather than minted per stack (the Interop lesson: a secret
+        // shown once dies with every `down -v`).
+        var admin = await dbContext.Users.SingleAsync(u => u.Id == provisioned.AdministratorId);
+        admin.ImapShowAllDocuments = true;
+        await dbContext.SaveChangesAsync();
+        await DemoDataSeeder.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)]);
+
+        // Working rights on the root repository for every seeded user — enough to see, read and file, so the
+        // phones' IMAP trees show the repository and its documents. The administrators would see it through the
+        // bypass anyway; the grant keeps their rights unchanged should one of them be demoted.
+        foreach (var (slug, user) in people)
+        {
+            dbContext.AclEntries.Add(new AclEntry
+            {
+                Id = DemoId.For(tenantId, $"acl/repository/{slug}"),
+                TenantId = provisioned.TenantId,
+                DocumentId = provisioned.RepositoryId,
+                UserId = user.Id,
+                CanSee = true,
+                CanReadContent = true,
+                CanEditContent = true,
+                CanEditIndexData = true,
+                CanCreateSubItems = true,
+                CreatedAt = now,
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        await AddModuleSetupAsync(services, dbContext, configuration, provisioned, admin.Id, now);
+
+        // A couple of documents so IMAP serves content immediately — through the same finalizer path an
+        // interactive upload takes (ADR 0545). That the bytes arrive as application/pkcs7-mime is the point; their
+        // own content says what their names promise (crypto-*.typ), since the Acme invoice and offer they once
+        // borrowed read as a mistake to anyone who opened them.
+        var storage = services.GetRequiredService<IObjectStorageClient>();
+        var finalizer = services.GetRequiredService<Documents.DocumentFinalizer>();
+        var assembly = typeof(DemoDataSeeder).Assembly;
+        var basicEntryVersion = await dbContext.MaskVersions
+            .SingleAsync(v => v.MaskId == WellKnownMaskIds.BasicEntry && v.IsCurrent);
+
+        // In their own SampleData folder rather than at the repository root (ADR 0891): the root carries what the
+        // installation itself puts there — the Administration folder and the module's manual — and demo content
+        // stays visibly demo content. Readers reach it by inheritance from the repository grants above.
+        var folderMaskVersion = await dbContext.MaskVersions
+            .SingleAsync(v => v.MaskId == WellKnownMaskIds.Folder && v.IsCurrent);
+        var sampleData = await DemoDataSeeder.AddFolderAsync(dbContext, provisioned.TenantId,
+            provisioned.RepositoryId, "SampleData", admin.Id, now, folderMaskVersion.Id, "sample-data");
+
+        await DemoDataSeeder.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
+            sampleData.Id, "Board minutes 2026-03", admin.Id, now, basicEntryVersion.Id,
+            "CryptoBoardMinutes.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 3), finalizer);
+        await DemoDataSeeder.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
+            sampleData.Id, "Salary review 2026", admin.Id, now, basicEntryVersion.Id,
+            "CryptoSalaryReview.pdf", ".pdf", "application/pdf", new DateOnly(2026, 1, 14), finalizer);
+    }
+
+    // The unattended setup principal (ADR 0870): the nightly reset wipes every enrolment (certificates are
+    // documents), so something has to activate the Encryption Module and re-enrol the readers each morning
+    // with nobody present — and a scripted human login was rejected as MFA-fragile. A no-op unless
+    // CryptoDemo:ServiceAccount:ClientId/ClientSecret are configured, like every seeded principal.
+    //
+    // NARROW on purpose. CanManageModules and nothing else at system level, and its grant confined to one
+    // folder that BREAKS inheritance: the repository's grants to the seeded users do not reach in (the administrators see it by their bypass), and its
+    // own grant does not reach out to the board minutes. It files the licence here, and the module's
+    // "Reader certificates" folder is placed here through the module's parent setting. CanManagePermissions
+    // on this folder only is what lets it grant the module's own principal (`Module: Encryption`, created at
+    // activation, so it cannot be granted at seed time) — and it can grant no more than it holds.
+    //
+    // The folder's id is DemoId.For(tenant, "folder/administration"); crypto-seed.sh derives the same UUIDv5.
+    private static async Task AddModuleSetupAsync(
+        IServiceProvider services, AlcifraDbContext dbContext, IConfiguration configuration,
+        ProvisionedTenant provisioned, Guid adminId, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(configuration["CryptoDemo:ServiceAccount:ClientId"]))
+        {
+            return;
+        }
+
+        var folderMaskVersion = await dbContext.MaskVersions
+            .SingleAsync(v => v.MaskId == WellKnownMaskIds.Folder && v.IsCurrent);
+        var administration = await DemoDataSeeder.AddFolderAsync(dbContext, provisioned.TenantId,
+            provisioned.RepositoryId, "Administration", adminId, now, folderMaskVersion.Id, "administration");
+        // Broken with no entry copied down: a break snapshots what is in force at that moment, and the
+        // repository's grants are exactly what must not be inherited here.
+        administration.BreaksInheritance = true;
+
+        var seeded = await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "CryptoDemo",
+            provisioned.TenantId, grantOn: administration.Id,
+            // CanManageRepositories since v0.47.0: the Messenger's kiosk setup creates its repository (ADR 0949).
+            rights: account => (account.CanManageModules, account.CanManageRepositories) = (true, true),
+            grant: entry =>
+            {
+                entry.CanSee = true;
+                entry.CanReadContent = true;
+                entry.CanEditContent = true;
+                entry.CanEditIndexData = true;
+                entry.CanCreateSubItems = true;
+                entry.CanManagePermissions = true;
+            });
+
+        // The "Demo logins" password store (ADR 0966): crypto-seed.sh creates it at the top of the standard repository
+        // (provisioning made the Crypto repository the standard one), breaks its inheritance and grants the four readers.
+        // That needs, ON THE REPOSITORY ROOT, exactly these five rights and nothing more:
+        //   see                 find the repository, and the store again on a re-run;
+        //   create-sub-items    create the store there, and its entries inside it;
+        //   manage-permissions  break the store's inheritance and grant the readers (a grant on a store that still
+        //                       inherits is stored and ignored: rights resolve at the governing scope, ADR 0183);
+        //   read-content,       the rights it grants (read for all four, edit for crypt@ so the administrator can
+        //   edit-content        re-seal), which the escalation cap lets it grant only while it holds them (ADR 0202);
+        //                       edit-content is also what files an entry's sealed version.
+        // Not edit-index-data, delete, move or annotate. It does widen the account's reach from the Administration folder
+        // to the repository (SampleData, the manuals), which no narrower grant avoids: a store created there inherits its
+        // rights from the root until its inheritance is broken, and breaking it needs them.
+        if (seeded)
+        {
+            var clientId = configuration["CryptoDemo:ServiceAccount:ClientId"];
+            var account = dbContext.ServiceAccounts.Local.Single(a => a.OpenIddictApplicationClientId == clientId);
+            dbContext.AclEntries.Add(new AclEntry
+            {
+                Id = DemoId.For(provisioned.TenantId, "acl/repository/crypto-setup"),
+                TenantId = provisioned.TenantId,
+                DocumentId = provisioned.RepositoryId,
+                ServiceAccountId = account.Id,
+                CanSee = true,
+                CanReadContent = true,
+                CanEditContent = true,
+                CanCreateSubItems = true,
+                CanManagePermissions = true,
+                CreatedAt = now,
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+}

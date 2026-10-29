@@ -107,7 +107,7 @@ bao write auth/approle/role/simplarchive/custom-secret-id secret_id="${APPROLE_S
 bao secrets enable pki 2>/dev/null || true
 bao secrets tune -max-lease-ttl=87600h pki 2>/dev/null || true
 if ! bao read pki/cert/ca >/dev/null 2>&1; then
-  bao write -field=certificate pki/root/generate/internal common_name='SimplArchive Dev CA' ttl=87600h >/dev/null
+  bao write -field=certificate pki/root/generate/internal common_name='Alcifra Dev CA' ttl=87600h >/dev/null
   bao write pki/roles/openiddict allow_any_name=true max_ttl=8760h key_type=rsa key_bits=2048
 fi
 if ! bao kv get secret/simplarchive/openiddict >/dev/null 2>&1; then

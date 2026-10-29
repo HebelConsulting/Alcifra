@@ -1,0 +1,167 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        x:Class="Alcifra.DesktopClient.Views.KeyTestWindow"
+        x:DataType="vm:KeyTestViewModel"
+        Title="{loc:Tr KtTitle}" Width="680" Height="820" MinWidth="520" MinHeight="560"
+        Background="{DynamicResource WbSurface}"
+        WindowStartupLocation="CenterOwner">
+    <Window.Styles>
+        <!-- The verdict's colour is its state: success, failure, or not finished — theme tokens, so dark mode follows.
+             A wash of the same colour behind a frame of it, the headline and the glyph in it. -->
+        <Style Selector="Panel.verdict Border.frame">
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="14,12" />
+        </Style>
+        <Style Selector="Panel.verdict Border.wash">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Opacity" Value="0.12" />
+        </Style>
+        <Style Selector="Panel.verdict.works Border.frame">
+            <Setter Property="BorderBrush" Value="{DynamicResource WbSuccess}" />
+        </Style>
+        <Style Selector="Panel.verdict.works Border.wash">
+            <Setter Property="Background" Value="{DynamicResource WbSuccess}" />
+        </Style>
+        <Style Selector="Panel.verdict.works :is(Control).tone">
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource WbSuccess}" />
+        </Style>
+        <Style Selector="Panel.verdict.fails Border.frame">
+            <Setter Property="BorderBrush" Value="{DynamicResource WbDanger}" />
+        </Style>
+        <Style Selector="Panel.verdict.fails Border.wash">
+            <Setter Property="Background" Value="{DynamicResource WbDanger}" />
+        </Style>
+        <Style Selector="Panel.verdict.fails :is(Control).tone">
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource WbDanger}" />
+        </Style>
+        <Style Selector="Panel.verdict.unfinished Border.frame">
+            <Setter Property="BorderBrush" Value="{DynamicResource WbWarning}" />
+        </Style>
+        <Style Selector="Panel.verdict.unfinished Border.wash">
+            <Setter Property="Background" Value="{DynamicResource WbWarning}" />
+        </Style>
+        <Style Selector="Panel.verdict.unfinished :is(Control).tone">
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource WbWarning}" />
+        </Style>
+        <Style Selector="ToggleButton.disclosure">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0,4" />
+        </Style>
+        <Style Selector="ToggleButton.disclosure:checked /template/ ContentPresenter, ToggleButton.disclosure:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </Window.Styles>
+
+    <!-- Test the hardware key (core #1864, ADRs 0955/0962). Top to bottom: what the test does, Run, then — once a test
+         has finished — the VERDICT, prominent and in the app's language, the steps as they happen, and the report for
+         support collapsed beneath a disclosure (Copy works collapsed too); the archive side behind a switch that is on
+         by default and offered only when signed in. Before a run there is no verdict, only the instructions. -->
+    <DockPanel Margin="20" LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <i:Icon Value="mdi-tools" FontSize="26" Foreground="{DynamicResource WbAccent}" />
+                <TextBlock Text="{loc:Tr KtTitle}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{DynamicResource WbText}" />
+            </StackPanel>
+            <TextBlock Text="{loc:Tr KtIntro}" TextWrapping="Wrap" Foreground="{DynamicResource WbMuted}" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Classes="accent" Command="{Binding RunCommand}" AutomationProperties.AutomationId="key-test-run">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-play" />
+                        <TextBlock Text="{loc:Tr KtRun}" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Text="{loc:Tr KtRunning}" IsVisible="{Binding IsRunning}" Foreground="{DynamicResource WbMuted}"
+                           VerticalAlignment="Center" />
+            </StackPanel>
+
+            <!-- The verdict: announced when it appears (a live region), its colour and glyph the state. -->
+            <Panel Classes="verdict" Classes.works="{Binding Works}" Classes.fails="{Binding DoesNotWork}"
+                   Classes.unfinished="{Binding Unfinished}" IsVisible="{Binding HasVerdict}"
+                   AutomationProperties.AutomationId="key-test-verdict"
+                   AutomationProperties.Name="{Binding VerdictSpoken}"
+                   AutomationProperties.LiveSetting="Assertive">
+                <Border Classes="wash" />
+                <Border Classes="frame">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <i:Icon Grid.Column="0" Classes="tone" Value="{Binding VerdictIcon}" FontSize="34"
+                                VerticalAlignment="Top" Margin="0,0,12,0" />
+                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Classes="tone" Text="{Binding Verdict.Headline, FallbackValue=''}" FontSize="18"
+                                       FontWeight="Bold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Verdict.Reason, FallbackValue=''}" IsVisible="{Binding HasVerdictReason}"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource WbText}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Panel>
+        </StackPanel>
+
+        <!-- The report, pinned to the bottom so the Copy button never scrolls away; its text collapsed by default. -->
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+            <ToggleButton Classes="disclosure" IsChecked="{Binding IsReportExpanded}" IsVisible="{Binding HasReport}"
+                          AutomationProperties.AutomationId="key-test-report-toggle"
+                          AutomationProperties.Name="{loc:Tr KtReport}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Panel Width="16">
+                        <i:Icon Value="mdi-chevron-right" FontSize="16" IsVisible="{Binding !IsReportExpanded}"
+                                Foreground="{DynamicResource WbText}" />
+                        <i:Icon Value="mdi-chevron-down" FontSize="16" IsVisible="{Binding IsReportExpanded}"
+                                Foreground="{DynamicResource WbText}" />
+                    </Panel>
+                    <TextBlock Text="{loc:Tr KtReport}" FontWeight="SemiBold" Foreground="{DynamicResource WbText}" />
+                </StackPanel>
+            </ToggleButton>
+            <StackPanel Spacing="8" IsVisible="{Binding IsReportExpanded}">
+                <TextBlock Text="{loc:Tr KtReportContains}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+                <CheckBox IsChecked="{Binding IncludeArchive}" IsVisible="{Binding CanIncludeArchive}"
+                          AutomationProperties.AutomationId="key-test-include-archive">
+                    <TextBlock Text="{loc:Tr KtIncludeArchive}" TextWrapping="Wrap" FontSize="12" />
+                </CheckBox>
+                <TextBox Text="{Binding ReportText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                         FontFamily="Menlo,Consolas,monospace" FontSize="11" Height="210"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" />
+            </StackPanel>
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding CopyStatus}" FontSize="12" Foreground="{DynamicResource WbMuted}"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="1" Command="{Binding CopyCommand}" Margin="0,0,8,0"
+                        AutomationProperties.AutomationId="key-test-copy">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <i:Icon Value="mdi-content-copy" />
+                        <TextBlock Text="{loc:Tr KtCopy}" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" Content="{loc:Tr Close}" Click="OnClose" IsCancel="True" />
+            </Grid>
+        </StackPanel>
+
+        <!-- The steps, filling what is left; absent before a run. -->
+        <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4" Margin="0,12,0,0" Padding="8"
+                IsVisible="{Binding HasSteps}" VerticalAlignment="Top">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Steps}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:KeyTestStepRow">
+                            <Grid ColumnDefinitions="Auto,*" Margin="0,3">
+                                <i:Icon Grid.Column="0" Value="{Binding Icon}" Foreground="{Binding IconColour}" FontSize="16"
+                                        VerticalAlignment="Top" Margin="0,1,8,0" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource WbText}" />
+                                    <SelectableTextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="12"
+                                                         Foreground="{DynamicResource WbMuted}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</Window>

@@ -1,0 +1,847 @@
+using System.Reflection;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Alcifra.Api.Documents;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Acl;
+using Alcifra.Domain.Documents;
+using Alcifra.Domain.Groups;
+using Alcifra.Domain.Masks;
+using Alcifra.Domain.Tenants;
+using Alcifra.Domain.Users;
+using Alcifra.Domain.Workflow;
+using Alcifra.Infrastructure.Persistence;
+
+namespace Alcifra.Api.Provisioning;
+
+// Env-driven idempotent demo-data seed (Docker Compose / kiosk only) — provisions a demo tenant plus a
+// TenantAdministrator with a KNOWN password and a realistic sample tree, so a visitor can browse straight to the
+// UI, log in, and actually see content (ADR "Compose demo-data seeding" / 0214). Extracted from Program.cs
+// (issue #354) as it grew a full Business Years / Contracts / General tree with varied document types, references,
+// two extra users and a shared "Scan Team" group intray (the group-intray showcase, ADR 0532).
+//
+// Gated on the demo config being present AND the tenant not already existing, so it's a no-op on restart and in
+// every environment that doesn't configure it (default appsettings ships the keys empty).
+//
+// All content is public-safe, but no longer in one sense (#658, corrected 2026-08-20 — the claim used to read
+// "fictional companies; no real customer data" and had quietly stopped being the whole truth):
+//
+//   - The BUSINESS tree is fictional throughout — invented companies, invoices and correspondence. No real
+//     customer data has ever been here, and none should be added.
+//   - The EVENTS department (DemoArtistsSeeder) carries REAL published data: three touring acts, their own
+//     websites, one publicly-advertised booking address, and the concert dates their sites announce. Deliberate
+//     — the Contacts and Calendar tabs only become legible with content that behaves like the real thing.
+//
+// The rule that keeps the second safe is ONLY WHAT THE SUBJECT PUBLISHES, and nothing inferred or invented:
+// business contact details a working musician publishes in order to be contacted, and dates they advertise in
+// order to be attended. Not a photo (someone else's copyright, usually the photographer's — this repo is
+// Apache-2.0 and publicly mirrored, so committing one redistributes it under terms we cannot grant), not a
+// number that turned out to be a VENUE's line rather than the artist's, and never a plausible-looking phone or
+// address invented to fill an empty field — a fabrication attached to a real named person is worse than a blank.
+//
+// Anyone extending the demo with real-world data should apply the same test, and prefer fiction when unsure.
+public static class DemoDataSeeder
+{
+    public static async Task SeedIfConfiguredAsync(IServiceProvider services, IConfiguration configuration)
+    {
+        var demoTenantName = configuration["Demo:Tenant:Name"];
+        var demoAdminEmail = configuration["Demo:Administrator:Email"];
+        var demoAdminPassword = configuration["Demo:Administrator:Password"];
+
+        if (string.IsNullOrWhiteSpace(demoTenantName)
+            || string.IsNullOrWhiteSpace(demoAdminEmail)
+            || string.IsNullOrWhiteSpace(demoAdminPassword))
+        {
+            return;
+        }
+
+        var dbContext = services.GetRequiredService<AlcifraDbContext>();
+
+        // Demo timestamps resolve from the keyed "demo-clock" (a fixed instant only under Demo:Clock), NOT the
+        // app-wide TimeProvider — so the manual's audit/tasks/my-work screens are byte-stable run-to-run (ADR 0510)
+        // while auth keeps the real clock. Production/kiosk leave Demo:Clock unset, so this is System there too.
+        var clock = services.GetRequiredKeyedService<TimeProvider>("demo-clock");
+
+        if (await dbContext.Tenants.AnyAsync(t => t.Name == demoTenantName && t.Status == TenantStatus.Active))
+        {
+            // The one heal that runs on an EXISTING demo volume (#574's lesson): the founding-admin bundle
+            // gains rights over time, and a tenant provisioned before one existed strands its admin without
+            // it — CanManageMailRouting (#703) arrived after every long-lived dev volume did. Grant-if-absent
+            // on the demo admin only; a deliberately revoked right stays revoked... which cannot be told
+            // apart from "never had it" for a bool, so on the DEMO tenant the seed's answer wins.
+            var normalized = demoAdminEmail.ToUpperInvariant();
+            var admin = await dbContext.Users.IgnoreQueryFilters(["TenantFilter"])
+                .Where(u => dbContext.Tenants.Any(t => t.Id == u.TenantId && t.Name == demoTenantName))
+                .SingleOrDefaultAsync(u => u.NormalizedEmail == normalized);
+            if (admin is { CanManageMailRouting: false })
+            {
+                admin.CanManageMailRouting = true;
+                await dbContext.SaveChangesAsync();
+            }
+
+            await HealUnclassifiedEmailsAsync(services, dbContext, demoTenantName, CancellationToken.None);
+            return;
+        }
+
+        // Deterministic ids (#781): the kiosk's nightly down -v reseeds from scratch, and fresh GUIDs each
+        // morning would hand every caching client (IMAP, DAV, WebDAV) a brand-new server wearing yesterday's
+        // names. Every id in the demo seed derives from the tenant root + a stable slug instead, so a reseed
+        // reproduces the SAME archive. Only fresh volumes are affected — an existing tenant returns above.
+        var demoTenantId = DemoId.Root(demoTenantName);
+        var provisioned = await services.GetRequiredService<ITenantProvisioningService>().ProvisionAsync(
+            demoTenantName,
+            demoAdminEmail,
+            configuration["Demo:Administrator:DisplayName"] ?? "Demo Admin",
+            configuration["Demo:RepositoryName"],
+            demoAdminPassword,
+            idFor: slug => slug == "tenant" ? demoTenantId : DemoId.For(demoTenantId, slug),
+            // createdAt (#832): the Tenant tab renders Created, and a real-clock stamp made every reseed —
+            // and every manual capture — show the boot minute there.
+            createdAt: clock.GetUtcNow());
+
+        // The sample tree reads masks/field definitions and relies on SaveChanges' required-field validation, all
+        // tenant-filtered — so set the tenant on the accessor the DbContext reads from (nothing did, since this
+        // isn't a request). Provisioning above runs before this with no tenant set, like the platform-admin path.
+        services.GetRequiredService<CurrentTenantAccessor>().TenantId = provisioned.TenantId;
+
+        await SeedAsync(services, dbContext, clock, provisioned, demoAdminPassword, demoAdminEmail);
+
+        // The machine principal a migration reads this tenant WITH (ADR 0585). Seeded from configuration for the
+        // same reason as the interop tenant's: a service-account secret is shown once and stored hashed, so a
+        // recreated stack otherwise invalidates the tooling's saved credentials. Added after the sample tree so
+        // its ACL grant lands on a repository that already has content. No-op unless Demo:ServiceAccount:* is set.
+        if (await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "Demo", provisioned))
+        {
+            await dbContext.SaveChangesAsync();
+        }
+
+        // The unattended SETUP principal of the Demo tenant (ADR 0949): what the kiosk's messenger-seed.sh acts as —
+        // activating the Messenger, creating its repository, switching on self-service enrolment. Narrow on purpose
+        // (ADR 0870), apart from the migration account above: it manages modules and repositories and nothing else,
+        // and holds no grant — it is the creator, and so the owner, of the one repository it makes.
+        // No-op unless Demo:Setup:ServiceAccount:* is configured, which only the kiosk does.
+        if (await SeededServiceAccount.AddIfConfiguredAsync(services, dbContext, configuration, "Demo:Setup", provisioned.TenantId,
+                grantOn: null, rights: account => (account.CanManageModules, account.CanManageRepositories) = (true, true), grant: null))
+        {
+            await dbContext.SaveChangesAsync();
+        }
+
+        // The Flight School repository and its unattended setup principal (FlightSchool#85). No-op unless
+        // FlightSchoolDemo:ServiceAccount:* is configured, which only the kiosk and the module's local demo do.
+        await FlightSchoolDemoSetup.AddIfConfiguredAsync(services, dbContext, configuration, provisioned.TenantId,
+            provisioned.AdministratorId, clock.GetUtcNow());
+
+        // The Licensing Module demo's repositories and setup principal (ADR 0901). No-op unless
+        // LicensingDemo:ServiceAccount:* is configured, which only that module's local demo does.
+        await LicensingDemoSetup.AddIfConfiguredAsync(services, dbContext, configuration, provisioned.TenantId,
+            provisioned.AdministratorId, clock.GetUtcNow());
+    }
+
+    private static async Task SeedAsync(
+        IServiceProvider services, AlcifraDbContext dbContext, TimeProvider clock,
+        ProvisionedTenant provisioned, string demoPassword, string adminEmail)
+    {
+        var tenantId = provisioned.TenantId;
+        var adminId = provisioned.AdministratorId;
+        var repositoryId = provisioned.RepositoryId;
+        var objectStorage = services.GetRequiredService<IObjectStorageClient>();
+        // Demo versions are confirmed through the SAME finalizer an interactive upload uses (ADR 0545), so the
+        // demo exercises the real path and gets its automatic chat entries instead of a silent parallel one.
+        var finalizer = services.GetRequiredService<Documents.DocumentFinalizer>();
+        var assembly = typeof(DemoDataSeeder).Assembly;
+        var now = clock.GetUtcNow();
+
+        // Give the demo tenant a 250 MB storage quota (ADR "Per-tenant storage quota") — production tenants are
+        // provisioned with no quota (unlimited). Showcases the quota UI + enforcement from the single login.
+        var demoTenant = await dbContext.Tenants.SingleAsync(t => t.Id == tenantId);
+        demoTenant.StorageQuotaBytes = 250L * 1024 * 1024;
+
+        // External links ON for the DEMO tenant only (ADR 0546, issue #405). The product default stays false, so a
+        // real tenant still opts in deliberately — but the switch is checked at ACCESS time, so leaving it off here
+        // would make the seeded link below answer 410 to every visitor. A showcase that ships the feature switched
+        // off is not showing it.
+        demoTenant.AllowExternalLinks = true;
+        // The demo is a SHOWCASE, so it opts into revealing an existing link's URL (issue #412): the URL is the
+        // one artefact that makes "share a document with someone who has no account" concrete, and a visitor
+        // could not otherwise see one without creating it. Safe precisely here — the credentials are published,
+        // so a token exposed to a visitor gives away nothing they cannot already reach. Off for every real
+        // tenant by default.
+        demoTenant.ShowExternalLinkUrl = true;
+        await dbContext.SaveChangesAsync();
+
+        var folderMaskVersionId = await FolderMask.CurrentVersionIdAsync(dbContext, CancellationToken.None);
+
+        // The "Basic Entry" well-known mask (document type). It no longer has a required field (ADR "Drop redundant
+        // Short Description / Doc Date mask fields"), so no index data needs filling first. Give it a review SLA
+        // (ADR "Workflow escalation / SLA reminders") + a retention period (ADR "Retention policies") so the demo
+        // document appears on the Tasks + Retention schedules.
+        var basicEntryVersion = await dbContext.MaskVersions
+            .SingleAsync(v => v.MaskId == WellKnownMaskIds.BasicEntry && v.IsCurrent);
+        basicEntryVersion.ReviewSlaDays = 7;
+        basicEntryVersion.RetentionYears = 7;
+        await dbContext.SaveChangesAsync();
+
+        // ── The realistic filing tree (issue #354): Business Years / Contracts / General. Built first so the
+        // "Contracts / Acme Corp" customer folder + the month folders exist for the showcase documents below. ────
+        var (acmeCorp, march2026, telekomAgreement) = await SeedRichTreeAsync(dbContext, objectStorage, assembly, tenantId, repositoryId, adminId, now, basicEntryVersion.Id, folderMaskVersionId, finalizer);
+
+        // ── Showcase customer "Contracts / Acme Corp": an invoice ("Invoice 2026-003", document-dated March 2026)
+        // with a highlight + sticky note + stamp and in the approval workflow — so the demo login lands on live
+        // workflow + annotations — and *referenced* (multi-filed) into its Business-Years month; plus an offer
+        // ("Offer 2026-014", document-dated January 2026) with two PDF revisions for the Compare-versions feature. ─
+        var invoice = await AddDocumentAsync(dbContext, objectStorage, assembly, tenantId, acmeCorp.Id,
+            "Invoice 2026-003", adminId, now, basicEntryVersion.Id, "DemoInvoice.pdf", ".pdf", "application/pdf",
+            new DateOnly(2026, 3, 3), finalizer);
+        var invoiceVersion = await dbContext.DocumentVersions.SingleAsync(v => v.DocumentId == invoice.Id);
+
+        AddAnnotation(dbContext, tenantId, invoice.Id, invoiceVersion.Id, adminId, now, AnnotationKind.Highlight, 0.575, 0.490, 0.345, 0.030, string.Empty, "#ffd54a");
+        AddAnnotation(dbContext, tenantId, invoice.Id, invoiceVersion.Id, adminId, now, AnnotationKind.Note, 0.085, 0.300, 0.300, 0.085, "Line 1: price checked against the framework agreement ✓", "#fff59d");
+        // The stamp sits in the empty band BELOW the payment-terms box. It used to be at y=0.120, which put it
+        // squarely over the "RECHNUNG" heading — an approval stamp obscuring the word that says what the
+        // document is, in the screenshot the manual leads with.
+        AddAnnotation(dbContext, tenantId, invoice.Id, invoiceVersion.Id, adminId, now, AnnotationKind.Stamp, 0.620, 0.665, 0.230, 0.090, "APPROVED", "#2e7d32");
+        await dbContext.SaveChangesAsync();
+
+        await AddInReviewWorkflowAsync(dbContext, tenantId, invoiceVersion.Id, adminId, now);
+
+        // Multi-file the invoice into its Business-Years month — a shortcut in 2026 / 03 March (ADR "…move and reference").
+        await AddReferenceAsync(dbContext, tenantId, march2026.Id, invoice.Id, adminId, now);
+
+        // The seed's only MULTI-PAGE document (#492). Everything else here is a single page, which left preview
+        // paging, page reordering and the page-count column with nothing to work on — and left the patch-code
+        // sample batch unable to tell "cut at the separators" from "split every page".
+        await AddDocumentAsync(dbContext, objectStorage, assembly, tenantId, acmeCorp.Id,
+            "Maintenance agreement WV-2026-118", adminId, now, basicEntryVersion.Id,
+            "DemoMaintenanceAgreement.pdf", ".pdf", "application/pdf",
+            new DateOnly(2026, 3, 20), finalizer);
+
+        var offer = await AddDocumentAsync(dbContext, objectStorage, assembly, tenantId, acmeCorp.Id,
+            "Offer 2026-014", adminId, now.AddHours(-4), basicEntryVersion.Id, "DemoOfferV1.pdf", ".pdf", "application/pdf",
+            new DateOnly(2026, 1, 14), finalizer, "Initial draft sent to the customer.");
+        // v2 lands two hours after v1, and the conversation below follows it (#832): with every entry on one
+        // frozen instant, the thread's (CreatedAt, Id) order compared the messages' fixed ids against the
+        // system entries' random ones — a different order every boot, and the manual's chat figure with it.
+        // Every offset is NEGATIVE: the chronology lives strictly in the past, because a future-dated entry
+        // is a claim about time that has not happened, and due/overdue semantics may read it that way.
+        offer.CurrentVersionId = (await AddVersionAsync(dbContext, objectStorage, assembly, offer, adminId, now.AddHours(-2),
+            offer.StorageFolderId, "DemoOfferV2.pdf", ".pdf", "application/pdf",
+            new DateOnly(2026, 1, 14), finalizer, "Price corrected after the framework-agreement review.")).Id;
+        await dbContext.SaveChangesAsync();
+
+        // A small colour-coded tag catalog + a couple of tags on the invoice (ADR "Tag controlled vocabulary" 0422).
+        foreach (var (tagName, tagColor) in new[] { ("invoice", "#e53935"), ("contract", "#1e88e5"), ("urgent", "#fb8c00"), ("reviewed", "#43a047") })
+        {
+            dbContext.TagDefinitions.Add(new TagDefinition { Id = DemoId.For(tenantId, $"tag-def/{tagName}"), TenantId = tenantId, Name = tagName, Color = tagColor, CreatedAt = now });
+        }
+
+        foreach (var tagName in new[] { "invoice", "reviewed" })
+        {
+            dbContext.DocumentTags.Add(new DocumentTag { Id = DemoId.For(tenantId, $"tag/invoice/{tagName}"), TenantId = tenantId, DocumentId = invoice.Id, Tag = tagName, CreatedAt = now });
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        // ── Two extra users + a shared "Scan Team" group intray (the group-intray showcase, ADR 0532). ─────────────
+        var (annaId, tomId) = await SeedTeamAsync(
+            dbContext, objectStorage, assembly, tenantId, repositoryId, adminId, now, demoPassword, provisioned.AdministratorEmail);
+
+        // Materialize every advertised login's mailbox NOW, deterministically (#781). Left to first use, the
+        // mailbox and its standing folders would be minted with fresh GUIDs at whatever moment a visitor's
+        // client (or ingress mail) first touched them — which is exactly the identity churn this seed exists
+        // to remove. The admin's personal-space prefix matches the one ProvisionAsync already used, so the
+        // space provisioned there and the mailbox grown here wear one id family. The NOTEBOOK is deliberately
+        // NOT pre-created: a notes client creates it itself (#596), and its content is visitor-authored, so a
+        // reset genuinely recreates it — fresh ids are the honest answer there.
+        var mailboxes = services.GetRequiredService<Documents.PersonalMailboxProvisioner>();
+        foreach (var (userSlug, userId) in new[] { ("admin", adminId), ("anna", annaId), ("tom", tomId) })
+        {
+            await mailboxes.EnsureMailboxAsync(tenantId, userId, CancellationToken.None,
+                slug => DemoId.For(tenantId, $"personal/{userSlug}/{slug}"), createdAt: now);
+        }
+
+        // A real conversation on the offer (issue #380). The thread already carries the automatic entries — filed,
+        // each version saved (ADR 0545) — so this puts what PEOPLE said alongside them, which is what the pane
+        // actually looks like in use.
+        //
+        // Two authors and a REPLY are both deliberate: the reply exercises threading (the external-system feed
+        // export attaches a reply to its parent post, and a live run could not prove that path with an empty
+        // thread), and a second author means the identity card is demonstrably per-person rather than always the
+        // logged-in user.
+        var offerThread = new ChatMessage
+        {
+            Id = DemoId.For(tenantId, "chat/offer/1"),
+            TenantId = tenantId,
+            DocumentId = offer.Id,
+            Body = "Customer came back on the price — version 2 has the corrected figure.",
+            CreatedByUserId = adminId,
+            CreatedAt = now.AddHours(-1),
+        };
+        dbContext.ChatMessages.Add(offerThread);
+        dbContext.ChatMessages.Add(new ChatMessage
+        {
+            Id = DemoId.For(tenantId, "chat/offer/2"),
+            TenantId = tenantId,
+            DocumentId = offer.Id,
+            ParentMessageId = offerThread.Id,
+            Body = "Checked it against the framework agreement — the new figure is right.",
+            CreatedByUserId = annaId,
+            CreatedAt = now.AddMinutes(-30),
+        });
+        dbContext.ChatMessages.Add(new ChatMessage
+        {
+            Id = DemoId.For(tenantId, "chat/invoice/1"),
+            TenantId = tenantId,
+            DocumentId = invoice.Id,
+            Body = "Approved for payment — see the stamp on page 1.",
+            CreatedByUserId = adminId,
+            CreatedAt = now.AddMinutes(-45),
+        });
+        await dbContext.SaveChangesAsync();
+
+        // The Events department: an artist-booking tree with real contact cards and real concert schedules
+        // (#659). Its own class — a tab's worth of seed data belongs beside the tab it fills, and this file is
+        // on the standing size list.
+        // The demo domain becomes a REGISTERED mail domain (#703 PR 4, owner-decided 2026-08-23): without a
+        // TenantMailDomain, ingress answers 550 for every demo address and the seeded department mailbox
+        // could never demonstrate receiving. Derived from the admin's email (#432's rule) and written only
+        // when absent; #667 — the real admin surface for domains — stays open, this is the demo's shortcut.
+        var demoDomain = adminEmail.Split('@') is [_, var dd] && !string.IsNullOrWhiteSpace(dd) ? dd : "simplarchive.local";
+        await DeclaredMailDomain.EnsureAsync(
+            dbContext, tenantId, demoDomain, now,
+            services.GetService<ILoggerFactory>()?.CreateLogger(typeof(DemoDataSeeder)));
+
+        await DemoArtistsSeeder.SeedAsync(services, dbContext, objectStorage, tenantId, repositoryId, adminId, now, finalizer, $"events@{demoDomain}");
+
+        await SeedPersonalContactsAsync(services, dbContext, objectStorage, assembly, tenantId, adminId, now, finalizer);
+
+        await SeedExternalLinkAsync(dbContext, tenantId, telekomAgreement.Id, adminId, now,
+            "external-link/telekom-agreement", "simplarchive-demo-telekom-service-agreement-v1");
+    }
+
+    // A live external link on the Telekom service agreement (ADR 0546, issue #405), so the feature is something a
+    // visitor can click rather than read about. Three of its properties are deliberate:
+    //
+    // STATIC TOKEN. The kiosk re-seeds nightly from empty volumes, so a fresh random token would mint a new URL
+    // every night and break every link already shared, bookmarked or written into a demo script. Derived from a
+    // fixed string instead — see ExternalLinkToken.DeriveForDemoSeed for why that is safe here and nowhere else.
+    //
+    // 90 DAYS. Long enough that the nightly reset always refreshes it well before it lapses, so the demo is never
+    // dead the morning after. (Comfortably inside the tenant's own 180-day cap.)
+    //
+    // UNLIMITED ACCESSES. The tenant default is 5, which five curious visitors would exhaust — the same
+    // dead-demo problem in a different disguise, and one the reset would only fix the next day.
+    internal static async Task SeedExternalLinkAsync(
+        AlcifraDbContext dbContext, Guid tenantId, Guid documentId, Guid adminId, DateTimeOffset now,
+        string slug, string tokenSeed)
+    {
+        dbContext.ExternalLinks.Add(new ExternalLink
+        {
+            Id = DemoId.For(tenantId, slug),
+            TenantId = tenantId,
+            DocumentId = documentId,
+            Token = ExternalLinkToken.DeriveForDemoSeed(tokenSeed),
+            ExpiresAt = now.AddDays(90),
+            // null = unlimited, NOT the tenant's ExternalLinkDefaultAccesses.
+            MaxAccesses = null,
+            CreatedByUserId = adminId,
+            CreatedAt = now,
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    // The business-filing tree from issue #354. Returns the "Contracts / Acme Corp" customer folder + the
+    // "Business Years / 2026 / 03 March" month folder — the showcase invoice + offer are filed into Acme Corp and
+    // the invoice is also referenced (multi-filed) into March by the caller.
+    private static async Task<(Document AcmeCorp, Document March, Document TelekomAgreement)> SeedRichTreeAsync(
+        AlcifraDbContext dbContext, IObjectStorageClient storage, Assembly assembly,
+        Guid tenantId, Guid repositoryId, Guid adminId, DateTimeOffset now, Guid basicEntryVersionId, Guid? folderMaskVersionId,
+        Documents.DocumentFinalizer finalizer)
+    {
+        async Task<Document> FolderAsync(Guid parentId, string name, string slug) =>
+            await AddFolderAsync(dbContext, tenantId, parentId, name, adminId, now, folderMaskVersionId, slug);
+
+        Task<Document> DocAsync(Guid parentId, string name, string resource, string ext, string contentType, DateOnly date, DateTimeOffset? at = null) =>
+            AddDocumentAsync(dbContext, storage, assembly, tenantId, parentId, name, adminId, at ?? now, basicEntryVersionId, resource, ext, contentType, date, finalizer);
+
+        // Business Years / 2026 / 01..12 <Month>.
+        var businessYears = await FolderAsync(repositoryId, "Business Years", "business-years");
+        var year2026 = await FolderAsync(businessYears.Id, "2026", "business-years/2026");
+        string[] months = ["01 January", "02 February", "03 March", "04 April", "05 May", "06 June", "07 July", "08 August", "09 September", "10 October", "11 November", "12 December"];
+        var monthFolders = new Dictionary<int, Document>();
+        for (var i = 0; i < months.Length; i++)
+        {
+            monthFolders[i + 1] = await FolderAsync(year2026.Id, months[i], $"business-years/2026/{i + 1:00}");
+        }
+
+        // February holds the public-transport-ticket invoice (an .eml — exercises the email rendering path).
+        await DocAsync(monthFolders[2].Id, "Invoice for public transport ticket", "DemoTransportTicket.eml", ".eml", "message/rfc822", new DateOnly(2026, 2, 9));
+
+        // March holds the chocolate-gift invoice as a PDF with TWO versions + a highlight and a sticky note — a
+        // second Compare-versions + annotations sample living inside the Business Years tree (for the manual).
+        var chocolate = await DocAsync(monthFolders[3].Id, "Invoice for customer's chocolate gift", "DemoChocInvoiceV1.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 16), at: now.AddHours(-3));
+        var chocV2 = await AddVersionAsync(dbContext, storage, assembly, chocolate, adminId, now.AddHours(-1), chocolate.StorageFolderId, "DemoChocInvoiceV2.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 16), finalizer,
+            "Re-scanned — the first scan cut off the footer.");
+        chocolate.CurrentVersionId = chocV2.Id;
+        await dbContext.SaveChangesAsync();
+        AddAnnotation(dbContext, tenantId, chocolate.Id, chocV2.Id, adminId, now, AnnotationKind.Highlight, 0.560, 0.470, 0.360, 0.030, string.Empty, "#ffd54a");
+        AddAnnotation(dbContext, tenantId, chocolate.Id, chocV2.Id, adminId, now, AnnotationKind.Note, 0.085, 0.300, 0.300, 0.085, "v2: quantity corrected to 24 + gift wrapping added.", "#fff59d");
+        await dbContext.SaveChangesAsync();
+
+        // Contracts / …
+        var contracts = await FolderAsync(repositoryId, "Contracts", "contracts");
+        // Acme Corp — a customer folder holding their offer (2-version compare showcase) + an invoice; filled by
+        // the caller after this tree exists.
+        var acmeCorp = await FolderAsync(contracts.Id, "Acme Corp", "contracts/acme-corp");
+        var contoso = await FolderAsync(contracts.Id, "Contoso Cloud", "contracts/contoso-cloud");
+        await DocAsync(contoso.Id, "Contoso Cloud — 2026 cost forecast", "DemoContosoForecast.xlsx", ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", new DateOnly(2026, 1, 15));
+
+        var telekom = await FolderAsync(contracts.Id, "MyCountry Telekom", "contracts/telekom");
+        // Returned to the caller: this is the document the seeded external link shares (issue #405).
+        var telekomAgreement = await DocAsync(telekom.Id, "MyCountry Telekom — service agreement", "DemoTelekomContract.pdf", ".pdf", "application/pdf", new DateOnly(2026, 1, 1));
+
+        // The three monthly Telekom invoices live under Contracts/MyCountry Telekom/Invoices AND are *referenced*
+        // (a shortcut, ADR "…move and reference") into the matching Business Years month — the multi-filing showcase.
+        var telekomInvoices = await FolderAsync(telekom.Id, "Invoices", "contracts/telekom/invoices");
+        var invJan = await DocAsync(telekomInvoices.Id, "MyCountry Telekom invoice — January 2026", "DemoTelekomInvoiceJan.pdf", ".pdf", "application/pdf", new DateOnly(2026, 1, 1));
+        var invFeb = await DocAsync(telekomInvoices.Id, "MyCountry Telekom invoice — February 2026", "DemoTelekomInvoiceFeb.pdf", ".pdf", "application/pdf", new DateOnly(2026, 2, 1));
+        var invMar = await DocAsync(telekomInvoices.Id, "MyCountry Telekom invoice — March 2026", "DemoTelekomInvoiceMar.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 1));
+        await AddReferenceAsync(dbContext, tenantId, monthFolders[1].Id, invJan.Id, adminId, now);
+        await AddReferenceAsync(dbContext, tenantId, monthFolders[2].Id, invFeb.Id, adminId, now);
+        await AddReferenceAsync(dbContext, tenantId, monthFolders[3].Id, invMar.Id, adminId, now);
+
+        var rental = await FolderAsync(contracts.Id, "Rental Agreement", "contracts/rental-agreement");
+        await DocAsync(rental.Id, "Complaint letter — stairwell cleanliness", "DemoRentalComplaint.docx", ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", new DateOnly(2026, 3, 12));
+
+        // General / … (mostly filing folders; Templates holds the ODF templates).
+        var general = await FolderAsync(repositoryId, "General", "general");
+        foreach (var name in new[] { "Accounting", "Authorities", "Banks", "Employees", "Insurances" })
+        {
+            await FolderAsync(general.Id, name, $"general/{name.ToLowerInvariant()}");
+        }
+
+        var templates = await FolderAsync(general.Id, "Templates", "general/templates");
+        await DocAsync(templates.Id, "Letterhead template", "DemoLetterheadTemplate.odt", ".odt", "application/vnd.oasis.opendocument.text", new DateOnly(2026, 1, 1));
+        await DocAsync(templates.Id, "Invoice template", "DemoInvoiceTemplate.ods", ".ods", "application/vnd.oasis.opendocument.spreadsheet", new DateOnly(2026, 1, 1));
+
+        return (acmeCorp, monthFolders[3], telekomAgreement);
+    }
+
+    // Two extra users (an editor + a clerk) and a shared "Scan Team" group with a seeded group-intray item — so the
+    // group-intray feature (ADR 0532) is live on the demo login: the admin (CanManageIntrays) can open the users'
+    // intrays and the Scan Team group intray shows an unfiled scan waiting to be picked up.
+    /// <summary>
+    /// Gives the demo logins the SAME known password for WebDAV/CalDAV/CardDAV and IMAP that they use to log in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both are APP-SPECIFIC credentials that normally do not exist until a user generates one — deliberately,
+    /// so the real login password is never typed into an OS keychain. That is right for a product and wrong for
+    /// a demo: it means nobody can mount the drive or add the mailbox without first finding two dialogs, which
+    /// is exactly the thing a visitor is least likely to do and most worth showing.
+    /// </para>
+    /// <para>
+    /// Set only when ABSENT. Two reasons, and the second is the one that bites: a visitor who rotated their own
+    /// credential keeps it, and an EXISTING volume is healed rather than skipped — a grow-later seed that only
+    /// touches rows it just created strands every user who was already there (#574's lesson).
+    /// </para>
+    /// <para>
+    /// Demo-only by construction: this whole seeder runs only when <c>Demo:*</c> is configured, so a production
+    /// deployment never reaches it.
+    /// </para>
+    /// </remarks>
+    /// <summary>
+    /// Repairs seeded e-mails on an EXISTING volume that were filed before auto-classification ran (#1272).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The general defect is the idempotent seed itself.</b> A seeder that only ever touches rows it just
+    /// created strands every volume that already exists, so any improvement to seeded data — richer metadata,
+    /// a corrected date, a new field — reaches only volumes created afterwards. The same lesson as #574's
+    /// credential heal above, and the reason that one is written the way it is.
+    /// </para>
+    /// <para>
+    /// <b>How it surfaced.</b> The demo's e-mail showed a document date with NO TIME, which is not what an
+    /// e-mail looks like. It was not a seeder bug: a fresh volume produces the eMail mask, five index fields
+    /// and 07:14 from the message header. The volume was ten days old and predated the seeder being routed
+    /// through <c>DocumentFinalizer</c> at all, so the row had never been classified and never would be.
+    /// </para>
+    /// <para>
+    /// <b>Scope is narrow on purpose, because a heal can destroy data.</b> Only documents in the demo tenant
+    /// whose latest version is an <c>.eml</c>/<c>.msg</c>, which still carry a GENERIC mask AND have NO index
+    /// values at all — a state fresh seeding cannot produce and a person is most unlikely to have created.
+    /// Everything it then writes is machine-derived from the message itself. A heal that re-applied the seeder
+    /// wholesale would be a data-loss bug wearing a fix's clothes.
+    /// </para>
+    /// <para>
+    /// Demo-only by construction: this seeder runs only when <c>Demo:*</c> is configured.
+    /// </para>
+    /// </remarks>
+    private static async Task HealUnclassifiedEmailsAsync(
+        IServiceProvider services, AlcifraDbContext dbContext, string demoTenantName,
+        CancellationToken cancellationToken)
+    {
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("Alcifra.Api.Provisioning.DemoDataSeeder");
+
+        var tenantId = await dbContext.Tenants.IgnoreQueryFilters(["TenantFilter"])
+            .Where(t => t.Name == demoTenantName).Select(t => t.Id).SingleOrDefaultAsync(cancellationToken);
+        if (tenantId == Guid.Empty)
+        {
+            return;
+        }
+
+        var candidates = await dbContext.DocumentVersions.IgnoreQueryFilters(["TenantFilter"])
+            .Where(v => v.TenantId == tenantId
+                && v.Status == DocumentVersionStatus.Confirmed
+                && (v.ObjectKey.EndsWith(".eml") || v.ObjectKey.EndsWith(".msg"))
+                && !dbContext.FieldValues.Any(f => f.DocumentId == v.DocumentId))
+            .ToListAsync(cancellationToken);
+
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        // THE TENANT HAS TO BE ESTABLISHED FIRST, and this is where the heal would have failed at startup.
+        // Every ITenantScoped read goes through the tenant query filter, and on this path — an EXISTING volume
+        // — nothing has set the accessor: the fresh-volume path sets it further down, after the early return
+        // above. Without this the finalizer's own document lookup matches zero rows and throws "Sequence
+        // contains no elements" from inside classification, which reads as a corrupt document rather than as a
+        // missing ambient value. Found by the test, before it ever passed.
+        var tenants = services.GetRequiredService<CurrentTenantAccessor>();
+        var previous = tenants.TenantId;
+        tenants.TenantId = tenantId;
+        try
+        {
+            var finalizer = services.GetRequiredService<Documents.DocumentFinalizer>();
+            var healed = 0;
+            foreach (var version in candidates)
+            {
+                // The generic-mask check is asked HERE rather than in the query because it is a rule about
+                // well-known mask ids resolved per tenant, not a column — and AutoClassifyAsync asks it again
+                // anyway, so a document classified since simply returns false and is skipped.
+                if (await finalizer.ReclassifyAsync(version, cancellationToken))
+                {
+                    healed++;
+                }
+            }
+
+            if (healed > 0)
+            {
+                logger.LogInformation(
+                    "Healed {Count} seeded e-mail(s) on an existing demo volume: they were filed before "
+                    + "auto-classification ran, so they carried no mask and no index data (#1272).",
+                    healed);
+            }
+        }
+        finally
+        {
+            // Restored rather than left set: this runs during startup, in a scope other steps share, and an
+            // ambient tenant nobody set deliberately is how a later step silently reads the wrong rows.
+            tenants.TenantId = previous;
+        }
+    }
+
+    internal static async Task EnableDavAndImapAsync(
+        AlcifraDbContext dbContext, PasswordHasher<User> hasher, string demoPassword, Guid[] userIds)
+    {
+        foreach (var user in await dbContext.Users.Where(u => userIds.Contains(u.Id)).ToListAsync())
+        {
+            user.WebDavPasswordHash ??= hasher.HashPassword(user, demoPassword);
+            user.ImapPasswordHash ??= hasher.HashPassword(user, demoPassword);
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task<(Guid AnnaId, Guid TomId)> SeedTeamAsync(
+        AlcifraDbContext dbContext, IObjectStorageClient storage, Assembly assembly,
+        Guid tenantId, Guid repositoryId, Guid adminId, DateTimeOffset now, string demoPassword, string adminEmail)
+    {
+        var hasher = new PasswordHasher<User>();
+
+        // The extra logins take the ADMIN's domain rather than a hardcoded one, so a deployment that renames the
+        // demo admin (the kiosk uses @simplarchive.dev, local Compose @simplarchive.local) doesn't end up handing
+        // visitors three credentials straddling two domains — the READMEs list all three side by side (issue #432).
+        var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "simplarchive.local";
+
+        User MakeUser(string localPart, string displayName)
+        {
+            var user = new User { Id = DemoId.For(tenantId, $"user/{localPart}"), TenantId = tenantId, Email = $"{localPart}@{domain}", DisplayName = displayName, IsActive = true, CreatedAt = now, ImapShowAllDocuments = true };
+            user.PasswordHash = hasher.HashPassword(user, demoPassword); // same known demo password, so they can log in too
+            return user;
+        }
+
+        var anna = MakeUser("anna", "Anna Meyer");
+        var tom = MakeUser("tom", "Tom Fischer");
+        dbContext.Users.Add(anna);
+        dbContext.Users.Add(tom);
+
+        var scanTeam = new Group { Id = DemoId.For(tenantId, "group/scan-team"), TenantId = tenantId, Name = "Scan Team" };
+        dbContext.Groups.Add(scanTeam);
+        await dbContext.SaveChangesAsync();
+
+        await EnableDavAndImapAsync(dbContext, hasher, demoPassword, [adminId, anna.Id, tom.Id]);
+
+        // Admin + both users are members, so the admin sees the Scan Team group intray on the demo login.
+        foreach (var userId in new[] { adminId, anna.Id, tom.Id })
+        {
+            dbContext.GroupMemberships.Add(new GroupMembership { TenantId = tenantId, UserId = userId, GroupId = scanTeam.Id });
+        }
+
+        // Give the group read/work access to the demo repository so its members can actually see and file into it.
+        dbContext.AclEntries.Add(new AclEntry
+        {
+            Id = DemoId.For(tenantId, "acl/repository/scan-team"),
+            TenantId = tenantId,
+            DocumentId = repositoryId,
+            GroupId = scanTeam.Id,
+            CanSee = true,
+            CanReadContent = true,
+            CanEditContent = true,
+            CanEditIndexData = true,
+            CanCreateSubItems = true,
+            CreatedAt = now,
+        });
+        await dbContext.SaveChangesAsync();
+
+        // One unfiled scan sitting in the Scan Team group intray (a raw object under the group's intray prefix, ADR
+        // 0532) — so the group-intray view isn't empty and "pick it up" / Send-to are demonstrable live.
+        var scanBytes = await ReadResourceAsync(assembly, "DemoTelekomInvoiceMar.pdf");
+        using var content = new MemoryStream(scanBytes);
+        await storage.PutObjectAsync($"{Alcifra.Application.Abstractions.ObjectKeyPrefixes.GroupInbox(tenantId, scanTeam.Id)}scan-2026-03-intray.pdf", content, "application/pdf");
+
+        return (anna.Id, tom.Id);
+    }
+
+    // ── helpers ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    internal static async Task<Document> AddFolderAsync(
+        AlcifraDbContext dbContext, Guid tenantId, Guid parentId, string name, Guid adminId, DateTimeOffset at, Guid? folderMaskVersionId, string slug)
+    {
+        var folder = new Document
+        {
+            // The SLUG, not the display name, is the identity (#781) — renaming a seeded folder must not
+            // change what a client cached about it.
+            Id = DemoId.For(tenantId, $"folder/{slug}"),
+            TenantId = tenantId,
+            ParentId = parentId,
+            Name = name,
+            MaskVersionId = folderMaskVersionId ?? Guid.Empty,
+            CreatedByUserId = adminId,
+            CreatedAt = at,
+        };
+        dbContext.Documents.Add(folder);
+        await dbContext.SaveChangesAsync();
+        return folder;
+    }
+
+    internal static async Task<Document> AddDocumentAsync(
+        AlcifraDbContext dbContext, IObjectStorageClient storage, Assembly assembly,
+        Guid tenantId, Guid parentId, string name, Guid adminId, DateTimeOffset at, Guid? maskVersionId,
+        string resourceName, string ext, string contentType, DateOnly documentDate,
+        Documents.DocumentFinalizer finalizer, string? comment = null)
+    {
+        // The embedded-resource stem is the identity (#781): a code-level literal, unique per seeded document,
+        // and stable when the DISPLAY name changes — the same "stable by construction" rule as
+        // DemoArtistsSeeder's demo-artist-{slug} UIDs.
+        var stem = Path.GetFileNameWithoutExtension(resourceName);
+        var storageFolderId = DemoId.For(tenantId, $"doc/{stem}/storage");
+        var document = new Document
+        {
+            Id = DemoId.For(tenantId, $"doc/{stem}"),
+            TenantId = tenantId,
+            ParentId = parentId,
+            Name = name,
+            MaskVersionId = maskVersionId ?? Guid.Empty,
+            CreatedByUserId = adminId,
+            CreatedAt = at,
+            StorageFolderId = storageFolderId,
+        };
+        dbContext.Documents.Add(document);
+        await dbContext.SaveChangesAsync();
+
+        await AddVersionAsync(dbContext, storage, assembly, document, adminId, at, storageFolderId, resourceName, ext, contentType, documentDate, finalizer, comment);
+        return document;
+    }
+
+    internal static async Task<DocumentVersion> AddVersionAsync(
+        AlcifraDbContext dbContext, IObjectStorageClient storage, Assembly assembly,
+        Document document, Guid adminId, DateTimeOffset at, Guid storageFolderId,
+        string resourceName, string ext, string contentType, DateOnly documentDate,
+        Documents.DocumentFinalizer finalizer, string? comment = null)
+    {
+        var bytes = await ReadResourceAsync(assembly, resourceName);
+        var versionId = DemoId.For(document.TenantId, $"version/{Path.GetFileNameWithoutExtension(resourceName)}");
+        var objectKey = ObjectKeyBuilder.Build(document.TenantId, document.CreatedAt, storageFolderId, versionId, ext);
+        using (var content = new MemoryStream(bytes))
+        {
+            await storage.PutObjectAsync(objectKey, content, contentType);
+        }
+
+        // Created PENDING and confirmed through DocumentFinalizer — the same path an interactive upload takes,
+        // rather than a parallel one that writes a Confirmed row directly. That is what gives the demo its
+        // automatic chat entries (ADR 0545): the seeder produced none precisely because it bypassed the finalizer.
+        //
+        // The finalizer owns what it computes, so the fields below are deliberately NOT set here: it assigns the
+        // version number (from the existing versions, which yields the same sequence the callers used to pass),
+        // hashes the blob server-side from object storage rather than trusting a value we hand it, and stamps
+        // SizeBytes. It also counts the blob toward the demo tenant's 250 MB quota, so the quota UI now shows
+        // real usage instead of zero.
+        var version = new DocumentVersion
+        {
+            Id = versionId,
+            TenantId = document.TenantId,
+            DocumentId = document.Id,
+            Status = DocumentVersionStatus.Pending,
+            ObjectKey = objectKey,
+            CreatedByUserId = adminId,
+            DocumentDate = documentDate,
+            CreatedAt = at,
+            // The check-in comment — why this version exists. Deliberately not set on every version: the feed
+            // renders "Version N" with the comment beneath it when there is one and just "Version N" when there
+            // isn't, and the demo should show both (issue #380).
+            Comment = comment,
+        };
+        // ONE unit of work per seeded document (#1171) — see DemoArtistsSeeder for why the seeders matter here.
+        await finalizer.FileAsync(version, CancellationToken.None);
+        return version;
+    }
+
+    internal static void AddAnnotation(
+        AlcifraDbContext dbContext, Guid tenantId, Guid documentId, Guid versionId, Guid adminId, DateTimeOffset at,
+        AnnotationKind kind, double x, double y, double width, double height, string text, string color)
+    {
+        dbContext.DocumentAnnotations.Add(new DocumentAnnotation
+        {
+            Id = DemoId.For(tenantId, $"annotation/{documentId}/{kind}/{x},{y}"),
+            TenantId = tenantId,
+            DocumentId = documentId,
+            DocumentVersionId = versionId,
+            PageIndex = 0,
+            Kind = kind,
+            PositionX = x,
+            PositionY = y,
+            Width = width,
+            Height = height,
+            Text = text,
+            Color = color,
+            CreatedByUserId = adminId,
+            CreatedAt = at,
+            UpdatedAt = at,
+        });
+    }
+
+    internal static async Task AddInReviewWorkflowAsync(
+        AlcifraDbContext dbContext, Guid tenantId, Guid versionId, Guid adminId, DateTimeOffset now)
+    {
+        var workflowState = new WorkflowState
+        {
+            Id = DemoId.For(tenantId, $"workflow/{versionId}"),
+            TenantId = tenantId,
+            DocumentVersionId = versionId,
+            Status = WorkflowStatus.InReview,
+            AssignedToUserId = adminId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            // Hand-set overdue (deadline yesterday) so the demo Tasks tab shows the overdue badge and the
+            // escalation sweep has something to act on (ADR "Workflow escalation / SLA reminders").
+            DueAt = now.AddDays(-1),
+        };
+        dbContext.WorkflowStates.Add(workflowState);
+        dbContext.WorkflowTransitions.Add(new WorkflowTransition
+        {
+            Id = DemoId.For(tenantId, $"workflow/{versionId}/t1"),
+            TenantId = tenantId,
+            WorkflowStateId = workflowState.Id,
+            FromStatus = WorkflowStatus.Draft,
+            ToStatus = WorkflowStatus.InReview,
+            AssignedToUserId = adminId,
+            PerformedByUserId = adminId,
+            CreatedAt = now,
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
+    internal static async Task AddReferenceAsync(
+        AlcifraDbContext dbContext, Guid tenantId, Guid parentFolderId, Guid targetDocumentId, Guid adminId, DateTimeOffset at)
+    {
+        dbContext.DocumentReferences.Add(new DocumentReference
+        {
+            Id = DemoId.For(tenantId, $"ref/{parentFolderId}/{targetDocumentId}"),
+            TenantId = tenantId,
+            ParentFolderId = parentFolderId,
+            TargetDocumentId = targetDocumentId,
+            CreatedByUserId = adminId,
+            CreatedAt = at,
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Puts two real contacts in the demo user's own addressbook (#648).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Contacts tab shipped with nothing to look at: a personal addressbook is provisioned empty, so the
+    /// tab that took a slice of work to build opened blank on the kiosk and read as unfinished.
+    /// </para>
+    /// <para>
+    /// These two are chosen rather than invented. They are real aviation weather-broadcast numbers, and both
+    /// carry an <c>X-ABShowAs:COMPANY</c> the structured form does not model — so they are also the demo of the
+    /// raw disclosure, which has nothing to show on a card this product composed itself.
+    /// </para>
+    /// <para>
+    /// Added MASKLESS on purpose: an addressbook admits only Contacts, and the finalizer is what classifies a
+    /// <c>.vcf</c> and extracts its index fields. Stamping a mask here would be guessing at what classification
+    /// is about to decide, and the guess an addressbook refuses.
+    /// </para>
+    /// </remarks>
+    private static async Task SeedPersonalContactsAsync(
+        IServiceProvider services, AlcifraDbContext dbContext, IObjectStorageClient storage, Assembly assembly,
+        Guid tenantId, Guid adminId, DateTimeOffset now, Documents.DocumentFinalizer finalizer)
+    {
+        // The personal space is provisioned on demand — for the demo user it does not exist until something
+        // asks for it, and this is that something. Idempotent, so a restart against an existing volume is safe.
+        var personal = await services.GetRequiredService<Documents.PersonalRepositoryProvisioner>()
+            .EnsureAsync(adminId, tenantId, CancellationToken.None,
+                slug => DemoId.For(tenantId, $"personal/admin/{slug}"), createdAt: now);
+
+        var addressbookId = await dbContext.Documents
+            .Where(d => d.ParentId == personal.Id && d.Name == PersonalFolders.MyAddressbook)
+            .Select(d => (Guid?)d.Id)
+            .SingleOrDefaultAsync();
+        if (addressbookId is not { } bookId)
+        {
+            return;
+        }
+
+        foreach (var (name, resource) in new[]
+                 {
+                     ("VOLMET Geneva", "DemoVolmetGeneva.vcf"),
+                     ("VOLMET Zurich", "DemoVolmetZurich.vcf"),
+                 })
+        {
+            // Grow-later seeds strand data that is already there, so this checks rather than assuming an empty
+            // book: the kiosk resets daily but a developer's volume does not.
+            if (await dbContext.Documents.AnyAsync(d => d.ParentId == bookId && d.Name == name))
+            {
+                continue;
+            }
+
+            await AddDocumentAsync(
+                dbContext, storage, assembly, tenantId, bookId, name, adminId, now, maskVersionId: null,
+                resource, ".vcf", "text/vcard", DateOnly.FromDateTime(now.UtcDateTime), finalizer);
+        }
+    }
+
+    internal static async Task<byte[]> ReadResourceAsync(Assembly assembly, string logicalName)
+    {
+        await using var resource = assembly.GetManifestResourceStream(logicalName)
+            ?? throw new InvalidOperationException($"Embedded resource {logicalName} was not found.");
+        using var buffer = new MemoryStream();
+        await resource.CopyToAsync(buffer);
+        return buffer.ToArray();
+    }
+}

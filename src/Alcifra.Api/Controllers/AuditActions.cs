@@ -1,0 +1,374 @@
+namespace Alcifra.Api.Controllers;
+
+/// <summary>
+/// Stable audit action codes (ADR "Audit trail (first slice)") — the <c>AuditEvent.Action</c> values. Kept
+/// as constants so recording sites and any future filtering share one vocabulary.
+/// </summary>
+public static class AuditActions
+{
+    public const string AclGranted = "Acl.Granted";
+    public const string AclRevoked = "Acl.Revoked";
+    public const string AclInheritanceBroken = "Acl.InheritanceBroken";
+    public const string AclInheritanceRestored = "Acl.InheritanceRestored";
+
+    public const string DocumentDeleted = "Document.Deleted";
+    public const string DocumentRestored = "Document.Restored";
+
+    /// <summary>A set-aside intray copy was put back over the live item (#799).</summary>
+    /// <remarks>
+    /// Recorded because it REPLACES somebody's current bytes: the trail should be able to answer "where did
+    /// this file come from" when the answer is "a recovery", and the restore is the only act in the intray
+    /// that overwrites on purpose.
+    /// </remarks>
+    public const string IntrayItemRestored = "Intray.ItemRestored";
+    public const string DocumentMoved = "Document.Moved";
+
+    // Document content/metadata lifecycle (ADR "Audit every-mutation coverage — document lifecycle").
+    public const string DocumentCreated = "Document.Created";
+    public const string RepositoryCreated = "Repository.Created";
+    public const string DocumentRenamed = "Document.Renamed";
+    public const string DocumentVersionAdded = "Document.VersionAdded";
+
+    public const string DocumentVersionRestored = "Document.VersionRestored";
+    public const string DocumentMaskAssigned = "Document.MaskAssigned";
+    public const string DocumentMaskCleared = "Document.MaskCleared";
+    public const string DocumentIndexDataUpdated = "Document.IndexDataUpdated";
+
+    // An email attachment was refused by the upload content policy and not archived (ADR 0718). Recorded
+    // against the EMAIL, naming the attachment: the message survives, so the audit trail is where an
+    // administrator finds out what did not come with it.
+    public const string DocumentAttachmentRefused = "Document.AttachmentRefused";
+
+    // External-system correlation key set/cleared on a document (ADR 0520).
+    public const string DocumentOriginSet = "Document.OriginSet";
+    public const string DocumentOriginCleared = "Document.OriginCleared";
+
+    public const string DocumentTagsUpdated = "Document.TagsUpdated";
+    public const string DocumentDateChanged = "Document.DocumentDateChanged";
+    public const string DocumentContentsSortOrderChanged = "Document.ContentsSortOrderChanged";
+    public const string DocumentOcrLanguagesChanged = "Document.OcrLanguagesChanged";
+
+    // The user forced a searchable-PDF conversion, overruling the detector (#999).
+    public const string DocumentOcrForced = "Document.OcrForced";
+    // The data-classification / sensitivity label changed (ADR "Data classification / sensitivity labels").
+    public const string DocumentSensitivityChanged = "Document.SensitivityChanged";
+
+    // Collaboration events (ADR "Audit collaboration events" — the second half of every-mutation coverage).
+    // Renamed from "Comment.Posted" with the rest of the model (issue #382). Changing a stored audit value is
+    // normally the wrong move — the log is append-only and hash-chained, and its segments go to WORM storage, so
+    // past events genuinely cannot be rewritten and one activity would end up with two irreconcilable names. It
+    // is done here only because no deployment carries productive audit data yet, which is the single window in
+    // which this is free. Once one does, this constant's value is frozen.
+    public const string ChatMessagePosted = "Chat.MessagePosted";
+    // External links (ADR 0546). Accessed is raised with an ExternalLink actor and NO principal; the others are
+    // ordinary user actions. The token never appears in an event — the link id identifies the row instead.
+    public const string ExternalLinkCreated = "ExternalLink.Created";
+    public const string ExternalLinkAccessed = "ExternalLink.Accessed";
+    public const string ExternalLinkExtended = "ExternalLink.Extended";
+    public const string ExternalLinkRevoked = "ExternalLink.Revoked";
+
+    // Raised when an existing link's URL is read back, which is possible only where the tenant opted in
+    // (Tenant.ShowExternalLinkUrl, issue #412). Worth recording precisely because the token normally never
+    // leaves the create response: once it can be retrieved, "who else obtained this URL" becomes a real
+    // question, and it is the one asked after a link turns up somewhere it should not have.
+    public const string ExternalLinkUrlViewed = "ExternalLink.UrlViewed";
+    public const string ReferenceAdded = "Reference.Added";
+    public const string ReferenceRemoved = "Reference.Removed";
+
+    /// <summary>A reference relocated between folders — the appearance moved, the document did not (#802).</summary>
+    public const string ReferenceMoved = "Reference.Moved";
+    public const string AnnotationAdded = "Annotation.Added";
+    public const string AnnotationEdited = "Annotation.Edited";
+    public const string AnnotationRemoved = "Annotation.Removed";
+    // Permanent removal of a recycle-bin document (ADR "Manual hard-delete / purge").
+    public const string DocumentPurged = "Document.Purged";
+    // Filed from the intray — as a new document in a folder or as a new version of an existing one (ADR "Audit
+    // tenant-settings, inbox filing + personal-repository creation").
+    public const string DocumentFiled = "Document.Filed";
+    // Import of an archive's root (ADR "Repository import").
+    public const string DocumentImported = "Document.Imported";
+    // An offline export (ADR 0927): what one caller may read, onto their device for the offline copy.
+    public const string DocumentOfflineExported = "Document.OfflineExported";
+    // The password store (ADR 0964): a personal store created on first use, and every change to an entry's sealed
+    // content — its NAME, never a field or a recipient's key. A deletion is the delete door's own Document.Deleted.
+    public const string PasswordStoreCreated = "PasswordStore.Created";
+    public const string PasswordEntryCreated = "PasswordEntry.Created";
+    public const string PasswordEntryChanged = "PasswordEntry.Changed";
+    public const string PasswordEntryResealed = "PasswordEntry.Resealed";
+    // Encrypted content's audience (ADR 0983): a manager changed who is meant to decrypt a store or a Sealed document,
+    // or a tenant administrator appointed a manager to one left without any. Names and counts, never a certificate.
+    public const string ContentAudienceChanged = "ContentAudience.Changed";
+    public const string ContentAudienceManagerAppointed = "ContentAudience.ManagerAppointed";
+    // A revoked certificate can read the entry's current version: the server marked it "Exposed since" (ADR 0964).
+    public const string PasswordEntryExposed = "PasswordEntry.Exposed";
+    // An entry that received no content within a day of its creation, removed by the sweep (ADR 0964).
+    public const string PasswordEntryAbandonedRemoved = "PasswordEntry.AbandonedRemoved";
+    // Auto-disposed by the retention sweep (ADR "Retention policies (auto-disposition)"). Also used as a literal
+    // in Infrastructure's RetentionService, which can't reference this Api-layer class.
+    public const string DocumentRetentionDisposed = "Document.RetentionDisposed";
+
+    // A records manager extended a document's retention during disposition review (ADR "Retention
+    // review-before-disposition").
+    public const string DocumentRetentionExtended = "Document.RetentionExtended";
+    // Check-out (exclusive edit lock) — ADR "Document check-out / check-in".
+    public const string DocumentCheckedOut = "Document.CheckedOut";
+
+    // A save-by-rename edit through the WebDAV mount took the lock without anyone pressing "check out"
+    // (ADR 0562). The detail carries the client's User-Agent — evidence of WHAT did it, never a condition.
+    public const string DocumentCheckedOutImplicitly = "Document.CheckedOutImplicitly";
+    public const string DocumentCheckedIn = "Document.CheckedIn";
+    // The holder (or a CanOverrideCheckout admin) reset a check-out's idle timer (ADR "Self-service check-out
+    // extension").
+    public const string DocumentCheckoutExtended = "Document.CheckoutExtended";
+    // A CanOverrideCheckout holder force-released someone else's lock.
+    public const string DocumentCheckoutOverridden = "Document.CheckoutOverridden";
+    // The background sweep auto-released a check-out idle past the tenant's TTL (ADR "Stale check-out
+    // auto-release sweep"). Actor is System; mirrored as a literal in StaleCheckoutService.
+    public const string DocumentCheckoutExpired = "Document.CheckoutExpired";
+
+    public const string LegalHoldPlaced = "LegalHold.Placed";
+    public const string LegalHoldReleased = "LegalHold.Released";
+    public const string LegalHoldItemAdded = "LegalHold.ItemAdded";
+    public const string LegalHoldItemRemoved = "LegalHold.ItemRemoved";
+
+    public const string WorkflowSubmitted = "Workflow.Submitted";
+    public const string WorkflowApproved = "Workflow.Approved";
+    public const string WorkflowRejected = "Workflow.Rejected";
+    public const string WorkflowReleased = "Workflow.Released";
+    public const string WorkflowReassigned = "Workflow.Reassigned";
+
+    public const string UserCreated = "User.Created";
+    public const string UserDeactivated = "User.Deactivated";
+    public const string UserReactivated = "User.Reactivated";
+    public const string UserRightsChanged = "User.RightsChanged";
+    public const string UserEmailChanged = "User.EmailChanged";
+    public const string UserPasswordChanged = "User.PasswordChanged";
+    public const string UserPasswordReset = "User.PasswordReset";
+    public const string UserMfaEnabled = "User.MfaEnabled";
+    public const string UserMfaDisabled = "User.MfaDisabled";
+    public const string UserMfaReset = "User.MfaReset";
+    public const string PasskeyRegistered = "User.PasskeyRegistered";
+    public const string PasskeyRemoved = "User.PasskeyRemoved";
+
+    public const string GroupCreated = "Group.Created";
+    public const string GroupDeleted = "Group.Deleted";
+    public const string GroupRightsChanged = "Group.RightsChanged";
+    public const string GroupMemberAdded = "Group.MemberAdded";
+    public const string GroupMemberRemoved = "Group.MemberRemoved";
+
+    public const string ServiceAccountCreated = "ServiceAccount.Created";
+    public const string ServiceAccountUpdated = "ServiceAccount.Updated";
+    public const string ServiceAccountSecretRotated = "ServiceAccount.SecretRotated";
+    public const string ServiceAccountRevoked = "ServiceAccount.Revoked";
+
+    public const string TenantCreated = "Tenant.Created";
+
+    /// <summary>A batch of a tenant's objects moved to its bucket under the current prefix (ADR 1000).</summary>
+    public const string TenantStorageMigrated = "Tenant.StorageMigrated";
+
+    // A tenant admin changed ONE GROUP of the tenant's self-service settings (#530 tranche 10, per-group
+    // sub-resources) — the details carry the field-level before→after changes (webhook secret redacted). One
+    // action per group, so the trail reads as intent ("changed check-out policy") rather than "saved settings".
+    public const string TenantSettingsGeneralUpdated = "Tenant.SettingsGeneralUpdated";
+    public const string TenantSettingsCaptureUpdated = "Tenant.SettingsCaptureUpdated";
+    public const string TenantSettingsStandardRepositoryUpdated = "Tenant.SettingsStandardRepositoryUpdated";
+    public const string TenantSettingsSecurityUpdated = "Tenant.SettingsSecurityUpdated";
+    public const string TenantSettingsCertificatesUpdated = "Tenant.SettingsCertificatesUpdated";
+    public const string TenantOfflineCachePolicyUpdated = "Tenant.OfflineCachePolicyUpdated";
+    public const string TenantRecoveryCertificateSet = "Tenant.RecoveryCertificateSet";
+    public const string TenantSettingsRecordsUpdated = "Tenant.SettingsRecordsUpdated";
+    public const string TenantSettingsCheckoutUpdated = "Tenant.SettingsCheckoutUpdated";
+    public const string TenantSettingsStorageUpdated = "Tenant.SettingsStorageUpdated";
+    public const string TenantSettingsMailUpdated = "Tenant.SettingsMailUpdated";
+
+    /// <summary>The tenant's own outbound SMTP account was changed (#1337).</summary>
+    /// <remarks>
+    /// Recorded like every other settings group — and worth more than most, because it decides WHICH ACCOUNT
+    /// this tenant's mail leaves through. "Why did our notifications start arriving from a different sender"
+    /// is a question the trail should answer.
+    /// </remarks>
+    public const string TenantSettingsOutboundMailUpdated = "Tenant.SettingsOutboundMailUpdated";
+    public const string TenantSettingsExternalLinksUpdated = "Tenant.SettingsExternalLinksUpdated";
+    public const string TenantSettingsAuditStreamingUpdated = "Tenant.SettingsAuditStreamingUpdated";
+
+    // A tenant admin listed the tenant's users' personal spaces (ADR "Tenant-admin Administration → Users view")
+    // — admin access to private spaces is recorded, not silent.
+    public const string AdminViewedPersonalSpaces = "Admin.ViewedPersonalSpaces";
+
+    // An administrator granted themselves full rights on a user's personal space (ADR 0672). Actor = the
+    // administrator, target = the personal repository. The heaviest thing this surface can do, so it is
+    // recorded as its own action rather than folded into Acl.Granted.
+    public const string PersonalSpaceTakenOver = "PersonalSpace.TakenOver";
+
+    // Mailbox address claims (#703). Claim + release cover every list edit; the explicit fan-out override is
+    // its own action because "an admin decided two mailboxes receive this address" is the fact an auditor
+    // hunts for — buried inside a generic index-data entry it would be invisible.
+    public const string MailboxAddressClaimed = "Mailbox.AddressClaimed";
+    public const string MailboxAddressReleased = "Mailbox.AddressReleased";
+    public const string MailboxDuplicateClaimConfirmed = "Mailbox.DuplicateClaimConfirmed";
+
+    // Mail-domain registration (#667). All three are recorded, and the REMOVAL most of all: it stops mail
+    // arriving for everyone at that domain, immediately and silently, which is a change whose effect is only
+    // ever noticed by its absence.
+    public const string MailDomainClaimed = "MailDomain.Claimed";
+    public const string MailDomainVerified = "MailDomain.Verified";
+    public const string MailDomainRemoved = "MailDomain.Removed";
+
+    // Industry-module activation (ADR 0740): the licensing act. There is deliberately no "Module.Deactivated"
+    // event — deactivation is derived from the license's end date at every ask, so no moment exists to record.
+    public const string ModuleActivated = "Module.Activated";
+
+    // A module that needs no licence (ABI 1.23, ADR 0944) is turned off by an administrator, a real act with a moment:
+    // so for it, and only it, deactivation is recorded.
+    public const string ModuleDeactivated = "Module.Deactivated";
+
+    // The KEYS whose values changed, never the values — a settings write can carry a credential (ADR 0772).
+    public const string ModuleSettingsUpdated = "Module.SettingsUpdated";
+
+    // The core filed (or re-versioned) a manual — Alcifra's own or the one a module ships in its package (ABI 1.5,
+    // ADR 0891). Actor: the module's own principal for a module's manual, System for the core's.
+    public const string ManualFiled = "Manual.Filed";
+
+    // Certificate enrolment, owned by the core (ADR 0936): a certificate filed into the reader-certificate folder, and
+    // the tenant's certificate policy replaced. Details carry the holder and thumbprint, never the certificate.
+    public const string CertificateEnrolled = "Certificate.Enrolled";
+    public const string CertificatePolicyChanged = "Certificate.PolicyChanged";
+
+    // Attested enrolment (ADR 0963): an enrolment refused (the code and the holder, never the certificate), evidence added
+    // to an enrolment that had none, the tenant's switch for hardware without attestation, its selection of roots, and the
+    // installation's roots (recorded in every active tenant, since every tenant's readers depend on them).
+    public const string CertificateEnrolmentRefused = "Certificate.EnrolmentRefused";
+    public const string CertificateAttestationAdded = "Certificate.AttestationAdded";
+    public const string CertificateUnattestedHardwareChanged = "Certificate.UnattestedHardwareChanged";
+    public const string CertificateAttestationRootsSelected = "Certificate.AttestationRootsSelected";
+    public const string AttestationRootAdded = "AttestationRoot.Added";
+    public const string AttestationRootChanged = "AttestationRoot.Changed";
+
+    // Booking (ADRs 0735/0744/0774, issue #1092). Recorded on every entrance, which is the whole point of
+    // adding these: a booking made over CalDAV was already recorded as a DOCUMENT write ("Filed over CalDAV")
+    // while the same booking made in the app was recorded nowhere, so absence of an event meant "it did not
+    // happen, OR it happened through the app" — a conclusion nobody can act on.
+    //
+    // A booking event rather than a document one, because the resource, the slot and who holds it are booking
+    // facts that a Document.Filed event does not carry. A multi-claim booking (ADR 0774) records ONE event
+    // naming every resource: it is one act, and three events would read as three bookings.
+    public const string BookingCreated = "Booking.Created";
+    public const string BookingChanged = "Booking.Changed";
+
+    // Blockers (ADR 0778). SEPARATE actions for grounding and releasing, by owner decision: the
+    // person who takes an aircraft out of service and the person who returns it to service are not always the
+    // same, and a single "Booking.BlockChanged" could not answer who cleared it to fly — which is the one
+    // question an investigation asks. They carry their own rights for the same reason (CanBlockResources /
+    // CanReleaseResources): grounding on suspicion should be broad, releasing is a certifying act.
+    //
+    // Recorded against the BLOCK's act rather than per suspended booking, and the detail names how many
+    // bookings it caught. Suspension itself is DERIVED (#1091) — true only while the block is Active — so
+    // this event is the only durable record that those flights were ever stopped.
+    public const string BookingSuspended = "Booking.Suspended";
+    public const string BookingRevived = "Booking.Revived";
+
+    // There is deliberately NO "Booking.Cancelled" yet. Every cancellation path converges in
+    // AlcifraDbContext.SyncBookingDocumentsAsync — inside SaveChanges — and IAuditRecorder.RecordAsync
+    // calls SaveChangesAsync itself, so recording there would be a nested save on a context mid-save.
+    // Recording at each entrance instead is exactly the per-door approach that produced the asymmetry this
+    // issue exists to fix, so it is not the answer either.
+    //
+    // A cancellation is not unrecorded meanwhile: deleting the .ics is a document delete, and
+    // Document.Deleted already fires on all six paths. What is missing is the booking DETAIL — which slot,
+    // which resources — and that is the gap a later slice closes, once there is a place to record it from
+    // that is neither inside SaveChanges nor per-entrance.
+
+    // A module state-machine transition ran (ADR 0737). Signing a flight-log entry and signing a lesson record
+    // are legal acts under the module's own ADRs, and until now they left no trace at all. Recorded inside the
+    // engine-owned transaction, so an event exists exactly when the transition committed.
+    public const string ModuleTransitionRan = "Module.TransitionRan";
+
+    // Protocol credentials (#1092). Issuing one hands out a long-lived password that bypasses the interactive
+    // login and every MFA policy attached to it, which is precisely the kind of act a SIEM is watching for.
+    public const string WebDavPasswordIssued = "Access.WebDavPasswordIssued";
+    public const string ImapPasswordIssued = "Access.ImapPasswordIssued";
+    // The self-service S/MIME certificate (#1332): setting one turns the user's IMAP stream into
+    // ciphertext, deleting one turns it back — both facts an auditor reconstructing "who could read
+    // this in transit" needs. Detail says which act: Uploaded / Generated / Deleted.
+    public const string SmimeCertificateChanged = "Access.SmimeCertificateChanged";
+
+    // At-rest key lifecycle (ADR 0014). Rotation is benign; RETIREMENT destroys a keypair and is the one
+    // act that can make archived documents permanently unreadable — an auditor must be able to place it
+    // in time against any later "we cannot open this" report.
+    public const string EncryptionKeyRotated = "Encryption.KeyRotated";
+    public const string EncryptionKeyRetired = "Encryption.KeyRetired";
+
+    public const string LoggedIn = "Auth.LoggedIn";
+
+    /// <summary>The interactive session was ended deliberately (#847, A07/A09; ADR 0065 puts it in scope).</summary>
+    /// <remarks>
+    /// The companion to <see cref="LoggedIn"/>, and the one that makes a session's EXTENT readable: without
+    /// it, every sign-in in the trail is open-ended, so "was anyone still signed in when this happened" can
+    /// only be guessed at. Recorded at the sign-out page, which supersedes ADR 0334's "no end-session
+    /// endpoint" — before the cookie is cleared, since that cookie is what names the actor.
+    /// </remarks>
+    public const string LoggedOut = "Auth.LoggedOut";
+
+    /// <summary>A credential was presented for a KNOWN user and refused (#847, A07/A09).</summary>
+    /// <remarks>
+    /// <para>
+    /// A failed sign-in existed only as a Serilog Warning. That is enough for a SIEM counting attempts and not
+    /// enough for the question an investigation actually asks — <i>what happened to THIS account, in order,
+    /// beside everything else that happened to it</i> — because the audit trail is where the rest of that
+    /// story is, and the one event that matters most was missing from it.
+    /// </para>
+    /// <para>
+    /// <b>Only for a known user, and the boundary is deliberate rather than an oversight.</b> An
+    /// <c>AuditEvent</c> is tenant-scoped, and an attempt against an address that matches no user has no
+    /// tenant to be filed in — there is no honest place to put it. Those stay a Warning, which is where a
+    /// spray against non-existent accounts is visible anyway. Do not describe this as "failed logins are
+    /// audited" without that qualification: an unqualified coverage claim is exactly what stops the next
+    /// person checking (#1092).
+    /// </para>
+    /// <para>
+    /// The DETAIL says which factor was refused — a password or a second factor — because those are different
+    /// events to an investigator: the second means somebody already had the password.
+    /// </para>
+    /// </remarks>
+    public const string LoginFailed = "Auth.LoginFailed";
+
+    /// <summary>Credential guessing against a known account was walled up by the throttle (#1569, ADR 0716).</summary>
+    /// <remarks>
+    /// <para>
+    /// The register's phrase for why this matters is <i>"a lockout with no audit trail cannot be investigated
+    /// afterwards"</i>. The refused attempts beside it are <see cref="LoginFailed"/>; this is the moment they
+    /// crossed a threshold and the account stopped answering — which is what somebody asking "why could I not
+    /// sign in at 09:40" needs, and what a reader reconstructing an attack needs to place in time.
+    /// </para>
+    /// <para>
+    /// <b>ONCE PER BLOCK, not once per refused attempt</b>, and that distinction is the whole design. While a
+    /// block holds, every further attempt is refused — an attacker hammering would otherwise write hundreds of
+    /// identical events and bury the trail they are in. The surface therefore records this only on the failure
+    /// that CAUSED the block, which it detects by re-asking the throttle immediately after recording that
+    /// failure: once blocked, no later attempt reaches that path at all.
+    /// </para>
+    /// <para>
+    /// Same boundary as <see cref="LoginFailed"/>: only for a KNOWN user, because an <c>AuditEvent</c> is
+    /// tenant-scoped and an address matching no user has no tenant to be filed in.
+    /// </para>
+    /// </remarks>
+    public const string LockedOut = "Auth.LockedOut";
+    // A device authorization grant was answered by a person (RFC 8628, ADR 0823). Approving hands a token —
+    // renewable, where offline_access was asked for — to a machine the approver may not be sitting at, which
+    // is the same class of act as issuing a protocol password above. The REFUSAL is recorded too: a grant
+    // somebody said no to is exactly what a SIEM correlating "who tried" needs, and recording only the
+    // approvals would make silence mean two different things.
+    public const string DeviceGrantApproved = "Auth.DeviceGrantApproved";
+    public const string DeviceGrantRefused = "Auth.DeviceGrantRefused";
+    // Impersonation token issued (ADR "User impersonation") — actor = the impersonating admin, target = the user.
+    public const string ImpersonationStarted = "Auth.ImpersonationStarted";
+    // The mobile app opened its autofill extension's own session (ADR 0981): a second renewable authorization for the
+    // same user, which a reader of the trail asks about after a lost phone just as for a registered device.
+    public const string AutofillSessionStarted = "Auth.AutofillSessionStarted";
+    // A phone registered for push, re-keyed, or removed (SimplArchiveMobile #20). Recorded because a registered
+    // device receives the user's notification titles from then on: who added a device, and when one went, is what
+    // a reader of the trail asks after a lost phone. A device registering again unchanged records nothing.
+    public const string PushDeviceRegistered = "Auth.PushDeviceRegistered";
+    public const string PushDeviceUpdated = "Auth.PushDeviceUpdated";
+    public const string PushDeviceRemoved = "Auth.PushDeviceRemoved";
+}

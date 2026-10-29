@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The brand's icon generator (ADR 0993): renders every icon the desktop packages and the web serve, from the
+       brand's SVG icon or the drawn cabinet in the brand's colours, into BrandIconsDir. Run by the build
+       (Directory.Build.targets), never shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.18" />
+    <PackageReference Include="Avalonia.Headless" Version="11.3.18" />
+    <PackageReference Include="Avalonia.Skia" Version="11.3.18" />
+    <PackageReference Include="Avalonia.Svg" Version="11.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BrandIconInput Include="$(BrandFile);$(BrandAssetsDir)**\*.svg" />
+  </ItemGroup>
+
+  <!-- Only when a consumer asks (BrandIconsPhase=Generate), so building the solution does not generate a second time
+       beside it. Incremental: it reruns when the brand or this tool changed. -->
+  <Target Name="GenerateBrandIcons" AfterTargets="Build" Condition="'$(BrandIconsPhase)' == 'Generate'"
+          Inputs="@(BrandIconInput);$(TargetPath)" Outputs="$(BrandIconsDir)app.ico">
+    <Exec Command="dotnet &quot;$(TargetPath)&quot; &quot;$(BrandIconsDir)&quot; &quot;$(BrandAssetsDir)&quot;" />
+  </Target>
+
+</Project>

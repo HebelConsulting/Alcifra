@@ -1,0 +1,131 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        xmlns:svc="using:Alcifra.DesktopClient.Services"
+        xmlns:theming="using:Alcifra.Theming"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        x:Class="Alcifra.DesktopClient.Views.ServerManagerWindow"
+        x:DataType="vm:ServerManagerViewModel"
+        Title="{loc:Tr SmTitle}" Width="640" Height="470"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="12" ColumnDefinitions="220,12,*" RowDefinitions="*,Auto">
+        <!-- Server list (left) -->
+        <DockPanel Grid.Row="0" Grid.Column="0">
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="4" Margin="0,6,0,0">
+                <Button Command="{Binding AddCommand}" ToolTip.Tip="{loc:Tr SmAdd}" Padding="6,2"><i:Icon Value="mdi-plus" /></Button>
+                <Button Command="{Binding RemoveCommand}" ToolTip.Tip="{loc:Tr SmRemove}" Padding="6,2"><i:Icon Value="mdi-minus" /></Button>
+            </StackPanel>
+            <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4">
+                <ListBox ItemsSource="{Binding Servers}" SelectedItem="{Binding Selected}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="svc:ServerProfile">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+        </DockPanel>
+
+        <!-- Data pane (right): read-only until Edit, then editable with Save/Cancel. -->
+        <Border Grid.Row="0" Grid.Column="2" BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4" Padding="14">
+            <StackPanel Spacing="10">
+                <!-- Read-only view -->
+                <StackPanel Spacing="10" IsVisible="{Binding !IsEditing}">
+                    <StackPanel IsVisible="{Binding HasSelection}" Spacing="10">
+                        <StackPanel>
+                            <TextBlock Text="{loc:Tr SmNameLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                            <SelectableTextBlock Text="{Binding Selected.Name}" FontSize="14" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{loc:Tr SmUrlLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                            <!-- Tints light green when a live probe confirms the selected profile is our server (issue #270). -->
+                            <Border Background="{Binding SelectedIsOurServer, Converter={x:Static vm:GreenTintConverter.Instance}, ConverterParameter=bg}"
+                                    CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
+                                <SelectableTextBlock Text="{Binding Selected.ApiRootUrl}" FontSize="14" TextWrapping="Wrap"
+                                           Foreground="{Binding SelectedIsOurServer, Converter={x:Static vm:GreenTintConverter.Instance}, ConverterParameter=fg}" />
+                            </Border>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{loc:Tr SmThemeLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                            <SelectableTextBlock Text="{Binding SelectedThemeName}" FontSize="14" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Text="{loc:Tr SmEnvLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                            <SelectableTextBlock Text="{Binding SelectedEnvironmentName}" FontSize="14" />
+                        </StackPanel>
+                        <Button Command="{Binding EditCommand}" HorizontalAlignment="Left" Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="5"><i:Icon Value="mdi-pencil" /><TextBlock Text="{loc:Tr Edit}" /></StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock IsVisible="{Binding !HasSelection}" Text="{loc:Tr SmEmpty}" Foreground="{DynamicResource WbFaint}" />
+                </StackPanel>
+
+                <!-- Editable view -->
+                <StackPanel Spacing="10" IsVisible="{Binding IsEditing}">
+                    <StackPanel>
+                        <TextBlock Text="{loc:Tr SmNameLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                        <TextBox Text="{Binding EditName}" Watermark="{loc:Tr SmNameWatermark}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{loc:Tr SmUrlEditLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                        <!-- Tints light green once a live probe confirms this URL is a Alcifra server (issue #270).
+                             The Fluent TextBox paints its own background per visual state (incl. focused, i.e. while
+                             editing), so the local Background is overridden — style the template's border part across
+                             the normal / pointerover / focus states instead. -->
+                        <TextBox x:Name="EditUrlBox" Text="{Binding EditUrl}" Watermark="https://host/…"
+                                 Classes.oursrv="{Binding EditUrlIsOurServer}"
+                                 Foreground="{Binding EditUrlIsOurServer, Converter={x:Static vm:GreenTintConverter.Instance}, ConverterParameter=fg}">
+                            <TextBox.Styles>
+                                <Style Selector="TextBox.oursrv /template/ Border#PART_BorderElement">
+                                    <Setter Property="Background" Value="#C8E6C9" />
+                                </Style>
+                                <Style Selector="TextBox.oursrv:pointerover /template/ Border#PART_BorderElement">
+                                    <Setter Property="Background" Value="#C8E6C9" />
+                                </Style>
+                                <Style Selector="TextBox.oursrv:focus /template/ Border#PART_BorderElement">
+                                    <Setter Property="Background" Value="#C8E6C9" />
+                                </Style>
+                            </TextBox.Styles>
+                        </TextBox>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{loc:Tr SmThemeLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                        <!-- Applies as you pick rather than on Save (ADR 0578): the workbench is behind this
+                             window, so the only honest way to choose a colour is to see it. Cancel puts the
+                             previous one back. -->
+                        <ComboBox AutomationProperties.AutomationId="server-theme" ItemsSource="{Binding Themes}"
+                                  SelectedItem="{Binding EditTheme}" HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="theming:ThemeCatalog+Entry">
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{loc:Tr SmEnvLabel}" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                        <!-- A fixed set, "(none)" first and default (#501): a support affordance for people who
+                             administer several deployments — free text would defeat the point, which is that
+                             "Production" looks identical on every machine. -->
+                        <ComboBox AutomationProperties.AutomationId="server-environment" ItemsSource="{Binding Environments}"
+                                  SelectedItem="{Binding EditEnvironment}" HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="svc:EnvironmentLevels+Level">
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <SelectableTextBlock Text="{Binding Error}" Foreground="{DynamicResource WbDanger}" FontSize="12" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Button Command="{Binding SaveCommand}" Classes="accent"><StackPanel Orientation="Horizontal" Spacing="5"><i:Icon Value="mdi-content-save-outline" /><TextBlock Text="{loc:Tr Save}" /></StackPanel></Button>
+                        <Button Command="{Binding CancelCommand}" Content="{loc:Tr Cancel}" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Button Grid.Row="1" Grid.Column="2" Content="{loc:Tr Close}" Click="OnClose" HorizontalAlignment="Right" Margin="0,10,0,0" />
+    </Grid>
+</Window>

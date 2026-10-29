@@ -1,0 +1,400 @@
+using Microsoft.Extensions.Logging;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Tenants;
+using Alcifra.Infrastructure.Encryption;
+
+namespace Alcifra.Infrastructure.Storage;
+
+/// <summary>
+/// The at-rest encryption decorator (ADR 0818): wraps the real S3 client at the ONE DI seam every
+/// server-side storage call crosses, so every write to a gated tenant stores ciphertext with its wrapped
+/// DEK riding as object metadata, and every read hands plaintext back — sidecars, stashes, mail, WORM
+/// segments, all of it, with S3's server-side COPY carrying the metadata through the re-keying flows.
+/// An object WITHOUT the metadata is plaintext and passes through untouched — the mixed state that makes
+/// rollout additive (every pre-existing object) rather than a migration.
+/// </summary>
+public sealed class EncryptingObjectStorageClient(
+    S3ObjectStorageClient inner,
+    AtRestKeyService keys,
+    IEncryptedContentUrlIssuer? urlIssuer,
+    ILogger<EncryptingObjectStorageClient> logger,
+    IModuleMaskDeclarations? declarations = null) : IObjectStorageClient
+{
+    // The metadata keys (wrapped DEK, KEK generation, key thumbprint) are AtRestMetadata's (ADRs 0818, 0867, 1003).
+
+    private static readonly TimeSpan ProxyUrlExpiry = TimeSpan.FromMinutes(15);
+
+    // ---- Writes ---------------------------------------------------------------------------------------
+
+    public Task PutObjectAsync(string objectKey, Stream content, string contentType, CancellationToken cancellationToken = default) =>
+        PutObjectAsync(objectKey, content, contentType, new Dictionary<string, string>(), cancellationToken);
+
+    /// <summary>The conditional claim write (#1427) — passed straight through, deliberately unencrypted.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A claim carries no content, by construction.</b> Its body is empty and all of its meaning is in the
+    /// KEY, which is the one part no encryption touches — so there is nothing here to protect and nothing a
+    /// reader could learn from the bytes that the key does not already say.
+    /// </para>
+    /// <para>
+    /// <b>Encrypting it would have been actively wrong, which is worth recording.</b> The first version of this
+    /// method did: it minted a DEK and wrote the ciphertext. But the conditional overload carries no metadata
+    /// dictionary, so the wrapped DEK had nowhere to ride — leaving an object that IS ciphertext while carrying
+    /// none of the metadata this decorator's read path uses to know that. It would have been written
+    /// successfully and been unreadable, and the mixed state it created is exactly what
+    /// <c>GetPresignedCiphertextUrlAsync</c> has to refuse. An empty object needs no key.
+    /// </para>
+    /// </remarks>
+    public Task<bool> TryPutIfAbsentAsync(string objectKey, Stream content, string contentType,
+        CancellationToken cancellationToken = default) =>
+        inner.TryPutIfAbsentAsync(objectKey, content, contentType, cancellationToken);
+
+    /// <summary>Lease renewal/takeover, passed through for the same reason as the claim above.</summary>
+    public Task<bool> TryPutIfMatchAsync(string objectKey, string eTag, Stream content, string contentType,
+        CancellationToken cancellationToken = default) =>
+        inner.TryPutIfMatchAsync(objectKey, eTag, content, contentType, cancellationToken);
+
+    public async Task PutObjectAsync(string objectKey, Stream content, string contentType,
+        IReadOnlyDictionary<string, string> metadata, CancellationToken cancellationToken = default)
+    {
+        if (!await keys.GatedAsync(objectKey, cancellationToken))
+        {
+            await inner.PutObjectAsync(objectKey, content, contentType, metadata, cancellationToken);
+            return;
+        }
+
+        // Whole-object encrypt: AES-GCM authenticates the blob as one unit. Server-side writes are
+        // renditions, protocol bodies and staged copies — bounded sizes; the multi-GB direct-to-storage
+        // path is the PRESIGNED upload, which never passes through here (client-side encryption, slice B2).
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer, cancellationToken);
+        var (dek, wrappedDek, generation, thumbprint) = await keys.MintDekAsync(cancellationToken);
+        var ciphertext = AtRestBlobCipher.Encrypt(dek, buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
+
+        var enriched = new Dictionary<string, string>(metadata, StringComparer.OrdinalIgnoreCase);
+        AtRestMetadata.Stamp(enriched, wrappedDek, generation, thumbprint);
+        await inner.PutObjectAsync(objectKey, new MemoryStream(ciphertext), contentType, enriched, cancellationToken);
+    }
+
+    // ---- Reads ----------------------------------------------------------------------------------------
+
+    public async Task<Stream> GetObjectAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        (await GetObjectWithMetadataAsync(objectKey, cancellationToken)).Content;
+
+    /// <summary>Refuses for a strict tenant; an ordinary read otherwise (#1394, ADR 0829).</summary>
+    /// <remarks>
+    /// The refusal is per TENANT, not per caller — which is why it can live here at all, while the ENVELOPE
+    /// for download and preview cannot (an envelope is addressed to a person, and this seam has no idea who
+    /// is asking; ADR 0828).
+    /// </remarks>
+    public async Task<Stream> GetObjectForClientAsync(string objectKey, string door, CancellationToken cancellationToken = default)
+    {
+        if (!await keys.StrictAsync(objectKey, cancellationToken))
+        {
+            return await GetObjectAsync(objectKey, cancellationToken);
+        }
+
+        // Sealed module content is no plaintext (ADR 0940): read once, check the bytes being served, hand them on.
+        if (declarations?.IsSealedContent(objectKey) == true)
+        {
+            var buffer = new MemoryStream();
+            await using (var content = await GetObjectAsync(objectKey, cancellationToken))
+            {
+                await content.CopyToAsync(buffer, cancellationToken);
+            }
+
+            if (Shaped(objectKey, buffer.GetBuffer().AsSpan(0, (int)Math.Min(buffer.Length, CmsEnvelopeShape.HeadLength)), buffer.Length))
+            {
+                buffer.Position = 0;
+                return buffer;
+            }
+        }
+
+        throw new PlaintextContentRefusedException(door);
+    }
+
+    /// <summary>The range form of the same refusal — a seeking client is still a client.</summary>
+    public async Task<Stream> GetObjectRangeForClientAsync(
+        string objectKey, long from, long to, string door, CancellationToken cancellationToken = default)
+    {
+        if (await keys.StrictAsync(objectKey, cancellationToken) && !await SealedAndShapedAsync(objectKey, cancellationToken))
+        {
+            throw new PlaintextContentRefusedException(door);
+        }
+
+        return await GetObjectRangeAsync(objectKey, from, to, cancellationToken);
+    }
+
+    public async Task<StoredObject> GetObjectWithMetadataAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        var stored = await inner.GetObjectWithMetadataAsync(objectKey, cancellationToken);
+        if (AtRestMetadata.WrappedDek(stored.Metadata) is not { } wrappedDek)
+        {
+            return stored;
+        }
+
+        await using var ciphertext = stored.Content;
+        using var buffer = new MemoryStream();
+        await ciphertext.CopyToAsync(buffer, cancellationToken);
+        var dek = await keys.UnwrapDekAsync(wrappedDek, AtRestMetadata.Generation(stored.Metadata)!,
+            AtRestMetadata.Thumbprint(stored.Metadata), objectKey, cancellationToken);
+        var plaintext = AtRestBlobCipher.Decrypt(dek, buffer.GetBuffer().AsSpan(0, (int)buffer.Length));
+        // publiclyVisible: the range read below slices this buffer. A MemoryStream made from a bare array hides it, and
+        // GetBuffer() then threw — every Messenger file on a Strict tenant answered 500 (2026-10-21).
+        return stored with { Content = new MemoryStream(plaintext, 0, plaintext.Length, writable: true, publiclyVisible: true), Length = plaintext.Length };
+    }
+
+    public async Task<Stream> GetObjectRangeAsync(string objectKey, long from, long to, CancellationToken cancellationToken = default)
+    {
+        // Mixed state means the probe is per object, not per tenant: a real range read stays a real S3
+        // range for plaintext objects; an encrypted one is fetched whole, decrypted, sliced — GCM
+        // authenticates the blob as one unit, so there is no honest partial decrypt.
+        var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
+        if (!AtRestMetadata.IsEncrypted(info.Metadata))
+        {
+            return await inner.GetObjectRangeAsync(objectKey, from, to, cancellationToken);
+        }
+
+        await using var full = await GetObjectAsync(objectKey, cancellationToken);
+        var buffer = (MemoryStream)full;
+        var length = (int)Math.Max(0, Math.Min(to, buffer.Length - 1) - from + 1);
+        return new MemoryStream(buffer.GetBuffer(), (int)from, length, writable: false);
+    }
+
+    public async Task<long> GetObjectSizeAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        (await GetObjectInfoAsync(objectKey, cancellationToken)).Size;
+
+    public async Task<StoredObjectInfo> GetObjectInfoAsync(string objectKey, CancellationToken cancellationToken = default)
+    {
+        // Callers use the size for quotas, listings and content-length claims about what a GET will
+        // serve — and a GET serves PLAINTEXT, so the size must describe it (a 28-byte lie breaks WebDAV
+        // clients that compare getcontentlength against the download).
+        var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
+        return AtRestMetadata.IsEncrypted(info.Metadata)
+            ? info with { Size = info.Size - AtRestBlobCipher.Overhead }
+            : info;
+    }
+
+    // ---- Presigned URLs -------------------------------------------------------------------------------
+
+    public Task<Uri> GetPresignedUploadUrlAsync(string objectKey, TimeSpan expiry, CancellationToken cancellationToken = default) =>
+        // Uploads stay presigned even on gated tenants: the app clients encrypt CLIENT-side (B2 — the
+        // initiate response carries the KEK instruction, finalize attaches the wrapped DEK); a client
+        // that doesn't (an older or third-party API caller) lands plaintext-without-metadata, which
+        // reads fine by the mixed-state contract. Server-side writers are already covered above.
+        inner.GetPresignedUploadUrlAsync(objectKey, expiry, cancellationToken);
+
+    /// <summary>
+    /// The ciphertext address for the encryption service (ADR 0862) — and the ONE guard that keeps it from
+    /// becoming a plaintext door.
+    /// </summary>
+    /// <remarks>
+    /// Storage is mixed state by design (ADR 0818): an object either carries a wrapped DEK or is plaintext,
+    /// and the two live side by side in the same bucket. So a method named for ciphertext, called on a
+    /// plaintext object, would presign exactly what the strict tier refuses — and it would do so through the
+    /// one presign this decorator deliberately does NOT refuse.
+    /// <para>
+    /// It therefore throws rather than answering null. Null would be a shape the caller might "handle" by
+    /// falling back to a download URL; a throw says the caller asked for something that does not exist here.
+    /// The only consumer is the strict delivery path, which reaches this method having already read the
+    /// metadata that says the object IS encrypted, so a throw here means a real programming error.
+    /// </para>
+    /// </remarks>
+    public async Task<Uri> GetPresignedCiphertextUrlAsync(string objectKey, TimeSpan expiry, CancellationToken cancellationToken = default)
+    {
+        var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
+        if (!AtRestMetadata.IsEncrypted(info.Metadata))
+        {
+            throw new InvalidOperationException(
+                $"'{objectKey}' carries no {AtRestMetadata.WrappedDekKey}, so it has no ciphertext to serve. Presigning it "
+                + "would hand out the plaintext this tier refuses (ADRs 0825/0862).");
+        }
+
+        return await inner.GetPresignedCiphertextUrlAsync(objectKey, expiry, cancellationToken);
+    }
+
+    public async Task<Uri?> GetPresignedDownloadUrlAsync(string objectKey, TimeSpan expiry, string? downloadFileName = null, string? contentType = null, CancellationToken cancellationToken = default) =>
+        await RefusedByStrictTierAsync(objectKey, cancellationToken) ? null
+        : await SwapIfEncryptedAsync(objectKey, expiry, downloadFileName, contentType, inline: false, cancellationToken)
+            ?? await inner.GetPresignedDownloadUrlAsync(objectKey, expiry, downloadFileName, contentType, cancellationToken);
+
+    public async Task<Uri?> GetPresignedPreviewUrlAsync(string objectKey, TimeSpan expiry, string? fileName = null, string? contentType = null, CancellationToken cancellationToken = default) =>
+        await RefusedByStrictTierAsync(objectKey, cancellationToken) ? null
+        : await SwapIfEncryptedAsync(objectKey, expiry, fileName, contentType, inline: true, cancellationToken)
+            ?? await inner.GetPresignedPreviewUrlAsync(objectKey, expiry, fileName, contentType, cancellationToken);
+
+    /// <summary>
+    /// True when this object belongs to a strict-tier tenant, whose content never leaves as plaintext.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Checked BEFORE the encrypted swap, and that order is the point. For an ordinary encrypted tenant the
+    /// swap hands the browser the token door, which serves DECRYPTED bytes over HTTPS — exactly the plaintext
+    /// door the strict tier must not have. Letting the swap run first would replace one plaintext door with
+    /// another and look like it had done something.
+    /// </para>
+    /// <para>
+    /// Answering NULL rather than throwing, because presigning happens while BUILDING resources: a thrown
+    /// refusal would take the document's metadata with it, leaving a strict tenant able to see nothing at all.
+    /// A caller omits the link instead, which is ADR 0543's own signal — a missing rel means "not available to
+    /// you, here, now".
+    /// </para>
+    /// <para>
+    /// READS only. An upload presign stays available: the client encrypts before it sends, so the bytes
+    /// crossing that URL are already ciphertext (see GetPresignedUploadUrlAsync's own note).
+    /// </para>
+    /// <para>
+    /// <b>Sealed module content passes</b> (ABI 1.20, ADR 0940): an object in a segment whose masks declare their content
+    /// sealed, whose stored bytes are shaped as a CMS envelope, is no plaintext — the door serves what the readers' keys
+    /// alone open. The bytes are checked here, at the door, not only at filing: the declaration names a segment, and only
+    /// the object itself says what was stored there.
+    /// </para>
+    /// </remarks>
+    private async Task<bool> RefusedByStrictTierAsync(string objectKey, CancellationToken cancellationToken) =>
+        await keys.StrictAsync(objectKey, cancellationToken) && !await SealedAndShapedAsync(objectKey, cancellationToken);
+
+    /// <summary>Whether the object lies in a sealed content segment AND its stored bytes are shaped as an envelope.</summary>
+    private async Task<bool> SealedAndShapedAsync(string objectKey, CancellationToken cancellationToken)
+    {
+        if (declarations?.IsSealedContent(objectKey) != true)
+        {
+            return false;
+        }
+
+        var size = await GetObjectSizeAsync(objectKey, cancellationToken);
+        var head = new byte[CmsEnvelopeShape.HeadLength];
+        int read;
+        await using (var range = await GetObjectRangeAsync(objectKey, 0, head.Length - 1, cancellationToken))
+        {
+            read = await range.ReadAtLeastAsync(head, head.Length, throwOnEndOfStream: false, cancellationToken);
+        }
+
+        return Shaped(objectKey, head.AsSpan(0, read), size);
+    }
+
+    private bool Shaped(string objectKey, ReadOnlySpan<byte> head, long size)
+    {
+        if (CmsEnvelopeShape.IsEnvelope(head, size))
+        {
+            return true;
+        }
+
+        // A fall-through the reader cannot see the reason for (ADR 0626): name it.
+        logger.LogWarning(
+            "Object {ObjectKey} lies in a sealed content segment but is not shaped as a CMS envelope; the strict tier refuses it as plaintext.",
+            objectKey);
+        return false;
+    }
+
+    /// <summary>
+    /// The token door for an object that carries a wrapped DEK, whatever its tenant's mode is TODAY.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The OBJECT is asked, never the gate.</b> This used to short-circuit on
+    /// <see cref="AtRestKeyService.GatedAsync"/> — one HEAD saved per presign on tenants that encrypt nothing
+    /// — and that made an encrypted object unreadable the moment its tenant's mode was turned OFF: the presign
+    /// fell through to object storage, and the browser was handed CIPHERTEXT with a 200 and no error anywhere.
+    /// Turning encryption off for a tenant must not make that tenant's existing content unreadable, and a
+    /// mode is a decision about what to do with the NEXT write, not a claim about what is already stored.
+    /// </para>
+    /// <para>
+    /// ADR 0818 always said the mixed state is by design, but only implemented one half of it — a plaintext
+    /// object on a gated tenant. The other half is an encrypted object on a tenant that is no longer gated,
+    /// and it is the half that loses data in practice rather than failing safe.
+    /// </para>
+    /// <para>
+    /// <b>Not hypothetical:</b> the public kiosk's Demo tenant spent a day encrypted (its config named a key
+    /// the running image did not read, so the absent legacy list meant "every tenant"), and the release that
+    /// corrected the gating would, without this, have served ciphertext for every document in the demo.
+    /// </para>
+    /// <para>
+    /// The price is one HEAD per presign in an installation that has encryption configured at all — a fully
+    /// inert one never resolves this decorator, and a gated tenant already paid exactly this.
+    /// </para>
+    /// </remarks>
+    private async Task<Uri?> SwapIfEncryptedAsync(string objectKey, TimeSpan expiry, string? fileName,
+        string? contentType, bool inline, CancellationToken cancellationToken)
+    {
+        var info = await inner.GetObjectInfoAsync(objectKey, cancellationToken);
+        if (!AtRestMetadata.IsEncrypted(info.Metadata))
+        {
+            return null; // a plaintext object — presigned is correct, gated tenant or not (the mixed state)
+        }
+
+        if (urlIssuer is null)
+        {
+            // A host without the Api's issuer (no routes to serve the proxy) can only hand out the
+            // ciphertext link — name it loudly rather than failing the whole listing.
+            logger.LogWarning("Object {ObjectKey} is encrypted but no content-URL issuer is registered — "
+                + "the presigned URL will serve ciphertext.", objectKey);
+            return null;
+        }
+
+        return urlIssuer.Issue(objectKey, expiry == default ? ProxyUrlExpiry : expiry, fileName, contentType, inline);
+    }
+
+    // ---- Pass-throughs --------------------------------------------------------------------------------
+
+    public Task EnsureTenantBucketAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
+        inner.EnsureTenantBucketAsync(tenantId, cancellationToken);
+
+    public Task SetBucketLifecycleAsync(Guid tenantId, int incompleteUploadCleanupDays, CancellationToken cancellationToken = default) =>
+        inner.SetBucketLifecycleAsync(tenantId, incompleteUploadCleanupDays, cancellationToken);
+
+    public Task<bool> ExistsAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        inner.ExistsAsync(objectKey, cancellationToken);
+
+    public Task<IReadOnlyList<StorageObject>> ListObjectsAsync(string prefix, CancellationToken cancellationToken = default) =>
+        // Listing sizes stay STORED sizes (+28 for encrypted objects): S3 LIST carries no metadata, and a
+        // per-object HEAD would turn one call into N+1. The only consumers are user-area scans; noted in
+        // ADR 0818 as the accepted 28-byte skew there.
+        inner.ListObjectsAsync(prefix, cancellationToken);
+
+    public async Task CopyObjectAsync(string sourceKey, string destinationKey, CancellationToken cancellationToken = default)
+    {
+        // S3 COPY carries the metadata — the wrapped DEK travels with the bytes through every re-keying
+        // flow (mail→archive, intray→document, stash→version), which is the whole reason the DEK lives
+        // ON the object (ADR 0818). The one copy that must NOT stay a plain copy: a PLAINTEXT source
+        // (a client's presigned staging upload) filed into a gated destination — that is the moment the
+        // object becomes archive content, so it gets encrypted on the way (read, encrypt, put) rather
+        // than copied plaintext into the claim's blind spot.
+        if (await keys.GatedAsync(destinationKey, cancellationToken))
+        {
+            var info = await inner.GetObjectInfoAsync(sourceKey, cancellationToken);
+            if (!AtRestMetadata.IsEncrypted(info.Metadata))
+            {
+                await using var plaintext = await inner.GetObjectAsync(sourceKey, cancellationToken);
+                await PutObjectAsync(destinationKey, plaintext,
+                    info.ContentType ?? "application/octet-stream", cancellationToken);
+                return;
+            }
+        }
+
+        await inner.CopyObjectAsync(sourceKey, destinationKey, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<StoredObjectVersion>> ListObjectVersionsAsync(string prefix, CancellationToken cancellationToken = default) =>
+        // Metadata, not content — nothing to decrypt, and the wrapped DEK is exactly what the caller wants.
+        inner.ListObjectVersionsAsync(prefix, cancellationToken);
+
+    public Task SetObjectMetadataAsync(string objectKey, IReadOnlyDictionary<string, string> metadata, CancellationToken cancellationToken = default) =>
+        // The attach path for client-encrypted uploads — the payload IS encryption metadata, so it must
+        // reach the store verbatim, never pass through the encrypting write.
+        inner.SetObjectMetadataAsync(objectKey, metadata, cancellationToken);
+
+    public Task DeleteObjectAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        inner.DeleteObjectAsync(objectKey, cancellationToken);
+
+    public Task DeleteObjectForGoodAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        inner.DeleteObjectForGoodAsync(objectKey, cancellationToken);
+
+    public Task SetRetentionAsync(string objectKey, DateTimeOffset retainUntil, WormLockMode mode, CancellationToken cancellationToken = default) =>
+        inner.SetRetentionAsync(objectKey, retainUntil, mode, cancellationToken);
+
+    public Task SetLegalHoldAsync(string objectKey, bool held, CancellationToken cancellationToken = default) =>
+        inner.SetLegalHoldAsync(objectKey, held, cancellationToken);
+
+    public Task<ObjectLockStatus> GetLockStatusAsync(string objectKey, CancellationToken cancellationToken = default) =>
+        inner.GetLockStatusAsync(objectKey, cancellationToken);
+}

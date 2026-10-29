@@ -1,0 +1,41 @@
+using Alcifra.DesktopClient;
+using Alcifra.DesktopClient.Services;
+
+namespace Alcifra.UiEndToEndTests;
+
+// Repository import (ADR "Repository import") via the real desktop api client: the demo admin creates a
+// repository, exports it, imports the archive back as a new repository, and the imported root is listed — all
+// through the real AlcifraApiClient against the running Api.
+[Collection(UiCollection.Name)]
+public class DesktopImportTests
+{
+    private readonly SelfHostedAppFixture _app;
+
+    public DesktopImportTests(SelfHostedAppFixture app) => _app = app;
+
+    [Fact]
+    public async Task Export_then_import_creates_a_new_repository()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+
+        var repoName = $"Desktop import {Guid.NewGuid():N}";
+        await api.Documents.CreateRepositoryAsync(repoName);
+        var repo = (await api.Documents.GetRepositoriesAsync()).Single(r => r.Name == repoName);
+        await api.Documents.UploadFileAsync(repo.Href("children"), "report.txt", System.Text.Encoding.UTF8.GetBytes($"import-{Guid.NewGuid():N}"));
+
+        var zip = await api.RepositoryArchive.ExportRepositoryAsync(await api.Documents.RelViaSelfAsync(repo.Href("document"), "export"), new RepositoryArchiveClient.RepositoryExportOptions(false, null, null, null, null, null));
+
+        // Import as a new repository (targetFolderId == null). The root name collides with the original, so it's
+        // auto-renamed ("… (imported)").
+        var result = await api.RepositoryArchive.ImportRepositoryAsync(null, zip);
+        Assert.StartsWith(repoName, result.RootName);
+        Assert.True(result.Documents >= 1);
+        Assert.Equal(1, result.Versions);
+        Assert.NotEqual(repo.Id, result.RootId);
+
+        // The imported repository is now listed alongside the original (auto-renamed since the name collides).
+        var repos = await api.Documents.GetRepositoriesAsync();
+        Assert.Contains(repos, r => r.Id == result.RootId);
+    }
+}

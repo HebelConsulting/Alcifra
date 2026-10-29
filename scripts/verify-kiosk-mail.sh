@@ -124,7 +124,7 @@ send_to() {
         echo \"MAIL FROM:<rollout@example.invalid>\"
         echo \"RCPT TO:<$1>\"
         echo \"DATA\"
-        echo \"From: SimplArchive rollout check <rollout@example.invalid>\"
+        echo \"From: Alcifra rollout check <rollout@example.invalid>\"
         echo \"To: $1\"
         echo \"Subject: $2\"
         echo \"\"

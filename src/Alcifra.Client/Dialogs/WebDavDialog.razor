@@ -1,0 +1,157 @@
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject Alcifra.Client.Services.ApiRoot ApiRoot
+
+@* Manage the app-specific WebDAV password (ADR "WebDAV gateway") — generate/regenerate (shown once) or
+   revoke, and show the mount URL for the OS WebDAV client. *@
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 440px;">
+            <MudText Typo="Typo.body2" Class="mb-3">
+                @Strings.Get("WebDavInfo")
+            </MudText>
+
+            @* The single /webdav mount URL lists the whole tree (Personal, with Intray/Check-out, + the
+               shared repositories) — one resource, ADR 0509. *@
+            <MudTextField T="string" Label="@Strings.Get("WebDavMountUrl")" Value="@_url" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy" OnAdornmentClick="() => CopyAsync(_url)" />
+            <MudTextField T="string" Label="@Strings.Get("WebDavUsername")" Value="@_username" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy" OnAdornmentClick="() => CopyAsync(_username)" />
+
+            @if (_generatedPassword is not null)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3">@Strings.Get("WebDavCopyNow")</MudAlert>
+                <MudTextField T="string" Label="@Strings.Get("WebDavPassword")" Value="@_generatedPassword" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
+                              Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy" OnAdornmentClick="() => CopyAsync(_generatedPassword!)" />
+            }
+            else if (_enabled)
+            {
+                <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">@Strings.Get("WebDavEnabled")</MudText>
+            }
+
+            @* A browser cannot mount a drive, enumerate letters, probe a mount or open a file manager — the
+               desktop client's three-state button is a genuine PLATFORM CONSTRAINT here, not a parity gap
+               (ADRs 0511/0560). So the web client does the nearest web-native thing: hands over the values with
+               one-click copy, and says exactly what to do with them on the OS the visitor is actually using. *@
+            @if (_enabled && _mountSteps is not null)
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.subtitle2">@Strings.Get("WebDavHowToMount")</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@_mountSteps</MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">@Strings.Get("WebDavNotSetUp")</MudText>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        @if (_enabled)
+        {
+            <MudButton Color="Color.Error" OnClick="RevokeAsync" Disabled="_busy">@Strings.Get("WebDavRevoke")</MudButton>
+        }
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GenerateAsync" Disabled="_busy">@(_enabled ? Strings.Get("WebDavRegenerate") : Strings.Get("WebDavGenerate"))</MudButton>
+        <MudButton OnClick="Close">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private bool _enabled;
+    private string _username = string.Empty;
+    private string _url = string.Empty;
+    private string? _generatedPassword;
+    private bool _busy;
+
+    // The mount steps for the OS the visitor is on. Null until probed, and on a platform with no desktop file
+    // manager to speak of — in which case the URL and the copy buttons are still the useful part.
+    private string? _mountSteps;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var status = await Http.GetFromJsonAsync<StatusDto>(await ApiRoot.RequireMeAsync("webdavPassword"));
+            _enabled = status?.Enabled ?? false;
+            _username = status?.Username ?? "";
+            _url = status?.Url ?? "";
+        }
+        catch (Exception) { /* leave defaults */ }
+
+        await LoadMountStepsAsync();
+    }
+
+    // Best-effort: a failed probe leaves the credentials and copy buttons, which are the part that matters.
+    private async Task LoadMountStepsAsync()
+    {
+        try
+        {
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./wbLayout.js");
+            _mountSteps = Strings.Get(await module.InvokeAsync<string>("desktopOs") switch
+            {
+                "mac" => "WebDavStepsMac",
+                "windows" => "WebDavStepsWindows",
+                "linux" => "WebDavStepsLinux",
+                _ => "WebDavStepsOther",
+            });
+        }
+        catch (Exception)
+        {
+            _mountSteps = null;
+        }
+    }
+
+    private async Task GenerateAsync()
+    {
+        _busy = true;
+        try
+        {
+            var response = await Http.PostAsync(await ApiRoot.RequireMeAsync("webdavPassword"), null);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<StatusDto>();
+            _generatedPassword = result?.Password;
+            _enabled = true;
+            _username = result?.Username ?? _username;
+            _url = result?.Url ?? _url;
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("WebDavGenError"), Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task RevokeAsync()
+    {
+        _busy = true;
+        try
+        {
+            (await Http.DeleteAsync(await ApiRoot.RequireMeAsync("webdavPassword"))).EnsureSuccessStatusCode();
+            _enabled = false;
+            _generatedPassword = null;
+            Snackbar.Add(Strings.Get("WebDavRevoked"), Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("WebDavRevokeError"), Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task CopyAsync(string value)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+            Snackbar.Add(Strings.Get("CopiedClipboard"), Severity.Info);
+        }
+        catch (Exception) { /* clipboard may be unavailable */ }
+    }
+
+    private void Close() => Dialog.Close();
+
+    private record StatusDto { public bool Enabled { get; set; } public string Username { get; set; } = string.Empty; public string Url { get; set; } = string.Empty; public string? Password { get; set; } }
+}

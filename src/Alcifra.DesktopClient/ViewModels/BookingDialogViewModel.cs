@@ -1,0 +1,129 @@
+using System;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Alcifra.DesktopClient.Services;
+using Alcifra.Localization;
+
+namespace Alcifra.DesktopClient.ViewModels;
+
+// Backs the desktop Bookings… dialog (ADR 0735, the meeting-room half of ADR 0743's slice-1 scope): list a
+// bookable resource's bookings, book a slot, cancel one. The ReminderDialog's shape — rows above, the create
+// form below — because the two dialogs answer the same kind of question about a document. Interactive: does
+// its own API calls via the AlcifraApiClient it's constructed with.
+public partial class BookingDialogViewModel : ObservableObject
+{
+    private readonly AlcifraApiClient _api;
+    private readonly string _bookingsHref;
+
+    public BookingDialogViewModel(AlcifraApiClient api, string bookingsHref, string resourceName)
+    {
+        _api = api;
+        _bookingsHref = bookingsHref;
+        ResourceName = resourceName;
+    }
+
+    public string ResourceName { get; }
+
+    /// <summary>One row, with its status localized here — the wire carries the enum name (issue #424).</summary>
+    public sealed record BookingRowView(BookingsClient.BookingRow Row, string TimeText, string StatusText);
+
+    public ObservableCollection<BookingRowView> Bookings { get; } = [];
+
+    [ObservableProperty] private DateTime? _bookingDate = DateTime.Today.AddDays(1);
+
+    // TYPED time entry (the keyboard-first principle): the platform TimePicker is a spinner with no keyboard
+    // path at all — the value the user already knows costs a click-hunt. Parsed leniently (0900/9:00/09:00)
+    // by the shared Presentation parser at Book.
+    [ObservableProperty] private string _startEntry = "09:00";
+    [ObservableProperty] private string _endEntry = "10:00";
+    [ObservableProperty] private string _purpose = string.Empty;
+    [ObservableProperty] private string _status = string.Empty;
+    [ObservableProperty] private bool _canBook;
+
+    public async Task LoadAsync()
+    {
+        Bookings.Clear();
+        try
+        {
+            var (rows, canBook) = await _api.Bookings.ListAsync(_bookingsHref);
+            CanBook = canBook;
+            foreach (var row in rows)
+            {
+                var statusKey = row.Status == "Cancelled" ? "BookStatusCancelled" : "BookStatusActive";
+                Bookings.Add(new BookingRowView(
+                    row,
+                    $"{row.StartsAt.ToLocalTime():g} – {row.EndsAt.ToLocalTime():t}",
+                    Strings.Get(statusKey)));
+            }
+        }
+        catch (Exception e)
+        {
+            Status = e.Message;
+        }
+    }
+
+    [RelayCommand]
+    private async Task Book()
+    {
+        if (BookingDate is not { } date)
+        {
+            return;
+        }
+
+        if (!Alcifra.Presentation.DocumentDateFormat.TryParseTypedTime(StartEntry, out var startParsed)
+            || !Alcifra.Presentation.DocumentDateFormat.TryParseTypedTime(EndEntry, out var endParsed)
+            || startParsed is not { } startTime || endParsed is not { } endTime)
+        {
+            Status = Strings.Get("TimeEntryInvalid");
+            return;
+        }
+
+        // Local wall-clock in, real instants out — the zone is this machine's, and the server compares instants
+        // (ADR 0735's [start, end) semantics). Each end is placed with the offset AT its own wall time, not the
+        // date's midnight, which differs on the day the clocks change (#1909).
+        var startsAt = Alcifra.Presentation.WallClock.At(DateOnly.FromDateTime(date), startTime, TimeZoneInfo.Local);
+        var endsAt = Alcifra.Presentation.WallClock.At(DateOnly.FromDateTime(date), endTime, TimeZoneInfo.Local);
+
+        try
+        {
+            await _api.Bookings.BookAsync(_bookingsHref, startsAt, endsAt, string.IsNullOrWhiteSpace(Purpose) ? null : Purpose.Trim());
+            Status = string.Empty;
+            await LoadAsync();
+        }
+        catch (ApiActionException e)
+        {
+            // Already localized (ApiErrorText) — the slot-conflict sentence is the one users will meet.
+            Status = e.Message;
+        }
+        catch (Exception e)
+        {
+            Status = e.Message;
+        }
+    }
+
+    [RelayCommand]
+    private async Task CancelBooking(BookingRowView? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _api.Bookings.CancelAsync(row.Row);
+            Status = string.Empty;
+            await LoadAsync();
+        }
+        catch (ApiActionException e)
+        {
+            Status = e.Message;
+        }
+        catch (Exception e)
+        {
+            Status = e.Message;
+        }
+    }
+}

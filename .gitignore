@@ -60,7 +60,7 @@ nunit-*.xml
 *.DotSettings.user
 
 # Stray apphost symlink left in the working dir by running the DesktopClient
-/SimplArchive.DesktopClient
+/Alcifra.DesktopClient
 
 # macos system files
 .DS_Store
@@ -80,9 +80,9 @@ dist/
 
 # Baked/staged desktop-client download artifacts (ADR 0490) — build outputs, not committed. The folder structure
 # (.gitkeep) + clients/macos/index.html stay tracked; the Dockerfile / scripts/package-clients.sh produce these.
-/src/SimplArchive.Api/wwwroot/download/clients/**/*.zip
-/src/SimplArchive.Api/wwwroot/download/clients/**/*.tar.gz
-/src/SimplArchive.Api/wwwroot/download/clients/**/*.dmg
+/src/Alcifra.Api/wwwroot/download/clients/**/*.zip
+/src/Alcifra.Api/wwwroot/download/clients/**/*.tar.gz
+/src/Alcifra.Api/wwwroot/download/clients/**/*.dmg
 white-bar-bug.png
 
 # Screenshot debris and dropped fixtures at the repo root. `--demo` is what a malformed
@@ -93,7 +93,7 @@ white-bar-bug.png
 /*.jpg
 /*.jpeg
 /*.png
-src/SimplArchive.DesktopClient/--*
+src/Alcifra.DesktopClient/--*
 
 # Real scans dropped in the repo root for verification (#491). They are somebody's actual receipts and
 # invoices, and this repository is published — so they must never be committed, not even by a sweeping

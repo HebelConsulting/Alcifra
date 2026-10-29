@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Restores a SimplArchive backup (produced by scripts/backup.sh) into the local docker-compose stack. The
+# Restores a Alcifra backup (produced by scripts/backup.sh) into the local docker-compose stack. The
 # Postgres/object-storage targets are configurable so a restore can be validated into a THROWAWAY database +
 # bucket without clobbering live data (that's how the round-trip is verified). See docs/deploy/backup-dr.md
 # for the DR runbook, restore order, and WORM/Object-Lock caveats.

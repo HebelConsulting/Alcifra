@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>saconsole</AssemblyName>
+        <RootNamespace>Alcifra.Cli</RootNamespace>
+        <!-- Administering an installation from a terminal (ADR 0822). Shipped as a .NET tool like caconsole,
+             so an administrator installs it rather than building this repository. It talks to the Api over
+             HTTP and references no APPLICATION project on purpose: it is a CLIENT of the deployed application,
+             not a part of it, and such a reference would quietly make it one. (Its references are the shared
+             console logger and the shared API client, which carry none of the application; see below.) -->
+        <IsPackable>true</IsPackable>
+        <PackAsTool>true</PackAsTool>
+        <ToolCommandName>alcifra</ToolCommandName>
+        <PackageId>Alcifra.Cli</PackageId>
+        <!-- Until phase 5 of the rename (#1117, ADR 0988) the release also packs this under its earlier id, with
+             -p:LegacyPackageId=true: a switch this project reads, because a PackageId passed on the command line
+             reaches every referenced project too and restore refuses the duplicate. -->
+        <PackageId Condition="'$(LegacyPackageId)' == 'true'">Alcifra.Cli</PackageId>
+        <ToolCommandName Condition="'$(LegacyPackageId)' == 'true'">saconsole</ToolCommandName>
+        <!-- The description is what a reader sees on the package feed before they install anything, so it lists
+             what the tool DOES rather than what it is meant to grow into. It claimed service accounts and user
+             certificates while having neither; certificates arrived with #1353 and service accounts have not,
+             so they come out until they do. A package description is a promise made to strangers. -->
+        <Description>alcifra — administrative CLI for an Alcifra installation: sign in, provision tenants, and register the certificate your content is enveloped to, over the HTTP API.</Description>
+        <!-- Where a reader of the package page goes next. The PUBLIC repository, because that is the one a stranger
+             can open — and the one this package is packed from (saconsole-publish.yml runs only there), so the
+             commit SourceLink records is a public commit too. Without these the page linked nowhere, and without
+             the licence expression it said "license not specified" for an Apache-2.0 project. -->
+        <PackageProjectUrl>https://github.com/HebelConsulting/SimplArchive</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <!-- The package page's README: what Alcifra IS, before what this tool does. The one-line description
+             above assumed the reader already knew. -->
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
+        <!-- The Messenger's open-source client (nuget.org): the backup format lives there once, shared with the phone (ADR 0945).
+             The version the shared API client's SealedArchive leaf brings, since this tool references that client (ADR 0966). -->
+        <PackageReference Include="SimplArchive.Messenger.Client" Version="0.13.0" />
+        <!-- Output through a logger to stderr (ADR 0906, #1661); commands get their logger by constructor. -->
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The one plain stderr logger every console program shares (ADRs 0906/0911). A project this tool
+             references, and the exception is deliberate: it is a leaf with one package and no project references,
+             so it carries no part of the application into a client of it. PackAsTool bundles its assembly. -->
+        <ProjectReference Include="../Alcifra.ConsoleLogging/Alcifra.ConsoleLogging.csproj" />
+        <!-- The shared API client the desktop and the phone use (ADR 0917), for the password store (ADR 0966): an entry
+             is sealed on the client to the store's readers, and that sealing lives there ONCE ("moved, not copied").
+             A client library, not an application project: it carries none of the server. -->
+        <ProjectReference Include="../Alcifra.ApiClient/Alcifra.ApiClient.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The message-shaping helpers are internal: they are how the tool TALKS, not API for anyone to call.
+             The unit tests assert on them because a refusal message is the part of a CLI people actually read. -->
+        <InternalsVisibleTo Include="Alcifra.UnitTests" />
+    </ItemGroup>
+
+</Project>

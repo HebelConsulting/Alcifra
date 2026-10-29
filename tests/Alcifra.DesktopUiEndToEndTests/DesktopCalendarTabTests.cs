@@ -1,0 +1,194 @@
+using System.Text;
+using Alcifra.DesktopClient;
+using Alcifra.DesktopClient.Services;
+using Alcifra.DesktopClient.ViewModels;
+
+namespace Alcifra.UiEndToEndTests;
+
+// The desktop Calendar tab (#564), the twin of Contacts — same listing, same checkbox model, ordered by time.
+// The pair is one surface (ADR 0511), so what is asserted of one is asserted of the other.
+[Collection(UiCollection.Name)]
+public class DesktopCalendarTabTests
+{
+    private readonly SelfHostedAppFixture _app;
+
+    public DesktopCalendarTabTests(SelfHostedAppFixture app) => _app = app;
+
+    [Fact]
+    public async Task Tab_opens_on_the_personal_calendar_and_lists_only_calendars()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+        Assert.NotNull(await api.Profile.GetPersonalRepositoryAsync());
+
+        var vm = new CalendarTabViewModel(new TestShell());
+        vm.SetApi(api);
+        await vm.LoadAsync();
+
+        var mine = Assert.Single(vm.Collections, c => c.Collection.IsPersonalDefault);
+        Assert.Equal("My Calendar", mine.Collection.Name);
+        Assert.EndsWith("My Calendar", mine.DisplayName, StringComparison.Ordinal); // parent-qualified
+        Assert.True(mine.Writable);
+        Assert.True(mine.IsChecked);
+
+        // Only calendars — the addressbooks answer the same shape and must not leak in.
+        Assert.All(vm.Collections, c => Assert.Equal("calendar", c.Collection.Kind));
+        Assert.DoesNotContain(vm.Collections, c => c.Collection.Name == "My Addressbook");
+
+        // Every collection carries the addresses the tab acts from, so it never composes one (ADR 0543).
+        Assert.All(vm.Collections, c =>
+        {
+            Assert.NotNull(c.Collection.Href("children"));
+            Assert.NotNull(c.Collection.Href("collection-color"));
+        });
+
+        mine.IsChecked = false;
+        await vm.OnCollectionToggledAsync();
+        Assert.Empty(vm.Appointments);
+        Assert.False(vm.CanCreate);
+    }
+
+    // The same containment fix the Contacts tab exercised, on the calendar side: an .ics through the ORDINARY
+    // upload path, not only through CalDAV.
+    [Fact]
+    public async Task An_ics_uploaded_into_a_calendar_becomes_an_appointment_the_tab_lists()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+        Assert.NotNull(await api.Profile.GetPersonalRepositoryAsync());
+
+        var calendar = (await api.DavCollections.ListAsync("calendar")).Single(c => c.IsPersonalDefault);
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var ics = $"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//{(global::Alcifra.Presentation.WireNames.Product)}//desktop//EN\r\nBEGIN:VEVENT\r\n"
+            + $"UID:{suffix}\r\nDTSTAMP:20260817T090000Z\r\nDTSTART:20260901T090000Z\r\nDTEND:20260901T100000Z\r\n"
+            + $"SUMMARY:Sprint planning\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        await api.Documents.UploadFileAsync(calendar.Href("children"), $"evt-{suffix}.ics", Encoding.UTF8.GetBytes(ics));
+
+        var vm = new CalendarTabViewModel(new TestShell());
+        vm.SetApi(api);
+        await vm.LoadAsync();
+
+        // Named by the event's SUMMARY, not by the file — that rename is the proof the classifier ran rather
+        // than the .ics landing as a plain Basic Entry, which containment would then have refused.
+        Assert.Contains(vm.Appointments, a => a.Title == "Sprint planning");
+    }
+
+    // New appointment (#631): created from the rel the CALENDAR advertised, with the times the form holds —
+    // and a blank form opens on the next full hour rather than with no date at all, which is the one field a
+    // person must fill before the entry means anything.
+    [Fact]
+    public async Task New_appointment_creates_from_the_advertised_rel_with_the_default_slot_filled_in()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+        Assert.NotNull(await api.Profile.GetPersonalRepositoryAsync());
+
+        var vm = new CalendarTabViewModel(new TestShell());
+        vm.SetApi(api);
+        await vm.LoadAsync();
+
+        var target = Assert.Single(vm.CreateTargets());
+        Assert.True(vm.CanCreate);
+
+        var form = new AppointmentEditViewModel();
+        form.OpenForCreate([target]);
+
+        // Seeded by OpenForCreate, and an hour long — asserted because a blank date silently produces an entry
+        // the calendar cannot place, which then sorts to the bottom as "undated" and looks like a lost save.
+        Assert.NotNull(form.StartDate);
+        Assert.NotNull(form.EndDate);
+        Assert.Equal(TimeSpan.FromHours(1), (form.EndDate!.Value.Date + form.EndTime!.Value) - (form.StartDate!.Value.Date + form.StartTime!.Value));
+
+        var title = $"Quarterly review {Guid.NewGuid().ToString("N")[..6]}";
+        form.Summary = title;
+        form.Location = "Room 3";
+
+        await vm.CreateAppointmentAsync(target, form);
+
+        var created = Assert.Single(vm.Appointments, a => a.Title == title);
+        Assert.Equal(created, vm.Selected);
+
+        var loaded = await vm.LoadEntryAsync(created);
+        Assert.NotNull(loaded);
+        Assert.Equal("Room 3", loaded!.Value.Location);
+        Assert.Equal(form.StartTime, loaded.Value.StartTime);
+    }
+
+    // A row's two time displays must agree. They are computed by different code — one formats the range, the
+    // other the full start — and binding the raw DateTimeOffset formatted the STORED OFFSET while the range
+    // converted to local, so one appointment read "When 11:00–12:00" and "Starts 09:00" two lines apart.
+    /// <summary>
+    /// The demo set and the month on show are the SAME month (#1518).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>PopulateDemoForScreenshot</c> pins its entries to a fixed date so the figure does not move daily —
+    /// deliberately, because a screenshot that changes every day cannot be compared against the last one. But
+    /// <c>Month</c> defaulted to TODAY's, so the two agreed only while the real clock happened to be in the
+    /// same month, and silently disagreed afterwards.
+    /// </para>
+    /// <para>
+    /// It went wrong at midnight on 2026-10-01: the manual's Calendar figure became an empty October grid
+    /// beside a detail pane describing an appointment that was nowhere in it. Nothing failed — the capture
+    /// succeeded, the PDF regenerated, and a release four minutes later would have published it.
+    /// </para>
+    /// <para>
+    /// Asserted as an AGREEMENT between the two rather than against September 2026, so moving the demo date
+    /// does not need this test edited — only the contradiction is forbidden.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void The_demo_month_on_show_contains_the_demo_entries()
+    {
+        var vm = new CalendarTabViewModel(new TestShell());
+        vm.PopulateDemoForScreenshot();
+
+        Assert.NotEmpty(vm.Appointments);
+
+        // Every seeded entry falls inside the month the tab is displaying, so the grid cannot be empty.
+        foreach (var appointment in vm.Appointments)
+        {
+            var start = DateOnly.FromDateTime(appointment.Start!.Value.Date);
+
+            Assert.True(
+                start.Year == vm.Month.Year && start.Month == vm.Month.Month,
+                $"'{appointment.Title}' starts {start:yyyy-MM-dd} while the tab is showing "
+                + $"{vm.Month:yyyy-MM}. The demo data and the month on show must be pinned together, or the "
+                + "figure is empty for eleven months of twelve (#1518).");
+        }
+    }
+
+    [Fact]
+    public void The_row_and_the_detail_pane_tell_the_same_time()
+    {
+        var vm = new CalendarTabViewModel(new TestShell());
+        vm.PopulateDemoForScreenshot();
+
+        var row = vm.Appointments.First(a => a.Start is not null);
+        Assert.Contains(row.Start!.Value.LocalDateTime.ToString("HH:mm"), row.TimeRange, StringComparison.Ordinal);
+        Assert.Contains(row.Start!.Value.LocalDateTime.ToString("HH:mm"), row.StartsOn, StringComparison.Ordinal);
+    }
+
+    // Undated appointments sort LAST: a null start ordering to the top would put the least informative rows
+    // exactly where the eye lands.
+    [Fact]
+    public void An_undated_appointment_sorts_after_the_dated_ones()
+    {
+        var vm = new CalendarTabViewModel(new TestShell());
+        vm.PopulateDemoForScreenshot();
+        vm.Appointments.Add(new AppointmentRowViewModel
+        {
+            Id = Guid.NewGuid(),
+            CollectionColor = "#8a8a8a",
+            CollectionName = "Personal / My Calendar",
+            AllDay = false,
+            Title = "No date at all",
+            Links = LinkMap.Empty,
+        });
+
+        var ordered = vm.Appointments
+            .OrderBy(a => a.Start is null).ThenBy(a => a.Start)
+            .Select(a => a.Title).ToList();
+        Assert.Equal("No date at all", ordered[^1]);
+    }
+}
