@@ -410,7 +410,11 @@ public static partial class WebCapture
         try
         {
             await SelectDemoOfferAsync(page);
-            await page.GetByRole(AriaRole.Button, new() { Name = "Compare versions" }).ClickAsync();
+            // From the row's ⋮ menu: the action left the details pane with the document's other actions (ADR 0970),
+            // and the figure was skipped from then on (since 2026-10-24) while the manual kept the previous picture.
+            var row = page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = "Offer 2026-014" });
+            await row.First.Locator("button").Last.ClickAsync();
+            await page.Locator(".mud-popover-open .mud-menu-item").Filter(new() { HasText = "Compare versions" }).First.ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await dialog.First.WaitForAsync(new() { Timeout = 10000 });
             await dialog.GetByRole(AriaRole.Button, new() { Name = "Compare", Exact = true }).ClickAsync();
