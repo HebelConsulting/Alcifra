@@ -161,7 +161,7 @@ internal static class DemoArtistsSeeder
         // The department's own mailbox (#703 PR 4): the worked example of what the issue introduces, so a
         // visitor can SEE a departmental mailbox rather than read that one is possible. The address arrives
         // derived from the admin's domain (#432's rule), so a local Compose stack claims
-        // events@alcifra.local while the kiosk claims events@demo.simplarchive.dev — never a hardcoded
+        // events@alcifra.local while the kiosk claims events@demo.alcifra.dev — never a hardcoded
         // domain the local stack cannot receive for.
         var mailboxMask = await FolderMask.CurrentVersionIdAsync(dbContext, tenantId, WellKnownMaskIds.Mailbox, CancellationToken.None);
         var mailbox = await FolderAsync(dbContext, tenantId, events.Id, "Mailbox", adminId, now, mailboxMask);

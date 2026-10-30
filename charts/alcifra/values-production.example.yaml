@@ -49,8 +49,8 @@ config:
     fromName: "Acme DMS"
   openBao:
     address: "https://openbao.internal:8200"
-    roleId: "simplarchive-role"
-    databaseConnectionTemplate: "Host=pg.internal;Port=5432;Database=simplarchive"
+    roleId: "alcifra-role"
+    databaseConnectionTemplate: "Host=pg.internal;Port=5432;Database=alcifra"
 
 ingress:
   enabled: true

@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-KIOSK_URL="https://demo.simplarchive.dev"
+KIOSK_URL="https://demo.alcifra.dev"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 README="$ROOT/publish/README.public.md"
 

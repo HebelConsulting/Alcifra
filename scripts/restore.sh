@@ -23,7 +23,7 @@ S3_SECRET_KEY="${S3_SECRET_KEY:-storageadmin}"
 cd "$(dirname "$0")/.."
 SA_NETWORK="${SA_NETWORK:-$(docker compose config --format json | python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])')_default}"
 IN="$1"
-TARGET_DB="${2:-simplarchive}"
+TARGET_DB="${2:-alcifra}"
 BUCKET_SUFFIX="${3:-}"
 IN_ABS="$(cd "$IN" && pwd)"
 echo "Restoring from $IN_ABS  ->  db=$TARGET_DB buckets=<name>$BUCKET_SUFFIX"
@@ -54,7 +54,7 @@ AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" AWS_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
       if [ -d /backup/buckets ]; then
         for dir in /backup/buckets/*/; do restore "$dir" "$(basename "$dir")$SUFFIX"; done
       else
-        restore /backup/minio "simplarchive$SUFFIX"
+        restore /backup/minio "alcifra$SUFFIX"
       fi' 
 
 # --- OpenBao: raft snapshot restore (production only; not the dev -dev server) ---------------------------

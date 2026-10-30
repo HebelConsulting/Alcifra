@@ -14,7 +14,7 @@ public class AlcifraDbContextFactory : IDesignTimeDbContextFactory<AlcifraDbCont
     public AlcifraDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<AlcifraDbContext>();
-        optionsBuilder.UseNpgsql("Host=localhost;Database=simplarchive;Username=postgres;Password=postgres");
+        optionsBuilder.UseNpgsql("Host=localhost;Database=alcifra;Username=postgres;Password=postgres");
 
         return new AlcifraDbContext(optionsBuilder.Options, new DesignTimeCurrentTenantAccessor());
     }

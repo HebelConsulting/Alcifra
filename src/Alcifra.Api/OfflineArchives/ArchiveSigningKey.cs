@@ -48,7 +48,7 @@ public sealed class ArchiveSigningKey
         }
         else
         {
-            logger.LogInformation("Offline archives are disabled: no archive signing key is configured (OpenBao secret/simplarchive/archive-signing).");
+            logger.LogInformation("Offline archives are disabled: no archive signing key is configured (OpenBao secret/alcifra/archive-signing).");
         }
 
         History = Current is null ? previous : [X509CertificateLoader.LoadCertificate(Current.RawData), .. previous];

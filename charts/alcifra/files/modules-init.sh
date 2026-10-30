@@ -17,7 +17,7 @@ set -eu
 
 MODULES_ENV="${MODULES_ENV:-/modules.env}"
 TARGET="${TARGET:-/modules}"
-FEED="${SA_MODULE_FEED:-https://packages.simplarchive.dev/nuget}"
+FEED="${SA_MODULE_FEED:-https://get.alcifra.com/nuget}"
 SA_MODULES="${SA_MODULES:-}"
 
 # …UNIONED with every SA_MODULES_<KEY> (ADR 0870's rollout). Each add-on overlay names ITS module in a key of

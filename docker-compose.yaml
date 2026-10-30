@@ -121,17 +121,17 @@ x-api-env: &api-env
   # startup), and ObjectStorage:AccessKey/SecretKey + Bootstrap:...:ClientSecret come from KV — so those
   # plaintext values are gone from here. The Api authenticates to OpenBao with the AppRole ids below.
   OpenBao__Address: "http://openbao:8200"
-  OpenBao__RoleId: "simplarchive-role"
-  OpenBao__SecretId: "simplarchive-secret"
-  OpenBao__DatabaseConnectionTemplate: "Host=db;Port=5432;Database=simplarchive"
+  OpenBao__RoleId: "alcifra-role"
+  OpenBao__SecretId: "alcifra-secret"
+  OpenBao__DatabaseConnectionTemplate: "Host=db;Port=5432;Database=alcifra"
   # The database static role whose OpenBao-rotated password backs the migration connection (ADR 0359).
-  OpenBao__DatabaseOwnerStaticRole: "simplarchive-owner"
+  OpenBao__DatabaseOwnerStaticRole: "alcifra-owner"
   # The database static role backing the RUNTIME connection (ADR "Database credential refresh"). Set here,
   # the app connects as a fixed login and re-reads its rotating password for as long as it runs; unset, it
   # falls back to one dynamic credential read at startup — which expires at its 24h lease and leaves the api
   # permanently 503 until it is restarted. That is not hypothetical: it is what this dev stack did after two
   # days up.
-  OpenBao__DatabaseRuntimeStaticRole: "simplarchive-runtime"
+  OpenBao__DatabaseRuntimeStaticRole: "alcifra-runtime"
   # The browser-facing origin — must match the host port mapping above so the blazor-client's seeded
   # redirect URIs and OpenIddict's issuer line up with what the browser actually loads.
   App__BaseUrl: "http://localhost:8080"
@@ -168,13 +168,13 @@ x-api-env: &api-env
   ObjectStorage__ServiceUrl: "http://seaweedfs:8333"
   ObjectStorage__PublicServiceUrl: "${S3_PUBLIC_URL:-http://localhost:8333}"
   ObjectStorage__Region: "us-east-1"
-  ObjectStorage__BucketName: "simplarchive"
+  ObjectStorage__BucketName: "alcifra"
   # Each tenant's bucket is `alcifra-{tenantId}` (ADR 1000). A volume from before the rename keeps its objects in
   # `simplarchive-…` buckets and refuses to start until SA_LEGACY_BUCKET_PREFIX=simplarchive (in .env) lets reads fall
   # back while `alcifra storage migrate` moves them; clear it when that reports nothing left.
   ObjectStorage__BucketPrefix: "alcifra"
   ObjectStorage__LegacyBucketPrefix: "${SA_LEGACY_BUCKET_PREFIX:-}"
-  # ObjectStorage__AccessKey / __SecretKey now come from OpenBao KV (secret/simplarchive/objectstorage).
+  # ObjectStorage__AccessKey / __SecretKey now come from OpenBao KV (secret/alcifra/objectstorage).
   # Gotenberg sidecar for office-document -> PDF preview conversion (ADR 0228). Reached over the compose
   # network; when unset, office preview simply falls back to offering the original file.
   Gotenberg__Url: "http://gotenberg:3000"
@@ -212,7 +212,7 @@ x-api-env: &api-env
   Lmtp__BindAddress: "0.0.0.0"
   Lmtp__Port: "2525"
   # First PlatformAdministrator, seeded idempotently on startup (no-op once one exists). The ClientSecret
-  # now comes from OpenBao KV (secret/simplarchive/bootstrap); only the non-secret Name/ClientId stay here.
+  # now comes from OpenBao KV (secret/alcifra/bootstrap); only the non-secret Name/ClientId stay here.
   Bootstrap__PlatformAdministrator__Name: "bootstrap-admin"
   Bootstrap__PlatformAdministrator__ClientId: "bootstrap-platform-admin"
 
@@ -223,18 +223,18 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: simplarchive
+      POSTGRES_DB: alcifra
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d simplarchive"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d alcifra"]
       interval: 5s
       timeout: 3s
       retries: 10
 
   # One-shot: provisions the database roles for the "migration owner" model (ADR "Dedicated migration owner
-  # role"). Creates a NOLOGIN `simplarchive_app` group (which the OpenBao dynamic runtime roles join) and a
-  # LOGIN `simplarchive_owner` role that owns the schema and runs DDL migrations; sets ALTER DEFAULT PRIVILEGES
+  # role"). Creates a NOLOGIN `alcifra_app` group (which the OpenBao dynamic runtime roles join) and a
+  # LOGIN `alcifra` role that owns the schema and runs DDL migrations; sets ALTER DEFAULT PRIVILEGES
   # so anything the owner creates is auto-granted (DML) to the app group; and idempotently transfers any
   # existing objects (created by a prior dynamic role / postgres) to the owner. Runs as the postgres superuser
   # (which the db exposes for local dev) and is safe to re-run. Uses the postgres image for its psql client.
@@ -249,7 +249,7 @@ services:
       # The SQL lives in a mounted file (not an inline compose command) so Compose's `$`/`$$` interpolation
       # doesn't mangle the PL/pgSQL dollar-quoting.
       - ./scripts/db-init.sql:/db-init.sql:ro
-    entrypoint: ["psql", "-h", "db", "-U", "postgres", "-d", "simplarchive", "-v", "ON_ERROR_STOP=1", "-f", "/db-init.sql"]
+    entrypoint: ["psql", "-h", "db", "-U", "postgres", "-d", "alcifra", "-v", "ON_ERROR_STOP=1", "-f", "/db-init.sql"]
 
   # S3-compatible object store (ADR 0360). SeaweedFS replaced MinIO, which was archived by its owner in 2026
   # (server + `mc` client) and is EOL as open source. SeaweedFS is maintained, lightweight, and — critically —
@@ -305,7 +305,7 @@ services:
     # Readiness gate only: waits until SeaweedFS's S3 API answers, then exits (the api's depends_on gates on this).
     # It does NOT create a base bucket — every object lives in a per-tenant bucket `alcifra-{tenantId}` that the
     # app creates on demand at tenant provisioning (EnsureTenantBucketAsync, with its own object-lock + CORS + tags,
-    # ADR 0372). A bare `simplarchive` bucket is never written to, so creating it here was a pre-0372 leftover.
+    # ADR 0372). A bare `alcifra` bucket is never written to, so creating it here was a pre-0372 leftover.
     entrypoint: >
       /bin/sh -c "
       aws configure set default.s3.addressing_style path;
@@ -374,10 +374,10 @@ services:
       LMTP_TARGET: "caddy:2525"
       MYHOSTNAME: "mail.localhost"
       DB_HOST: "db"
-      DB_NAME: "simplarchive"
+      DB_NAME: "alcifra"
       # Reads ONE table (see scripts/db-init.sql). A shared credential here would give the internet-facing
       # component read access to every document row in the archive.
-      DB_USER: "simplarchive_postfix"
+      DB_USER: "alcifra_postfix"
       DB_PASSWORD: "postfix"
     restart: unless-stopped
 
@@ -398,11 +398,11 @@ services:
       - "-U"
       - postgres
       - "-d"
-      - simplarchive
+      - alcifra
       - "-v"
       - "ON_ERROR_STOP=1"
       - "-c"
-      - 'GRANT SELECT ON public."TenantMailDomains" TO simplarchive_postfix;'
+      - 'GRANT SELECT ON public."TenantMailDomains" TO alcifra_postfix;'
 
   # Dev SMTP catcher (ADR "Email notifications (SMTP)"): Mailpit accepts the notification emails on :1025 and
   # shows them in a web inbox on :8025 — so the demo's workflow/escalation emails are visible in a browser
@@ -463,7 +463,7 @@ services:
       # A pgAdmin login is still required by the image even in desktop mode; these are never prompted for
       # (SERVER_MODE=False auto-authenticates as this user) and are throwaway. `.local` is rejected as a reserved
       # TLD, so use `.com`.
-      PGADMIN_DEFAULT_EMAIL: "admin@simplarchive.com"
+      PGADMIN_DEFAULT_EMAIL: "admin@alcifra.com"
       PGADMIN_DEFAULT_PASSWORD: "admin"
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
@@ -483,7 +483,7 @@ services:
   # Persistent dev OpenBao (ADR "Persist the dev OpenBao"): a file storage backend + a named volume + an
   # auto-init/unseal entrypoint, so secrets survive container restarts (machine sleep, Docker restart). The old
   # in-memory `-dev` mode lost everything on restart while Postgres kept the rotated passwords → the recurring
-  # `simplarchive` `28P01` credential drift. Runs as root so it can write the /openbao data volume (dev only).
+  # `alcifra` `28P01` credential drift. Runs as root so it can write the /openbao data volume (dev only).
   openbao:
     image: openbao/openbao:${OPENBAO_TAG:-2.6.2}
     restart: unless-stopped
@@ -508,7 +508,7 @@ services:
         condition: service_started
       db:
         condition: service_healthy
-      # The database secrets engine connects as `simplarchive` — db-init must have created that role first.
+      # The database secrets engine connects as `alcifra` — db-init must have created that role first.
       db-init:
         condition: service_completed_successfully
     # Read the persistent OpenBao's data volume (ro) to pick up the generated root token (ADR "Persist the dev
@@ -530,43 +530,43 @@ services:
         # (ADR "Persist the dev OpenBao") does not, so provision it explicitly (idempotent on a re-run).
         bao secrets enable -path=secret -version=2 kv 2>/dev/null || true
         # Static KV secrets.
-        bao kv put secret/simplarchive/objectstorage accessKey=storageadmin secretKey=storageadmin
-        bao kv put secret/simplarchive/smtp user= password=
-        bao kv put secret/simplarchive/bootstrap clientSecret=dev-bootstrap-secret
-        # Database secrets engine. The engine connects as `simplarchive_vault` (a dedicated CREATEROLE admin, NOT
+        bao kv put secret/alcifra/objectstorage accessKey=storageadmin secretKey=storageadmin
+        bao kv put secret/alcifra/smtp user= password=
+        bao kv put secret/alcifra/bootstrap clientSecret=dev-bootstrap-secret
+        # Database secrets engine. The engine connects as `alcifra_vault` (a dedicated CREATEROLE admin, NOT
         # the schema owner and NOT postgres); `rotate-root` immediately makes OpenBao own its password (the
         # bootstrap literal from db-init dies at once). The engine mints the short-lived dynamic runtime roles
-        # (database/creds) and owns + rotates the schema-owning `simplarchive` password as a *static role*.
+        # (database/creds) and owns + rotates the schema-owning `alcifra` password as a *static role*.
         bao secrets enable database || true
-        bao write database/config/simplarchive \
+        bao write database/config/alcifra \
           plugin_name=postgresql-database-plugin \
-          allowed_roles=simplarchive,simplarchive-owner,simplarchive-runtime \
-          connection_url='postgresql://{{username}}:{{password}}@db:5432/simplarchive?sslmode=disable' \
-          username=simplarchive_vault password=simplarchive_vault_bootstrap
-        bao write -force database/rotate-root/simplarchive
-        # Least-privilege dynamic runtime roles: created IN ROLE simplarchive_app (DML via the group's grants +
+          allowed_roles=alcifra,alcifra-owner,alcifra-runtime \
+          connection_url='postgresql://{{username}}:{{password}}@db:5432/alcifra?sslmode=disable' \
+          username=alcifra_vault password=alcifra_vault_bootstrap
+        bao write -force database/rotate-root/alcifra
+        # Least-privilege dynamic runtime roles: created IN ROLE alcifra_app (DML via the group's grants +
         # default privileges); they own nothing, so revocation just drops them.
-        bao write database/roles/simplarchive \
-          db_name=simplarchive \
-          creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE simplarchive_app;" \
+        bao write database/roles/alcifra \
+          db_name=alcifra \
+          creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE alcifra_app;" \
           revocation_statements="DROP OWNED BY \"{{name}}\"; DROP ROLE IF EXISTS \"{{name}}\";" \
           default_ttl=24h max_ttl=72h
-        # Static role: OpenBao owns + rotates the schema-owning `simplarchive` password (24h). Rotated once on
+        # Static role: OpenBao owns + rotates the schema-owning `alcifra` password (24h). Rotated once on
         # creation, so the db-init bootstrap literal is immediately replaced. The Api reads the current password
-        # from database/static-creds/simplarchive-owner for its migration connection.
-        bao write database/static-roles/simplarchive-owner \
-          db_name=simplarchive \
-          username=simplarchive \
+        # from database/static-creds/alcifra-owner for its migration connection.
+        bao write database/static-roles/alcifra-owner \
+          db_name=alcifra \
+          username=alcifra \
           rotation_period=86400 \
           rotation_statements="ALTER ROLE \"{{name}}\" WITH PASSWORD '{{password}}';"
         # Force an immediate static-role rotation on EVERY provision (ADR "Fix OpenBao static-role drift on
         # re-provision"). Writing the static-role config only rotates on first creation; on a re-run against the
         # now-persistent OpenBao (ADR "Persist the dev OpenBao") the role already exists so the write does NOT
-        # re-rotate — leaving OpenBao's stored `simplarchive` static-cred untouched while db-init has just reset
+        # re-rotate — leaving OpenBao's stored `alcifra` static-cred untouched while db-init has just reset
         # the Postgres password to its bootstrap seed, so the api reads a stale password and Postgres rejects it
         # (`28P01`). An explicit rotate-role makes OpenBao ALTER Postgres to a fresh password it also stores, so
-        # the two always re-agree after a re-provision. (rotate-root above already re-synced simplarchive_vault.)
-        bao write -f database/rotate-role/simplarchive-owner
+        # the two always re-agree after a re-provision. (rotate-root above already re-synced alcifra_vault.)
+        bao write -f database/rotate-role/alcifra-owner
         # Static role for the RUNTIME connection (the app's own DML identity, created by db-init). This is what
         # makes the app survive longer than one credential lifetime: a dynamic credential mints a new USERNAME
         # per lease, which a live connection pool cannot swap, whereas rotating the password of a fixed username
@@ -575,27 +575,27 @@ services:
         # Rotated more often than the owner (12h vs 24h) because it is the credential in constant use; the app
         # refreshes well inside that window and keeps serving on the current password if OpenBao is briefly
         # unreachable.
-        bao write database/static-roles/simplarchive-runtime \
-          db_name=simplarchive \
-          username=simplarchive_runtime \
+        bao write database/static-roles/alcifra-runtime \
+          db_name=alcifra \
+          username=alcifra_runtime \
           rotation_period=43200 \
           rotation_statements="ALTER ROLE \"{{name}}\" WITH PASSWORD '{{password}}';"
         # Same forced rotation as the owner role above, for the same reason: writing a static-role config only
         # rotates on FIRST creation, so a re-provision against a persistent OpenBao would leave OpenBao holding a
         # password db-init has just reset to its bootstrap seed — the `28P01` drift that ADR "Fix OpenBao
         # static-role drift on re-provision" documents. An explicit rotate makes the two re-agree every time.
-        bao write -f database/rotate-role/simplarchive-runtime
+        bao write -f database/rotate-role/alcifra-runtime
         # Transit engine for encrypting the TOTP secret at rest (ADR "MFA require-policy + TOTP secret
         # encryption") — the key never leaves OpenBao.
         bao secrets enable transit || true
-        bao write -f transit/keys/simplarchive-mfa
+        bao write -f transit/keys/alcifra-mfa
         # AppRole machine auth for the Api (fixed dev ids).
         bao auth enable approle || true
-        printf 'path "secret/data/simplarchive/*" { capabilities = ["read"] }\npath "database/creds/simplarchive" { capabilities = ["read"] }\npath "database/static-creds/simplarchive-owner" { capabilities = ["read"] }\npath "database/static-creds/simplarchive-runtime" { capabilities = ["read"] }\npath "transit/encrypt/simplarchive-mfa" { capabilities = ["update"] }\npath "transit/decrypt/simplarchive-mfa" { capabilities = ["update"] }\n' | bao policy write simplarchive -
-        bao write auth/approle/role/simplarchive token_policies=simplarchive token_ttl=1h token_max_ttl=4h
-        bao write auth/approle/role/simplarchive/role-id role_id=simplarchive-role
+        printf 'path "secret/data/alcifra/*" { capabilities = ["read"] }\npath "database/creds/alcifra" { capabilities = ["read"] }\npath "database/static-creds/alcifra-owner" { capabilities = ["read"] }\npath "database/static-creds/alcifra-runtime" { capabilities = ["read"] }\npath "transit/encrypt/alcifra-mfa" { capabilities = ["update"] }\npath "transit/decrypt/alcifra-mfa" { capabilities = ["update"] }\n' | bao policy write alcifra -
+        bao write auth/approle/role/alcifra token_policies=alcifra token_ttl=1h token_max_ttl=4h
+        bao write auth/approle/role/alcifra/role-id role_id=alcifra-role
         # Idempotent on a re-run against an already-provisioned OpenBao (the fixed SecretID may already exist).
-        bao write auth/approle/role/simplarchive/custom-secret-id secret_id=simplarchive-secret || true
+        bao write auth/approle/role/alcifra/custom-secret-id secret_id=alcifra-secret || true
         # OpenIddict signing + encryption certificates via the PKI engine (ADR "OpenIddict certificates from
         # OpenBao"). Issue two certs and store each full issue-JSON in KV (the Api extracts certificate +
         # private_key — no jq needed here). Dev-only self-signed CA; production would use a persistent CA.
@@ -603,14 +603,14 @@ services:
         bao secrets tune -max-lease-ttl=87600h pki
         bao write -field=certificate pki/root/generate/internal common_name='Alcifra Dev CA' ttl=87600h >/dev/null
         bao write pki/roles/openiddict allow_any_name=true max_ttl=8760h key_type=rsa key_bits=2048
-        bao write -format=json pki/issue/openiddict common_name=simplarchive-signing ttl=8760h > /tmp/signing.json
-        bao write -format=json pki/issue/openiddict common_name=simplarchive-encryption ttl=8760h > /tmp/encryption.json
-        bao kv put secret/simplarchive/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
+        bao write -format=json pki/issue/openiddict common_name=alcifra-signing ttl=8760h > /tmp/signing.json
+        bao write -format=json pki/issue/openiddict common_name=alcifra-encryption ttl=8760h > /tmp/encryption.json
+        bao kv put secret/alcifra/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
         # The offline-archive signing key (ADR 0961): issued ONCE and kept. Rotating it moves the old certificate into
         # `previous`, which stays published so archives it signed keep verifying; re-issuing in place would orphan them.
-        bao kv get secret/simplarchive/archive-signing >/dev/null 2>&1 || {
-          bao write -format=json pki/issue/openiddict common_name=simplarchive-archive-signing ttl=8760h > /tmp/archive-signing.json
-          bao kv put secret/simplarchive/archive-signing current=@/tmp/archive-signing.json previous=
+        bao kv get secret/alcifra/archive-signing >/dev/null 2>&1 || {
+          bao write -format=json pki/issue/openiddict common_name=alcifra-archive-signing ttl=8760h > /tmp/archive-signing.json
+          bao kv put secret/alcifra/archive-signing current=@/tmp/archive-signing.json previous=
         }
         echo 'openbao provisioned'
 
@@ -626,7 +626,7 @@ services:
     environment:
       SA_MODULES: "${SA_MODULES:-}"
       SA_MODULE_TOKEN: "${SA_MODULE_TOKEN:-}"
-      SA_MODULE_FEED: "${SA_MODULE_FEED:-https://packages.simplarchive.dev/nuget}"
+      SA_MODULE_FEED: "${SA_MODULE_FEED:-https://get.alcifra.com/nuget}"
     volumes:
       - ./modules.env:/modules.env:ro
       - ./scripts/modules-init.sh:/modules-init.sh:ro

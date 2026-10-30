@@ -6,17 +6,17 @@
 
 ## ▶ Try the live demo
 
-A live instance is running at **<https://demo.simplarchive.dev>** — log in and explore, nothing to install. Three people are seeded, so you can also see the app from a colleague's side:
+A live instance is running at **<https://demo.alcifra.dev>** — log in and explore, nothing to install. Three people are seeded, so you can also see the app from a colleague's side:
 
 | Sign in as | Email | Password | What it's for |
 |---|---|---|---|
-| **Demo Admin** | `admin@demo.simplarchive.dev` | `SimplDemo2026!` | The tenant administrator — start here. Sees everything: administration, audit, retention, legal holds, every user's inbox. |
-| **Anna Meyer** | `anna@demo.simplarchive.dev` | `SimplDemo2026!` | An editor, and deliberately a **plain user without tenant-admin rights** — the account to use if you want to watch a permission actually deny something. |
-| **Tom Fischer** | `tom@demo.simplarchive.dev` | `SimplDemo2026!` | A clerk, also a plain user. Signing in as a second person is how the collaboration side shows up: chat and mentions from someone else, a workflow review arriving in another inbox, the shared *Scan Team* group inbox. |
+| **Demo Admin** | `admin@demo.alcifra.dev` | `SimplDemo2026!` | The tenant administrator — start here. Sees everything: administration, audit, retention, legal holds, every user's inbox. |
+| **Anna Meyer** | `anna@demo.alcifra.dev` | `SimplDemo2026!` | An editor, and deliberately a **plain user without tenant-admin rights** — the account to use if you want to watch a permission actually deny something. |
+| **Tom Fischer** | `tom@demo.alcifra.dev` | `SimplDemo2026!` | A clerk, also a plain user. Signing in as a second person is how the collaboration side shows up: chat and mentions from someone else, a workflow review arriving in another inbox, the shared *Scan Team* group inbox. |
 
 These are deliberately trivial, publicly posted credentials on a throwaway demo that wipes itself nightly — they are demo furniture, not an example of how the product handles secrets.
 
-It resets to a clean, known state every night, so feel free to create, upload, workflow, and delete anything. The user manual is one click away at [demo.simplarchive.dev/download/manual/](https://demo.simplarchive.dev/download/manual/).
+It resets to a clean, known state every night, so feel free to create, upload, workflow, and delete anything. The user manual is one click away at [demo.alcifra.dev/download/manual/](https://demo.alcifra.dev/download/manual/).
 
 > **This demo is not a deployment.** The kiosk above runs in Development with development certificates, a published password and a nightly wipe — it is furniture for exploring, and nothing about it describes how the product is deployed.
 >
@@ -68,10 +68,10 @@ Your archive also speaks the protocols your existing apps already know, so calen
 
 | What | Where to point the app | Username | Password to use |
 |---|---|---|---|
-| **Calendars** (CalDAV) | `https://demo.simplarchive.dev/caldav` | your email | *WebDAV access…* |
-| **Contacts** (CardDAV) | `https://demo.simplarchive.dev/carddav` | your email | *WebDAV access…* |
-| **Notes** (IMAP) | `demo.simplarchive.dev`, port **993**, TLS | your email | *Email access (IMAP)…* |
-| **Files** (WebDAV) | `https://demo.simplarchive.dev/webdav` | your email | *WebDAV access…* |
+| **Calendars** (CalDAV) | `https://demo.alcifra.dev/caldav` | your email | *WebDAV access…* |
+| **Contacts** (CardDAV) | `https://demo.alcifra.dev/carddav` | your email | *WebDAV access…* |
+| **Notes** (IMAP) | `demo.alcifra.dev`, port **993**, TLS | your email | *Email access (IMAP)…* |
+| **Files** (WebDAV) | `https://demo.alcifra.dev/webdav` | your email | *WebDAV access…* |
 
 **Use an app-specific password, never your login password.** Both are generated in the account menu (top right): *WebDAV access…* issues one secret shared by files, calendars and contacts, and *Email access (IMAP)…* issues a separate one for notes. Each is shown once, and either can be revoked on its own without touching your login.
 

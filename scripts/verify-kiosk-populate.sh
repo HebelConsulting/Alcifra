@@ -49,11 +49,11 @@
 
 set -u
 
-BASE_URL="${1:-https://demo.simplarchive.dev}"
+BASE_URL="${1:-https://demo.alcifra.dev}"
 BASE_URL="${BASE_URL%/}"
 HOST="${BASE_URL#https://}"; HOST="${HOST#http://}"; HOST="${HOST%%/*}"
 
-ADMIN="${SA_ADMIN:-admin@demo.simplarchive.dev}"
+ADMIN="${SA_ADMIN:-admin@demo.alcifra.dev}"
 PASSWORD="${SA_PASSWORD:-SimplDemo2026!}"
 IMAP_ICAO="${SA_IMAP_ICAO:-LSZR}"
 DAV_ICAO="${SA_DAV_ICAO:-LSZG}"

@@ -2,7 +2,7 @@ namespace Alcifra.Api.OfflineArchives;
 
 /// <summary>
 /// The installation's signing key for offline archives (ADR 0961): sourced from OpenBao's
-/// <c>secret/simplarchive/archive-signing</c> (<c>current</c> = a PKI issue response, <c>previous</c> = the retired
+/// <c>secret/alcifra/archive-signing</c> (<c>current</c> = a PKI issue response, <c>previous</c> = the retired
 /// certificates' PEM) like the OpenIddict certificates, or set directly in this section.
 /// </summary>
 public sealed class ArchiveSigningOptions

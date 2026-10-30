@@ -96,7 +96,7 @@ public static class KeyTestShot
 
         if (signedIn)
         {
-            report.Archive(new KeyTestArchiveSide("https://demo.simplarchive.dev", "0.48.0", "module", null,
+            report.Archive(new KeyTestArchiveSide("https://demo.alcifra.dev", "0.48.0", "module", null,
                 [new KeyTestEnrolment("3f0c9d2e7a51b8c4d6e9f0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5", true)],
                 new KeyTestEncryption("Strict", true, true, true, true), false, "Document", []));
         }

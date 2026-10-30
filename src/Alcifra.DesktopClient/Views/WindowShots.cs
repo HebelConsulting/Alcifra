@@ -237,7 +237,7 @@ public static class WindowShots
             if (green)
             {
                 gvm = new ViewModels.ServerManagerViewModel();
-                gvm.Servers.Add(new Services.ServerProfile { Name = "Demo", ApiRootUrl = "https://demo.simplarchive.dev" });
+                gvm.Servers.Add(new Services.ServerProfile { Name = "Demo", ApiRootUrl = "https://demo.alcifra.dev" });
                 gvm.Selected = gvm.Servers[^1];
                 win.DataContext = gvm;
                 if (editShot)

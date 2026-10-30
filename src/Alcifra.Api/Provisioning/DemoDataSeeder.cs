@@ -562,7 +562,7 @@ public static class DemoDataSeeder
         var hasher = new PasswordHasher<User>();
 
         // The extra logins take the ADMIN's domain rather than a hardcoded one, so a deployment that renames the
-        // demo admin (the kiosk uses @simplarchive.dev, local Compose @alcifra.local) doesn't end up handing
+        // demo admin (the kiosk uses @demo.alcifra.dev, local Compose @alcifra.local) doesn't end up handing
         // visitors three credentials straddling two domains — the READMEs list all three side by side (issue #432).
         var domain = adminEmail.Split('@') is [_, var d] && !string.IsNullOrWhiteSpace(d) ? d : "alcifra.local";
 

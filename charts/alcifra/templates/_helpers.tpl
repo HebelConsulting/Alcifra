@@ -229,7 +229,7 @@ rolls the Deployment automatically (the pod template changes). Secrets come from
       name: {{ include "alcifra.fullname" . }}-openbao-approle
       key: OpenBao__SecretId
 - name: OpenBao__DatabaseOwnerStaticRole
-  value: "simplarchive-owner"
+  value: "alcifra-owner"
 {{- /*
   The RUNTIME static role (ADR 0721, #1249). Program.cs gates the static-password provider on this being
   non-empty, so while it was unset the app silently took the DYNAMIC credential — read once at startup and
@@ -239,7 +239,7 @@ rolls the Deployment automatically (the pod template changes). Secrets come from
   which is precisely the kind of half-applied change a reader cannot spot from either half alone.
 */}}
 - name: OpenBao__DatabaseRuntimeStaticRole
-  value: "simplarchive-runtime"
+  value: "alcifra-runtime"
 {{- end }}
 - name: Bootstrap__PlatformAdministrator__Name
   value: {{ .Values.config.bootstrap.name | quote }}
@@ -260,7 +260,7 @@ exists from the release before.
 The weights encode the real dependency chain, lowest first:
 
   -30  postgres      the database itself, when it is in-cluster
-  -25  db-init       creates the simplarchive / _app / _vault roles the rest assume
+  -25  db-init       creates the alcifra / _app / _vault roles the rest assume
   -20  openbao       needs those roles for its database engine
   -10  serviceaccount
    -5  migrate

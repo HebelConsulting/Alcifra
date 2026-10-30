@@ -1,7 +1,7 @@
 #!/bin/sh
 # Persistent dev OpenBao entrypoint (ADR "Persist the dev OpenBao"): start the server on the file backend, then
 # initialize once + auto-unseal on every start from a key saved in the data volume. This keeps OpenBao's state
-# (KV secrets, the DB secrets engine + the rotated `simplarchive` password, AppRole, transit, PKI certs) across
+# (KV secrets, the DB secrets engine + the rotated `alcifra` password, AppRole, transit, PKI certs) across
 # restarts, so it never drifts from Postgres — the root cause of the recurring `28P01` credential failures.
 #
 # NOT for production: the single unseal key + root token are written to the data volume so restarts are

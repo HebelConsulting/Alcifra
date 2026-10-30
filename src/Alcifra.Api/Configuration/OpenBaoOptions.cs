@@ -18,9 +18,9 @@ public sealed class OpenBaoOptions
     public string SecretId { get; set; } = string.Empty;
 
     // The KV v2 mount (default "secret") the static secrets live under, and the database secrets-engine role
-    // (default "simplarchive") that mints dynamic Postgres credentials.
+    // (default "alcifra") that mints dynamic Postgres credentials.
     public string KvMount { get; set; } = "secret";
-    public string DatabaseRole { get; set; } = "simplarchive";
+    public string DatabaseRole { get; set; } = "alcifra";
 
     // The non-secret part of the Postgres connection (host/port/database); the dynamic Username/Password from
     // OpenBao's database engine are appended to form ConnectionStrings:Default. When empty, the dynamic DB

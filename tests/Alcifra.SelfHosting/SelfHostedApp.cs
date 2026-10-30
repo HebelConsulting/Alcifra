@@ -86,7 +86,7 @@ public sealed class SelfHostedApp : IAsyncDisposable
     /// <summary>The secret for <see cref="PlatformAdminClientId"/>. Both or neither.</summary>
     public string? PlatformAdminClientSecret { get; set; }
 
-    public const string Bucket = "simplarchive";
+    public const string Bucket = "alcifra";
     public const string StorageUser = "storageadmin";
     public const string StoragePassword = "storageadmin";
 
@@ -243,7 +243,7 @@ public sealed class SelfHostedApp : IAsyncDisposable
             var image = new ImageFromDockerfileBuilder()
                 .WithDockerfileDirectory(new CommonDirectoryPath(RepoRoot()), "ocr")
                 .WithDockerfile("Dockerfile")
-                .WithName("simplarchive-ocr-capture:latest")
+                .WithName("alcifra-ocr-capture:latest")
                 .WithCleanUp(false)
                 .Build();
             await image.CreateAsync();
@@ -415,7 +415,7 @@ public sealed class SelfHostedApp : IAsyncDisposable
                 env["SIMPLARCHIVE_TESTMODULE_VERIFY_KEY"] = TestModuleVerifyKeyPem;
             }
 
-            var modulesRoot = Path.Combine(Path.GetTempPath(), $"simplarchive-selfhosted-modules-{Guid.NewGuid():N}");
+            var modulesRoot = Path.Combine(Path.GetTempPath(), $"alcifra-selfhosted-modules-{Guid.NewGuid():N}");
             Directory.CreateDirectory(Path.Combine(modulesRoot, "test-module"));
             File.Copy(testModuleDll, Path.Combine(modulesRoot, "test-module", Path.GetFileName(testModuleDll)));
             env["Modules__Directory"] = modulesRoot;

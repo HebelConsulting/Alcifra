@@ -27,7 +27,7 @@ public class OpenBaoSecretsTests : IAsyncLifetime
             .WithImage("postgres:16-alpine")
             .WithUsername("postgres")
             .WithPassword("postgres")
-            .WithDatabase("simplarchive")
+            .WithDatabase("alcifra")
             .WithNetwork(_network)
             .WithNetworkAliases("db")
             .Build();
@@ -59,40 +59,40 @@ public class OpenBaoSecretsTests : IAsyncLifetime
         // Provision OpenBao exactly like compose's openbao-init (KV + database engine against `db` + AppRole).
         var script = """
             set -e
-            bao kv put secret/simplarchive/objectstorage accessKey=storageadmin secretKey=storageadmin
-            bao kv put secret/simplarchive/smtp user= password=
-            bao kv put secret/simplarchive/bootstrap clientSecret=dev-bootstrap-secret
+            bao kv put secret/alcifra/objectstorage accessKey=storageadmin secretKey=storageadmin
+            bao kv put secret/alcifra/smtp user= password=
+            bao kv put secret/alcifra/bootstrap clientSecret=dev-bootstrap-secret
             bao secrets enable database
-            bao write database/config/simplarchive plugin_name=postgresql-database-plugin allowed_roles=simplarchive connection_url='postgresql://{{username}}:{{password}}@db:5432/simplarchive?sslmode=disable' username=postgres password=postgres
-            bao write database/roles/simplarchive db_name=simplarchive creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON SCHEMA public TO \"{{name}}\"; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" default_ttl=1h max_ttl=4h
+            bao write database/config/alcifra plugin_name=postgresql-database-plugin allowed_roles=alcifra connection_url='postgresql://{{username}}:{{password}}@db:5432/alcifra?sslmode=disable' username=postgres password=postgres
+            bao write database/roles/alcifra db_name=alcifra creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON SCHEMA public TO \"{{name}}\"; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";" default_ttl=1h max_ttl=4h
             bao auth enable approle
-            printf 'path "secret/data/simplarchive/*" { capabilities = ["read"] }\npath "database/creds/simplarchive" { capabilities = ["read"] }\npath "transit/encrypt/simplarchive-mfa" { capabilities = ["update"] }\npath "transit/decrypt/simplarchive-mfa" { capabilities = ["update"] }\n' | bao policy write simplarchive -
-            bao write auth/approle/role/simplarchive token_policies=simplarchive token_ttl=1h token_max_ttl=4h
-            bao write auth/approle/role/simplarchive/role-id role_id=simplarchive-role
-            bao write auth/approle/role/simplarchive/custom-secret-id secret_id=simplarchive-secret
+            printf 'path "secret/data/alcifra/*" { capabilities = ["read"] }\npath "database/creds/alcifra" { capabilities = ["read"] }\npath "transit/encrypt/alcifra-mfa" { capabilities = ["update"] }\npath "transit/decrypt/alcifra-mfa" { capabilities = ["update"] }\n' | bao policy write alcifra -
+            bao write auth/approle/role/alcifra token_policies=alcifra token_ttl=1h token_max_ttl=4h
+            bao write auth/approle/role/alcifra/role-id role_id=alcifra-role
+            bao write auth/approle/role/alcifra/custom-secret-id secret_id=alcifra-secret
             bao secrets enable transit
-            bao write -f transit/keys/simplarchive-mfa
+            bao write -f transit/keys/alcifra-mfa
             bao secrets enable pki
             bao secrets tune -max-lease-ttl=87600h pki
             bao write -field=certificate pki/root/generate/internal common_name='Alcifra Dev CA' ttl=87600h >/dev/null
             bao write pki/roles/openiddict allow_any_name=true max_ttl=8760h key_type=rsa key_bits=2048
-            bao write -format=json pki/issue/openiddict common_name=simplarchive-signing ttl=8760h > /tmp/signing.json
-            bao write -format=json pki/issue/openiddict common_name=simplarchive-encryption ttl=8760h > /tmp/encryption.json
-            bao kv put secret/simplarchive/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
+            bao write -format=json pki/issue/openiddict common_name=alcifra-signing ttl=8760h > /tmp/signing.json
+            bao write -format=json pki/issue/openiddict common_name=alcifra-encryption ttl=8760h > /tmp/encryption.json
+            bao kv put secret/alcifra/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
             """;
         var exec = await _openBao.ExecAsync(["/bin/sh", "-c", script]);
         Assert.True(exec.ExitCode == 0, $"provisioning failed: {exec.Stderr}");
 
         var baoUrl = $"http://{_openBao.Hostname}:{_openBao.GetMappedPublicPort(8200)}";
         // The reader connects to Postgres through its HOST-mapped port (OpenBao reached it as `db` on the network).
-        var template = $"Host={_postgres.Hostname};Port={_postgres.GetMappedPublicPort(5432)};Database=simplarchive";
+        var template = $"Host={_postgres.Hostname};Port={_postgres.GetMappedPublicPort(5432)};Database=alcifra";
         var options = new OpenBaoOptions
         {
             Address = baoUrl,
-            RoleId = "simplarchive-role",
-            SecretId = "simplarchive-secret",
+            RoleId = "alcifra-role",
+            SecretId = "alcifra-secret",
             KvMount = "secret",
-            DatabaseRole = "simplarchive",
+            DatabaseRole = "alcifra",
             DatabaseConnectionTemplate = template,
         };
 
@@ -121,7 +121,7 @@ public class OpenBaoSecretsTests : IAsyncLifetime
         Assert.True(encryption.HasPrivateKey);
 
         // The transit engine encrypts/decrypts (used to protect the TOTP secret at rest) — round-trips a value.
-        using var transit = new Alcifra.Infrastructure.Secrets.OpenBaoTransitEncryptor(baoUrl, "simplarchive-role", "simplarchive-secret", "simplarchive-mfa");
+        using var transit = new Alcifra.Infrastructure.Secrets.OpenBaoTransitEncryptor(baoUrl, "alcifra-role", "alcifra-secret", "alcifra-mfa");
         var ciphertext = await transit.EncryptAsync("JBSWY3DPEHPK3PXP");
         Assert.StartsWith("vault:", ciphertext);
         Assert.Equal("JBSWY3DPEHPK3PXP", await transit.DecryptAsync(ciphertext));

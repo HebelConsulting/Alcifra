@@ -51,7 +51,7 @@
 # verify-kiosk-logins.sh reads its credentials there: a list hard-coded here would go stale exactly the way the
 # host does, and the point is to check what we PUBLISH against what a visitor EXPERIENCES.
 #
-# Usage:  scripts/verify-kiosk-mail.sh [base-url]      (default https://demo.simplarchive.dev)
+# Usage:  scripts/verify-kiosk-mail.sh [base-url]      (default https://demo.alcifra.dev)
 # Exit:   0 = every advertised mailbox received AND served its message, and a non-user bounced
 #         1 = at least one did not (or a non-user was accepted)
 #         2 = the host or the MTA could not be reached — nothing was learned about delivery
@@ -61,7 +61,7 @@
 set -u
 
 KIOSK_SSH="${KIOSK_SSH:-kiosk}"
-BASE_URL="${1:-https://demo.simplarchive.dev}"
+BASE_URL="${1:-https://demo.alcifra.dev}"
 BASE_URL="${BASE_URL%/}"
 HOST="${BASE_URL#*://}"
 HOST="${HOST%%/*}"

@@ -72,7 +72,7 @@
     "chartName": "alcifra",
     "releaseRepository": "HebelConsulting/SimplArchive",
     "domains": {
-      "demo": "demo.simplarchive.dev"
+      "demo": "demo.alcifra.dev"
     }
   },
   "imprint": {
@@ -82,6 +82,6 @@
       "6010 Kriens (LU)",
       "Switzerland"
     ],
-    "contact": "support@simplarchive.dev"
+    "contact": "support@alcifra.com"
   }
 }

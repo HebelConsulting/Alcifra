@@ -9,7 +9,7 @@ set -euo pipefail
 
 # --- config (override via env) ---------------------------------------------------------------------------
 PG_USER="${PG_USER:-postgres}"
-PG_DB="${PG_DB:-simplarchive}"
+PG_DB="${PG_DB:-alcifra}"
 # The S3 endpoint and the identity scripts/seaweedfs-s3.json gives the dev stack.
 S3_URL="${S3_URL:-http://seaweedfs:8333}"
 S3_ACCESS_KEY="${S3_ACCESS_KEY:-storageadmin}"

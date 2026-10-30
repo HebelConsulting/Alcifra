@@ -33,7 +33,7 @@ public class DatabaseCredentialRefreshTests
         // This is the constraint that forces OpenBaoSecretsReader to compose a password-LESS connection string
         // for the runtime, and it is asserted rather than assumed because getting it wrong fails at STARTUP of a
         // real deployment and nowhere else — no test, no compile error, and only when OpenBao is configured.
-        var builder = new NpgsqlDataSourceBuilder("Host=db;Database=simplarchive;Username=u;Password=baked-in");
+        var builder = new NpgsqlDataSourceBuilder("Host=db;Database=alcifra;Username=u;Password=baked-in");
         builder.UsePeriodicPasswordProvider((_, _) => ValueTask.FromResult("rotated"), TimeSpan.FromHours(1), TimeSpan.FromSeconds(30));
 
         Assert.Throws<NotSupportedException>(() => builder.Build());
@@ -43,7 +43,7 @@ public class DatabaseCredentialRefreshTests
     public void A_password_less_connection_string_accepts_the_provider()
     {
         // The shape the reader actually composes: template + Username, no Password.
-        var builder = new NpgsqlDataSourceBuilder("Host=db;Database=simplarchive;Username=simplarchive_runtime");
+        var builder = new NpgsqlDataSourceBuilder("Host=db;Database=alcifra;Username=alcifra_runtime");
         builder.UsePeriodicPasswordProvider((_, _) => ValueTask.FromResult("rotated"), TimeSpan.FromHours(1), TimeSpan.FromSeconds(30));
 
         using var dataSource = builder.Build();
@@ -70,7 +70,7 @@ public class DatabaseCredentialRefreshTests
             return "rotated-secret";
         });
 
-        var builder = new NpgsqlDataSourceBuilder("Host=127.0.0.1;Port=1;Database=simplarchive;Username=simplarchive_runtime;Timeout=1");
+        var builder = new NpgsqlDataSourceBuilder("Host=127.0.0.1;Port=1;Database=alcifra;Username=alcifra_runtime;Timeout=1");
         builder.UsePeriodicPasswordProvider(
             async (_, ct) => await passwords.GetPasswordAsync(ct),
             TimeSpan.FromHours(1),
@@ -103,7 +103,7 @@ public class DatabaseCredentialRefreshTests
         // credential with a broken one, and Npgsql would cache that as a success.
         var passwords = new StubPasswords(() => throw new InvalidOperationException("OpenBao unreachable"));
 
-        var builder = new NpgsqlDataSourceBuilder("Host=127.0.0.1;Port=1;Database=simplarchive;Username=simplarchive_runtime;Timeout=1");
+        var builder = new NpgsqlDataSourceBuilder("Host=127.0.0.1;Port=1;Database=alcifra;Username=alcifra_runtime;Timeout=1");
         builder.UsePeriodicPasswordProvider(
             async (_, ct) => await passwords.GetPasswordAsync(ct),
             TimeSpan.FromHours(1),
@@ -122,7 +122,7 @@ public class DatabaseCredentialRefreshTests
         var services = new ServiceCollection();
         services.AddLogging();
 
-        var builder = new NpgsqlDataSourceBuilder("Host=db;Database=simplarchive;Username=u;Password=plain");
+        var builder = new NpgsqlDataSourceBuilder("Host=db;Database=alcifra;Username=u;Password=plain");
         using var dataSource = builder.Build();
 
         Assert.Contains("Username=u", dataSource.ConnectionString);

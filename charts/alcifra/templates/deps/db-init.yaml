@@ -1,5 +1,5 @@
 {{- if or .Values.deps.postgres.enabled .Values.dbInit.external.enabled }}
-# Creates the simplarchive / simplarchive_app / simplarchive_vault Postgres roles (ADR 0358) that OpenBao's
+# Creates the alcifra / alcifra_app / alcifra_vault Postgres roles (ADR 0358) that OpenBao's
 # database engine + the app's dynamic creds depend on. A post-install/upgrade hook, run before storage-init +
 # migrate. ADR 0485. dbInit.external points the SAME SQL at a managed database (ADR 0677, the AWS install),
 # authenticating with the master credentials the installer materialised into dbInit.external.adminSecret.
@@ -92,14 +92,14 @@ spec:
               # so a re-run's "already exists" is harmless; ALTER then sets the password from the secret every
               # time, which is idempotent. No DO block, so no $$ for the shell to mistake for its own PID, and
               # no heredoc whose terminator would have to survive YAML re-indentation.
-              echo "creating simplarchive_postfix role"
-              psql -h "$host" -U "$PGUSER" -d "$db" -c "CREATE ROLE simplarchive_postfix LOGIN;" || true
+              echo "creating alcifra_postfix role"
+              psql -h "$host" -U "$PGUSER" -d "$db" -c "CREATE ROLE alcifra_postfix LOGIN;" || true
               # The password is interpolated by the SHELL, not by a psql :'var' (which did not expand in a -c
               # string and left a bare ':' — a syntax error). It is a hex token (ensure_secret / token_hex),
               # so it carries no quote or backslash to break the surrounding single-quoted SQL literal.
               psql -h "$host" -U "$PGUSER" -d "$db" -v ON_ERROR_STOP=1 \
-                -c "ALTER ROLE simplarchive_postfix PASSWORD '$POSTFIX_DB_PASSWORD';"
-              echo "simplarchive_postfix ready"
+                -c "ALTER ROLE alcifra_postfix PASSWORD '$POSTFIX_DB_PASSWORD';"
+              echo "alcifra_postfix ready"
               {{- end }}
           volumeMounts:
             - name: sql

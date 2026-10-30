@@ -56,7 +56,7 @@ config:
     serviceUrl: ""        # server-side S3 endpoint (e.g. https://s3.eu-central-1.amazonaws.com)
     publicServiceUrl: ""  # browser-facing endpoint for presigned URLs (often the same)
     region: "us-east-1"
-    bucketName: "simplarchive"
+    bucketName: "alcifra"
     # Each tenant's bucket is `{bucketPrefix}-{tenantId}` (ADR 0372); falls back to bucketName when empty.
     bucketPrefix: "alcifra"
     # Only while existing objects move to bucketPrefix's buckets (ADR 1000): set it to the prefix they are under
@@ -91,7 +91,7 @@ config:
     # deliberate: a deployment should not learn which of those were in the clear from a breach.
     address: ""                       # e.g. https://openbao.internal:8200
     roleId: ""                        # AppRole RoleId (non-secret)
-    databaseConnectionTemplate: ""    # host/port/db, e.g. "Host=pg;Port=5432;Database=simplarchive"
+    databaseConnectionTemplate: ""    # host/port/db, e.g. "Host=pg;Port=5432;Database=alcifra"
   bootstrap:
     name: "bootstrap-admin"
     clientId: "bootstrap-platform-admin"
@@ -139,7 +139,7 @@ deps:
   postgres:
     enabled: false
     image: postgres:16.15-alpine
-    database: simplarchive
+    database: alcifra
     storage: 5Gi
     resources:
       requests: { cpu: 100m, memory: 256Mi }
@@ -167,8 +167,8 @@ deps:
     enabled: false
     image: openbao/openbao:2.6.2
     storage: 1Gi
-    roleId: "simplarchive-role"
-    secretId: "simplarchive-secret"
+    roleId: "alcifra-role"
+    secretId: "alcifra-secret"
     bootstrapClientSecret: "dev-bootstrap-secret"
     # awskms seal (ADR 0677, the AWS install): auto-unseal via a KMS key, the pod authenticating through the
     # IRSA-annotated service account below. init.json then carries recovery keys + root token for install.sh
@@ -209,7 +209,7 @@ dbInit:
   external:
     enabled: false
     host: ""
-    database: "simplarchive"
+    database: "alcifra"
     adminSecret: ""
     schedule: "0 1 * * *"   # daily 01:00 UTC
     kubectlImage: rancher/kubectl:v1.31.0
@@ -290,8 +290,8 @@ postfix:
   # SELECT on TenantMailDomains and nothing else; do not reuse the application's credentials here.
   database:
     host: ""
-    name: simplarchive
-    user: simplarchive_postfix
+    name: alcifra
+    user: alcifra_postfix
     # Read from this secret's `postfix-db-password` key rather than values, so it never lands in a release
     # manifest or `helm get values`.
     existingSecret: ""
@@ -304,8 +304,8 @@ postfix:
 # the phone app still works and shows notifications when opened; with it, each notification wakes the phone. It must
 # be reachable from the internet at `publicUrl`, through the ingress below or one of your own, because the phone's
 # distributor app connects to it directly. The VAPID key pair that signs the pushes comes from OpenBao
-# (secret/simplarchive/webpush: publicKey, privateKey); without it the app sends nothing. iPhones and iPads need no
-# push server: the Api sends through APNs with a key at secret/simplarchive/apns (keyId, teamId, privateKey; ADR 0951).
+# (secret/alcifra/webpush: publicKey, privateKey); without it the app sends nothing. iPhones and iPads need no
+# push server: the Api sends through APNs with a key at secret/alcifra/apns (keyId, teamId, privateKey; ADR 0951).
 #
 # The message cache is an emptyDir: it holds a day of id-only messages for phones that were offline, and losing it
 # in a restart costs those phones a wake-up, never a notification.
@@ -451,7 +451,7 @@ modules:
 
   # The vendor feed (core #1555): a customer's pull credential reads the module packages its licence names, and
   # stops at the licence's end for anything published after it.
-  feed: https://packages.simplarchive.dev/nuget
+  feed: https://get.alcifra.com/nuget
 
   # A Secret holding the installation's PULL CREDENTIAL from the vendor (the Licensing Module's feed). REQUIRED when
   # `install` is non-empty: the feed serves nothing anonymously.
@@ -463,15 +463,15 @@ modules:
   # trusted (ModulePinLockstepTests), the same arrangement images.env has with the image tags above.
   pins:
     FLIGHT_SCHOOL:
-      package: Alcifra.FlightSchool
+      package: SimplArchive.FlightSchool
       version: 0.2.0
       sha512: "ekHTOUci6S2i4/g9QbWo7zMVl8M+uAUBzvEH6tBjsBWeb+lZiEtiOZ9troPewb7/74aQ/1KmElhktb1VyKtDvw=="
     ENCRYPTION:
-      package: Alcifra.Encryption
+      package: SimplArchive.Encryption
       version: 0.6.0
       sha512: "6JEkK5bsOvCYWwQjNIYUDLE7NzgTQUScCkXEX0YKViZRwe9gRwBMnFvVQOYbsFHFi1Ih2mj/J+yO/8ZKskmZCA=="
     LICENSING:
-      package: Alcifra.Licensing
+      package: SimplArchive.Licensing
       version: 0.6.0
       sha512: "eJp8588NETDiD+B5sw18GPg1i/aZhaij+nxGuklH1DlzEfgTK8Kiq3dVilmpFC7kFtyROfwLwoT2x42dOeIo9g=="
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).

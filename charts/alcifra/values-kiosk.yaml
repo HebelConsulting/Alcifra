@@ -41,20 +41,20 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: demo.simplarchive.dev
+    - host: demo.alcifra.dev
       paths:
         - path: /
           pathType: Prefix
-    - host: s3.simplarchive.dev
+    - host: s3.demo.alcifra.dev
       backend: seaweedfs
       paths:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: simplarchive-tls
+    - secretName: alcifra-tls
       hosts:
-        - demo.simplarchive.dev
-        - s3.simplarchive.dev
+        - demo.alcifra.dev
+        - s3.demo.alcifra.dev
 
 certManager:
   clusterIssuer:
@@ -67,10 +67,10 @@ certManager:
 config:
   aspnetCoreEnvironment: Development
   app:
-    baseUrl: "https://demo.simplarchive.dev"
+    baseUrl: "https://demo.alcifra.dev"
     applyMigrationsAtStartup: true
   objectStorage:
-    publicServiceUrl: "https://s3.simplarchive.dev"   # presigned URLs the browser hits (the s3.* ingress host)
+    publicServiceUrl: "https://s3.demo.alcifra.dev"   # presigned URLs the browser hits (the s3.* ingress host)
 
 migrationJob:
   enabled: false
@@ -81,7 +81,7 @@ migrationJob:
 # discovered that an ordinary install could not sign in at all.
 extraEnv:
   - name: App__ProxyBaseUrl
-    value: "https://demo.simplarchive.dev"
+    value: "https://demo.alcifra.dev"
   - name: Demo__Tenant__Name
     value: "Demo"
   - name: Demo__Administrator__Email

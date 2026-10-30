@@ -71,7 +71,7 @@ spec:
                 echo "waiting for TenantMailDomains..."; sleep 3
               done
               psql -h "$host" -U "$PGUSER" -d "$db" -v ON_ERROR_STOP=1 \
-                -c 'GRANT USAGE ON SCHEMA public TO simplarchive_postfix;' \
-                -c 'GRANT SELECT ON public."TenantMailDomains" TO simplarchive_postfix;'
+                -c 'GRANT USAGE ON SCHEMA public TO alcifra_postfix;' \
+                -c 'GRANT SELECT ON public."TenantMailDomains" TO alcifra_postfix;'
               echo "postfix grant applied"
 {{- end }}

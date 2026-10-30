@@ -38,21 +38,21 @@ public sealed class OpenBaoSecretsReader
 
         var data = new Dictionary<string, string?>();
 
-        var objectStorage = await ReadKvAsync(token, "simplarchive/objectstorage", cancellationToken);
+        var objectStorage = await ReadKvAsync(token, "alcifra/objectstorage", cancellationToken);
         if (objectStorage.TryGetValue("accessKey", out var accessKey)) data["ObjectStorage:AccessKey"] = accessKey;
         if (objectStorage.TryGetValue("secretKey", out var secretKey)) data["ObjectStorage:SecretKey"] = secretKey;
 
-        var smtp = await ReadKvAsync(token, "simplarchive/smtp", cancellationToken);
+        var smtp = await ReadKvAsync(token, "alcifra/smtp", cancellationToken);
         if (smtp.TryGetValue("user", out var smtpUser)) data["Smtp:User"] = smtpUser;
         if (smtp.TryGetValue("password", out var smtpPassword)) data["Smtp:Password"] = smtpPassword;
 
-        var bootstrap = await ReadKvAsync(token, "simplarchive/bootstrap", cancellationToken);
+        var bootstrap = await ReadKvAsync(token, "alcifra/bootstrap", cancellationToken);
         if (bootstrap.TryGetValue("clientSecret", out var clientSecret)) data["Bootstrap:PlatformAdministrator:ClientSecret"] = clientSecret;
 
         // OpenIddict signing/encryption certs (ADR "OpenIddict certificates from OpenBao"). Optional — a
         // deployment provisioned before this slice won't have them, so the app falls back to dev certs. Each KV
         // field is the full JSON of a `bao write pki/issue/...` response; extract certificate + private_key.
-        var openiddict = await ReadKvAsync(token, "simplarchive/openiddict", cancellationToken, optional: true);
+        var openiddict = await ReadKvAsync(token, "alcifra/openiddict", cancellationToken, optional: true);
         if (openiddict.TryGetValue("signing", out var signingJson) && TryParsePkiIssue(signingJson, out var signingCert, out var signingKey))
         {
             data["OpenIddict:SigningCertificatePem"] = signingCert;
@@ -66,8 +66,8 @@ public sealed class OpenBaoSecretsReader
 
         // The key that signs offline archives (ADR 0961): `current` is a PKI issue response like the OpenIddict ones,
         // `previous` the retired certificates' PEM, kept published so old archives verify. Optional: without it offline
-        // archives are refused outside Development, and the existing `secret/data/simplarchive/*` grant already covers it.
-        var archiveSigning = await ReadKvAsync(token, "simplarchive/archive-signing", cancellationToken, optional: true);
+        // archives are refused outside Development, and the existing `secret/data/alcifra/*` grant already covers it.
+        var archiveSigning = await ReadKvAsync(token, "alcifra/archive-signing", cancellationToken, optional: true);
         if (archiveSigning.TryGetValue("current", out var archiveJson) && TryParsePkiIssue(archiveJson, out var archiveCert, out var archiveKey))
         {
             data["OfflineArchive:SigningCertificatePem"] = archiveCert;
@@ -77,13 +77,13 @@ public sealed class OpenBaoSecretsReader
 
         // The VAPID key pair that signs Web Push requests (RFC 8292): phones and calendar clients (ADRs 0622, 0919).
         // Optional — without it push is simply off outside Development, which is what DavPushConfiguration does.
-        var webPush = await ReadKvAsync(token, "simplarchive/webpush", cancellationToken, optional: true);
+        var webPush = await ReadKvAsync(token, "alcifra/webpush", cancellationToken, optional: true);
         if (webPush.TryGetValue("publicKey", out var vapidPublic)) data["WebPush:VapidPublicKey"] = vapidPublic;
         if (webPush.TryGetValue("privateKey", out var vapidPrivate)) data["WebPush:VapidPrivateKey"] = vapidPrivate;
 
         // The APNs key that signs pushes to iPhones and iPads (core #1805): keyId, teamId and the .p8's PEM. Optional —
         // without it the installation sends no APNs pushes and offers none; partly set is refused in production.
-        var apns = await ReadKvAsync(token, "simplarchive/apns", cancellationToken, optional: true);
+        var apns = await ReadKvAsync(token, "alcifra/apns", cancellationToken, optional: true);
         if (apns.TryGetValue("keyId", out var apnsKeyId)) data["Apns:KeyId"] = apnsKeyId;
         if (apns.TryGetValue("teamId", out var apnsTeamId)) data["Apns:TeamId"] = apnsTeamId;
         if (apns.TryGetValue("privateKey", out var apnsKey)) data["Apns:PrivateKeyPem"] = apnsKey;
@@ -117,7 +117,7 @@ public sealed class OpenBaoSecretsReader
             }
 
             // Dedicated migration-owner credential (ADRs "Dedicated migration owner role" +
-            // "OpenBao static-role rotation for the migration owner"): the schema-owning `simplarchive` role,
+            // "OpenBao static-role rotation for the migration owner"): the schema-owning `alcifra` role,
             // whose password OpenBao owns + rotates as a database *static role*. Read the current password from
             // database/static-creds/<role> and compose ConnectionStrings:Migration. Optional — when the static
             // role isn't configured (empty option / not provisioned) migrations fall back to the Default

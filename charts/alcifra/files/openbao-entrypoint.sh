@@ -53,27 +53,27 @@ export BAO_TOKEN=$(sed -n 's/.*"root_token": *"\([^"]*\)".*/\1/p' "$KEYS")
 
 # --- Provision (idempotent) ------------------------------------------------------------------------------------
 bao secrets enable -path=secret -version=2 kv 2>/dev/null || true
-bao kv put secret/simplarchive/objectstorage accessKey="${S3_ACCESS_KEY:-storageadmin}" secretKey="${S3_SECRET_KEY:-storageadmin}"
-bao kv put secret/simplarchive/smtp user="${SMTP_USER:-}" password="${SMTP_PASSWORD:-}"
-bao kv put secret/simplarchive/bootstrap clientSecret="${BOOTSTRAP_CLIENT_SECRET:-dev-bootstrap-secret}"
+bao kv put secret/alcifra/objectstorage accessKey="${S3_ACCESS_KEY:-storageadmin}" secretKey="${S3_SECRET_KEY:-storageadmin}"
+bao kv put secret/alcifra/smtp user="${SMTP_USER:-}" password="${SMTP_PASSWORD:-}"
+bao kv put secret/alcifra/bootstrap clientSecret="${BOOTSTRAP_CLIENT_SECRET:-dev-bootstrap-secret}"
 
-# Postgres credential engine — connects as simplarchive_vault (created by db-init). Retry until that role exists.
+# Postgres credential engine — connects as alcifra_vault (created by db-init). Retry until that role exists.
 bao secrets enable database 2>/dev/null || true
-until bao write database/config/simplarchive \
+until bao write database/config/alcifra \
   plugin_name=postgresql-database-plugin \
-  allowed_roles=simplarchive,simplarchive-owner,simplarchive-runtime \
-  connection_url="postgresql://{{username}}:{{password}}@${PG_HOST}:5432/simplarchive?sslmode=${PG_SSLMODE:-disable}" \
-  username=simplarchive_vault password=simplarchive_vault_bootstrap 2>/dev/null; do
-  echo 'waiting for the simplarchive_vault role (db-init)...'; sleep 2;
+  allowed_roles=alcifra,alcifra-owner,alcifra-runtime \
+  connection_url="postgresql://{{username}}:{{password}}@${PG_HOST}:5432/alcifra?sslmode=${PG_SSLMODE:-disable}" \
+  username=alcifra_vault password=alcifra_vault_bootstrap 2>/dev/null; do
+  echo 'waiting for the alcifra_vault role (db-init)...'; sleep 2;
 done
-bao write -force database/rotate-root/simplarchive
-bao write database/roles/simplarchive db_name=simplarchive \
-  creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE simplarchive_app;" \
+bao write -force database/rotate-root/alcifra
+bao write database/roles/alcifra db_name=alcifra \
+  creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' IN ROLE alcifra_app;" \
   revocation_statements="DROP OWNED BY \"{{name}}\"; DROP ROLE IF EXISTS \"{{name}}\";" \
   default_ttl=24h max_ttl=72h
-bao write database/static-roles/simplarchive-owner db_name=simplarchive username=simplarchive \
+bao write database/static-roles/alcifra-owner db_name=alcifra username=alcifra \
   rotation_period=86400 rotation_statements="ALTER ROLE \"{{name}}\" WITH PASSWORD '{{password}}';"
-bao write -f database/rotate-role/simplarchive-owner
+bao write -f database/rotate-role/alcifra-owner
 
 # The RUNTIME role the app actually connects as (ADR 0721). A STATIC role, not a dynamic one, and the reason is
 # the whole point: a dynamic credential's creation_statements is CREATE ROLE "{{name}}", so every lease mints a
@@ -85,23 +85,23 @@ bao write -f database/rotate-role/simplarchive-owner
 # The chart never had this: db-init did not create the role, allowed_roles did not permit it, the policy did not
 # grant it and the deployment did not set OpenBao__DatabaseRuntimeStaticRole — four omissions that agreed with
 # each other, so nothing failed and every chart install quietly ran the model 0721 replaced (#1249).
-bao write database/static-roles/simplarchive-runtime db_name=simplarchive username=simplarchive_runtime \
+bao write database/static-roles/alcifra-runtime db_name=alcifra username=alcifra_runtime \
   rotation_period=43200 rotation_statements="ALTER ROLE \"{{name}}\" WITH PASSWORD '{{password}}';"
 # Forced rotation on EVERY provision: writing a static-role config only rotates on first creation, so on a
 # re-run against an existing OpenBao the stored credential and the database password drift apart (ADR 0213's
 # static-role drift note). An explicit rotate makes the two re-agree every time.
-bao write -f database/rotate-role/simplarchive-runtime
+bao write -f database/rotate-role/alcifra-runtime
 
 # Transit — encrypts the TOTP secret at rest (the key never leaves OpenBao).
 bao secrets enable transit 2>/dev/null || true
-bao write -f transit/keys/simplarchive-mfa
+bao write -f transit/keys/alcifra-mfa
 
 # AppRole machine auth for the Api (fixed ids for the kiosk).
 bao auth enable approle 2>/dev/null || true
-printf 'path "secret/data/simplarchive/*" { capabilities = ["read"] }\npath "database/creds/simplarchive" { capabilities = ["read"] }\npath "database/static-creds/simplarchive-owner" { capabilities = ["read"] }\npath "database/static-creds/simplarchive-runtime" { capabilities = ["read"] }\npath "transit/encrypt/simplarchive-mfa" { capabilities = ["update"] }\npath "transit/decrypt/simplarchive-mfa" { capabilities = ["update"] }\n' | bao policy write simplarchive -
-bao write auth/approle/role/simplarchive token_policies=simplarchive token_ttl=1h token_max_ttl=4h
-bao write auth/approle/role/simplarchive/role-id role_id="${APPROLE_ROLE_ID:-simplarchive-role}"
-bao write auth/approle/role/simplarchive/custom-secret-id secret_id="${APPROLE_SECRET_ID:-simplarchive-secret}" 2>/dev/null || true
+printf 'path "secret/data/alcifra/*" { capabilities = ["read"] }\npath "database/creds/alcifra" { capabilities = ["read"] }\npath "database/static-creds/alcifra-owner" { capabilities = ["read"] }\npath "database/static-creds/alcifra-runtime" { capabilities = ["read"] }\npath "transit/encrypt/alcifra-mfa" { capabilities = ["update"] }\npath "transit/decrypt/alcifra-mfa" { capabilities = ["update"] }\n' | bao policy write alcifra -
+bao write auth/approle/role/alcifra token_policies=alcifra token_ttl=1h token_max_ttl=4h
+bao write auth/approle/role/alcifra/role-id role_id="${APPROLE_ROLE_ID:-alcifra-role}"
+bao write auth/approle/role/alcifra/custom-secret-id secret_id="${APPROLE_SECRET_ID:-alcifra-secret}" 2>/dev/null || true
 
 # OpenIddict signing + encryption certs via PKI — issued ONCE (re-issuing would invalidate live tokens).
 bao secrets enable pki 2>/dev/null || true
@@ -110,17 +110,17 @@ if ! bao read pki/cert/ca >/dev/null 2>&1; then
   bao write -field=certificate pki/root/generate/internal common_name='Alcifra Dev CA' ttl=87600h >/dev/null
   bao write pki/roles/openiddict allow_any_name=true max_ttl=8760h key_type=rsa key_bits=2048
 fi
-if ! bao kv get secret/simplarchive/openiddict >/dev/null 2>&1; then
-  bao write -format=json pki/issue/openiddict common_name=simplarchive-signing ttl=8760h > /tmp/signing.json
-  bao write -format=json pki/issue/openiddict common_name=simplarchive-encryption ttl=8760h > /tmp/encryption.json
-  bao kv put secret/simplarchive/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
+if ! bao kv get secret/alcifra/openiddict >/dev/null 2>&1; then
+  bao write -format=json pki/issue/openiddict common_name=alcifra-signing ttl=8760h > /tmp/signing.json
+  bao write -format=json pki/issue/openiddict common_name=alcifra-encryption ttl=8760h > /tmp/encryption.json
+  bao kv put secret/alcifra/openiddict signing=@/tmp/signing.json encryption=@/tmp/encryption.json
 fi
 
 # The offline-archive signing key (ADR 0961) — issued ONCE, like the OpenIddict certificates. A rotation moves the old
 # certificate into `previous` (kept published, so archives it signed keep verifying) and issues a new `current`.
-if ! bao kv get secret/simplarchive/archive-signing >/dev/null 2>&1; then
-  bao write -format=json pki/issue/openiddict common_name=simplarchive-archive-signing ttl=8760h > /tmp/archive-signing.json
-  bao kv put secret/simplarchive/archive-signing current=@/tmp/archive-signing.json previous=
+if ! bao kv get secret/alcifra/archive-signing >/dev/null 2>&1; then
+  bao write -format=json pki/issue/openiddict common_name=alcifra-archive-signing ttl=8760h > /tmp/archive-signing.json
+  bao kv put secret/alcifra/archive-signing current=@/tmp/archive-signing.json previous=
 fi
 
 echo 'openbao ready + provisioned'

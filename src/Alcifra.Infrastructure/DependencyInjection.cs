@@ -214,7 +214,7 @@ public static class DependencyInjection
                 openBaoAddress,
                 configuration["OpenBao:RoleId"] ?? "",
                 configuration["OpenBao:SecretId"] ?? "",
-                configuration["OpenBao:TransitKey"] ?? "simplarchive-mfa"));
+                configuration["OpenBao:TransitKey"] ?? "alcifra-mfa"));
         }
         else
         {

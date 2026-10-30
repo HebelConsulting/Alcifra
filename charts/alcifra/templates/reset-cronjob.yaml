@@ -1,7 +1,7 @@
 {{- if .Values.deps.reset.enabled }}
 # Daily kiosk reset (ADR 0485): wipe tenant data (Postgres tables + object-storage bucket + search index), then
 # restart the app so it re-migrates + re-seeds the demo tenant. Deliberately does NOT touch OpenBao state, the
-# certs, or the DB roles/passwords (dropping TABLES, not the schema, so the OpenBao-owned `simplarchive` password
+# certs, or the DB roles/passwords (dropping TABLES, not the schema, so the OpenBao-owned `alcifra` password
 # isn't reset — avoiding the ADR 0474 drift).
 apiVersion: v1
 kind: ServiceAccount
@@ -73,7 +73,7 @@ spec:
                   set -e
                   host="{{ include "alcifra.fullname" . }}-postgres"
                   # Drop every table in public (keeping the schema, roles, passwords + default privileges), so the
-                  # app re-migrates from scratch on restart and OpenBao's simplarchive password stays valid.
+                  # app re-migrates from scratch on restart and OpenBao's alcifra password stays valid.
                   psql -h "$host" -U postgres -d {{ .Values.deps.postgres.database }} -v ON_ERROR_STOP=1 -c \
                     "DO \$\$ DECLARE r RECORD; BEGIN FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE'; END LOOP; END \$\$;"
                   echo "db wiped"

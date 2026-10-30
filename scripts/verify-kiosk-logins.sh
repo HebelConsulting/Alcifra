@@ -19,14 +19,14 @@
 # password on the host — a confident, specific, wrong cause, for a site that was simply not serving. The two
 # have completely different remedies, so they get different messages and different exit codes.
 #
-# Usage:  scripts/verify-kiosk-logins.sh [base-url]      (default https://demo.simplarchive.dev)
+# Usage:  scripts/verify-kiosk-logins.sh [base-url]      (default https://demo.alcifra.dev)
 # Exit:   0 = every advertised credential logged in
 #         1 = the site served, but at least one advertised credential was rejected (or none were parsed)
 #         2 = the site could not be reached — nothing was learned about the credentials
 
 set -u
 
-BASE_URL="${1:-https://demo.simplarchive.dev}"
+BASE_URL="${1:-https://demo.alcifra.dev}"
 BASE_URL="${BASE_URL%/}"
 README="$(cd "$(dirname "$0")/.." && pwd)/publish/README.public.md"
 

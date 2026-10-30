@@ -118,7 +118,7 @@ public static class ExternalLinkPage
         var credit = Brand.Shipped.Credit is { } text ? $"<br>{HtmlEncoder.Default.Encode(text)}" : string.Empty;
         return string.Format(
             HtmlEncoder.Default.Encode(Strings.Get("ExtLinkPageFooter")),
-            Brand.Shipped.Credit is null ? $"<a href=\"https://www.simplarchive.dev\">{name}</a>" : name) + credit;
+            Brand.Shipped.Credit is null ? $"<a href=\"https://www.alcifra.com\">{name}</a>" : name) + credit;
     }
 
     // The publisher's imprint from the brand (ADR 0995), encoded line by line. Deliberately NOT localised: a postal

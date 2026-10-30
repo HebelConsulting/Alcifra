@@ -218,6 +218,7 @@ public class ImapSyntheticDetailsTests
         // -- moving it is the defect class #766 was.
         Assert.Contains("http://localhost", body, StringComparison.Ordinal);
         Assert.DoesNotContain("simplarchive.dev", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("alcifra.com", body, StringComparison.Ordinal); // the product's website since #1117
         Assert.Single(message.Attachments);
 
         // The same values as headers a client can filter on.

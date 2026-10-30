@@ -133,6 +133,7 @@ public class ImapEndpointTests
             // sibling without this test asking about the section number.
             Assert.Contains("archive:\nhttp://localhost", pdfMessage.TextBody!.ReplaceLineEndings("\n"));
             Assert.DoesNotContain("simplarchive.dev", pdfMessage.TextBody);
+            Assert.DoesNotContain("alcifra.com", pdfMessage.TextBody); // the product's website since #1117
             Assert.Single(pdfMessage.Attachments);
             // The synthetic sender's domain is the installation's too.
             Assert.Equal("no-reply@localhost", Assert.Single(pdfMessage.From.Mailboxes).Address);

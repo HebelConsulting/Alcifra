@@ -4,7 +4,7 @@ namespace Alcifra.UnitTests;
 // role end to end (#1249, ADR 0721).
 //
 // WHAT WENT WRONG, AND WHY NOTHING FAILED. A Helm chart cannot read outside itself, so charts/…/files/ carries
-// a copy of the bootstrap SQL. Nothing compared them. ADR 0721 added the static `simplarchive_runtime` login to
+// a copy of the bootstrap SQL. Nothing compared them. ADR 0721 added the static `alcifra_runtime` login to
 // scripts/db-init.sql — the role whose PASSWORD OpenBao rotates under a fixed username — and the chart copy
 // never got it. Measured: 6 mentions on one side, 0 on the other, and the files had drifted in BOTH directions.
 //
@@ -12,8 +12,8 @@ namespace Alcifra.UnitTests;
 // allowed_roles did not permit it, the policy did not grant reading it, and the deployment did not set
 // OpenBao__DatabaseRuntimeStaticRole. Four gaps that AGREED with each other, so nothing errored — the app
 // simply took the dynamic credential instead, which is the model 0721 exists to replace. Verified on a real
-// chart install: the running database had simplarchive, simplarchive_app and simplarchive_vault, and no
-// simplarchive_runtime.
+// chart install: the running database had alcifra, alcifra_app and alcifra_vault, and no
+// alcifra_runtime.
 //
 // So this guards the whole chain rather than the file. A test that only compared the two SQL files would have
 // passed the moment somebody copied one over the other, while the policy and the env stayed missing and the app
@@ -21,7 +21,7 @@ namespace Alcifra.UnitTests;
 //
 // AND THERE WERE THREE COPIES, NOT TWO — which this guard missed for the same reason it was written. The KIOSK
 // carries its own (tools/kiosk/config/db-init.sql), and while the chart was being fixed it sat at 115 lines
-// with ZERO mentions of simplarchive_runtime. A guard that names its subjects one by one only ever watches the
+// with ZERO mentions of alcifra_runtime. A guard that names its subjects one by one only ever watches the
 // ones somebody thought of, so the list is now DERIVED: every db-init.sql in the repository is compared, and a
 // fourth copy appearing anywhere is picked up without anybody remembering to add it.
 //
@@ -88,7 +88,7 @@ public class DbInitCopyLockstepTests
             + "\n\nCopy the canonical file over them; do not edit them separately. Bootstrap scripts that "
             + "differ mean compose, Kubernetes and the kiosk provision DIFFERENT databases, and only one of "
             + "them is exercised by the test suite — which is how the chart lost an entire role for a year "
-            + "(#1249), and how the kiosk's copy came to be missing simplarchive_runtime while the running "
+            + "(#1249), and how the kiosk's copy came to be missing alcifra_runtime while the running "
             + "host had it (#668).");
     }
 
@@ -96,13 +96,13 @@ public class DbInitCopyLockstepTests
     // total would let one come back while another went missing — and it is precisely their AGREEING that made
     // the original omission silent.
     [Theory]
-    [InlineData("charts/alcifra/files/db-init.sql", "simplarchive_runtime",
+    [InlineData("charts/alcifra/files/db-init.sql", "alcifra_runtime",
         "db-init must CREATE the role; OpenBao can only rotate the password of a role that exists")]
-    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "allowed_roles=simplarchive,simplarchive-owner,simplarchive-runtime",
+    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "allowed_roles=alcifra,alcifra-owner,alcifra-runtime",
         "the database engine's allowlist must name it, or the engine refuses the static role — silently, as far as the app is concerned")]
-    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "database/static-roles/simplarchive-runtime",
+    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "database/static-roles/alcifra-runtime",
         "the static role itself must be registered, with a rotation statement")]
-    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "database/static-creds/simplarchive-runtime",
+    [InlineData("charts/alcifra/files/openbao-entrypoint.sh", "database/static-creds/alcifra-runtime",
         "the AppRole policy must grant reading it; CLAUDE.md flags this omission as failing silently into the old path")]
     [InlineData("charts/alcifra/templates/_helpers.tpl", "OpenBao__DatabaseRuntimeStaticRole",
         "Program.cs gates the static-password provider on this, so while it is unset the app uses the DYNAMIC credential")]
@@ -128,8 +128,8 @@ public class DbInitCopyLockstepTests
     }
 
     // THE KIOSK WAS THE FIFTH PLACE (#1868). The theory above names the chart's files, so it never looked at
-    // tools/kiosk/docker-compose.yml — whose openbao-init granted only database/creds/simplarchive and whose api
-    // env never set OpenBao__DatabaseRuntimeStaticRole. Its db-init (guarded above) created simplarchive_runtime,
+    // tools/kiosk/docker-compose.yml — whose openbao-init granted only database/creds/alcifra and whose api
+    // env never set OpenBao__DatabaseRuntimeStaticRole. Its db-init (guarded above) created alcifra_runtime,
     // and nothing used it: the public demo ran one DYNAMIC user per instance start for as long as anyone looked.
     // So the chain is checked on every provisioner and every deployment the repository has, FOUND rather than
     // listed: a file that configures OpenBao's database engine must allow, register and grant the runtime static
@@ -143,7 +143,7 @@ public class DbInitCopyLockstepTests
         }
 
         var provisioners = DeploymentFiles(root)
-            .Where(f => File.ReadAllText(f).Contains("bao write database/config/simplarchive", StringComparison.Ordinal))
+            .Where(f => File.ReadAllText(f).Contains("bao write database/config/alcifra", StringComparison.Ordinal))
             .ToList();
         Assert.Contains(provisioners, f => f.EndsWith(Path.Combine("charts", "alcifra", "files", "openbao-entrypoint.sh"), StringComparison.Ordinal));
         if (PrivateRepositoryGate.IsPrivateRepository(root))
@@ -157,19 +157,19 @@ public class DbInitCopyLockstepTests
             var text = File.ReadAllText(file);
             var name = Path.GetRelativePath(root, file).Replace(Path.DirectorySeparatorChar, '/');
             var allowed = text.Split('\n').FirstOrDefault(l => l.Contains("allowed_roles=", StringComparison.Ordinal));
-            if (allowed is null || !allowed.Contains("simplarchive-runtime", StringComparison.Ordinal))
+            if (allowed is null || !allowed.Contains("alcifra-runtime", StringComparison.Ordinal))
             {
-                missing.Add($"  {name}: allowed_roles does not name simplarchive-runtime");
+                missing.Add($"  {name}: allowed_roles does not name alcifra-runtime");
             }
 
-            if (!text.Contains("database/static-roles/simplarchive-runtime", StringComparison.Ordinal))
+            if (!text.Contains("database/static-roles/alcifra-runtime", StringComparison.Ordinal))
             {
-                missing.Add($"  {name}: no database/static-roles/simplarchive-runtime");
+                missing.Add($"  {name}: no database/static-roles/alcifra-runtime");
             }
 
-            if (!text.Contains("database/static-creds/simplarchive-runtime", StringComparison.Ordinal))
+            if (!text.Contains("database/static-creds/alcifra-runtime", StringComparison.Ordinal))
             {
-                missing.Add($"  {name}: the policy grants no database/static-creds/simplarchive-runtime");
+                missing.Add($"  {name}: the policy grants no database/static-creds/alcifra-runtime");
             }
         }
 

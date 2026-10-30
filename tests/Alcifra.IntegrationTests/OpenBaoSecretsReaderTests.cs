@@ -40,35 +40,35 @@ public class OpenBaoSecretsReaderTests
                 SentSecretId = doc.RootElement.GetProperty("secret_id").GetString();
                 body = """{"auth":{"client_token":"test-token"}}""";
             }
-            else if (path.EndsWith("/v1/secret/data/simplarchive/objectstorage"))
+            else if (path.EndsWith("/v1/secret/data/alcifra/objectstorage"))
             {
                 body = """{"data":{"data":{"accessKey":"AK123","secretKey":"SK456"}}}""";
             }
-            else if (path.EndsWith("/v1/secret/data/simplarchive/smtp"))
+            else if (path.EndsWith("/v1/secret/data/alcifra/smtp"))
             {
                 body = """{"data":{"data":{"user":"smtp-user","password":"smtp-pass"}}}""";
             }
-            else if (path.EndsWith("/v1/secret/data/simplarchive/bootstrap"))
+            else if (path.EndsWith("/v1/secret/data/alcifra/bootstrap"))
             {
                 body = """{"data":{"data":{"clientSecret":"boot-secret"}}}""";
             }
-            else if (path.EndsWith("/v1/database/creds/simplarchive"))
+            else if (path.EndsWith("/v1/database/creds/alcifra"))
             {
                 body = """{"data":{"username":"v-role-abc","password":"dyn-pass-xyz"}}""";
             }
-            else if (IncludeOwner && path.EndsWith("/v1/database/static-creds/simplarchive-owner"))
+            else if (IncludeOwner && path.EndsWith("/v1/database/static-creds/alcifra-owner"))
             {
-                body = """{"data":{"username":"simplarchive","password":"owner-pass","rotation_period":86400,"ttl":80000}}""";
+                body = """{"data":{"username":"alcifra","password":"owner-pass","rotation_period":86400,"ttl":80000}}""";
             }
-            else if (IncludeWebPush && path.EndsWith("/v1/secret/data/simplarchive/webpush"))
+            else if (IncludeWebPush && path.EndsWith("/v1/secret/data/alcifra/webpush"))
             {
                 body = """{"data":{"data":{"publicKey":"BPub","privateKey":"priv"}}}""";
             }
-            else if (IncludeArchiveSigning && path.EndsWith("/v1/secret/data/simplarchive/archive-signing"))
+            else if (IncludeArchiveSigning && path.EndsWith("/v1/secret/data/alcifra/archive-signing"))
             {
                 body = JsonSerializer.Serialize(new { data = new { data = new { current = PkiIssueJson(), previous = "-----BEGIN CERTIFICATE-----\nretired\n-----END CERTIFICATE-----\n" } } });
             }
-            else if (path.EndsWith("/v1/secret/data/simplarchive/openiddict"))
+            else if (path.EndsWith("/v1/secret/data/alcifra/openiddict"))
             {
                 // Two PKI-issue JSON blobs (as openbao-init stores them), each carrying a real cert + key PEM.
                 body = JsonSerializer.Serialize(new { data = new { data = new { signing = PkiIssueJson(), encryption = PkiIssueJson() } } });
@@ -93,9 +93,9 @@ public class OpenBaoSecretsReaderTests
             RoleId = "the-role",
             SecretId = "the-secret",
             KvMount = "secret",
-            DatabaseRole = "simplarchive",
-            DatabaseOwnerStaticRole = "simplarchive-owner",
-            DatabaseConnectionTemplate = "Host=db;Port=5432;Database=simplarchive",
+            DatabaseRole = "alcifra",
+            DatabaseOwnerStaticRole = "alcifra-owner",
+            DatabaseConnectionTemplate = "Host=db;Port=5432;Database=alcifra",
         };
 
         var data = await new OpenBaoSecretsReader(http, options).ReadAsync();
@@ -113,11 +113,11 @@ public class OpenBaoSecretsReaderTests
         Assert.Equal("boot-secret", data["Bootstrap:PlatformAdministrator:ClientSecret"]);
 
         // Dynamic Postgres credential composed with the non-secret template.
-        Assert.Equal("Host=db;Port=5432;Database=simplarchive;Username=v-role-abc;Password=dyn-pass-xyz", data["ConnectionStrings:Default"]);
+        Assert.Equal("Host=db;Port=5432;Database=alcifra;Username=v-role-abc;Password=dyn-pass-xyz", data["ConnectionStrings:Default"]);
 
         // The migration-owner credential — the OpenBao-rotated static-role password — composed into a separate
         // connection string (ADRs "Dedicated migration owner role" + "OpenBao static-role rotation").
-        Assert.Equal("Host=db;Port=5432;Database=simplarchive;Username=simplarchive;Password=owner-pass", data["ConnectionStrings:Migration"]);
+        Assert.Equal("Host=db;Port=5432;Database=alcifra;Username=alcifra;Password=owner-pass", data["ConnectionStrings:Migration"]);
     }
 
     [Fact]
@@ -166,8 +166,8 @@ public class OpenBaoSecretsReaderTests
             Address = "http://openbao.test:8200",
             RoleId = "r",
             SecretId = "s",
-            DatabaseOwnerStaticRole = "simplarchive-owner", // set, but the role returns 404
-            DatabaseConnectionTemplate = "Host=db;Port=5432;Database=simplarchive",
+            DatabaseOwnerStaticRole = "alcifra-owner", // set, but the role returns 404
+            DatabaseConnectionTemplate = "Host=db;Port=5432;Database=alcifra",
         };
 
         var data = await new OpenBaoSecretsReader(http, options).ReadAsync();
@@ -197,7 +197,7 @@ public class OpenBaoSecretsReaderTests
     private static string PkiIssueJson()
     {
         using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest("CN=simplarchive-test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var request = new CertificateRequest("CN=alcifra-test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(1));
         return JsonSerializer.Serialize(new { data = new { certificate = cert.ExportCertificatePem(), private_key = rsa.ExportRSAPrivateKeyPem() } });
     }
