@@ -1,0 +1,44 @@
+# The site bundle carries its release's notes (ADR 1010, #2004). The release is created by desktop-packages.yml with
+# GitHub's generated body, and its curated notes are written afterwards (release.md §0f). So when the release is
+# EDITED, the attached site-bundle.zip is stamped again with the current body and replaced.
+#
+# A release created or edited with the workflow's own token triggers nothing (GitHub's rule against loops); an edit
+# by a person or a personal token does, which is the edit that writes the notes. Replacing the asset is not an edit,
+# so this does not run again because of itself.
+name: Site bundle notes
+
+on:
+  release:
+    types: [edited]
+
+jobs:
+  gate:
+    # Who publishes is the brand's to say (ADR 0996), as in desktop-packages.yml.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      publishes: ${{ steps.role.outputs.publishes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: role
+        run: scripts/brand-release-role.sh
+
+  restamp:
+    needs: gate
+    if: ${{ needs.gate.outputs.publishes == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # replace the release asset
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Stamp the site bundle with the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          bundle="$(scripts/release-site-bundle.sh "$TAG" --from-release)"
+          gh release upload "$TAG" "$bundle" --repo "$GITHUB_REPOSITORY" --clobber

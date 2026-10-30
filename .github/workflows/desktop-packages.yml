@@ -60,7 +60,7 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: write # create the GitHub Release + upload assets
-      actions: read # a white-label edition takes its manual from its manual build (scripts/edition-manual.sh)
+      actions: read # the manual build's artifacts: a white-label edition's manual (edition-manual.sh), the site bundle
     # NOTARIZATION POSTPONED (ADR 0905): while Apple has not provisioned the notary for our fresh enrolment, the
     # repository variable MACOS_NOTARIZATION_POSTPONED=true builds the .dmgs AD-HOC signed, as every release before
     # ADR 0896 did. Not "signed but un-notarized": Gatekeeper refuses that too, and it LOOKS finished (the script
@@ -165,6 +165,8 @@ jobs:
           else
             assets+=("$(scripts/edition-manual.sh)")
           fi
+          # The website's input for this version (ADR 1010): the site bundle from the manual build on main.
+          assets+=("$(scripts/release-site-bundle.sh "$GITHUB_REF_NAME" --from-manual-build)")
           gh release create "$GITHUB_REF_NAME" "${assets[@]}" --title "$GITHUB_REF_NAME" --generate-notes \
             || gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
 
@@ -220,7 +222,8 @@ jobs:
             "$BRAND_FILE_STEM-$version-linux-x64.tar.gz" \
             "$BRAND_FILE_STEM-$version-arm64.dmg" \
             "$BRAND_FILE_STEM-$version-x64.dmg" \
-            "$BRAND_FILE_STEM-Manual.pdf"
+            "$BRAND_FILE_STEM-Manual.pdf" \
+            "site-bundle.zip"
           do
             # Two traps in one line, both met here. `grep -qxF` rather than `grep -q`: without -x the x64 .dmg
             # is satisfied by the arm64 one, because one name contains the other. And a HERE-STRING rather
@@ -240,4 +243,4 @@ jobs:
             exit 1
           fi
 
-          echo "All four packages and the manual are attached to $GITHUB_REF_NAME."
+          echo "All four packages, the manual and the site bundle are attached to $GITHUB_REF_NAME."

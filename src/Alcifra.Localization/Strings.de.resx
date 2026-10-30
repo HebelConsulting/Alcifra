@@ -424,7 +424,7 @@
     <value>Passwort konnte nicht geändert werden.</value>
   </data>
   <data name="Close" xml:space="preserve">
-    <value>Schließen</value>
+    <value>Schliessen</value>
   </data>
   <data name="WebDavInfo" xml:space="preserve">
     <value>Binden Sie das Archiv als Netzlaufwerk mit einem WebDAV-Client ein (Finder / Explorer / Nautilus). Verwenden Sie Ihre E-Mail als Benutzernamen und ein app-spezifisches Passwort unten — nicht Ihr Anmeldepasswort.</value>
@@ -487,7 +487,7 @@
     <value>Bild auswählen…</value>
   </data>
   <data name="PhotoHint" xml:space="preserve">
-    <value>Wählen Sie ein Bild und ziehen Sie das Quadrat oder ändern Sie seine Größe, um den sichtbaren Bereich zu wählen.</value>
+    <value>Wählen Sie ein Bild und ziehen Sie das Quadrat oder ändern Sie seine Grösse, um den sichtbaren Bereich zu wählen.</value>
   </data>
   <data name="PhotoLoadError" xml:space="preserve">
     <value>Bild konnte nicht geladen werden.</value>
@@ -1000,7 +1000,7 @@
     <value>Aktuelle Version</value>
   </data>
   <data name="SysSize" xml:space="preserve">
-    <value>Größe</value>
+    <value>Grösse</value>
   </data>
   <data name="SysRetention" xml:space="preserve">
     <value>Aufbewahrung</value>
@@ -1108,7 +1108,7 @@
     <value>Vollbild</value>
   </data>
   <data name="PvZoomIn" xml:space="preserve">
-    <value>Vergrößern</value>
+    <value>Vergrössern</value>
   </data>
   <data name="PvZoomOut" xml:space="preserve">
     <value>Verkleinern</value>
@@ -1261,7 +1261,7 @@
     <value>Schlagwortkatalog</value>
   </data>
   <data name="TagsCatalogDesc" xml:space="preserve">
-    <value>Das Schlagwort-Vokabular des Mandanten. Umbenennen oder zusammenführen zum Aufräumen (Dokumente werden automatisch neu verschlagwortet); außer Betrieb nehmen, um ein Schlagwort nicht mehr für neue Verschlagwortung anzubieten (bestehende Verwendungen bleiben erhalten). Erzwingen Sie den Katalog mit „Schlagwörter auf den Katalog beschränken“ im Mandanten-Tab.</value>
+    <value>Das Schlagwort-Vokabular des Mandanten. Umbenennen oder zusammenführen zum Aufräumen (Dokumente werden automatisch neu verschlagwortet); ausser Betrieb nehmen, um ein Schlagwort nicht mehr für neue Verschlagwortung anzubieten (bestehende Verwendungen bleiben erhalten). Erzwingen Sie den Katalog mit „Schlagwörter auf den Katalog beschränken“ im Mandanten-Tab.</value>
   </data>
   <data name="TagsNewPlaceholder" xml:space="preserve">
     <value>neues Schlagwort…</value>
@@ -1282,7 +1282,7 @@
     <value>Zusammenführen mit…</value>
   </data>
   <data name="TagsRetire" xml:space="preserve">
-    <value>Außer Betrieb nehmen</value>
+    <value>Ausser Betrieb nehmen</value>
   </data>
   <data name="TagsEmpty" xml:space="preserve">
     <value>Noch keine Schlagwörter — verschlagworten Sie ein Dokument oder fügen Sie oben eines hinzu.</value>
@@ -2119,7 +2119,7 @@
     <value>Besitzer</value>
   </data>
   <data name="SortSize" xml:space="preserve">
-    <value>Größe</value>
+    <value>Grösse</value>
   </data>
   <data name="FolderType" xml:space="preserve">
     <value>Ordner</value>
@@ -2146,7 +2146,7 @@
     <value>Zwei-Faktor-Authentifizierung einrichten</value>
   </data>
   <data name="LoginEnrollHint" xml:space="preserve">
-    <value>Ihre Organisation erfordert Zwei-Faktor-Authentifizierung. Scannen Sie diesen QR-Code mit einer Authenticator-App und geben Sie dann den 6-stelligen Code ein, um abzuschließen.</value>
+    <value>Ihre Organisation erfordert Zwei-Faktor-Authentifizierung. Scannen Sie diesen QR-Code mit einer Authenticator-App und geben Sie dann den 6-stelligen Code ein, um abzuschliessen.</value>
   </data>
   <data name="LoginQrAlt" xml:space="preserve">
     <value>Authenticator-QR-Code</value>
@@ -2350,7 +2350,7 @@
     <value>Passkeys</value>
   </data>
   <data name="PkBody" xml:space="preserve">
-    <value>Mit Passkeys können Sie sich per Fingerabdruck, Gesicht oder Sicherheitsschlüssel Ihres Geräts anmelden. Beim Hinzufügen öffnet sich Ihr Webbrowser, um die Sicherheitsprüfung abzuschließen.</value>
+    <value>Mit Passkeys können Sie sich per Fingerabdruck, Gesicht oder Sicherheitsschlüssel Ihres Geräts anmelden. Beim Hinzufügen öffnet sich Ihr Webbrowser, um die Sicherheitsprüfung abzuschliessen.</value>
   </data>
   <data name="PkAdd" xml:space="preserve">
     <value>Passkey hinzufügen</value>
@@ -2371,10 +2371,10 @@
     <value>Dieses Bild konnte nicht geladen werden.</value>
   </data>
   <data name="PpDragHint" xml:space="preserve">
-    <value>Zum Verschieben ziehen oder am weißen Punkt die Größe ändern.</value>
+    <value>Zum Verschieben ziehen oder am weissen Punkt die Grösse ändern.</value>
   </data>
   <data name="PpHint" xml:space="preserve">
-    <value>Wählen Sie ein Bild, dann ziehen Sie das Quadrat oder ändern Sie seine Größe, um den sichtbaren Bereich zu wählen.</value>
+    <value>Wählen Sie ein Bild, dann ziehen Sie das Quadrat oder ändern Sie seine Grösse, um den sichtbaren Bereich zu wählen.</value>
   </data>
   <data name="CpTitle" xml:space="preserve">
     <value>Passwort ändern</value>
@@ -2461,7 +2461,7 @@
     <value>Vertraulichkeitsstufen</value>
   </data>
   <data name="SlBody" xml:space="preserve">
-    <value>Die Klassifizierungsstufen des Mandanten. Das Außerbetriebnehmen behält eine Stufe für bestehende Dokumente bei, bietet sie aber nicht mehr an. „Wasserzeichen“ markiert die Vorschau von Dokumenten mit dieser Stufe.</value>
+    <value>Die Klassifizierungsstufen des Mandanten. Das Ausserbetriebnehmen behält eine Stufe für bestehende Dokumente bei, bietet sie aber nicht mehr an. „Wasserzeichen“ markiert die Vorschau von Dokumenten mit dieser Stufe.</value>
   </data>
   <data name="AnnTitle" xml:space="preserve">
     <value>Notiz</value>
@@ -2518,7 +2518,7 @@
     <value>Erstellt von (Name enthält)</value>
   </data>
   <data name="ExpInclPerms" xml:space="preserve">
-    <value>Berechtigungen (ACL) einschließen</value>
+    <value>Berechtigungen (ACL) einschliessen</value>
   </data>
   <data name="MfaScanHint" xml:space="preserve">
     <value>Scannen Sie diesen QR-Code mit einer Authenticator-App (Google Authenticator, 1Password, Authy…) und geben Sie dann den angezeigten 6-stelligen Code ein.</value>
@@ -2545,7 +2545,7 @@
     <value>Schlagwörter zu Auswahl hinzufügen</value>
   </data>
   <data name="MwSaveToCloudTip" xml:space="preserve">
-    <value>Sichert die Arbeitskopie, damit sie das Schließen übersteht und beim nächsten Login wiederhergestellt wird</value>
+    <value>Sichert die Arbeitskopie, damit sie das Schliessen übersteht und beim nächsten Login wiederhergestellt wird</value>
   </data>
   <data name="MwChooseOcr" xml:space="preserve">
     <value>OCR-Sprachen in Prioritätsreihenfolge wählen</value>
@@ -2710,7 +2710,7 @@
     <value>Alle auswählen</value>
   </data>
   <data name="MwTestWebhookTip" xml:space="preserve">
-    <value>Sendet ein einmaliges synthetisches Audit-Ereignis an den gespeicherten Webhook, damit Sie Endpunkt + Signatur prüfen können, bevor echte Ereignisse fließen.</value>
+    <value>Sendet ein einmaliges synthetisches Audit-Ereignis an den gespeicherten Webhook, damit Sie Endpunkt + Signatur prüfen können, bevor echte Ereignisse fliessen.</value>
   </data>
   <data name="MwClearanceLabel" xml:space="preserve">
     <value>Vertraulichkeitsfreigabe:</value>
@@ -2731,7 +2731,7 @@
     <value>Teilen…</value>
   </data>
   <data name="MwTagCatalogDesc" xml:space="preserve">
-    <value>Das Schlagwort-Vokabular des Mandanten. Umbenennen oder zusammenführen zum Aufräumen (Dokumente werden neu verschlagwortet); außer Betrieb nehmen, um ein Schlagwort nicht mehr anzubieten. Erzwingen mit „Schlagwörter auf den Katalog beschränken“ im Mandanten-Tab.</value>
+    <value>Das Schlagwort-Vokabular des Mandanten. Umbenennen oder zusammenführen zum Aufräumen (Dokumente werden neu verschlagwortet); ausser Betrieb nehmen, um ein Schlagwort nicht mehr anzubieten. Erzwingen mit „Schlagwörter auf den Katalog beschränken“ im Mandanten-Tab.</value>
   </data>
   <data name="MwOrphanCheckout" xml:space="preserve">
     <value>Diese Dokumente wurden anderswo eingecheckt, aber Sie haben noch lokale Änderungen. Fügen Sie sie als neue Version hinzu oder verwerfen Sie sie.</value>
@@ -3688,7 +3688,7 @@
     <value>Die Notiz konnte nicht verschoben werden.</value>
   </data>
   <data name="StErrResizeNote" xml:space="preserve">
-    <value>Die Größe der Notiz konnte nicht geändert werden.</value>
+    <value>Die Grösse der Notiz konnte nicht geändert werden.</value>
   </data>
   <data name="StErrMoveSelection" xml:space="preserve">
     <value>Die Auswahl konnte nicht verschoben werden.</value>
@@ -4849,7 +4849,7 @@
     <value>Sie haben keinen Zugriff auf dieses Dokument. Bitten Sie den Absender, Ihnen Zugriff zu geben.</value>
   </data>
   <data name="DeepLinkGone" xml:space="preserve">
-    <value>Dieser Link führt für Sie ins Leere — das Dokument wurde möglicherweise gelöscht, ist außerhalb Ihrer Reichweite oder der Link ist fehlerhaft. Fragen Sie den Absender.</value>
+    <value>Dieser Link führt für Sie ins Leere — das Dokument wurde möglicherweise gelöscht, ist ausserhalb Ihrer Reichweite oder der Link ist fehlerhaft. Fragen Sie den Absender.</value>
   </data>
   <data name="DeepLinkBackToWorkbench" xml:space="preserve">
     <value>Zurück zur Arbeitsoberfläche</value>
@@ -5224,13 +5224,13 @@
     <value>Bestätigt</value>
   </data>
   <data name="DeviceApprovedHint" xml:space="preserve">
-    <value>Kehren Sie zu Ihrem Terminal zurück — Sie können diesen Tab schließen.</value>
+    <value>Kehren Sie zu Ihrem Terminal zurück — Sie können diesen Tab schliessen.</value>
   </data>
   <data name="DeviceRefusedTitle" xml:space="preserve">
     <value>Abgelehnt</value>
   </data>
   <data name="DeviceRefusedHint" xml:space="preserve">
-    <value>Es wurde nichts gewährt. Sie können diesen Tab schließen.</value>
+    <value>Es wurde nichts gewährt. Sie können diesen Tab schliessen.</value>
   </data>
   <data name="AccountSelfEnrol" xml:space="preserve">
     <value>Zertifikat hinterlegen…</value>
@@ -5683,7 +5683,7 @@
     <value>Auch über mobile Daten laden</value>
   </data>
   <data name="MobOfflineSizeLimit" xml:space="preserve">
-    <value>Größenbegrenzung</value>
+    <value>Grössenbegrenzung</value>
   </data>
   <data name="MobOfflineNoLimit" xml:space="preserve">
     <value>Keine Begrenzung</value>
@@ -5710,7 +5710,7 @@
     <value>Eigenes Lesezertifikat selbst registrieren lassen</value>
   </data>
   <data name="TenantCertSelfServiceInfo" xml:space="preserve">
-    <value>Standardmäßig aus. Dann registriert nur ein Administrator Zertifikate, was sicherer ist: Eine Registrierung entscheidet, an wessen Schlüssel ein versiegeltes Dokument adressiert wird.</value>
+    <value>Standardmässig aus. Dann registriert nur ein Administrator Zertifikate, was sicherer ist: Eine Registrierung entscheidet, an wessen Schlüssel ein versiegeltes Dokument adressiert wird.</value>
   </data>
   <data name="TenantCertParent" xml:space="preserve">
     <value>Ablageort der Lesezertifikate</value>
@@ -5863,7 +5863,7 @@
     <value>Ändern</value>
   </data>
   <data name="MobApptZoneFloating" xml:space="preserve">
-    <value>Keine Zeitzone (fließend)</value>
+    <value>Keine Zeitzone (fliessend)</value>
   </data>
   <data name="MobHomePage" xml:space="preserve">
     <value>Zurück zur Startseite</value>
@@ -5953,7 +5953,7 @@
     <value>Hardware-Schlüssel</value>
   </data>
   <data name="MobHardwareKeyInfo" xml:space="preserve">
-    <value>Wie oft die PIN des Schlüssels abgefragt wird: für Dokumente, Nachrichten und die Offline-Kopie gleichermaßen.</value>
+    <value>Wie oft die PIN des Schlüssels abgefragt wird: für Dokumente, Nachrichten und die Offline-Kopie gleichermassen.</value>
   </data>
   <data name="MobPinInEffect" xml:space="preserve">
     <value>Gilt jetzt: {0}</value>
@@ -5995,7 +5995,7 @@
     <value>Der Bericht enthält die App- und Systemversionen, die PKCS#11-Bibliothek, Ihre Lesegeräte, Hersteller, Modell, Firmware und Seriennummer des Schlüssels, seine Zertifikate und jeden Testschritt. Er enthält nie Ihre PIN, Dokumente, Anmelde-Tokens oder andere Geheimnisse.</value>
   </data>
   <data name="KtIncludeArchive" xml:space="preserve">
-    <value>Archivseite einschließen: Serveradresse und -version, ob dieses Zertifikat für Sie registriert ist, Verschlüsselungsmodus und PIN-Richtlinie</value>
+    <value>Archivseite einschliessen: Serveradresse und -version, ob dieses Zertifikat für Sie registriert ist, Verschlüsselungsmodus und PIN-Richtlinie</value>
   </data>
   <data name="KtCopy" xml:space="preserve">
     <value>Bericht kopieren</value>
@@ -6145,7 +6145,7 @@
     <value>Hardware ohne Bestätigung erlauben</value>
   </data>
   <data name="TenantCertUnattestedInfo" xml:space="preserve">
-    <value>Standardmäßig aus: Ein Leserzertifikat wird nur angenommen, wenn sein Schlüssel nachweislich auf einem Hardware-Token erzeugt wurde, dessen Herstellerwurzel die Installation vertraut. Eingeschaltet werden auch Zertifikate ohne diesen Nachweis angenommen und als "nicht bestätigt" markiert; ein solcher Schlüssel kann ein Software-Schlüssel sein.</value>
+    <value>Standardmässig aus: Ein Leserzertifikat wird nur angenommen, wenn sein Schlüssel nachweislich auf einem Hardware-Token erzeugt wurde, dessen Herstellerwurzel die Installation vertraut. Eingeschaltet werden auch Zertifikate ohne diesen Nachweis angenommen und als "nicht bestätigt" markiert; ein solcher Schlüssel kann ein Software-Schlüssel sein.</value>
   </data>
   <data name="ApiErrCertificateNotAttested" xml:space="preserve">
     <value>Diese Organisation nimmt nur Schlüssel an, die nachweislich auf einem Hardware-Token erzeugt wurden. Registrieren Sie das Zertifikat mit dem Desktop-Client oder dem Telefon vom Token, die die Bestätigung lesen.</value>
@@ -6223,7 +6223,7 @@
     <value>Der Kauf ist ausstehend: Er gilt, sobald der Store ihn bestätigt.</value>
   </data>
   <data name="MobStoreFailed" xml:space="preserve">
-    <value>Der Store konnte den Kauf nicht abschließen.</value>
+    <value>Der Store konnte den Kauf nicht abschliessen.</value>
   </data>
   <data name="MobStoreRestored" xml:space="preserve">
     <value>Das Abonnement aus dem Store ist wiederhergestellt.</value>
@@ -6340,7 +6340,7 @@
     <value>Kleinbuchstaben</value>
   </data>
   <data name="PwGenerateUpper" xml:space="preserve">
-    <value>Großbuchstaben</value>
+    <value>Grossbuchstaben</value>
   </data>
   <data name="PwGenerateDigits" xml:space="preserve">
     <value>Ziffern</value>
@@ -6685,7 +6685,7 @@
     <value>Nicht für Sie verschlüsselt</value>
   </data>
   <data name="AudSignNotYet" xml:space="preserve">
-    <value>Noch nicht für Sie verschlüsselt: Die nächste Neuversiegelung eines Mitglieds schließt Sie ein</value>
+    <value>Noch nicht für Sie verschlüsselt: Die nächste Neuversiegelung eines Mitglieds schliesst Sie ein</value>
   </data>
   <data name="AudNobodyHasAKey" xml:space="preserve">
     <value>Niemand in der Zielgruppe hat bisher einen registrierten Hardware-Schlüssel, daher konnte nichts versiegelt werden. Registrieren Sie zuerst einen Schlüssel.</value>
@@ -6697,7 +6697,7 @@
     <value>Gespeichert, für wen „{0}“ verschlüsselt ist, und neu versiegelt.</value>
   </data>
   <data name="AudResealFailed" xml:space="preserve">
-    <value>{0} Einträge ließen sich mit Ihrem Schlüssel nicht öffnen und wurden nicht neu versiegelt.</value>
+    <value>{0} Einträge liessen sich mit Ihrem Schlüssel nicht öffnen und wurden nicht neu versiegelt.</value>
   </data>
   <data name="AudAppointed" xml:space="preserve">
     <value>Der Verwalter ist ernannt. Ein Mitglied mit Schlüssel versiegelt den Speicher für neue Mitglieder neu.</value>
@@ -6721,7 +6721,7 @@
     <value>Speichern</value>
   </data>
   <data name="AudChangedMeanwhile" xml:space="preserve">
-    <value>Jemand hat inzwischen geändert, für wen dies verschlüsselt ist – schließen und erneut öffnen.</value>
+    <value>Jemand hat inzwischen geändert, für wen dies verschlüsselt ist – schliessen und erneut öffnen.</value>
   </data>
   <data name="AudSaveFailed" xml:space="preserve">
     <value>Für wen dies verschlüsselt ist, konnte nicht gespeichert werden.</value>

@@ -197,6 +197,25 @@ jobs:
           SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
           echo "MANUAL_PDF=$pdf" >> "$GITHUB_ENV"
 
+      # The site bundle (ADR 1010, #2004): the figures and feature summaries the website reads, out of this manual.
+      # Built and checked on every run, so a change that breaks the contract fails its PR here. Main's bundle is the
+      # preview's input, and the release attaches it (scripts/release-site-bundle.sh).
+      - name: Build the site bundle
+        run: |
+          set -euo pipefail
+          source scripts/brand.sh
+          python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
+            --product-name "$BRAND_NAME" --lang en --typ manual/manual.typ --pdf "$MANUAL_PDF" --commit "$GITHUB_SHA"
+          python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
+
+      - name: Upload the site bundle
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-bundle
+          path: ${{ runner.temp }}/site-bundle.zip
+          if-no-files-found: error
+
       # main only: commit the regenerated PDF + screenshots. GITHUB_TOKEN pushes do not trigger workflows, so no
       # loop; [skip ci] is belt-and-suspenders. A no-op when nothing changed.
       # A white-label edition keeps its diff to upstream brand/ only (ADR 0996): its manual is uploaded, never

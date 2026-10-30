@@ -1,4 +1,4 @@
-#import "template.typ": product, brand, conf, shot, pair, note, accent, idx, index-page
+#import "template.typ": product, brand, conf, shot, pair, note, accent, idx, index-page, feature
 
 #show: doc => conf(doc)
 
@@ -100,7 +100,7 @@ rest.
 
 = Browsing & previewing documents
 
-Expand the *tree* to a folder and its documents appear in the *contents* list, which you can sort by any column.
+#feature(id: "browse", title: "Browse and preview", figure: "web-repositories")[Expand the *tree* to a folder and its documents appear in the *contents* list, which you can sort by any column.
 Selecting a document shows its *index data* in the detail pane and renders a *preview* below — PDFs, images, and
 converted Office/e-mail/Markdown documents alike. Full-text search hits are highlighted directly on the preview#idx("Hit highlighting"),
 and you can click any word to copy it#idx("Click-to-copy") — *shift-click* appends instead of replacing, so a
@@ -108,7 +108,7 @@ few clicks collect a phrase (an invoice number, then its date) without touching 
 way to fill index fields on the *Intray* tab: click the values in the scan's preview, paste them into the field.
 In the desktop client you can also *open* the document in its native
 application#idx("Open a document") — from the row's context menu, the ribbon, a double-click, or the keyboard
-shortcut *⌘O* (*Ctrl+O* on Windows and Linux). The same shortcut opens the selected item on the *Intray* tab.
+shortcut *⌘O* (*Ctrl+O* on Windows and Linux). The same shortcut opens the selected item on the *Intray* tab.]
 
 The preview's toolbar carries the *zoom*#idx("Zoom") controls. A document opens fitted to the width of the pane;
 #emph[fit page] shrinks it until the whole page is visible at once — useful when the pane is wider than it is
@@ -194,9 +194,9 @@ Either way you can add a *comment* saying what this file is, which becomes the v
   versions to add one to.
 ]
 
-*Versions.*#idx("Version comment") Uploading a new file to an existing document adds a *version* — the history is preserved. The
+#feature(id: "versions", title: "Versions and comparison", figure: "web-versions")[*Versions.*#idx("Version comment") Uploading a new file to an existing document adds a *version* — the history is preserved. The
 *Versions* dialog lists every version; you can compare two of them or *make current* an older one. When you upload
-a file that already exists, #product warns you of the *duplicate*.
+a file that already exists, #product warns you of the *duplicate*.]
 
 Give each version a *comment* saying what changed. It is the difference between a history someone can read and a
 list of timestamps: "Price corrected after the framework-agreement review" answers the question a reader of the
@@ -296,10 +296,10 @@ curated tag catalogue with colours. *Sensitivity labels*#idx("Sensitivity label"
 
 = Working from your file manager (WebDAV) <webdav>
 
-The whole archive is reachable over *WebDAV*#idx("WebDAV") as a network drive — not just your personal space but the shared
+#feature(id: "webdav", title: "Your file manager (WebDAV)", figure: "web-webdav")[The whole archive is reachable over *WebDAV*#idx("WebDAV") as a network drive — not just your personal space but the shared
 repositories you have permission to access, with your rights enforced on every operation. The mounted drive is
 called *webdav* and mirrors the Repositories tree exactly: your Personal space, then the repositories you
-can see, and nothing else.
+can see, and nothing else.]
 
 The *WebDAV* button does the next useful thing rather than always the same thing, and its tooltip says which. In
 the *desktop client*: if you have no credentials yet it opens the setup dialog; if you have credentials it mounts
@@ -396,11 +396,11 @@ anything you would mind losing.
 
 == Reading the archive in your mail program (IMAP) <imap>
 
-Where WebDAV turns the archive into a network drive, *IMAP*#idx("IMAP") lets a mail program browse it: point
+#feature(id: "imap", title: "Your mail program (IMAP)")[Where WebDAV turns the archive into a network drive, *IMAP*#idx("IMAP") lets a mail program browse it: point
 any IMAP-speaking mail client at your #product server and browse the same
 ACL-filtered tree as mailboxes. *INBOX* is your personal folder; the shared repositories you can see appear
 beside it. Archived e-mails read natively; every *other* document can appear too — as a message carrying the
-file as an attachment — if you switch that on.
+file as an attachment — if you switch that on.]
 
 #note[
   *This is your archive wearing an IMAP face — it is not a mail service.* #product does not collect your
@@ -460,10 +460,10 @@ notes, and notes live only there (references to them may go anywhere).
 
 = Contacts, calendars & your tasks
 
-Two of the workbench tabs are not about documents at all — or rather, they are about documents that happen to be
+#feature(id: "contacts-calendars", title: "Contacts and calendars", figure: "desktop-contacts")[Two of the workbench tabs are not about documents at all — or rather, they are about documents that happen to be
 a *contact card* or a *calendar entry*. *Contacts*#idx("Contacts") lists the people in your addressbooks;
 *Calendar*#idx("Calendar") lists your appointments. Both read the same archive, with the same permissions, and
-both can be *subscribed to from your phone*.
+both can be *subscribed to from your phone*.]
 
 #shot("screenshots/desktop-contacts.png",
   [The Contacts tab: addressbooks on the left, the people in the ticked ones merged into one list.])
@@ -559,10 +559,10 @@ with who did it and why.
 
 == Reserving a meeting room <bookings>
 
-A *meeting room*#idx("Meeting room")#idx("Booking") is a folder whose type is _Meeting room_ — an administrator
+#feature(id: "bookings", title: "Meeting rooms", figure: "desktop-bookings")[A *meeting room*#idx("Meeting room")#idx("Booking") is a folder whose type is _Meeting room_ — an administrator
 creates one wherever rooms should live, and whoever may see the folder may see its reservations. Select a room
 and its context menu and the ribbon offer *Bookings…* under *Actions*: the reservations that exist, and a row to
-take a new one.
+take a new one.]
 
 #shot("screenshots/desktop-bookings.png",
   [The Bookings dialog on a room: existing reservations above — a cancelled one stays visible as history — and
@@ -645,10 +645,10 @@ and answers the question; what the answer *obliges* is the module's rule.
 
 == Messages on the desktop <desktopmessages>
 
-Where the archive offers the *Messenger*#idx("Messenger"), the workbench shows a *Messages* tab: your conversations
+#feature(id: "messages", title: "Messages", figure: "desktop-messages")[Where the archive offers the *Messenger*#idx("Messenger"), the workbench shows a *Messages* tab: your conversations
 on the left — a group with its number of members, an unread count as a badge — and the selected one on the right,
 drawn and handled exactly as on the phone. A message opens with your own key — a key on this computer if you have
-one, otherwise your card, which asks for its PIN once.
+one, otherwise your card, which asks for its PIN once.]
 
 #shot("screenshots/desktop-messages.png",
   [The Messages tab: a thread with a reply, two files in one message and a read receipt; below it, a reply being
@@ -693,10 +693,10 @@ be woken by a push while it is closed, or back up on a schedule in the backgroun
 
 == Passwords on the desktop <desktoppasswords>
 
-Where the archive offers the *password store*#idx("Password store"), the workbench shows a *Passwords* tab — the key
+#feature(id: "passwords", title: "Passwords", figure: "desktop-passwords")[Where the archive offers the *password store*#idx("Password store"), the workbench shows a *Passwords* tab — the key
 ring at the end of the tab bar. On the left are your stores: *My Passwords* first (it is created the first time you
 open it), then the shared stores you can decrypt. The middle lists the selected folder's folders and entries; the right
-shows the selected entry in the preview.
+shows the selected entry in the preview.]
 
 #shot("screenshots/desktop-passwords.png",
   [The Passwords tab: My Passwords with its folders, an entry opened in the preview, and the find box lighting what
@@ -755,9 +755,9 @@ each time; changing it is the Passwords tab's job.
 
 == On a phone or a tablet
 
-The same address, in the same browser, gives you a layout built for the screen you are holding. There is no
+#feature(id: "phone-tablet", title: "Phone and tablet", figure: "web-phone-list")[The same address, in the same browser, gives you a layout built for the screen you are holding. There is no
 separate mobile site and nothing to install — and nothing is *taken away*: what the narrower layouts cannot show
-side by side, they show one at a time.
+side by side, they show one at a time.]
 
 *A tablet is recognised by its touch screen, not by its width.*#idx("Tablet") That distinction matters more than
 it sounds: a large tablet is about 1024 points across upright and 1366 across sideways, so measuring width alone
@@ -939,10 +939,10 @@ is in the Check-out tab's ribbon.
 
 = Search
 
-The *Search* tab#idx("Search") runs a full-text search across document *content*, *names*, and *index-field* values, ranked by
+#feature(id: "search", title: "Search", figure: "web-search")[The *Search* tab#idx("Search") runs a full-text search across document *content*, *names*, and *index-field* values, ranked by
 relevance, with hits highlighted on the preview — so a distinctive word buried in a document's text (a product name
 on an invoice, say) finds exactly that document. *Refinement filters* and *facets*#idx("Facets") narrow the results — by document
-type, date, sensitivity, and more — and you can *save* a search to re-run or share it later.
+type, date, sensitivity, and more — and you can *save* a search to re-run or share it later.]
 
 #pair("screenshots/web-search.png", "screenshots/desktop-search.png",
   [Full-text search with refinement filters and facets, in the web (left) and desktop (right) clients.])
@@ -960,10 +960,10 @@ results, not in the text box.
 
 = Collaboration
 
-Documents are collaborative: post *comments*#idx("Chat / comments") in a feed, attach *annotations*#idx("Annotations") (sticky notes, highlights, and shapes)
+#feature(id: "collaboration", title: "Collaboration", figure: "web-chat")[Documents are collaborative: post *comments*#idx("Chat / comments") in a feed, attach *annotations*#idx("Annotations") (sticky notes, highlights, and shapes)
 onto the preview, and *follow*#idx("Follow / subscribe") a document or folder to be *notified*#idx("Notifications") of activity. Set yourself a *reminder*#idx("Reminder"), and
 track everything assigned to you on the *My work* dashboard#idx("My work"). To edit a document exclusively, *check it out* — others
-see it is locked — then *check in* your changes as a new version.
+see it is locked — then *check in* your changes as a new version.]
 
 *The chat thread.* Every document has its own thread, shown beside the preview. Use it for the conversation about
 the document — a question about a figure, a note that a revision is on its way — so that discussion stays with the
@@ -1008,9 +1008,9 @@ A document you have edited is marked *Modified*, and only those offer the action
 
 = Sharing outside #product
 
-Everything above assumes the other person has an account. An *external link*#idx("External link") is for when they do not: a plain URL
+#feature(id: "external-links", title: "Sharing by link", figure: "web-external-link-create")[Everything above assumes the other person has an account. An *external link*#idx("External link") is for when they do not: a plain URL
 that opens one document, for anyone who has it, with no sign-in. Use it for the customer who needs the signed
-contract or the auditor who needs one invoice — not as a general-purpose way to move documents around.
+contract or the auditor who needs one invoice — not as a general-purpose way to move documents around.]
 
 *Creating one.* Select the document and choose *Share by link* — in its context menu or in the ribbon. Choose when it should expire
 and how many times it may be opened, then create it.
@@ -1104,13 +1104,13 @@ Sharing outward is the one action that leaves the system, so it is gated twice a
 
 = Workflow & records
 
-*Approval workflow.*#idx("Approval workflow") Submit a document for review and it moves through a fixed state machine —
+#feature(id: "workflow", title: "Workflow and records", figure: "web-tasks")[*Approval workflow.*#idx("Approval workflow") Submit a document for review and it moves through a fixed state machine —
 Draft → In Review → Approved / Rejected → Released. The detail pane says which state a document is in; the next
 step you may take — approve, reject, reassign, release — is under *Workflow step* in its context menu and the
 ribbon. Reviewers act on their *Tasks* tab#idx("Tasks") — sortable
 by any column (a click on a header; the default puts the nearest deadline on top, overdue in red first) and
 narrowable through the visible filter row: document and version text, plus an *Overdue only* switch. Reviews can be reassigned,
-and overdue reviews escalate.
+and overdue reviews escalate.]
 
 *Records management.* A *legal hold*#idx("Legal hold") freezes documents so they cannot be changed or deleted. *Retention*#idx("Retention") policies
 dispose of documents once their retention period ends (with review before disposition, if required). Deleted
@@ -1127,10 +1127,10 @@ macOS Dock, an overlay on the Windows taskbar — so a window you have minimised
 
 = Administration & account
 
-Administrators manage *users & groups*#idx("Users & groups") and the *rights* granted to them, configure *tenant* settings#idx("Tenant"), and review
+#feature(id: "administration", title: "Administration", figure: "web-users")[Administrators manage *users & groups*#idx("Users & groups") and the *rights* granted to them, configure *tenant* settings#idx("Tenant"), and review
 the tamper-evident *audit trail*#idx("Audit trail"). They also curate catalogues (sensitivity
 labels, tags), set the *storage quota*#idx("Storage quota"), and run *import / export*. Every user manages their own *account security* —
-password, multi-factor authentication (authenticator app or passkeys), and profile photo.
+password, multi-factor authentication (authenticator app or passkeys), and profile photo.]
 
 Your own account lives behind *Edit profile…*#idx("Edit profile") in the avatar menu (top right in both clients). It shows which
 account you are signed in as, the photo you currently have with a crop to replace it, and a button through to
