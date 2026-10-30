@@ -67,7 +67,7 @@ Sie erreichen dasselbe Archiv über *zwei Clients*, die einander Funktion für F
   seinem eigentlichen Desktop-Programm öffnen und Dokumente in den Dateimanager des Betriebssystems ziehen und
   von dort hereinziehen kann.
 
-#pair("screenshots/web-login.png", "screenshots/desktop-logon.png",
+#pair("screenshots/de/web-login.png", "screenshots/de/desktop-logon.png",
   [Die beiden Clients: die Web-Anmeldung (links) und das Anmeldefenster des Desktop-Clients (rechts).])
 
 == Grundbegriffe
@@ -96,7 +96,7 @@ Archive und Ordner, die *Inhaltsliste* des ausgewählten Ordners, der *Detailber
 *Vorschau*#idx("Vorschau") und — am unteren Rand — die *Registerleiste*, die zwischen Archive, Eingangskorb, Suche, Aufgaben und
 den übrigen Registern wechselt.
 
-#pair("screenshots/web-repositories.png", "screenshots/desktop-workbench.png",
+#pair("screenshots/de/web-repositories.png", "screenshots/de/desktop-workbench.png",
   [Die Workbench im Web-Client (links) und im Desktop-Client (rechts): Baum · Inhalt · Details · Vorschau, mit
    der Registerleiste am unteren Rand.])
 
@@ -117,7 +117,7 @@ Die Werkzeugleiste der Vorschau enthält die Bedienelemente zum *Zoomen*#idx("Zo
 hoch ist und das Einpassen auf die Breite das untere Ende der Seite aus dem Blickfeld schiebt. Zoomen Sie danach heraus,
 geht es schrittweise bis zur ganzen Seite zurück und hält dort an. Ctrl+Scrollen (⌘+Scrollen auf dem Mac) zoomt ebenfalls.
 
-#shot("screenshots/desktop-search-hit-overlay.png",
+#shot("screenshots/de/desktop-search-hit-overlay.png",
   [Die Vorschau mit hervorgehobenen Suchtreffern auf der Seite — klicken Sie ein Wort an, um es zu kopieren (Umschalt-Klick zum Anhängen), oder
    springen Sie von Treffer zu Treffer.])
 
@@ -153,7 +153,7 @@ zu etwas bereits Abgelegtem gehört und wie viele Sie haben. Alle enden am selbe
   [*E-Mail-Anhang*], [Sie eine E-Mail abgelegt haben und einen ihrer Anhänge als eigenes Dokument möchten.],
 )
 
-#shot("screenshots/web-personal-launchers.png",
+#shot("screenshots/de/web-personal-launchers.png",
   [Ihr eigener Bereich, aufgeklappt — er trägt *Ihren Namen* oben im Baum: *Intray* und *Check-out* stehen über Ihren eigenen Ordnern. Legen Sie Dateien auf *Intray* ab, um
    sie bereitzustellen, oder legen Sie eine bearbeitete Arbeitskopie auf *Check-out* ab, um sie zurückzubringen — und ziehen Sie ein Dokument auf *Intray*,
    um davon ausgehend als Vorlage neu zu beginnen.])
@@ -204,11 +204,11 @@ Geben Sie jeder Version einen *Kommentar*, der sagt, was sich geändert hat. Er 
 Liste von Zeitstempeln: "Preis nach Prüfung des Rahmenvertrags korrigiert" beantwortet die Frage, die ein Leser der
 Liste tatsächlich hat, und das kann kein Datum.
 
-#shot("screenshots/web-versions.png",
+#shot("screenshots/de/web-versions.png",
   [Der Dialog *Versionen*: jede Version des Dokuments mit der Angabe, wer sie wann gespeichert hat, und — dem Teil, der die
    Liste lesenswert macht — dem Kommentar, der beschreibt, was sich geändert hat.])
 
-#pair("screenshots/web-intray.png", "screenshots/desktop-intray.png",
+#pair("screenshots/de/web-intray.png", "screenshots/de/desktop-intray.png",
   [Der Eingangskorb: bereitgestellte Einträge, die darauf warten, klassifiziert und abgelegt zu werden, im Web-Client (links) und im Desktop-Client (rechts).])
 
 == Einen Scan vor dem Ablegen aufbereiten
@@ -236,7 +236,7 @@ und mehrseitigen `.tif`-Dateien; bei allen anderen werden sie schlicht nicht ang
    zwischen den Dokumenten in einen Eintrag pro Dokument (siehe unten).],
 )
 
-#shot("screenshots/desktop-sort-rotate.png",
+#shot("screenshots/de/desktop-sort-rotate.png",
   [Der Dialog *Drehen/Sortieren* mit dem Beispielstapel: Seite 4 lief kopfüber durch den Scanner und wurde
    bisher um eine Vierteldrehung gedreht — ein weiterer Druck auf ihre Schaltfläche *⟳* stellt sie aufrecht. Der Papierkorb auf jeder Kachel
    löscht diese Seite; gespeichert wird erst mit *Reihenfolge übernehmen*.])
@@ -280,7 +280,7 @@ Neuanordnung wird erst zur neuen Version, wenn Sie *Einchecken* drücken (oder m
 jede andere Änderung an einer Arbeitskopie). Aufteilen und Zusammenfügen bleiben im Eingangskorb: Sie machen aus einem Eintrag mehrere Dokumente,
 und das ist Ablagearbeit.
 
-#shot("screenshots/web-version-compare.png",
+#shot("screenshots/de/web-version-compare.png",
   [*Versionen vergleichen*: zwei Fassungen eines Dokuments nebeneinander — alt links, neu rechts, geänderte
    Zeilen aufeinander ausgerichtet und die geänderten Wörter darin hervorgehoben. Funktioniert für jedes Paar, dessen Inhalt Text ergibt,
    Notizen und E-Mails eingeschlossen.])
@@ -293,7 +293,7 @@ gepflegten Schlagwortkatalog mit Farben führen. *Vertraulichkeitsstufen*#idx("V
 *persönliches Archiv*#idx("Persönliches Archiv") für private Dokumente.
 
 
-#shot("screenshots/web-tags.png",
+#shot("screenshots/de/web-tags.png",
   [Der Schlagwortkatalog: gepflegte, farbcodierte Schlagwörter, die ein Administrator für den ganzen Mandanten verwaltet.])
 
 = Aus dem Dateimanager arbeiten (WebDAV) <webdav>
@@ -339,7 +339,7 @@ was damit anzufangen ist, zeigt sein Dialog die Schritte zum Einbinden für das 
 #emph[Gehe zu ▸ Mit Server verbinden] unter macOS, *Netzlaufwerk verbinden* unter Windows, eine `davs://`-Adresse unter Linux — neben
 den Werten, die Sie dort einfügen.
 
-#shot("screenshots/web-webdav.png",
+#shot("screenshots/de/web-webdav.png",
   [Der WebDAV-Dialog des Web-Clients: die Mount-URL, Ihr Benutzername und das nur einmal angezeigte Passwort, jeweils mit einer Schaltfläche
    zum Kopieren, und die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden.])
 
@@ -467,7 +467,7 @@ eine *Kontaktkarte* oder ein *Kalendereintrag* sind. *Kontakte*#idx("Kontakte") 
 *Kalender*#idx("Kalender") listet Ihre Termine auf. Beide lesen dasselbe Archiv mit denselben Berechtigungen, und
 beide lassen sich *von Ihrem Telefon aus abonnieren*.]
 
-#shot("screenshots/desktop-contacts.png",
+#shot("screenshots/de/desktop-contacts.png",
   [Der Tab Kontakte: links die Adressbücher, die Personen der angekreuzten Adressbücher in einer Liste zusammengeführt.])
 
 *Sammlungen überlagern sich, statt sich zu ersetzen.* Die Liste links ist eine Reihe von Kontrollkästchen, keine Einzelauswahl – kreuzen Sie
@@ -506,7 +506,7 @@ Unter jedem Kontakt- und Terminformular gibt es einen zugeklappten Abschnitt *Er
 sehen Sie den Eintrag genau so, wie er gespeichert ist – eine *vCard* bei einem Kontakt, einen *iCalendar*-Eintrag bei einem Termin –
 einschliesslich der Eigenschaften, die das Formular darüber nicht zeigt.
 
-#shot("screenshots/desktop-contact-editor.png",
+#shot("screenshots/de/desktop-contact-editor.png",
   [Der Kontakteditor mit geöffnetem Abschnitt *Erweitert: der gespeicherte Eintrag* – die gespeicherte vCard, einschliesslich der Eigenschaften, die kein
    Formularfeld zeigt.],
   width: 42%)
@@ -538,7 +538,7 @@ erscheint auf dem Telefon.
 Die Anmeldung erfolgt mit *demselben DAV-Passwort*, das auch die Einbindung im Dateimanager verwendet – ein Geheimnis, eine Stelle, an der man es widerruft. Erstellen Sie
 es über *WebDAV-Zugriff…* im Kontomenü, falls Sie das noch nicht getan haben.
 
-#shot("screenshots/desktop-calendar.png",
+#shot("screenshots/de/desktop-calendar.png",
   [Der Tab Kalender, nach Zeit geordnet – Einträge ohne Datum stehen am Ende statt in den obersten Zeilen.])
 
 == Ihre Aufgaben auf dem Telefon
@@ -566,7 +566,7 @@ legt ihn dort an, wo Räume liegen sollen, und wer den Ordner sehen darf, darf a
 dann bieten sein Kontextmenü und das Menüband unter *Aktionen* den Eintrag *Buchungen…* an: die bestehenden Reservierungen und eine Zeile,
 um eine neue vorzunehmen.]
 
-#shot("screenshots/desktop-bookings.png",
+#shot("screenshots/de/desktop-bookings.png",
   [Der Dialog Buchungen zu einem Raum: oben die bestehenden Reservierungen – eine stornierte bleibt als Verlauf sichtbar – und
    unten die neue Reservierung, deren Zeiten eingetippt statt ausgewählt werden.],
   width: 58%)
@@ -652,7 +652,7 @@ und beantwortet die Frage; wozu die Antwort *verpflichtet*, ist die Regel des Mo
 dargestellt und bedient genau wie auf dem Telefon. Eine Nachricht wird mit Ihrem eigenen Schlüssel geöffnet – einem Schlüssel auf diesem Computer, falls Sie
 einen haben, sonst mit Ihrer Karte, die einmal nach ihrer PIN fragt.]
 
-#shot("screenshots/desktop-messages.png",
+#shot("screenshots/de/desktop-messages.png",
   [Der Tab Nachrichten: ein Verlauf mit einer Antwort, zwei Dateien in einer Nachricht und einer Lesebestätigung; darunter wird eine Antwort
   geschrieben, mit einer wartenden Datei als Chip.])
 
@@ -681,7 +681,7 @@ einem registrierten Schlüssel, weil sich für niemanden sonst etwas versiegeln 
 sodass ein Neuzugang ab jetzt mitliest und jemand, der entfernt wurde, nichts mehr liest – und macht andere zu Administratoren; der letzte
 Administrator kann nicht zurücktreten. *Verlassen* fragt zuerst nach.
 
-#shot("screenshots/desktop-messages-members.png",
+#shot("screenshots/de/desktop-messages-members.png",
   [Die Mitglieder einer Gruppe, Administratoren zuerst, jeweils mit dem, was Sie tun dürfen.])
 
 *In eine Datei sichern…* schreibt alle Ihre Unterhaltungen in eine Datei Ihrer Wahl, versiegelt genau so, wie sie zugestellt wurden – nichts wird
@@ -700,7 +700,7 @@ am Ende der Tab-Leiste. Links stehen Ihre Speicher: zuerst *Meine Passwörter* (
 angelegt), dann die gemeinsamen Speicher, die Sie entschlüsseln können. In der Mitte stehen die Ordner und Einträge des ausgewählten Ordners; rechts
 zeigt die Vorschau den ausgewählten Eintrag.]
 
-#shot("screenshots/desktop-passwords.png",
+#shot("screenshots/de/desktop-passwords.png",
   [Der Tab Passwörter: Meine Passwörter mit seinen Ordnern, ein in der Vorschau geöffneter Eintrag und das Suchfeld, das hervorhebt, was
   sichtbar ist. Das Passwort, die PIN und die Wiederherstellungscodes bleiben verborgen.])
 
@@ -725,7 +725,7 @@ vermeiden* an für ein Passwort, das Sie von einem Bildschirm abtippen werden; *
 auf Ihrem Computer versiegelt, bevor es ihn verlässt. Hat jemand anderes den Eintrag geändert, seit Sie ihn geöffnet haben, meldet das Speichern dies und
 zeigt Ihnen den Eintrag, wie er jetzt ist.
 
-#shot("screenshots/desktop-passwords-edit.png",
+#shot("screenshots/de/desktop-passwords-edit.png",
   [Einen Eintrag bearbeiten: die geheimen Felder verborgen, bis ihr Auge gedrückt gehalten wird, der Generator unter dem Passwort geöffnet, und
   Speichern und Abbrechen dort, wo der Stift war.])
 
@@ -772,13 +772,13 @@ Der Ordnerbaum wird zu einer Schublade, der Inhalt des Ordners füllt den Bildsc
 eigenen Tabs *Vorschau*, *Details* und *Chat* – die Bereiche, die das breite Layout weglässt, sind also nur einen Tipp entfernt statt
 verschwunden.
 
-#shot("screenshots/web-phone-list.png",
+#shot("screenshots/de/web-phone-list.png",
   [Der Inhalt eines Ordners auf einem Telefon, bildschirmfüllend. Ein einfaches Tippen öffnet – einen Doppelklick gibt es hier nicht.], width: 45%)
 
-#shot("screenshots/web-phone-drawer.png",
+#shot("screenshots/de/web-phone-drawer.png",
   [Der Baum, von links hereingeschoben. Wählen Sie einen Ordner, schliesst er sich wieder.], width: 45%)
 
-#shot("screenshots/web-phone-detail.png",
+#shot("screenshots/de/web-phone-detail.png",
   [Ein Dokument, bildschirmfüllend, mit seinen drei Tabs. Zurück führt zur Liste.], width: 45%)
 
 #note[
@@ -790,19 +790,19 @@ verschwunden.
 
 Hochkant gehalten verhält sich ein Tablet genau wie ein Telefon – ein Bereich, der Baum in einer Schublade.
 
-#shot("screenshots/web-tablet-portrait.png",
+#shot("screenshots/de/web-tablet-portrait.png",
   [Hochkant: jeweils ein Bereich, dieselbe Form wie auf einem Telefon.], width: 75%)
 
 Drehen Sie es quer, erhalten Sie zwei der drei Bereiche. Beim Blättern steht der Baum neben dem Inhalt
 des Ordners.
 
-#shot("screenshots/web-tablet-landscape.png",
+#shot("screenshots/de/web-tablet-landscape.png",
   [Quer, beim Blättern: der Baum neben der Inhaltsliste.])
 
 Öffnen Sie ein Dokument, macht der Baum ihm Platz, sodass das, *woher* Sie kamen, neben dem bleibt, was Sie geöffnet haben – und der
 Baum ist über die Schaltfläche #box[≡] jederzeit einen Tipp entfernt, wenn Sie ihn zurückhaben möchten.
 
-#shot("screenshots/web-tablet-landscape-detail.png",
+#shot("screenshots/de/web-tablet-landscape-detail.png",
   [Quer, mit geöffnetem Dokument: die Liste neben dem Dokument. Der Baum ist einen Tipp entfernt.])
 
 === Was jede Breite zeigt
@@ -928,7 +928,7 @@ Kontextmenü des Dokuments (ein Rechtsklick am Desktop, das ⋮ am Ende der Zeil
 des Menübands, neben Öffnen, Umbenennen und Auschecken. Die Schritte der Prüfung sind unter *Workflow-Schritt*
 gruppiert, was ein Modul hinzufügt, unter *Aktionen*.
 
-#shot("screenshots/desktop-document-menu.png",
+#shot("screenshots/de/desktop-document-menu.png",
   [Das Kontextmenü eines Dokuments im Desktop-Client: die eigenen Aktionen des Dokuments — Folgen, Per Link
    teilen — dann *Workflow-Schritt*, die nächsten Schritte einer laufenden Prüfung, und *Aktionen*, was ein Modul
    für dieses Dokument anbietet.],
@@ -957,7 +957,7 @@ eines Dokuments steckt (etwa ein Produktname auf einer Rechnung), genau dieses D
 *Facetten*#idx("Facetten") grenzen die Ergebnisse ein — nach Dokumenttyp, Datum, Vertraulichkeit und mehr —, und
 Sie können eine Suche *speichern*, um sie später erneut auszuführen oder zu teilen.]
 
-#pair("screenshots/web-search.png", "screenshots/desktop-search.png",
+#pair("screenshots/de/web-search.png", "screenshots/de/desktop-search.png",
   [Volltextsuche mit Verfeinerungsfiltern und Facetten, im Web-Client (links) und im Desktop-Client (rechts).])
 
 *Wortteile.*#idx("Wortteilsuche") Die Suche findet zuerst ganze Wörter, was das relevanteste Dokument oben hält.
@@ -986,11 +986,11 @@ eingerückt, auf die sie antworten, und der Verlauf hält auch fest, was mit dem
 Version, eine Ablage und andere Aktivitäten erscheinen in derselben Zeitleiste, sodass Sie beim Lesen sowohl
 erfahren, was gesagt wurde, als auch, was sich geändert hat.
 
-#shot("screenshots/web-chat.png",
+#shot("screenshots/de/web-chat.png",
   [Der Chatbereich eines Dokuments: ein Gesprächsverlauf, verwoben mit den Aktivitäten des Dokuments selbst — hier
    eine Frage und ihre Antwort, gefolgt von den beiden Versionen, wie sie gespeichert wurden.], width: 60%)
 
-#pair("screenshots/web-my-work.png", "screenshots/desktop-checkout.png",
+#pair("screenshots/de/web-my-work.png", "screenshots/de/desktop-checkout.png",
   [Links: das Dashboard *Meine Arbeit*. Rechts: der Tab *Ausgecheckt* mit den für die exklusive Bearbeitung
    gesperrten Dokumenten — hier eines bearbeitet (_Geändert_) und eines unberührt (_Unverändert_).])
 
@@ -1039,7 +1039,7 @@ fest, wann er ablaufen soll und wie oft er geöffnet werden darf, und erstellen 
   beiläufiger gelesen als der Moment, in dem Sie bewusst etwas erstellt haben.
 ]
 
-#shot("screenshots/web-external-link-create.png",
+#shot("screenshots/de/web-external-link-create.png",
   [Einen externen Link erstellen. Die URL wird einmal, hier, angezeigt und kann später nicht mehr abgerufen
    werden.])
 
@@ -1058,7 +1058,7 @@ bewusste Erneuerung und kein Weg, einen unbefristeten Link anzusammeln.
   braucht, und er wäre verschwunden, wenn das Widerrufen ihn wegräumen würde.
 ]
 
-#shot("screenshots/web-external-links-list.png",
+#shot("screenshots/de/web-external-links-list.png",
   [*Meine externen Links* — jeder aktive Link, den Sie geteilt haben, mit Springen, Details und Widerrufen in jeder
    Zeile.])
 
@@ -1075,7 +1075,7 @@ Ein unbekannter, abgelaufener, aufgebrauchter oder widerrufener Link erzeugen al
 Absicht — einem Fremden zu sagen, welchen dieser Fälle er getroffen hat, würde bestätigen, dass ein echter Link
 existiert, und andeuten, wie man an einen brauchbaren kommt.
 
-#shot("screenshots/web-external-link-landing.png",
+#shot("screenshots/de/web-external-link-landing.png",
   [Die Ansicht des Empfängers: der Name des Dokuments und ein Bild seiner ersten Seite. Dieses hat nur eine Seite
    und trägt daher keine Seitenzahl-Markierung. Kein Konto, ein Dokument, nichts anderes von dort aus erreichbar.])
 
@@ -1097,7 +1097,7 @@ Der Dialog liest es und zeigt Ihnen den gefundenen *Antragsteller* und den *Fing
   Link kann nicht neu adressiert werden.
 ]
 
-#shot("screenshots/web-external-link-certificate.png",
+#shot("screenshots/de/web-external-link-certificate.png",
   [Einen Link an einen Empfänger adressieren: Das eingefügte Zertifikat wird mit Antragsteller und Fingerabdruck
    beschrieben — das ist es, was Sie vor dem Senden der URL prüfen.])
 
@@ -1155,11 +1155,11 @@ Am Desktop erscheint die Zahl der auf Sie wartenden Aufgaben auch auf dem Anwend
 macOS-Dock, als Überlagerung in der Windows-Taskleiste —, sodass Ihnen auch ein minimiertes Fenster noch sagt, dass
 etwas zu tun ist.
 
-#pair("screenshots/web-tasks.png", "screenshots/desktop-tasks.png",
+#pair("screenshots/de/web-tasks.png", "screenshots/de/desktop-tasks.png",
   [Der Tab Aufgaben — die Genehmigungswarteschlange einer prüfenden Person — im Web-Client (links) und im
    Desktop-Client (rechts).])
 
-#pair("screenshots/web-legal-holds.png", "screenshots/web-retention.png",
+#pair("screenshots/de/web-legal-holds.png", "screenshots/de/web-retention.png",
   [Schriftgutverwaltung: *Rechtliche Sperren* (links) frieren Dokumente ein; die *Aufbewahrung* (rechts) regelt
    die Aussonderung.])
 
@@ -1180,10 +1180,10 @@ für den Rest der halben Minute abgelehnt, während der er noch angezeigt wird. 
 dass ein Code, der Ihnen über die Schulter abgelesen wurde — oder von einer Seite weitergereicht, die sich als diese ausgibt —, hinter Ihrem Rücken erneut verwendet wird. Wenn Sie
 sich eben mit dem angezeigten Code irgendwo angemeldet haben, warten Sie auf den nächsten, statt ihn nochmals einzutippen.
 
-#pair("screenshots/web-users.png", "screenshots/desktop-users.png",
+#pair("screenshots/de/web-users.png", "screenshots/de/desktop-users.png",
   [Verwaltung von Benutzern und Gruppen im Web-Client (links) und im Desktop-Client (rechts).])
 
-#pair("screenshots/web-audit.png", "screenshots/desktop-audit.png",
+#pair("screenshots/de/web-audit.png", "screenshots/de/desktop-audit.png",
   [Das Audit-Protokoll — ein nur fortschreibbares, hash-verkettetes Log — im Web-Client (links) und im Desktop-Client (rechts).])
 
 Was in dieses Protokoll gelangt, verdient eine genaue Beschreibung, denn ein Audit-Protokoll lesen Menschen, die entscheiden, ob
@@ -1215,14 +1215,14 @@ Anmeldemerkmal entfernt. *Testnachricht senden* wird angeboten, ob dieser Mandan
 der Installation, das Ihre E-Mails dann tatsächlich verwenden würden. Sinn der Sache ist, dass der Fehler vor jemandem auftritt, der ihn
 beheben kann, und nicht um drei Uhr morgens in einer Erinnerung, die niemand erhält.
 
-#pair("screenshots/web-tenant.png", "screenshots/desktop-tenant.png",
+#pair("screenshots/de/web-tenant.png", "screenshots/de/desktop-tenant.png",
   [Mandanteneinstellungen im Web-Client (links) und im Desktop-Client (rechts).])
 
 Der Desktop-Client kann sich mit *mehreren Servern*#idx("Server-Verwaltung") verbinden; seine Server-Verwaltung speichert für jeden ein Profil (Name + Adresse).
 Ein Server ist kein Mandant: Eine Installation von #product beherbergt viele Mandanten, und zu welchem Mandanten Sie gehören,
 ergibt sich aus dem Konto, mit dem Sie sich anmelden.
 
-#shot("screenshots/desktop-server-manager.png",
+#shot("screenshots/de/desktop-server-manager.png",
   [Die Server-Verwaltung des Desktop-Clients: Verbindungsprofile für mehrere Server von #product.])
 
 == Wenn das Archiv Ihnen verschlüsselte Inhalte liefert <encryptedreads>

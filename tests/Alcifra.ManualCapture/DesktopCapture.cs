@@ -9,7 +9,7 @@ namespace Alcifra.ManualCapture;
 // gate (ADR 0502).
 public static class DesktopCapture
 {
-    public static async Task RunAsync(string outDir, ILogger log)
+    public static async Task RunAsync(string outDir, ILogger log, string lang = "en")
     {
         var repoRoot = Paths.RepoRoot();
         var desktopCsproj = Path.Combine(repoRoot, "src", "Alcifra.DesktopClient", "Alcifra.DesktopClient.csproj");
@@ -34,7 +34,8 @@ public static class DesktopCapture
             };
 
             log.LogInformation("[desktop] {Screen} → {File}", screen.Name, Path.GetFileName(outPath));
-            await RunDesktopAsync(repoRoot, desktopCsproj, appArgs);
+            // The client renders every hook in --lang's language (its Program.cs, ADR 1011).
+            await RunDesktopAsync(repoRoot, desktopCsproj, [.. appArgs, "--lang", lang]);
 
             if (!File.Exists(outPath))
             {

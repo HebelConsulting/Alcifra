@@ -43,8 +43,9 @@ public enum DesktopWindow
     BookingDialog, // --booking-screenshot <out> — the Bookings… dialog over a plausible schedule (room reservations)
 }
 
-// A web screen: after login, click the bottom tab whose label matches `Tab` (null = the default workbench, or the
-// pre-login `Login` page) and screenshot the workbench.
+// A web screen: after login, click the bottom tab whose label is the app's string `Tab` (a key in Strings.resx, so the
+// German capture finds the German tab; null = the default workbench, or the pre-login `Login` page) and screenshot
+// the workbench.
 public sealed record WebScreen(string Name, string? Tab, bool BeforeLogin = false);
 
 public static class Screens
@@ -96,25 +97,25 @@ public static class Screens
         new("bookings", [], DesktopWindow.BookingDialog, WhyFixture: "Deliberately synthetic fixed-date rows, so the figure does not churn with the calendar."),
     ];
 
-    // Web — the Blazor workbench. Tab labels match the bottom tab bar (.wb-tab). The demo admin holds every right,
+    // Web — the Blazor workbench. Tabs are named by the bottom tab bar's (.wb-tab) string keys. The demo admin holds every right,
     // so all gated tabs are present.
     public static readonly IReadOnlyList<WebScreen> Web =
     [
         new("login", null, BeforeLogin: true),
         new("repositories", null),
-        new("intray", "Intray"),
-        new("checkout", "Check-out"),
-        new("search", "Search"),
-        new("recycle-bin", "Recycle bin"),
-        new("tasks", "Tasks"),
-        new("my-work", "My work"),
-        new("users", "Users & groups"),
-        new("audit", "Audit"),
-        new("legal-holds", "Legal holds"),
-        new("retention", "Retention"),
-        new("tenant", "Tenant"),
-        new("tags", "Tags"),
-        new("contacts", "Contacts"),
-        new("calendar", "Calendar"),
+        new("intray", "TabIntray"),
+        new("checkout", "TabCheckout"),
+        new("search", "TabSearch"),
+        new("recycle-bin", "TabRecycleBin"),
+        new("tasks", "TabTasks"),
+        new("my-work", "TabMyWork"),
+        new("users", "TabUsersGroups"),
+        new("audit", "TabAudit"),
+        new("legal-holds", "TabLegalHolds"),
+        new("retention", "TabRetention"),
+        new("tenant", "TabTenant"),
+        new("tags", "TabTags"),
+        new("contacts", "TabContacts"),
+        new("calendar", "TabCalendar"),
     ];
 }

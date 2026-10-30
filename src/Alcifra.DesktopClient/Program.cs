@@ -50,6 +50,15 @@ internal static class Program
         // raise ProcessExit, so this one handler flushes the sinks on every way out.
         AppDomain.CurrentDomain.ProcessExit += (_, _) => Services.DesktopLog.Shutdown();
 
+        // `--lang <code>` renders every headless hook in that language, as the logon window's choice does for a
+        // session: the manual's German figures are captured this way (ADR 1011). Several hooks read the same flag
+        // themselves; applying it here first covers the ones that do not (--screenshot).
+        var langIndex = Array.IndexOf(args, "--lang");
+        if (langIndex >= 0 && langIndex + 1 < args.Length)
+        {
+            Alcifra.Localization.Culture.Apply(args[langIndex + 1]);
+        }
+
         // An alcifra:// launch (#761; simplarchive:// until WireNames.Legacy retires): the OS hands the link as an argument. Parked on the view-model and
         // consumed once the user is signed in and the workbench is loaded — a deep link cannot skip login.
         if (args.FirstOrDefault(Alcifra.ApiClient.DeepLinks.IsSchemeLink) is { } schemeLink)

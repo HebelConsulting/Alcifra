@@ -34,8 +34,22 @@ public static partial class WebCapture
     // are static and many, so they read it here rather than each taking it as a parameter.
     private static ILogger Log = NullLogger.Instance;
 
-    public static async Task RunAsync(string outDir, ILogger log)
+    // The language the app is shown in (ADR 1011): "en", or "de" for the German manual's figures. Labels the capture
+    // clicks are looked up in the app's own strings (L), so the same steps find the same controls in either language.
+    private static string Lang = "en";
+
+    private static string L(string key) => global::Alcifra.Localization.Strings.Get(key);
+
+    // The browser's locale for the language (lang.js reads it), and the saved choice the language switcher writes,
+    // so the server's sign-in page and the app agree.
+    private static string Locale => Lang == "de" ? "de-CH" : "en-US";
+
+    private static Task ChooseLanguageAsync(IBrowserContext context) =>
+        context.AddInitScriptAsync($"try {{ localStorage.setItem('alcifra.lang', '{Lang}'); }} catch (e) {{ }}");
+
+    public static async Task RunAsync(string outDir, ILogger log, string lang = "en")
     {
+        Lang = lang;
         Log = log;
         Skipped.Clear();
         // Freeze the app's demo clock so the audit / tasks / my-work screens are byte-stable run-to-run (ADR 0510).
@@ -68,6 +82,7 @@ public static partial class WebCapture
         });
         var context = await browser.NewContextAsync(new BrowserNewContextOptions
         {
+            Locale = Locale,
             ViewportSize = new ViewportSize { Width = ViewportWidth, Height = ViewportHeight },
             ColorScheme = ColorScheme.Light,
         });
@@ -75,6 +90,7 @@ public static partial class WebCapture
         // would overlay the workbench and its scrim intercepts pointer events, breaking every post-login capture.
         await context.AddInitScriptAsync("try { localStorage.setItem('sa.desktopClientNoticeDismissed', '1'); } catch (e) { }");
 
+        await ChooseLanguageAsync(context);
         var page = await context.NewPageAsync();
         page.SetDefaultTimeout(60000);
 
@@ -107,7 +123,7 @@ public static partial class WebCapture
             {
                 Log.LogInformation("[web] opening tab '{Tab}'", tab);
                 // Tabs are icon-only (#298) — the label is in aria-label, not visible text.
-                await page.Locator($".wb-tab[aria-label='{tab}']").First.ClickAsync();
+                await page.Locator($".wb-tab[aria-label='{L(tab)}']").First.ClickAsync();
                 // Let the tab's panel render + any first-load fetch settle before the shot.
                 await page.WaitForTimeoutAsync(1500);
             }
@@ -151,12 +167,14 @@ public static partial class WebCapture
     {
         await using var touch = await desktop.Browser!.NewContextAsync(new BrowserNewContextOptions
         {
+            Locale = Locale,
             ViewportSize = new ViewportSize { Width = ViewportWidth, Height = ViewportHeight },
             ColorScheme = ColorScheme.Light,
             HasTouch = true,
         });
         await touch.AddInitScriptAsync("try { localStorage.setItem('sa.desktopClientNoticeDismissed', '1'); } catch (e) { }");
 
+        await ChooseLanguageAsync(touch);
         var page = await touch.NewPageAsync();
         page.SetDefaultTimeout(60000);
         await page.GotoAsync(baseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -262,7 +280,7 @@ public static partial class WebCapture
     {
         try
         {
-            await page.Locator(".wb-tab[aria-label='Repositories']").First.ClickAsync();
+            await page.Locator($".wb-tab[aria-label='{L("TabRepositories")}']").First.ClickAsync();
             // The personal space is named after its OWNER (ADR 0671), not the literal "Personal" it used to be.
             // Filtering on the old name matched nothing, so this capture timed out and was SKIPPED — and because
             // a skip only prints a line and leaves the previous PNG in place, the manual kept shipping a figure
@@ -302,18 +320,24 @@ public static partial class WebCapture
     {
         try
         {
-            await page.Locator(".wb-tab[aria-label='Repositories']").First.ClickAsync();
+            await page.Locator($".wb-tab[aria-label='{L("TabRepositories")}']").First.ClickAsync();
             await page.Locator("[data-tour='action-webdav']").First.ClickAsync();
             var dialog = page.Locator(".mud-dialog").First;
             await dialog.WaitForAsync(new() { Timeout = 10000 });
 
             // Generate, so the mount steps and the one-shot password are on screen. Before this the dialog says
             // only "not set up", which is the least informative of its states and the one a reader needs least.
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Generate password" }).ClickAsync();
+            // Generate, or Regenerate once the demo has a password: in English one name contains the other, which
+            // is how the English capture found the button; in German they share no words, so both are named.
+            await dialog.GetByRole(AriaRole.Button, new()
+            {
+                NameRegex = new Regex(
+                $"^({Regex.Escape(L("WebDavGenerate"))}|{Regex.Escape(L("WebDavRegenerate"))})$", RegexOptions.IgnoreCase)
+            }).ClickAsync();
 
             // Wait for the reveal itself rather than a fixed pause — shooting early would produce a figure of the
             // pre-generation dialog with nothing in the filename to say so.
-            await dialog.GetByText("won't be shown again").WaitForAsync(new() { Timeout = 15000 });
+            await dialog.GetByText(L("WebDavCopyNow")).WaitForAsync(new() { Timeout = 15000 });
             await page.WaitForTimeoutAsync(600);
             await NormalizeRunSpecificTextAsync(page);
 
@@ -335,7 +359,7 @@ public static partial class WebCapture
     // figures show the feature rather than an empty shell (#469).
     private static async Task SelectDemoOfferAsync(IPage page)
     {
-        await page.Locator(".wb-tab[aria-label='Repositories']").First.ClickAsync();
+        await page.Locator($".wb-tab[aria-label='{L("TabRepositories")}']").First.ClickAsync();
         await page.GetByText("Demo Repository").First.ClickAsync();
         var contracts = page.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" });
         await contracts.First.WaitForAsync(new() { Timeout = 15000 });
@@ -356,7 +380,7 @@ public static partial class WebCapture
         try
         {
             await SelectDemoOfferAsync(page);
-            await page.GetByRole(AriaRole.Button, new() { Name = "Versions", Exact = true }).First.ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = L("RibbonVersions"), Exact = true }).First.ClickAsync();
             var dialog = page.Locator(".mud-dialog").First;
             await dialog.WaitForAsync(new() { Timeout = 10000 });
 
@@ -414,10 +438,10 @@ public static partial class WebCapture
             // and the figure was skipped from then on (since 2026-10-24) while the manual kept the previous picture.
             var row = page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = "Offer 2026-014" });
             await row.First.Locator("button").Last.ClickAsync();
-            await page.Locator(".mud-popover-open .mud-menu-item").Filter(new() { HasText = "Compare versions" }).First.ClickAsync();
+            await page.Locator(".mud-popover-open .mud-menu-item").Filter(new() { HasText = L("MwCompareVersions") }).First.ClickAsync();
             var dialog = page.Locator(".mud-dialog");
             await dialog.First.WaitForAsync(new() { Timeout = 10000 });
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Compare", Exact = true }).ClickAsync();
+            await dialog.GetByRole(AriaRole.Button, new() { Name = L("CompareButton"), Exact = true }).ClickAsync();
 
             // Wait for the DIFF, not for a duration. A fixed pause is a guess about how long the comparison
             // takes, and on the machine that regenerates the manual the guess was wrong: the published figure
@@ -548,8 +572,8 @@ public static partial class WebCapture
         }
     }
 
-    [GeneratedRegex("^(close|cancel)$", RegexOptions.IgnoreCase)]
-    private static partial Regex CloseButtonRegex();
+    private static Regex CloseButtonRegex() =>
+        new($"^(close|cancel|{Regex.Escape(L("Close"))}|{Regex.Escape(L("Cancel"))})$", RegexOptions.IgnoreCase);
 
     // The external-links figures for the manual's "Sharing outside Alcifra" chapter (issue #406, ADR 0546):
     // the per-document dialog at the moment the URL is shown, the cross-document list, and the anonymous landing
@@ -573,7 +597,7 @@ public static partial class WebCapture
             await DismissAnyDialogAsync(page);
 
             step = "open the Repositories tab";
-            await page.Locator(".wb-tab[aria-label='Repositories']").First.ClickAsync();
+            await page.Locator($".wb-tab[aria-label='{L("TabRepositories")}']").First.ClickAsync();
             step = "select the Demo Repository root";
             await page.GetByText("Demo Repository").First.ClickAsync();
             // Contracts → MyCountry Telekom → the service agreement (the same document the demo seed shares).
@@ -592,8 +616,11 @@ public static partial class WebCapture
 
             // The link icon sits in the detail header, and only when the API advertises the rel — so its absence
             // here would mean the right or the tenant switch is off, not that the selector is wrong.
+            // The ribbon's Share by link (data-doc-action, the same in every language). It was a details-pane button
+            // "External links…" until the document's actions left that pane (ADR 0970), and from then until this
+            // change every external-link figure shipped its previous picture, with no warning at all.
             step = "open the External links dialog";
-            await page.GetByRole(AriaRole.Button, new() { Name = "External links…" }).First.ClickAsync();
+            await page.Locator(".wb-ribbon [data-doc-action='share']").First.ClickAsync();
             var dialog = page.Locator(".mud-dialog").First;
             await dialog.WaitForAsync(new() { Timeout = 10000 });
 
@@ -606,7 +633,7 @@ public static partial class WebCapture
             // picture of a text box.
             step = "describe a recipient certificate";
             var recipient = SampleRecipientCertificatePem();
-            await dialog.GetByLabel("Recipient certificate").FillAsync(recipient);
+            await dialog.GetByLabel(L("ExtLinkRecipientCert")).FillAsync(recipient);
 
             // Wait for the SERVER's answer, not a fixed pause: the description is fetched (this runtime cannot
             // parse an X.509 certificate at all), so shooting too early would produce a figure of the field with
@@ -625,11 +652,11 @@ public static partial class WebCapture
             // the landing-page figure a .p7m download — quietly changing two figures that document the ordinary
             // case, with nothing in their filenames to say so.
             step = "clear the certificate field";
-            await dialog.GetByLabel("Recipient certificate").FillAsync(string.Empty);
+            await dialog.GetByLabel(L("ExtLinkRecipientCert")).FillAsync(string.Empty);
             await page.WaitForTimeoutAsync(300);
 
             step = "click Create external link";
-            await dialog.GetByRole(AriaRole.Button, new() { Name = "Create external link…" }).ClickAsync();
+            await dialog.GetByRole(AriaRole.Button, new() { Name = L("ExtLinkCreate") }).ClickAsync();
 
             // Wait for the one-shot reveal itself rather than a fixed pause: shooting before it renders would
             // produce a figure of the empty form, with nothing in the filename to say so.
@@ -638,7 +665,7 @@ public static partial class WebCapture
             // quietly screenshotted the right thing while reading the wrong value into `url`, and the landing-page
             // shot would then have navigated to a date.
             step = "wait for the one-shot URL reveal";
-            await dialog.GetByText("shown only once").WaitForAsync(new() { Timeout = 15000 });
+            await dialog.GetByText(L("ExtLinkShownOnce")).WaitForAsync(new() { Timeout = 15000 });
             var url = await dialog.Locator("input").EvaluateAllAsync<string>(
                 "els => { const f = els.find(e => (e.value || '').startsWith('http')); return f ? f.value : ''; }");
             await page.WaitForTimeoutAsync(600);
@@ -649,7 +676,7 @@ public static partial class WebCapture
 
             // The cross-document list: every live link this user has shared, with Go to / Show / Revoke per row.
             step = "open My external links";
-            await page.GetByRole(AriaRole.Button, new() { Name = "My external links" }).First.ClickAsync();
+            await page.GetByRole(AriaRole.Button, new() { Name = L("ExtLinkMyLinks") }).First.ClickAsync();
             await page.Locator(".mud-dialog tbody tr").First.WaitForAsync(new() { Timeout = 15000 });
             await page.WaitForTimeoutAsync(600);
             await ShotAsync(page, outDir, "external-links-list");
@@ -661,6 +688,7 @@ public static partial class WebCapture
             {
                 var anon = await context.Browser!.NewContextAsync(new BrowserNewContextOptions
                 {
+                    Locale = Locale,
                     ViewportSize = new ViewportSize { Width = ViewportWidth, Height = ViewportHeight },
                     ColorScheme = ColorScheme.Light,
                 });
@@ -675,6 +703,9 @@ public static partial class WebCapture
         {
             // First line only: Playwright appends a long call log that buries the step name.
             Log.LogWarning("[web] external-links FAILED at step '{Step}': {Reason}", step, ex.Message.Split('\n')[0]);
+            // Counted like any skipped figure, so the run's closing NOT REGENERATED line names it: this failure once
+            // printed only the line above, and four figures went stale unnoticed.
+            Skipped.Add("external-links");
             try
             {
                 var dump = Path.Combine(Path.GetTempPath(), "manual-capture-external-links-failure.png");
@@ -723,7 +754,7 @@ public static partial class WebCapture
                 case "search":
                     // Prefer a distinctive content-only term from the invoice's line items (proves full-text search
                     // finds it by content); fall back to the document name if the async index isn't ready yet.
-                    var input = page.Locator("input[placeholder*='Search by name']");
+                    var input = page.GetByPlaceholder(L("SearchPlaceholder"));
                     var results = page.Locator(".wb-search-results .wb-list-row");
                     if (!await TrySearchAsync(page, input, results, "Wolframcarbid", attempts: 10))
                     {
@@ -864,6 +895,5 @@ public static partial class WebCapture
         Log.LogInformation("[web] {Name} → {File}", name, Path.GetFileName(path));
     }
 
-    [GeneratedRegex("^log ?in$", RegexOptions.IgnoreCase)]
-    private static partial Regex LoginRegex();
+    private static Regex LoginRegex() => new($"^(log ?in|{Regex.Escape(L("LogonLogin"))})$", RegexOptions.IgnoreCase);
 }

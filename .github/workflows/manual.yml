@@ -47,7 +47,9 @@ jobs:
         run: scripts/brand-release-role.sh
 
   manual:
-    timeout-minutes: 30
+    # 13-15 min on main with one language (measured 2026-10-30); the German pass captures every screen again
+    # (ADR 1011), so about twice that, with room for a slow runner.
+    timeout-minutes: 45
     name: Build the user manual
     needs: gate
     if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' || (needs.gate.outputs.white_label == 'true' && needs.gate.outputs.publishes == 'true') }}
@@ -159,13 +161,18 @@ jobs:
 
       # Cheap, self-contained (in-process demo data — no backend). The gate on every PR.
       - name: Capture desktop screens
-        run: dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop
+        # And again in German, into screenshots/de, for the German manual's figures (ADR 1011).
+        run: |
+          dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop
+          dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop --lang de
 
       # Heavy (Testcontainers + Chrome) — main only, so PRs stay cheap. The hosted Ubuntu image ships Docker +
       # Google Chrome, which the self-host fleet + Playwright ("chrome" channel) use (same as the heavy CI tier).
       - name: Capture web screens
         if: ${{ github.event_name == 'push' }}
-        run: dotnet run --project tests/Alcifra.ManualCapture --no-build -- --web
+        run: |
+          dotnet run --project tests/Alcifra.ManualCapture --no-build -- --web
+          dotnet run --project tests/Alcifra.ManualCapture --no-build -- --web --lang de
 
       # The desktop screens classified Capture.Live, against the same real seeded app (#1358) — so the PUBLISHED
       # desktop figures stop coming from a hand-written fixture that cannot fail when the product moves. Needs
@@ -175,14 +182,18 @@ jobs:
       # ones, so this must overwrite them rather than be overwritten — the published figure is the live one.
       - name: Capture desktop screens from the live app
         if: ${{ github.event_name == 'push' }}
-        run: dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop-live
+        run: |
+          dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop-live
+          dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop-live --lang de
 
       # A regenerated PNG whose every pixel is within ±1 of the committed one is raster noise, not a change
       # (#832) — revert those BEFORE the compile, so neither the PNG nor the PDF that embeds it re-commits
       # over nothing. A real UI change moves pixels by far more and still commits.
       - name: Drop raster-noise screenshot regenerations
         if: ${{ github.event_name == 'push' }}
-        run: python3 scripts/keep-unchanged-screenshots.py manual/screenshots
+        run: |
+          python3 scripts/keep-unchanged-screenshots.py manual/screenshots
+          python3 scripts/keep-unchanged-screenshots.py manual/screenshots/de
 
       # Fails if a screen was renamed/removed so a figure has no PNG — the anti-staleness lock.
       # SOURCE_DATE_EPOCH pins the PDF's internal timestamps + the datetime.today() year to the fixed

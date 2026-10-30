@@ -40,10 +40,13 @@ dotnet build tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj -clp:Error
 echo "==> Capturing screenshots ($mode)…"
 # shellcheck disable=SC2086
 dotnet run --project tests/Alcifra.ManualCapture --no-build -- $mode --out manual/screenshots
+# And in German, for the German manual's figures (ADR 1011).
+dotnet run --project tests/Alcifra.ManualCapture --no-build -- $mode --lang de --out manual/screenshots/de
 
 # A regenerated PNG whose every pixel is within ±1 of the committed one is raster noise, not a change (#832).
 # Runs BEFORE the compile below, so neither the PNG nor the PDF that embeds it churns over nothing.
 python3 scripts/keep-unchanged-screenshots.py manual/screenshots
+python3 scripts/keep-unchanged-screenshots.py manual/screenshots/de
 
 echo "==> Compiling the Typst manual → $pdf_out"
 # SOURCE_DATE_EPOCH still pins the PDF's internal CreationDate/ModDate and the copyright year (ADR 0510's

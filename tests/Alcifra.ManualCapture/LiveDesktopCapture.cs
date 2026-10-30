@@ -15,7 +15,7 @@ namespace Alcifra.ManualCapture;
 // Docker-free render smoke; this is what the published manual uses.
 public static class LiveDesktopCapture
 {
-    public static async Task RunAsync(string outDir, ILogger log)
+    public static async Task RunAsync(string outDir, ILogger log, string lang = "en")
     {
         var live = Screens.Desktop.Where(s => s.Capture == Capture.Live).ToList();
         if (live.Count == 0)
@@ -43,11 +43,11 @@ public static class LiveDesktopCapture
             // TWICE, and the second one into a scratch file: a live capture has ordering and timing surfaces a
             // fixture does not, and a figure that differs run to run makes every regenerated-manual commit
             // unreadable — so nondeterminism FAILS here rather than churning on main forever (owner-decided).
-            await CaptureAsync(repoRoot, desktopCsproj, outPath, app.BaseUrl, token, screen.Name);
+            await CaptureAsync(repoRoot, desktopCsproj, outPath, app.BaseUrl, token, screen.Name, lang);
             var second = Path.Combine(Path.GetTempPath(), $"manual-determinism-{screen.Name}-{Guid.NewGuid():N}.png");
             try
             {
-                await CaptureAsync(repoRoot, desktopCsproj, second, app.BaseUrl, token, screen.Name);
+                await CaptureAsync(repoRoot, desktopCsproj, second, app.BaseUrl, token, screen.Name, lang);
                 if (!Same(outPath, second))
                 {
                     throw new InvalidOperationException(
@@ -73,7 +73,7 @@ public static class LiveDesktopCapture
     }
 
     private static async Task CaptureAsync(
-        string repoRoot, string csproj, string outPath, string baseUrl, string token, string name)
+        string repoRoot, string csproj, string outPath, string baseUrl, string token, string name, string lang)
     {
         if (File.Exists(outPath))
         {
@@ -93,7 +93,7 @@ public static class LiveDesktopCapture
         foreach (var a in new[]
                  {
                      "run", "--project", csproj, "--framework", "net10.0", "--no-build", "--no-launch-profile",
-                     "--", "--live-screenshot", outPath, baseUrl, token, name,
+                     "--", "--live-screenshot", outPath, baseUrl, token, name, "--lang", lang,
                  })
         {
             psi.ArgumentList.Add(a);

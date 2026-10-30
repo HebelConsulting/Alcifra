@@ -53,9 +53,19 @@ public partial class ManualTranslationParityTests
     public void The_German_manual_is_Swiss_Standard_German() =>
         Assert.DoesNotContain('ß', Manuals().German);
 
+    // The German figures live under screenshots/de (captured with the app in German); compared without that folder,
+    // a German figure and its English one are the same figure.
     private static (string English, string German) Manuals() =>
         (File.ReadAllText(Path.Combine(RepoPaths.Root(), "manual", "manual.typ")),
-         File.ReadAllText(Path.Combine(RepoPaths.Root(), "manual", "manual.de.typ")));
+         File.ReadAllText(Path.Combine(RepoPaths.Root(), "manual", "manual.de.typ")).Replace("\"screenshots/de/", "\"screenshots/"));
+
+    [Fact]
+    public void Every_German_figure_is_the_German_capture()
+    {
+        var german = File.ReadAllText(Path.Combine(RepoPaths.Root(), "manual", "manual.de.typ"));
+
+        Assert.DoesNotMatch("\"screenshots/(?!de/)", german);
+    }
 
     private static List<string> Sorted(string text, string pattern) =>
         [.. Regex.Matches(text, pattern).Select(m => m.Value).Order(StringComparer.Ordinal)];
