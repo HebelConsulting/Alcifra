@@ -240,3 +240,55 @@ jobs:
             git commit -m "docs(manual): regenerate the user manual from the current app [skip ci]"
             git push origin HEAD:main
           fi
+
+  # The site bundle WHERE THE MANUAL IS NOT BUILT (ADR 1010): the public repository receives the manual's PDF and
+  # screenshots through the mirror but runs no capture, and both readers of the bundle look there: the release
+  # attaches it (scripts/release-site-bundle.sh, desktop-packages.yml) and the website's build fetches it. So it is
+  # built here from the committed files: Typst only, no app, no browser.
+  site-bundle:
+    timeout-minutes: 10
+    needs: gate
+    if: ${{ github.repository != 'HebelConsulting/SimplArchivePrivate' && needs.gate.outputs.white_label != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # As in the manual job: a pinned release tarball, cached (see there for why not setup-typst).
+      - name: Cache Typst
+        id: typst-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/bin/typst
+          key: typst-${{ env.TYPST_VERSION }}-${{ runner.os }}
+
+      - name: Install Typst
+        if: ${{ steps.typst-cache.outputs.cache-hit != 'true' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.local/bin
+          url="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
+          curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors --silent --show-error "$url" \
+            | tar -xJ --strip-components=1 -C ~/.local/bin --wildcards '*/typst'
+          chmod +x ~/.local/bin/typst
+
+      - name: Put Typst on PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build the site bundle from the committed manual
+        run: |
+          set -euo pipefail
+          source scripts/brand.sh
+          python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
+            --product-name "$BRAND_NAME" --lang en --typ manual/manual.typ \
+            --pdf "src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf" --commit "$GITHUB_SHA"
+          python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
+
+      - name: Upload the site bundle
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-bundle
+          path: ${{ runner.temp }}/site-bundle.zip
+          if-no-files-found: error
