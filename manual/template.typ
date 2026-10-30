@@ -16,8 +16,13 @@
 // Set by every heading, read and cleared by the first paragraph after it (#699) — see the show rules below.
 #let after-heading = state("manual.after-heading", false)
 
-#let conf(version: "", date: "", doc) = {
-  set document(title: product + " — User Manual")
+// The manual's language (#2004): English, or German as written in Switzerland (manual.de.typ). The region sets the
+// quotation marks («» for de-CH) and Typst's own words ("Abbildung", "Inhaltsverzeichnis").
+#let titles = (en: "User Manual", de: "Benutzerhandbuch")
+
+#let conf(version: "", date: "", lang: "en", doc) = {
+  let title = titles.at(lang)
+  set document(title: product + " — " + title)
   // Named because the last-third heading rule below computes against the page BODY, and a margin changed
   // here but not there would silently move where "the last third" begins.
   let margin-top = 2.4cm
@@ -40,14 +45,14 @@
       grid(
         columns: (1fr, 1fr),
         align: (left, right),
-        [#product — User Manual],
+        [#product — #title],
         counter(page).display("1"),
       )
     },
   )
   // The brand's document typeface (ADR 0991), from brand/assets/fonts: compile with --font-path so a machine
   // without it installed sets the same pages rather than falling back to a serif.
-  set text(font: brand.fonts.document, size: 10.5pt)
+  set text(font: brand.fonts.document, size: 10.5pt, lang: lang, region: if lang == "de" { "CH" } else { none })
   set par(justify: true, leading: 0.62em)
   set heading(numbering: "1.1")
 

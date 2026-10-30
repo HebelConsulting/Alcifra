@@ -57,5 +57,8 @@ STAMP="${VERSION:+$VERSION · }generated $(date -u +%F)"
 PRODUCT="$(python3 -c 'import json; print(json.load(open("brand/brand.json"))["name"])')"
 [ -n "$PRODUCT" ] || { echo "no name in brand/brand.json" >&2; exit 1; }
 SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf_out" --root . --font-path brand/assets/fonts --input generated="$STAMP" --input product="$PRODUCT"
+# The German manual (manual.de.typ, ADR 1011), beside it under -de. Its figures are the English ones until the capture
+# also runs in German.
+SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.de.typ "${pdf_out%.pdf}-de.pdf" --root . --font-path brand/assets/fonts --input generated="$STAMP" --input product="$PRODUCT"
 
 echo "==> Done. Served at /download/manual/ (browse /download or open $pdf_out)."

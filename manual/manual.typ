@@ -1367,8 +1367,8 @@ differ per vendor; everything from the certificate request onwards is the same f
 #note[
   *About the device in the example.* This manual uses a YubiKey because they are widely available and
   affordable, which makes the example easy to follow along with. It is not a recommendation, and the archive
-  requires nothing of that vendor: any PIV-capable card or token works, and only the commands in steps 1, 2,
-  3 and 5 — the ones that speak to the card itself — would change. Substitute your own device's tool there.
+  requires nothing of that vendor: any PIV-capable card or token works, and only the commands in steps 1, 2
+  and 3 — the ones that speak to the card itself — would change. Substitute your own device's tool there.
 ]
 
 == What has to be true, and why
@@ -1520,8 +1520,8 @@ ykman piv certificates generate 9d public.pem \
   question — *who vouches that this key belongs to that person* — which matters for an organisation issuing
   identities and not at all for whether a document opens.
 
-  What the archive does check is that the file parses as X.509 and carries an *RSA* key. An elliptic-curve key
-  is refused, because content uses RSA key transport — the same requirement section 15.1 gives for the key itself.
+  What the archive does check is that the file parses as X.509 and carries an *RSA* or an *elliptic-curve* key —
+  the two kinds *What has to be true, and why* above lists, the one addressed by key transport, the other by key agreement.
 
   *Mind the lifetime.* `--valid-days` defaults to *365*, and while the archive itself does not refuse an
   expired certificate on the reading path, the encryption service *does* refuse to register one — so a
@@ -1906,7 +1906,7 @@ registration that the module takes over: @selfenrolment is what the last step be
 - *The dialog says no smartcard software was found.* OpenSC is not installed, or is somewhere unusual — use
   *Choose module…* and point at it.
 - *It says no card or token is in a reader,* with the card plainly in the reader. Remove it and re-insert
-  it (see step 6), and check nothing else on the machine is talking to the card at the same time.
+  it (see step 4), and check nothing else on the machine is talking to the card at the same time.
 - *The card's own tool reports the private key as `EMPTY`.* On firmware older than 5.3 the card cannot be
   asked what a slot holds, so the tool prints that whether or not a key is there. It is not evidence.
   Settle it by using the key rather than by reading a summary.

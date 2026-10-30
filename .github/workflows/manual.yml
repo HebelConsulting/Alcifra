@@ -196,6 +196,9 @@ jobs:
           pdf="src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
           SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
           echo "MANUAL_PDF=$pdf" >> "$GITHUB_ENV"
+          # The German manual (ADR 1011), committed beside the English one.
+          SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.de.typ "${pdf%.pdf}-de.pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
+          echo "MANUAL_PDF_DE=${pdf%.pdf}-de.pdf" >> "$GITHUB_ENV"
 
       # The site bundle (ADR 1010, #2004): the figures and feature summaries the website reads, out of this manual.
       # Built and checked on every run, so a change that breaks the contract fails its PR here. Main's bundle is the
@@ -206,6 +209,8 @@ jobs:
           source scripts/brand.sh
           python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
             --product-name "$BRAND_NAME" --lang en --typ manual/manual.typ --pdf "$MANUAL_PDF" --commit "$GITHUB_SHA"
+          python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
+            --product-name "$BRAND_NAME" --lang de --typ manual/manual.de.typ --pdf "$MANUAL_PDF_DE" --commit "$GITHUB_SHA"
           python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
 
       - name: Upload the site bundle
@@ -283,6 +288,9 @@ jobs:
           python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
             --product-name "$BRAND_NAME" --lang en --typ manual/manual.typ \
             --pdf "src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf" --commit "$GITHUB_SHA"
+          python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
+            --product-name "$BRAND_NAME" --lang de --typ manual/manual.de.typ \
+            --pdf "src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual-de.pdf" --commit "$GITHUB_SHA"
           python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
 
       - name: Upload the site bundle
