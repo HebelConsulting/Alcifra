@@ -185,6 +185,15 @@ jobs:
     permissions:
       contents: read
     steps:
+      # The asset names come from the brand (ADR 0994), so this job reads scripts/brand.sh and the file it reads.
+      # Without the checkout, v0.55.0's verify died on `scripts/brand.sh: No such file or directory` with every
+      # asset attached: the same red as a missing package, for a reason of its own.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            scripts/brand.sh
+            brand/brand.json
+          sparse-checkout-cone-mode: false
       - name: Every expected package is attached
         env:
           GH_TOKEN: ${{ github.token }}
@@ -192,8 +201,8 @@ jobs:
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           # --repo is REQUIRED here, and its absence is why this job has never once passed. `gh` resolves
-          # which repository it is talking about from the git remote, and this job deliberately does not
-          # check out the tree (it needs nothing from it), so every invocation died before reaching the
+          # which repository it is talking about from the git remote, and this job checked out no tree then
+          # (it now checks out only the brand reader), so every invocation died before reaching the
           # release with `failed to run git: fatal: not a git repository`. The sibling calls above get away
           # without it only because their jobs DO check out, to build from source.
           #
