@@ -11,6 +11,7 @@ What it does NOT touch, each for its reason (owner decisions on #1117, 2026-10-2
   the pins asked the feed for packages that do not exist and took the kiosk down at the 2026-10-30 reset;
 - `X-SimplArchive-` header names: only the legacy webhook header still spells it (WireNames.Legacy, retired at v0.56.0);
 - Localization/PersistedNames.cs and its pin test: names with data behind them (#1982);
+- earlier names a swept file mentions on purpose (KEPT_MENTIONS): published package ids, the app's old name;
 - docs/adr/: decision history, which says what was true when written;
 - lower-case `simplarchive` (images, chart, roles, OpenBao paths, legacy wire names): moved by their own steps.
 """
@@ -44,6 +45,22 @@ NAMESPACE_ONLY = (
     "src/SimplArchive.Localization/PersistedNames.cs",
     "tests/SimplArchive.UnitTests/PersistedNamesTests.cs",
 )
+# Under their swept names too: a re-run finds them there, and rewrote their literals until they were listed (#1997).
+NAMESPACE_ONLY += tuple(p.replace(OLD, NEW) for p in NAMESPACE_ONLY)
+
+# Mentions of EARLIER names that a swept file keeps on purpose (#1997): what was published under them, and the working
+# name. Keyed by the SWEPT path only. A file still at its old path predates the sweep, so its mentions are code to rename.
+KEPT_MENTIONS = {
+    ".github/workflows/abi-publish.yml": [r"artifacts/SimplArchive\.\*\.nupkg"],
+    ".github/workflows/saconsole-publish.yml": [r"artifacts/SimplArchive\.\*\.nupkg", r"SimplArchive\.(Cli|Sapass)\b"],
+    "README.md": [r"working name: SimplArchive\b"],
+    "publish/README.public.md": [r"working name: SimplArchive\b"],
+    "docs/deploy/release.md": [r"SimplArchive\.(Cli|Sapass|app)\b"],
+    "src/Alcifra.Cli/Alcifra.Cli.csproj": [r"SimplArchive\.Cli\b"],
+    "src/Alcifra.Cli/README.md": [r"SimplArchive\.Cli\b"],
+    "src/Alcifra.Sapass/Alcifra.Sapass.csproj": [r"SimplArchive\.Sapass\b"],
+}
+KEPT_MENTIONS = {path: [re.compile(p) for p in patterns] for path, patterns in KEPT_MENTIONS.items()}
 
 # Paths (prefixes) that keep their NAME too.
 PATH_KEPT = ("docs/adr/", "src/SimplArchive.ModuleAbi/")
@@ -72,14 +89,14 @@ def path_kept(path):
     return path.startswith(PATH_KEPT)
 
 
-def rename_text(text):
+def rename_text(text, also_kept=()):
     kept = []
 
     def mask(match):
         kept.append(match.group(0))
         return f"\x00{len(kept) - 1}\x00"
 
-    for pattern in PROTECTED:
+    for pattern in [*PROTECTED, *also_kept]:
         text = pattern.sub(mask, text)
     text = text.replace(OLD, NEW)
     return re.sub("\x00(\\d+)\x00", lambda m: kept[int(m.group(1))], text)
@@ -102,7 +119,7 @@ def main():
             renamed = "".join(rename_text(l) if l.lstrip().startswith(("namespace ", "using ")) else l
                               for l in text.splitlines(keepends=True))
         else:
-            renamed = rename_text(text)
+            renamed = rename_text(text, KEPT_MENTIONS.get(path, ()))
         if CODE.search(path) and path not in NAMESPACE_ONLY:
             for pattern, full in RELATIVE_INTO_FROZEN:
                 renamed = pattern.sub(full, renamed)
