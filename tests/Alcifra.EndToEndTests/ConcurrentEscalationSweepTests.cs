@@ -25,6 +25,9 @@ public class ConcurrentEscalationSweepTests
     [Fact]
     public async Task Two_sweeps_at_once_escalate_an_overdue_review_exactly_once()
     {
+        // A sweep acts on EVERY due review in the shared E2E database, so first take what other tests left due:
+        // the two sweeps below then have only this test's review to act on, and their counts describe it (#2013).
+        await _factory.RunEscalationSweepAsync();
         var review = await OverdueReviewAsync();
 
         var acted = await Task.WhenAll(_factory.RunEscalationSweepAsync(), _factory.RunEscalationSweepAsync());
@@ -32,9 +35,9 @@ public class ConcurrentEscalationSweepTests
         // The COUNT, per recipient. A `Contains` would pass on two, which is the defect.
         Assert.Equal(1, await OverdueCountAsync(review));
 
-        // And exactly one sweep claimed it — the mechanism. Without this the notification count could be 1 by
-        // luck of ordering and the next change would break it again unnoticed.
-        Assert.Equal(1, acted.Count(a => a >= 1));
+        // And exactly one action across both sweeps — the mechanism. Without this the notification count could be
+        // 1 by luck of ordering and the next change would break it again unnoticed.
+        Assert.Equal(1, acted.Sum());
     }
 
     [Fact]
