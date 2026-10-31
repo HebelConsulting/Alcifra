@@ -504,6 +504,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
             _headerSortActive = false;
             OnPropertyChanged(nameof(DetailSortText));
             OnPropertyChanged(nameof(DetailIsFolder));
+            // A same-folder reload (a legal hold, an upload) builds NEW rows, so the selected one leaves the list and
+            // the ListBox deselects it. The detail pane holds through that (OnSelectedItemChanged ignores the null),
+            // and the same document is selected again below: the pane stays on it and reads its fresh state.
+            var keep = isReload ? SelectedItem : null;
+            _keepingSelectionThroughReload = keep is not null;
             Items.Clear();
             foreach (var child in children)
             {
@@ -550,6 +555,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
 
             ApplyContentSort(); // keep the chosen column sort across folder navigation
             Status = string.Format(Strings.Get("StItems"), Items.Count);
+            if (keep is not null)
+            {
+                _keepingSelectionThroughReload = false;
+                var again = Items.FirstOrDefault(i => i.Id == keep.Id && i.IsReference == keep.IsReference);
+                if (again is not null)
+                {
+                    SelectedItem = again;
+                }
+                else
+                {
+                    // It is gone from the folder: the pane falls back to the folder, as an empty selection always does.
+                    SelectedItem = null;
+                    ClearDetail();
+                    await ShowOpenFolderDetailAsync();
+                }
+            }
 
             // Where you are, said in the tree — after the load, because the folder is only definitely open once
             // its contents are.
@@ -574,7 +595,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
         {
             ReportError(string.Format(Strings.Get("StErrLoad"), e.Message));
         }
+        finally
+        {
+            _keepingSelectionThroughReload = false;
+        }
     }
+
+    // Set only while a same-folder reload swaps the rows under the selected one (LoadFolderContentsAsync).
+    private bool _keepingSelectionThroughReload;
 
     // ---- Contents-list column sorting (ADR "List-row columns and sorting") — client-side over the loaded
     // rows, since the listing is cursor-paginated by creation order. -----------------------------------

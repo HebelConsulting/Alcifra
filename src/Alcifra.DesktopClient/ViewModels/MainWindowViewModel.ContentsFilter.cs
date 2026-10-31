@@ -92,11 +92,9 @@ public partial class MainWindowViewModel
             return;
         }
 
-        VisibleItems.Clear();
-        foreach (var n in visible)
-        {
-            VisibleItems.Add(n);
-        }
+        // In place, around the selected row: the ListBox binds this projection, and a refill deselected the row the
+        // detail pane describes whenever Items changed under it (a sort, a reload).
+        RowSync.InPlace(VisibleItems, visible, n => n, n => n, n => n, (_, _) => { }, keep: SelectedItem);
 
         // AFTER the projection is rebuilt, never before: the hint reads VisibleItems.Count, so raising it up
         // with ContentsFilterActive would publish the PREVIOUS count — a number that is wrong precisely when

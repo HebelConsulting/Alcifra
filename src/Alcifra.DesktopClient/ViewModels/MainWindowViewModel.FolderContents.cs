@@ -23,11 +23,9 @@ public partial class MainWindowViewModel
             ? HeaderSort(folders).Concat(HeaderSort(docs)).ToList()
             : FolderContentsOrder.Arrange(Items, _folderSortOrder,
                 n => new FolderContentsOrder.Keys(n.IsFolder, n.DisplayName, n.DocumentDate, n.DocumentTime, n.VersionCreatedAt)).ToList();
-        Items.Clear();
-        foreach (var n in sorted)
-        {
-            Items.Add(n);
-        }
+        // In place, around the selected row: clearing and refilling deselected it, so a column-header click emptied the
+        // detail pane of the document the user was reading (RowSync; the Messages tab's flicker, 2026-10-31).
+        RowSync.InPlace(Items, sorted, n => n, n => n, n => n, (_, _) => { }, keep: SelectedItem);
     }
 
     private IEnumerable<NodeViewModel> HeaderSort(IEnumerable<NodeViewModel> items)

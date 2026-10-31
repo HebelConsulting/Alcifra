@@ -258,6 +258,11 @@ public partial class MainWindowViewModel
 
     private async Task OnSelectedItemChangedAsync(NodeViewModel? value)
     {
+        if (value is null && _keepingSelectionThroughReload)
+        {
+            return;   // the ListBox let go of a row a same-folder reload replaced; the reload selects it again
+        }
+
         OnPropertyChanged(nameof(HasSelectedItem));
         OnPropertyChanged(nameof(CanSaveAs));
         OnPropertyChanged(nameof(CanCompareVersions));
