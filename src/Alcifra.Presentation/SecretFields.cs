@@ -14,6 +14,10 @@ public static class SecretFields
     /// <summary>How long a copied secret may stay on the clipboard.</summary>
     public static readonly TimeSpan ClipboardLifetime = TimeSpan.FromSeconds(30);
 
+    /// <summary>How long a secret shown while EDITING stays visible after the eye's click or the field's last keystroke
+    /// (ADR 1012, owner decisions 2026-10-28).</summary>
+    public static readonly TimeSpan EditRevealLifetime = TimeSpan.FromSeconds(15);
+
     /// <summary>What a hidden secret shows instead of itself: a fixed width, so its length is not given away.</summary>
     public const string Mask = "••••••••";
 
@@ -52,6 +56,103 @@ public sealed class SecretReveal
         if (IsRevealed != revealed)
         {
             IsRevealed = revealed;
+            Changed?.Invoke();
+        }
+    }
+}
+
+/// <summary>
+/// The eye of a secret field WHILE EDITING (ADR 1012, owner decisions 2026-10-28): nobody can hold the eye and type, so a
+/// click shows the value for <see cref="SecretFields.EditRevealLifetime"/>, every keystroke in the field restarts that
+/// time, and it hides at once on a second click or <see cref="Hide"/> (Save, Cancel, the editor closing or leaving the
+/// screen). The read view keeps <see cref="SecretReveal"/>. The clock is a <see cref="TimeProvider"/>, so a test moves
+/// time instead of waiting.
+/// </summary>
+/// <remarks><see cref="Changed"/> is raised on the timer's thread when the time runs out: a client marshals it to its UI.</remarks>
+public sealed class TimedSecretReveal(TimeProvider? time = null) : IDisposable
+{
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
+    private readonly Lock _gate = new();
+    private ITimer? _timer;
+
+    /// <summary>Whether the value is being shown.</summary>
+    public bool IsRevealed { get; private set; }
+
+    /// <summary>Raised when <see cref="IsRevealed"/> changes, for a client that redraws.</summary>
+    public event Action? Changed;
+
+    /// <summary>A click on the eye: shows the value for the lifetime, or hides it at once when it is shown.</summary>
+    public void Toggle()
+    {
+        bool changed;
+        lock (_gate)
+        {
+            changed = IsRevealed ? HideLocked() : ShowLocked();
+        }
+
+        Raise(changed);
+    }
+
+    /// <summary>A keystroke in the field: while shown, the lifetime starts again, so it never hides while you type.</summary>
+    public void Typed()
+    {
+        lock (_gate)
+        {
+            if (IsRevealed)
+            {
+                Restart();
+            }
+        }
+    }
+
+    /// <summary>Save, Cancel, the editor closing or leaving the screen: hidden at once.</summary>
+    public void Hide()
+    {
+        bool changed;
+        lock (_gate)
+        {
+            changed = HideLocked();
+        }
+
+        Raise(changed);
+    }
+
+    /// <summary>What to draw for <paramref name="value"/> now.</summary>
+    public string Display(string value) => IsRevealed ? value : SecretFields.Mask;
+
+    public void Dispose() => Hide();
+
+    private bool ShowLocked()
+    {
+        IsRevealed = true;
+        Restart();
+        return true;
+    }
+
+    private bool HideLocked()
+    {
+        _timer?.Dispose();
+        _timer = null;
+        if (!IsRevealed)
+        {
+            return false;
+        }
+
+        IsRevealed = false;
+        return true;
+    }
+
+    private void Restart()
+    {
+        _timer?.Dispose();
+        _timer = _time.CreateTimer(_ => Hide(), null, SecretFields.EditRevealLifetime, Timeout.InfiniteTimeSpan);
+    }
+
+    // Outside the lock, so a handler that reads the state (or hides another field) cannot deadlock against the timer.
+    private void Raise(bool changed)
+    {
+        if (changed)
+        {
             Changed?.Invoke();
         }
     }

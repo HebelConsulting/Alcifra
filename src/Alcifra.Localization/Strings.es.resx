@@ -6318,6 +6318,9 @@
   <data name="PwNotes" xml:space="preserve">
     <value>Notas</value>
   </data>
+  <data name="PwShowForAWhile" xml:space="preserve">
+    <value>Mostrar 15 segundos; haz clic de nuevo para ocultar</value>
+  </data>
   <data name="PwHoldToShow" xml:space="preserve">
     <value>Mantén pulsado para mostrar</value>
   </data>

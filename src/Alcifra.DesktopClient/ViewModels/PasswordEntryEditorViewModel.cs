@@ -9,34 +9,51 @@ using Alcifra.Presentation;
 namespace Alcifra.DesktopClient.ViewModels;
 
 /// <summary>
-/// A secret text box's eye in the form (ADR 0968): the box shows its value only while the eye is held, and the window is
-/// kept out of screen capture meanwhile — the same rule as an opened entry's row.
+/// A secret text box's eye in the form (ADR 1012, the core's <see cref="TimedSecretReveal"/>): nobody can hold the eye and
+/// type, so a click shows the value for 15 s, each keystroke in the box restarts that time, and a second click, Save,
+/// Cancel or the form closing hides it at once. The window is kept out of screen capture while it shows. The read view
+/// keeps hold-to-reveal (ADR 0968).
 /// </summary>
-public sealed partial class SecretBoxReveal : ObservableObject, IHoldToReveal
+public sealed partial class SecretBoxReveal : ObservableObject
 {
     private readonly SecretScreens _screens;
-    private readonly SecretReveal _reveal = new();
+    private readonly TimedSecretReveal _reveal = new();
     private IDisposable? _protection;
 
     public SecretBoxReveal(SecretScreens screens)
     {
         _screens = screens;
-        _reveal.Changed += () =>
-        {
-            if (_reveal.IsRevealed)
-            {
-                _protection ??= _screens.Showing();
-            }
-            else
-            {
-                _protection?.Dispose();
-                _protection = null;
-            }
+        // The time running out raises this on a timer thread; the box and the screen protection change on the UI thread.
+        _reveal.Changed += () => OnUi(Redraw);
+    }
 
-            OnPropertyChanged(nameof(IsRevealed));
-            OnPropertyChanged(nameof(PasswordChar));
-            OnPropertyChanged(nameof(EyeIcon));
-        };
+    private void Redraw()
+    {
+        if (_reveal.IsRevealed)
+        {
+            _protection ??= _screens.Showing();
+        }
+        else
+        {
+            _protection?.Dispose();
+            _protection = null;
+        }
+
+        OnPropertyChanged(nameof(IsRevealed));
+        OnPropertyChanged(nameof(PasswordChar));
+        OnPropertyChanged(nameof(EyeIcon));
+    }
+
+    private static void OnUi(Action action)
+    {
+        if (Avalonia.Application.Current is null || Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            action();
+        }
+        else
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(action);
+        }
     }
 
     public bool IsRevealed => _reveal.IsRevealed;
@@ -46,9 +63,15 @@ public sealed partial class SecretBoxReveal : ObservableObject, IHoldToReveal
 
     public string EyeIcon => IsRevealed ? "mdi-eye-outline" : "mdi-eye-off-outline";
 
-    public void Press() => _reveal.Press();
+    /// <summary>The eye's click: shows for 15 s, or hides at once when shown.</summary>
+    [RelayCommand]
+    private void Toggle() => _reveal.Toggle();
 
-    public void Release() => _reveal.Release();
+    /// <summary>A keystroke in the box: while shown, the 15 s start again.</summary>
+    public void Typed() => _reveal.Typed();
+
+    /// <summary>Save, Cancel, the form closing or the window losing focus.</summary>
+    public void Hide() => _reveal.Hide();
 }
 
 /// <summary>A field of the form beyond the well-known ones, as a row binds it.</summary>
@@ -74,7 +97,13 @@ public sealed partial class PasswordFormFieldViewModel : ObservableObject
     public string Value
     {
         get => Field.Value;
-        set => SetProperty(Field.Value, value, Field, (f, v) => f.Value = v);
+        set
+        {
+            if (SetProperty(Field.Value, value, Field, (f, v) => f.Value = v))
+            {
+                Reveal.Typed();   // shown while typing: the 15 s start again (ADR 1012)
+            }
+        }
     }
 
     public bool IsSecret
@@ -203,13 +232,25 @@ public sealed partial class PasswordEntryEditorViewModel : ObservableObject
     public string Password
     {
         get => _form.Password;
-        set => SetProperty(_form.Password, value, _form, (f, v) => f.Password = v);
+        set
+        {
+            if (SetProperty(_form.Password, value, _form, (f, v) => f.Password = v))
+            {
+                PasswordReveal.Typed();   // shown while typing: the 15 s start again (ADR 1012)
+            }
+        }
     }
 
     public string Pin
     {
         get => _form.Pin;
-        set => SetProperty(_form.Pin, value, _form, (f, v) => f.Pin = v);
+        set
+        {
+            if (SetProperty(_form.Pin, value, _form, (f, v) => f.Pin = v))
+            {
+                PinReveal.Typed();
+            }
+        }
     }
 
     public string Notes
@@ -311,12 +352,12 @@ public sealed partial class PasswordEntryEditorViewModel : ObservableObject
     /// <summary>The window lost focus or the form left the screen: every held eye lets go.</summary>
     public void HideSecrets()
     {
-        PasswordReveal.Release();
-        PinReveal.Release();
-        Generator.Reveal.Release();
+        PasswordReveal.Hide();
+        PinReveal.Hide();
+        Generator.Reveal.Hide();
         foreach (var field in Fields)
         {
-            field.Reveal.Release();
+            field.Reveal.Hide();
         }
     }
 }

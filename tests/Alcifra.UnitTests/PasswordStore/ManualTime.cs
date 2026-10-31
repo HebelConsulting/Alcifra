@@ -3,15 +3,16 @@ namespace Alcifra.UnitTests.PasswordStore;
 // A clock moved by hand: Task.Delay(TimeSpan, TimeProvider) asks it for a timer, which fires when time passes it.
 internal sealed class ManualTime : TimeProvider
 {
-    private readonly List<(DateTimeOffset Due, TimerCallback Callback, object? State)> _timers = [];
+    private readonly List<ManualTimer> _timers = [];
     private DateTimeOffset _now = new(2026, 10, 23, 12, 0, 0, TimeSpan.Zero);
 
     public override DateTimeOffset GetUtcNow() => _now;
 
     public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
     {
-        _timers.Add((_now + dueTime, callback, state));
-        return new NoTimer();
+        var timer = new ManualTimer(_now + dueTime, callback, state, _timers);
+        _timers.Add(timer);
+        return timer;
     }
 
     public void Advance(TimeSpan by)
@@ -24,14 +25,24 @@ internal sealed class ManualTime : TimeProvider
         }
     }
 
-    private sealed class NoTimer : ITimer
+    // One-shot, as the code under test uses them; Dispose cancels it like a real timer's, so a restarted timer does not
+    // also fire at its earlier time.
+    private sealed class ManualTimer(DateTimeOffset due, TimerCallback callback, object? state, List<ManualTimer> owner) : ITimer
     {
+        public DateTimeOffset Due { get; } = due;
+
+        public TimerCallback Callback { get; } = callback;
+
+        public object? State { get; } = state;
+
         public bool Change(TimeSpan dueTime, TimeSpan period) => true;
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() => owner.Remove(this);
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
     }
 }

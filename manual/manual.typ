@@ -717,14 +717,16 @@ value, so it cannot be used to guess one.
 
 *Changing it.* The pencil beside the entry's name opens the form in the preview's place, with *Save* and *Cancel*
 where the pencil was (*Ctrl+S* or *Cmd+S* saves, *Esc* cancels). The form always offers URL, user name and password;
-*Add field* offers the PIN first, then a field you name yourself, which you can hide like a password. The dice beside
+*Add field* offers the PIN first, then a field you name yourself, which you can hide like a password. In the form, a
+*click* on a secret box's eye shows the value for 15 seconds, so you can see what you type: every key you press starts
+the 15 seconds again, and a second click, *Save*, *Cancel* or leaving the window hides it at once. The dice beside
 the password open the generator: type a length, choose the kinds of characters, and tick *Avoid look-alike
 characters* for a password you will type from a screen; *Use this password* puts it into the form. Everything is sealed
 on your computer before it leaves it. If somebody else changed the entry since you opened it, saving says so and
 shows you the entry as it is now.
 
 #shot("screenshots/desktop-passwords-edit.png",
-  [Editing an entry: the secret boxes hidden until their eye is held, the generator open below the password, and
+  [Editing an entry: the secret boxes hidden until their eye is clicked, the generator open below the password, and
   Save and Cancel where the pencil was.])
 
 *Organising.* The ribbon creates entries and folders, renames, moves and deletes to the recycle bin. An entry moves

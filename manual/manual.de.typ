@@ -719,14 +719,16 @@ Wert, sodass sich damit keiner erraten lässt.
 
 *Ihn ändern.* Der Stift neben dem Namen des Eintrags öffnet das Formular an der Stelle der Vorschau, mit *Speichern* und *Abbrechen*
 dort, wo der Stift war (*Ctrl+S* bzw. *Cmd+S* speichert, *Esc* bricht ab). Das Formular bietet immer URL, Benutzername und Passwort an;
-*Feld hinzufügen* bietet zuerst die PIN an, dann ein Feld, das Sie selbst benennen und wie ein Passwort verbergen können. Die Würfel neben
+*Feld hinzufügen* bietet zuerst die PIN an, dann ein Feld, das Sie selbst benennen und wie ein Passwort verbergen können. Im Formular zeigt
+ein *Klick* auf das Auge eines geheimen Felds den Wert 15 Sekunden lang, damit Sie sehen, was Sie tippen: Jeder Tastendruck startet die
+15 Sekunden neu, und ein zweiter Klick, *Speichern*, *Abbrechen* oder das Verlassen des Fensters verbirgt ihn sofort. Die Würfel neben
 dem Passwort öffnen den Generator: Tippen Sie eine Länge ein, wählen Sie die Zeichenarten, und kreuzen Sie *Verwechselbare Zeichen
 vermeiden* an für ein Passwort, das Sie von einem Bildschirm abtippen werden; *Dieses Passwort verwenden* übernimmt es ins Formular. Alles wird
 auf Ihrem Computer versiegelt, bevor es ihn verlässt. Hat jemand anderes den Eintrag geändert, seit Sie ihn geöffnet haben, meldet das Speichern dies und
 zeigt Ihnen den Eintrag, wie er jetzt ist.
 
 #shot("screenshots/de/desktop-passwords-edit.png",
-  [Einen Eintrag bearbeiten: die geheimen Felder verborgen, bis ihr Auge gedrückt gehalten wird, der Generator unter dem Passwort geöffnet, und
+  [Einen Eintrag bearbeiten: die geheimen Felder verborgen, bis ihr Auge angeklickt wird, der Generator unter dem Passwort geöffnet, und
   Speichern und Abbrechen dort, wo der Stift war.])
 
 *Ordnen.* Das Menüband legt Einträge und Ordner an, benennt um, verschiebt und löscht in den Papierkorb. Ein Eintrag lässt sich nur dann
