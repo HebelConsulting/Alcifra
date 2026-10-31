@@ -87,7 +87,7 @@ jobs:
         run: scripts/edition-manual.sh --white-label
 
       - name: Log in to the registry
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ${{ steps.brand.outputs.registry }}
           username: ${{ github.actor }}
