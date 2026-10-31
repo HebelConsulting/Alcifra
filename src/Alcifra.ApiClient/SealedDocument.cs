@@ -1,6 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using MimeKit;
-using SimplArchive.Messenger.Client;
+using Alcifra.Messenger.Client;
 
 namespace Alcifra.ApiClient;
 

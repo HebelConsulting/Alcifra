@@ -6,7 +6,7 @@ using Alcifra.DesktopClient;
 using Alcifra.DesktopClient.Services;
 using Alcifra.DesktopClient.ViewModels;
 using Alcifra.Localization;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.UiEndToEndTests;
 
@@ -145,15 +145,12 @@ public sealed class DesktopMessagesSessionTests : IDisposable
 
         public bool RefuseConversations { get; set; }
 
-        public List<(string Method, string Path, string? Bearer, string Body)> Requests { get; } = [];
+        public IReadOnlyList<(string Method, string Path, string? Bearer, string Body)> Requests => _requests.Snapshot();
 
-        public List<string?> BearersOf(string path)
-        {
-            lock (Requests)
-            {
-                return [.. Requests.Where(r => r.Method == "GET" && r.Path == path).Select(r => r.Bearer)];
-            }
-        }
+        private readonly RequestLog<(string Method, string Path, string? Bearer, string Body)> _requests = new();
+
+        public List<string?> BearersOf(string path) =>
+            [.. Requests.Where(r => r.Method == "GET" && r.Path == path).Select(r => r.Bearer)];
 
         private async Task ServeAsync()
         {
@@ -172,10 +169,7 @@ public sealed class DesktopMessagesSessionTests : IDisposable
                 using var reader = new StreamReader(context.Request.InputStream);
                 var body = await reader.ReadToEndAsync();
                 var (method, path) = (context.Request.HttpMethod, context.Request.Url!.AbsolutePath);
-                lock (Requests)
-                {
-                    Requests.Add((method, path, context.Request.Headers["Authorization"], body));
-                }
+                _requests.Add((method, path, context.Request.Headers["Authorization"], body));
 
                 var (status, json) = (method, path) switch
                 {

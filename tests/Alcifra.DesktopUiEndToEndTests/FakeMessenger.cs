@@ -4,7 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using SimplArchive.Messenger.Client;
+using Alcifra.Messenger.Client;
 
 namespace Alcifra.UiEndToEndTests;
 
@@ -52,8 +52,10 @@ internal sealed class FakeMessenger : IDisposable
     /// <summary>Everyone with an enrolled key: their name, e-mail and certificate.</summary>
     public Dictionary<Guid, (string Name, string Email, X509Certificate2 Certificate)> People { get; } = [];
 
-    /// <summary>Every request, in order: method, path and body.</summary>
-    public List<(string Method, string Path, string Body)> Requests { get; } = [];
+    /// <summary>Every request so far, in order: method, path and body (a snapshot, see <see cref="RequestLog{T}"/>).</summary>
+    public IReadOnlyList<(string Method, string Path, string Body)> Requests => _requests.Snapshot();
+
+    private readonly RequestLog<(string Method, string Path, string Body)> _requests = new();
 
     /// <summary>Holds every message send until released: a send on its way, for the one-at-a-time gate.</summary>
     public TaskCompletionSource? HoldSends { get; set; }
@@ -125,10 +127,7 @@ internal sealed class FakeMessenger : IDisposable
 
     public int RequestCount(string method, string pathPart)
     {
-        lock (Requests)
-        {
-            return Requests.Count(r => r.Method == method && r.Path.Contains(pathPart, StringComparison.Ordinal));
-        }
+        return Requests.Count(r => r.Method == method && r.Path.Contains(pathPart, StringComparison.Ordinal));
     }
 
     private byte[] Wrap(byte[] key, Guid user)
@@ -165,10 +164,7 @@ internal sealed class FakeMessenger : IDisposable
         }
 
         var (method, path) = (context.Request.HttpMethod, context.Request.Url!.AbsolutePath);
-        lock (Requests)
-        {
-            Requests.Add((method, path, path.StartsWith("/store/", StringComparison.Ordinal) ? string.Empty : Encoding.UTF8.GetString(body)));
-        }
+        _requests.Add((method, path, path.StartsWith("/store/", StringComparison.Ordinal) ? string.Empty : Encoding.UTF8.GetString(body)));
 
         if (method == "POST" && path.EndsWith("/messages", StringComparison.Ordinal) && HoldSends is { } hold)
         {

@@ -8,7 +8,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Alcifra.DesktopClient.ViewModels;
 using Alcifra.Localization;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.Views;
 

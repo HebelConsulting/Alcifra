@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Alcifra.DesktopClient.Services;
-using SimplArchive.Messenger.Client;
-using SimplArchive.Messenger.Client.Api;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client;
+using Alcifra.Messenger.Client.Api;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.ViewModels;
 

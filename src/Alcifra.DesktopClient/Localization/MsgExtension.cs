@@ -1,6 +1,6 @@
 using System;
 using Avalonia.Markup.Xaml;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.Localization;
 

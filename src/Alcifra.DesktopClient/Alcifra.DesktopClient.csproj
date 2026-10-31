@@ -51,7 +51,7 @@
     <PackageReference Include="Avalonia.Svg" Version="11.3.0" />
     <!-- The Messenger's open-source client (nuget.org): the read-only Messages tab reads through it and draws its
          threads with the same display rules as the phone (core #1813). -->
-    <PackageReference Include="SimplArchive.Messenger.Client" Version="0.13.0" />
+    <PackageReference Include="Alcifra.Messenger.Client" Version="0.14.0" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
     <!-- Headless render-to-PNG mode (Program screenshot flag), so the UI can be verified without a display. -->

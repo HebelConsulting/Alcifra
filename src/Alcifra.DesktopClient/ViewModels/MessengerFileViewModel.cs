@@ -3,8 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Alcifra.DesktopClient.Services;
 using Alcifra.Localization;
-using SimplArchive.Messenger.Client;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.ViewModels;
 

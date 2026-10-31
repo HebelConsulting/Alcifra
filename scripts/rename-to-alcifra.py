@@ -6,7 +6,8 @@ nothing. Re-run it after a rebase instead of resolving the sweep's conflicts by 
 
 What it does NOT touch, each for its reason (owner decisions on #1117, 2026-10-29):
 - the module ABI's assembly and namespaces, `SimplArchive.ModuleAbi` (frozen; renaming is ABI 2.0, #1981);
-- `SimplArchive.Messenger.*`: the Messenger client package, published by its own repository, which renames it there;
+- `SimplArchive.Messenger`, the module PACKAGE the feed still serves at the pinned version (modules.env, chart pins);
+  its repository renamed its packages to `Alcifra.*` (SimplArchiveMessenger#36), and the pin moves with a rollout;
 - `SimplArchive.FlightSchool`/`.Encryption`/`.Licensing`: module packages the feeds publish under these ids; renaming
   the pins asked the feed for packages that do not exist and took the kiosk down at the 2026-10-30 reset;
 - `X-SimplArchive-` header names: only the legacy webhook header still spells it (WireNames.Legacy, retired at v0.56.0);
@@ -25,7 +26,7 @@ OLD, NEW = "SimplArchive", "Alcifra"
 # What keeps the old spelling wherever it appears; masked before the replace and restored after.
 PROTECTED = [re.compile(p) for p in (
     r"SimplArchive\.ModuleAbi",                     # the frozen module ABI (#1981)
-    r"SimplArchive\.Messenger",                     # the Messenger client package, its own repository's to rename
+    r"SimplArchive\.Messenger(?![\w.])",            # the Messenger MODULE package the pins name (the client is Alcifra.* now)
     r"SimplArchive\.(FlightSchool|Encryption|Licensing)\b",  # module PACKAGES on the feeds (modules.env, chart pins)
     r"X-SimplArchive-",                              # the legacy webhook header (WireNames.Legacy)
     r"HebelConsulting/SimplArchive[A-Za-z]*",        # GitHub repositories: renamed by their own step, with the repos
@@ -69,7 +70,6 @@ PATH_KEPT = ("docs/adr/", "src/SimplArchive.ModuleAbi/")
 # `SimplArchive.*`; once the caller is `Alcifra.*`, a reference into a frozen namespace has to be spelled out.
 RELATIVE_INTO_FROZEN = [
     (re.compile(r"(?<![\w.])ModuleAbi\.(?=[A-Z])"), "SimplArchive.ModuleAbi."),
-    (re.compile(r"(?<![\w.])Messenger\.Client\.(?=[A-Z])"), "SimplArchive.Messenger.Client."),
 ]
 CODE = re.compile(r"\.(cs|razor|axaml|cshtml)$")
 

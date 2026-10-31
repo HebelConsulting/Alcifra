@@ -2,8 +2,8 @@ using System.ComponentModel;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 using Alcifra.Cli.Infrastructure;
-using SimplArchive.Messenger.Client.Api;
-using SimplArchive.Messenger.Client.Backup;
+using Alcifra.Messenger.Client.Api;
+using Alcifra.Messenger.Client.Backup;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

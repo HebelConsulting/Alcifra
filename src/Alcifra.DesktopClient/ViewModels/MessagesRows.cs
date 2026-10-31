@@ -1,9 +1,9 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Alcifra.Localization;
-using SimplArchive.Messenger.Client;
-using SimplArchive.Messenger.Client.Api;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client;
+using Alcifra.Messenger.Client.Api;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.ViewModels;
 
@@ -154,7 +154,7 @@ public sealed class MessengerDialogs
 internal static class MessengerRefusal
 {
     // DEBT (ADR 0967): the same wording as the phone screens' MessengerScreens.ShowAsync, which keeps it inside the MAUI
-    // package; it moves to SimplArchive.Messenger.Client with the thread's read and send orchestration
+    // package; it moves to Alcifra.Messenger.Client with the thread's read and send orchestration
     // (SimplArchiveMessenger#34), and this copy goes then.
     public static string Wording(Exception exception) => exception switch
     {

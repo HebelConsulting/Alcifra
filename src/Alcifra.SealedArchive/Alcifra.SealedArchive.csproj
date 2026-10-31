@@ -28,7 +28,7 @@
     <!-- Apache-2.0: ConversationKeys.SealTo, the ONE sealer that addresses RSA (key transport) and elliptic-curve (key
          agreement) certificates alike; the platform's CMS addresses RSA only. Never a second CMS writer (ADR 0961).
          The desktop already references this version. -->
-    <PackageReference Include="SimplArchive.Messenger.Client" Version="0.13.0" />
+    <PackageReference Include="Alcifra.Messenger.Client" Version="0.14.0" />
   </ItemGroup>
 
 </Project>

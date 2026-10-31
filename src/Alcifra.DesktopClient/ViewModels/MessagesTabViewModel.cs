@@ -5,10 +5,10 @@ using CommunityToolkit.Mvvm.Input;
 using Alcifra.ApiClient;
 using Alcifra.DesktopClient.Services;
 using Alcifra.Localization;
-using SimplArchive.Messenger.Client;
-using SimplArchive.Messenger.Client.Api;
-using SimplArchive.Messenger.Client.Backup;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client;
+using Alcifra.Messenger.Client.Api;
+using Alcifra.Messenger.Client.Backup;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.ViewModels;
 

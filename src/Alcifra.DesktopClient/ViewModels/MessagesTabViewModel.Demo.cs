@@ -1,7 +1,7 @@
 using Alcifra.DesktopClient.Services;
-using SimplArchive.Messenger.Client;
-using SimplArchive.Messenger.Client.Api;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client;
+using Alcifra.Messenger.Client.Api;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.DesktopClient.ViewModels;
 
@@ -62,7 +62,7 @@ public sealed partial class MessagesTabViewModel
         thread.Composer.StartReply(rows[0], "Tom");
         thread.Composer.Add(new PickedFile("fuel-plan.xlsx", new byte[48_000]));
         thread.Composer.Text = "Fuel plan attached";
-        thread.TypingLine = SimplArchive.Messenger.Client.Display.TypingIndicator.Wording(["Tom"]) ?? string.Empty;   // as a live event would show it (#26)
+        thread.TypingLine = Alcifra.Messenger.Client.Display.TypingIndicator.Wording(["Tom"]) ?? string.Empty;   // as a live event would show it (#26)
         Selected = Conversations[0];   // no session: the selection marks the row and builds no thread of its own
         (Thread, IsOffered) = (thread, true);
         Pane = pane;

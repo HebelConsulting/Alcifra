@@ -5,8 +5,8 @@ using System.Text;
 using Alcifra.DesktopClient;
 using Alcifra.DesktopClient.Services;
 using Alcifra.DesktopClient.ViewModels;
-using SimplArchive.Messenger.Client;
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client;
+using Alcifra.Messenger.Client.Display;
 
 namespace Alcifra.UiEndToEndTests;
 

@@ -4,7 +4,7 @@ using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
-using SimplArchive.Messenger.Client;
+using Alcifra.Messenger.Client;
 
 namespace Alcifra.SealedArchive;
 

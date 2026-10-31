@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using CAManagement.Pkcs11;
 using Alcifra.ApiClient.KeyTest;
-using SimplArchive.Messenger.Client;
+using Alcifra.Messenger.Client;
 
 namespace Alcifra.DesktopClient.Services;
 

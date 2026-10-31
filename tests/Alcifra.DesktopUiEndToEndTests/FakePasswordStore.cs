@@ -65,7 +65,9 @@ internal sealed class FakePasswordStore : IAsyncDisposable
     public Action<Item>? BeforeFinalize { get; set; }
 
     /// <summary>Every request, in order: method, path, If-Match.</summary>
-    public List<(string Method, string Path, string? IfMatch)> Requests { get; } = [];
+    public IReadOnlyList<(string Method, string Path, string? IfMatch)> Requests => _requests.Snapshot();
+
+    private readonly RequestLog<(string Method, string Path, string? IfMatch)> _requests = new();
 
     public sealed class Item(Guid id, string name, Guid parentId, bool isFolder)
     {
@@ -164,7 +166,7 @@ internal sealed class FakePasswordStore : IAsyncDisposable
         {
             lock (_gate)
             {
-                Requests.Add((method, context.Request.Url!.AbsolutePath, ifMatch));
+                _requests.Add((method, context.Request.Url!.AbsolutePath, ifMatch));
                 (status, json, raw) = Route(method, path, body, ifMatch);
             }
         }

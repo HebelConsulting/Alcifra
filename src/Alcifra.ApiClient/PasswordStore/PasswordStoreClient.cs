@@ -7,7 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MimeKit;
 using MimeKit.Cryptography;
-using SimplArchive.Messenger.Client;
+using Alcifra.Messenger.Client;
 
 namespace Alcifra.ApiClient.PasswordStore;
 

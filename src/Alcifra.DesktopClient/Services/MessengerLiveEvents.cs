@@ -1,4 +1,4 @@
-using SimplArchive.Messenger.Client.Display;
+using Alcifra.Messenger.Client.Display;
 using Alcifra.Presentation;
 
 namespace Alcifra.DesktopClient.Services;

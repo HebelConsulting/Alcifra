@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
-using SimplArchive.Messenger.Client;
+using Alcifra.Messenger.Client;
 
 namespace Alcifra.DesktopClient.Services;
 
