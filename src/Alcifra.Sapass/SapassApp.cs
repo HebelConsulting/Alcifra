@@ -54,7 +54,8 @@ public static class SapassApp
             return 0;
         }
 
-        var app = new CommandApp();
+        // With the shared registrar: without one, Spectre cannot construct a command that takes a logger (#2042).
+        var app = new CommandApp(TypeRegistrar.WithLogging(logging));
         app.Configure(config =>
         {
             config.SetApplicationName("apass");

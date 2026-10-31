@@ -52,6 +52,10 @@ internal sealed class Session : IDisposable
         var token = First(TokenVariable, WireNames.Legacy.SessionTokenVariable, WireNames.Legacy.CliTokenVariable)
             ?? throw new SapassException($"Not signed in. Run: eval \"$(apass login --url {url})\" to set ${TokenVariable}.");
 
+        // The shared client resolves a RELATIVE content address (the sealed tier's /api/encrypted-content?t=…) against
+        // ApiClientSettings.ApiRootUrl, which each host sets once. apass never did, so an entry's content went to the
+        // default http://localhost:8080 while everything else went to the installation (#2042).
+        ApiClientSettings.ApiRootUrl = url.TrimEnd('/');
         var http = new HttpClient { BaseAddress = new Uri($"{url.TrimEnd('/')}/") };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var core = ApiCore.Over(http);

@@ -1,7 +1,6 @@
 using Alcifra.Cli.Commands;
 using Alcifra.Cli.Infrastructure;
 using Alcifra.ConsoleLogging;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 
@@ -35,10 +34,7 @@ public static class SaConsoleApp
 
     public static CommandApp Build(ILoggerFactory logging)
     {
-        var services = new ServiceCollection();
-        services.AddSingleton(logging);
-        services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-        var app = new CommandApp(new TypeRegistrar(services));
+        var app = new CommandApp(TypeRegistrar.WithLogging(logging));
         app.Configure(config =>
         {
             config.SetApplicationName("alcifra");

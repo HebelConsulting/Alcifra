@@ -42,6 +42,18 @@ public class SapassStreamTests
         Assert.True(string.IsNullOrWhiteSpace(stderr));
     }
 
+    [Fact]
+    public void Login_is_constructed_by_the_app_itself()
+    {
+        // #2042: the owner's `apass login` failed with "Could not resolve type" before it did anything, because the app
+        // had no registrar. Through SapassApp.Run, so this proves the APP wires the registrar, not only that the
+        // registrar works. A closed local port: the device request fails at once and nothing leaves the machine.
+        var (exit, _, stderr) = Run(withoutSession: true, "login", "--url", "http://127.0.0.1:9");
+
+        Assert.NotEqual(0, exit);
+        Assert.DoesNotContain("Could not resolve type", stderr);
+    }
+
     /// <summary>Runs the tool with both streams captured, restoring the console and the environment afterwards.</summary>
     private static (int Exit, string Stdout, string Stderr) Run(bool withoutSession, params string[] args)
     {

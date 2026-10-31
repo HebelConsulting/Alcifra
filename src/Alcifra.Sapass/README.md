@@ -10,7 +10,7 @@ dotnet tool install --global Alcifra.Pass
 eval "$(apass login --url https://archive.example.com)"   # approve a code in your browser
 apass ls                                                  # My Passwords, folders and entries
 apass find bank
-apass show Mail/Banking                                   # password on the first line, fields after it
+apass show Mail/Banking                                   # password on the first line, then the fields in the form's order
 apass otp Mail/Banking                                    # the current verification code, digits only
 ```
 
