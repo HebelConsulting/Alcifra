@@ -110,7 +110,7 @@ public class PublicMirrorBoundaryTests
 
         // The publish step stages `git archive HEAD`, so TRACKED files are exactly what can reach the mirror —
         // which also keeps build output, packaged artifacts and local scratch out of the scan for free.
-        foreach (var relative in TrackedFiles(root))
+        foreach (var relative in TrackedFiles.Under(root))
         {
             if (Withheld.Any(w => w.EndsWith('/')
                     ? relative.StartsWith(w, StringComparison.OrdinalIgnoreCase)
@@ -145,28 +145,6 @@ public class PublicMirrorBoundaryTests
             + "docs/ ADRs. Catching this here costs milliseconds; catching it in the publish workflow costs a red "
             + "pipeline on main.\n"
             + string.Join("\n", offenders));
-    }
-
-    // The tracked tree at HEAD-ish — `git ls-files`, the same set `git archive` would stage. A failure to run git
-    // throws rather than skips: this guard exists because the real gate runs late, so a silently-empty local one
-    // is worse than none.
-    private static IEnumerable<string> TrackedFiles(string root)
-    {
-        using var git = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("git", "ls-files")
-        {
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-        }) ?? throw new InvalidOperationException("Could not start git to enumerate the tracked tree.");
-
-        var output = git.StandardOutput.ReadToEnd();
-        git.WaitForExit();
-
-        if (git.ExitCode != 0)
-        {
-            throw new InvalidOperationException($"git ls-files failed with exit code {git.ExitCode}.");
-        }
-
-        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     // Cheap stand-in for grep -I: skip anything with a NUL byte in its first block.

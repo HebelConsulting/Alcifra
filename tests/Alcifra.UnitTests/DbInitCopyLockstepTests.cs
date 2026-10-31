@@ -44,10 +44,11 @@ public class DbInitCopyLockstepTests
 
         // FOUND, not listed. Naming the copies is what let the kiosk's sit unwatched while the chart's was
         // being fixed; a search finds the one nobody remembered, and finds the next one for free.
-        var copies = Directory.EnumerateFiles(root, "db-init.sql", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                && !string.Equals(f, source, StringComparison.Ordinal))
+        // Tracked files only: what ships, not what one machine happens to keep beside it (#2024).
+        var copies = TrackedFiles.Under(root)
+            .Where(f => Path.GetFileName(f) == "db-init.sql")
+            .Select(f => Path.Combine(root, f.Replace('/', Path.DirectorySeparatorChar)))
+            .Where(f => File.Exists(f) && !string.Equals(f, source, StringComparison.Ordinal))
             .OrderBy(f => f, StringComparer.Ordinal)
             .ToList();
 
@@ -189,20 +190,14 @@ public class DbInitCopyLockstepTests
             + "cannot swap; CLAUDE.md, ADR 0721). The kiosk ran that way unnoticed until #1868.");
     }
 
-    // Deployment configuration only: compose files, shell provisioners and Helm templates, outside build output,
-    // docs and tests (which quote these strings to explain them).
+    // Deployment configuration only: tracked compose files, shell provisioners and Helm templates, outside docs and
+    // tests (which quote these strings to explain them). Tracked, because a gitignored backup of an old compose file
+    // failed this on one machine only (#2024).
     private static IEnumerable<string> DeploymentFiles(string root) =>
-        Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+        TrackedFiles.Under(root)
             .Where(f => f.EndsWith(".yml", StringComparison.Ordinal) || f.EndsWith(".yaml", StringComparison.Ordinal)
                 || f.EndsWith(".sh", StringComparison.Ordinal) || f.EndsWith(".tpl", StringComparison.Ordinal))
-            .Where(f =>
-            {
-                var relative = Path.GetRelativePath(root, f).Replace(Path.DirectorySeparatorChar, '/');
-                return !relative.StartsWith("docs/", StringComparison.Ordinal)
-                    && !relative.StartsWith("tests/", StringComparison.Ordinal)
-                    && !relative.StartsWith(".git/", StringComparison.Ordinal)
-                    && !relative.Contains("/bin/", StringComparison.Ordinal)
-                    && !relative.Contains("/obj/", StringComparison.Ordinal)
-                    && !relative.Contains("node_modules/", StringComparison.Ordinal);
-            });
+            .Where(f => !f.StartsWith("docs/", StringComparison.Ordinal) && !f.StartsWith("tests/", StringComparison.Ordinal))
+            .Select(f => Path.Combine(root, f.Replace('/', Path.DirectorySeparatorChar)))
+            .Where(File.Exists);   // tracked but deleted in the working tree, mid-change
 }
