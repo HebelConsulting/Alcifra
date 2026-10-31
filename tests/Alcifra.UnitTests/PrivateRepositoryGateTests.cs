@@ -99,10 +99,21 @@ public class PrivateRepositoryGateTests : IDisposable
             "[remote \"origin\"]\n\turl = git@github.com:HebelConsulting/SimplArchivePrivate.git\n");
         Assert.True(PrivateRepositoryGate.IsPrivateRepository(mine));
 
+        // Its name after the rename, as a fresh checkout names it (ADR 1018).
+        var renamed = Dir("renamed");
+        File.WriteAllText(Path.Combine(Dir("renamed", ".git"), "config"),
+            "[remote \"origin\"]\n\turl = https://github.com/HebelConsulting/AlcifraPrivate\n");
+        Assert.True(PrivateRepositoryGate.IsPrivateRepository(renamed));
+
         var theirs = Dir("theirs");
         File.WriteAllText(Path.Combine(Dir("theirs", ".git"), "config"),
             "[remote \"origin\"]\n\turl = git@github.com:HebelConsulting/SimplArchive.git\n");
         Assert.False(PrivateRepositoryGate.IsPrivateRepository(theirs));
+
+        var mirror = Dir("mirror");
+        File.WriteAllText(Path.Combine(Dir("mirror", ".git"), "config"),
+            "[remote \"origin\"]\n\turl = https://github.com/HebelConsulting/Alcifra.git\n");
+        Assert.False(PrivateRepositoryGate.IsPrivateRepository(mirror));
     }
 
     // A white-label edition is a copy of the private repository with only brand/ changed (ADR 0996), so its guards

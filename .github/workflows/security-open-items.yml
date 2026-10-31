@@ -22,7 +22,7 @@ jobs:
   open-items:
     # PRIVATE ONLY. The cited issues live on the private repository; the public mirror carries the manual and this
     # file, and would otherwise run the check against a repository where none of those issues exist.
-    if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' }}
+    if: ${{ vars.REPO_ROLE == 'private' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

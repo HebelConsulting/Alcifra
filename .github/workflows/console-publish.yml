@@ -2,10 +2,11 @@
 # ADR 0977) — to GitHub Packages AND nuget.org — PUBLIC repo only.
 #
 # ONE workflow for both, on purpose: the nuget.org trusted-publishing policy pins this FILE, so a second tool in a
-# second workflow would need a second policy on nuget.org. The file keeps its old name for the same reason.
+# second workflow would need a second policy on nuget.org. Renaming this file means editing that policy too (it was
+# saconsole-publish.yml until ADR 1018).
 #
-# Triggered on a v* tag and name-gated to HebelConsulting/SimplArchive, exactly like the Docker and desktop
-# publishes: release tags are created DIRECTLY on the public repo (the mirror does not mirror tags), so the
+# Triggered on a v* tag and role-gated to the public mirror (`REPO_ROLE=public`, ADR 1018), like the Docker and
+# desktop publishes: release tags are created DIRECTLY on the public repo (the mirror does not mirror tags), so the
 # gate is what keeps this a no-op if a v* tag ever appears on the private canonical.
 #
 # THE VERSION COMES FROM THE TAG, not from a property. This repository has no single <Version>: releases are
@@ -50,7 +51,7 @@ permissions:
 jobs:
   publish:
     timeout-minutes: 15
-    if: ${{ github.repository == 'HebelConsulting/SimplArchive' }}
+    if: ${{ vars.REPO_ROLE == 'public' }}
     runs-on: ubuntu-latest
     # Must match the environment pinned in the nuget.org trusted-publishing policy.
     environment: public

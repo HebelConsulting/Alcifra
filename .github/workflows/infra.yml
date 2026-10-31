@@ -31,7 +31,7 @@ jobs:
   lint:
     # Both installation shapes (ADR 0693), each its own job so a failure names the shape it broke.
     name: tofu fmt + validate + tflint (${{ matrix.root }})
-    if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' }}
+    if: ${{ vars.REPO_ROLE == 'private' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:

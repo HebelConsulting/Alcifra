@@ -38,7 +38,10 @@ namespace Alcifra.UnitTests;
 /// </remarks>
 public static class PrivateRepositoryGate
 {
-    private const string PrivateRepo = "HebelConsulting/SimplArchivePrivate";
+    // Its name before and after the rename (ADR 1018). GitHub redirects the old one, so a clone may keep that remote,
+    // while a fresh checkout (CI's) names the new one; reading only one of them would switch every private guard off
+    // without a failure on the other.
+    private static readonly string[] PrivateRepos = ["HebelConsulting/SimplArchivePrivate", "HebelConsulting/AlcifraPrivate"];
 
     /// <summary>The repository root, or null when it cannot be found — see <see cref="RepoPaths"/>.</summary>
     public static string? RepoRoot() => RepoPaths.RootOrNull();
@@ -63,7 +66,7 @@ public static class PrivateRepositoryGate
     public static bool IsPrivateRepository(string root, string? editionRepository) =>
         GitConfigPath(root) is { } config
         && File.ReadAllText(config) is var text
-        && (text.Contains(PrivateRepo, StringComparison.OrdinalIgnoreCase)
+        && (PrivateRepos.Any(name => text.Contains(name, StringComparison.OrdinalIgnoreCase))
             || (editionRepository is not null && text.Contains(editionRepository, StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>

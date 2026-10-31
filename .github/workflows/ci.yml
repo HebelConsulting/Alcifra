@@ -162,7 +162,7 @@ jobs:
           echo "clean — every installer bypass carries its exception marker"
 
       - name: Publish subject-filter self-test
-        if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' }}
+        if: ${{ vars.REPO_ROLE == 'private' }}
         run: bash publish/publish-public.sh --selftest
       # Security gate (ADR "Security and dependency scanning"): fail the build on any known-CVE dependency
       # (direct or transitive). Queries the NuGet advisory database.

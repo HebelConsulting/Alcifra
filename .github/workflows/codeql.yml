@@ -38,7 +38,7 @@ jobs:
     # Security code-scanning is free → upload natively to the Security tab. On the private canonical, fall back to
     # the SARIF-artifact + jq gate. This job runs on push/PR only, so the inline visibility context is populated.
     env:
-      IS_PUBLIC: ${{ github.repository == 'HebelConsulting/SimplArchive' && github.event.repository.visibility == 'public' }}
+      IS_PUBLIC: ${{ vars.REPO_ROLE == 'public' && github.event.repository.visibility == 'public' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

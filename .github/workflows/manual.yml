@@ -47,7 +47,7 @@ jobs:
     timeout-minutes: 45
     name: Build the user manual
     needs: gate
-    if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' || (needs.gate.outputs.white_label == 'true' && needs.gate.outputs.publishes == 'true') }}
+    if: ${{ vars.REPO_ROLE == 'private' || (needs.gate.outputs.white_label == 'true' && needs.gate.outputs.publishes == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -231,7 +231,7 @@ jobs:
   site-bundle:
     timeout-minutes: 10
     needs: gate
-    if: ${{ github.repository != 'HebelConsulting/SimplArchivePrivate' && needs.gate.outputs.white_label != 'true' }}
+    if: ${{ vars.REPO_ROLE != 'private' && needs.gate.outputs.white_label != 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
