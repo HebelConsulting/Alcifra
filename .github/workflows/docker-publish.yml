@@ -86,6 +86,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/edition-manual.sh --white-label
 
+      # A released manual names its release (ADR 1016): main's manual says only "generated <date>", because it is
+      # regenerated before the tag exists, so the image's build recompiles it from this commit with the tag. The core
+      # files that manual into every tenant, so each release arrives there as a new version. A white-label edition
+      # keeps the manual its main build made: its screenshots carry its own brand and are not committed here.
+      - name: Set up Typst
+        if: ${{ needs.gate.outputs.white_label != 'true' }}
+        uses: ./.github/actions/setup-typst
+
+      - name: Stamp the manual with this release
+        if: ${{ needs.gate.outputs.white_label != 'true' }}
+        run: scripts/compile-manual.sh --release "$GITHUB_REF_NAME"
+
       - name: Log in to the registry
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:

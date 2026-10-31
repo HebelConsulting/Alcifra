@@ -30,7 +30,7 @@
     #align(center)[
       // The stamp (ADR 0817): release version + generation date, passed by the harness; a bare
       // `typst compile` without --input still builds, marked as such.
-      #sys.inputs.at("generated", default: "generated from source") \
+      #sys.inputs.at("generated", default: "aus dem Quelltext erstellt") \
       © #datetime.today().year() \
       // The publisher's imprint, from the brand (ADR 0995).
       #for line in brand.imprint.lines [#line \ ]

@@ -26,11 +26,6 @@ concurrency:
 permissions:
   contents: write # the push-to-main job commits the regenerated manual
 
-env:
-  # Pinned deliberately: a manual build should not change because an upstream release happened between two
-  # runs of the same commit. Bumping this is a visible, reviewed change.
-  TYPST_VERSION: '0.15.1'
-
 jobs:
   gate:
     # A white-label edition builds its own manual too (ADR 0996), and uploads it rather than committing it.
@@ -68,37 +63,9 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # Typst is installed from a PINNED release tarball rather than via setup-typst, and cached.
-      #
-      # The action resolves its version — `latest` OR a pinned one — through the GitHub API from the runner.
-      # When that API is throttled (GitHub-hosted runners share IP pools) it fails with "Typst <version> could
-      # not be resolved", which reads like a broken workflow rather than a rate limit. On 2026-08-17 that
-      # blocked every manual run for over half an hour across three branches, alongside 429s downloading
-      # setup-dotnet and a 503 from the API — and pinning the version alone did NOT help, because the pinned
-      # path makes the same call. A release-asset download is served separately from the API, and on a cache
-      # hit there is no network call at all.
-      - name: Cache Typst
-        id: typst-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.local/bin/typst
-          key: typst-${{ env.TYPST_VERSION }}-${{ runner.os }}
-
-      - name: Install Typst
-        if: ${{ steps.typst-cache.outputs.cache-hit != 'true' }}
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.local/bin
-          url="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
-          # Retry: a transient 429/503 should cost seconds, not a whole run.
-          curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors --silent --show-error "$url" \
-            | tar -xJ --strip-components=1 -C ~/.local/bin --wildcards '*/typst'
-          chmod +x ~/.local/bin/typst
-
-      - name: Put Typst on PATH
-        run: |
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/typst" --version
+      # Pinned and cached, from the release tarball (see the action for why not setup-typst).
+      - name: Set up Typst
+        uses: ./.github/actions/setup-typst
 
       # The desktop client renders headless via Avalonia + Skia; on a Linux runner that needs fontconfig + fonts
       # (the app embeds Inter via WithInterFont, but fall back to DejaVu/Noto for any other glyphs).
@@ -203,12 +170,12 @@ jobs:
         run: |
           set -euo pipefail
           source scripts/brand.sh
-          # Named from the brand's file stem (ADR 0997).
+          # Named from the brand's file stem (ADR 0997). The one compile (#2022, ADR 1016): main's manual says
+          # "generated <date>"; only the release image's build names a version.
           pdf="src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf"
-          SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
+          scripts/compile-manual.sh "$pdf"
           echo "MANUAL_PDF=$pdf" >> "$GITHUB_ENV"
           # The German manual (ADR 1011), committed beside the English one.
-          SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.de.typ "${pdf%.pdf}-de.pdf" --root . --font-path brand/assets/fonts --input product="$BRAND_NAME"
           echo "MANUAL_PDF_DE=${pdf%.pdf}-de.pdf" >> "$GITHUB_ENV"
 
       # The site bundle (ADR 1010, #2004): the figures and feature summaries the website reads, out of this manual.
@@ -271,26 +238,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # As in the manual job: a pinned release tarball, cached (see there for why not setup-typst).
-      - name: Cache Typst
-        id: typst-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.local/bin/typst
-          key: typst-${{ env.TYPST_VERSION }}-${{ runner.os }}
-
-      - name: Install Typst
-        if: ${{ steps.typst-cache.outputs.cache-hit != 'true' }}
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.local/bin
-          url="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
-          curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors --silent --show-error "$url" \
-            | tar -xJ --strip-components=1 -C ~/.local/bin --wildcards '*/typst'
-          chmod +x ~/.local/bin/typst
-
-      - name: Put Typst on PATH
-        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      # Pinned and cached, from the release tarball (see the action for why not setup-typst).
+      - name: Set up Typst
+        uses: ./.github/actions/setup-typst
 
       - name: Build the site bundle from the committed manual
         run: |

@@ -1,0 +1,46 @@
+# Installs a PINNED Typst from its release tarball, cached: the one install every workflow that compiles the manual
+# uses (the manual jobs, and the release image's build since ADR 1016).
+#
+# Not setup-typst: that action resolves its version — `latest` OR a pinned one — through the GitHub API from the
+# runner. When that API is throttled (hosted runners share IP pools) it fails with "Typst <version> could not be
+# resolved", which reads like a broken workflow rather than a rate limit. On 2026-08-17 that blocked every manual run
+# for over half an hour across three branches — and pinning the version alone did NOT help, because the pinned path
+# makes the same call. A release-asset download is served separately from the API, and a cache hit makes no call.
+name: Set up Typst
+description: Installs a pinned Typst release on PATH, cached.
+inputs:
+  version:
+    # THE pin, held once here. A manual build should not change because an upstream release happened between two runs
+    # of the same commit; bumping it is a visible, reviewed change.
+    description: The Typst version, without a leading v.
+    required: false
+    default: '0.15.1'
+runs:
+  using: composite
+  steps:
+    - name: Cache Typst
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.local/bin/typst
+        key: typst-${{ inputs.version }}-${{ runner.os }}
+
+    - name: Install Typst
+      if: ${{ steps.cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      env:
+        TYPST_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        mkdir -p ~/.local/bin
+        url="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
+        # Retry: a transient 429/503 should cost seconds, not a whole run.
+        curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors --silent --show-error "$url" \
+          | tar -xJ --strip-components=1 -C ~/.local/bin --wildcards '*/typst'
+        chmod +x ~/.local/bin/typst
+
+    - name: Put Typst on PATH
+      shell: bash
+      run: |
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        "$HOME/.local/bin/typst" --version

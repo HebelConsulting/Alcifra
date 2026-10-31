@@ -1,0 +1,39 @@
+# Tags this repository at the commit each public release was cut from (#2022, ADR 1016).
+#
+# Releases are tagged on the public repository, at a mirror commit naming the private one ("Sync from private @ <sha>").
+# Tagging here at that commit used to be a runbook line, skipped for three of five releases without anyone noticing,
+# so it runs on its own: daily, and on demand after a release. It reads only the public repository's tags and commit
+# subjects and writes only tags here. Tags pushed with GITHUB_TOKEN trigger no workflow, and the release workflows
+# fire-and-skip on this repository anyway (docs/deploy/release.md).
+#
+# Daily rather than hourly: nothing waits on these tags within the hour (the manual's version comes from the release
+# build itself since ADR 1016), and every scheduled run costs private-repository minutes.
+name: Mirror release tags
+
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write # pushes tags
+
+concurrency:
+  group: mirror-release-tags
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    # The canonical private repository only: a white-label fork has no public mirror to follow.
+    if: ${{ github.repository == 'HebelConsulting/SimplArchivePrivate' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the mirror names a commit by its short sha, anywhere in history
+
+      - name: Tag the commits public releases were cut from
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/mirror-release-tags.sh

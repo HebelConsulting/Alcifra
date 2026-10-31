@@ -49,19 +49,7 @@ python3 scripts/keep-unchanged-screenshots.py manual/screenshots
 python3 scripts/keep-unchanged-screenshots.py manual/screenshots/de
 
 echo "==> Compiling the Typst manual → $pdf_out"
-# SOURCE_DATE_EPOCH still pins the PDF's internal CreationDate/ModDate and the copyright year (ADR 0510's
-# metadata half). The VISIBLE stamp below is the release version (the private repo carries the v* tags at
-# the mirrored commits — see docs/deploy/release.md) plus the generation DATE only (ADR 0817, corrected):
-# date-only means same-day regenerations stay byte-identical, so unchanged content commits at most once a
-# day, and the version changes only at releases.
-VERSION="$(git describe --tags --abbrev=0 2>/dev/null || true)"
-STAMP="${VERSION:+$VERSION · }generated $(date -u +%F)"
-# The product's name is ONE value, the brand file's (ADR 0989): the manual reads the same one as the build.
-PRODUCT="$(python3 -c 'import json; print(json.load(open("brand/brand.json"))["name"])')"
-[ -n "$PRODUCT" ] || { echo "no name in brand/brand.json" >&2; exit 1; }
-SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.typ "$pdf_out" --root . --font-path brand/assets/fonts --input generated="$STAMP" --input product="$PRODUCT"
-# The German manual (manual.de.typ, ADR 1011), beside it under -de. Its figures are the English ones until the capture
-# also runs in German.
-SOURCE_DATE_EPOCH=1780304400 typst compile manual/manual.de.typ "${pdf_out%.pdf}-de.pdf" --root . --font-path brand/assets/fonts --input generated="$STAMP" --input product="$PRODUCT"
+# The one compile (#2022, ADR 1016): "generated <date>"; only a release build names a version.
+scripts/compile-manual.sh "$pdf_out"
 
 echo "==> Done. Served at /download/manual/ (browse /download or open $pdf_out)."
