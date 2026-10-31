@@ -1,4 +1,5 @@
 using System.Globalization;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Alcifra.Localization;
 using SimplArchive.Messenger.Client;
 using SimplArchive.Messenger.Client.Api;
@@ -8,11 +9,14 @@ namespace Alcifra.DesktopClient.ViewModels;
 
 /// <summary>
 /// A conversation in the list: its title, what kind it is (a group and its member count, or history), and its unread
-/// count as a badge — the phone's row (ADR 0967).
+/// count as a badge — the phone's row (ADR 0967). A reload updates the row it already shows rather than replacing it
+/// (<see cref="RowSync"/>): replacing the selected row deselected it, which closed the open conversation and its draft.
 /// </summary>
-public sealed class MessagesConversationViewModel
+public sealed partial class MessagesConversationViewModel : ObservableObject
 {
-    public required Conversation Conversation { get; init; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(Kind), nameof(HasKind), nameof(Unread), nameof(HasUnread))]
+    private Conversation _conversation = null!;   // set by every construction (MessagesTabViewModel, its demo)
 
     public string Title => ThreadRows.Title(Conversation);
 

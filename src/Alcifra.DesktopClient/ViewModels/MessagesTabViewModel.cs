@@ -238,11 +238,10 @@ public sealed partial class MessagesTabViewModel : ObservableObject
         }
 
         _list = list;
-        Conversations.Clear();
-        foreach (var conversation in list.Items)
-        {
-            Conversations.Add(new MessagesConversationViewModel { Conversation = conversation });
-        }
+        // In place: the selected row stays the same object, so the open conversation (and what is being typed) stays.
+        // The thread's own "read" asks for this reload; refilling the list closed and reopened it, over and over.
+        RowSync.InPlace(Conversations, list.Items, r => r.Conversation.Id, c => c.Id,
+            c => new MessagesConversationViewModel { Conversation = c }, (r, c) => r.Conversation = c, keep: Selected);
 
         EmptyMessage = Conversations.Count == 0 ? ViewText.Get("NoConversations") : string.Empty;
         // The conversation's FRESH row, or none once the user is out of it: never the row from before (ADR 0661).
