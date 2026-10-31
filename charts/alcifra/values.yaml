@@ -467,9 +467,9 @@ modules:
       version: 0.2.0
       sha512: "ekHTOUci6S2i4/g9QbWo7zMVl8M+uAUBzvEH6tBjsBWeb+lZiEtiOZ9troPewb7/74aQ/1KmElhktb1VyKtDvw=="
     ENCRYPTION:
-      package: SimplArchive.Encryption
-      version: 0.6.0
-      sha512: "6JEkK5bsOvCYWwQjNIYUDLE7NzgTQUScCkXEX0YKViZRwe9gRwBMnFvVQOYbsFHFi1Ih2mj/J+yO/8ZKskmZCA=="
+      package: Alcifra.Encryption
+      version: 0.7.0
+      sha512: "spwEblOfqS9hjtsQw4N6/ISkSvK796zI/m9F8Dz9oH+XY72h1o51YrELTlak43Gk29koPZoXqt6Qb5+YfmHXTQ=="
     LICENSING:
       package: SimplArchive.Licensing
       version: 0.6.0
