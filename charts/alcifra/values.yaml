@@ -463,9 +463,9 @@ modules:
   # trusted (ModulePinLockstepTests), the same arrangement images.env has with the image tags above.
   pins:
     FLIGHT_SCHOOL:
-      package: SimplArchive.FlightSchool
-      version: 0.2.0
-      sha512: "ekHTOUci6S2i4/g9QbWo7zMVl8M+uAUBzvEH6tBjsBWeb+lZiEtiOZ9troPewb7/74aQ/1KmElhktb1VyKtDvw=="
+      package: Alcifra.FlightSchool
+      version: 0.3.0
+      sha512: "av58HXHCHrFLDEo+fooFIM9wVXdzgWcLPD84nr3TCoEJcZwcTjbXEs74F6V9UnIrRsUetS47UkUPgBOnU3VRmw=="
     ENCRYPTION:
       package: Alcifra.Encryption
       version: 0.7.0
@@ -476,9 +476,9 @@ modules:
       sha512: "eJp8588NETDiD+B5sw18GPg1i/aZhaij+nxGuklH1DlzEfgTK8Kiq3dVilmpFC7kFtyROfwLwoT2x42dOeIo9g=="
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).
     MESSENGER:
-      package: SimplArchive.Messenger
-      version: 0.8.0
-      sha512: "ETDpzUblUGa431+nWIg3or3k2yP7kOGtOFM0aX8DOPrXxOLabGg/zlFcWlIKMHqkD+0BhgjDZHgyYuCn2MdrSQ=="
+      package: Alcifra.Messenger
+      version: 0.9.0
+      sha512: "3p1fcCFmPKqNoZZdxyyQT8uZusLYuQR3km9lgZw/LoG1YcZGxSHKkqMqZdPHY9qCj3SlERwYaiiiYcdLAM8Hbg=="
       source: nuget.org
 
   # Plain alpine: a .nupkg is a zip, so the installer needs no NuGet tooling and no SDK image.
