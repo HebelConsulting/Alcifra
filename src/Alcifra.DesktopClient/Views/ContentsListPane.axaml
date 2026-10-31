@@ -232,7 +232,7 @@
         <ListBox.ItemTemplate>
             <DataTemplate x:DataType="vm:NodeViewModel">
                 <StackPanel Orientation="Horizontal">
-                    <Grid Width="{Binding $parent[ListBox].DataContext.ColNameWidth}" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
+                    <Grid Width="{Binding $parent[ListBox].DataContext.ColNameWidth}" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
                         <!-- Folders follow the tree's glyph rules (ADR 0547) so the same object looks
                              the same in both panes; documents keep the list's accent. -->
                         <i:Icon Grid.Column="0" Value="{Binding IconValue}" Foreground="{DynamicResource WbMuted}"
@@ -252,6 +252,8 @@
                         <!-- Encrypted content the caller can see but not open (ADR 0983), said before it is opened. -->
                         <i:Icon Grid.Column="6" Value="mdi-lock-alert-outline" Foreground="#c62828" VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding NotEncryptedForMe}" ToolTip.Tip="{loc:Tr AudSignNotYou}" />
                         <i:Icon Grid.Column="6" Value="mdi-lock-clock" Foreground="#d9a400" VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding NotYetEncryptedForMe}" ToolTip.Tip="{loc:Tr AudSignNotYet}" />
+                        <!-- A password entry with a verification code (ADR 1013), by its index; the same marker as the Passwords tab. -->
+                        <i:Icon Grid.Column="7" Value="mdi-two-factor-authentication" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding HasCode}" ToolTip.Tip="{loc:Tr PwHasCode}" />
                     </Grid>
                     <TextBlock Width="{Binding $parent[ListBox].DataContext.ColTypeWidth}" Text="{Binding TypeText}" VerticalAlignment="Center" Foreground="{DynamicResource WbMuted}" FontSize="12" TextTrimming="CharacterEllipsis" />
                     <TextBlock Width="{Binding $parent[ListBox].DataContext.ColDateWidth}" Text="{Binding DocumentDateText}" VerticalAlignment="Center" Foreground="{DynamicResource WbMuted}" FontSize="12" />

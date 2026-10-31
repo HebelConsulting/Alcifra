@@ -45,7 +45,7 @@ public sealed class PasswordEntryFieldOrderTests
     public void A_form_always_offers_url_user_name_and_password_and_suggests_the_PIN()
     {
         Assert.Equal([PasswordFieldSlot.Url, PasswordFieldSlot.UserName, PasswordFieldSlot.Password], PasswordEntryFieldOrder.AlwaysOffered);
-        Assert.Equal([PasswordFieldSlot.Pin], PasswordEntryFieldOrder.Suggested);
+        Assert.Equal([PasswordFieldSlot.Pin, PasswordFieldSlot.VerificationCode], PasswordEntryFieldOrder.Suggested);   // the code after it, ADR 1013
     }
 
     [Theory]

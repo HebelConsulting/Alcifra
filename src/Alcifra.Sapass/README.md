@@ -11,6 +11,7 @@ eval "$(apass login --url https://archive.example.com)"   # approve a code in yo
 apass ls                                                  # My Passwords, folders and entries
 apass find bank
 apass show Mail/Banking                                   # password on the first line, fields after it
+apass otp Mail/Banking                                    # the current verification code, digits only
 ```
 
 - `--store <name>` reads a shared store (the default is My Passwords). Where two stores share a name, give the full

@@ -313,5 +313,13 @@
     ],
     "ProjectUrl": "https://github.com/web-push-libs/web-push-csharp/",
     "Reviewed": "2026-10-15"
+  },
+  {
+    "Id": "ZXing.Net",
+    "Owners": [
+      "micjahn"
+    ],
+    "ProjectUrl": "https://github.com/micjahn/ZXing.Net/",
+    "Reviewed": "2026-10-31"
   }
 ]

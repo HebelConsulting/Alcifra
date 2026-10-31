@@ -6732,4 +6732,28 @@
   <data name="AudSavedWeb" xml:space="preserve">
     <value>Saved. A member re-seals it for anyone added in the desktop or phone app.</value>
   </data>
+  <data name="PwVerificationCode" xml:space="preserve">
+    <value>Verification code</value>
+  </data>
+  <data name="PwVerificationCodeInvalid" xml:space="preserve">
+    <value>Not a setup key or otpauth:// link.</value>
+  </data>
+  <data name="PwVerificationCodeNoQr" xml:space="preserve">
+    <value>No QR code found in the image.</value>
+  </data>
+  <data name="PwVerificationCodeWatermark" xml:space="preserve">
+    <value>Paste the setup key or link</value>
+  </data>
+  <data name="PwQrFromClipboard" xml:space="preserve">
+    <value>Read the QR code from a screenshot on the clipboard</value>
+  </data>
+  <data name="PwQrFromFile" xml:space="preserve">
+    <value>Read the QR code from an image file</value>
+  </data>
+  <data name="PwCodeSecondsLeft" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="PwHasCode" xml:space="preserve">
+    <value>Has a verification code</value>
+  </data>
 </root>

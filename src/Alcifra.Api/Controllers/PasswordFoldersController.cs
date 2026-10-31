@@ -192,6 +192,7 @@ public class PasswordFoldersController(
                         Site = index.GetValueOrDefault(r.Id)?.Site,
                         UserName = index.GetValueOrDefault(r.Id)?.UserName,
                         App = index.GetValueOrDefault(r.Id)?.App,
+                        HasCode = index.GetValueOrDefault(r.Id)?.HasCode ?? false,
                     };
                     row.Links.Add(new Link("self",
                         isFolder ? PasswordStoreResourceBuilder.FolderHref(r.Id) : PasswordStoreResourceBuilder.EntryHref(r.Id), "GET"));

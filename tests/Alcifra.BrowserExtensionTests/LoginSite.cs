@@ -23,6 +23,20 @@ public sealed class LoginSite : IDisposable
         </body></html>
         """;
 
+    // The second step of a sign-in (ADR 1013): one field by the standard token, one only by its name.
+    private const string VerifyPage = """
+        <!doctype html>
+        <html><head><meta charset="utf-8"><title>Verify</title></head>
+        <body>
+          <form method="post" action="/welcome">
+            <input id="otp" name="code" type="text" inputmode="numeric" autocomplete="one-time-code">
+            <input id="totp" name="totp" type="text">
+            <input id="note" name="note" type="text">
+            <button id="go" type="submit">Verify</button>
+          </form>
+        </body></html>
+        """;
+
     private const string WelcomePage = """
         <!doctype html>
         <html><head><meta charset="utf-8"><title>Welcome</title></head>
@@ -45,6 +59,9 @@ public sealed class LoginSite : IDisposable
 
     /// <summary>The login page, on the host the extension will call the site.</summary>
     public string Login(string host) => $"http://{host}:{Port}/login";
+
+    /// <summary>The page that asks for a verification code (ADR 1013).</summary>
+    public string Verify(string host) => $"http://{host}:{Port}/verify";
 
     /// <summary>The page a submit lands on.</summary>
     public string Welcome(string host) => $"http://{host}:{Port}/welcome";
@@ -80,6 +97,7 @@ public sealed class LoginSite : IDisposable
             {
                 "/login" => LoginPage,
                 "/welcome" => WelcomePage,
+                "/verify" => VerifyPage,
                 _ => null,
             };
             var body = Encoding.UTF8.GetBytes(page ?? "not found");

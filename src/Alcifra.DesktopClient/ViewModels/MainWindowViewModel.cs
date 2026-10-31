@@ -523,6 +523,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
                     HasReferences = child.HasReferences,
                     OnLegalHold = child.OnLegalHold,
                     EncryptedFor = child.EncryptedFor,
+                    HasCode = child.HasCode,
                     CheckedOut = child.CheckedOut,
                     CheckedOutByMe = child.CheckedOutByMe,
                     CheckedOutByName = child.CheckedOutByName,

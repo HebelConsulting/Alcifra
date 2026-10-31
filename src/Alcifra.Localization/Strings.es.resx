@@ -6732,4 +6732,28 @@
   <data name="AudSavedWeb" xml:space="preserve">
     <value>Guardado. Para quien se añadió, un miembro lo vuelve a sellar en la app de escritorio o del teléfono.</value>
   </data>
+  <data name="PwVerificationCode" xml:space="preserve">
+    <value>Código de verificación</value>
+  </data>
+  <data name="PwVerificationCodeInvalid" xml:space="preserve">
+    <value>No es una clave de configuración ni un enlace otpauth://.</value>
+  </data>
+  <data name="PwVerificationCodeNoQr" xml:space="preserve">
+    <value>No se encontró ningún código QR en la imagen.</value>
+  </data>
+  <data name="PwVerificationCodeWatermark" xml:space="preserve">
+    <value>Pega la clave de configuración o el enlace</value>
+  </data>
+  <data name="PwQrFromClipboard" xml:space="preserve">
+    <value>Leer el código QR de una captura de pantalla en el portapapeles</value>
+  </data>
+  <data name="PwQrFromFile" xml:space="preserve">
+    <value>Leer el código QR de un archivo de imagen</value>
+  </data>
+  <data name="PwCodeSecondsLeft" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="PwHasCode" xml:space="preserve">
+    <value>Tiene un código de verificación</value>
+  </data>
 </root>

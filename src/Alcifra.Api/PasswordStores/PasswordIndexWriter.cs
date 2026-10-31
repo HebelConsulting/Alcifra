@@ -6,12 +6,12 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.PasswordStores;
 
 /// <summary>
-/// Writes the three autofill index values a password entry carries (ADR 0973), from the finalize body of the version
+/// Writes the autofill index values a password entry carries (ADR 0973; "Has code", ADR 1013), from the finalize body of the version
 /// being filed.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Only these three fields are touched</b>, by name and within the document's own mask version: a full index-data
+/// <b>Only these fields are touched</b>, by name and within the document's own mask version: a full index-data
 /// replacement would erase the server's "Exposed since" (ADR 0964), which is exactly the field a client must never own.
 /// </para>
 /// <para>
@@ -45,23 +45,26 @@ public static class PasswordIndexWriter
             throw new NotAPasswordStoreItemException();
         }
 
-        var names = new[]
-        {
-            WellKnownMaskIds.PasswordEntryFields.Site,
-            WellKnownMaskIds.PasswordEntryFields.UserName,
-            WellKnownMaskIds.PasswordEntryFields.App,
-        };
-        var definitions = await dbContext.FieldDefinitions
-            .Where(f => f.MaskVersionId == mask.MaskVersionId && names.Contains(f.Name))
-            .Select(f => new { f.Id, f.Name })
-            .ToListAsync(cancellationToken);
-
         var wanted = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             [WellKnownMaskIds.PasswordEntryFields.Site] = index.Site,
             [WellKnownMaskIds.PasswordEntryFields.UserName] = index.UserName,
             [WellKnownMaskIds.PasswordEntryFields.App] = index.App,
         };
+
+        // "Has code" (ADR 1013) is a Boolean stored as its invariant text, as every Boolean field is; false is stored as
+        // ABSENT, so the field only ever says THAT a code exists. A body without it — a client older than ADR 1013, which
+        // keeps the code field as an ordinary secret — leaves the stored answer alone rather than erasing a true one.
+        if (index.HasCode is { } hasCode)
+        {
+            wanted[WellKnownMaskIds.PasswordEntryFields.HasCode] = hasCode ? "true" : null;
+        }
+
+        var names = wanted.Keys.ToArray();
+        var definitions = await dbContext.FieldDefinitions
+            .Where(f => f.MaskVersionId == mask.MaskVersionId && names.Contains(f.Name))
+            .Select(f => new { f.Id, f.Name })
+            .ToListAsync(cancellationToken);
 
         var stored = await dbContext.FieldValues
             .Where(v => v.DocumentId == documentId && definitions.Select(d => d.Id).Contains(v.FieldDefinitionId))
@@ -112,4 +115,7 @@ public sealed class PasswordIndex
     public string? UserName { get; set; }
 
     public string? App { get; set; }
+
+    /// <summary>Whether the content carries a verification code (ADR 1013); null (an older client) leaves it alone.</summary>
+    public bool? HasCode { get; set; }
 }

@@ -8,7 +8,7 @@ namespace Alcifra.ApiClient.PasswordStore;
 /// </summary>
 public sealed record PasswordTreeEntry(
     Guid Id, string Name, bool IsFolder, Guid ParentId, string Href, string Path,
-    string? Site = null, string? UserName = null, string? App = null);
+    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false);
 
 /// <summary>
 /// The tree model BOTH clients share (apass's commands and the desktop's browser host): turning the flat listing
@@ -22,7 +22,7 @@ public static class PasswordTree
     {
         var byId = flat.ToDictionary(i => i.Id);
         return [.. flat.Select(row => new PasswordTreeEntry(
-            row.Id, row.Name, row.IsFolder, row.ParentId, row.Href, PathOf(row), row.Site, row.UserName, row.App))];
+            row.Id, row.Name, row.IsFolder, row.ParentId, row.Href, PathOf(row), row.Site, row.UserName, row.App, row.HasCode))];
 
         string PathOf(PasswordDescendantInfo row)
         {

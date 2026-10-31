@@ -361,6 +361,13 @@ public static class WellKnownMaskIds
         /// one metadata value a user sets deliberately, as an ordinary field of the entry.
         /// </summary>
         public const string App = "App";
+
+        /// <summary>
+        /// Whether the entry's sealed content carries a verification code (ADR 1013): a Boolean, true or absent. It says
+        /// only THAT the account uses one-time codes, never anything of the secret behind them, so a one-time-code
+        /// field can be offered the entries that can fill it without opening any. Derived with <see cref="Site"/>.
+        /// </summary>
+        public const string HasCode = "Has code";
     }
 
     /// <summary>

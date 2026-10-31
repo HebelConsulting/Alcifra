@@ -44,6 +44,28 @@ public sealed class PasswordEntryForm
     /// <summary>The user added the PIN.</summary>
     public void AddPin() => HasPin = true;
 
+    /// <summary>
+    /// The verification code's setup (ADR 1013): as stored (an <c>otpauth://totp/…</c> link), or what the user pasted — a
+    /// link or a bare setup key, which saving turns into a link. Its secret is never shown back; a client shows a mask
+    /// and lets it be replaced or removed.
+    /// </summary>
+    public string VerificationCode { get; set; } = string.Empty;
+
+    /// <summary>Whether the form shows the verification code: the entry has one, or the user added it.</summary>
+    public bool HasVerificationCode { get; private set; }
+
+    /// <summary>What "Add field" offers after the PIN: the verification code while the form has none (ADR 1013).</summary>
+    public bool SuggestsVerificationCode =>
+        !HasVerificationCode && PasswordEntryFieldOrder.Suggested.Contains(PasswordFieldSlot.VerificationCode);
+
+    /// <summary>The user added the verification code.</summary>
+    public void AddVerificationCode() => HasVerificationCode = true;
+
+    /// <summary>Whether the verification code box holds a value that does not read as a setup: flagged inline, and
+    /// <see cref="Problem"/> refuses to save it. An empty box is fine (it removes the code).</summary>
+    public bool VerificationCodeInvalid =>
+        !string.IsNullOrWhiteSpace(VerificationCode) && !VerificationCodeSetup.TryParse(VerificationCode, out _);
+
     public string Notes { get; set; } = string.Empty;
 
     /// <summary>Every other field, in its order; an edit keeps them, a new one may be added.</summary>
@@ -54,6 +76,7 @@ public sealed class PasswordEntryForm
     private string _urlName = PasswordEntryFieldNames.Url;
     private string _userName = PasswordEntryFieldNames.UserName;
     private string _pinName = PinFieldName;
+    private string _codeName = PasswordEntryFieldNames.VerificationCode;
     private string _notesName = PasswordEntryFieldNames.Notes;
 
     /// <summary>A form filled from an opened entry: the first field of each place (by the core's spellings) and the first
@@ -67,7 +90,8 @@ public sealed class PasswordEntryForm
         foreach (var field in content.Fields)
         {
             var slot = PasswordEntryFieldOrder.SlotOf(field.Name);
-            if (slot is PasswordFieldSlot.Url or PasswordFieldSlot.UserName or PasswordFieldSlot.Pin && taken.Add(slot))
+            if (slot is PasswordFieldSlot.Url or PasswordFieldSlot.UserName or PasswordFieldSlot.Pin or PasswordFieldSlot.VerificationCode
+                && taken.Add(slot))
             {
                 switch (slot)
                 {
@@ -76,6 +100,9 @@ public sealed class PasswordEntryForm
                         break;
                     case PasswordFieldSlot.UserName:
                         (form.UserName, form._userName) = (field.Value, field.Name);
+                        break;
+                    case PasswordFieldSlot.VerificationCode:
+                        (form.VerificationCode, form._codeName, form.HasVerificationCode) = (field.Value, field.Name, true);
                         break;
                     default:
                         (form.Pin, form._pinName, form.HasPin) = (field.Value, field.Name, true);
@@ -106,16 +133,22 @@ public sealed class PasswordEntryForm
             return "ApiErrPasswordItemNameRequired";
         }
 
+        if (VerificationCodeInvalid)
+        {
+            return "PwVerificationCodeInvalid";
+        }
+
         return Fields.Where(f => !IsBlank(f)).Any(f => !IsValidName(f.Name)) ? "PwFieldNameInvalid" : null;
     }
 
-    /// <summary>The content to seal: URL, user name, PIN, the further fields, then the notes; empty boxes are left out
+    /// <summary>The content to seal: URL, user name, PIN, verification code, the further fields, then the notes; empty boxes are left out
     /// (the core's order decides how it is shown, whatever order it is stored in).</summary>
     public PasswordEntryContent ToContent() => new(Password,
     [
         .. Known(_urlName, Url),
         .. Known(_userName, UserName),
         .. Known(_pinName, Pin, secret: true),   // a PIN is always hidden like a password (ADR 0965)
+        .. Known(_codeName, StoredCode(), secret: true),
         .. Fields.Where(f => !IsBlank(f)).Select(f => new PasswordEntryField(f.Name.Trim(), f.Value, f.IsSecret)),
         .. Known(_notesName, Notes),
     ]);
@@ -124,6 +157,20 @@ public sealed class PasswordEntryForm
     public static bool IsValidName(string name) =>
         !string.IsNullOrWhiteSpace(name) && name.IndexOfAny([':', '\n', '\r']) < 0
         && !name.Trim().EndsWith(PasswordEntryFormat.SecretMarker.Trim(), StringComparison.Ordinal);
+
+    // A link is stored as given, so whatever a site put in it survives an edit; a bare key becomes the standard link
+    // (ADR 1013), labelled with the user name or the entry's name. A value that does not read is refused by Problem().
+    private string StoredCode()
+    {
+        var value = VerificationCode.Trim();
+        if (value.Length == 0 || value.StartsWith("otpauth:", StringComparison.OrdinalIgnoreCase)
+            || !VerificationCodeSetup.TryParse(value, out var setup))
+        {
+            return value;
+        }
+
+        return setup!.ToUri(string.IsNullOrWhiteSpace(UserName) ? Name : UserName);
+    }
 
     private static IEnumerable<PasswordEntryField> Known(string name, string value, bool secret = false) =>
         string.IsNullOrEmpty(value) ? [] : [new PasswordEntryField(name, value, secret)];

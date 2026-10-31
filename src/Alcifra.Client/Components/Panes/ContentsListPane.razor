@@ -141,6 +141,12 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.LockClock" Size="Size.Small" Color="Color.Warning" title="@Strings.Get("AudSignNotYet")" />
                     }
+                    @* A password entry with a verification code (ADR 1013): the index says so; the web never opens it. *@
+                    @if (node.HasCode)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.PhonelinkLock" Size="Size.Small" Style="color: var(--mud-palette-text-secondary)" title="@Strings.Get("PwHasCode")"
+                                 aria-label="@Strings.Get("PwHasCode")" data-testid="has-code" />
+                    }
                     @if (!string.IsNullOrEmpty(node.SensitivityLabelName))
                     {
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="ma-0"

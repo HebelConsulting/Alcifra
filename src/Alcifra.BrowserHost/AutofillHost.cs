@@ -65,7 +65,7 @@ public sealed class AutofillHost(IAutofillStore store, ILogger logger, string ho
                     {
                         id,
                         ok = true,
-                        entries = matches.Select(m => new { id = m.Id, name = m.Name, path = m.Path, userName = m.UserName }),
+                        entries = matches.Select(m => new { id = m.Id, name = m.Name, path = m.Path, userName = m.UserName, hasCode = m.HasCode }),
                     };
 
                 case "open":
@@ -83,6 +83,7 @@ public sealed class AutofillHost(IAutofillStore store, ILogger logger, string ho
                         password = credentials.Password,
                         userName = credentials.UserName,
                         fields = credentials.Fields.Select(f => new { name = f.Name, value = f.Value }),
+                        code = credentials.Code,   // the verification code valid now (ADR 1013), or null
                     };
 
                 case "save":

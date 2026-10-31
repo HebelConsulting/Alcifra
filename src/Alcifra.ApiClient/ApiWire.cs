@@ -77,6 +77,10 @@ public static class ApiWire
     public static string? StrOrNull(JsonElement e, string name) =>
         e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
 
+    /// <summary>A Boolean property that is true; false where it is absent or anything else (an older server).</summary>
+    public static bool TrueOrFalse(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.True;
+
     /// <summary>A content address's bytes and content type, through the one funnel (<see cref="ApiCore.GetContentAsync"/>).</summary>
     public static Task<(byte[] Bytes, string ContentType)> DownloadAsync(string url, CancellationToken cancellationToken = default) =>
         ApiCore.GetContentAsync(url, cancellationToken);

@@ -68,3 +68,11 @@ description = "A tuple signature in CertificateChainTests, not a credential"
 targetRules = ["generic-api-key"]
 regexTarget = "line"
 regexes = ['''\(string Pem, RSA Key(, X509Certificate2 Certificate)?\)''']
+
+# The verification-code tests (#183, ADR 1013) use the test key RFC 6238 itself publishes: "12345678901234567890"
+# in Base32, GEZDGNBVGY3TQOJQ... (Appendix B). A public test vector, not a secret; allowed by that exact value only,
+# for the generic-api-key rule that reads `secret=`/`Key =` beside it as a key assignment.
+[[allowlists]]
+description = "RFC 6238 Appendix B test key (Base32), used by the verification-code tests"
+targetRules = ["generic-api-key"]
+regexes = ['''GEZDGNBVGY3TQOJQ(GEZDGNBVGY3TQOJQ)*''']

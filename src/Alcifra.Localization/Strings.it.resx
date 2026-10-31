@@ -6732,4 +6732,28 @@
   <data name="AudSavedWeb" xml:space="preserve">
     <value>Salvato. Per chi è stato aggiunto, un membro risigilla nell'app desktop o telefono.</value>
   </data>
+  <data name="PwVerificationCode" xml:space="preserve">
+    <value>Codice di verifica</value>
+  </data>
+  <data name="PwVerificationCodeInvalid" xml:space="preserve">
+    <value>Non è una chiave di configurazione né un link otpauth://.</value>
+  </data>
+  <data name="PwVerificationCodeNoQr" xml:space="preserve">
+    <value>Nessun codice QR trovato nell'immagine.</value>
+  </data>
+  <data name="PwVerificationCodeWatermark" xml:space="preserve">
+    <value>Incolla la chiave di configurazione o il link</value>
+  </data>
+  <data name="PwQrFromClipboard" xml:space="preserve">
+    <value>Leggi il codice QR da uno screenshot negli appunti</value>
+  </data>
+  <data name="PwQrFromFile" xml:space="preserve">
+    <value>Leggi il codice QR da un file immagine</value>
+  </data>
+  <data name="PwCodeSecondsLeft" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="PwHasCode" xml:space="preserve">
+    <value>Ha un codice di verifica</value>
+  </data>
 </root>

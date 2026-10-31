@@ -105,6 +105,10 @@ public class PasswordItemResource : HypermediaResource
 
     /// <summary>The entry's Android package name (ADR 0973), or null.</summary>
     public string? App { get; set; }
+
+    /// <summary>Whether the entry carries a verification code (ADR 1013): THAT a one-time code exists, never anything of
+    /// its secret. False for a folder, and for an entry no client has filed since the field existed.</summary>
+    public bool HasCode { get; set; }
 }
 
 /// <summary>One entry: what opening, editing and re-sealing it needs. Its ETag is the <c>If-Match</c> of a new version.</summary>
@@ -155,6 +159,10 @@ public class PasswordEntryResource : HypermediaResource
 
     /// <summary>The Android package name the entry also fills (ADR 0973), where the user set one.</summary>
     public string? App { get; set; }
+
+    /// <summary>Whether the entry carries a verification code (ADR 1013): THAT a one-time code exists, never anything of
+    /// its secret. False for a folder, and for an entry no client has filed since the field existed.</summary>
+    public bool HasCode { get; set; }
 }
 public class PasswordStoreRecipientsResource : HypermediaResource
 {
@@ -243,4 +251,8 @@ public class PasswordDescendantResource : HypermediaResource
 
     /// <inheritdoc cref="Site"/>
     public string? App { get; set; }
+
+    /// <summary>Whether the entry carries a verification code (ADR 1013): THAT a one-time code exists, never anything of
+    /// its secret. False for a folder, and for an entry no client has filed since the field existed.</summary>
+    public bool HasCode { get; set; }
 }

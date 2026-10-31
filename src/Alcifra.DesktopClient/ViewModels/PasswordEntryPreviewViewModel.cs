@@ -39,16 +39,42 @@ public sealed partial class SecretFieldViewModel : ObservableObject, IHoldToReve
     private int _queryLength;
     private int _activeLabel;
     private int _activeValue;
+    private ITimer? _ticker;
 
     public SecretFieldViewModel(PasswordEntryRow row, SecretFieldServices services)
     {
         (_field, _services) = (new SecretField(row, services.Clipboard, services.Time), services);
         _field.Reveal.Changed += Revealed;
+
+        // A verification code (ADR 1013) shows the code valid NOW: redrawn every second, on the UI thread, for the
+        // countdown and for the new code when a period ends. The timer runs on the same clock the code is computed on.
+        if (_field.IsCode)
+        {
+            _ticker = (services.Time ?? TimeProvider.System).CreateTimer(
+                _ => SecretBoxReveal.OnUi(Ticked), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
     }
 
     public string Label => _field.Row.Label;
 
     public bool IsSecret => _field.Row.IsSecret;
+
+    /// <summary>The verification code's row (ADR 1013): the current code, always shown, with a countdown and no eye.</summary>
+    public bool IsCode => _field.IsCode;
+
+    /// <summary>The eye: a secret's, but never a code's (its setup is never shown).</summary>
+    public bool HasEye => IsSecret && !IsCode;
+
+    /// <summary>The seconds the shown code stays valid; 0 for any other row.</summary>
+    public int SecondsLeft => _field.CurrentCode?.SecondsLeft ?? 0;
+
+    /// <summary>"23 s": the countdown beside a code; empty for any other row.</summary>
+    public string Countdown => _field.CurrentCode is { } code
+        ? string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Get("PwCodeSecondsLeft"), code.SecondsLeft)
+        : string.Empty;
+
+    /// <summary>How much of the period is left, 0 to 100, for the countdown's bar.</summary>
+    public double CountdownPercent => _field.CurrentCode is { } code ? 100.0 * code.SecondsLeft / code.Period : 0;
 
     public bool IsMultiline => _field.Row.IsMultiline;
 
@@ -126,6 +152,18 @@ public sealed partial class SecretFieldViewModel : ObservableObject, IHoldToReve
         _field.Hide();
         _protection?.Dispose();
         _protection = null;
+        _ticker?.Dispose();
+        _ticker = null;
+    }
+
+    /// <summary>A second passed: the code (new when a period ended) and its countdown are drawn again.</summary>
+    internal void Ticked()
+    {
+        OnPropertyChanged(nameof(Display));
+        OnPropertyChanged(nameof(SecondsLeft));
+        OnPropertyChanged(nameof(Countdown));
+        OnPropertyChanged(nameof(CountdownPercent));
+        OnPropertyChanged(nameof(ValueRuns));
     }
 
     private void Revealed()

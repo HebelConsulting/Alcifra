@@ -83,6 +83,9 @@ public sealed class NodeViewModel
     // Whether the caller can decrypt this row, for encrypted content (ADR 0983): marked before it is opened.
     public Alcifra.ApiClient.EncryptedFor EncryptedFor { get; init; }
 
+    /// <summary>A password entry with a verification code (ADR 1013), by its index: a marker in the list.</summary>
+    public bool HasCode { get; init; }
+
     /// <summary>"Not encrypted for you": the caller sees it but is not in its audience.</summary>
     public bool NotEncryptedForMe => EncryptedFor == Alcifra.ApiClient.EncryptedFor.NotYou;
 

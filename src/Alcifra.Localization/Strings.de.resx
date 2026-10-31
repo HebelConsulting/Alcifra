@@ -6732,4 +6732,28 @@
   <data name="AudSavedWeb" xml:space="preserve">
     <value>Gespeichert. Für Hinzugefügte versiegelt ein Mitglied in der Desktop- oder Telefon-App neu.</value>
   </data>
+  <data name="PwVerificationCode" xml:space="preserve">
+    <value>Bestätigungscode</value>
+  </data>
+  <data name="PwVerificationCodeInvalid" xml:space="preserve">
+    <value>Kein Einrichtungsschlüssel und kein otpauth://-Link.</value>
+  </data>
+  <data name="PwVerificationCodeNoQr" xml:space="preserve">
+    <value>Im Bild wurde kein QR-Code gefunden.</value>
+  </data>
+  <data name="PwVerificationCodeWatermark" xml:space="preserve">
+    <value>Einrichtungsschlüssel oder Link einfügen</value>
+  </data>
+  <data name="PwQrFromClipboard" xml:space="preserve">
+    <value>QR-Code aus einem Bildschirmfoto in der Zwischenablage lesen</value>
+  </data>
+  <data name="PwQrFromFile" xml:space="preserve">
+    <value>QR-Code aus einer Bilddatei lesen</value>
+  </data>
+  <data name="PwCodeSecondsLeft" xml:space="preserve">
+    <value>{0} s</value>
+  </data>
+  <data name="PwHasCode" xml:space="preserve">
+    <value>Hat einen Bestätigungscode</value>
+  </data>
 </root>

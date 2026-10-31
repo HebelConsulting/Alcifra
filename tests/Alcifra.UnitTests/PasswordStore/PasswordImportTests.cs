@@ -95,4 +95,48 @@ public sealed class PasswordImportTests
         // Same name, another user: no conflict to ask about, but the name is taken, so it gets its own.
         Assert.Equal(("other (carl)", (ExistingPasswordEntry?)null), (steps[2].Draft.Name, steps[2].NewVersionOf));
     }
+
+    // ADR 1013: a verification code in the export becomes the entry's Verification code field — a link as it came, a
+    // bare key as the standard link — and says the entry has a code. Fixture rows in the shapes managers export.
+    [Fact]
+    public void A_totp_column_becomes_the_verification_code()
+    {
+        const string Link = "otpauth://totp/Bank:anna?secret=GEZDGNBVGY3TQOJQ&issuer=Bank&digits=8";
+        var csv = "name,url,username,password,note,totp\n"
+            + $"Bank,https://bank.example,anna,pa55,,{Link}\n"
+            + "Mail,https://mail.example,bob,pw,,gezd gnbv gy3t qojq\n"
+            + "Shop,https://shop.example,carl,pw,,\n";
+
+        var drafts = PasswordImport.ReadGoogleCsv(csv).Drafts;
+
+        Assert.Equal(Link, drafts[0].Content.VerificationCode);
+        Assert.True(drafts[0].Content.HasCode);
+        var code = Assert.Single(drafts[0].Content.Fields, f => f.Name == PasswordEntryFieldNames.VerificationCode);
+        Assert.True(code.IsSecret);
+        Assert.Equal("otpauth://totp/bob?secret=GEZDGNBVGY3TQOJQ", drafts[1].Content.VerificationCode);
+        Assert.False(drafts[2].Content.HasCode);
+    }
+
+    [Theory]
+    [InlineData("login_totp")]
+    [InlineData("OTPAuth")]
+    [InlineData("otpSecret")]
+    public void Each_managers_column_name_is_read(string column)
+    {
+        var csv = $"name,url,username,password,{column}\nBank,https://bank.example,anna,pa55,GEZDGNBVGY3TQOJQ\n";
+
+        Assert.True(Assert.Single(PasswordImport.ReadGoogleCsv(csv).Drafts).Content.HasCode);
+    }
+
+    [Fact]
+    public void A_code_that_does_not_read_is_kept_as_an_ordinary_secret_and_claims_no_code()
+    {
+        var csv = "name,url,username,password,totp\nPlay,https://play.example,anna,pa55,steam://ABC1\n";
+
+        var content = Assert.Single(PasswordImport.ReadGoogleCsv(csv).Drafts).Content;
+
+        Assert.False(content.HasCode);
+        var kept = Assert.Single(content.Fields, f => f.Name == PasswordImport.UnreadableCodeFieldName);
+        Assert.Equal(("steam://ABC1", true), (kept.Value, kept.IsSecret));
+    }
 }

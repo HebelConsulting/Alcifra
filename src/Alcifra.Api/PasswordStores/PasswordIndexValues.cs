@@ -5,7 +5,8 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.PasswordStores;
 
 /// <summary>
-/// The three autofill index values an entry can carry (ADR 0973), read for a set of entries in ONE query.
+/// The autofill index values an entry can carry (ADR 0973, and ADR 1013's "Has code"), read for a set of entries in ONE
+/// query.
 /// </summary>
 /// <remarks>
 /// They are plain index fields on the Password Entry mask, derived by the client from the sealed content and written
@@ -19,6 +20,9 @@ public sealed class PasswordIndexValues
     public string? UserName { get; private init; }
 
     public string? App { get; private init; }
+
+    /// <summary>Whether the sealed content carries a verification code (ADR 1013); false where the field is absent.</summary>
+    public bool HasCode { get; private init; }
 
     public static readonly PasswordIndexValues None = new();
 
@@ -37,7 +41,8 @@ public sealed class PasswordIndexValues
                 where documentIds.Contains(value.DocumentId)
                     && (definition.Name == WellKnownMaskIds.PasswordEntryFields.Site
                         || definition.Name == WellKnownMaskIds.PasswordEntryFields.UserName
-                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.App)
+                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.App
+                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.HasCode)
                 select new { value.DocumentId, definition.Name, value.Value })
             .ToListAsync(cancellationToken);
 
@@ -50,6 +55,9 @@ public sealed class PasswordIndexValues
                     Site = g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.Site)?.Value,
                     UserName = g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.UserName)?.Value,
                     App = g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.App)?.Value,
+                    // A Boolean index field is stored as its invariant text, as every Boolean field is (SearchFieldMapper).
+                    HasCode = bool.TryParse(g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.HasCode)?.Value, out var hasCode)
+                        && hasCode,
                 });
     }
 }

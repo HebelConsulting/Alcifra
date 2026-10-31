@@ -76,6 +76,9 @@
          Docnet.Core (MIT) bundles PDFium (BSD-3) natives for win/macOS/Linux incl. arm64, and has NO
          SkiaSharp dependency (avoids a conflict with Avalonia's SkiaSharp 2.88). See ADR "Desktop workbench UI". -->
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <!-- ZXing.Net (Apache-2.0): reads a verification code's QR from a screenshot or an image file (ADR 1013), the
+         desktop having no camera. Its pixels come from the SkiaSharp the UI framework already ships. -->
+    <PackageReference Include="ZXing.Net" Version="0.16.11" />
     <!-- MimeKit arrives through Alcifra.ApiClient (SmimeEnvelope), at the version Infrastructure uses. -->
   </ItemGroup>
 

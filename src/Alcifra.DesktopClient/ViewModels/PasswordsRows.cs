@@ -75,6 +75,9 @@ public sealed class PasswordItemRowViewModel(PasswordItemInfo item)
     public bool IsFolder => Item.IsFolder;
 
     public string Icon => IsFolder ? "mdi-folder-key-outline" : "mdi-key-variant";
+
+    /// <summary>The entry carries a verification code (ADR 1013), from the listing's index: a marker beside its name.</summary>
+    public bool HasCode => Item.HasCode;
 }
 
 /// <summary>A notice above the list (ADR 0964): re-seal, urgent re-seal, the spare key, nothing to seal to.</summary>

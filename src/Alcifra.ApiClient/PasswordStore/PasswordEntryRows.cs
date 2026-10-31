@@ -14,11 +14,15 @@ public sealed record PasswordEntryRow(string Label, string Value, SecretFieldPre
 
     /// <summary>Where the row opens in the browser, or null (core #1949): the URL's row, by <see cref="WebLinks.Typed"/>.</summary>
     public Uri? Link { get; init; }
+
+    /// <summary>The verification code's row (ADR 1013): its value is the setup link, which is never shown; a client shows
+    /// the current code from it (<see cref="SecretField.CurrentCode"/>).</summary>
+    public bool IsVerificationCode => PasswordEntryFieldOrder.SlotOf(FieldName) == PasswordFieldSlot.VerificationCode;
 }
 
 /// <summary>
 /// An opened entry as both native clients show it (Mobile ADR 0037; both native clients since ADR 0968), in the core's order (<see cref="PasswordEntryFieldOrder"/>, core ADR
-/// 0965): URL, user name, password, PIN, then every other field in the entry's own order; what it does not have is
+/// 0965): URL, user name, password, PIN, verification code, then every other field in the entry's own order; what it does not have is
 /// skipped. The password, the PIN and fields marked secret are hidden, the rest plain. The well-known names are labelled in the
 /// user's language, every other field by its own name.
 /// </summary>
@@ -39,6 +43,7 @@ public static class PasswordEntryRows
         PasswordFieldSlot.Url => Strings.Get("PwUrl"),
         PasswordFieldSlot.UserName => Strings.Get("PwUserName"),
         PasswordFieldSlot.Pin => Strings.Get("MobKeyPin"),
+        PasswordFieldSlot.VerificationCode => Strings.Get("PwVerificationCode"),
         _ when IsNotes(fieldName) => Strings.Get("PwNotes"),
         _ => fieldName,
     };

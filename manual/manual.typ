@@ -707,7 +707,8 @@ it while the card stays in the reader. Only a hardware key opens an entry, never
 entries are sealed only to attested hardware keys. If you cancel the PIN prompt, the entry stays sealed and *Open with
 key* asks again. When you take the card out, the entry closes with it.
 
-*Reading it.* The fields come in the same order as on the phone: URL, user name, password, PIN, then everything else.
+*Reading it.* The fields come in the same order as on the phone: URL, user name, password, PIN, verification code, then
+everything else.
 The password, the PIN and every field marked secret show dots. Hold the eye button down (or hold the space bar while
 it has the focus) to see the value; it hides again the moment you let go, or when the window goes to the background.
 While a secret is visible, the window is kept out of screenshots and screen sharing, where your system allows it. The
@@ -715,9 +716,19 @@ copy button copies a field; a copied secret is removed from the clipboard after 
 something else since. The find box above the entry finds its name, its labels and its plain values, but never a hidden
 value, so it cannot be used to guess one.
 
+*Verification codes.*#idx("Verification code") An entry can also hold the six- or eight-digit code a site asks for as
+a second step when you sign in. Its row always shows the code valid right now, in two groups (*123 456*), with the
+seconds it stays valid beside it; when they run out, the next code appears. The copy button copies the code, and it is
+removed from the clipboard after 30 seconds like any secret. The key behind the codes is never shown: you can only
+replace it or remove it. In the list, an entry with a verification code carries a small *2FA* mark.
+
 *Changing it.* The pencil beside the entry's name opens the form in the preview's place, with *Save* and *Cancel*
 where the pencil was (*Ctrl+S* or *Cmd+S* saves, *Esc* cancels). The form always offers URL, user name and password;
-*Add field* offers the PIN first, then a field you name yourself, which you can hide like a password. In the form, a
+*Add field* offers the PIN first, then the verification code, then a field you name yourself, which you can hide like a
+password. For a verification code, paste the setup key the site shows (spaces and case do not matter) or its
+`otpauth://` link; a value that is neither is flagged beside the box. Most sites show a QR code instead: take a
+screenshot of it with your system's screenshot tool, so that it is on the clipboard, and click the QR button beside the
+box; the button beside it reads the QR code from a saved image file. In the form, a
 *click* on a secret box's eye shows the value for 15 seconds, so you can see what you type: every key you press starts
 the 15 seconds again, and a second click, *Save*, *Cancel* or leaving the window hides it at once. The dice beside
 the password open the generator: type a length, choose the kinds of characters, and tick *Avoid look-alike
@@ -749,11 +760,15 @@ works the same way: whoever files it chooses its audience, and *Encrypted for…
 
 *Importing.* The import button reads the CSV file a password manager exports, on your computer: every row becomes an
 entry, sealed here. Only a row whose name and user name match an entry already in the folder is asked about — skip it,
-add it as a new version, or keep both. Afterwards the desktop offers to delete the export file, because it holds every
+add it as a new version, or keep both. A column holding verification codes (named `totp`, `otpauth` or the like)
+becomes each entry's verification code. Afterwards the desktop offers to delete the export file, because it holds every
 password in plain text.
 
 An entry you come across in the *Repositories* tree shows its fields read-only in the preview, opened with your key
-each time; changing it is the Passwords tab's job.
+each time; changing it is the Passwords tab's job. In the *Repositories* list, of the desktop and of the web client
+alike, an entry with a verification code is marked as such; the web client never opens an entry, so the mark is all it
+shows. The browser extension fills a sign-in's code field with the current code of the entry you choose, and the
+command-line tool prints it with `apass otp` and the entry's path.
 
 == On a phone or a tablet
 

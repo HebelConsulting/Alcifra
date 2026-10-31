@@ -44,7 +44,7 @@ public sealed partial class SecretBoxReveal : ObservableObject
         OnPropertyChanged(nameof(EyeIcon));
     }
 
-    private static void OnUi(Action action)
+    internal static void OnUi(Action action)
     {
         if (Avalonia.Application.Current is null || Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
         {
@@ -253,6 +253,37 @@ public sealed partial class PasswordEntryEditorViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// The verification code's setup (ADR 1013): the stored link, or a setup key or link the user pastes or a QR code
+    /// read from an image gives. The box always masks it — its secret is never shown, only replaced or removed — and a
+    /// value that does not read is flagged beside it (<see cref="VerificationCodeProblem"/>).
+    /// </summary>
+    public string VerificationCode
+    {
+        get => _form.VerificationCode;
+        set
+        {
+            if (SetProperty(_form.VerificationCode, value, _form, (f, v) => f.VerificationCode = v))
+            {
+                _scanProblem = null;   // the box changed: a failed read's message no longer describes it
+                OnPropertyChanged(nameof(VerificationCodeProblem));
+                OnPropertyChanged(nameof(HasVerificationCodeProblem));
+            }
+        }
+    }
+
+    public bool HasVerificationCode => _form.HasVerificationCode;
+
+    /// <summary>"Add field" offers the verification code after the PIN, while the form has none (ADR 1013).</summary>
+    public bool SuggestsVerificationCode => _form.SuggestsVerificationCode;
+
+    /// <summary>Why the box's value is not a setup, flagged inline; null when it reads or is empty.</summary>
+    public string? VerificationCodeProblem => _scanProblem ?? (_form.VerificationCodeInvalid ? Strings.Get("PwVerificationCodeInvalid") : null);
+
+    public bool HasVerificationCodeProblem => VerificationCodeProblem is not null;
+
+    private string? _scanProblem;
+
     public string Notes
     {
         get => _form.Notes;
@@ -287,6 +318,48 @@ public sealed partial class PasswordEntryEditorViewModel : ObservableObject
         _form.AddPin();
         OnPropertyChanged(nameof(HasPin));
         OnPropertyChanged(nameof(SuggestsPin));
+    }
+
+    [RelayCommand]
+    private void AddVerificationCode()
+    {
+        _form.AddVerificationCode();
+        OnPropertyChanged(nameof(HasVerificationCode));
+        OnPropertyChanged(nameof(SuggestsVerificationCode));
+    }
+
+    /// <summary>
+    /// What a QR code read from an image held (the clipboard's screenshot or a file, read by the view): a setup link
+    /// fills the box; no code found, or one that is not a setup, is said beside it and leaves the box as it was.
+    /// </summary>
+    public void AcceptScannedCode(string? text)
+    {
+        if (text is null)
+        {
+            SetScanProblem(Strings.Get("PwVerificationCodeNoQr"));
+            return;
+        }
+
+        if (!VerificationCodeSetup.TryParse(text, out _))
+        {
+            SetScanProblem(Strings.Get("PwVerificationCodeInvalid"));
+            return;
+        }
+
+        if (!HasVerificationCode)
+        {
+            AddVerificationCode();
+        }
+
+        SetScanProblem(null);
+        VerificationCode = text.Trim();
+    }
+
+    private void SetScanProblem(string? problem)
+    {
+        _scanProblem = problem;
+        OnPropertyChanged(nameof(VerificationCodeProblem));
+        OnPropertyChanged(nameof(HasVerificationCodeProblem));
     }
 
     [RelayCommand]

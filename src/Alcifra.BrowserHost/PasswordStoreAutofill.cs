@@ -1,4 +1,5 @@
 using Alcifra.ApiClient.PasswordStore;
+using Alcifra.Presentation;
 
 namespace Alcifra.BrowserHost;
 
@@ -32,7 +33,7 @@ public static class PasswordStoreAutofill
                 .Where(r => !r.IsFolder
                     && ((r.Site is { } siteValue && string.Equals(siteValue, wanted, StringComparison.OrdinalIgnoreCase))
                         || (app is { Length: > 0 } package && string.Equals(r.App, package, StringComparison.Ordinal))))
-                .Select(r => new AutofillMatch(r.Id, r.Name, r.Path, r.UserName)));
+                .Select(r => new AutofillMatch(r.Id, r.Name, r.Path, r.UserName, r.HasCode)));
         }
 
         return matches;
@@ -48,11 +49,22 @@ public static class PasswordStoreAutofill
         }
 
         var opened = await passwords.OpenAsync(await passwords.GetEntryAsync(row.Href, cancellationToken), cancellationToken);
-        return new AutofillCredentials(
-            opened.Content.Password,
-            opened.Content.UserName,
-            [.. opened.Content.Fields.Select(f => new AutofillField(f.Name, f.Value))]);
+        return Credentials(opened.Content, TimeProvider.System);
     }
+
+    /// <summary>
+    /// What an opened entry hands the browser: the password, the user name, every field but the verification code's
+    /// setup — which never leaves this machine — and the code valid now on <paramref name="clock"/> (ADR 1013).
+    /// </summary>
+    public static AutofillCredentials Credentials(PasswordEntryContent content, TimeProvider clock) => new(
+        content.Password,
+        content.UserName,
+        [
+            .. content.Fields
+                .Where(f => PasswordEntryFieldOrder.SlotOf(f.Name) != PasswordFieldSlot.VerificationCode)
+                .Select(f => new AutofillField(f.Name, f.Value)),
+        ],
+        VerificationCodeSetup.TryParse(content.VerificationCode, out var setup) ? setup!.Current(clock).Value : null);
 
     /// <summary>
     /// Creates the entry a submitted form describes in My Passwords, or updates the entry the browser named — under

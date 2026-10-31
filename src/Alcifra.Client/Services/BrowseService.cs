@@ -156,7 +156,8 @@ public sealed class BrowseService(HttpClient http, ApiRoot apiRoot)
                     Admits: c.Admits,
                     Icon: c.Icon,
                     Folder: c.IsFolder,
-                    EncryptedForCaller: c.EncryptedForCaller));
+                    EncryptedForCaller: c.EncryptedForCaller,
+                    HasCode: c.HasCode));
             }
             url = Links.Href(page?.Links, "next");
         }

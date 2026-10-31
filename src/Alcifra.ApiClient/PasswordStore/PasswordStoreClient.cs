@@ -81,7 +81,8 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 ApiCore.RequireRel(i, "self", "A descendant row"),
                 ApiWire.StrOrNull(i, "site"),
                 ApiWire.StrOrNull(i, "userName"),
-                ApiWire.StrOrNull(i, "app")))
+                ApiWire.StrOrNull(i, "app"),
+                ApiWire.TrueOrFalse(i, "hasCode")))
             .ToList();
         var next = json.GetProperty("links").EnumerateArray()
             .Where(l => l.GetProperty("rel").GetString() == "next")
@@ -400,7 +401,7 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 kekGeneration = encrypted?.KekGeneration,
                 commentKind,
                 passwordChanged,
-                index = new { site = content.Site, userName = content.UserName, app = content.App },
+                index = new { site = content.Site, userName = content.UserName, app = content.App, hasCode = content.HasCode },
             }),
         };
         if (ifMatch is not null)
@@ -469,7 +470,8 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 LinkMap.From(i) ?? LinkMap.Empty,
                 ApiWire.StrOrNull(i, "site"),
                 ApiWire.StrOrNull(i, "userName"),
-                ApiWire.StrOrNull(i, "app"))),
+                ApiWire.StrOrNull(i, "app"),
+                ApiWire.TrueOrFalse(i, "hasCode"))),
         ],
         LinkMap.From(json) ?? LinkMap.Empty,
         ApiWire.StrOrNull(json, "newEntryUnavailableReason"),

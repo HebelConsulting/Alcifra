@@ -599,4 +599,48 @@ public sealed partial class PasswordStoreTests
         Assert.Equal("anna3@example.com", refiled.UserName);
         return 0;
     });
+
+    // ADR 1013: "Has code" says THAT an entry carries a verification code — derived by the client from the content it
+    // seals, filed with the version, on the entry, its listing row and the flat descendants — and nothing more: the
+    // stored value is a Boolean, never the setup. Removing the code clears it with the next version.
+    [Fact]
+    public Task An_entry_says_it_has_a_verification_code_without_being_opened() => WithEnrolmentAsync(async rig =>
+    {
+        const string Setup = "otpauth://totp/Bank:anna?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Bank";
+        var client = rig.Anna.Client;
+        var mine = await client.EnsureMyPasswordsAsync();
+        var content = new PasswordEntryContent("hunter2",
+        [
+            new(PasswordEntryFieldNames.UserName, "anna"),
+            new(PasswordEntryFieldNames.Url, "https://bank.example"),
+            new(PasswordEntryFieldNames.VerificationCode, Setup, IsSecret: true),
+        ]);
+
+        var entry = await client.CreateEntryAsync(mine, "Bank with code", content);
+        Assert.True(entry.HasCode);
+        Assert.True(Assert.Single((await client.GetFolderAsync(mine.Links.Href("self")!)).Items, i => i.Id == entry.Id).HasCode);
+        var (rows, _) = await client.DescendantsPageAsync(mine.Links.Href("descendants")!);
+        Assert.True(Assert.Single(rows, r => r.Id == entry.Id).HasCode);
+
+        // Met as a document in the Repositories tree, its row says so too: the web marks it, never opening it.
+        var children = await TestJson.Get(rig.Anna.Http, $"/api/documents/{mine.Id}/children");
+        var child = children.GetProperty("children").EnumerateArray().Single(i => i.GetProperty("id").GetGuid() == entry.Id);
+        Assert.True(child.GetProperty("hasCode").GetBoolean());
+
+        // Stored as a Boolean, and nothing of the secret reaches an index value.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+            var values = await db.FieldValues.IgnoreQueryFilters().Where(v => v.DocumentId == entry.Id).Select(v => v.Value).ToListAsync();
+            Assert.Contains("true", values);
+            Assert.DoesNotContain(values, v => v.Contains("GEZDGNBV", StringComparison.Ordinal));
+        }
+
+        // The code removed: the next version clears the flag.
+        var opened = await client.OpenAsync(entry);
+        var saved = await client.SaveEntryAsync(opened, new PasswordEntryContent("hunter2", [new(PasswordEntryFieldNames.UserName, "anna")]));
+        Assert.False(saved.HasCode);
+        Assert.Equal("anna", saved.UserName);
+        return 0;
+    });
 }

@@ -410,4 +410,52 @@ public class WellKnownMaskFieldHealTests
         Assert.Equal("From", ordered[0].Name); // the seed list's first field leads
     }
 
+    // ADR 1013: "Has code" joins the Password Entry mask as an OPTIONAL Boolean beside ADR 0973's autofill fields, and a
+    // tenant whose entries predate it gains it at the next start: no migration, no new mask version, no value written.
+    [Fact]
+    public async Task The_password_entry_mask_gains_Has_code_on_a_tenant_that_predates_it()
+    {
+        using var connection = new SqliteConnection("Filename=:memory:");
+        await connection.OpenAsync();
+        var accessor = new CurrentTenantAccessor { TenantId = _tenantId };
+        using (var setup = Ctx(connection, accessor)) await setup.Database.EnsureCreatedAsync();
+        using (var db = Ctx(connection, accessor))
+        {
+            db.Tenants.Add(new Tenant { Id = _tenantId, Name = "Older", CreatedAt = DateTimeOffset.UtcNow });
+            await db.SaveChangesAsync();
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            db.FieldDefinitions.RemoveRange(await db.FieldDefinitions.IgnoreQueryFilters()
+                .Where(f => f.Name == WellKnownMaskIds.PasswordEntryFields.HasCode).ToListAsync());
+            await db.SaveChangesAsync();
+            Assert.DoesNotContain(WellKnownMaskIds.PasswordEntryFields.HasCode, await FieldNamesAsync(db, WellKnownMaskIds.PasswordEntry));
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            await Seeder(db).EnsureWellKnownMasksAsync(_tenantId);
+        }
+
+        using (var db = Ctx(connection, accessor))
+        {
+            Assert.Equal(
+                [WellKnownMaskIds.PasswordEntryFields.ExposedSince, WellKnownMaskIds.PasswordEntryFields.Site,
+                 WellKnownMaskIds.PasswordEntryFields.UserName, WellKnownMaskIds.PasswordEntryFields.App,
+                 WellKnownMaskIds.PasswordEntryFields.HasCode],
+                (await db.FieldDefinitions.IgnoreQueryFilters()
+                    .Join(db.MaskVersions.IgnoreQueryFilters().Where(v => v.MaskId == WellKnownMaskIds.PasswordEntry && v.IsCurrent),
+                        f => f.MaskVersionId, v => v.Id, (f, _) => f)
+                    .ToListAsync()).OrderBy(f => f.SortOrder).Select(f => f.Name));
+
+            var hasCode = await db.FieldDefinitions.IgnoreQueryFilters()
+                .SingleAsync(f => f.Name == WellKnownMaskIds.PasswordEntryFields.HasCode);
+            Assert.Equal(FieldDataType.Boolean, hasCode.DataType);
+            Assert.False(hasCode.IsRequired);
+            Assert.Equal(1, await db.MaskVersions.IgnoreQueryFilters()
+                .CountAsync(v => v.TenantId == _tenantId && v.MaskId == WellKnownMaskIds.PasswordEntry));
+        }
+    }
 }

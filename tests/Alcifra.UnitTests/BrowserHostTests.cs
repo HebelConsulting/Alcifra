@@ -9,6 +9,24 @@ namespace Alcifra.UnitTests;
 // secret never reaches the log.
 public class BrowserHostTests
 {
+    // ---- Verification codes (ADR 1013) ----
+
+    // What an opened entry hands the browser: the code valid now, by the shared rule, and never the setup behind it.
+    [Fact]
+    public void An_opened_entry_hands_the_browser_the_current_code_and_never_its_setup()
+    {
+        const string Setup = "otpauth://totp/Bank:anna?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+        var content = new Alcifra.ApiClient.PasswordStore.PasswordEntryContent("pa55",
+            [new("User name", "anna"), new("TOTP", Setup, IsSecret: true), new("Notes", "n")]);
+
+        var credentials = PasswordStoreAutofill.Credentials(content, new PasswordStore.ManualTime(DateTimeOffset.FromUnixTimeSeconds(59)));
+
+        Assert.Equal("287082", credentials.Code);
+        Assert.DoesNotContain(credentials.Fields, f => f.Value == Setup);
+        Assert.Equal(["User name", "Notes"], credentials.Fields.Select(f => f.Name));
+        Assert.Null(PasswordStoreAutofill.Credentials(new("pa55", []), TimeProvider.System).Code);
+    }
+
     // ---- Framing (Chrome: 32-bit native-order length, then UTF-8 JSON) ----
 
     [Fact]

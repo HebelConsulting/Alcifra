@@ -94,7 +94,9 @@ public sealed record Node(Guid Id, string Name, bool HasChildren, bool HasVersio
     bool? Folder = null,
     // Whether this caller can decrypt it, for encrypted content only (ADR 0983): the Repositories tab marks what it
     // can see but not open, before it is opened.
-    EncryptedFor EncryptedFor = EncryptedFor.NotEncryptedContent)
+    EncryptedFor EncryptedFor = EncryptedFor.NotEncryptedContent,
+    // A password entry with a verification code (ADR 1013), from its index: marked in the list before it is opened.
+    bool HasCode = false)
 {
     /// <summary>Whether the row is a folder: the server's answer from the mask (#1708), else the old inference
     /// "has no file version", which reads a file-less record (a push key, a credential) as an empty folder.</summary>

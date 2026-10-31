@@ -1,11 +1,13 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using Alcifra.ApiClient.PasswordStore;
 using Alcifra.BrowserHost;
 
 namespace Alcifra.BrowserExtensionTests;
 
-/// <summary>One entry the fake store holds; the secret is a test value.</summary>
-public sealed record FakeEntry(Guid Id, string Site, string Name, string Path, string? UserName, string Password);
+/// <summary>One entry the fake store holds; the secret is a test value. <paramref name="CodeSetup"/> is a verification
+/// code's setup (ADR 1013), or null.</summary>
+public sealed record FakeEntry(Guid Id, string Site, string Name, string Path, string? UserName, string Password, string? CodeSetup = null);
 
 /// <summary>One call the store answered, recorded for the test to assert on; <see cref="Host"/> names which
 /// registered client served it.</summary>
@@ -41,7 +43,7 @@ public sealed class FakeAutofillStore(string stateFolder, string hostName) : IAu
         Record(new FakeCall(hostName, "match", site, null, null, null));
         IReadOnlyList<AutofillMatch> matches = Entries()
             .Where(e => string.Equals(e.Site, site, StringComparison.OrdinalIgnoreCase))
-            .Select(e => new AutofillMatch(e.Id, e.Name, e.Path, e.UserName))
+            .Select(e => new AutofillMatch(e.Id, e.Name, e.Path, e.UserName, e.CodeSetup is not null))
             .ToList();
         return Task.FromResult(matches);
     }
@@ -50,7 +52,18 @@ public sealed class FakeAutofillStore(string stateFolder, string hostName) : IAu
     {
         Record(new FakeCall(hostName, "open", null, entryId, null, null));
         var entry = Entries().SingleOrDefault(e => e.Id == entryId);
-        return Task.FromResult(entry is null ? null : new AutofillCredentials(entry.Password, entry.UserName, []));
+        if (entry is null)
+        {
+            return Task.FromResult<AutofillCredentials?>(null);
+        }
+
+        // Shaped by the real rule both hosts use, so the code the page fills is the one they would hand it.
+        var content = new PasswordEntryContent(entry.Password,
+        [
+            .. entry.UserName is null ? [] : new[] { new PasswordEntryField(PasswordEntryFieldNames.UserName, entry.UserName) },
+            .. entry.CodeSetup is null ? [] : new[] { new PasswordEntryField(PasswordEntryFieldNames.VerificationCode, entry.CodeSetup, IsSecret: true) },
+        ]);
+        return Task.FromResult<AutofillCredentials?>(PasswordStoreAutofill.Credentials(content, TimeProvider.System));
     }
 
     public Task<AutofillSaved> SaveAsync(AutofillSave save, CancellationToken cancellationToken)

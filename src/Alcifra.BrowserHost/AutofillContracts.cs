@@ -1,11 +1,14 @@
 namespace Alcifra.BrowserHost;
 
 /// <summary>One entry an autofill sheet offers: its name and user name — never the secret, which is only read when
-/// the user picks one.</summary>
-public sealed record AutofillMatch(Guid Id, string Name, string Path, string? UserName);
+/// the user picks one. <paramref name="HasCode"/> is the index's word that it carries a verification code (ADR 1013),
+/// so a one-time-code field is offered only the entries that can fill it.</summary>
+public sealed record AutofillMatch(Guid Id, string Name, string Path, string? UserName, bool HasCode = false);
 
-/// <summary>What the browser fills once the user has chosen an entry.</summary>
-public sealed record AutofillCredentials(string Password, string? UserName, IReadOnlyList<AutofillField> Fields);
+/// <summary>What the browser fills once the user has chosen an entry. <paramref name="Code"/> is the verification code
+/// valid NOW (ADR 1013), computed on this machine by the shared rule; the setup behind it never leaves the host, so it
+/// is not among the <paramref name="Fields"/>.</summary>
+public sealed record AutofillCredentials(string Password, string? UserName, IReadOnlyList<AutofillField> Fields, string? Code = null);
 
 /// <summary>One field of an opened entry, for a form that asks for more than a user name.</summary>
 public sealed record AutofillField(string Name, string Value);

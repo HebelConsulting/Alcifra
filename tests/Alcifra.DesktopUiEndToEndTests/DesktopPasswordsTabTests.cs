@@ -390,6 +390,117 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
 
     // ---- the rig --------------------------------------------------------------------------------------------------
 
+    // ADR 1013: the verification code's row shows the code valid NOW — the same digits an independent implementation
+    // computes — with its countdown and no eye; the setup is never displayed, and copying copies the code as a secret.
+    [Fact]
+    public async Task A_verification_code_shows_the_current_code_with_a_countdown_and_copies_it_as_a_secret()
+    {
+        const string Key = "JBSWY3DPEHPK3PXP";
+        _store.AddEntry("Code hosting", Seal(CodeHosting with
+        {
+            Fields = [.. CodeHosting.Fields, new PasswordEntryField(PasswordEntryFieldNames.VerificationCode, $"otpauth://totp/Code:anna?secret={Key}", IsSecret: true)],
+        }));
+        var rows = (await OpenAsync("Code hosting")).Preview.PasswordEntry!.Rows;
+
+        // In the core's order: after the PIN, before the notes.
+        Assert.Equal([Strings.Get("PwUrl"), Strings.Get("PwUserName"), Strings.Get("PwPassword"), Strings.Get("MobKeyPin"), Strings.Get("PwVerificationCode"), Strings.Get("PwNotes")],
+            rows.Select(r => r.Label));
+        var code = rows.Single(r => r.IsCode);
+        var expected = new OtpNet.Totp(OtpNet.Base32Encoding.ToBytes(Key)).ComputeTotp(_time.GetUtcNow().UtcDateTime);
+        Assert.Equal($"{expected[..3]} {expected[3..]}", code.Display);
+        Assert.False(code.HasEye);
+        Assert.DoesNotContain(Key, code.Display, StringComparison.Ordinal);
+        Assert.Equal(30, code.SecondsLeft);   // the demo clock stands on a period's first second
+        Assert.Equal(string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Get("PwCodeSecondsLeft"), 30), code.Countdown);
+
+        var clearing = code.CopyForTestAsync();
+        Assert.Equal(expected, _clipboard.Text);
+        Assert.True(_clipboard.Sensitive);
+        _time.Advance(SecretFields.ClipboardLifetime);
+        Assert.True(await clearing);
+        Assert.Null(_clipboard.Text);
+    }
+
+    // ADR 1013: the form offers the code after the PIN; a pasted bare key is filed as the standard link; a value that
+    // is no setup is flagged beside the box and refused; a QR read from a screenshot fills the box.
+    [Fact]
+    public async Task A_verification_code_is_added_from_a_pasted_key_or_a_screenshots_QR_and_a_bad_one_is_flagged()
+    {
+        _store.MineExists = false;
+        var tab = await LoadedTabAsync();
+        await Eventually(() => tab.CanCreateEntry);
+        tab.NewEntryCommand.Execute(null);
+        var editor = tab.Editor!;
+        Assert.True(editor.SuggestsPin);
+        Assert.True(editor.SuggestsVerificationCode);
+        editor.Name = "Bank";
+        editor.UserName = "anna";
+        editor.Password = "pa55word";
+
+        editor.AddVerificationCodeCommand.Execute(null);
+        Assert.True(editor.HasVerificationCode);
+        Assert.False(editor.SuggestsVerificationCode);
+        editor.VerificationCode = "not-a-key-1!";
+        Assert.Equal(Strings.Get("PwVerificationCodeInvalid"), editor.VerificationCodeProblem);
+        await editor.SaveAsync();
+        Assert.Equal(Strings.Get("PwVerificationCodeInvalid"), editor.Problem);
+
+        // A screenshot with no QR in it says so and leaves the box alone; one with the site's QR fills it.
+        editor.AcceptScannedCode(QrCodeImage.Decode(Png(new bool[1, 1])));
+        Assert.Equal(Strings.Get("PwVerificationCodeNoQr"), editor.VerificationCodeProblem);
+        const string Link = "otpauth://totp/Bank:anna?secret=JBSWY3DPEHPK3PXP&issuer=Bank";
+        editor.AcceptScannedCode(QrCodeImage.Decode(Png(QrModules(Link))));
+        Assert.Null(editor.VerificationCodeProblem);
+        Assert.Equal(Link, editor.VerificationCode);
+
+        editor.VerificationCode = "jbsw y3dp ehpk 3pxp";   // a pasted key, as a site prints it
+        await editor.SaveAsync();
+        var fields = Open(_store.Entry("Bank").Content!).Fields;
+        Assert.Contains(fields, f => f is { Name: "Verification code", IsSecret: true, Value: "otpauth://totp/anna?secret=JBSWY3DPEHPK3PXP" });
+    }
+
+    // A QR code's modules for a text, drawn by the same library that reads them back.
+    private static bool[,] QrModules(string text)
+    {
+        var matrix = new ZXing.QrCode.QRCodeWriter().encode(text, ZXing.BarcodeFormat.QR_CODE, 0, 0);
+        var modules = new bool[matrix.Width, matrix.Height];
+        for (var x = 0; x < matrix.Width; x++)
+        {
+            for (var y = 0; y < matrix.Height; y++)
+            {
+                modules[x, y] = matrix[x, y];
+            }
+        }
+
+        return modules;
+    }
+
+    // A screenshot-like PNG: the modules scaled up, on a wide white margin, as a QR sits on a page.
+    private static byte[] Png(bool[,] modules)
+    {
+        const int Scale = 6, Margin = 80;
+        var (width, height) = (modules.GetLength(0) * Scale + 2 * Margin, modules.GetLength(1) * Scale + 2 * Margin);
+        using var bitmap = new SkiaSharp.SKBitmap(width, height);
+        using (var canvas = new SkiaSharp.SKCanvas(bitmap))
+        {
+            canvas.Clear(SkiaSharp.SKColors.White);
+            using var black = new SkiaSharp.SKPaint { Color = SkiaSharp.SKColors.Black };
+            for (var x = 0; x < modules.GetLength(0); x++)
+            {
+                for (var y = 0; y < modules.GetLength(1); y++)
+                {
+                    if (modules[x, y])
+                    {
+                        canvas.DrawRect(Margin + x * Scale, Margin + y * Scale, Scale, Scale, black);
+                    }
+                }
+            }
+        }
+
+        using var image = SkiaSharp.SKImage.FromBitmap(bitmap);
+        return image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100).ToArray();
+    }
+
     private SecretFieldServices Services() => new(_clipboard, text => { _plainCopy = text; return Task.CompletedTask; }, _shell, _screens, _time);
 
     private async Task<PasswordsTabViewModel> LoadedTabAsync()

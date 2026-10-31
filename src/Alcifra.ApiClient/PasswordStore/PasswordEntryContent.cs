@@ -20,6 +20,10 @@ public static class PasswordEntryFieldNames
     /// it. The one metadata value a user sets deliberately, as an ordinary field of the entry.
     /// </summary>
     public const string App = "App";
+
+    /// <summary>The verification code's setup (ADR 1013): an <c>otpauth://totp/…</c> link, always secret. Any spelling of
+    /// the slot (<see cref="PasswordEntryFieldOrder"/>) is read; a form files a new one under this name.</summary>
+    public const string VerificationCode = "Verification code";
 }
 
 /// <summary>
@@ -72,6 +76,18 @@ public sealed record PasswordEntryContent(string Password, IReadOnlyList<Passwor
 
     /// <summary>The Android package name the entry also fills (ADR 0973), or null.</summary>
     public string? App => Value(PasswordEntryFieldNames.App);
+
+    /// <summary>The verification code's setup as stored (ADR 1013): the first field of that slot, in any spelling; null
+    /// where there is none.</summary>
+    public string? VerificationCode =>
+        Fields.FirstOrDefault(f => PasswordEntryFieldOrder.SlotOf(f.Name) == PasswordFieldSlot.VerificationCode)?.Value is { } value
+        && !string.IsNullOrWhiteSpace(value) ? value : null;
+
+    /// <summary>
+    /// Whether the entry carries a verification code (ADR 1013): the index flag a client files with the version, so a
+    /// one-time-code field can be offered this entry without opening it. It says only THAT a code exists.
+    /// </summary>
+    public bool HasCode => VerificationCode is not null;
 
     /// <summary>The first field of that name, compared without case; null when there is none.</summary>
     public string? Value(string fieldName) =>

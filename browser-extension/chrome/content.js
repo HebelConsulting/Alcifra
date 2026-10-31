@@ -1,5 +1,6 @@
 // The page's half: finds login fields, offers the matching entries, fills what the user picks, and offers to keep a
-// submitted login.
+// submitted login. A one-time-code field (ADR 1013) is offered the matching entries that carry a verification code,
+// and filled with the code valid now, which the host computes; the setup behind it never reaches the page.
 //
 // It never reads anything but the fields it fills, and it sends only the SITE to the host — the names it lists and
 // the secret it fills never pass through the page's storage.
@@ -8,6 +9,7 @@
   let menu = null;
   let chip = null;
   let target = null;
+  let offeringCode = false; // the chip or menu on screen belongs to a one-time-code field
 
   const ask = (message) => new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response) => {
@@ -77,6 +79,67 @@
     }
     setValue(target, credentials.password);
     closeAll();
+  }
+
+  // A field that asks for a one-time code: the standard autocomplete token, or the names sites give such a field.
+  const CODE_NAMES = /(^|[^a-z])(otp|totp|2fa|mfa)([^a-z]|$)|one.?time.?(code|password)|verification.?code|security.?code|auth(entication)?.?code/;
+
+  function isCodeField(input) {
+    if (!(input instanceof HTMLInputElement) || !["text", "tel", "number"].includes(input.type)) {
+      return false;
+    }
+    if ((input.getAttribute("autocomplete") || "").toLowerCase().split(/\s+/).includes("one-time-code")) {
+      return true;
+    }
+    return CODE_NAMES.test(`${input.name} ${input.id}`.toLowerCase());
+  }
+
+  function showCodeMenu(input, entries) {
+    closeAll();
+    menu = document.createElement("div");
+    menu.className = "sa-menu";
+    for (const entry of entries) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.textContent = entry.name;
+      const sub = document.createElement("span");
+      sub.className = "sa-sub";
+      sub.textContent = [entry.userName, entry.path].filter(Boolean).join(" · ");
+      item.appendChild(sub);
+      item.addEventListener("mousedown", async (event) => {
+        event.preventDefault();
+        try {
+          const opened = await ask({ type: "host", command: { command: "open", entryId: entry.id } });
+          if (!opened.code) {
+            note("This entry's verification code cannot be read.");
+            return;
+          }
+          setValue(input, opened.code);
+          closeAll();
+        } catch (error) {
+          note(error.message);
+        }
+      });
+      menu.appendChild(item);
+    }
+    document.body.appendChild(menu);
+    position(menu, input);
+  }
+
+  async function offerCode(input) {
+    target = null;
+    offeringCode = true;
+    try {
+      const answer = await ask({ type: "host", command: { command: "match", site: SITE } });
+      const withCode = (answer.entries || []).filter((entry) => entry.hasCode);
+      if (withCode.length === 0) {
+        closeAll();
+        return;
+      }
+      showChip(input, `Alcifra code (${withCode.length})`, () => showCodeMenu(input, withCode));
+    } catch (error) {
+      showChip(input, "Alcifra: unavailable", () => note(error.message));
+    }
   }
 
   function showMenu(input, entries) {
@@ -250,7 +313,14 @@
   document.addEventListener("focusin", (event) => {
     const field = event.target;
     if (field instanceof HTMLInputElement && field.type === "password") {
+      offeringCode = false;
       offer(field);
+    } else if (isCodeField(field)) {
+      offerCode(field);
+    } else if (offeringCode) {
+      // Focus left the code field for one that asks for nothing we fill: its offer goes with it.
+      offeringCode = false;
+      closeAll();
     }
   }, true);
 

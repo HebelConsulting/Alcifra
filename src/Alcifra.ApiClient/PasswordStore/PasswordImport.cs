@@ -35,10 +35,22 @@ public sealed record PasswordImportResult(IReadOnlyList<PasswordImportDraft> Dra
 /// Import from another password manager (ADR 0964, owner decision 2026-10-23), CLIENT SIDE ONLY: the export is read on
 /// the device and each row becomes an entry sealed there, through the ordinary create, so the plaintext never reaches
 /// the server. Google Password Manager's CSV first (<c>name,url,username,password,note</c>); other formats follow as
-/// further readers producing the same drafts.
+/// further readers producing the same drafts. A verification code's setup (ADR 1013) is read from a column named as the
+/// managers that export one name it (<see cref="CodeColumns"/>), so a CSV of the same shape that carries one keeps it.
 /// </summary>
 public static class PasswordImport
 {
+    /// <summary>
+    /// The header names a verification code's setup arrives under (ADR 1013), compared without case: <c>totp</c> (a
+    /// name/url/username/password export that carries one — the shape several managers share), <c>login_totp</c>,
+    /// <c>otpauth</c>, <c>otp</c> and <c>otpsecret</c>. The value is an <c>otpauth://totp/…</c> link or a bare setup key.
+    /// </summary>
+    public static readonly IReadOnlyList<string> CodeColumns = ["totp", "login_totp", "otpauth", "otp", "otpsecret"];
+
+    /// <summary>The field a code that does not read is kept under: an ordinary secret, so nothing of the export is lost
+    /// and the entry does not claim a code it cannot show.</summary>
+    public const string UnreadableCodeFieldName = "Verification code (unreadable)";
+
     /// <summary>Reads a Google Password Manager CSV export: RFC 4180 quoting, multi-line notes, a byte-order mark, CRLF or LF.</summary>
     /// <remarks>
     /// Columns are found by their header, in any order; <c>note</c> may be missing (older exports). A row with neither a
@@ -56,6 +68,7 @@ public static class PasswordImport
         var header = rows[0].Fields.Select(h => h.Trim().ToLowerInvariant()).ToList();
         int Column(string name) => header.IndexOf(name);
         var (nameAt, urlAt, userAt, passwordAt, noteAt) = (Column("name"), Column("url"), Column("username"), Column("password"), Column("note"));
+        var codeAt = CodeColumns.Select(Column).FirstOrDefault(i => i >= 0, -1);
         if (passwordAt < 0)
         {
             return new PasswordImportResult([], [(1, "the file has no 'password' column; it is not a password export")]);
@@ -94,10 +107,35 @@ public static class PasswordImport
             var userName = At(userAt).Trim();
             var unique = UniqueName(name, userName, taken);
             taken.Add(unique);
-            drafts.Add(new PasswordImportDraft(unique, PasswordEntryContent.Of(password, userName, url, At(noteAt)), line));
+            var content = PasswordEntryContent.Of(password, userName, url, At(noteAt));
+            if (CodeField(At(codeAt), userName.Length > 0 ? userName : name) is { } code)
+            {
+                content = content with { Fields = [.. content.Fields, code] };
+            }
+
+            drafts.Add(new PasswordImportDraft(unique, content, line));
         }
 
         return new PasswordImportResult(drafts, skipped);
+    }
+
+    // A setup that reads becomes the Verification code field, as the standard link (a bare key is turned into one,
+    // labelled with the account); one that does not is kept as an ordinary secret under a name of its own.
+    private static PasswordEntryField? CodeField(string value, string label)
+    {
+        var text = value.Trim();
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        if (!VerificationCodeSetup.TryParse(text, out var setup))
+        {
+            return new PasswordEntryField(UnreadableCodeFieldName, text, IsSecret: true);
+        }
+
+        var link = text.StartsWith("otpauth:", StringComparison.OrdinalIgnoreCase) ? text : setup!.ToUri(label);
+        return new PasswordEntryField(PasswordEntryFieldNames.VerificationCode, link, IsSecret: true);
     }
 
     /// <summary>The drafts whose name and user name match an entry already in the folder (names without case, user

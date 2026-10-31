@@ -23,12 +23,12 @@ public sealed partial class PasswordsTabViewModel
         static LinkMap Links(string self, bool create = true) => LinkMap.FromHrefs(create
             ? new Dictionary<string, string> { ["self"] = self, ["password-entries"] = $"{self}/entries", ["password-folders"] = $"{self}/folders" }
             : new Dictionary<string, string> { ["self"] = self });
-        PasswordItemInfo Row(string name, bool folder) =>
-            new(Guid.NewGuid(), name, folder, "\"1\"", true, true, true, true, Links($"demo/{name}", create: false));
+        PasswordItemInfo Row(string name, bool folder, bool hasCode = false) =>
+            new(Guid.NewGuid(), name, folder, "\"1\"", true, true, true, true, Links($"demo/{name}", create: false), HasCode: hasCode);
 
         var storeId = Guid.NewGuid();
         var banking = Row("Banking", folder: true);
-        var codeHosting = Row("Code hosting", folder: false);
+        var codeHosting = Row("Code hosting", folder: false, hasCode: true);
         var items = new List<PasswordItemInfo> { banking, Row("Work", folder: true), codeHosting, Row("Mail server", folder: false), Row("Wi-Fi office", folder: false) };
         // Stores read parent-qualified, as the server lists them (ADR 0619): the personal space is named after its owner.
         var mine = new PasswordNodeViewModel("Anna Berger / My Passwords", isStore: true, isPersonal: true, "demo/mine", null, null);
@@ -57,6 +57,8 @@ public sealed partial class PasswordsTabViewModel
             new PasswordEntryField(PasswordEntryFieldNames.Url, "https://code.example/login"),
             new PasswordEntryField(PasswordEntryFieldNames.UserName, "anna.berger"),
             new PasswordEntryField("PIN", "482913", IsSecret: true),
+            // A demo key, not a real account's (ADR 1013): the row shows its current code.
+            new PasswordEntryField(PasswordEntryFieldNames.VerificationCode, "otpauth://totp/Code:anna.berger?secret=JBSWY3DPEHPK3PXP&issuer=Code", IsSecret: true),
             new PasswordEntryField("Recovery codes", "a1b2-c3d4 e5f6-g7h8", IsSecret: true),
             new PasswordEntryField(PasswordEntryFieldNames.Notes, "Two-factor with the hardware key.\nRecovery codes in the safe."),
         ]);

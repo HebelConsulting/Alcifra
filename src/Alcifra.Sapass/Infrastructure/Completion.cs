@@ -19,7 +19,7 @@ namespace Alcifra.Sapass.Infrastructure;
 /// </remarks>
 internal static class Completion
 {
-    private static readonly string[] Commands = ["login", "ls", "find", "show", "insert", "generate", "edit", "rm", "reseal", "completion"];
+    private static readonly string[] Commands = ["login", "ls", "find", "show", "otp", "insert", "generate", "edit", "rm", "reseal", "completion"];
 
     /// <summary>Prints candidates for <paramref name="words"/> (the argv after the program name).</summary>
     public static async Task<int> RunAsync(IReadOnlyList<string> words, CancellationToken cancellationToken)

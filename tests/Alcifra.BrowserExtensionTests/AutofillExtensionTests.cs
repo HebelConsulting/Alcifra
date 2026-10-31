@@ -19,6 +19,11 @@ public sealed class AutofillExtensionTests : IDisposable
     private static readonly FakeEntry Mail = new(
         Guid.Parse("0b6f5c1e-4f1d-4c55-9a39-1f4c2d9e7a10"), "localhost", "Mail login", "My Passwords", "anna@example.test", "correct horse battery");
 
+    // RFC 6238's SHA-1 seed in base32: a test key, no account's.
+    private static readonly FakeEntry Bank = new(
+        Guid.Parse("5d0c2b8e-3a71-4c0e-8f5b-2e6a9d4c1b77"), "localhost", "Bank login", "My Passwords", "anna", "pa55",
+        "otpauth://totp/Bank:anna?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=Bank");
+
     private readonly LoginSite _site = new();
 
     static AutofillExtensionTests() => SetDefaultExpectTimeout(15_000);
@@ -181,6 +186,38 @@ public sealed class AutofillExtensionTests : IDisposable
 
         var match = Assert.Single(browser.Calls);
         Assert.Equal(("match", Desktop), (match.Command, match.Host));
+    }
+
+    // ADR 1013: a one-time-code field — by the standard token or by its name — is offered only the site's entries that
+    // carry a verification code, and filled with the code valid now; a field that asks for nothing of the kind is left
+    // alone, and the setup never reaches the page.
+    [Fact]
+    public async Task A_one_time_code_field_is_offered_the_entries_with_a_code_and_filled_with_the_current_code()
+    {
+        await using var browser = await ExtensionBrowser.LaunchAsync([Mail, Bank], Sapass);
+        var page = await browser.OpenAsync(_site.Verify("localhost"));
+        var setup = Alcifra.ApiClient.PasswordStore.VerificationCodeSetup.Parse(Bank.CodeSetup);
+        var before = setup.Current(TimeProvider.System).Value;
+
+        await page.Locator("#otp").ClickAsync();
+        var chip = page.Locator(".sa-chip");
+        await Expect(chip).ToHaveTextAsync("Alcifra code (1)");
+        await chip.ClickAsync();
+        await Expect(page.Locator(".sa-menu button")).ToHaveCountAsync(1);   // the entry without a code is not offered
+        await page.Locator(".sa-menu button", new() { HasText = Bank.Name }).ClickAsync();
+        await Expect(page.Locator(".sa-menu")).ToHaveCountAsync(0);
+
+        var filled = await page.Locator("#otp").InputValueAsync();
+        var after = setup.Current(TimeProvider.System).Value;
+        Assert.Contains(filled, new[] { before, after });   // a period may end while the test runs
+        Assert.DoesNotContain("GEZDGNBV", await page.ContentAsync(), StringComparison.Ordinal);
+        Assert.Equal([("match", (Guid?)null), ("open", Bank.Id)], browser.Calls.Select(c => (c.Command, c.EntryId)));
+
+        // A field named for a code is recognised too; one that is not stays without an offer.
+        await page.Locator("#totp").ClickAsync();
+        await Expect(chip).ToHaveTextAsync("Alcifra code (1)");
+        await page.Locator("#note").ClickAsync();
+        await Expect(page.Locator(".sa-chip")).ToHaveCountAsync(0);
     }
 
     private Task<IPage> OpenLoginAsync(ExtensionBrowser browser, string host) => browser.OpenAsync(_site.Login(host));

@@ -709,7 +709,8 @@ solange sie im Lesegerät steckt. Nur ein Hardware-Schlüssel öffnet einen Eint
 Einträge nur für attestierte Hardware-Schlüssel versiegelt werden. Brechen Sie die PIN-Abfrage ab, bleibt der Eintrag versiegelt, und *Mit Schlüssel
 öffnen* fragt erneut. Ziehen Sie die Karte heraus, schliesst sich der Eintrag mit ihr.
 
-*Ihn lesen.* Die Felder erscheinen in derselben Reihenfolge wie auf dem Telefon: URL, Benutzername, Passwort, PIN, dann alles Übrige.
+*Ihn lesen.* Die Felder erscheinen in derselben Reihenfolge wie auf dem Telefon: URL, Benutzername, Passwort, PIN, Bestätigungscode, dann
+alles Übrige.
 Das Passwort, die PIN und jedes als geheim markierte Feld zeigen Punkte. Halten Sie die Augen-Schaltfläche gedrückt (oder die Leertaste, während
 sie den Fokus hat), um den Wert zu sehen; er verschwindet wieder, sobald Sie loslassen oder das Fenster in den Hintergrund geht.
 Solange ein Geheimnis sichtbar ist, wird das Fenster von Bildschirmfotos und Bildschirmfreigaben ausgenommen, soweit Ihr System das erlaubt. Die
@@ -717,9 +718,21 @@ Kopieren-Schaltfläche kopiert ein Feld; ein kopiertes Geheimnis wird nach 30 Se
 etwas anderes kopiert haben. Das Suchfeld über dem Eintrag findet seinen Namen, seine Bezeichnungen und seine offenen Werte, aber nie einen verborgenen
 Wert, sodass sich damit keiner erraten lässt.
 
+*Bestätigungscodes.*#idx("Bestätigungscode") Ein Eintrag kann auch den sechs- oder achtstelligen Code enthalten, den eine
+Website beim Anmelden als zweiten Schritt verlangt. Seine Zeile zeigt immer den gerade gültigen Code in zwei Gruppen
+(*123 456*) und daneben die Sekunden, die er noch gilt; sind sie abgelaufen, erscheint der nächste Code. Die
+Kopieren-Schaltfläche kopiert den Code, und er wird wie jedes Geheimnis nach 30 Sekunden aus der Zwischenablage entfernt.
+Der Schlüssel hinter den Codes wird nie angezeigt: Sie können ihn nur ersetzen oder entfernen. In der Liste trägt ein
+Eintrag mit Bestätigungscode ein kleines *2FA*-Zeichen.
+
 *Ihn ändern.* Der Stift neben dem Namen des Eintrags öffnet das Formular an der Stelle der Vorschau, mit *Speichern* und *Abbrechen*
 dort, wo der Stift war (*Ctrl+S* bzw. *Cmd+S* speichert, *Esc* bricht ab). Das Formular bietet immer URL, Benutzername und Passwort an;
-*Feld hinzufügen* bietet zuerst die PIN an, dann ein Feld, das Sie selbst benennen und wie ein Passwort verbergen können. Im Formular zeigt
+*Feld hinzufügen* bietet zuerst die PIN an, dann den Bestätigungscode, dann ein Feld, das Sie selbst benennen und wie ein Passwort
+verbergen können. Für einen Bestätigungscode fügen Sie den Einrichtungsschlüssel ein, den die Website anzeigt (Leerzeichen und Gross-
+und Kleinschreibung spielen keine Rolle), oder ihren `otpauth://`-Link; ein Wert, der keines von beiden ist, wird neben dem Feld
+gemeldet. Die meisten Websites zeigen stattdessen einen QR-Code: Machen Sie mit dem Bildschirmfoto-Werkzeug Ihres Systems ein
+Bildschirmfoto davon, sodass es in der Zwischenablage liegt, und klicken Sie auf die QR-Schaltfläche neben dem Feld; die
+Schaltfläche daneben liest den QR-Code aus einer gespeicherten Bilddatei. Im Formular zeigt
 ein *Klick* auf das Auge eines geheimen Felds den Wert 15 Sekunden lang, damit Sie sehen, was Sie tippen: Jeder Tastendruck startet die
 15 Sekunden neu, und ein zweiter Klick, *Speichern*, *Abbrechen* oder das Verlassen des Fensters verbirgt ihn sofort. Die Würfel neben
 dem Passwort öffnen den Generator: Tippen Sie eine Länge ein, wählen Sie die Zeichenarten, und kreuzen Sie *Verwechselbare Zeichen
@@ -751,11 +764,15 @@ funktioniert genauso: Wer es ablegt, wählt seinen Empfängerkreis, und *Verschl
 
 *Importieren.* Die Import-Schaltfläche liest auf Ihrem Computer die CSV-Datei, die ein Passwortmanager exportiert: Jede Zeile wird zu einem
 Eintrag, hier versiegelt. Nachgefragt wird nur bei einer Zeile, deren Name und Benutzername zu einem Eintrag passen, der schon im Ordner liegt – überspringen,
-als neue Version hinzufügen oder beide behalten. Danach bietet der Desktop an, die Exportdatei zu löschen, weil sie jedes
+als neue Version hinzufügen oder beide behalten. Eine Spalte mit Bestätigungscodes (`totp`, `otpauth` oder ähnlich benannt)
+wird zum Bestätigungscode des jeweiligen Eintrags. Danach bietet der Desktop an, die Exportdatei zu löschen, weil sie jedes
 Passwort im Klartext enthält.
 
 Ein Eintrag, auf den Sie im Baum des Tabs *Archive* stossen, zeigt seine Felder schreibgeschützt in der Vorschau, jedes Mal mit Ihrem Schlüssel
-geöffnet; ihn zu ändern ist Aufgabe des Tabs Passwörter.
+geöffnet; ihn zu ändern ist Aufgabe des Tabs Passwörter. In der Liste des Tabs *Archive*, auf dem Desktop wie im Web-Client,
+ist ein Eintrag mit Bestätigungscode als solcher markiert; der Web-Client öffnet nie einen Eintrag, darum zeigt er nur dieses
+Zeichen. Die Browser-Erweiterung füllt das Codefeld einer Anmeldung mit dem aktuellen Code des Eintrags, den Sie wählen, und
+das Kommandozeilenwerkzeug gibt ihn mit `apass otp` und dem Pfad des Eintrags aus.
 
 == Auf einem Telefon oder Tablet
 
