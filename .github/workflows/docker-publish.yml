@@ -1,7 +1,7 @@
 # Publishes the runtime Docker image to the brand's registry (ADR 0994) — from the brand's release repository only.
 #
 # The gate job asks the brand (ADR 0996): for Alcifra the release repository is the public mirror,
-# HebelConsulting/SimplArchive, where GHCR and Actions minutes are free, and the job is a no-op on the private
+# HebelConsulting/Alcifra, where GHCR and Actions minutes are free, and the job is a no-op on the private
 # canonical. A white-label fork names its own repository and publishes from there. A repository gate is fine here: pushing an image to
 # GHCR is harmless during the brief private-first window (the package just inherits the repo's visibility), unlike
 # mutation testing / native CodeQL upload, which are additionally visibility-gated. Uses the built-in GITHUB_TOKEN

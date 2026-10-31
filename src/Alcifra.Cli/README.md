@@ -18,7 +18,7 @@ organisation files, finds, controls and keeps its documents. It covers the essen
 
 It runs as a container image beside PostgreSQL, S3-compatible object storage and a search engine, with a Helm chart
 for production. The project is also a showcase of how far an AI-assisted, senior-led development process can take an
-enterprise-grade system: <https://github.com/HebelConsulting/SimplArchive>
+enterprise-grade system: <https://github.com/HebelConsulting/Alcifra>
 
 ## What alcifra does
 
@@ -68,7 +68,7 @@ alcifra whoami
 For unattended use, sign in as a tenant **service account** with `alcifra login --client-id <id>`, with the secret
 in `ALCIFRA_CLIENT_SECRET` (from the environment, never as an argument; `SACONSOLE_CLIENT_SECRET` is still read until v0.56.0).
 
-Requires the .NET 10 runtime. Source, documentation and issues: <https://github.com/HebelConsulting/SimplArchive>
+Requires the .NET 10 runtime. Source, documentation and issues: <https://github.com/HebelConsulting/Alcifra>
 
 ## Output
 

@@ -8,7 +8,7 @@
     <Authors>Hebel Consulting</Authors>
     <Company>Hebel Consulting</Company>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive</RepositoryUrl>
+    <RepositoryUrl>https://github.com/HebelConsulting/Alcifra</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>simplarchive;dms;client</PackageTags>
   </PropertyGroup>

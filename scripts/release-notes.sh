@@ -32,8 +32,8 @@
 # chose. Exit 2: could not determine the range or read a pattern (nothing is printed then either).
 set -euo pipefail
 
-PRIVATE_REPO=${PRIVATE_REPO:-HebelConsulting/SimplArchivePrivate}
-PUBLIC_REPO=${PUBLIC_REPO:-HebelConsulting/SimplArchive}
+PRIVATE_REPO=${PRIVATE_REPO:-HebelConsulting/AlcifraPrivate}
+PUBLIC_REPO=${PUBLIC_REPO:-HebelConsulting/Alcifra}
 ROOT="$(git rev-parse --show-toplevel)"
 
 die() { echo "release-notes: $*" >&2; exit 2; }

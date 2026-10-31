@@ -8,8 +8,8 @@ type: application
 version: 0.1.2
 # The application version this chart deploys by default (used as the image tag when image.tag is empty).
 appVersion: "latest"
-home: https://github.com/HebelConsulting/SimplArchive
+home: https://github.com/HebelConsulting/Alcifra
 sources:
-  - https://github.com/HebelConsulting/SimplArchive
+  - https://github.com/HebelConsulting/Alcifra
 maintainers:
   - name: Alcifra

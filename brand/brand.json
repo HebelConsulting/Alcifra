@@ -70,7 +70,7 @@
     "imageRegistry": "ghcr.io/hebelconsulting",
     "imageName": "alcifra",
     "chartName": "alcifra",
-    "releaseRepository": "HebelConsulting/SimplArchive",
+    "releaseRepository": "HebelConsulting/Alcifra",
     "domains": {
       "demo": "demo.alcifra.dev"
     }

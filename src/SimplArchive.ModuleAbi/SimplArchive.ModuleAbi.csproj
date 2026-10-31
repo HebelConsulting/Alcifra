@@ -25,10 +25,10 @@
     <Authors>Hebel Consulting</Authors>
     <Company>Hebel Consulting</Company>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive</RepositoryUrl>
+    <RepositoryUrl>https://github.com/HebelConsulting/Alcifra</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>simplarchive;dms;industry-module;abi</PackageTags>
-    <PackageProjectUrl>https://github.com/HebelConsulting/SimplArchive</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/HebelConsulting/Alcifra</PackageProjectUrl>
     <!-- The package page's README: what the product IS, before what this contract does. nuget.org flagged 1.25.0
          for lacking one, and a published version cannot be changed, so 1.25.1 is the first to carry it. -->
     <PackageReadmeFile>README.md</PackageReadmeFile>

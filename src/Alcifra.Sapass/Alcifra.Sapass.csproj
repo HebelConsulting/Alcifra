@@ -15,8 +15,8 @@
     <!-- The earlier id SimplArchive.Sapass (command `sapass`) was packed beside this until phase 5 of the rename
          (#1117, ADR 0988), which retired it: it stays on nuget.org at 0.54.0, deprecated in favour of this one. -->
     <Description>apass — a pass-like store of passwords and secrets, sealed on your machine and opened only with your hardware key: list, search, read, add, generate, edit and re-seal entries from the terminal, and serve the browser autofill.</Description>
-    <PackageProjectUrl>https://github.com/HebelConsulting/SimplArchive</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/HebelConsulting/SimplArchive.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/HebelConsulting/Alcifra</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HebelConsulting/Alcifra.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

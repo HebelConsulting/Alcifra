@@ -13,7 +13,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 dry_run=false
 [[ "${1:-}" == "--dry-run" ]] && dry_run=true
-public_repo="HebelConsulting/SimplArchive"
+public_repo="HebelConsulting/Alcifra"
 
 git fetch --quiet --tags origin
 created=0

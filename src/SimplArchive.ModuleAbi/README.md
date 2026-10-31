@@ -9,7 +9,7 @@ workspace**. It is a document management system (DMS) with encryption to each pe
 - a web client, a desktop client and a mobile app;
 - a Helm chart for production.
 
-Project and documentation: <https://github.com/HebelConsulting/SimplArchive>
+Project and documentation: <https://github.com/HebelConsulting/Alcifra>
 
 ## What this package is
 

@@ -24,7 +24,7 @@
 #                      public repo (issue #306). The macOS .dmg CI job is opt-in (needs a pricey macos runner),
 #                      so in the common case you build + upload from a Mac; the release itself is created by the
 #                      desktop-packages workflow on the v* tag push (with the win/linux archives). Needs `gh`
-#                      authenticated with write access. The target repo defaults to HebelConsulting/SimplArchive
+#                      authenticated with write access. The target repo defaults to HebelConsulting/Alcifra
 #                      (override with RELEASE_REPO=…). Idempotent — re-runs replace the assets (--clobber).
 #
 # Output:  dist/Alcifra-<version>-<arch>.dmg   (arch = arm64 | x64)
@@ -214,7 +214,7 @@ ls -lh "$arm_dmg" "$x64_dmg"
 # the wrong release.
 if [[ "$UPLOAD" == 1 ]]; then
   tag="v${VERSION}"
-  release_repo="${RELEASE_REPO:-HebelConsulting/SimplArchive}"
+  release_repo="${RELEASE_REPO:-HebelConsulting/Alcifra}"
 
   command -v gh >/dev/null 2>&1 || { echo "error: '--upload' needs the GitHub CLI ('gh'), authenticated with write access to ${release_repo}." >&2; exit 1; }
 

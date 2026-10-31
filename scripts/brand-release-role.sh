@@ -3,7 +3,7 @@
 # $GITHUB_OUTPUT (or prints, outside Actions):
 #
 #   publishes=true|false     this is the brand's release repository: it publishes images and desktop packages.
-#                            Alcifra's is the public mirror, HebelConsulting/SimplArchive, so nothing changed for
+#                            Alcifra's is the public mirror, HebelConsulting/Alcifra, so nothing changed for
 #                            us; a white-label fork names itself.
 #   white_label=true|false   this edition credits the product it is made from (brand.json's credit, ADR 0995): it
 #                            builds its own manual and never commits it, so its diff to upstream stays brand/ only.

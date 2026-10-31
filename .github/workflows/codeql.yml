@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 20
     name: CodeQL analyze (C#)
     runs-on: ubuntu-latest
-    # On the public repo (HebelConsulting/SimplArchive), and only while it is actually public, GitHub Advanced
+    # On the public repo (HebelConsulting/Alcifra), and only while it is actually public, GitHub Advanced
     # Security code-scanning is free → upload natively to the Security tab. On the private canonical, fall back to
     # the SARIF-artifact + jq gate. This job runs on push/PR only, so the inline visibility context is populated.
     env:
