@@ -42,11 +42,17 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
         [FromBody] CertificatePolicyResource request, CancellationToken cancellationToken)
     {
         await enrolment.EnsureOfferedAsync(cancellationToken);
+        // Either signal for leaving Strict wins (CertificatePolicy.EffectiveBinding): an older client switches the address
+        // rule off while echoing the binding it read. Both are stored consistently.
+        var binding = Binding(request.Binding) == CertificateBinding.Possession || !request.SanMustMatchAccount
+            ? CertificateBinding.Possession
+            : CertificateBinding.Strict;
         var policy = new CertificatePolicy
         {
             IssuerDnPattern = Trimmed(request.IssuerDnPattern),
             SubjectCnPattern = Trimmed(request.SubjectCnPattern),
-            SanMustMatchAccount = request.SanMustMatchAccount,
+            Binding = binding,
+            SanMustMatchAccount = binding == CertificateBinding.Strict,
             MinimumKeySizeBits = request.MinimumKeySizeBits,
             PermittedCurves = request.PermittedCurves ?? [],
             RequiredExtendedKeyUsages = [.. (request.RequiredExtendedKeyUsages ?? []).Where(o => o.Length > 0)],
@@ -60,11 +66,20 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
 
     private static string? Trimmed(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    private static CertificateBinding? Binding(string? value) => Trimmed(value)?.ToLowerInvariant() switch
+    {
+        null => null,
+        "strict" => CertificateBinding.Strict,
+        "possession" => CertificateBinding.Possession,
+        _ => throw new Errors.Exceptions.Certificates.CertificateBindingUnknownException(value!.Trim()),
+    };
+
     private static CertificatePolicyResource Resource(CertificatePolicy policy) => new()
     {
         IssuerDnPattern = policy.IssuerDnPattern,
         SubjectCnPattern = policy.SubjectCnPattern,
-        SanMustMatchAccount = policy.SanMustMatchAccount,
+        Binding = policy.EffectiveBinding.ToString().ToLowerInvariant(),
+        SanMustMatchAccount = policy.EffectiveBinding == CertificateBinding.Strict,
         MinimumKeySizeBits = policy.MinimumKeySizeBits,
         PermittedCurves = [.. policy.PermittedCurves],
         DefaultMinimumRsaKeySizeBits = CertificatePolicy.DefaultMinimumRsaKeySizeBits,
@@ -83,6 +98,9 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
         // On unless the request says otherwise (ADR 0971): a replacement that leaves the field out keeps the product's
         // default instead of silently opting the tenant out of it.
         public bool SanMustMatchAccount { get; set; } = true;
+
+        /// <summary><c>strict</c> or <c>possession</c> (ADR 1017). Left out, the address rule above decides, as before.</summary>
+        public string? Binding { get; set; }
         public int? MinimumKeySizeBits { get; set; }
         public List<string>? PermittedCurves { get; set; }
         public int DefaultMinimumRsaKeySizeBits { get; set; }

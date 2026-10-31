@@ -413,12 +413,95 @@ public partial class CertificateEnrolmentTests
         }
     }
 
-    // As `alcifra certificates policy set --san-must-match-account on|off` does it.
+    // ADR 1017 (#1941): under Possession, a member cannot enrol their own certificate without proving they hold the key, so
+    // an administrator enrols it for them, whatever address it carries. And whatever the binding, one key has one holder:
+    // the same key under another certificate is refused for somebody else, and accepted again for its own holder.
+    [Fact]
+    public async Task Possession_takes_an_administrators_enrolment_and_one_key_has_one_holder()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            await SetSanMustMatchAccountAsync(rig.Admin, false);   // possession
+
+            using var cardKey = RSA.Create(2048);
+            var foreignAddress = $"card-{Guid.NewGuid():N}@issuer.example";
+            using (var own = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = SelfSigned("member", foreignAddress, cardKey), label = "Card" }))
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
+                Assert.Contains("CERTIFICATE_POSSESSION_NEEDS_ADMINISTRATOR", await own.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+
+            await TestJson.Post(rig.Admin, "/api/certificates", new { certificatePem = SelfSigned("member", foreignAddress, cardKey), label = "Card", holder = rig.MemberEmail });
+            Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
+
+            // The same key in a NEW certificate, for somebody else: refused.
+            using (var stolen = await rig.Admin.PostAsJsonAsync("/api/certificates",
+                       new { certificatePem = SelfSigned("admin", rig.AdminEmail, cardKey), label = "Not theirs", holder = rig.AdminEmail }))
+            {
+                Assert.Equal(HttpStatusCode.Conflict, stolen.StatusCode);
+                Assert.Contains("under another certificate", await stolen.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+
+            // For its own holder, a re-issued certificate of the key is fine.
+            await TestJson.Post(rig.Admin, "/api/certificates", new { certificatePem = SelfSigned("member renewed", foreignAddress, cardKey), label = "Card, renewed", holder = rig.MemberEmail });
+            Assert.Equal(2, (await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().Count());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    // ADR 1017: an older client writes the whole policy back with one field changed. Switching the address rule off while
+    // echoing `binding: strict` still means possession; a binding nobody knows is refused.
+    [Fact]
+    public async Task Either_signal_for_leaving_strict_wins_and_an_unknown_binding_is_refused()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: false, parent: rig.RepoId);
+            var href = Links(await TestJson.Get(rig.Admin, "/api"))["certificatePolicy"];
+            Assert.Equal("strict", (await TestJson.Get(rig.Admin, href)).GetProperty("binding").GetString());
+
+            using (var read = await rig.Admin.GetAsync(href))
+            using (var write = await PutWithTagAsync(rig.Admin, href, new { binding = "strict", sanMustMatchAccount = false }, read.Headers.ETag!.Tag))
+            {
+                var written = await TestJson.Read(write);
+                Assert.Equal("possession", written.GetProperty("binding").GetString());
+                Assert.False(written.GetProperty("sanMustMatchAccount").GetBoolean());
+            }
+
+            using (var read = await rig.Admin.GetAsync(href))
+            using (var write = await PutWithTagAsync(rig.Admin, href, new { binding = "trust-me" }, read.Headers.ETag!.Tag))
+            {
+                Assert.Equal(HttpStatusCode.BadRequest, write.StatusCode);
+                Assert.Contains("CERTIFICATE_BINDING_UNKNOWN", await write.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    // As `alcifra certificates policy set --san-must-match-account on|off` (now --binding strict|possession) does it.
     private static async Task SetSanMustMatchAccountAsync(HttpClient admin, bool on)
     {
-        var written = await Alcifra.Cli.Commands.CertificatePolicySurface.SetSanMustMatchAccountAsync(
-            new Alcifra.Cli.Infrastructure.AlcifraApi(admin), on, CancellationToken.None);
+        var written = await Alcifra.Cli.Commands.CertificatePolicySurface.SetBindingAsync(
+            new Alcifra.Cli.Infrastructure.AlcifraApi(admin), on ? "strict" : "possession", CancellationToken.None);
         Assert.Equal(on, written.GetProperty("sanMustMatchAccount").GetBoolean());
+        Assert.Equal(on ? "strict" : "possession", written.GetProperty("binding").GetString());
     }
 
     [Fact]
@@ -570,6 +653,12 @@ public partial class CertificateEnrolmentTests
     private static string SelfSigned(string subject, string email)
     {
         using var key = RSA.Create(2048);
+        return SelfSigned(subject, email, key);
+    }
+
+    // A certificate over a GIVEN key: two of them are two certificates of one key.
+    private static string SelfSigned(string subject, string email, RSA key)
+    {
         var request = new CertificateRequest($"CN={subject}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         var san = new SubjectAlternativeNameBuilder();
         san.AddEmailAddress(email);

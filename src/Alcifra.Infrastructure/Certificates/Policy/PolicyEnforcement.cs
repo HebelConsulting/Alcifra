@@ -32,7 +32,7 @@ public static class PolicyEnforcement
     /// <param name="policy">The tenant's policy.</param>
     /// <param name="certificate">The leaf being enrolled.</param>
     /// <param name="accountEmail">
-    /// The enrolling account's address, for <see cref="CertificatePolicy.SanMustMatchAccount"/>.
+    /// The enrolling account's address, for <see cref="CertificateBinding.Strict"/>.
     /// </param>
     /// <param name="chainPem">
     /// The whole filed bundle, so a trust-anchor rule can build the chain the reader will actually present.
@@ -76,7 +76,7 @@ public static class PolicyEnforcement
             }
         }
 
-        if (policy.SanMustMatchAccount)
+        if (policy.EffectiveBinding == CertificateBinding.Strict)
         {
             // The certificate's OWN idea of its address, read the way the enveloper reads it — so a
             // certificate that passes here is one the enveloper will address to the same person.
@@ -163,7 +163,7 @@ public static class PolicyEnforcement
         {
             using var certificate = X509Certificate2.CreateFromPem(certificatePem);
             return Refusal(
-                policy with { SanMustMatchAccount = false },
+                policy with { Binding = CertificateBinding.Possession, SanMustMatchAccount = false },
                 certificate,
                 accountEmail: string.Empty,
                 chainPem: certificatePem);

@@ -1846,15 +1846,19 @@ This tenant requires a certificate to carry the e-mail address of the account it
 This one says 'florian@example.test' and the account is 'crypt@example.test'. [CERTIFICATE_POLICY_REFUSED]
 ```
 
-Die Abhilfe ist ein Zertifikat, das auf die richtige Adresse ausgestellt ist. *Das ist die Voreinstellung für
-jede Organisation, die nichts anderes festgelegt hat.* Eine Zertifizierungsstelle, deren Zertifikate überhaupt
-keine E-Mail-Adresse tragen, kann sie nicht erfüllen, und für diesen Fall — nur für diesen — kann die
-Administration die Regel für den Mandanten ausschalten:
+Die Abhilfe ist ein Zertifikat, das auf die richtige Adresse oder auf einen der Identitäts-Aliase des Kontos
+ausgestellt ist. *Diese Bindung, strict, ist die Voreinstellung für jede Organisation, die nichts anderes
+festgelegt hat.* Eine Zertifizierungsstelle, deren Zertifikate überhaupt keine E-Mail-Adresse tragen, kann sie
+nicht erfüllen; für diesen Fall kann die Administration Schlüssel stattdessen über den *Besitz* binden. Dann braucht
+ein Zertifikat keine bestimmte Adresse, und die Administration hinterlegt es für seine Inhaberin oder seinen Inhaber
+und bürgt damit dafür, wessen Schlüssel es ist. Mitglieder können ihr eigenes erst hinterlegen, wenn sie den Besitz
+des Schlüssels nachweisen können. Unter beiden Bindungen gehört ein Schlüssel im Mandanten einer Person, auch unter
+einem zweiten Zertifikat.
 
 ```sh
 alcifra certificates policy show
-alcifra certificates policy set --san-must-match-account off   # an authority without e-mail addresses
-alcifra certificates policy set --san-must-match-account on    # back to the default
+alcifra certificates policy set --binding possession   # an authority without e-mail addresses
+alcifra certificates policy set --binding strict       # back to the default
 ```
 
 *Die Regel wird beim Hinterlegen eines Zertifikats angewendet, nie rückwirkend.* Das Einschalten lehnt nichts

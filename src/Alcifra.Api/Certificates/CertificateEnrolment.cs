@@ -202,6 +202,13 @@ public sealed class CertificateEnrolment(
             throw new CertificateSelfServiceDisabledException();
         }
 
+        // Possession (ADR 1017): without a proof that the caller holds the key, only an administrator says whose it is.
+        var policy = await CurrentPolicyAsync(cancellationToken);
+        if (policy.EffectiveBinding == CertificateBinding.Possession && !admin)
+        {
+            throw new CertificatePossessionNeedsAdministratorException();
+        }
+
         var checkedPem = EnrolmentPolicy.Check(certificatePem);
         if (!checkedPem.Ok)
         {
@@ -219,7 +226,7 @@ public sealed class CertificateEnrolment(
         }
 
         var holderId = await HolderIdAsync(holderAddress, forSomebodyElse, userId, cancellationToken);
-        if (PolicyEnforcement.Refusal(await CurrentPolicyAsync(cancellationToken), leaf, holderAddress, certificatePem,
+        if (PolicyEnforcement.Refusal(policy, leaf, holderAddress, certificatePem,
                 await IdentityAliasesAsync(holderId, cancellationToken)) is { } policyRefusal)
         {
             throw new CertificatePolicyRefusedException(policyRefusal);
@@ -249,10 +256,44 @@ public sealed class CertificateEnrolment(
                     + "readers; if that is genuinely the intent, the existing enrolment has to be revoked first.");
         }
 
+        // One key, one holder, whatever the binding (ADR 1017): the same key under ANOTHER certificate is as much the same
+        // key as the same certificate is, and two readers holding it would each read what is sealed to the other.
+        if (await KeyHeldByAnotherAsync(leaf, holderId, cancellationToken))
+        {
+            throw new CertificateAlreadyEnrolledException(
+                "This key is already enrolled for somebody else in this tenant, under another certificate. One key cannot "
+                + "be held by two readers; if that is genuinely the intent, the existing enrolment has to be revoked first.");
+        }
+
         var evidenceRow = await attestation.DecideAsync(evidence, leaf, cancellationToken);
         return (await FileEnrolmentAsync(certificatePem, leaf, thumbprint, label, holderAddress, access.GetCallerIdentity(),
             $"Holder {holderAddress}, thumbprint {thumbprint}, {(evidenceRow is null ? "no attestation" : $"attestation of token {evidenceRow.DeviceSerial}")}",
             cancellationToken, evidenceRow), true);
+    }
+
+    // Whether another user in the tenant holds an unrevoked enrolment of this public key. Read from the stored
+    // certificates rather than a column: an enrolment table is small, and nothing has to be migrated for it.
+    private async Task<bool> KeyHeldByAnotherAsync(X509Certificate2 leaf, Guid? holderId, CancellationToken cancellationToken)
+    {
+        var key = leaf.PublicKey.ExportSubjectPublicKeyInfo();
+        var others = await dbContext.EnrolledCertificates.AsNoTracking()
+            .Where(c => c.UserId != holderId && c.RevokedAt == null)
+            .Select(c => c.CertificatePem)
+            .ToListAsync(cancellationToken);
+        return others.Any(pem => SameKey(pem, key));
+    }
+
+    private static bool SameKey(string pem, byte[] key)
+    {
+        try
+        {
+            using var certificate = X509Certificate2.CreateFromPem(pem);
+            return certificate.PublicKey.ExportSubjectPublicKeyInfo().AsSpan().SequenceEqual(key);
+        }
+        catch (Exception exception) when (exception is CryptographicException or ArgumentException)
+        {
+            return false;   // an unreadable stored certificate addresses nobody, so it holds no key either
+        }
     }
 
     private async Task<Guid?> HolderIdAsync(string holderAddress, bool forSomebodyElse, Guid? callerId, CancellationToken cancellationToken) =>
@@ -370,6 +411,15 @@ public sealed class CertificateEnrolment(
             var thumbprint = Convert.ToHexString(SHA256.HashData(leaf.RawData));
             if (await EverFiledAsync(thumbprint, cancellationToken))
             {
+                continue;
+            }
+
+            // Possession (ADR 1017): a user's own certificate is the user's own claim, and without a proof of possession only
+            // an administrator's enrolment says whose key it is.
+            if (policy.EffectiveBinding == CertificateBinding.Possession)
+            {
+                logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant "
+                    + "binds keys by possession, so an administrator enrols it (ADR 1017).", user.Email);
                 continue;
             }
 

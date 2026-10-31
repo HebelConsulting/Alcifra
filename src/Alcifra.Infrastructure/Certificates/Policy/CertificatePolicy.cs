@@ -5,6 +5,20 @@ using System.Text.RegularExpressions;
 
 namespace Alcifra.Infrastructure.Certificates.Policy;
 
+/// <summary>How a certificate is tied to the user it is enrolled for (#1941, ADR 1017).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<CertificateBinding>))]
+public enum CertificateBinding
+{
+    /// <summary>The certificate carries the holder's address or one of their identity aliases (ADR 0971, 1015).</summary>
+    Strict,
+
+    /// <summary>
+    /// The key belongs to the user it was enrolled for, and to nobody else in the tenant. Without a proof of possession
+    /// only an administrator enrols, and their enrolment vouches for the holder.
+    /// </summary>
+    Possession,
+}
+
 /// <summary>A generic rule: a pattern one of a certificate's addressable values must match.</summary>
 /// <param name="Element">An address <see cref="CertificateElement"/> can resolve.</param>
 /// <param name="Pattern">A .NET regular expression. Anchoring is the author's business.</param>
@@ -73,6 +87,19 @@ public sealed record CertificatePolicy
     /// </para>
     /// </remarks>
     public bool SanMustMatchAccount { get; init; } = true;
+
+    /// <summary>How a certificate is tied to its holder (ADR 1017). Null in a policy saved before the binding existed,
+    /// which said it with <see cref="SanMustMatchAccount"/> alone.</summary>
+    public CertificateBinding? Binding { get; init; }
+
+    /// <summary>
+    /// The binding in force. Either signal for leaving Strict wins: the binding naming Possession, or the address rule
+    /// switched off. An older client writes the whole policy back with one field changed, so it may switch the rule off
+    /// while echoing the binding it read.
+    /// </summary>
+    [JsonIgnore]
+    public CertificateBinding EffectiveBinding =>
+        Binding == CertificateBinding.Possession || !SanMustMatchAccount ? CertificateBinding.Possession : CertificateBinding.Strict;
 
     /// <summary>
     /// The smallest acceptable RSA key, in bits — <b>RSA only</b>. Null means the product default.
@@ -149,7 +176,7 @@ public sealed record CertificatePolicy
     /// </remarks>
     [JsonIgnore]
     public bool IsUnset =>
-        IssuerDnPattern is null && SubjectCnPattern is null && SanMustMatchAccount
+        IssuerDnPattern is null && SubjectCnPattern is null && EffectiveBinding == CertificateBinding.Strict
         && MinimumKeySizeBits is null && PermittedCurves.Count == 0 && RequiredExtendedKeyUsages.Count == 0
         && TrustAnchorPem is null && Rules.Count == 0;
 

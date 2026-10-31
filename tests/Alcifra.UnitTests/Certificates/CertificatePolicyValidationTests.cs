@@ -140,6 +140,24 @@ public class CertificatePolicyValidationTests
     }
 
     [Fact]
+    public void The_binding_reads_policies_saved_before_it_and_either_signal_for_possession_wins()
+    {
+        // ADR 1017: a stored policy without the binding says it with the address rule alone.
+        Assert.Equal(CertificateBinding.Strict, CertificatePolicy.Unset.EffectiveBinding);
+        Assert.Equal(CertificateBinding.Strict, CertificatePolicy.FromJson("{\"minimumKeySizeBits\": 3072}").EffectiveBinding);
+        Assert.Equal(CertificateBinding.Possession, CertificatePolicy.FromJson("{\"sanMustMatchAccount\": false}").EffectiveBinding);
+
+        // Stored by name, read back by name.
+        var stored = new CertificatePolicy { Binding = CertificateBinding.Possession, SanMustMatchAccount = false }.ToJson();
+        Assert.Contains("\"binding\":\"Possession\"", stored, StringComparison.Ordinal);
+        Assert.Equal(CertificateBinding.Possession, CertificatePolicy.FromJson(stored).EffectiveBinding);
+
+        // An older client switching the address rule off while echoing a Strict binding still leaves Strict.
+        Assert.Equal(CertificateBinding.Possession, new CertificatePolicy { Binding = CertificateBinding.Strict, SanMustMatchAccount = false }.EffectiveBinding);
+        Assert.False(new CertificatePolicy { Binding = CertificateBinding.Possession }.IsUnset);
+    }
+
+    [Fact]
     public void An_opt_out_is_kept_in_the_stored_form()
     {
         var parsed = CertificatePolicy.FromJson(new CertificatePolicy { SanMustMatchAccount = false }.ToJson());

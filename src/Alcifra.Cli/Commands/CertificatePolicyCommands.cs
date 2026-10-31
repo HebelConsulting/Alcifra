@@ -28,17 +28,30 @@ public sealed class CertificatePolicyShowCommand(ILogger<CertificatePolicyShowCo
 
 public sealed class CertificatePolicySetSettings : TenantSessionSettings
 {
+    [CommandOption("--binding <strict|possession>")]
+    [Description("How a certificate is tied to its holder (ADR 1017). strict (the default): it carries the holder's address or one of their identity aliases. possession: an administrator enrols the key for its holder, who cannot enrol one themselves until they can prove holding it.")]
+    public string? Binding { get; init; }
+
     [CommandOption("--san-must-match-account <on|off>")]
-    [Description("Whether a certificate's e-mail address must be its holder's (ADR 0971). On by default; switch it off only for an authority that issues certificates without e-mail addresses.")]
+    [Description("The earlier spelling of --binding: on is strict, off is possession.")]
     public string? SanMustMatchAccount { get; init; }
 
-    public override Spectre.Console.ValidationResult Validate() =>
-        SanMustMatchAccount switch
-        {
-            null => Spectre.Console.ValidationResult.Error("Name what to change: --san-must-match-account on|off."),
-            "on" or "off" => base.Validate(),
-            _ => Spectre.Console.ValidationResult.Error("--san-must-match-account takes on or off."),
-        };
+    // The binding asked for, from either spelling; null when none was named or it was misspelt.
+    public string? Chosen => (Binding?.ToLowerInvariant(), SanMustMatchAccount) switch
+    {
+        ("strict" or "possession", null) => Binding!.ToLowerInvariant(),
+        (null, "on") => "strict",
+        (null, "off") => "possession",
+        _ => null,
+    };
+
+    public override Spectre.Console.ValidationResult Validate() => (Binding, SanMustMatchAccount) switch
+    {
+        (null, null) => Spectre.Console.ValidationResult.Error("Name what to change: --binding strict|possession."),
+        ({ }, { }) => Spectre.Console.ValidationResult.Error("Name the binding once: --binding, or its earlier spelling --san-must-match-account."),
+        _ when Chosen is null => Spectre.Console.ValidationResult.Error("--binding takes strict or possession; --san-must-match-account takes on or off."),
+        _ => base.Validate(),
+    };
 }
 
 /// <summary>
@@ -55,8 +68,7 @@ public sealed class CertificatePolicySetCommand(ILogger<CertificatePolicySetComm
         CommandContext context, CertificatePolicySetSettings settings, CancellationToken cancellationToken)
     {
         using var http = CertificateEndpoint.Client(settings);
-        var written = await CertificatePolicySurface.SetSanMustMatchAccountAsync(
-            new AlcifraApi(http), settings.SanMustMatchAccount == "on", cancellationToken);
+        var written = await CertificatePolicySurface.SetBindingAsync(new AlcifraApi(http), settings.Chosen!, cancellationToken);
         CertificatePolicySurface.Report(logger, written);
         return 0;
     }
@@ -76,23 +88,25 @@ public static class CertificatePolicySurface
         return (href, resource, etag);
     }
 
-    /// <summary>Sets the holder's-address rule, keeping every other rule as read; returns the policy as written.</summary>
-    public static async Task<JsonElement> SetSanMustMatchAccountAsync(AlcifraApi api, bool on, CancellationToken cancellationToken)
+    /// <summary>Sets the binding (<c>strict</c> or <c>possession</c>), keeping every other rule as read; returns the policy
+    /// as written. Both fields are written, so a server that knows only the address rule reads the same choice.</summary>
+    public static async Task<JsonElement> SetBindingAsync(AlcifraApi api, string binding, CancellationToken cancellationToken)
     {
         var (href, resource, etag) = await ReadAsync(api, cancellationToken);
         var policy = JsonNode.Parse(resource.GetRawText())?.AsObject()
             ?? throw new CliException("The certificate policy could not be read back.");
-        policy["sanMustMatchAccount"] = on;
+        policy["binding"] = binding;
+        policy["sanMustMatchAccount"] = binding == "strict";
         return await api.PutWithETagAsync(href, policy, etag, cancellationToken);
     }
 
     public static void Report(ILogger logger, JsonElement policy)
     {
         logger.LogInformation(
-            "Holder's e-mail address required: {SanMustMatchAccount}. Issuer pattern: {Issuer}. Common-name pattern: {CommonName}. "
+            "Binding: {Binding}. Issuer pattern: {Issuer}. Common-name pattern: {CommonName}. "
             + "RSA minimum: {RsaMinimum} bits. Curves: {Curves}. Required extended key usages: {Ekus}. Own trust anchor: {Anchor}. "
             + "Further rules: {Rules}.",
-            Flag(policy, "sanMustMatchAccount") ? "yes" : "no (opted out)",
+            Text(policy, "binding") ?? (Flag(policy, "sanMustMatchAccount") ? "strict" : "possession"),
             Text(policy, "issuerDnPattern") ?? "any",
             Text(policy, "subjectCnPattern") ?? "any",
             policy.TryGetProperty("minimumKeySizeBits", out var bits) && bits.ValueKind == JsonValueKind.Number

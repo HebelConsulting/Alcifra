@@ -1769,14 +1769,17 @@ This tenant requires a certificate to carry the e-mail address of the account it
 This one says 'florian@example.test' and the account is 'crypt@example.test'. [CERTIFICATE_POLICY_REFUSED]
 ```
 
-The remedy is a certificate issued to the right address. *This is the default for every organisation that has not
-said otherwise.* An authority whose certificates carry no e-mail address at all cannot meet it, and for that case
-— only that case — an administrator can switch the rule off for the tenant:
+The remedy is a certificate issued to the right address, or to one of the account's identity aliases. *This
+binding, strict, is the default for every organisation that has not said otherwise.* An authority whose certificates
+carry no e-mail address at all cannot meet it, and for that case an administrator can bind keys by *possession*
+instead. Then a certificate needs no particular address, and an administrator enrols it for its holder, vouching for
+whose key it is. Members cannot enrol their own until they can prove they hold the key. Under either binding, a key
+belongs to one person in the tenant, even under a second certificate.
 
 ```sh
 alcifra certificates policy show
-alcifra certificates policy set --san-must-match-account off   # an authority without e-mail addresses
-alcifra certificates policy set --san-must-match-account on    # back to the default
+alcifra certificates policy set --binding possession   # an authority without e-mail addresses
+alcifra certificates policy set --binding strict       # back to the default
 ```
 
 *The rule is applied when a certificate is enrolled, never backwards.* Switching it on does not refuse, flag or
