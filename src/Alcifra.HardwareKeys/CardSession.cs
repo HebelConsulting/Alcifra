@@ -1,4 +1,5 @@
 using CAManagement.Pkcs11;
+using CAManagement.Pkcs11.DataStructures;
 using CAManagement.Pkcs11.Extensions;
 using Microsoft.Extensions.Logging;
 using Alcifra.ApiClient;
@@ -184,19 +185,53 @@ public static class CardSession
     {
         foreach (var (_, held) in Sessions)
         {
-            try
-            {
-                held.Login.Dispose();
-                held.Session.Dispose();
-            }
-            catch (Exception e)
-            {
-                ApiClientSettings.Logger.LogWarning(e, "Closing the card session did not complete cleanly");
-            }
+            Close(held, loginAlreadyGone: false);
         }
 
         Sessions.Clear();
         Declined.Clear();
+    }
+
+    /// <summary>Whether a logged-in session is held for this card — what makes a lost login worth one retry (#2041).</summary>
+    internal static bool Holds(string tokenSerial) => Sessions.ContainsKey(tokenSerial);
+
+    /// <summary>
+    /// Drops the held session of ONE card whose login another program reset (#2041), inside the module's gate. The next
+    /// open asks for the PIN, as on first use. The declined prompts stay: nobody declined anything here.
+    /// </summary>
+    internal static void DropHeld(string tokenSerial)
+    {
+        if (Sessions.Remove(tokenSerial, out var held))
+        {
+            Close(held, loginAlreadyGone: true);
+        }
+    }
+
+    // The session is closed even when the logout fails: a logout that throws used to skip it. After a reset the card
+    // refuses the logout (CKR_USER_NOT_LOGGED_IN), which is then expected rather than a warning.
+    private static void Close((Pkcs11Session Session, LoginScope Login) held, bool loginAlreadyGone)
+    {
+        try
+        {
+            held.Login.Dispose();
+        }
+        catch (Pkcs11Exception e) when (loginAlreadyGone && e.ReturnValue == CK_RV.CKR_USER_NOT_LOGGED_IN)
+        {
+            ApiClientSettings.Logger.LogDebug("The card had already ended the login of the dropped session.");
+        }
+        catch (Exception e)
+        {
+            ApiClientSettings.Logger.LogWarning(e, "Closing the card session did not complete cleanly");
+        }
+
+        try
+        {
+            held.Session.Dispose();
+        }
+        catch (Exception e)
+        {
+            ApiClientSettings.Logger.LogWarning(e, "Closing the card session did not complete cleanly");
+        }
     }
 }
 

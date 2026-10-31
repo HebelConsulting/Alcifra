@@ -105,20 +105,21 @@ public static class CardEnvelopeOpener
 
                 foreach (var card in addressed)
                 {
-                    if (await CardSession.OpenAsync(library, card.TokenSerial, card.TokenLabel, card.ObjectLabel)
-                        is not { } session)
-                    {
-                        // Declined, blocked, or gone from the reader. Another card may still hold the key.
-                        continue;
-                    }
-
-                    if (Unwrap(session, raw, card.KeyId, card.Certificate) is { } opened)
+                    // A HELD session whose login another program reset is treated as no session (#2041): dropped,
+                    // the PIN asked for again, the unwrap run once more. Declined, blocked or gone from the reader
+                    // answers null, and another card may still hold the key.
+                    if (await CardLoginRecovery.RunAsync(
+                            CardSession.Holds(card.TokenSerial),
+                            () => CardSession.OpenAsync(library, card.TokenSerial, card.TokenLabel, card.ObjectLabel),
+                            session => Unwrap(session, raw, card.KeyId, card.Certificate),
+                            () => CardSession.DropHeld(card.TokenSerial),
+                            card.TokenSerial) is { } opened)
                     {
                         return opened;
                     }
 
                     ApiClientSettings.Logger.LogDebug(
-                        "Card {Serial} is an addressee but did not open the envelope; trying the next of {Count}.",
+                        "Card {Serial} is an addressee but did not open the envelope (declined, gone, or not its key); trying the next of {Count}.",
                         card.TokenSerial, addressed.Count);
                 }
 
@@ -151,9 +152,11 @@ public static class CardEnvelopeOpener
         byte[] contentKey;
         try
         {
+            // A PIV card shows its private keys only to a logged-in session, so a session that shows none has lost
+            // its login (#2041): measured, this is how a reset by another program surfaces, with no error at all.
             if (KeyOperations(session, keyId) is not { } operations)
             {
-                return null;
+                throw new CardLoginLostException("the session shows no private key");
             }
 
             // OUR OWN RECIPIENT, not the first one in the set (#1500). The server addresses a reader's whole
@@ -174,6 +177,14 @@ public static class CardEnvelopeOpener
             }
 
             contentKey = ContentKey(envelopedCms, raw, mine, operations.Decrypt, operations.Derive);
+        }
+        catch (CardLoginLostException)
+        {
+            throw;   // not "addressed to somebody else": the caller recovers (CardLoginRecovery)
+        }
+        catch (CAManagement.Pkcs11.Pkcs11Exception e) when (e.ReturnValue == CK_RV.CKR_USER_NOT_LOGGED_IN)
+        {
+            throw new CardLoginLostException("the card refused the operation as not logged in", e);
         }
         catch (Exception e)
         {
