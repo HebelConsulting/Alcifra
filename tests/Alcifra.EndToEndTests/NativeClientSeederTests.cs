@@ -63,7 +63,7 @@ public class NativeClientSeederTests
     }
 
     // Rename phase 4 (#1117): every client is registered under its alcifra id AND the id before the rename, with the
-    // same permissions and redirects, so a client installed before the rename signs in unchanged until v0.56.0.
+    // same permissions and redirects, so a client installed before the rename signs in unchanged until v0.57.0.
     [Theory]
     [InlineData(Alcifra.Presentation.WireNames.DesktopClientId, Alcifra.Presentation.WireNames.Legacy.DesktopClientId)]
     [InlineData(Alcifra.Presentation.WireNames.MobileClientId, Alcifra.Presentation.WireNames.Legacy.MobileClientId)]

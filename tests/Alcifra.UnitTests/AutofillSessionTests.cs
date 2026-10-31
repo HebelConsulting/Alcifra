@@ -12,7 +12,7 @@ public class AutofillSessionTests
     [Fact]
     public void Only_the_mobile_apps_sign_in_client_may_open_an_autofill_session_today()
     {
-        // The mobile app's id, and its id before the rename until v0.56.0 (WireNames.Legacy).
+        // The mobile app's id, and its id before the rename until v0.57.0 (WireNames.Legacy).
         Assert.Equal(
             [MobileClientSeeder.ClientId, Alcifra.Presentation.WireNames.Legacy.MobileClientId],
             AutofillSession.SubjectClients.Order());

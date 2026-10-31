@@ -58,7 +58,7 @@ public sealed class SaConsoleTests
         }
     }
 
-    // The name before the rename is read too, until WireNames.Legacy retires (v0.56.0): a script still setting it works.
+    // The name before the rename is read too, until WireNames.Legacy retires (v0.57.0): a script still setting it works.
     [Theory]
     [InlineData("ALCIFRA_CLIENT_SECRET")]
     [InlineData("SACONSOLE_CLIENT_SECRET")]

@@ -58,7 +58,7 @@ public class SealedArchiveTests
         Assert.DoesNotContain("the content", Encoding.UTF8.GetString(archive), StringComparison.Ordinal);
     }
 
-    // Rename phase 4b (#1117): an archive written before it names the format "simplarchive" and still opens until v0.56.0;
+    // Rename phase 4b (#1117): an archive written before it names the format "simplarchive" and still opens until v0.57.0;
     // a cover naming anything else is still refused by name. The cover is re-signed, so only the format differs.
     [Theory]
     [InlineData("simplarchive", true)]

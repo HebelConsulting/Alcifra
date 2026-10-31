@@ -91,7 +91,7 @@ public class TenantMailDomainsTests
     }
 
     // Rename phase 4b (#1117): an administrator who published under the name before the rename is not sent back to
-    // their zone; until v0.56.0 the record there verifies the domain too, with the token the claim stored.
+    // their zone; until v0.57.0 the record there verifies the domain too, with the token the claim stored.
     [Fact]
     public async Task A_challenge_published_under_the_name_before_the_rename_still_verifies()
     {

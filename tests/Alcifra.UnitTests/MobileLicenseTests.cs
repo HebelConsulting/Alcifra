@@ -39,7 +39,7 @@ public sealed class MobileLicenseTests
     }
 
     // Rename phase 4b (#1117): a licence issued before it says "simplarchive-mobile" in its signed payload and still
-    // unlocks the app until v0.56.0; a payload of any OTHER kind still does not.
+    // unlocks the app until v0.57.0; a payload of any OTHER kind still does not.
     [Fact]
     public void A_licence_signed_under_the_kind_before_the_rename_still_verifies()
     {

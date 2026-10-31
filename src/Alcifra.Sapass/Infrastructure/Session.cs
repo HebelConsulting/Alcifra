@@ -46,7 +46,7 @@ internal sealed class Session : IDisposable
     /// <param name="opener">The key path, for a command that opens an entry; null for one that only lists names.</param>
     public static Session FromEnvironment(IEnvelopeOpener? opener = null)
     {
-        // The names before the rename are read after the current one until WireNames.Legacy retires (v0.56.0).
+        // The names before the rename are read after the current one until WireNames.Legacy retires (v0.57.0).
         var url = First(UrlVariable, WireNames.Legacy.SessionUrlVariable, WireNames.Legacy.CliUrlVariable)
             ?? throw new SapassException($"No installation. Run: eval \"$(apass login --url …)\" to set ${UrlVariable}.");
         var token = First(TokenVariable, WireNames.Legacy.SessionTokenVariable, WireNames.Legacy.CliTokenVariable)

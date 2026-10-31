@@ -30,7 +30,7 @@ public static class SaConsoleClientSeeder
     /// </summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.56.0).
+        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.57.0).
         await SeedAsync(applications, ClientId, cancellationToken);
         await SeedAsync(applications, Alcifra.Presentation.WireNames.Legacy.CliClientId, cancellationToken);
     }

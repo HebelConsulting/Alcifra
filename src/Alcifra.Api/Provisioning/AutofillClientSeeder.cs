@@ -15,7 +15,7 @@ public static class AutofillClientSeeder
 {
     public const string ClientId = Alcifra.Presentation.WireNames.MobileAutofillClientId;
 
-    /// <summary>Both ids that open an autofill session, while the one before the rename is accepted (until v0.56.0).</summary>
+    /// <summary>Both ids that open an autofill session, while the one before the rename is accepted (until v0.57.0).</summary>
     public static readonly IReadOnlySet<string> ClientIds = new HashSet<string>(StringComparer.Ordinal)
     {
         ClientId,

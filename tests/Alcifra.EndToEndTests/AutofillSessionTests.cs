@@ -41,7 +41,7 @@ public class AutofillSessionTests
         Assert.Equal(userId, await WhoAmIUserAsync(Access(renewedTokens)));
     }
 
-    // Until v0.56.0 an app installed before the rename keeps its ids and redirect, and its autofill extension too
+    // Until v0.57.0 an app installed before the rename keeps its ids and redirect, and its autofill extension too
     // (WireNames.Legacy, #1117 phase 4).
     [Fact]
     public async Task The_ids_before_the_rename_still_open_and_renew_an_autofill_session()

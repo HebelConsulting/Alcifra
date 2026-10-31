@@ -87,7 +87,7 @@ public sealed class ManualFiler(
 
     /// <summary>
     /// The Article numbers before the rename (#1117): a manual filed under one is found by it once more, and re-keyed to
-    /// the current number under the filing lock. Retire with <c>WireNames.Legacy</c> (v0.56.0), when every installation
+    /// the current number under the filing lock. Retire with <c>WireNames.Legacy</c> (v0.57.0), when every installation
     /// has started once and so re-keyed its manuals.
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, string> EarlierArticleNumbers = new Dictionary<string, string>

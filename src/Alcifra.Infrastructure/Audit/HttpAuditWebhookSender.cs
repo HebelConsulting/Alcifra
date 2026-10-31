@@ -6,7 +6,7 @@ namespace Alcifra.Infrastructure.Audit;
 
 // POSTs a single signed audit event to a tenant's SIEM webhook (ADR "Audit webhook streaming"). The HMAC-SHA256
 // signature (computed by the dispatcher) rides in X-Alcifra-Signature so the receiver can verify
-// authenticity + integrity; until v0.56.0 also in the header before the rename (WireNames.Legacy), so a receiver
+// authenticity + integrity; until v0.57.0 also in the header before the rename (WireNames.Legacy), so a receiver
 // written against it keeps verifying while it moves. Any non-2xx or transport error returns false, so the dispatcher retries next sweep.
 public sealed class HttpAuditWebhookSender : IAuditWebhookSender
 {

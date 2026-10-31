@@ -23,7 +23,7 @@ public static class MailDomainChallenge
 
     /// <summary>
     /// Every name a challenge is looked up at: the current one, and the one before the rename for a domain whose
-    /// administrator published there (WireNames.Legacy, until v0.56.0). The value is the stored token either way.
+    /// administrator published there (WireNames.Legacy, until v0.57.0). The value is the stored token either way.
     /// </summary>
     public static IReadOnlyList<string> NamesFor(string domain) =>
         [NameFor(domain), $"{Alcifra.Presentation.WireNames.Legacy.MailDomainChallengeLabel}.{domain.Trim().TrimEnd('.')}"];

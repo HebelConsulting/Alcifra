@@ -326,7 +326,7 @@ public class TenantMailDomainsController : ControllerBase
             return Ok(ToResource(entry, canManage: true)); // already proven; nothing to look up
         }
 
-        // Both names until v0.56.0: an administrator who published under the one before the rename is not sent back
+        // Both names until v0.57.0: an administrator who published under the one before the rename is not sent back
         // to their zone (WireNames.Legacy). The value is the STORED token at either.
         var records = new List<string>();
         foreach (var name in MailDomainChallenge.NamesFor(entry.Domain))

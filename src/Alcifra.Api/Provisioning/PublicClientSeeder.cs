@@ -5,7 +5,7 @@ namespace Alcifra.Api.Provisioning;
 /// <summary>A native app's public client: Authorization Code + PKCE, implicit consent, and what it may do. A client that
 /// never signs in interactively (the autofill extension's, ADR 0981) has no redirect URI.</summary>
 /// <param name="LegacyClientId">The id before the rename, registered alike while installed clients still send it
-/// (<see cref="Alcifra.Presentation.WireNames.Legacy"/>, retired at v0.56.0).</param>
+/// (<see cref="Alcifra.Presentation.WireNames.Legacy"/>, retired at v0.57.0).</param>
 public sealed record PublicClientRegistration(
     string ClientId, IReadOnlyList<string> Permissions, IReadOnlyList<string> RedirectUris, string? LegacyClientId = null);
 

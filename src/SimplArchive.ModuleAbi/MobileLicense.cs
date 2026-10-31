@@ -35,7 +35,7 @@ public sealed record MobileLicense(
     /// <remarks>Wire, so fixed whatever the brand (core ADR 0987); this leaf references nothing, so it is spelled here.</remarks>
     public const string Kind = "alcifra-mobile";
 
-    /// <summary>The kind before the rename (core #1117 phase 4b): a licence signed with it still verifies until core v0.56.0.</summary>
+    /// <summary>The kind before the rename (core #1117 phase 4b): a licence signed with it still verifies until core v0.57.0.</summary>
     /// <remarks>Retirement trigger (core ADR 0885): removed with the core's <c>WireNames.Legacy</c>; licences are re-issued.</remarks>
     public const string LegacyKind = "simplarchive-mobile";
 

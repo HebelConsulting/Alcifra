@@ -17,7 +17,7 @@ public static class SapassClientSeeder
     /// <summary>Idempotent: creates the client when it is absent, and asks nothing of an existing one.</summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.56.0).
+        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.57.0).
         await SeedAsync(applications, ClientId, cancellationToken);
         await SeedAsync(applications, Alcifra.Presentation.WireNames.Legacy.PassClientId, cancellationToken);
     }

@@ -18,7 +18,7 @@ public class ApiSettings : CommandSettings
     /// <summary>Environment variable carrying the installation URL (set by <c>alcifra login</c>, and by <c>apass login</c>).</summary>
     /// <remarks>
     /// One session for both tools (owner, 2026-10-25): it belongs to the installation, not to one tool. The names
-    /// before the rename are read after it until <see cref="WireNames.Legacy"/> retires (v0.56.0).
+    /// before the rename are read after it until <see cref="WireNames.Legacy"/> retires (v0.57.0).
     /// </remarks>
     public const string UrlVariable = WireNames.UrlVariable;
 
