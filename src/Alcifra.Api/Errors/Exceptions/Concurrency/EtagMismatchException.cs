@@ -57,4 +57,12 @@ public sealed class EtagMismatchException : ConcurrencyException
     // ADR 0963: a trusted attestation root, renamed or switched by a second platform administrator meanwhile.
     public static EtagMismatchException ForAttestationRoot() =>
         new("The attestation root has been modified since it was last read.");
+
+    // ADR 1015: a mail domain's roles, changed by a second administrator meanwhile.
+    public static EtagMismatchException ForMailDomain() =>
+        new("The mail domain has been modified since it was last read.");
+
+    // ADR 1015: an identity alias, removed or replaced by a second administrator meanwhile.
+    public static EtagMismatchException ForIdentityAlias() =>
+        new("The identity alias has been modified since it was last read.");
 }

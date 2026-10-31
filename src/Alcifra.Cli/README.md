@@ -36,6 +36,9 @@ configured from a terminal or a script:
 | `module action` | Invoke a module's action on a document; a value it reveals once (a credential) is written to a mode-600 file |
 | `module upload` | Upload a file through a module's upload link, such as a package or an app for its feed, found on the installation's root |
 | `repository create` | Create a repository, or find the one of that name; prints its id |
+| `user create` | Create a user, or find the one with that e-mail; prints the id. The password is read from stdin only |
+| `user alias list`, `add`, `remove` | A user's identity aliases (ADR 1015): further addresses they are known by, on a verified identity domain. An alias does not sign in; Strict certificate binding accepts a certificate naming one |
+| `mail-domain list`, `add`, `roles` | The tenant's domains and their roles: identity (account addresses and aliases live there), receiving (mail is filed), or both. `add` prints the DNS record that proves ownership |
 | `certificates list`, `enrol`, `revoke`, `import` | Manage the reader certificates encrypted content is addressed to, including bulk import from a CA |
 | `certificates policy show`, `set` | What a certificate must meet before it is enrolled; `set --san-must-match-account on\|off` switches the holder's-address rule, on by default (ADR 0971) |
 | `acl set`, `grant`, `revoke`, `break-inheritance` | Decide who may do what to a document; `break-inheritance` makes a document's own grants the ones that apply |

@@ -286,6 +286,8 @@ builder.Services.AddScoped<Alcifra.Api.Documents.DocumentVersionAccess>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.DocumentVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.TenantVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.UserVerbs>();
+builder.Services.AddScoped<Alcifra.Api.Concurrency.TenantMailDomainVerbs>();
+builder.Services.AddScoped<Alcifra.Api.Concurrency.UserIdentityAliasVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.ServiceAccountVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.AclEntryVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.WorkflowStateVerbs>();

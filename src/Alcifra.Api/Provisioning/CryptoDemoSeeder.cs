@@ -40,8 +40,12 @@ public static class CryptoDemoSeeder
         // IgnoreQueryFilters: this runs at startup where the ambient tenant is whatever an earlier seeder
         // left set (or none), so the tenant filter would make this existence check a lie.
         if (await dbContext.Tenants.IgnoreQueryFilters()
-                .AnyAsync(t => t.Name == tenantName && t.Status == TenantStatus.Active))
+                .Where(t => t.Name == tenantName && t.Status == TenantStatus.Active)
+                .Select(t => (Guid?)t.Id)
+                .FirstOrDefaultAsync() is { } existingTenant)
         {
+            // Every start, not only the first: the identity domains arrived after the tenant did (ADR 1015).
+            await DeclareIdentityDomainsAsync(dbContext, existingTenant, configuration);
             return;
         }
 
@@ -53,6 +57,8 @@ public static class CryptoDemoSeeder
             configuration["CryptoDemo:RepositoryName"],
             password,
             idFor: slug => slug == "tenant" ? tenantId : DemoId.For(tenantId, slug));
+
+        await DeclareIdentityDomainsAsync(dbContext, provisioned.TenantId, configuration);
 
         // The document seeding below reads masks and relies on SaveChanges' required-field validation, all
         // tenant-filtered — so point the accessor at the new tenant, like DemoDataSeeder does.
@@ -232,5 +238,17 @@ public static class CryptoDemoSeeder
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    // CryptoDemo:IdentityDomains, comma-separated: the domains this tenant's account addresses live on, identity only
+    // (ADR 1015). They route no mail, so they may also be another tenant's; declared by configuration, so verified.
+    private static async Task DeclareIdentityDomainsAsync(AlcifraDbContext dbContext, Guid tenantId, IConfiguration configuration)
+    {
+        var domains = (configuration["CryptoDemo:IdentityDomains"] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var domain in domains)
+        {
+            await DeclaredMailDomain.EnsureAsync(dbContext, tenantId, domain, DateTimeOffset.UtcNow, receiving: false);
+        }
     }
 }

@@ -226,6 +226,20 @@ public static class SaConsoleApp
                 user.SetDescription("Users of the signed-in tenant (needs the right to manage users).");
                 user.AddCommand<UserCreateCommand>("create")
                     .WithDescription("Create a user, or find the one with that e-mail; prints the id. The password comes from stdin only.");
+                user.AddBranch("alias", alias =>
+                {
+                    alias.SetDescription("A user's identity aliases: further addresses they are known by. An alias does not sign in; Strict certificate binding accepts a certificate naming one.");
+                    alias.AddCommand<UserAliasListCommand>("list").WithDescription("List a user's identity aliases.");
+                    alias.AddCommand<UserAliasAddCommand>("add").WithDescription("Add an identity alias, on a verified identity domain; adding one twice changes nothing.");
+                    alias.AddCommand<UserAliasRemoveCommand>("remove").WithDescription("Remove an identity alias.");
+                });
+            });
+            config.AddBranch("mail-domain", domain =>
+            {
+                domain.SetDescription("The tenant's registered domains: identity (account addresses live there), receiving (mail is filed), or both.");
+                domain.AddCommand<MailDomainListCommand>("list").WithDescription("List the domains with their roles.");
+                domain.AddCommand<MailDomainAddCommand>("add").WithDescription("Claim a domain; prints the DNS record that proves it.");
+                domain.AddCommand<MailDomainRolesCommand>("roles").WithDescription("Set a domain's roles.");
             });
             config.AddBranch("repository", repository =>
             {

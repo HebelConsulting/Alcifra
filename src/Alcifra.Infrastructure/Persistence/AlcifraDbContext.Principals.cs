@@ -147,19 +147,26 @@ public partial class AlcifraDbContext
     /// REMOVED in that case rather than left standing — a stale pointer to the previous person would make
     /// somebody else's bookings look like theirs, which is worse than none.
     ///
-    /// Looked up by NormalizedEmail, never by Email: the setter maintains it and the unique index is on it.
+    /// Looked up by NormalizedEmail, never by Email: the setter maintains it and the unique index is on it. A confirmed
+    /// identity alias names its user too (ADR 1015).
     /// </remarks>
     private async Task UpsertPrincipalAsync(Guid documentId, Guid tenantId, string? address, CancellationToken cancellationToken)
     {
         var existing = await ResourcePrincipals.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.ResourceDocumentId == documentId, cancellationToken);
 
+        // An address names its user by their own address or by a confirmed identity alias (ADR 1015): a certificate
+        // filed for an account's earlier address keeps its holder after the account's address changes.
         var normalized = address?.Trim().ToUpperInvariant();
         var userId = string.IsNullOrEmpty(normalized)
             ? null
             : await Users.IgnoreQueryFilters()
                 .Where(u => u.TenantId == tenantId && u.NormalizedEmail == normalized)
                 .Select(u => (Guid?)u.Id)
+                .FirstOrDefaultAsync(cancellationToken)
+              ?? await UserIdentityAliases.IgnoreQueryFilters()
+                .Where(a => a.TenantId == tenantId && a.NormalizedAddress == normalized && a.ConfirmedAt != null)
+                .Select(a => (Guid?)a.UserId)
                 .FirstOrDefaultAsync(cancellationToken);
 
         if (userId is not { } resolved)

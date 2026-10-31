@@ -31,7 +31,7 @@ public sealed class TenantIngestKeyService(
         }
 
         var domain = await dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
-            .Where(d => d.TenantId == tenantId && d.VerifiedAt != null)
+            .Where(d => d.TenantId == tenantId && d.VerifiedAt != null && d.IsReceiving) // the archive's own address receives
             .OrderBy(d => d.CreatedAt)
             .Select(d => d.Domain)
             .FirstOrDefaultAsync(cancellationToken);

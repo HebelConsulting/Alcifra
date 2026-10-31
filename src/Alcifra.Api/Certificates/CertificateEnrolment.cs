@@ -83,9 +83,7 @@ public sealed class CertificateEnrolment(
                 return [];
             }
 
-            var normalized = holder.Trim().ToUpperInvariant();
-            if (await dbContext.Users.Where(u => u.NormalizedEmail == normalized).Select(u => (Guid?)u.Id)
-                    .FirstOrDefaultAsync(cancellationToken) is not { } holderUserId)
+            if (await dbContext.UserNamedByAsync(holder, cancellationToken) is not { } holderUserId)
             {
                 return [];
             }
@@ -220,7 +218,9 @@ public sealed class CertificateEnrolment(
             throw new CertificateHolderMissingException();
         }
 
-        if (PolicyEnforcement.Refusal(await CurrentPolicyAsync(cancellationToken), leaf, holderAddress, certificatePem) is { } policyRefusal)
+        var holderId = await HolderIdAsync(holderAddress, forSomebodyElse, userId, cancellationToken);
+        if (PolicyEnforcement.Refusal(await CurrentPolicyAsync(cancellationToken), leaf, holderAddress, certificatePem,
+                await IdentityAliasesAsync(holderId, cancellationToken)) is { } policyRefusal)
         {
             throw new CertificatePolicyRefusedException(policyRefusal);
         }
@@ -233,7 +233,7 @@ public sealed class CertificateEnrolment(
         // document, and nothing an administrator has to do for a holder who can do it themselves.
         if (existing is not null && evidence is not null
             && !await dbContext.CertificateAttestations.AnyAsync(a => a.DocumentId == existing.DocumentId, cancellationToken)
-            && await HolderIdAsync(holderAddress, forSomebodyElse, userId, cancellationToken) == existing.UserId)
+            && holderId == existing.UserId)
         {
             return (await AttestExistingAsync(existing, evidence, leaf, cancellationToken), false);
         }
@@ -256,9 +256,13 @@ public sealed class CertificateEnrolment(
     }
 
     private async Task<Guid?> HolderIdAsync(string holderAddress, bool forSomebodyElse, Guid? callerId, CancellationToken cancellationToken) =>
-        forSomebodyElse
-            ? await dbContext.Users.Where(u => u.NormalizedEmail == holderAddress.Trim().ToUpperInvariant()).Select(u => (Guid?)u.Id).FirstOrDefaultAsync(cancellationToken)
-            : callerId;
+        forSomebodyElse ? await dbContext.UserNamedByAsync(holderAddress, cancellationToken) : callerId;
+
+    // The holder's confirmed identity aliases, which Strict binding accepts beside their own address (ADR 1015).
+    private async Task<IReadOnlyCollection<string>> IdentityAliasesAsync(Guid? userId, CancellationToken cancellationToken) =>
+        userId is { } id
+            ? await dbContext.UserIdentityAliases.Where(a => a.UserId == id && a.ConfirmedAt != null).Select(a => a.Address).ToListAsync(cancellationToken)
+            : [];
 
     // Adds the evidence to an enrolment that had none; the projection re-derives its root in the same save.
     private async Task<Listed> AttestExistingAsync(
@@ -369,7 +373,7 @@ public sealed class CertificateEnrolment(
                 continue;
             }
 
-            if (PolicyEnforcement.Refusal(policy, leaf, user.Email, user.Pem) is { } refusal)
+            if (PolicyEnforcement.Refusal(policy, leaf, user.Email, user.Pem, await IdentityAliasesAsync(user.Id, cancellationToken)) is { } refusal)
             {
                 logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant's "
                     + "certificate policy refuses it ({Reason}) (#1839).", user.Email, refusal);

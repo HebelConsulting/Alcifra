@@ -45,6 +45,7 @@ public partial class ExemptControllerShapeTests
         // ADR 0976. One POST: the validation of a pasted certificate with its attestation chain, which stores
         // nothing. The directory itself is a read of Users and EnrolledCertificate, and the verdict is "reads only".
         ["ReaderDirectoryController.cs"] = 1,
+        ["UserIdentityAliasesController.cs"] = 2,
         // Six added with #1270: the detector now sees a controller by its DbSet USE rather than by the
         // entity name appearing anywhere in the file, so these carry a verdict for the first time and
         // need their shape pinned like every other judged controller.

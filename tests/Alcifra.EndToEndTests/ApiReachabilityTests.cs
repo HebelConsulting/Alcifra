@@ -402,6 +402,13 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         await TestJson.Post(admin, $"/api/documents/{doc}/external-links", new { });
         (await admin.PutAsync($"/api/documents/{doc}/checkout", null)).EnsureSuccessStatusCode();
         await TestJson.Post(admin, "/api/tenant/mail-domains", new { domain = $"reach-{Guid.NewGuid():N}"[..14] + ".example" });
+
+        // An identity alias (ADR 1015), so its `remove` is there to follow: it needs a verified identity domain.
+        var identity = await TestJson.Post(admin, "/api/tenant/mail-domains",
+            new { domain = $"reach-id-{Guid.NewGuid():N}"[..17] + ".example", isReceiving = false });
+        factory.Dns.Publish(identity.GetProperty("challengeName").GetString()!, identity.GetProperty("challengeValue").GetString()!);
+        await TestJson.Post(admin, $"/api/tenant/mail-domains/{identity.GetProperty("id").GetGuid()}/verify", new { });
+        await TestJson.Post(admin, $"/api/users/{userId}/identity-aliases", new { address = $"alias@{identity.GetProperty("domain").GetString()}" });
         var group = (await TestJson.Post(admin, "/api/groups", new { name = $"Reach {Guid.NewGuid():N}"[..14] })).GetProperty("id").GetGuid();
         (await admin.PostAsJsonAsync($"/api/groups/{group}/members", new { userId })).EnsureSuccessStatusCode();
         var leaver = (await TestJson.Post(admin, "/api/users",

@@ -174,6 +174,9 @@ public partial class ConcurrencyContractRatchetTests
         ["CertificateSettingsController.cs:Document"] =
             "Reads only: the PUT checks that the chosen parent folder exists (ADR 0936). What it writes is two Tenant "
             + "columns, through TenantVerbs.",
+        ["UserIdentityAliasesController.cs:User"] =
+            "Reads only: checks the user exists and loads them as the alias's owner (ADR 1015). What it writes is "
+            + "UserIdentityAlias, created by its POST and removed through UserIdentityAliasVerbs.",
         ["ReaderDirectoryController.cs:User"] =
             "Reads only: lists the tenant's readers and projects their display names, then asks ReaderCertificateSet "
             + "what each is addressed by (ADR 0976). Its POST validates a pasted certificate and stores nothing, so it "

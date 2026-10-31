@@ -142,6 +142,11 @@ public static class AuditActions
     public const string UserReactivated = "User.Reactivated";
     public const string UserRightsChanged = "User.RightsChanged";
     public const string UserEmailChanged = "User.EmailChanged";
+
+    // ADR 1015: an identity alias widens which certificates Strict binding accepts for the user, so adding one is the
+    // administrator vouching for the address, and both directions are recorded.
+    public const string UserIdentityAliasAdded = "User.IdentityAliasAdded";
+    public const string UserIdentityAliasRemoved = "User.IdentityAliasRemoved";
     public const string UserPasswordChanged = "User.PasswordChanged";
     public const string UserPasswordReset = "User.PasswordReset";
     public const string UserMfaEnabled = "User.MfaEnabled";
@@ -213,6 +218,10 @@ public static class AuditActions
     public const string MailDomainClaimed = "MailDomain.Claimed";
     public const string MailDomainVerified = "MailDomain.Verified";
     public const string MailDomainRemoved = "MailDomain.Removed";
+
+    // ADR 1015: switching receiving off stops mail like a removal does, and switching identity changes whose
+    // certificates Strict binding accepts.
+    public const string MailDomainRolesChanged = "MailDomain.RolesChanged";
 
     // Industry-module activation (ADR 0740): the licensing act. There is deliberately no "Module.Deactivated"
     // event — deactivation is derived from the license's end date at every ask, so no moment exists to record.

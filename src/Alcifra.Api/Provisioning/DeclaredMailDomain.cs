@@ -27,6 +27,10 @@ namespace Alcifra.Api.Provisioning;
 public static class DeclaredMailDomain
 {
     /// <summary>Registers <paramref name="domain"/> for the tenant if it is not already registered.</summary>
+    /// <param name="receiving">
+    /// False declares an identity-only domain (ADR 1015): account addresses live on it, no mail is routed to it, and
+    /// another tenant may hold it too.
+    /// </param>
     /// <returns>True when a row was added — false when it was already there, or the name is unusable.</returns>
     public static async Task<bool> EnsureAsync(
         AlcifraDbContext dbContext,
@@ -34,7 +38,8 @@ public static class DeclaredMailDomain
         string? domain,
         DateTimeOffset now,
         ILogger? logger = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool receiving = true)
     {
         var trimmed = (domain ?? string.Empty).Trim().TrimEnd('.');
         if (string.IsNullOrEmpty(trimmed))
@@ -53,28 +58,27 @@ public static class DeclaredMailDomain
         }
 
         // IgnoreQueryFilters: provisioning runs at startup with no current tenant, so the tenant filter would
-        // match nothing and this would re-add the row on every boot. The unique index is global, so the
-        // existence check has to be global too — a domain another tenant already holds must not be claimed
-        // here, and finding out by way of a constraint violation would take the whole startup down.
+        // match nothing and this would re-add the row on every boot.
         var normalized = trimmed.ToUpperInvariant();
-        var existing = await dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
-            .Where(d => d.NormalizedDomain == normalized)
-            .Select(d => (Guid?)d.TenantId)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        if (existing is { } holder)
+        if (await dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
+                .AnyAsync(d => d.TenantId == tenantId && d.NormalizedDomain == normalized, cancellationToken))
         {
-            if (holder != tenantId)
-            {
-                // The dangerous silence. The operator declared a domain, another tenant already holds it, and
-                // without this the stack starts, looks healthy, and refuses every message for a reason nothing
-                // reports (ADR 0626).
-                logger?.LogWarning(
-                    "Configured mail domain '{Domain}' is already registered to a different tenant and was NOT "
-                    + "claimed for {TenantId}; no mail will be accepted for it here.", trimmed, tenantId);
-            }
+            return false; // already ours: nothing to do, and re-adding would violate the per-tenant unique index
+        }
 
-            return false; // already ours: nothing to do, and re-adding would violate the global unique index
+        // A RECEIVING domain is unique across the installation, so that check is global — a domain another tenant
+        // already receives for must not be claimed here, and finding out by way of a constraint violation would take
+        // the whole startup down. An identity-only domain routes nothing and may sit on several tenants (ADR 1015).
+        if (receiving && await dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
+                .AnyAsync(d => d.NormalizedDomain == normalized && d.IsReceiving, cancellationToken))
+        {
+            // The dangerous silence. The operator declared a domain, another tenant already holds it, and
+            // without this the stack starts, looks healthy, and refuses every message for a reason nothing
+            // reports (ADR 0626).
+            logger?.LogWarning(
+                "Configured mail domain '{Domain}' is already registered to a different tenant and was NOT "
+                + "claimed for {TenantId}; no mail will be accepted for it here.", trimmed, tenantId);
+            return false;
         }
 
         dbContext.TenantMailDomains.Add(new TenantMailDomain
@@ -84,14 +88,17 @@ public static class DeclaredMailDomain
             Domain = trimmed,
             CreatedAt = now,
             VerifiedAt = now,
+            IsIdentity = true,
+            IsReceiving = receiving,
         });
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // A lifecycle milestone: from here the tenant receives mail, without anyone having published anything.
+        // A lifecycle milestone: from here the tenant receives mail (or holds accounts on the domain), without anyone
+        // having published anything.
         logger?.LogInformation(
-            "Mail domain {Domain} declared by configuration for tenant {TenantId} and marked verified.",
-            trimmed, tenantId);
+            "Mail domain {Domain} declared by configuration for tenant {TenantId} and marked verified ({Roles}).",
+            trimmed, tenantId, receiving ? "identity and receiving" : "identity only");
 
         return true;
     }

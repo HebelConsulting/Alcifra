@@ -60,3 +60,9 @@ public sealed class PhonePushRegistrationVerbs(AlcifraDbContext dbContext)
 /// <summary>The verb contract for <see cref="Domain.Certificates.TrustedAttestationRoot"/>: renamed and switched (ADR 0963).</summary>
 public sealed class TrustedAttestationRootVerbs(AlcifraDbContext dbContext)
     : EntityVerbContract<Domain.Certificates.TrustedAttestationRoot>(dbContext, EtagMismatchException.ForAttestationRoot);
+
+public sealed class TenantMailDomainVerbs(AlcifraDbContext dbContext)
+    : EntityVerbContract<TenantMailDomain>(dbContext, EtagMismatchException.ForMailDomain);
+
+public sealed class UserIdentityAliasVerbs(AlcifraDbContext dbContext)
+    : EntityVerbContract<UserIdentityAlias>(dbContext, EtagMismatchException.ForIdentityAlias);

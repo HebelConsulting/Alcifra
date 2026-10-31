@@ -37,8 +37,13 @@ public static class PolicyEnforcement
     /// <param name="chainPem">
     /// The whole filed bundle, so a trust-anchor rule can build the chain the reader will actually present.
     /// </param>
+    /// <param name="identityAliases">
+    /// The account's confirmed identity aliases (ADR 1015): a certificate naming one of them carries the account's
+    /// address as surely as one naming <paramref name="accountEmail"/>.
+    /// </param>
     public static string? Refusal(
-        CertificatePolicy policy, X509Certificate2 certificate, string accountEmail, string chainPem)
+        CertificatePolicy policy, X509Certificate2 certificate, string accountEmail, string chainPem,
+        IReadOnlyCollection<string>? identityAliases = null)
     {
         // THE KEY-STRENGTH FLOOR IS THE PRODUCT'S AND RUNS FIRST, before the short-circuit below — a tenant
         // that has stated nothing still gets it (owner-decided 2026-09-30). Putting it after `IsUnset` is
@@ -76,7 +81,8 @@ public static class PolicyEnforcement
             // The certificate's OWN idea of its address, read the way the enveloper reads it — so a
             // certificate that passes here is one the enveloper will address to the same person.
             var onCertificate = certificate.GetNameInfo(X509NameType.EmailName, forIssuer: false);
-            if (!string.Equals(onCertificate, accountEmail, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(onCertificate, accountEmail, StringComparison.OrdinalIgnoreCase)
+                && !(identityAliases ?? []).Any(a => string.Equals(onCertificate, a.Trim(), StringComparison.OrdinalIgnoreCase)))
             {
                 return "This tenant requires a certificate to carry the e-mail address of the account it is "
                     + $"enrolled for. This one says '{(onCertificate is { Length: > 0 } ? onCertificate : "(no address)")}' and the account is "

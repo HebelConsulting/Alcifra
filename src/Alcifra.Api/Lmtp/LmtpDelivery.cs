@@ -93,8 +93,10 @@ public class LmtpDelivery
         // one is an administrator's unfinished task, visible to nobody: the person who added the domain sees a
         // list entry, the sender sees a bounce, and the logs of a healthy and a half-configured install are
         // byte-identical. That is exactly the shape ADR 0626 exists to forbid.
+        // Receiving domains only: an identity-only domain names accounts and routes no mail (ADR 1015), and several
+        // tenants may hold it, so it cannot say whose archive a message belongs in.
         var claim = await _dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
-            .Where(d => d.NormalizedDomain == domain)
+            .Where(d => d.NormalizedDomain == domain && d.IsReceiving)
             .Select(d => new { d.TenantId, d.VerifiedAt })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -216,7 +218,7 @@ public class LmtpDelivery
         // Only for a domain this installation actually serves: naming a document for mail addressed to
         // somebody else's domain would be noise, and on a public-facing MTA most refusals are exactly that.
         var tenantId = await _dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
-            .Where(d => d.Domain.ToUpper() == domain.ToUpperInvariant() && d.VerifiedAt != null)
+            .Where(d => d.Domain.ToUpper() == domain.ToUpperInvariant() && d.VerifiedAt != null && d.IsReceiving)
             .Select(d => (Guid?)d.TenantId)
             .FirstOrDefaultAsync(cancellationToken);
 

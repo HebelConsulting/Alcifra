@@ -211,6 +211,12 @@ public class UsersController : ControllerBase
             user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         }
 
+        // An identity alias is somebody's address too (ADR 1015); no index spans the two tables, so this one is asked.
+        if (await _dbContext.UserIdentityAliases.AnyAsync(a => a.NormalizedAddress == user.NormalizedEmail, cancellationToken))
+        {
+            throw new Errors.Exceptions.Principals.IdentityAliasConflictException(user.Email);
+        }
+
         _dbContext.Users.Add(user);
 
         try
@@ -581,6 +587,13 @@ public class UsersController : ControllerBase
             throw new Errors.Exceptions.Principals.UserEmailConflictException();
         }
 
+        // Not an identity alias either, any user's (ADR 1015): an address names one person. A user taking their own
+        // alias as their address removes the alias first, so the change says what happened.
+        if (await _dbContext.UserIdentityAliases.AnyAsync(a => a.NormalizedAddress == normalized, cancellationToken))
+        {
+            throw new Errors.Exceptions.Principals.IdentityAliasConflictException(email);
+        }
+
         user.Email = email; // the setter derives NormalizedEmail — never assign that column here
         await SaveUserAsync(user, cancellationToken);
         await _audit.RecordAsync(AuditActions.UserEmailChanged, "User", user.Id, user.DisplayName,
@@ -824,6 +837,8 @@ public class UsersController : ControllerBase
                 // The remaining administrative actions on this user (issue #416). All are gated by the same
                 // CanManageUsers right that gates the listing itself, so anyone holding this row may use them —
                 // which is why they are unconditional here rather than recomputed per row.
+                // The addresses this user is ALSO known by (ADR 1015): listed and added at one address, one rel.
+                new Link("identity-aliases", $"/api/users/{user.Id}/identity-aliases", "GET"),
                 new Link("reset-password", $"/api/users/{user.Id}/reset-password", "POST"),
                 new Link("reset-mfa", $"/api/users/{user.Id}/mfa/reset", "POST"),
                 // Deactivate and reactivate are a STATE PAIR (ADR 0719): an active user offers the one, an inactive

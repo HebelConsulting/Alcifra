@@ -122,6 +122,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     public DbSet<TenantIngestKey> TenantIngestKeys => Set<TenantIngestKey>();
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserIdentityAlias> UserIdentityAliases => Set<UserIdentityAlias>();
 
     public DbSet<UserProfilePhoto> UserProfilePhotos => Set<UserProfilePhoto>();
 
@@ -343,6 +344,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     public override int SaveChanges()
     {
         GroupInvariants.ValidateAsync(this, CancellationToken.None).GetAwaiter().GetResult();
+        IdentityAddressInvariants.ValidateAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         PersonalRootName.FollowDisplayNameAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         ProvisionBookableCollectionsAsync(CancellationToken.None).GetAwaiter().GetResult();
         ValidateDocumentsAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -370,6 +372,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await GroupInvariants.ValidateAsync(this, cancellationToken);
+        await IdentityAddressInvariants.ValidateAsync(this, cancellationToken);
         await PersonalRootName.FollowDisplayNameAsync(this, cancellationToken);
         // BEFORE the document validations, so the collections it adds are judged by them like any other
         // write — sibling names, containment, cycles (#1097).

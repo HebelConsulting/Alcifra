@@ -361,6 +361,58 @@ public partial class CertificateEnrolmentTests
         }
     }
 
+    // ADR 1015 (#1941): an account changes its address while the certificate on its key keeps the old one. The old address
+    // becomes an identity alias on one of the tenant's identity domains, and Strict binding accepts a certificate naming
+    // it, from the holder enrolling it and from an administrator naming the holder by it. An address the account was
+    // never given is still refused.
+    [Fact]
+    public async Task Strict_binding_accepts_a_certificate_naming_an_identity_alias_of_its_holder()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            Assert.True((await TestJson.Get(rig.Member, "/api/certificate-policy")).GetProperty("sanMustMatchAccount").GetBoolean());
+
+            // Domains and aliases are a user administrator's with the mail-routing right, granted explicitly.
+            var routerEmail = $"router-{Guid.NewGuid():N}@e2e.local";
+            await _factory.SeedUserAsync(rig.TenantId, routerEmail, "router-1234", "Router", canManageUsers: true, canManageMailRouting: true);
+            using var router = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(routerEmail, "router-1234"));
+
+            var domain = $"earlier{Guid.NewGuid():N}.example";
+            var claimed = await TestJson.Post(router, "/api/tenant/mail-domains", new { domain, isReceiving = false });
+            _factory.Dns.Publish(claimed.GetProperty("challengeName").GetString()!, claimed.GetProperty("challengeValue").GetString()!);
+            await TestJson.Post(router, $"/api/tenant/mail-domains/{claimed.GetProperty("id").GetGuid()}/verify", new { });
+
+            var row = (await TestJson.Get(router, "/api/users?limit=200")).GetProperty("users").EnumerateArray()
+                .Single(u => string.Equals(u.GetProperty("email").GetString(), rig.MemberEmail, StringComparison.OrdinalIgnoreCase));
+            var alias = $"crypt@{domain}";
+            await TestJson.Post(router, Links(row)["identity-aliases"], new { address = alias });
+
+            // The holder enrols a certificate naming the alias, though they sign in as another address.
+            await TestJson.Post(rig.Member, "/api/certificates", new { certificatePem = SelfSigned("member", alias), label = "Card" });
+
+            // An administrator names the holder BY the alias, and the listing for that address finds the same person.
+            await TestJson.Post(rig.Admin, "/api/certificates", new { certificatePem = SelfSigned("member", alias), label = "Second card", holder = alias });
+            Assert.Equal(2, (await TestJson.Get(rig.Admin, $"/api/certificates?holder={Uri.EscapeDataString(alias)}")).EnumerateArray().Count());
+            Assert.Equal(2, (await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().Count());
+
+            // An address on the same domain that was never given to the account is still somebody else's.
+            using var foreign = await rig.Member.PostAsJsonAsync("/api/certificates",
+                new { certificatePem = SelfSigned("member", $"someone@{domain}"), label = "Not mine" });
+            Assert.Equal(HttpStatusCode.BadRequest, foreign.StatusCode);
+            Assert.Contains("CERTIFICATE_POLICY_REFUSED", await foreign.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
     // As `alcifra certificates policy set --san-must-match-account on|off` does it.
     private static async Task SetSanMustMatchAccountAsync(HttpClient admin, bool on)
     {

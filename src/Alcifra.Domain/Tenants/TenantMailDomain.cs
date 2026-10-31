@@ -2,14 +2,15 @@ using Alcifra.Domain.Abstractions;
 
 namespace Alcifra.Domain.Tenants;
 
-/// <summary>A mail domain this tenant receives mail for (ADR 0628).</summary>
+/// <summary>A domain this tenant has registered: one its accounts' addresses live on, one it receives mail for, or both
+/// (ADR 0628; the two roles: ADR 1015).</summary>
 /// <remarks>
 /// <para>
 /// The envelope recipient resolves in two steps — the <b>domain</b> identifies the tenant, the <b>local part</b>
-/// the user. So a domain belongs to exactly one tenant, and that is what makes it the isolation boundary here,
-/// the same role the tenant query filter plays everywhere else. The unique index on
-/// <see cref="NormalizedDomain"/> is therefore deliberately <b>not</b> scoped to <c>TenantId</c>: two tenants
-/// claiming one domain is the failure it exists to prevent, and scoping it per tenant would permit exactly that.
+/// the user. So a <b>receiving</b> domain belongs to exactly one tenant, and that is what makes it the isolation
+/// boundary here, the same role the tenant query filter plays everywhere else: its unique index is deliberately
+/// <b>not</b> scoped to <c>TenantId</c>. An <b>identity-only</b> domain routes nothing, so several tenants may
+/// hold it (a person's work address, one token, two accounts; ADR 1015); a tenant still holds a domain once.
 /// </para>
 /// <para>
 /// A tenant may hold several — a real organisation has <c>example.com</c> and <c>example.de</c> — which is why
@@ -22,7 +23,7 @@ namespace Alcifra.Domain.Tenants;
 /// unfiltered it silently matches zero rows and every message is refused as an unknown recipient.
 /// </para>
 /// </remarks>
-public class TenantMailDomain : ITenantScoped
+public class TenantMailDomain : ITenantScoped, IConcurrencyTracked
 {
     public Guid Id { get; set; }
 
@@ -81,5 +82,20 @@ public class TenantMailDomain : ITenantScoped
 
     /// <summary>When a verification check last ran, successful or not — so the UI can say how fresh it is.</summary>
     public DateTimeOffset? LastCheckedAt { get; set; }
+
+    /// <summary>
+    /// Account addresses live on this domain: a user's identity aliases may be addressed here, and Strict certificate
+    /// binding accepts a certificate naming one (ADR 1015).
+    /// </summary>
+    public bool IsIdentity { get; set; } = true;
+
+    /// <summary>
+    /// Mail to this domain is routed here and files into the archive. Only a receiving domain is unique across the
+    /// installation, and only a receiving domain is accepted by delivery and the MTA (ADR 1015).
+    /// </summary>
+    public bool IsReceiving { get; set; } = true;
+
+    /// <summary>Changing a domain's roles is an in-place edit, so two administrators cannot revert each other.</summary>
+    public Guid ConcurrencyToken { get; set; }
 
 }

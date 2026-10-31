@@ -4,9 +4,10 @@ using Alcifra.Domain.Tenants;
 
 namespace Alcifra.Infrastructure.Persistence.Configurations;
 
-// ADR 0628. A mail domain identifies the tenant an envelope recipient belongs to, so the unique index is
-// GLOBAL rather than per-tenant: two tenants claiming one domain is precisely the failure it prevents, and a
-// (TenantId, NormalizedDomain) index would allow it while looking careful.
+// ADR 0628. A RECEIVING domain identifies the tenant an envelope recipient belongs to, so its unique index is
+// GLOBAL rather than per-tenant: two tenants receiving for one domain is precisely the failure it prevents. An
+// identity-only domain routes nothing and may sit on several tenants (ADR 1015), so the global index is filtered to
+// the receiving rows, and a second index keeps one row per domain within a tenant.
 public class TenantMailDomainConfiguration : IEntityTypeConfiguration<TenantMailDomain>
 {
     public void Configure(EntityTypeBuilder<TenantMailDomain> builder)
@@ -18,9 +19,9 @@ public class TenantMailDomainConfiguration : IEntityTypeConfiguration<TenantMail
         // 253 is the DNS maximum for a fully-qualified name, so a longer one is not a domain at all.
         builder.Property(d => d.NormalizedDomain).IsRequired().HasMaxLength(253);
 
-        builder.HasIndex(d => d.NormalizedDomain).IsUnique();
+        builder.HasIndex(d => d.NormalizedDomain).IsUnique().HasFilter("\"IsReceiving\" = true");
 
-        builder.HasIndex(d => d.TenantId);
+        builder.HasIndex(d => new { d.TenantId, d.NormalizedDomain }).IsUnique();
 
         // The challenge value (#667). Nullable: a domain the stack's own configuration declared never had one,
         // because it was never challenged. Bounded because it is a generated token, not free text.

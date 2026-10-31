@@ -40,6 +40,7 @@ public class TenantMailDomainsController : ControllerBase
     private readonly IAuditRecorder _audit;
     private readonly TimeProvider _time;
     private readonly ILogger<TenantMailDomainsController> _logger;
+    private readonly Concurrency.TenantMailDomainVerbs _domains;
 
     public TenantMailDomainsController(
         AlcifraDbContext dbContext,
@@ -49,7 +50,8 @@ public class TenantMailDomainsController : ControllerBase
         IDnsTxtLookup dns,
         IAuditRecorder audit,
         TimeProvider time,
-        ILogger<TenantMailDomainsController> logger)
+        ILogger<TenantMailDomainsController> logger,
+        Concurrency.TenantMailDomainVerbs domains)
     {
         _dbContext = dbContext;
         _currentUserAccessor = currentUserAccessor;
@@ -59,6 +61,7 @@ public class TenantMailDomainsController : ControllerBase
         _audit = audit;
         _time = time;
         _logger = logger;
+        _domains = domains;
     }
 
     // Plain mutable classes — XmlSerializer (ADRs 0189/0190).
@@ -81,6 +84,12 @@ public class TenantMailDomainsController : ControllerBase
 
         /// <summary>The value to publish there. Null once verified, and for a domain declared by configuration.</summary>
         public string? ChallengeValue { get; set; }
+
+        /// <summary>Account addresses live on it; identity aliases may be addressed here (ADR 1015).</summary>
+        public bool IsIdentity { get; set; }
+
+        /// <summary>Mail to it is received and filed; unique across the installation (ADR 1015).</summary>
+        public bool IsReceiving { get; set; }
     }
 
     public class MailDomainsResource : HypermediaResource
@@ -94,6 +103,21 @@ public class TenantMailDomainsController : ControllerBase
     public class AddMailDomainRequest
     {
         public string Domain { get; set; } = string.Empty;
+
+        /// <summary>Default true, as every domain was before the roles existed.</summary>
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public bool? IsIdentity { get; set; }
+
+        /// <summary>Default true, as every domain was before the roles existed.</summary>
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public bool? IsReceiving { get; set; }
+    }
+
+    public class MailDomainRolesRequest
+    {
+        public bool IsIdentity { get; set; }
+
+        public bool IsReceiving { get; set; }
     }
 
     [HttpGet]
@@ -139,13 +163,21 @@ public class TenantMailDomainsController : ControllerBase
             throw new InvalidMailDomainException(domain);
         }
 
-        // The unique index is GLOBAL, deliberately (ADR 0628): a domain identifies exactly one tenant, so a
-        // second claim is refused rather than allowed to make delivery ambiguous. Checked here as well as in
-        // the index so the refusal is a sentence rather than a constraint violation — and NOT saying which
-        // tenant holds it, which would leak one tenant's configuration to another.
+        var isIdentity = request.IsIdentity ?? true;
+        var isReceiving = request.IsReceiving ?? true;
+        if (!isIdentity && !isReceiving)
+        {
+            throw new MailDomainNeedsARoleException(domain);
+        }
+
+        // A tenant holds a domain once; a RECEIVING domain is held once across the installation (ADR 0628), so a
+        // second claim is refused rather than allowed to make delivery ambiguous. An identity-only domain routes
+        // nothing and may sit on several tenants (ADR 1015). Checked here as well as in the indexes so the refusal
+        // is a sentence rather than a constraint violation — and NOT saying which tenant holds it, which would leak
+        // one tenant's configuration to another.
         var normalized = domain.ToUpperInvariant();
-        if (await _dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
-                .AnyAsync(d => d.NormalizedDomain == normalized, cancellationToken))
+        if (await _dbContext.TenantMailDomains.AnyAsync(d => d.NormalizedDomain == normalized, cancellationToken)
+            || (isReceiving && await ReceivedElsewhereAsync(normalized, exceptId: null, cancellationToken)))
         {
             throw new MailDomainAlreadyClaimedException(domain);
         }
@@ -157,6 +189,8 @@ public class TenantMailDomainsController : ControllerBase
             Domain = domain,
             CreatedAt = _time.GetUtcNow(),
             VerificationToken = MailDomainChallenge.NewToken(),
+            IsIdentity = isIdentity,
+            IsReceiving = isReceiving,
         };
 
         _dbContext.TenantMailDomains.Add(entry);
@@ -173,7 +207,100 @@ public class TenantMailDomainsController : ControllerBase
             AuditActions.MailDomainClaimed, "Tenant", tenantId, domain,
             $"Claimed the mail domain '{domain}'; awaiting DNS verification.", cancellationToken: cancellationToken);
 
+        _domains.EmitETag(Response, entry);
         return Created($"/api/tenant/mail-domains/{entry.Id}", ToResource(entry, canManage: true));
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
+    {
+        if (await _dbContext.TenantMailDomains.FirstOrDefaultAsync(d => d.Id == id, cancellationToken) is not { } entry)
+        {
+            return NotFound();
+        }
+
+        _domains.EmitETag(Response, entry);
+        return Ok(ToResource(entry, await CanManageAsync(cancellationToken)));
+    }
+
+    // Standing convention: every GET action gets its own HEAD action.
+    [HttpHead("{id:guid}")]
+    public async Task<IActionResult> HeadOne(Guid id, CancellationToken cancellationToken)
+    {
+        if (await _dbContext.TenantMailDomains.FirstOrDefaultAsync(d => d.Id == id, cancellationToken) is not { } entry)
+        {
+            return NotFound();
+        }
+
+        _domains.EmitETag(Response, entry);
+        return Ok();
+    }
+
+    /// <summary>Sets whether the domain is an identity domain, a receiving domain, or both (ADR 1015).</summary>
+    /// <remarks>
+    /// A PUT of both roles, never one flag: the caller states what the domain should be, against the tag of the read
+    /// that showed them what it was. Switching receiving on is a claim on the domain's mail and meets the same global
+    /// check as adding it; switching identity off is refused while users' aliases live on the domain.
+    /// </remarks>
+    [HttpPut("{id:guid}/roles")]
+    public async Task<IActionResult> SetRoles(Guid id, [FromBody] MailDomainRolesRequest request, CancellationToken cancellationToken)
+    {
+        if (!await CanManageAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        if (await _dbContext.TenantMailDomains.FirstOrDefaultAsync(d => d.Id == id, cancellationToken) is not { } entry)
+        {
+            return NotFound();
+        }
+
+        _domains.RequireIfMatch(Request);
+        if (!request.IsIdentity && !request.IsReceiving)
+        {
+            throw new MailDomainNeedsARoleException(entry.Domain);
+        }
+
+        if (request.IsReceiving && !entry.IsReceiving && await ReceivedElsewhereAsync(entry.NormalizedDomain, entry.Id, cancellationToken))
+        {
+            throw new MailDomainAlreadyClaimedException(entry.Domain);
+        }
+
+        if (!request.IsIdentity && entry.IsIdentity && await AliasesOnAsync(entry, cancellationToken) is var aliases and > 0)
+        {
+            throw new MailDomainHasIdentityAliasesException(entry.Domain, aliases);
+        }
+
+        var before = Roles(entry.IsIdentity, entry.IsReceiving);
+        await _domains.MutateAsync(Request, entry,
+            apply: () =>
+            {
+                entry.IsIdentity = request.IsIdentity;
+                entry.IsReceiving = request.IsReceiving;
+                return Task.CompletedTask;
+            },
+            afterCommit: async () =>
+            {
+                // Information, or Warning when receiving was switched off: that stops mail arriving like a removal does.
+                if (entry.IsReceiving || before is "identity")
+                {
+                    _logger.LogInformation("Mail domain {Domain} of tenant {TenantId} is now {Roles} (was {Before}).",
+                        entry.Domain, entry.TenantId, Roles(entry.IsIdentity, entry.IsReceiving), before);
+                }
+                else
+                {
+                    _logger.LogWarning("Mail domain {Domain} of tenant {TenantId} no longer receives mail (now {Roles}).",
+                        entry.Domain, entry.TenantId, Roles(entry.IsIdentity, entry.IsReceiving));
+                }
+
+                await _audit.RecordAsync(
+                    AuditActions.MailDomainRolesChanged, "Tenant", entry.TenantId, entry.Domain,
+                    $"{before} → {Roles(entry.IsIdentity, entry.IsReceiving)}", cancellationToken: cancellationToken);
+            },
+            cancellationToken: cancellationToken);
+
+        _domains.EmitETag(Response, entry);
+        return Ok(ToResource(entry, canManage: true));
     }
 
     /// <summary>Looks for the challenge in DNS now, and records the outcome.</summary>
@@ -265,6 +392,11 @@ public class TenantMailDomainsController : ControllerBase
             return NotFound();
         }
 
+        if (entry.IsIdentity && await AliasesOnAsync(entry, cancellationToken) is var aliases and > 0)
+        {
+            throw new MailDomainHasIdentityAliasesException(entry.Domain, aliases);
+        }
+
         _dbContext.TenantMailDomains.Remove(entry);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -300,12 +432,15 @@ public class TenantMailDomainsController : ControllerBase
             // domain declared by configuration never had one.
             ChallengeName = entry.VerifiedAt is null ? MailDomainChallenge.NameFor(entry.Domain) : null,
             ChallengeValue = entry.VerifiedAt is null ? entry.VerificationToken : null,
+            IsIdentity = entry.IsIdentity,
+            IsReceiving = entry.IsReceiving,
         };
 
         resource.Links.Add(new Link("self", $"/api/tenant/mail-domains/{entry.Id}", "GET"));
         if (canManage)
         {
             resource.Links.Add(new Link("remove", $"/api/tenant/mail-domains/{entry.Id}", "DELETE"));
+            resource.Links.Add(new Link("roles", $"/api/tenant/mail-domains/{entry.Id}/roles", "PUT"));
 
             // Offered only while there is something to verify — a rel that is absent because the work is done
             // reads as "not available here", which is exactly right (ADR 0543).
@@ -317,6 +452,25 @@ public class TenantMailDomainsController : ControllerBase
 
         return resource;
     }
+
+    // Another tenant RECEIVES for this domain: across tenants, so the filter is lifted, and only receiving rows count.
+    private Task<bool> ReceivedElsewhereAsync(string normalized, Guid? exceptId, CancellationToken cancellationToken) =>
+        _dbContext.TenantMailDomains.IgnoreQueryFilters(["TenantFilter"])
+            .AnyAsync(d => d.NormalizedDomain == normalized && d.IsReceiving && d.Id != exceptId, cancellationToken);
+
+    // This tenant's identity aliases on the domain.
+    private Task<int> AliasesOnAsync(TenantMailDomain entry, CancellationToken cancellationToken)
+    {
+        var suffix = $"@{entry.NormalizedDomain}";
+        return _dbContext.UserIdentityAliases.CountAsync(a => a.NormalizedAddress.EndsWith(suffix), cancellationToken);
+    }
+
+    private static string Roles(bool isIdentity, bool isReceiving) => (isIdentity, isReceiving) switch
+    {
+        (true, true) => "identity and receiving",
+        (true, false) => "identity",
+        _ => "receiving",
+    };
 
     private async Task<bool> CanManageAsync(CancellationToken cancellationToken) =>
         _currentUserAccessor.UserId is { } userId

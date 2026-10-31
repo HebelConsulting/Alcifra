@@ -21,12 +21,15 @@ set -eu
 # VerifiedAt IS NOT NULL mirrors the app's own resolution (#667): an unverified claim is a statement someone
 # typed, not a fact. Both ends check, deliberately — if only the app did, Postfix would accept the recipient at
 # RCPT and the refusal would come back later as a bounce, when ADR 0628 asks for a refusal up front.
+#
+# "IsReceiving" likewise (ADR 1015): an identity-only domain names accounts and routes no mail, and several tenants
+# may hold it.
 cat > /etc/postfix/pgsql-virtual-domains.cf <<EOF
 hosts = ${DB_HOST}
 dbname = ${DB_NAME}
 user = ${DB_USER}
 password = ${DB_PASSWORD}
-query = SELECT 1 FROM "TenantMailDomains" WHERE "NormalizedDomain" = UPPER('%s') AND "VerifiedAt" IS NOT NULL
+query = SELECT 1 FROM "TenantMailDomains" WHERE "NormalizedDomain" = UPPER('%s') AND "VerifiedAt" IS NOT NULL AND "IsReceiving"
 EOF
 chmod 640 /etc/postfix/pgsql-virtual-domains.cf
 

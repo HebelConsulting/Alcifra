@@ -259,6 +259,28 @@ public sealed class AlcifraApi(HttpClient http)
         return JsonDocument.Parse(body).RootElement.Clone();
     }
 
+    /// <summary>A <c>DELETE</c> carrying the <c>If-Match</c> the resource was read with; 412 says somebody changed it.</summary>
+    public async Task DeleteWithETagAsync(string path, string? etag, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Delete, path);
+        if (!string.IsNullOrWhiteSpace(etag))
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", etag);
+        }
+
+        using var response = await http.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
+        {
+            throw new CliException($"{path} was changed by somebody else since it was read. Read it again and retry.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new CliException(Describe(
+                response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken), path));
+        }
+    }
+
     /// <summary>Deletes a resource; an empty body is a normal answer and not a failure.</summary>
     public async Task DeleteAsync(string path, CancellationToken cancellationToken)
     {
