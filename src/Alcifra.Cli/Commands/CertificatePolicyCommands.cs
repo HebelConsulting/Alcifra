@@ -45,12 +45,26 @@ public sealed class CertificatePolicySetSettings : TenantSessionSettings
         _ => null,
     };
 
-    public override Spectre.Console.ValidationResult Validate() => (Binding, SanMustMatchAccount) switch
+    [CommandOption("--trust-anchors <file|none>")]
+    [Description("The certificate authorities a certificate must chain to: a PEM file with one certificate or several, any of which suffices (ADR 1017). none removes the rule.")]
+    public string? TrustAnchors { get; init; }
+
+    public override Spectre.Console.ValidationResult Validate() => (Binding, SanMustMatchAccount, TrustAnchors) switch
     {
-        (null, null) => Spectre.Console.ValidationResult.Error("Name what to change: --binding strict|possession."),
-        ({ }, { }) => Spectre.Console.ValidationResult.Error("Name the binding once: --binding, or its earlier spelling --san-must-match-account."),
-        _ when Chosen is null => Spectre.Console.ValidationResult.Error("--binding takes strict or possession; --san-must-match-account takes on or off."),
+        (null, null, null) => Spectre.Console.ValidationResult.Error("Name what to change: --binding strict|possession, --trust-anchors <file>|none."),
+        ({ }, { }, _) => Spectre.Console.ValidationResult.Error("Name the binding once: --binding, or its earlier spelling --san-must-match-account."),
+        _ when (Binding is not null || SanMustMatchAccount is not null) && Chosen is null =>
+            Spectre.Console.ValidationResult.Error("--binding takes strict or possession; --san-must-match-account takes on or off."),
+        (_, _, { } file) when file != "none" && !File.Exists(file) => Spectre.Console.ValidationResult.Error($"No file '{file}' to read the trust anchors from."),
         _ => base.Validate(),
+    };
+
+    // The anchors to set: the file's PEM, an empty string for none, or null when not named.
+    public string? AnchorsPem => TrustAnchors switch
+    {
+        null => null,
+        "none" => string.Empty,
+        var file => File.ReadAllText(file),
     };
 }
 
@@ -68,7 +82,7 @@ public sealed class CertificatePolicySetCommand(ILogger<CertificatePolicySetComm
         CommandContext context, CertificatePolicySetSettings settings, CancellationToken cancellationToken)
     {
         using var http = CertificateEndpoint.Client(settings);
-        var written = await CertificatePolicySurface.SetBindingAsync(new AlcifraApi(http), settings.Chosen!, cancellationToken);
+        var written = await CertificatePolicySurface.SetAsync(new AlcifraApi(http), settings.Chosen, settings.AnchorsPem, cancellationToken);
         CertificatePolicySurface.Report(logger, written);
         return 0;
     }
@@ -90,13 +104,29 @@ public static class CertificatePolicySurface
 
     /// <summary>Sets the binding (<c>strict</c> or <c>possession</c>), keeping every other rule as read; returns the policy
     /// as written. Both fields are written, so a server that knows only the address rule reads the same choice.</summary>
-    public static async Task<JsonElement> SetBindingAsync(AlcifraApi api, string binding, CancellationToken cancellationToken)
+    public static Task<JsonElement> SetBindingAsync(AlcifraApi api, string binding, CancellationToken cancellationToken) =>
+        SetAsync(api, binding, anchorsPem: null, cancellationToken);
+
+    /// <summary>
+    /// Sets what was named, keeping every other rule as read, in ONE write under the tag of the read: the binding, and the
+    /// trust anchors (a PEM with one certificate or several; empty removes them). Returns the policy as written.
+    /// </summary>
+    public static async Task<JsonElement> SetAsync(AlcifraApi api, string? binding, string? anchorsPem, CancellationToken cancellationToken)
     {
         var (href, resource, etag) = await ReadAsync(api, cancellationToken);
         var policy = JsonNode.Parse(resource.GetRawText())?.AsObject()
             ?? throw new CliException("The certificate policy could not be read back.");
-        policy["binding"] = binding;
-        policy["sanMustMatchAccount"] = binding == "strict";
+        if (binding is not null)
+        {
+            policy["binding"] = binding;
+            policy["sanMustMatchAccount"] = binding == "strict";
+        }
+
+        if (anchorsPem is not null)
+        {
+            policy["trustAnchorPem"] = anchorsPem.Length == 0 ? null : anchorsPem;
+        }
+
         return await api.PutWithETagAsync(href, policy, etag, cancellationToken);
     }
 
@@ -104,7 +134,7 @@ public static class CertificatePolicySurface
     {
         logger.LogInformation(
             "Binding: {Binding}. Issuer pattern: {Issuer}. Common-name pattern: {CommonName}. "
-            + "RSA minimum: {RsaMinimum} bits. Curves: {Curves}. Required extended key usages: {Ekus}. Own trust anchor: {Anchor}. "
+            + "RSA minimum: {RsaMinimum} bits. Curves: {Curves}. Required extended key usages: {Ekus}. Own trust anchors: {Anchor}. "
             + "Further rules: {Rules}.",
             Text(policy, "binding") ?? (Flag(policy, "sanMustMatchAccount") ? "strict" : "possession"),
             Text(policy, "issuerDnPattern") ?? "any",
@@ -114,7 +144,9 @@ public static class CertificatePolicySurface
                 : $"{Number(policy, "defaultMinimumRsaKeySizeBits")} (default)",
             List(policy, "permittedCurves") is { Length: > 0 } curves ? curves : $"{List(policy, "defaultPermittedCurves")} (default)",
             List(policy, "requiredExtendedKeyUsages") is { Length: > 0 } ekus ? ekus : "none",
-            Text(policy, "trustAnchorPem") is null ? "none" : "set",
+            Text(policy, "trustAnchorPem") is { } anchors
+                ? $"{anchors.Split("-----BEGIN CERTIFICATE-----").Length - 1} certificate(s)"
+                : "none",
             policy.TryGetProperty("rules", out var rules) && rules.ValueKind == JsonValueKind.Array ? rules.GetArrayLength() : 0);
     }
 

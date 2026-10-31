@@ -495,6 +495,63 @@ public partial class CertificateEnrolmentTests
         }
     }
 
+    // ADR 1017: `alcifra certificates policy set --trust-anchors <bundle>`: a certificate from ANY of the tenant's
+    // authorities is enrolled, and one from an authority outside the bundle is refused.
+    [Fact]
+    public async Task A_bundle_of_trust_anchors_admits_any_of_the_tenants_authorities()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            using var firstKey = RSA.Create(2048);
+            using var secondKey = RSA.Create(2048);
+            using var strangerKey = RSA.Create(2048);
+            using var first = Authority("CN=First CA", firstKey);
+            using var second = Authority("CN=Second CA", secondKey);
+            using var stranger = Authority("CN=Stranger CA", strangerKey);
+
+            var written = await Alcifra.Cli.Commands.CertificatePolicySurface.SetAsync(new Alcifra.Cli.Infrastructure.AlcifraApi(rig.Admin),
+                binding: null, first.ExportCertificatePem() + "\n" + second.ExportCertificatePem(), CancellationToken.None);
+            Assert.Equal(2, written.GetProperty("trustAnchorPem").GetString()!.Split("-----BEGIN CERTIFICATE-----").Length - 1);
+
+            await TestJson.Post(rig.Member, "/api/certificates", new { certificatePem = IssuedBy(second, secondKey, rig.MemberEmail), label = "From the second" });
+            using var refused = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = IssuedBy(stranger, strangerKey, rig.MemberEmail), label = "From a stranger" });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Contains("CERTIFICATE_POLICY_REFUSED", await refused.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    private static X509Certificate2 Authority(string subject, RSA key)
+    {
+        var request = new CertificateRequest(subject, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, critical: true));
+        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+    }
+
+    // A reader certificate for the address, issued by the authority, with the authority beside it in the filed bundle.
+    private static string IssuedBy(X509Certificate2 authority, RSA authorityKey, string email)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=Reader", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyEncipherment, critical: false));
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());
+        var generator = X509SignatureGenerator.CreateForRSA(authorityKey, RSASignaturePadding.Pkcs1);
+        using var issued = request.Create(authority.SubjectName, generator, DateTimeOffset.UtcNow.AddHours(-1), DateTimeOffset.UtcNow.AddMonths(6), [1, 2, 3, 4]);
+        return issued.ExportCertificatePem();
+    }
+
     // As `alcifra certificates policy set --san-must-match-account on|off` (now --binding strict|possession) does it.
     private static async Task SetSanMustMatchAccountAsync(HttpClient admin, bool on)
     {

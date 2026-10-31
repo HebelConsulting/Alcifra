@@ -1782,6 +1782,14 @@ alcifra certificates policy set --binding possession   # an authority without e-
 alcifra certificates policy set --binding strict       # back to the default
 ```
 
+To accept only certificates your own authorities issued, name them as trust anchors: one certificate, or several in
+one PEM file, any of which suffices.
+
+```sh
+alcifra certificates policy set --trust-anchors our-authorities.pem
+alcifra certificates policy set --trust-anchors none   # any authority again
+```
+
 *The rule is applied when a certificate is enrolled, never backwards.* Switching it on does not refuse, flag or
 re-check anything already enrolled; a certificate enrolled while it was off goes on addressing its holder until it
 is revoked. An organisation that saved its own certificate policy before this became the default keeps what it

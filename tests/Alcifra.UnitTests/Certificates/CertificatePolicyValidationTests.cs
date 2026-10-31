@@ -82,6 +82,21 @@ public class CertificatePolicyValidationTests
     }
 
     [Fact]
+    public void A_bundle_with_one_unreadable_anchor_is_refused_and_a_readable_bundle_is_not()
+    {
+        // ADR 1017: every certificate of the bundle has to be readable; one that is not would silently trust less.
+        using var key = System.Security.Cryptography.RSA.Create(2048);
+        var request = new System.Security.Cryptography.X509Certificates.CertificateRequest(
+            "CN=Anchor", key, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+        using var anchor = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        var good = anchor.ExportCertificatePem();
+
+        Assert.Empty(new CertificatePolicy { TrustAnchorPem = good + "\n" + good }.Problems());
+        var broken = new CertificatePolicy { TrustAnchorPem = good + "\n-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----" };
+        Assert.Contains("TrustAnchorPem", Assert.Single(broken.Problems()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_unreadable_trust_anchor_is_refused()
     {
         var policy = new CertificatePolicy { TrustAnchorPem = "-----BEGIN CERTIFICATE-----\nnope\n-----END CERTIFICATE-----" };

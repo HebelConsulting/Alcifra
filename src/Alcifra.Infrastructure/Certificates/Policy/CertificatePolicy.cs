@@ -163,8 +163,29 @@ public sealed record CertificatePolicy
     /// <summary>Extended key usages the certificate must carry, by OID.</summary>
     public IReadOnlyList<string> RequiredExtendedKeyUsages { get; init; } = [];
 
-    /// <summary>A trust anchor the certificate's chain must reach — the "only our own CA" rule.</summary>
+    /// <summary>
+    /// The trust anchors the certificate's chain must reach, the "only our own CAs" rule: one certificate, or several in
+    /// one PEM bundle, any of which suffices (#1941, ADR 1017). An organisation with more than one authority lists them
+    /// all here, rather than in a table of its own.
+    /// </summary>
     public string? TrustAnchorPem { get; init; }
+
+    /// <summary>The anchors in <see cref="TrustAnchorPem"/>, or null when one of its certificates cannot be read.</summary>
+    public static X509Certificate2Collection? Anchors(string pem)
+    {
+        var blocks = pem.Split("-----BEGIN CERTIFICATE-----").Length - 1;
+        try
+        {
+            var anchors = new X509Certificate2Collection();
+            anchors.ImportFromPem(pem);
+            return blocks > 0 && anchors.Count == blocks ? anchors : null;
+        }
+        catch (Exception exception) when (exception is System.Security.Cryptography.CryptographicException
+            or ArgumentException or FormatException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Everything the typed constraints do not cover.</summary>
     public IReadOnlyList<CertificateRule> Rules { get; init; } = [];
@@ -255,9 +276,9 @@ public sealed record CertificatePolicy
             problems.Add($"RequiredExtendedKeyUsages contains '{oid}', which is not an OID.");
         }
 
-        if (TrustAnchorPem is { Length: > 0 } anchor && !LoadsAsCertificate(anchor))
+        if (TrustAnchorPem is { Length: > 0 } anchor && Anchors(anchor) is null)
         {
-            problems.Add("TrustAnchorPem is not a readable certificate.");
+            problems.Add("TrustAnchorPem is not one or more readable certificates.");
         }
 
         for (var i = 0; i < Rules.Count; i++)
@@ -290,20 +311,6 @@ public sealed record CertificatePolicy
             return true;
         }
         catch (ArgumentException)
-        {
-            return false;
-        }
-    }
-
-    private static bool LoadsAsCertificate(string pem)
-    {
-        try
-        {
-            using var certificate = X509Certificate2.CreateFromPem(pem);
-            return true;
-        }
-        catch (Exception exception) when (exception is System.Security.Cryptography.CryptographicException
-            or ArgumentException or FormatException)
         {
             return false;
         }

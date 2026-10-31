@@ -100,7 +100,7 @@ public static class PolicyEnforcement
         if (policy.TrustAnchorPem is { Length: > 0 } anchor && !ChainsTo(certificate, anchor, chainPem))
         {
             return "This tenant only accepts certificates issued by its own certification authority, and "
-                + "this one does not chain to it. Enrol a certificate your administrator issued.";
+                + "this one does not chain to it (or to any of its authorities). Enrol a certificate your administrator issued.";
         }
 
         for (var i = 0; i < policy.Rules.Count; i++)
@@ -335,14 +335,20 @@ public static class PolicyEnforcement
     {
         try
         {
-            using var anchor = X509Certificate2.CreateFromPem(anchorPem);
+            // Every anchor of the bundle, any of which suffices (ADR 1017); one that cannot be read refuses, as validation
+            // refused saving it.
+            if (CertificatePolicy.Anchors(anchorPem) is not { } anchors)
+            {
+                return false;
+            }
+
             using var chain = new X509Chain();
 
-            // CUSTOM trust, and only the tenant's anchor: the machine's own root store is irrelevant to
+            // CUSTOM trust, and only the tenant's anchors: the machine's own root store is irrelevant to
             // "issued by OUR CA", and including it would admit any publicly-trusted certificate — the exact
             // opposite of what this rule is for.
             chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-            chain.ChainPolicy.CustomTrustStore.Add(anchor);
+            chain.ChainPolicy.CustomTrustStore.AddRange(anchors);
 
             // Intermediates the enroller filed travel with the leaf (Encryption Module ADR 0002 files the bundle), so they are
             // offered here rather than fetched — this path must not reach the network.

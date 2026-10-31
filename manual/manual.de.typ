@@ -1861,6 +1861,14 @@ alcifra certificates policy set --binding possession   # an authority without e-
 alcifra certificates policy set --binding strict       # back to the default
 ```
 
+Um nur Zertifikate Ihrer eigenen Zertifizierungsstellen zuzulassen, nennen Sie diese als Vertrauensanker: ein
+Zertifikat oder mehrere in einer PEM-Datei, von denen eines genügt.
+
+```sh
+alcifra certificates policy set --trust-anchors our-authorities.pem
+alcifra certificates policy set --trust-anchors none   # any authority again
+```
+
 *Die Regel wird beim Hinterlegen eines Zertifikats angewendet, nie rückwirkend.* Das Einschalten lehnt nichts
 bereits Hinterlegtes ab, markiert nichts und prüft nichts erneut; ein Zertifikat, das hinterlegt wurde, während
 sie ausgeschaltet war, adressiert seine Inhaberin oder seinen Inhaber weiter, bis es widerrufen wird. Eine

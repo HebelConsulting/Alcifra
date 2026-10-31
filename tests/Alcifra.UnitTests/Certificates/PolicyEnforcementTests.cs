@@ -191,6 +191,44 @@ public class PolicyEnforcementTests
     }
 
     [Fact]
+    public void A_bundle_of_anchors_admits_a_certificate_from_any_of_them_and_no_other()
+    {
+        // ADR 1017: an organisation with several authorities lists them all in one bundle; any of them suffices.
+        using var firstKey = RSA.Create(2048);
+        using var secondKey = RSA.Create(2048);
+        using var first = Authority("CN=First CA", firstKey);
+        using var second = Authority("CN=Second CA", secondKey);
+        using var issued = IssuedBy(second, secondKey, Holder);
+        var bothPem = first.ExportCertificatePem() + "\n" + second.ExportCertificatePem();
+
+        Assert.Null(Refusal(new CertificatePolicy { TrustAnchorPem = bothPem }, issued));
+        Assert.Contains("its own certification authority",
+            Refusal(new CertificatePolicy { TrustAnchorPem = first.ExportCertificatePem() }, issued), StringComparison.Ordinal);
+    }
+
+    // A self-signed authority over a given key, able to sign certificates.
+    private static X509Certificate2 Authority(string subject, RSA key)
+    {
+        var request = new CertificateRequest(subject, key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, critical: true));
+        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+    }
+
+    // A reader certificate for the address, issued by the authority.
+    private static X509Certificate2 IssuedBy(X509Certificate2 authority, RSA authorityKey, string email)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=Reader", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyEncipherment, critical: false));
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());
+        var generator = X509SignatureGenerator.CreateForRSA(authorityKey, RSASignaturePadding.Pkcs1);
+        return request.Create(authority.SubjectName, generator, DateTimeOffset.UtcNow.AddHours(-1), DateTimeOffset.UtcNow.AddMonths(6), [1, 2, 3, 4]);
+    }
+
+    [Fact]
     public void A_CA_certificate_chains_to_ITSELF_as_an_anchor()
     {
         // The degenerate but real case: a tenant whose "CA" is the certificate it issued. It proves the
