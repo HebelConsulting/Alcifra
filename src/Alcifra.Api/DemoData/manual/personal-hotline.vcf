@@ -1,0 +1,10 @@
+BEGIN:VCARD
+VERSION:3.0
+UID:manual-personal-hotline
+FN:Seewelle Telecom Hotline
+ORG:Seewelle Telecom AG;
+TEL;TYPE=WORK,VOICE,pref:+41 41 555 06 60
+EMAIL;TYPE=WORK:support@seewelle.example
+NOTE:Störungsdienst rund um die Uhr / Fault line around the clock.\nFiktiver Demo-Kontakt / A fictional Alcifra demo contact.
+X-ABShowAs:COMPANY
+END:VCARD

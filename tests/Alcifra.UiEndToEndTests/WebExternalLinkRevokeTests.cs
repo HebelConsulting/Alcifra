@@ -15,7 +15,7 @@ namespace Alcifra.UiEndToEndTests;
 // #1175's client half is that FORGETTING is what happens. A test that watches a button appear cannot see a
 // request that was never sent correctly.
 //
-// THE DOCUMENT IS CHOSEN, not convenient. "Maintenance agreement WV-2026-118" is referenced by no other UI
+// THE DOCUMENT IS CHOSEN, not convenient. "Maintenance agreement WV-2026-07" is referenced by no other UI
 // test and carries no seeded link, so this dialog opens empty and "exactly one row" means the one this test
 // made. The obvious choice — the same "service agreement" the create test uses — is wrong twice over: the demo
 // seeder files an external link against it, and WebExternalLinkCreateTests adds another and leaves it. Any
@@ -35,7 +35,7 @@ public class WebExternalLinkRevokeTests
         var page = await Ui.LoginAsync(_app);
 
         await page.GetByText("Demo Repository").First.ClickAsync();
-        foreach (var folder in new[] { "Contracts", "Acme Corp" })
+        foreach (var folder in new[] { "Contracts", "Alpenglas AG" })
         {
             var folderRow = page.Locator(".wb-list-row").Filter(new() { HasText = folder });
             await folderRow.First.WaitForAsync(new() { Timeout = 15000 });

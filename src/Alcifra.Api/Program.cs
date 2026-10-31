@@ -718,9 +718,9 @@ using (var scope = app.Services.CreateScope())
     }
 
     // Env-driven idempotent demo-data seed (Docker Compose / kiosk only) — provisions a demo tenant + admin
-    // with a KNOWN password and a realistic sample tree (Business Years / Contracts / General, varied file types,
-    // references, two extra users + a shared group intray), so a visitor can log straight in and see content
-    // (ADR "Compose demo-data seeding" / 0214; issue #354). No-op unless the Demo:* config is present and the
+    // with a KNOWN password and Kristall Holding AG's archive (Business Years / Contracts / General / Customers,
+    // varied file types, references, work in progress, two further advertised users + a shared group intray), so a
+    // visitor can log straight in and see content (ADR 0214; issue #354; ADR 1014). No-op unless the Demo:* config is present and the
     // tenant doesn't already exist. The seeding logic lives in DemoDataSeeder (extracted from this file).
     await DemoDataSeeder.SeedIfConfiguredAsync(services, app.Configuration);
 

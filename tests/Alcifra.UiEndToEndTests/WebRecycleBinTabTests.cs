@@ -8,7 +8,7 @@ namespace Alcifra.UiEndToEndTests;
 // all" dialog gates OK behind typing "I AGREE" (cancelled here so the shared bin isn't emptied).
 //
 // Uses a throwaway FOLDER (no blob), not an uploaded document: with per-tenant object-lock buckets (ADR
-// "Per-tenant object-storage bucket") the demo tenant's Basic-Entry 7-year retention now genuinely WORM-locks an
+// "Per-tenant object-storage bucket") the demo tenant's Basic-Entry 10-year retention now genuinely WORM-locks an
 // uploaded document's blob, so hard-deleting it is correctly refused — that path is covered by the API-level
 // WORM/purge E2E tests. A folder has no blob, so it purges cleanly, exercising the recycle-bin UI flow.
 [Collection(UiCollection.Name)]

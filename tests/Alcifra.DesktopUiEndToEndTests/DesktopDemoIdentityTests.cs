@@ -37,10 +37,12 @@ public class DesktopDemoIdentityTests
 
         var contracts = await ChildAsync(repo, "Contracts");
         Assert.Equal(Guid.Parse("6b6de497-5cc3-5c9c-b5f7-79a156418d4b"), contracts.Id);
-        var acme = await ChildAsync(contracts, "Acme Corp");
-        Assert.Equal(Guid.Parse("39029ca2-4943-5a55-8674-a93aa8cc9033"), acme.Id);
-        var invoice = await ChildAsync(acme, "Invoice 2026-003");
-        Assert.Equal(Guid.Parse("b0a55acd-bd88-5446-a194-8526b6ea6a35"), invoice.Id);
+        // Kristall's archive since #1788: the Demo tenant passes no folder-slug prefix, so "Contracts" above kept
+        // the id it had before the switch, and the supplier folder and its invoice are new slugs.
+        var alpenglas = await ChildAsync(contracts, "Alpenglas AG");
+        Assert.Equal(Guid.Parse("4702fca0-1758-54c0-955c-73e66f0f8b06"), alpenglas.Id);
+        var invoice = await ChildAsync(alpenglas, "Invoice AG-2026-031");
+        Assert.Equal(Guid.Parse("b267b8e5-42e1-54c5-873d-72c7f392865d"), invoice.Id);
 
         // The personal space the phone-visible DAV collections live in — provisioned through the
         // personal-space idFor chain (ProvisionAsync for the space, the seeder for the mailbox).
@@ -50,9 +52,9 @@ public class DesktopDemoIdentityTests
         var addressbook = await ChildAsync(personal, "My Addressbook");
         Assert.Equal(Guid.Parse("789ad67f-843c-5817-aa8a-d404777e0cff"), addressbook.Id);
 
-        // …and the volmet contacts inside it, which is precisely what a phone's CardDAV client caches.
-        var geneva = await ChildAsync(addressbook, "VOLMET Geneva");
-        Assert.Equal(Guid.Parse("7a8e51d5-2d29-565b-ad50-44f8ad992802"), geneva.Id);
+        // …and the contacts inside it, which is precisely what a phone's CardDAV client caches.
+        var gerber = await ChildAsync(addressbook, "Michael Gerber");
+        Assert.Equal(Guid.Parse("4573017e-b7cb-5095-9b56-48a368a7f012"), gerber.Id);
 
         // The mailbox the seeder now materializes eagerly, standing folders included.
         var mailbox = await ChildAsync(personal!, "My Mailbox");

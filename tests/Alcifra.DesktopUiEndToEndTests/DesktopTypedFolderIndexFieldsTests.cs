@@ -36,17 +36,16 @@ public class DesktopTypedFolderIndexFieldsTests
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        // The demo tenant's DEPARTMENT mailbox (ADR 0684) — the same object, at the same path, the report came
-        // from. Reached by walking the tree rather than by a composed path, which is also the only way to learn
-        // its id.
+        // The demo tenant's DEPARTMENT mailbox (ADR 0684) — Kristall's Customers/Mailbox since #1788, the same
+        // kind of object the report came from. Reached by walking the tree rather than by a composed path, which
+        // is also the only way to learn its id.
         var repos = (await http.GetFromJsonAsync<JsonElement>("/api/repositories")).GetProperty("repositories");
         var repoId = repos.EnumerateArray().First(r => r.GetProperty("name").GetString() == "Demo Repository").GetProperty("id").GetGuid();
-        var departmentsId = await ChildAsync(http, repoId, "Departments");
-        var eventsId = await ChildAsync(http, departmentsId, "Events");
+        var customersId = await ChildAsync(http, repoId, "Customers");
 
         var vm = new MainWindowViewModel();
         await vm.InitializeSessionAsync(api, SelfHostedAppFixture.AdminEmail);
-        await vm.OpenFolderAsync($"/api/documents/{eventsId}");
+        await vm.OpenFolderAsync($"/api/documents/{customersId}");
 
         vm.SelectedItem = vm.Items.First(i => i.Name == "Mailbox");
         // Waited on the MASK LINE, not the title: the title is set synchronously at the top of the detail load

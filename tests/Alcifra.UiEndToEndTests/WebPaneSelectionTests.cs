@@ -44,7 +44,7 @@ public class WebPaneSelectionTests
 
         // NOT opened: the list still shows the folder the user is standing in. This is the half that would be
         // lost by making selection navigate, and it is why selecting and opening are separate acts.
-        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = "Departments" })).ToHaveCountAsync(1);
+        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = "Customers" })).ToHaveCountAsync(1);
 
         // ...and the detail pane describes the SELECTED folder. Selecting still has a visible effect — the ring
         // standing still must not be the panes failing to follow.
@@ -63,8 +63,8 @@ public class WebPaneSelectionTests
         await Expect(list.Locator(".wb-list-row").First).ToBeVisibleAsync();
         await list.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" }).First.DblClickAsync();
 
-        // The listing changed to the folder's own contents — "Departments" was a sibling and is gone.
-        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = "Acme Corp" }).First).ToBeVisibleAsync();
-        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = "Departments" })).ToHaveCountAsync(0);
+        // The listing changed to the folder's own contents — "Customers" was a sibling and is gone.
+        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" }).First).ToBeVisibleAsync();
+        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = "Customers" })).ToHaveCountAsync(0);
     }
 }

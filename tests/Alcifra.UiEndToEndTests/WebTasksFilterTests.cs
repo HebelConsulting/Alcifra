@@ -21,7 +21,7 @@ public class WebTasksFilterTests
         var page = await Ui.LoginAsync(_app);
         await page.Locator(".wb-tab[aria-label=\"Tasks\"]").First.ClickAsync();
 
-        var row = page.Locator(".wb-tasks tr").Filter(new() { HasText = "Invoice 2026-003" }).First;
+        var row = page.Locator(".wb-tasks tr").Filter(new() { HasText = "Invoice AG-2026-031" }).First;
         await Expect(row).ToBeVisibleAsync();
 
         // A non-matching document filter hides the row; clearing brings it back.

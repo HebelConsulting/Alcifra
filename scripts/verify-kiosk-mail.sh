@@ -16,7 +16,7 @@
 #              here", which ADR 0628 requires).
 #   readable   the message is then found over IMAP as that user, which is the hop `status=sent` cannot see.
 #
-# Plus the seeded DEPARTMENT mailbox (`events@<domain>`, ADR 0684), read through the first advertised user's
+# Plus the seeded DEPARTMENT mailbox (`info@<domain>`, ADR 0684, Kristall's Customers/Mailbox since #1788), read through the first advertised user's
 # IMAP view: it is the showcase address, and nothing else here would notice if it stopped receiving.
 #
 # THREE THINGS THAT ARE NOT OBVIOUS, each of which produced a wrong answer before it was understood:
@@ -215,16 +215,16 @@ done < "$WORK/users.txt"
 ADMIN_LINE=$(head -1 "$WORK/users.txt")
 ADMIN_EMAIL=${ADMIN_LINE%% *}
 ADMIN_PASSWORD=${ADMIN_LINE#* }
-EVENTS="events@${ADMIN_EMAIL#*@}"
-EV_SUBJECT="$TOKEN-events"
+DEPARTMENT="info@${ADMIN_EMAIL#*@}"
+EV_SUBJECT="$TOKEN-department"
 
-send_to "$EVENTS" "$EV_SUBJECT" > "$WORK/send.txt"
+send_to "$DEPARTMENT" "$EV_SUBJECT" > "$WORK/send.txt"
 EV_QID="$(queue_id "$WORK/send.txt")"
 if [ -n "$EV_QID" ] && [ "$(settled_outcome "$EV_QID")" = "sent" ] \
-   && imap_finds "$ADMIN_EMAIL" "$ADMIN_PASSWORD" "Demo%20Repository%2FDepartments%2FEvents%2FMailbox%2FInbox" "$EV_SUBJECT"; then
-  echo "  ok    $EVENTS — department mailbox received into its Inbox"
+   && imap_finds "$ADMIN_EMAIL" "$ADMIN_PASSWORD" "Demo%20Repository%2FCustomers%2FMailbox%2FInbox" "$EV_SUBJECT"; then
+  echo "  ok    $DEPARTMENT — department mailbox received into its Inbox"
 else
-  echo "  FAIL  $EVENTS — the department mailbox did not receive (or does not serve) the message" >&2
+  echo "  FAIL  $DEPARTMENT — the department mailbox did not receive (or does not serve) the message" >&2
   FAILED=1
 fi
 

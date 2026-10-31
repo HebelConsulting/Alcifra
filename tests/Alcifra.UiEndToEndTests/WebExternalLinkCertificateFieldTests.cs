@@ -27,7 +27,7 @@ public class WebExternalLinkCertificateFieldTests
         var page = await Ui.LoginAsync(_app);
 
         await page.GetByText("Demo Repository").First.ClickAsync();
-        foreach (var folder in new[] { "Contracts", "MyCountry Telekom" })
+        foreach (var folder in new[] { "Contracts", "Seewelle Telecom" })
         {
             var row = page.Locator(".wb-list-row").Filter(new() { HasText = folder });
             await row.First.WaitForAsync(new() { Timeout = 15000 });

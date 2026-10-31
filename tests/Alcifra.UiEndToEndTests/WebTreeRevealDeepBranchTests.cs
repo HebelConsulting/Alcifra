@@ -26,12 +26,12 @@ public class WebTreeRevealDeepBranchTests
         var page = await Ui.LoginAsync(_app, permissions: ["clipboard-read", "clipboard-write"]);
         var list = page.Locator("[data-pane='list']");
 
-        // Reach a deeply-filed document and copy its link: Demo Repository → Contracts → Acme Corp → Offer.
-        // Acme Corp is two levels below the repository root, which is what makes the reveal need the chain.
+        // Reach a deeply-filed document and copy its link: Demo Repository → Contracts → Alpenglas AG → Offer.
+        // Alpenglas AG is two levels below the repository root, which is what makes the reveal need the chain.
         await page.GetByText("Demo Repository").First.ClickAsync();
         await list.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" }).First.DblClickAsync();
-        await list.Locator(".wb-list-row").Filter(new() { HasText = "Acme Corp" }).First.DblClickAsync();
-        var row = list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-014" }).First;
+        await list.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" }).First.DblClickAsync();
+        var row = list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-022" }).First;
         await row.Locator("button").Last.ClickAsync(); // the row's ⋮ menu
         await page.GetByText("Copy link", new() { Exact = true }).ClickAsync();
         var link = await page.EvaluateAsync<string>("() => navigator.clipboard.readText()");
@@ -42,12 +42,12 @@ public class WebTreeRevealDeepBranchTests
         await page.GotoAsync(link);
 
         // Landed: the document is selected and described.
-        await Expect(page.Locator(".wb-detail-head")).ToContainTextAsync("Offer 2026-014", new() { Timeout = 60000 });
+        await Expect(page.Locator(".wb-detail-head")).ToContainTextAsync("Offer 2026-022", new() { Timeout = 60000 });
 
         // And the tree FOLLOWED: the containing folder is present and marked current. On a roots-only tree this
         // can only be true if the ancestor chain was loaded and expanded down to it — the fix for #1150. Before
         // it, this node was absent from the tree entirely and the assertion times out.
         var current = page.Locator("[data-pane='tree'] .wb-tree-current");
-        await Expect(current).ToContainTextAsync("Acme Corp");
+        await Expect(current).ToContainTextAsync("Alpenglas AG");
     }
 }

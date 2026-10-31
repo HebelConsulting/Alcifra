@@ -91,9 +91,9 @@ public class WebTabletTests
         // Drill to a folder holding documents, then select one.
         await list.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" }).First.DblClickAsync();
         await page.WaitForTimeoutAsync(1200);
-        await list.Locator(".wb-list-row").Filter(new() { HasText = "Acme Corp" }).First.DblClickAsync();
+        await list.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" }).First.DblClickAsync();
         await page.WaitForTimeoutAsync(1200);
-        await list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-014" }).First.ClickAsync();
+        await list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-022" }).First.ClickAsync();
         await page.WaitForTimeoutAsync(1200);
 
         // The pair is now list | detail — the parent stays beside the child.

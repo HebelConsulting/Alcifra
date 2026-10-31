@@ -13,18 +13,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Demo document PDFs the Demo:* seed uploads (ADR 0214 / 0502). Embedded so they ship inside the API
-         assembly and work in the container. Regenerate from the .typ sources with Typst. The invoice is
-         "Invoice 2025-001"; the offer's two revisions are versions 1 + 2 of "Offer 2026-014" (for Compare). -->
-    <EmbeddedResource Include="DemoData/sample-invoice.pdf" LogicalName="DemoInvoice.pdf" />
-    <!-- The seed's only MULTI-PAGE document (#492). The patch-code sample batch needs one: with every
-         document single-page, "cut at the separator sheets" and "split every page" give the same answer and
-         the fixture stops testing the feature. It also fills a real gap — nothing else in the seed had a
-         second page for preview paging or page reordering to work with. -->
-    <EmbeddedResource Include="DemoData/maintenance-agreement.pdf" LogicalName="DemoMaintenanceAgreement.pdf" />
+    <!-- The Crypto tenant's two samples (CryptoDemoSeeder), built from their .typ sources with Typst. -->
     <EmbeddedResource Include="DemoData/crypto-board-minutes.pdf" LogicalName="CryptoBoardMinutes.pdf" />
     <EmbeddedResource Include="DemoData/crypto-salary-review.pdf" LogicalName="CryptoSalaryReview.pdf" />
-    <!-- The Manual tenant's samples (ManualDemoSeeder, #1787), each built from its text source by DemoData/manual/build.sh. -->
+    <!-- Kristall Holding AG (#1787, ADR 0932): the archive KristallSamples files into the Manual tenant and the
+         Demo tenant (#1788, ADR 1014), each built from its text source by DemoData/manual/build.sh. The
+         maintenance agreement is the seed's MULTI-PAGE document (#492): preview paging, page reordering and the
+         patch-code sample batch below need one. -->
     <EmbeddedResource Include="DemoData/manual/alpenglas-invoice.pdf" LogicalName="ManualAlpenglasInvoice.pdf" />
     <EmbeddedResource Include="DemoData/manual/alpenglas-maintenance.pdf" LogicalName="ManualAlpenglasMaintenance.pdf" />
     <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v1.pdf" LogicalName="ManualAlpenglasOfferV1.pdf" />
@@ -49,33 +44,16 @@
     <EmbeddedResource Include="DemoData/manual/contact-seecafe.vcf" LogicalName="ManualContactSeecafe.vcf" />
     <EmbeddedResource Include="DemoData/manual/personal-gerber.vcf" LogicalName="ManualPersonalGerber.vcf" />
     <EmbeddedResource Include="DemoData/manual/personal-treuhand.vcf" LogicalName="ManualPersonalTreuhand.vcf" />
-    <!-- The same batch as a SCAN (#492): seven 200-dpi bilevel G4 pages rasterised from the documents above,
-         separators at 2 and 6, page 4 fed in upside-down, page 5 the blank duplex back, page 7 crooked by 3.5
-         degrees. G4 because that is what a document scanner emits — and it is 78 KB against 906 KB grayscale.
-         Checked in rather than generated per request because building it needs a PDF rasteriser, which is
-         precisely what the Api image does not have. Verified against the real detector: patchPages [2, 6].
-         Regenerate with scripts/generate-scan-sample.sh. -->
+    <!-- The Demo tenant's one extra card (#1788): it carries an X-ABShowAs the structured form does not model, so
+         the contact editor's raw disclosure has something to show (#648). -->
+    <EmbeddedResource Include="DemoData/manual/personal-hotline.vcf" LogicalName="ManualPersonalHotline.vcf" />
+    <!-- The patch-code sample batch (#492, Intray/PatchCodeSampleBatch) as a SCAN: seven 200-dpi bilevel G4
+         pages rasterised from Kristall's invoice, maintenance agreement and catering invoice, separators at 2
+         and 6, page 4 fed in upside-down, page 5 the blank duplex back, page 7 crooked by 3.5 degrees. G4
+         because that is what a document scanner emits. Checked in rather than generated per request because
+         building it needs a PDF rasteriser, which is precisely what the Api image does not have. Regenerate
+         with scripts/generate-scan-sample.sh and verify against the real detector: patchPages [2, 6]. -->
     <EmbeddedResource Include="DemoData/patch-code-sample-batch.tif" LogicalName="DemoPatchCodeSampleBatch.tif" />
-    <!-- Two real contacts for the demo user's own addressbook (#648). Both carry an X-ABShowAs the structured
-         form does not model, so they double as the demo of the raw disclosure — which has nothing to show on a
-         card this product composed itself. Source: samples/. -->
-    <EmbeddedResource Include="DemoData/volmet-geneva.vcf" LogicalName="DemoVolmetGeneva.vcf" />
-    <EmbeddedResource Include="DemoData/volmet-zurich.vcf" LogicalName="DemoVolmetZurich.vcf" />
-    <EmbeddedResource Include="DemoData/sample-offer-v1.pdf" LogicalName="DemoOfferV1.pdf" />
-    <EmbeddedResource Include="DemoData/sample-offer-v2.pdf" LogicalName="DemoOfferV2.pdf" />
-    <!-- Richer demo tree (ADR 0214, issue #354): Business Years / Contracts / General folders with varied file
-         types. PDFs compile from the .typ sources with Typst; the office/email files are checked-in fixtures. -->
-    <EmbeddedResource Include="DemoData/choc-invoice-v1.pdf" LogicalName="DemoChocInvoiceV1.pdf" />
-    <EmbeddedResource Include="DemoData/choc-invoice-v2.pdf" LogicalName="DemoChocInvoiceV2.pdf" />
-    <EmbeddedResource Include="DemoData/telekom-contract.pdf" LogicalName="DemoTelekomContract.pdf" />
-    <EmbeddedResource Include="DemoData/telekom-invoice-jan.pdf" LogicalName="DemoTelekomInvoiceJan.pdf" />
-    <EmbeddedResource Include="DemoData/telekom-invoice-feb.pdf" LogicalName="DemoTelekomInvoiceFeb.pdf" />
-    <EmbeddedResource Include="DemoData/telekom-invoice-mar.pdf" LogicalName="DemoTelekomInvoiceMar.pdf" />
-    <EmbeddedResource Include="DemoData/contoso-forecast.xlsx" LogicalName="DemoContosoForecast.xlsx" />
-    <EmbeddedResource Include="DemoData/rental-complaint.docx" LogicalName="DemoRentalComplaint.docx" />
-    <EmbeddedResource Include="DemoData/letterhead-template.odt" LogicalName="DemoLetterheadTemplate.odt" />
-    <EmbeddedResource Include="DemoData/invoice-template.ods" LogicalName="DemoInvoiceTemplate.ods" />
-    <EmbeddedResource Include="DemoData/transport-ticket.eml" LogicalName="DemoTransportTicket.eml" />
   </ItemGroup>
 
   <ItemGroup>

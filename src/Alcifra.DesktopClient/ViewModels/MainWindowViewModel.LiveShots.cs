@@ -31,24 +31,24 @@ namespace Alcifra.DesktopClient.ViewModels;
 /// </remarks>
 public partial class MainWindowViewModel
 {
-    /// <summary>The repository the manual's workbench figure stands in, as <c>DemoDataSeeder</c> files it.</summary>
+    /// <summary>The repository the manual's workbench figure stands in, as <c>DemoDataSeeder</c> provisions it.</summary>
     internal const string LiveShotRepository = "Demo Repository";
 
     /// <summary>
-    /// The folders to walk from the repository down to the document, as <c>DemoDataSeeder</c> files them.
+    /// The folders to walk from the repository down to the document, as <c>KristallSamples</c> files them (#1788).
     /// </summary>
     /// <remarks>
     /// <b>The fixture had this wrong, and only a live capture could say so.</b> It lists the invoice as a direct
     /// child of the repository, beside an "Invoices" folder that the seeder does not create at all; the real
     /// filing tree is <c>Business Years / Contracts / General</c>, with this document under
-    /// <c>Contracts / Acme Corp</c>. So the published figure showed a folder layout the product does not
+    /// <c>Contracts / Alpenglas AG</c>. So the published figure showed a folder layout the product does not
     /// produce — which #1357's guard could not catch, because it checks the document NAMES and this is the
     /// structure around them. Exactly the class #1358 exists for.
     /// </remarks>
-    internal static readonly string[] LiveShotPath = ["Contracts", "Acme Corp"];
+    internal static readonly string[] LiveShotPath = ["Contracts", "Alpenglas AG"];
 
     /// <summary>The document the figure selects — the same one the fixture names, and the web shot shows.</summary>
-    internal const string LiveShotDocument = "Invoice 2026-003";
+    internal const string LiveShotDocument = "Invoice AG-2026-031";
 
     /// <summary>
     /// Signs in with <paramref name="accessToken"/> and navigates to the figure's state.
@@ -96,7 +96,7 @@ public partial class MainWindowViewModel
         // loads the contents, resolves the ancestor breadcrumb and selects, exactly as a double-click does.
         //
         // Loading the contents directly was the first version and it rendered a figure whose breadcrumb said
-        // "Demo Repository" while the list showed Acme Corp's documents: the navigation happened behind the
+        // "Demo Repository" while the list showed the customer folder's documents: the navigation happened behind the
         // breadcrumb's back. A capture that drives a shortcut is a capture of something no user can reach.
         foreach (var folderName in LiveShotPath)
         {
@@ -104,7 +104,7 @@ public partial class MainWindowViewModel
                 ?? throw new InvalidOperationException(
                     $"The live app has no folder '{folderName}' where the figure expects it (walking "
                     + $"{string.Join(" / ", LiveShotPath)} under '{LiveShotRepository}'). The seeder builds this "
-                    + $"tree in SeedRichTreeAsync — if it moved, update {nameof(LiveShotPath)}. Listed here: "
+                    + $"tree in KristallSamples.SeedTreeAsync — if it moved, update {nameof(LiveShotPath)}. Listed here: "
                     + $"{string.Join(", ", Items.Where(i => i.IsFolder).Select(i => i.Name))}.");
 
             await OpenFolderAsync(folder.Href("self"));

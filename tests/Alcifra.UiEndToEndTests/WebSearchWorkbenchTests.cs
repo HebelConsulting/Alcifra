@@ -28,7 +28,7 @@ public class WebSearchWorkbenchTests
         await input.FillAsync("Invoice");
         await input.PressAsync("Enter");
 
-        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice 2026-003" });
+        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" });
         await Expect(result).ToBeVisibleAsync();
         await result.First.ClickAsync();
 

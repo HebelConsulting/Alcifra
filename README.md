@@ -6,13 +6,13 @@
 
 ## ▶ Try the live demo
 
-A live instance is running at **<https://demo.alcifra.dev>** — log in and explore, nothing to install. Three people are seeded, so you can also see the app from a colleague's side:
+A live instance is running at **<https://demo.alcifra.dev>** — log in and explore the archive of a fictional company, Kristall Holding AG; nothing to install. Three people are advertised, so you can also see the app from a colleague's side:
 
 | Sign in as | Email | Password | What it's for |
 |---|---|---|---|
 | **Demo Admin** | `admin@demo.alcifra.dev` | `SimplDemo2026!` | The tenant administrator — start here. Sees everything: administration, audit, retention, legal holds, every user's inbox. |
-| **Anna Meyer** | `anna@demo.alcifra.dev` | `SimplDemo2026!` | An editor, and deliberately a **plain user without tenant-admin rights** — the account to use if you want to watch a permission actually deny something. |
-| **Tom Fischer** | `tom@demo.alcifra.dev` | `SimplDemo2026!` | A clerk, also a plain user. Signing in as a second person is how the collaboration side shows up: chat and mentions from someone else, a workflow review arriving in another inbox, the shared *Scan Team* group inbox. |
+| **Anna Meyer** | `anna@demo.alcifra.dev` | `SimplDemo2026!` | Works in Accounting: edits the whole archive and shares the *Accounting* group inbox, but is a **plain user without tenant-admin rights**. Signing in as a second person is how the collaboration side shows up: chat and mentions from someone else, a workflow review arriving in another inbox. |
+| **Tom Fischer** | `tom@demo.alcifra.dev` | `SimplDemo2026!` | The assistant: may **read the archive but not change it** — the account to use if you want to watch a permission actually deny something. |
 
 These are deliberately trivial, publicly posted credentials on a throwaway demo that wipes itself nightly — they are demo furniture, not an example of how the product handles secrets.
 
@@ -35,9 +35,9 @@ Then open **http://localhost:8080** and log straight into the UI with the seeded
 - **Email:** `admin@alcifra.local`
 - **Password:** `SimplDemo2026!`
 
-Two further seeded users share that password — **`anna@alcifra.local`** (Anna Meyer) and **`tom@alcifra.local`** (Tom Fischer). Signing in as one of them is how you see the collaboration side of the app: chat and mentions from another person, a workflow review arriving in someone else's inbox, the shared *Scan Team* group inbox. Both are deliberately **plain users, not tenant admins**, so they are also how you watch a permission actually being refused.
+Two further seeded users share that password — **`anna@alcifra.local`** (Anna Meyer, in Accounting: she edits the archive and shares the *Accounting* group inbox) and **`tom@alcifra.local`** (Tom Fischer, the assistant, who may only read). Signing in as one of them is how you see the collaboration side of the app — chat and mentions from another person, a workflow review arriving in someone else's inbox — and, as Tom, a permission actually being refused. Neither is a tenant admin.
 
-It comes pre-seeded with a demo tenant, a sample repository/document, and a workflow in progress, so there's something to explore immediately. (The same file runs under Podman: `podman compose up --build`.) Handy dev UIs: pgAdmin at http://localhost:5050 (auto-connected to the database) and the Mailpit inbox at http://localhost:8025.
+It comes pre-seeded with a demo tenant holding the archive of a fictional Kristall Holding AG — contracts, invoices under review, versions to compare, customers' contacts and calendars — so there's something to explore immediately. (The same file runs under Podman: `podman compose up --build`.) Handy dev UIs: pgAdmin at http://localhost:5050 (auto-connected to the database) and the Mailpit inbox at http://localhost:8025.
 
 The entire UI — both clients plus the shared sign-in page — is available in **English, German, Italian, and Spanish**. Switch language from the flag menu in the web app bar (next to the notifications bell); the desktop app picks it on the logon window.
 

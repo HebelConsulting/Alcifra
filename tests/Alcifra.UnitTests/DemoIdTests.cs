@@ -61,7 +61,10 @@ public class DemoIdTests
     // may find — a new seeded entity derives its id from a slug (see DemoId) or composes it from ids that do.
     [Theory]
     [InlineData("src/Alcifra.Api/Provisioning/DemoDataSeeder.cs")]
-    [InlineData("src/Alcifra.Api/Provisioning/DemoArtistsSeeder.cs")]
+    [InlineData("src/Alcifra.Api/Provisioning/DemoSeedItems.cs")]
+    [InlineData("src/Alcifra.Api/Provisioning/KristallSamples.cs")]
+    [InlineData("src/Alcifra.Api/Provisioning/KristallActivity.cs")]
+    [InlineData("src/Alcifra.Api/Provisioning/KristallCustomers.cs")]
     public void The_demo_seeders_mint_no_random_ids(string file)
     {
         var path = Path.Combine(RepoPaths.Root(), file);

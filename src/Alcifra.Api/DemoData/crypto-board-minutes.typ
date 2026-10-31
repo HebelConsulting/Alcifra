@@ -10,7 +10,7 @@
 #set document(title: "Board minutes 2026-03")
 #set page(paper: "a4", margin: (x: 2.2cm, y: 2cm), numbering: "1 / 1")
 #set text(font: "Libertinus Serif", size: 10.5pt, lang: "de")
-#let accent = rgb("#5b2a86") // violet: the Crypto tenant's documents read apart from the Acme set at a glance
+#let accent = rgb("#5b2a86") // violet: the Crypto tenant's documents read apart from the other demo samples at a glance
 
 #block(fill: accent, inset: (x: 16pt, y: 14pt), radius: 4pt, width: 100%)[
   #set text(fill: white)

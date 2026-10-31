@@ -60,9 +60,9 @@ public class DesktopExternalLinkDetailTests
     public void The_document_name_comes_from_the_caller_when_the_row_has_none()
     {
         var vm = new ExternalLinkDetailDialogViewModel(
-            new AlcifraApiClient("t"), Link(documentName: ""), "MyCountry Telekom — service agreement");
+            new AlcifraApiClient("t"), Link(documentName: ""), "Seewelle Telecom — service agreement");
 
-        Assert.Equal("MyCountry Telekom — service agreement", vm.DocumentName);
+        Assert.Equal("Seewelle Telecom — service agreement", vm.DocumentName);
     }
 
     // The cross-document list DOES carry the name, and there the caller has none to offer — the row wins.

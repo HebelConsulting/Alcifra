@@ -27,12 +27,9 @@ public class PasswordPolicyIsEnforcedTests
             + "a seed that throws takes the application down at boot — the failure a reshaped well-known mask "
             + "already caused. The shipped value is checked by the test below instead"),
 
-        ["DemoDataSeeder.cs"] = (1,
-            "same as the crypto demo seeder: a configured demo credential, checked by a test rather than at "
-            + "boot"),
-
-        ["ManualDemoSeeder.cs"] = (1,
-            "same as the crypto demo seeder: the Manual tenant's configured credential (#1787)"),
+        ["KristallSamples.cs"] = (1,
+            "same as the crypto demo seeder: the configured credential of the Demo and Manual tenants, whose "
+            + "colleagues KristallSamples creates for both (#1787, #1788)"),
     };
 
     [Fact]

@@ -2,13 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Alcifra.Api.Documents;
 using Alcifra.Domain.Documents;
 using Alcifra.Domain.Masks;
-using static Alcifra.Api.Provisioning.ManualDemoSeeder;
+using static Alcifra.Api.Provisioning.KristallSamples;
 
 namespace Alcifra.Api.Provisioning;
 
 /// <summary>
-/// Kristall's customers and calendars (#1787): what the events-and-artists example shows, written for this
-/// company so that example can retire (#1788).
+/// Kristall's customers and calendars (#1787): what the events-and-artists example showed, written for this
+/// company — the Demo tenant shows them since that example retired (#1788).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,7 +22,7 @@ namespace Alcifra.Api.Provisioning;
 /// current month, where every calendar opens.
 /// </para>
 /// </remarks>
-internal static class ManualDemoCustomers
+internal static class KristallCustomers
 {
     private const string Zone = "Europe/Zurich";
 
@@ -38,7 +38,7 @@ internal static class ManualDemoCustomers
             [("Coffee-machine service", 1, 8, "FREQ=MONTHLY;COUNT=6")]),
     ];
 
-    internal static async Task SeedAsync(ManualSeed seed, string mailDomain)
+    internal static async Task SeedAsync(KristallSeed seed, string mailDomain)
     {
         var addressbookMask = await FolderMask.CurrentVersionIdAsync(seed.Db, seed.TenantId, WellKnownMaskIds.Addressbook, CancellationToken.None);
         var calendarMask = await FolderMask.CurrentVersionIdAsync(seed.Db, seed.TenantId, WellKnownMaskIds.Calendar, CancellationToken.None);
@@ -53,10 +53,10 @@ internal static class ManualDemoCustomers
         {
             var card = await seed.DocAsync(contacts.Id, customer.Name, customer.Card, DateOnly.FromDateTime(today), masked: false);
             var folder = await seed.FolderAsync(customers.Id, customer.Name, $"customers/{Slug(customer.Name)}");
-            await DemoDataSeeder.AddReferenceAsync(seed.Db, seed.TenantId, folder.Id, card.Id, seed.AdminId, seed.Now);
+            await DemoSeedItems.AddReferenceAsync(seed.Db, seed.TenantId, folder.Id, card.Id, seed.AdminId, seed.Now);
 
             var visits = await seed.FolderAsync(folder.Id, "Visits", $"customers/{Slug(customer.Name)}/visits", calendarMask);
-            await DemoArtistsSeeder.SetColourAsync(seed.Db, seed.TenantId, visits, calendarMask, customer.Colour);
+            await DemoSeedItems.SetColourAsync(seed.Db, seed.TenantId, visits, calendarMask, customer.Colour);
             foreach (var (summary, inDays, hour, rule) in customer.Visits)
             {
                 var start = today.AddDays(inDays).AddHours(hour);
@@ -68,7 +68,7 @@ internal static class ManualDemoCustomers
 
         // The company's own calendar: an all-day entry spanning days (iCalendar's exclusive DTEND) and a timed one.
         var company = await seed.FolderAsync(seed.RepositoryId, "Company calendar", "company-calendar", calendarMask);
-        await DemoArtistsSeeder.SetColourAsync(seed.Db, seed.TenantId, company, calendarMask, "#00897b");
+        await DemoSeedItems.SetColourAsync(seed.Db, seed.TenantId, company, calendarMask, "#00897b");
         var offsite = today.AddDays(10);
         await AppointmentAsync(seed, appointments, company.Id, "Team offsite",
             new Appointment("Team offsite", offsite, offsite.AddDays(2), true, null, null, "Engelberg", null, null),
@@ -81,12 +81,12 @@ internal static class ManualDemoCustomers
         // The department mailbox: mail to info@ lands in the archive (#703).
         await DeclaredMailDomain.EnsureAsync(seed.Db, seed.TenantId, mailDomain, seed.Now);
         var mailbox = await seed.FolderAsync(customers.Id, "Mailbox", "customers/mailbox", mailboxMask);
-        await DemoArtistsSeeder.ClaimAsync(seed.Db, seed.TenantId, mailbox.Id, $"info@{mailDomain}");
+        await DemoSeedItems.ClaimAsync(seed.Db, seed.TenantId, mailbox.Id, $"info@{mailDomain}");
 
         await PersonalAsync(seed, appointments, today);
     }
 
-    private static async Task PersonalAsync(ManualSeed seed, IAppointmentComposer appointments, DateTime today)
+    private static async Task PersonalAsync(KristallSeed seed, IAppointmentComposer appointments, DateTime today)
     {
         var personal = await seed.Services.GetRequiredService<PersonalRepositoryProvisioner>()
             .EnsureAsync(seed.AdminId, seed.TenantId, CancellationToken.None,
@@ -111,8 +111,8 @@ internal static class ManualDemoCustomers
     }
 
     private static Task<Document?> AppointmentAsync(
-        ManualSeed seed, IAppointmentComposer composer, Guid calendarId, string name, Appointment appointment, string uid) =>
-        DemoArtistsSeeder.ItemAsync(seed.Db, seed.Storage, seed.TenantId, calendarId, name, seed.AdminId, seed.Now,
+        KristallSeed seed, IAppointmentComposer composer, Guid calendarId, string name, Appointment appointment, string uid) =>
+        DemoSeedItems.ItemAsync(seed.Db, seed.Storage, seed.TenantId, calendarId, name, seed.AdminId, seed.Now,
             seed.Finalizer, composer.Merge(null, appointment, uid), ".ics", "text/calendar");
 
     private static string Slug(string text) =>

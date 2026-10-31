@@ -4,8 +4,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Alcifra.UiEndToEndTests;
 
 // A UI flow (ADR 0266): a search matching document content shows a highlighted snippet (the matched term wrapped
-// in <em>). The seeded document's text ("…Acme Corp AG…") is content-extracted (Tika) and indexed (OpenSearch),
-// so searching a content-only word highlights it. Indexing is async, so the search polls.
+// in <em>). The seeded invoice's text (the supplier's letterhead, "…6010 Kriens…") is content-extracted (Tika) and
+// indexed (OpenSearch), so searching a content-only word highlights it. Indexing is async, so the search polls.
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-2")]
 public class WebSearchHighlightTests
@@ -21,12 +21,13 @@ public class WebSearchHighlightTests
         await page.Locator(".wb-tab[aria-label=\"Search\"]").First.ClickAsync();
 
         var input = page.Locator("input[placeholder*='Search by name']");
-        // "Acme" is only in the document's content, so a hit + highlight prove content extraction + indexing.
-        var snippet = page.Locator(".wb-search-results .wb-list-row", new() { HasText = "Invoice 2026-003" }).Locator(".wb-search-snippet");
+        // "Kriens" is only in the document's content (never in a name), so a hit + highlight prove content
+        // extraction + indexing.
+        var snippet = page.Locator(".wb-search-results .wb-list-row", new() { HasText = "Invoice AG-2026-031" }).Locator(".wb-search-snippet");
 
         for (var i = 0; i < 30; i++)
         {
-            await input.FillAsync("Acme");
+            await input.FillAsync("Kriens");
             await input.PressAsync("Enter");
             if (await snippet.CountAsync() > 0 && await snippet.First.IsVisibleAsync())
             {
@@ -37,6 +38,6 @@ public class WebSearchHighlightTests
         }
 
         // The matched term is highlighted in the snippet.
-        await Expect(snippet.Locator("em")).ToContainTextAsync("Acme");
+        await Expect(snippet.Locator("em")).ToContainTextAsync("Kriens");
     }
 }

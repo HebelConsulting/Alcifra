@@ -36,11 +36,11 @@ curl -fsS -o "$work/sep.pdf" "$api/api/intray/patch-code-sheet" \
 
 page() { pdftoppm -r 200 -gray -png -f "$3" -l "$3" -singlefile "$1" "$work/$2"; }
 
-page "$demo/sample-invoice.pdf"          p1 1
-page "$work/sep.pdf"                     p2 1
-page "$demo/maintenance-agreement.pdf"   p3 1
-page "$demo/maintenance-agreement.pdf"   p4raw 2
-page "$demo/choc-invoice-v1.pdf"         p7raw 1
+page "$demo/manual/alpenglas-invoice.pdf"      p1 1
+page "$work/sep.pdf"                          p2 1
+page "$demo/manual/alpenglas-maintenance.pdf"  p3 1
+page "$demo/manual/alpenglas-maintenance.pdf"  p4raw 2
+page "$demo/manual/catering-invoice-v1.pdf"    p7raw 1
 cp "$work/p2.png" "$work/p6.png"
 
 magick "$work/p4raw.png" -rotate 180 +repage "$work/p4.png"

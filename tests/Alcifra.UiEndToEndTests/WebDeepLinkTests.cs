@@ -23,8 +23,8 @@ public class WebDeepLinkTests
         await page.GetByText("Demo Repository").First.ClickAsync();
         var list = page.Locator("[data-pane='list']");
         await list.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" }).First.DblClickAsync();
-        await list.Locator(".wb-list-row").Filter(new() { HasText = "Acme Corp" }).First.DblClickAsync();
-        var row = list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-014" }).First;
+        await list.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" }).First.DblClickAsync();
+        var row = list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-022" }).First;
         await row.Locator("button").Last.ClickAsync(); // the row's ⋮ menu (no native context menu on the web rows)
         await page.GetByText("Copy link", new() { Exact = true }).ClickAsync();
         var link = await page.EvaluateAsync<string>("() => navigator.clipboard.readText()");
@@ -47,9 +47,9 @@ public class WebDeepLinkTests
 
             // …and lands on the workbench with the document selected and described.
             var head = recipient.Locator(".wb-detail-head");
-            await Expect(head).ToContainTextAsync("Offer 2026-014", new() { Timeout = 60000 });
+            await Expect(head).ToContainTextAsync("Offer 2026-022", new() { Timeout = 60000 });
             var selected = recipient.Locator("[data-pane='list'] .wb-list-row-selected");
-            await Expect(selected).ToContainTextAsync("Offer 2026-014");
+            await Expect(selected).ToContainTextAsync("Offer 2026-022");
         }
         finally
         {
@@ -65,7 +65,7 @@ public class WebDeepLinkTests
     // the one that opened".
     //
     // Throwaway folders rather than the seeded document on purpose: the fixture is shared across the leg, so
-    // moving demo content would relocate it under the sibling test that expects it in Contracts/Acme Corp.
+    // moving demo content would relocate it under the sibling test that expects it in Contracts/Alpenglas AG.
     [Fact]
     public async Task A_link_still_lands_after_the_document_is_moved_to_another_folder()
     {

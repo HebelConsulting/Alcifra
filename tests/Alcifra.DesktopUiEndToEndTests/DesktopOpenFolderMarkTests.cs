@@ -16,8 +16,8 @@ public class DesktopOpenFolderMarkTests
     [Fact]
     public void The_mark_lands_on_the_open_folder_wherever_it_sits_in_the_tree()
     {
-        var deep = Node(Guid.NewGuid(), "Silvan Zingg");
-        var branch = Node(Guid.NewGuid(), "Artists");
+        var deep = Node(Guid.NewGuid(), "Hotel Rigiblick");
+        var branch = Node(Guid.NewGuid(), "Customers");
         branch.Children.Add(deep);
         var root = Node(Guid.NewGuid(), "Demo Repository");
         root.Children.Add(branch);
@@ -70,10 +70,10 @@ public class DesktopOpenFolderMarkTests
         var id = Guid.NewGuid();
         var links = LinkMap.FromHrefs(new Dictionary<string, string> { ["self"] = "/api/documents/x", ["children"] = "/api/documents/x/children" });
 
-        var row = OpenFolderMark.AsRow(id, "Artists", links, hasChildren: true);
+        var row = OpenFolderMark.AsRow(id, "Customers", links, hasChildren: true);
 
         Assert.Equal(id, row.Id);
-        Assert.Equal("Artists", row.Name);
+        Assert.Equal("Customers", row.Name);
         Assert.Same(links, row.Links);
         Assert.True(row.HasChildren);
 

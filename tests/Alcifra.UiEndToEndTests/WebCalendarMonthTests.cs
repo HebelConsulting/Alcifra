@@ -3,9 +3,9 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Alcifra.UiEndToEndTests;
 
-// The month grid (#660). 67 seeded concerts across five months is not a list: the flat list answers "what is
-// coming up" and cannot answer "what does September look like", nor show that an act plays the same venue
-// twice on one day.
+// The month grid (#660). A month of customer visits, a weekly one-to-one and a company offsite is not a list: the
+// flat list answers "what is coming up" and cannot answer "what does this month look like", nor show an entry
+// that runs for several days.
 //
 // These assert the STRUCTURE rather than the styling, because the failures this class of change actually
 // produces are structural — a grid that renders no cells, a header row that eats a week's height, a toggle
@@ -94,36 +94,43 @@ public class WebCalendarMonthTests
     // the arithmetic can be right while the grid still renders one chip, which is what a start-day-only
     // EntriesOn() would do with a perfectly correct CoversDay sitting unused beside it.
     //
-    // The seeded "Festival week" is the fixture — an ALL-DAY three-day run, so this also exercises iCalendar's
-    // exclusive DTEND, which every other seeded entry is too short to reach.
+    // The seeded "Team offsite" is the fixture (Kristall's company calendar, #1788) — an ALL-DAY two-day run, so
+    // this also exercises iCalendar's exclusive DTEND, which every other seeded entry is too short to reach.
     [Fact]
     public async Task A_multi_day_entry_occupies_every_day_it_covers()
     {
         var page = await CalendarAsync(_app);
         await Expect(page.Locator(".wb-cal-grid")).ToBeVisibleAsync();
 
-        // The department's own calendar is not the personal default, so it starts unticked.
-        var season = page.Locator(".mud-checkbox input[aria-label*='Season']").First;
-        await Expect(season).ToBeVisibleAsync();
-        await season.ClickAsync();
-        await Expect(season).ToBeCheckedAsync();
+        // The company's own calendar is not the personal default, so it starts unticked.
+        var company = page.Locator(".mud-checkbox input[aria-label*='Company calendar']").First;
+        await Expect(company).ToBeVisibleAsync();
+        await company.ClickAsync();
+        await Expect(company).ToBeCheckedAsync();
 
-        // The grid opens on TODAY's month while the seed is anchored to fixed dates, so page to the festival
-        // rather than assuming the two coincide — otherwise this passes until September and then reports a
-        // regression that is really a calendar turning over.
-        await PageToAsync(page, new DateOnly(2026, 8, 1));
+        // The seed places its appointments relative to the day it ran, in Lucerne's zone (KristallCustomers):
+        // the offsite starts ten days on, the board meeting four. Page to each one's month rather than assuming
+        // it is this one — a six-week grid always shows its whole month plus the next month's first day, so both
+        // days of the offsite are in the grid of the month it starts in, wherever in the month that falls.
+        var seeded = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow,
+            TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich")).Date);
+        var offsite = seeded.AddDays(10);
+        await PageToAsync(page, new DateOnly(offsite.Year, offsite.Month, 1));
 
-        // Three cells for one entry: 24, 25 and 26 August. A grid that placed the chip on its start day alone
-        // would show exactly one, and the two missing days would read as "nothing is on".
-        var chips = page.Locator(".wb-cal-entry").Filter(new LocatorFilterOptions { HasText = "Festival week" });
-        await Expect(chips).ToHaveCountAsync(3);
+        // Two cells for one entry. A grid that placed the chip on its start day alone would show exactly one,
+        // and the missing day would read as "nothing is on".
+        var chips = page.Locator(".wb-cal-entry").Filter(new LocatorFilterOptions { HasText = "Team offsite" });
+        await Expect(chips).ToHaveCountAsync(2);
 
-        // ...of which the two after the first say they are a continuation rather than repeating a start.
-        await Expect(page.Locator(".wb-cal-entry-cont").Filter(new LocatorFilterOptions { HasText = "Festival week" }))
-            .ToHaveCountAsync(2);
+        // ...of which the one after the first says it is a continuation rather than repeating a start.
+        await Expect(page.Locator(".wb-cal-entry-cont").Filter(new LocatorFilterOptions { HasText = "Team offsite" }))
+            .ToHaveCountAsync(1);
 
         // The single-day entry in the same calendar is unaffected — the span must not leak into its neighbours.
-        await Expect(page.Locator(".wb-cal-entry").Filter(new LocatorFilterOptions { HasText = "Site build-up" }))
+        var board = seeded.AddDays(4);
+        await page.Locator("button[aria-label='Today']").First.ClickAsync();
+        await PageToAsync(page, new DateOnly(board.Year, board.Month, 1));
+        await Expect(page.Locator(".wb-cal-entry").Filter(new LocatorFilterOptions { HasText = "Board meeting" }))
             .ToHaveCountAsync(1);
     }
 

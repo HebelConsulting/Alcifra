@@ -59,10 +59,10 @@ public partial class ServiceWriteScopeTests
     private static readonly Dictionary<string, string> ServiceVerdicts = new(StringComparer.Ordinal)
     {
         ["DemoDataSeeder.cs"] = Provisioning,
-        ["DemoArtistsSeeder.cs"] = Provisioning,
+        ["DemoSeedItems.cs"] = Provisioning,
+        ["KristallSamples.cs"] = Provisioning,
         ["CryptoDemoSeeder.cs"] = Provisioning,
-        ["ManualDemoSeeder.cs"] = Provisioning,
-        ["ManualDemoActivity.cs"] = Provisioning,
+        ["KristallActivity.cs"] = Provisioning,
         ["FlightSchoolDemoSetup.cs"] = Provisioning,
         ["ModuleDemoSetup.cs"] = Provisioning,
         ["TenantProvisioningService.cs"] = Provisioning,

@@ -11,18 +11,18 @@ namespace Alcifra.Api.Intray;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The stack:</b> an invoice, a separator, a two-page maintenance agreement whose SECOND page came through
-/// upside-down and whose duplex back came through blank, a separator, and a second invoice. Seven sheets,
+/// <b>The stack:</b> an invoice, a separator, the first two pages of a maintenance agreement whose SECOND page
+/// came through upside-down and whose duplex back came through blank, a separator, and a second invoice. Seven sheets,
 /// three documents — and every defect in it is one the product can actually correct: auto-rotate turns the
 /// second page round, and the blank duplex back is dropped with Sort pages, which is precisely the case that
 /// produces such a page in real life.
 /// </para>
 /// <para>
-/// The documents are the <b>demo seed's own PDFs</b>, not generated pages. The first version of this fixture
+/// The documents are the <b>demo seed's own PDFs</b> — Kristall Holding AG's since #1788 — not generated pages. The first version of this fixture
 /// drew its own text and filled the pages with "The quick brown fox jumps over the lazy dog" — lorem in all but
 /// name, on the first artefact anybody feeds through the feature. Reusing the seed documents costs nothing, and
-/// the batch now reads like a real day's post: an invoice, an offer with its revision stapled behind it, and a
-/// second invoice.
+/// the batch now reads like a real day's post: a supplier's invoice, the maintenance agreement that came with it,
+/// and the caterer's invoice.
 /// </para>
 /// <para>
 /// <b>One page arrives upside-down; none is crooked.</b> That split is the point, and it mirrors what the
@@ -53,18 +53,18 @@ public static class PatchCodeSampleBatch
     /// <summary>The blank back of a duplex-scanned sheet — the page a user is meant to delete (1-based).</summary>
     public const int BlankPage = 5;
 
-    // An offer and its revision count as ONE document: they arrive stapled together, which is exactly why the
+    // The agreement's pages count as ONE document: they arrive stapled together, which is exactly why the
     // batch needs a multi-page document in it. Without one, "cut at the separators" and "split every page"
     // produce the same answer, and a fixture that cannot tell those apart is not testing the feature.
     private static readonly Sheet[] Sheets =
     [
-        new("DemoInvoice.pdf", 1),
+        new("ManualAlpenglasInvoice.pdf", 1),
         Separator,
-        new("DemoMaintenanceAgreement.pdf", 1),
-        new("DemoMaintenanceAgreement.pdf", 2, UpsideDown: true),
+        new("ManualAlpenglasMaintenance.pdf", 1),
+        new("ManualAlpenglasMaintenance.pdf", 2, UpsideDown: true),
         Blank,
         Separator,
-        new("DemoChocInvoiceV1.pdf", 1),
+        new("ManualCateringInvoiceV1.pdf", 1),
     ];
 
     /// <summary>One sheet of the stack: a page of a demo document, a separator, or a blank duplex back.</summary>

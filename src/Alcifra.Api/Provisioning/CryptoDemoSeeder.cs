@@ -103,7 +103,7 @@ public static class CryptoDemoSeeder
         var admin = await dbContext.Users.SingleAsync(u => u.Id == provisioned.AdministratorId);
         admin.ImapShowAllDocuments = true;
         await dbContext.SaveChangesAsync();
-        await DemoDataSeeder.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)]);
+        await DemoSeedItems.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)]);
 
         // Working rights on the root repository for every seeded user — enough to see, read and file, so the
         // phones' IMAP trees show the repository and its documents. The administrators would see it through the
@@ -144,13 +144,13 @@ public static class CryptoDemoSeeder
         // stays visibly demo content. Readers reach it by inheritance from the repository grants above.
         var folderMaskVersion = await dbContext.MaskVersions
             .SingleAsync(v => v.MaskId == WellKnownMaskIds.Folder && v.IsCurrent);
-        var sampleData = await DemoDataSeeder.AddFolderAsync(dbContext, provisioned.TenantId,
+        var sampleData = await DemoSeedItems.AddFolderAsync(dbContext, provisioned.TenantId,
             provisioned.RepositoryId, "SampleData", admin.Id, now, folderMaskVersion.Id, "sample-data");
 
-        await DemoDataSeeder.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
+        await DemoSeedItems.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
             sampleData.Id, "Board minutes 2026-03", admin.Id, now, basicEntryVersion.Id,
             "CryptoBoardMinutes.pdf", ".pdf", "application/pdf", new DateOnly(2026, 3, 3), finalizer);
-        await DemoDataSeeder.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
+        await DemoSeedItems.AddDocumentAsync(dbContext, storage, assembly, provisioned.TenantId,
             sampleData.Id, "Salary review 2026", admin.Id, now, basicEntryVersion.Id,
             "CryptoSalaryReview.pdf", ".pdf", "application/pdf", new DateOnly(2026, 1, 14), finalizer);
     }
@@ -179,7 +179,7 @@ public static class CryptoDemoSeeder
 
         var folderMaskVersion = await dbContext.MaskVersions
             .SingleAsync(v => v.MaskId == WellKnownMaskIds.Folder && v.IsCurrent);
-        var administration = await DemoDataSeeder.AddFolderAsync(dbContext, provisioned.TenantId,
+        var administration = await DemoSeedItems.AddFolderAsync(dbContext, provisioned.TenantId,
             provisioned.RepositoryId, "Administration", adminId, now, folderMaskVersion.Id, "administration");
         // Broken with no entry copied down: a break snapshots what is in force at that moment, and the
         // repository's grants are exactly what must not be inherited here.

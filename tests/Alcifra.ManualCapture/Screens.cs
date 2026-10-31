@@ -54,7 +54,7 @@ public static class Screens
     public static readonly IReadOnlyList<DesktopScreen> Desktop =
     [
         new("logon", [], DesktopWindow.Logon, WhyFixture: "Pre-authentication by definition — there is no session to drive it from."),
-        new("workbench", [], Pdf: "src/Alcifra.Api/DemoData/sample-invoice.pdf", Capture: Capture.Live),
+        new("workbench", [], Pdf: "src/Alcifra.Api/DemoData/manual/alpenglas-invoice.pdf", Capture: Capture.Live),
         new("search", ["--search"], WhyFixture: "Needs a query whose hits are stable; live search ordering is the next slice."),
         new("search-hit-overlay", ["--hitoverlay", "--fullscreen"], WhyFixture: "Needs OCR word boxes for a specific page — the heaviest live surface, deliberately last."),
         new("intray", ["--intray"], WhyFixture: "Needs scanned pages staged in the intray, which the seed does not file."),

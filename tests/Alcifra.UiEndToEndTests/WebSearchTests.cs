@@ -25,7 +25,7 @@ public class WebSearchTests
         await input.FillAsync("Invoice");
         await input.PressAsync("Enter");
 
-        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice 2026-003" });
+        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" });
         await Expect(result).ToBeVisibleAsync();
         // Select the row (a plain click SELECTS and previews, #462), then the TOOLBAR's Go to — the visible
         // route since #530 tranche 8 moved the per-row button into the touch-only ⋮ menu.
@@ -35,7 +35,7 @@ public class WebSearchTests
         // Navigates to the Repositories tab and selects the document — its name shows in the detail pane (the
         // preview is a pdf.js canvas for the seeded invoice PDF, so assert on the index detail, not preview text).
         await Expect(page.Locator(".wb-tab-active")).ToHaveAttributeAsync("aria-label", "Repositories");
-        await Expect(page.Locator(".wb-sysfields")).ToContainTextAsync("Invoice 2026-003");
+        await Expect(page.Locator(".wb-sysfields")).ToContainTextAsync("Invoice AG-2026-031");
     }
 
     // Opening a hit must actually RENDER the document, not just select it.
@@ -59,7 +59,7 @@ public class WebSearchTests
         await input.FillAsync("Invoice");
         await input.PressAsync("Enter");
 
-        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice 2026-003" });
+        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" });
         await Expect(result).ToBeVisibleAsync();
         await result.First.ClickAsync(); // select — the toolbar's Go to acts on the selection (#530 tranche 8)
         await page.Locator(".wb-search-bar").GetByRole(AriaRole.Button, new() { Name = "Go to document" }).ClickAsync();
@@ -88,7 +88,7 @@ public class WebSearchTests
         await input.FillAsync("Invoice");
         await input.PressAsync("Enter");
 
-        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice 2026-003" });
+        var result = page.Locator(".wb-search-results .wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" });
         await Expect(result).ToBeVisibleAsync();
 
         await page.Locator(".wb-tab[aria-label=\"Repositories\"]").First.ClickAsync();

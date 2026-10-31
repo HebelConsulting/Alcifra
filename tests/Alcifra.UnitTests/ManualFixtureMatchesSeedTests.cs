@@ -6,11 +6,12 @@ namespace Alcifra.UnitTests;
 /// The desktop manual screenshots are rendered from a hand-written fixture, and the web ones are captured
 /// against the really-seeded app. Nothing connected the two, so the manual documented a dataset that does not
 /// exist: the workbench screenshot showed <c>Invoice 2025-001.pdf</c> and <c>sample.docx</c> while the seeder
-/// creates <c>Invoice 2026-003</c> and <c>Offer 2026-014</c> — two halves of one manual describing two
-/// different products.
+/// created other documents — two halves of one manual describing two different products.
 ///
 /// The drift is silent by construction: a fixture cannot fail when the product moves. So this asserts the one
-/// property that matters — every DOCUMENT the fixture shows is a document the demo seeder actually creates.
+/// property that matters — every DOCUMENT the fixture shows is a document the demo seed actually creates. Since
+/// #1788 the demo files Kristall Holding AG's archive through <c>KristallSamples</c>, so "the seed" is the demo
+/// seeder together with the Kristall builder's files.
 ///
 /// It deliberately does NOT check folders or tree nodes. Those legitimately illustrate shapes the seed has no
 /// single instance of (an empty folder, a reference), and a guard that forbade them would be a guard against
@@ -36,11 +37,16 @@ public sealed partial class ManualFixtureMatchesSeedTests
         }
 
         var fixturePath = Path.Combine(root, "src", "Alcifra.DesktopClient", "ViewModels", "MainWindowViewModel.Screenshots.cs");
-        var seederPath = Path.Combine(root, "src", "Alcifra.Api", "Provisioning", "DemoDataSeeder.cs");
         Assert.True(File.Exists(fixturePath), $"{fixturePath} is missing — the desktop screenshot fixture moved; this guard must move with it.");
-        Assert.True(File.Exists(seederPath), $"{seederPath} is missing — the demo seeder moved; this guard must move with it.");
 
-        var seeder = File.ReadAllText(seederPath);
+        var seeder = string.Empty;
+        foreach (var file in SeedFiles)
+        {
+            var seederPath = Path.Combine(root, "src", "Alcifra.Api", "Provisioning", file);
+            Assert.True(File.Exists(seederPath), $"{seederPath} is missing — the demo seed moved; this guard must move with it.");
+            seeder += File.ReadAllText(seederPath);
+        }
+
         var fixture = File.ReadAllText(fixturePath);
 
         // A document in the fixture is a node that HAS versions — that is what distinguishes it from a folder.
@@ -61,9 +67,13 @@ public sealed partial class ManualFixtureMatchesSeedTests
             "The desktop manual fixture shows documents the demo seeder never creates, so the manual's desktop "
             + "screenshots describe a different dataset than its web ones:\n  "
             + string.Join("\n  ", missing)
-            + "\n\nUse a name DemoDataSeeder actually files, or — if the screenshot is illustrating a SHAPE rather "
+            + "\n\nUse a name the demo seed actually files, or — if the screenshot is illustrating a SHAPE rather "
             + "than a document — add it to Illustrative with the reason.");
     }
+
+    /// <summary>The files that name what the demo seed files: its own extras and the Kristall builder (#1788).</summary>
+    private static readonly string[] SeedFiles =
+        ["DemoDataSeeder.cs", "KristallSamples.cs", "KristallActivity.cs", "KristallCustomers.cs"];
 
     /// <summary>A fixture list entry that carries versions: <c>Name = "X", … HasVersions = true</c>.</summary>
     [GeneratedRegex(@"new NodeViewModel\s*\{[^}]*?Name\s*=\s*""(?<name>[^""]+)""[^}]*?HasVersions\s*=\s*true[^}]*?\}")]

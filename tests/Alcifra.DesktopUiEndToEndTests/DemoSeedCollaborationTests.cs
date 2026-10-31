@@ -30,11 +30,14 @@ public class DemoSeedCollaborationTests
         http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", await Ui.GetUserTokenAsync(_app.BaseUrl));
 
-        var offerId = await FindDocumentAsync(http, "Offer 2026-014");
+        // Kristall's archive (#1788): the conversation is on the supplier's invoice, the versions on its offer.
+        var invoiceId = await FindDocumentAsync(http, "Invoice AG-2026-031");
+        Assert.NotEqual(Guid.Empty, invoiceId);
+        var offerId = await FindDocumentAsync(http, "Offer 2026-022");
         Assert.NotEqual(Guid.Empty, offerId);
 
         // --- the chat thread -------------------------------------------------------------------------------
-        var messages = (await http.GetFromJsonAsync<JsonElement>($"/api/documents/{offerId}/chat"))
+        var messages = (await http.GetFromJsonAsync<JsonElement>($"/api/documents/{invoiceId}/chat"))
             .GetProperty("messages").EnumerateArray().ToList();
 
         // Typed by a person (kind 0), as opposed to the automatic entries the finalizer records (ADR 0545).
@@ -75,7 +78,7 @@ public class DemoSeedCollaborationTests
         http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", await Ui.GetUserTokenAsync(_app.BaseUrl));
 
-        var agreementId = await FindDocumentAsync(http, "MyCountry Telekom — service agreement");
+        var agreementId = await FindDocumentAsync(http, "Seewelle Telecom — service agreement");
         Assert.NotEqual(Guid.Empty, agreementId);
 
         var link = Assert.Single(
@@ -92,7 +95,7 @@ public class DemoSeedCollaborationTests
         // The URL works ANONYMOUSLY and is the stable one: derived from a fixed seed string, so it is identical
         // after every re-seed. Recomputed here rather than pasted, so the test says WHY the value is what it is.
         var token = Base64Url(SHA256.HashData(
-            Encoding.UTF8.GetBytes("simplarchive-demo-telekom-service-agreement-v1")));
+            Encoding.UTF8.GetBytes("simplarchive-demo-seewelle-service-agreement-v1")));
 
         using var anonymous = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
         var redeemed = await anonymous.GetAsync($"/api/external-links/{token}");

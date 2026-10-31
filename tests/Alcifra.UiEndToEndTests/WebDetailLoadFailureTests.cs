@@ -31,8 +31,8 @@ public class WebDetailLoadFailureTests
 
         await page.GetByText("Demo Repository").First.ClickAsync();
         await list.GetByText("Contracts").First.DblClickAsync();
-        await list.GetByText("Acme Corp").First.DblClickAsync();
-        var row = list.Locator(".wb-list-row").Filter(new() { HasText = "Invoice 2026-003" }).First;
+        await list.GetByText("Alpenglas AG").First.DblClickAsync();
+        var row = list.Locator(".wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" }).First;
         await Expect(row).ToBeVisibleAsync();
 
         // Let the FOLDER's own detail load finish before injecting anything. Opening a folder selects it, and

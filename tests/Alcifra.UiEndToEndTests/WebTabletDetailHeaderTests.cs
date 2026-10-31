@@ -39,19 +39,19 @@ public class WebTabletDetailHeaderTests
 
         await page.GetByText("Demo Repository").First.ClickAsync();
         var list = page.Locator("[data-pane='list']");
-        foreach (var folder in new[] { "Contracts", "Acme Corp" })
+        foreach (var folder in new[] { "Contracts", "Alpenglas AG" })
         {
             await list.Locator(".wb-list-row").Filter(new() { HasText = folder }).First.DblClickAsync();
         }
 
-        await list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-014" }).First.ClickAsync();
+        await list.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-022" }).First.ClickAsync();
 
         var head = page.Locator(".wb-detail-head");
         await Expect(head).ToBeVisibleAsync();
 
         // Wait for the pane to hold the SUBJECT, not merely to exist: measuring (or capturing) at first paint
         // catches an empty header over a "Mask: none" pane, which looks like a different bug entirely.
-        await Expect(head).ToContainTextAsync("Offer 2026-014");
+        await Expect(head).ToContainTextAsync("Offer 2026-022");
         await page.WaitForTimeoutAsync(600); // the tree drawer transitions in; let it settle before measuring
 
         // Returned as an ARRAY: a Dictionary<string,double> round-trip through Playwright's JSON did not

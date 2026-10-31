@@ -5,7 +5,7 @@ namespace Alcifra.UiEndToEndTests;
 
 // Retention schedule (ADR "Retention policies (auto-disposition)") via the real desktop api client: the demo
 // admin (granted CanManageClassification by the demo seed) reads the schedule, which includes the demo document
-// (Basic Entry mask, 7-year retention).
+// (Basic Entry mask, 10-year retention — Kristall's, #1788).
 [Collection(UiCollection.Name)]
 public class DesktopRetentionTests
 {
@@ -21,9 +21,9 @@ public class DesktopRetentionTests
 
         var schedule = (await api.LegalHolds.GetRetentionScheduleAsync()).Items;
 
-        var demoDoc = schedule.FirstOrDefault(i => i.DocumentName == "Invoice 2026-003");
+        var demoDoc = schedule.FirstOrDefault(i => i.DocumentName == "Invoice AG-2026-031");
         Assert.NotNull(demoDoc);
-        Assert.Equal(7, demoDoc!.RetentionYears);
+        Assert.Equal(10, demoDoc!.RetentionYears);
         Assert.False(string.IsNullOrEmpty(demoDoc.DispositionDate));
     }
 }

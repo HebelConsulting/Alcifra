@@ -257,16 +257,16 @@ public static partial class WebCapture
         await ShotAsync(page, outDir, "tablet-landscape-detail");
     }
 
-    // Walks Contracts -> Acme Corp -> the two-revision offer, the same document the desktop figures use.
+    // Walks Contracts -> Alpenglas AG -> the two-revision offer, the same document the desktop figures use.
     private static async Task DrillToDocumentAsync(IPage page, ILocator list)
     {
-        foreach (var folder in new[] { "Contracts", "Acme Corp" })
+        foreach (var folder in new[] { "Contracts", "Alpenglas AG" })
         {
             await list.Locator(".wb-list-row").Filter(new LocatorFilterOptions { HasText = folder }).First.DblClickAsync();
             await page.WaitForTimeoutAsync(900);
         }
 
-        await list.Locator(".wb-list-row").Filter(new LocatorFilterOptions { HasText = "Offer 2026-014" }).First.ClickAsync();
+        await list.Locator(".wb-list-row").Filter(new LocatorFilterOptions { HasText = "Offer 2026-022" }).First.ClickAsync();
         await page.WaitForTimeoutAsync(2000);
     }
 
@@ -352,7 +352,7 @@ public static partial class WebCapture
         }
     }
 
-    // Selects the demo offer — Demo Repository → Contracts → Acme Corp → "Offer 2026-014" (ADR 0502).
+    // Selects the demo offer — Demo Repository → Contracts → Alpenglas AG → "Offer 2026-022" (ADR 0502).
     //
     // Three captures need this exact document rather than any document: it is the only seeded one with TWO
     // versions, per-version comments, and a chat thread, which is what makes the versions, compare and chat
@@ -364,10 +364,10 @@ public static partial class WebCapture
         var contracts = page.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" });
         await contracts.First.WaitForAsync(new() { Timeout = 15000 });
         await contracts.First.DblClickAsync();
-        var acme = page.Locator(".wb-list-row").Filter(new() { HasText = "Acme Corp" });
-        await acme.First.WaitForAsync(new() { Timeout = 15000 });
-        await acme.First.DblClickAsync();
-        var row = page.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-014" });
+        var alpenglas = page.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" });
+        await alpenglas.First.WaitForAsync(new() { Timeout = 15000 });
+        await alpenglas.First.DblClickAsync();
+        var row = page.Locator(".wb-list-row").Filter(new() { HasText = "Offer 2026-022" });
         await row.First.WaitForAsync(new() { Timeout = 15000 });
         await row.First.ClickAsync();
     }
@@ -427,7 +427,7 @@ public static partial class WebCapture
         }
     }
 
-    // Opens the "Compare versions" dialog on the two-revision demo document ("Offer 2026-014", ADR 0502) and shots
+    // Opens the "Compare versions" dialog on the two-revision demo document ("Offer 2026-022", ADR 0502) and shots
     // the inline diff — the feature figure for the manual's versioning chapter.
     private static async Task CaptureVersionCompareAsync(IPage page, string outDir)
     {
@@ -436,7 +436,7 @@ public static partial class WebCapture
             await SelectDemoOfferAsync(page);
             // From the row's ⋮ menu: the action left the details pane with the document's other actions (ADR 0970),
             // and the figure was skipped from then on (since 2026-10-24) while the manual kept the previous picture.
-            var row = page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = "Offer 2026-014" });
+            var row = page.Locator("[data-pane='list'] .wb-list-row").Filter(new() { HasText = "Offer 2026-022" });
             await row.First.Locator("button").Last.ClickAsync();
             await page.Locator(".mud-popover-open .mud-menu-item").Filter(new() { HasText = L("MwCompareVersions") }).First.ClickAsync();
             var dialog = page.Locator(".mud-dialog");
@@ -582,7 +582,7 @@ public static partial class WebCapture
     // The link is CREATED here rather than reusing the seeded demo one, for two reasons. The create dialog reveals
     // the URL exactly once, at creation — that is the feature's central safety property and the thing the figure
     // has to show, and no listing can be made to display it. And the seeded token is derived from a fixed string
-    // in DemoDataSeeder; re-deriving it here would duplicate the crypto in a project that deliberately does not
+    // in the demo seed; re-deriving it here would duplicate the crypto in a project that deliberately does not
     // link the API assembly (ReferenceOutputAssembly=false), so the two copies could silently drift apart.
     private static async Task CaptureExternalLinksAsync(IBrowserContext context, IPage page, string outDir)
     {
@@ -600,8 +600,8 @@ public static partial class WebCapture
             await page.Locator($".wb-tab[aria-label='{L("TabRepositories")}']").First.ClickAsync();
             step = "select the Demo Repository root";
             await page.GetByText("Demo Repository").First.ClickAsync();
-            // Contracts → MyCountry Telekom → the service agreement (the same document the demo seed shares).
-            foreach (var folder in new[] { "Contracts", "MyCountry Telekom" })
+            // Contracts → Seewelle Telecom → the service agreement (the same document the demo seed shares).
+            foreach (var folder in new[] { "Contracts", "Seewelle Telecom" })
             {
                 step = $"drill into '{folder}'";
                 var row = page.Locator(".wb-list-row").Filter(new() { HasText = folder });
@@ -717,8 +717,9 @@ public static partial class WebCapture
     }
 
     // Screen-specific interactions that populate a tab with real content before the shot, so the web figures aren't
-    // empty "nothing selected" states. Driven off the demo seed (ADR 0214): Demo Repository → Contracts → Acme Corp
-    // → the "Invoice 2026-003" document. Best-effort — a failure here shouldn't abort the whole capture, so each block is
+    // empty "nothing selected" states. Driven off the demo seed (ADR 0214): Demo Repository → Contracts →
+    // Alpenglas AG → the "Invoice AG-2026-031" document. Best-effort — a failure here shouldn't abort the whole
+    // capture, so each block is
     // guarded (the tab still gets shot in its default state).
     private static async Task EnrichAsync(IPage page, string name)
     {
@@ -727,25 +728,25 @@ public static partial class WebCapture
             switch (name)
             {
                 case "repositories":
-                    // Drill Demo Repository → Contracts → Acme Corp → select the document, so the detail + preview panes
+                    // Drill Demo Repository → Contracts → Alpenglas AG → select the document, so the detail + preview panes
                     // fill (the seeded invoice PDF renders via pdf.js, with the seeded highlight + sticky note on it).
                     await page.GetByText("Demo Repository").First.ClickAsync();
                     var contracts = page.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" });
                     await contracts.First.WaitForAsync(new() { Timeout = 15000 });
                     await contracts.First.DblClickAsync();
-                    var acme = page.Locator(".wb-list-row").Filter(new() { HasText = "Acme Corp" });
-                    await acme.First.WaitForAsync(new() { Timeout = 15000 });
-                    await acme.First.DblClickAsync();
-                    var doc = page.Locator(".wb-list-row").Filter(new() { HasText = "Invoice 2026-003" });
+                    var alpenglas = page.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" });
+                    await alpenglas.First.WaitForAsync(new() { Timeout = 15000 });
+                    await alpenglas.First.DblClickAsync();
+                    var doc = page.Locator(".wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" });
                     await doc.First.WaitForAsync(new() { Timeout = 15000 });
                     await doc.First.ClickAsync();
                     // Not `.wb-sysfields` alone: the FOLDER's detail is already on screen and satisfies that
-                    // instantly, so one run shot Acme Corp's pane and the next the invoice's (#832's last
+                    // instantly, so one run shot the folder's pane and the next the invoice's (#832's last
                     // straggler). The wait must name the subject the figure is about.
-                    await page.Locator(".wb-sysfields").GetByText("Invoice 2026-003").First.WaitForAsync(new() { Timeout = 15000 });
+                    await page.Locator(".wb-sysfields").GetByText("Invoice AG-2026-031").First.WaitForAsync(new() { Timeout = 15000 });
                     // The chat pane fills asynchronously after the detail — one run shot the seeded thread,
-                    // the next "No messages yet" (#832). The invoice's seeded approval message is the anchor.
-                    await page.Locator("[data-pane='chat']").GetByText("Approved for payment").First.WaitForAsync(new() { Timeout = 15000 });
+                    // the next "No messages yet" (#832). The administrator's seeded reply on the invoice is the anchor.
+                    await page.Locator("[data-pane='chat']").GetByText("version 2 of the offer has six").First.WaitForAsync(new() { Timeout = 15000 });
                     // Wait for the PDF preview + the annotation markers to render.
                     try { await page.Locator(".wb-pv-note").First.WaitForAsync(new() { Timeout = 8000 }); } catch { /* preview still shown */ }
                     await page.WaitForTimeoutAsync(2000);

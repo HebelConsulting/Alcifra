@@ -57,7 +57,7 @@ public static class FlightSchoolDemoSetup
         // Flight School's own addition: the Administration folder holding the licence.
         var folderMaskVersion = await dbContext.MaskVersions
             .SingleAsync(v => v.MaskId == WellKnownMaskIds.Folder && v.IsCurrent);
-        var administration = await DemoDataSeeder.AddFolderAsync(dbContext, tenantId, seeded.Repositories[RepositorySlug], "Administration",
+        var administration = await DemoSeedItems.AddFolderAsync(dbContext, tenantId, seeded.Repositories[RepositorySlug], "Administration",
             adminId, now, folderMaskVersion.Id, AdministrationSlug);
         // Broken with no entry copied down: a break snapshots what is in force at that moment, and the pilots'
         // read grants, added later by the module's demo seeder, are exactly what must not reach the licence.

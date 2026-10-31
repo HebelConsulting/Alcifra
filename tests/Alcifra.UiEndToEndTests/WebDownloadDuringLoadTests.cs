@@ -57,15 +57,15 @@ public class WebDownloadDuringLoadTests
         await Expect(contracts).ToBeVisibleAsync();
         await contracts.Locator(".mud-treeview-item-arrow").ClickAsync();
 
-        // Scoped to the TREE deliberately: "Acme Corp" is also the breadcrumb and a list row one level up, and
+        // Scoped to the TREE deliberately: "Alpenglas AG" is also the breadcrumb and a list row one level up, and
         // a click landing on either of those selects without re-firing a children load — which would leave
         // nothing in flight and quietly turn this into a test of the ordinary path.
-        var treeFolder = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Acme Corp" }).First;
+        var treeFolder = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Alpenglas AG" }).First;
         await Expect(treeFolder).ToBeVisibleAsync();
         await treeFolder.ClickAsync();
 
         // The rows must be on screen before the delayed reload starts — that is the state the race needs.
-        var documentRow = list.Locator(".wb-list-row").Filter(new() { HasText = "Invoice 2026-003" }).First;
+        var documentRow = list.Locator(".wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" }).First;
         await Expect(documentRow).ToBeVisibleAsync();
 
         var delayed = 0;

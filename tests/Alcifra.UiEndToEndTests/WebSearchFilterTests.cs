@@ -11,7 +11,7 @@ namespace Alcifra.UiEndToEndTests;
 [Trait("Area", "ui-4")]
 public class WebSearchFilterTests
 {
-    private const string Doc = "Invoice 2026-003";
+    private const string Doc = "Invoice AG-2026-031";
 
     private readonly SelfHostedAppFixture _app;
 

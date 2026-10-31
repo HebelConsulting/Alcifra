@@ -1,26 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using Alcifra.Domain.Documents;
 using Alcifra.Domain.Notifications;
-using static Alcifra.Api.Provisioning.ManualDemoSeeder;
+using static Alcifra.Api.Provisioning.KristallSamples;
 
 namespace Alcifra.Api.Provisioning;
 
 /// <summary>
-/// What people DID in the Manual tenant (#1787): the review task, annotations, tags, a conversation with a
-/// mention, the notifications those produced, a shared link and a recycle bin with something in it.
+/// What people DID at Kristall Holding AG (#1787; the Manual and, since #1788, the Demo tenant): the review
+/// task, annotations, tags, a conversation with a mention, the notifications those produced, a shared link and a
+/// recycle bin with something in it.
 /// </summary>
 /// <remarks>
 /// Every page of the manual that shows work in progress needs some, and an archive of untouched documents
 /// photographs as an empty product. Each item is here because a chapter shows it.
 /// </remarks>
-internal static class ManualDemoActivity
+internal static class KristallActivity
 {
-    internal static async Task SeedAsync(ManualSeed seed, ManualTeam team, ManualTree tree)
+    internal static async Task SeedAsync(KristallSeed seed, KristallTeam team, KristallTree tree, string linkTokenSeed)
     {
         var invoice = await AlpenglasAsync(seed, team, tree);
 
-        await DemoDataSeeder.SeedExternalLinkAsync(seed.Db, seed.TenantId, tree.SeewelleAgreement.Id, seed.AdminId,
-            seed.Now, "external-link/seewelle-agreement", "simplarchive-manual-seewelle-service-agreement-v1");
+        await DemoSeedItems.SeedExternalLinkAsync(seed.Db, seed.TenantId, tree.SeewelleAgreement.Id, seed.AdminId,
+            seed.Now, "external-link/seewelle-agreement", linkTokenSeed);
 
         await NotificationsAsync(seed, team, invoice);
         await RecycleBinAsync(seed, tree);
@@ -28,7 +29,7 @@ internal static class ManualDemoActivity
 
     // The supplier folder carries the showcase: an invoice under review with three annotations, tags and a
     // conversation; a multi-page agreement; an offer in two versions to compare.
-    private static async Task<Document> AlpenglasAsync(ManualSeed seed, ManualTeam team, ManualTree tree)
+    private static async Task<Document> AlpenglasAsync(KristallSeed seed, KristallTeam team, KristallTree tree)
     {
         var offer = await seed.DocAsync(tree.Alpenglas.Id, "Offer 2026-022", "ManualAlpenglasOfferV1.pdf",
             new DateOnly(2026, 2, 9), at: seed.Now.AddDays(-3), comment: "First offer for the entrance façade.");
@@ -46,11 +47,11 @@ internal static class ManualDemoActivity
             new DateOnly(2026, 3, 12), at: seed.Now.AddDays(-1));
         var version = await seed.CurrentVersionAsync(invoice);
 
-        DemoDataSeeder.AddAnnotation(seed.Db, seed.TenantId, invoice.Id, version.Id, seed.AdminId, seed.Now,
+        DemoSeedItems.AddAnnotation(seed.Db, seed.TenantId, invoice.Id, version.Id, seed.AdminId, seed.Now,
             AnnotationKind.Highlight, 0.085, 0.395, 0.830, 0.030, string.Empty, "#ffd54a");
-        DemoDataSeeder.AddAnnotation(seed.Db, seed.TenantId, invoice.Id, version.Id, seed.AdminId, seed.Now,
+        DemoSeedItems.AddAnnotation(seed.Db, seed.TenantId, invoice.Id, version.Id, seed.AdminId, seed.Now,
             AnnotationKind.Note, 0.085, 0.640, 0.330, 0.085, "Six panes, as in the revised offer ✓", "#fff59d");
-        DemoDataSeeder.AddAnnotation(seed.Db, seed.TenantId, invoice.Id, version.Id, seed.AdminId, seed.Now,
+        DemoSeedItems.AddAnnotation(seed.Db, seed.TenantId, invoice.Id, version.Id, seed.AdminId, seed.Now,
             AnnotationKind.Stamp, 0.600, 0.700, 0.230, 0.090, "CHECKED", "#2e7d32");
 
         foreach (var (name, colour) in new[] { ("invoice", "#e53935"), ("contract", "#1e88e5"), ("urgent", "#fb8c00"), ("checked", "#43a047") })
@@ -80,8 +81,8 @@ internal static class ManualDemoActivity
         await seed.Db.SaveChangesAsync();
 
         // Under review, assigned to the administrator and a day overdue: the Tasks list's first row.
-        await DemoDataSeeder.AddInReviewWorkflowAsync(seed.Db, seed.TenantId, version.Id, seed.AdminId, seed.Now);
-        await DemoDataSeeder.AddReferenceAsync(seed.Db, seed.TenantId, tree.March.Id, invoice.Id, seed.AdminId, seed.Now);
+        await DemoSeedItems.AddInReviewWorkflowAsync(seed.Db, seed.TenantId, version.Id, seed.AdminId, seed.Now);
+        await DemoSeedItems.AddReferenceAsync(seed.Db, seed.TenantId, tree.March.Id, invoice.Id, seed.AdminId, seed.Now);
 
         // A question, a mention and a reply: Lukas asks the administrator by name, she answers in the thread.
         // Every entry is in the past and in order, so the thread reads the same on every capture (#832).
@@ -120,7 +121,7 @@ internal static class ManualDemoActivity
 
     // What the bell shows the administrator: the mention and the review request, unread. Written as rows rather
     // than through the notification service, which would also send them by mail; EmailedAt says they were.
-    private static async Task NotificationsAsync(ManualSeed seed, ManualTeam team, Document invoice)
+    private static async Task NotificationsAsync(KristallSeed seed, KristallTeam team, Document invoice)
     {
         var lukas = await seed.Db.Users.Where(u => u.Id == team.LukasId).Select(u => u.DisplayName).SingleAsync();
 
@@ -148,7 +149,7 @@ internal static class ManualDemoActivity
     }
 
     // Two superseded papers in the recycle bin, so restore and delete-for-good have something to act on.
-    private static async Task RecycleBinAsync(ManualSeed seed, ManualTree tree)
+    private static async Task RecycleBinAsync(KristallSeed seed, KristallTree tree)
     {
         foreach (var (name, resource, date, daysAgo) in new[]
                  {

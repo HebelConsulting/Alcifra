@@ -32,7 +32,7 @@ public sealed partial class MainWindowViewModel
         IsLoggedIn = true;
         RetentionItems.Clear();
         RetentionItems.Add(new RetentionRowViewModel(Guid.NewGuid(), "Framework agreement 2019", 7, "2026-05-01", true, false, null, null!));
-        RetentionItems.Add(new RetentionRowViewModel(Guid.NewGuid(), "Invoice 2026-003", 7, "2033-01-14", false, false, null, null!));
+        RetentionItems.Add(new RetentionRowViewModel(Guid.NewGuid(), "Invoice AG-2026-031", 10, "2036-03-12", false, false, null, null!));
         RetentionItems.Add(new RetentionRowViewModel(Guid.NewGuid(), "Disputed delivery note", 7, "2026-04-01", true, true, null, null!));
         SelectedRetentionRow = RetentionItems[0];
     }

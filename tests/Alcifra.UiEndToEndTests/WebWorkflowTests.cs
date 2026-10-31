@@ -10,7 +10,7 @@ namespace Alcifra.UiEndToEndTests;
 //
 // SPLIT IN TWO ON PURPOSE, and the reason is worth reading before merging them back.
 //
-// This file used to do both halves against the SEEDED "Invoice 2026-003", and carried a comment asserting
+// This file used to do both halves against the SEEDED "Invoice AG-2026-031", and carried a comment asserting
 // "this is the only test that mutates the demo document's workflow state; nothing else asserts on it." That
 // was FALSE: WebTasksFilterTests asserts on exactly that task row. Approving and releasing COMPLETES the
 // review, the row ceases to exist, and that test then waited 30 s for it and failed.
@@ -41,7 +41,7 @@ public class WebWorkflowTests
         // reproduced on a self-made document at all: the deadline is seeded in the past (DueAt = now - 1 day)
         // and no user-facing control sets a due date, so this assertion HAS to run against the seed.
         await page.Locator(".wb-tab[aria-label=\"Tasks\"]").First.ClickAsync();
-        await Expect(page.GetByText("Invoice 2026-003").First).ToBeVisibleAsync();
+        await Expect(page.GetByText("Invoice AG-2026-031").First).ToBeVisibleAsync();
         await Expect(page.Locator(".wb-tasks").GetByText("Overdue").First).ToBeVisibleAsync();
 
         // Every task row carries the In Review status chip (constant by construction — the tasks API only
