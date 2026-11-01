@@ -44,9 +44,7 @@ public partial class TitleBar : UserControl
 
     private void OnBrowserAutofill(object? sender, RoutedEventArgs e) => Window()?.OnBrowserAutofill(sender, e);
 
-    private void OnManageWebDav(object? sender, RoutedEventArgs e) => Window()?.OnManageWebDav(sender, e);
-
-    private void OnManageImap(object? sender, RoutedEventArgs e) => Window()?.OnManageImap(sender, e);
+    private void OnManageDevices(object? sender, RoutedEventArgs e) => Window()?.OnManageDevices(sender, e);
 
     private void OnManageSmime(object? sender, RoutedEventArgs e) => Window()?.OnManageSmime(sender, e);
 

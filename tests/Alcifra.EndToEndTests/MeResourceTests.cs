@@ -32,7 +32,7 @@ public class MeResourceTests
         // runtime — the client simply stops offering the affordance (ADR 0543).
         var rels = me.GetProperty("links").EnumerateArray()
             .Select(l => l.GetProperty("rel").GetString()).ToHashSet();
-        foreach (var rel in new[] { "self", "changePassword", "photo", "mfa", "passkeys", "webdavPassword", "personalRepository", "notificationPreferences" })
+        foreach (var rel in new[] { "self", "changePassword", "photo", "mfa", "passkeys", "protocolDevices", "personalRepository", "notificationPreferences" })
         {
             Assert.Contains(rel, rels);
         }

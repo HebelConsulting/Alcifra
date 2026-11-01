@@ -36,7 +36,7 @@ public class DavGatewayTests
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
         // Generate the app-specific WebDAV password.
-        var gen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var gen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var davPassword = gen.GetProperty("password").GetString()!;
         Assert.Equal(email, gen.GetProperty("username").GetString());
 
@@ -111,7 +111,7 @@ public class DavGatewayTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -178,7 +178,7 @@ public class DavGatewayTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -239,7 +239,7 @@ public class DavGatewayTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -324,7 +324,7 @@ public class DavGatewayTests
         await _factory.SeedUserAsync(tenantId, email, "hard-1234", "Hard User");
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "hard-1234"));
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -374,7 +374,7 @@ public class DavGatewayTests
         var email = $"plain-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "plain-1234", "Plain User");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "plain-1234"));
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 

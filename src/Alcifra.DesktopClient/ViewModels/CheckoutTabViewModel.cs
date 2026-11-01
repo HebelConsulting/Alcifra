@@ -376,8 +376,9 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
 
         try
         {
-            var webdav = await _api.Profile.GetWebDavStatusAsync();
-            if (!webdav.Enabled || string.IsNullOrWhiteSpace(webdav.Url))
+            // A device that reaches files is what makes the mount usable (#1970).
+            var devices = await _api.Devices.GetAsync();
+            if (!devices.ReachesFiles || string.IsNullOrWhiteSpace(devices.Servers.WebDavUrl))
             {
                 Report(Strings.Get("CoEditNeedsWebDav"));
                 return;
@@ -396,7 +397,7 @@ public sealed partial class CheckoutTabViewModel : ObservableObject
                 return;
             }
 
-            var result = await OsFileManager.OpenWebDavFileAsync(webdav.Url, $"{folder}/{fileName}");
+            var result = await OsFileManager.OpenWebDavFileAsync(devices.Servers.WebDavUrl, $"{folder}/{fileName}");
             Report(result.Success
                 ? string.Format(Strings.Get("CoEditing"), row.Name)
                 : result.Error ?? $"Could not open '{row.Name}'.");

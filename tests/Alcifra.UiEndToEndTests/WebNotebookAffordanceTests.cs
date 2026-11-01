@@ -53,7 +53,7 @@ public class WebNotebookAffordanceTests
         http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", await Ui.GetUserTokenAsync(_app.BaseUrl));
 
-        (await http.PostAsJsonAsync("/api/me/imap-access", new { })).EnsureSuccessStatusCode();
+        (await http.PostAsJsonAsync("/api/me/devices", new { name = $"ui-{Guid.NewGuid():N}" })).EnsureSuccessStatusCode();
         var personalId = (await (await http.PostAsJsonAsync("/api/me/personal-repository", new { }))
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 

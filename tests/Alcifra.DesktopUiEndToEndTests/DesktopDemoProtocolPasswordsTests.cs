@@ -29,19 +29,20 @@ public class DesktopDemoProtocolPasswordsTests
         $"anna@{SelfHostedAppFixture.AdminEmail.Split('@')[1]}";
 
     [Theory]
-    [InlineData("/api/me/webdav-password")]
-    [InlineData("/api/me/imap-access")]
-    public async Task The_demo_login_already_has_a_protocol_password(string route)
+    [InlineData("earlierDav")]
+    [InlineData("earlierImap")]
+    public async Task The_demo_login_already_has_a_protocol_password(string kind)
     {
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer", await Ui.GetUserTokenAsync(_app.BaseUrl, AnnaEmail, SelfHostedAppFixture.AdminPassword));
 
-        var status = await http.GetFromJsonAsync<JsonElement>(route);
+        // The demo's passwords are the earlier devices (#1970): a demo visitor mounts and adds the mailbox at once.
+        var devices = await http.GetFromJsonAsync<JsonElement>("/api/me/devices");
 
         Assert.True(
-            status.GetProperty("enabled").GetBoolean(),
-            $"{route} reports disabled — a demo visitor would have to generate a credential before mounting anything.");
+            devices.GetProperty("items").EnumerateArray().Any(d => d.GetProperty("kind").GetString() == kind),
+            $"The demo login has no {kind} device — a demo visitor would have to enrol a device before mounting anything.");
     }
 
     [Fact]

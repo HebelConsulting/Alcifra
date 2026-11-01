@@ -50,7 +50,9 @@ public class DesktopNotebookAffordanceTests
     /// </remarks>
     private async Task<TreeNodeViewModel> NotebookAsync(MainWindowViewModel vm, AlcifraApiClient api)
     {
-        await api.Profile.GenerateImapPasswordAsync(await api.Profile.GetImapAccessAsync());
+        // A device that reaches mail creates the mailbox, as the IMAP password once did (#1970, #562).
+        await new Alcifra.ApiClient.DevicesView(api.Devices).EnrolAsync(new Alcifra.ApiClient.DeviceRequest(
+            $"nb-{Guid.NewGuid():N}"[..20], Mail: true, Files: false, Calendars: false, Contacts: false, EncryptMail: false));
 
         var mailbox = (await PersonalChildrenAsync(vm))["My Mailbox"];
         await mailbox.ReloadChildrenAsync();

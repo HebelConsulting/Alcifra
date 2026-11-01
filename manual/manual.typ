@@ -302,8 +302,8 @@ called *webdav* and mirrors the Repositories tree exactly: your Personal space, 
 can see, and nothing else.]
 
 The *WebDAV* button does the next useful thing rather than always the same thing, and its tooltip says which. In
-the *desktop client*: if you have no credentials yet it opens the setup dialog; if you have credentials it mounts
-the drive and opens it (on Windows as a persistent drive letter, S: or the next one free); and if the drive is
+the *desktop client*: if none of your devices reaches files yet, it enrols *This computer* (see @devices), shows its
+password once and then mounts; otherwise it mounts the drive and opens it (on Windows as a persistent drive letter, S: or the next one free); and if the drive is
 already mounted it goes straight there. So "show me my documents in Finder" is one click once you are set up.
 
 *It opens where you already are.*#idx("WebDAV deep link") There is one button per tab, and each opens *its own*
@@ -326,20 +326,18 @@ folder inside the drive rather than the top of the archive:
   drive belonging to the server you are signed in to, whichever name it ended up with.
 ]
 
-The setup dialog shows the *mount URL* and your *username* (your e-mail), each with a *Copy* button, and a
-*Generate* button that issues an app-specific *WebDAV password* — separate from your login password and shown
-only once, so copy it right away. The desktop dialog also has *Open folder*, so you can go from generating
-credentials to a mounted drive without closing it. The mount URL ends in `/webdav`, so your file manager names the
-drive "webdav"; on Windows you can rename it like any network drive.
+The drive signs in with your e-mail and a *device password* from *Devices…* (see @devices), never your login
+password. The mount URL ends in `/webdav`, so your file manager names the drive "webdav"; on Windows you can rename
+it like any network drive.
 
 The *web client* cannot mount a drive: a browser is not allowed to. Instead of leaving you with a URL and no idea
-what to do with it, its dialog shows the mount steps for the operating system you are on — Finder's
+what to do with it, its *Devices* dialog shows the mount steps for the operating system you are on — Finder's
 #emph[Go ▸ Connect to Server] on macOS, *Map network drive* on Windows, a `davs://` address on Linux — next to
 the values to paste into them.
 
 #shot("screenshots/web-webdav.png",
-  [The web client's WebDAV dialog: the mount URL, your username and the one-shot password, each with a copy
-   button, and the mount steps for the operating system you are using.])
+  [The web client's Devices dialog: your user name and every server address, each with a copy button, and the
+   mount steps for the operating system you are using.])
 
 == Editing a document in place
 
@@ -414,11 +412,10 @@ file as an attachment — if you switch that on.]
 list wherever the reference sits, with everything beneath it — so the destinations you file into most can be
 gathered in your personal folder and reached from the mail program without hunting through the whole tree.
 
-Open *Email access (IMAP)…* in the account menu. The dialog shows the *server* and your *username* (your
-e-mail), each with a *Copy* button, and *Generate* issues a dedicated *IMAP password* — like the WebDAV one:
-separate from your login password, shown only once, revocable on its own. The *Show every document* switch is
-yours per account: off (the default) lists only e-mails; on lists everything you may see, with the file
-attached to open straight from the mail client.
+Your mail program signs in with your e-mail and a *device password* from *Devices…* in the account menu (see
+@devices), whose dialog also shows the *server* and its ports. The switch *Mail shows all documents* is yours, for
+every device: off (the default) lists only e-mails; on lists everything you may see, with the file attached to
+open straight from the mail client.
 
 #note[
   *The mail client cannot rearrange the folders.* Folders are created, renamed and deleted in #product —
@@ -533,8 +530,8 @@ and calendar you are allowed to see, wherever it sits in the archive; you then p
 both ways: a contact changed on your phone becomes a new version in the archive, and one changed in the workbench
 appears on the phone.
 
-The credential is the *same DAV password* the file-manager mount uses — one secret, one place to revoke it. Issue
-it from *WebDAV…* in the account menu if you have not already.
+A device signs in with your e-mail and its own *device password* from *Devices…* in the account menu (see @devices),
+the same one its file manager and mail program use.
 
 #shot("screenshots/desktop-calendar.png",
   [The Calendar tab, ordered by time — undated entries sort last rather than into the top rows.])
@@ -871,21 +868,27 @@ you may see; a folder you have no rights to simply is not there, rather than bei
     see @encryptedreads],
 )
 
-== Two passwords for your devices
+== A password for each device <devices>
 
-Your devices use *two* app passwords, not one, and neither is your sign-in password:
+Each device you connect — a phone, a laptop's mail program, a tablet's calendar — gets *its own password*#idx("Device password"), and none of
+them is your sign-in password. Open *Devices…* in the account menu:
 
-- the *DAV password* — issued from *WebDAV…* in the account menu — for the file manager (*WebDAV*), the
-  calendar (*CalDAV*) and the address book (*CardDAV*);
-- the *IMAP password* — issued from *Email access (IMAP)…* — for the mail program and the notes app.
+- *Enrol a device…* asks for a name ("Anna's phone") and what it reaches — *Mail*, *Files*, *Calendars*,
+  *Contacts*, all on unless you turn some off. The password is shown *once*, with a QR code of it, and every
+  server address beside it, each with a *Copy* button.
+- Where the device reaches mail, calendars or contacts, a second QR code opens a *setup profile* on a phone:
+  scan it with the camera and the phone sets up the accounts itself. The link works *once, within ten
+  minutes*, and is gone when used.
+- *Change* renames a device or turns what it reaches on and off; *Revoke* cuts that device off at once, and
+  only that one. *A lost phone costs one revocation*: your other devices and your sign-in stay as they are.
+- *Encrypt mail content* seals what that device's mail program fetches to your own hardware key, so only a
+  device that holds it can read it. Turning it on needs an enrolled, attested hardware key; where your
+  organisation seals all mail it is shown on and cannot be turned off. Not every mail program can read sealed
+  mail, which the dialog says beside the switch.
 
-Both are separate from your sign-in password on purpose: a device holds them indefinitely, so they are what you
-revoke when a phone is lost — without changing how you sign in. *A lost device needs both revoked*: revoking
-the DAV password leaves that phone's mail and notes connected, and revoking the IMAP password leaves its files,
-calendar and contacts connected.
-
-Revoking either disconnects every device using it at once. There is no per-device credential today; if you need
-one device cut off, reissue the password and re-enter it on the devices you keep.
+Passwords issued before devices existed — one for files, calendars and contacts, one for mail — appear in the
+list as *Earlier WebDAV/calendar password* and *Earlier IMAP password*. They keep working until you revoke them;
+enrol your devices, then revoke them.
 
 == Encryption is not optional
 
@@ -1151,7 +1154,7 @@ password, multi-factor authentication (authenticator app or passkeys), and profi
 
 Your own account lives behind *Edit profile…*#idx("Edit profile") in the avatar menu (top right in both clients). It shows which
 account you are signed in as, the photo you currently have with a crop to replace it, and a button through to
-changing your password. Two-factor authentication, passkeys and the WebDAV password stay as their own entries in
+changing your password. Two-factor authentication, passkeys and your devices stay as their own entries in
 that menu, since each is a separate credential rather than part of your profile.
 
 One thing to expect from the authenticator code#idx("Two-factor authentication"): it is *single-use*. A six-digit code is accepted once and then
@@ -2088,7 +2091,7 @@ it, and the link can be revoked the moment it turns out it should not have been 
 )
 
 #note[
-  All four use *app-specific passwords*#idx("App password"), issued from the account menu and revocable one at a time — never the
+  All four use a *password per device*#idx("Device password"), issued from *Devices…* in the account menu and revocable one at a time — never the
   password used to sign in. A lost phone costs one revocation, not a password change.
 ]
 

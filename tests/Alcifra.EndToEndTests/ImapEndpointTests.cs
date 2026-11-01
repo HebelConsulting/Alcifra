@@ -38,24 +38,25 @@ public class ImapEndpointTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        // The app-specific IMAP password, via the me resource's advertised surface.
-        var status = await TestJson.Get(api, "/api/me/imap-access");
-        Assert.True(status.GetProperty("available").GetBoolean());
-        Assert.False(status.GetProperty("enabled").GetBoolean());
+        // The addresses a device is set up with, from the devices resource (#1970): no device yet.
+        var devices = await TestJson.Get(api, "/api/me/devices");
+        var status = devices.GetProperty("servers");
+        Assert.True(status.GetProperty("imapAvailable").GetBoolean());
+        Assert.Empty(devices.GetProperty("items").EnumerateArray());
 
         // The port a user is told to dial is the PUBLISHED one, never the bound one (#682). Decisive here
         // because the fixture binds EPHEMERALLY: a regression could not coincidentally report 143, it would
         // report whatever random port the listener got. The kiosk shipped the other way round — bound 9993,
         // published 993, advertised 9993 — and sent every user to a port nothing outside can open.
         var bound = ((Alcifra.Api.Imap.ImapServer)_factory.Services.GetService(typeof(Alcifra.Api.Imap.ImapServer))!).BoundPort!.Value;
-        Assert.Equal(143, status.GetProperty("port").GetInt32());
-        Assert.NotEqual(bound, status.GetProperty("port").GetInt32());
-        var generated = await TestJson.Post(api, "/api/me/imap-access", new { });
+        Assert.Equal(143, status.GetProperty("imapPort").GetInt32());
+        Assert.NotEqual(bound, status.GetProperty("imapPort").GetInt32());
+        var generated = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var imapPassword = generated.GetProperty("password").GetString()!;
         Assert.Equal(email, generated.GetProperty("username").GetString());
 
         // File an .eml and a .pdf into the repository over WebDAV (same credential family, easiest byte path).
-        var davGen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var davGen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davGen.GetProperty("password").GetString()}")));
         using var dav = _factory.CreateClient();
@@ -107,7 +108,7 @@ public class ImapEndpointTests
 
         // ---- The toggle: every visible document, non-emails as synthetic attachment messages ----------
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         using (var client = new ImapClient())
         {
@@ -159,9 +160,14 @@ public class ImapEndpointTests
         }
 
         // Generated, then revoked → refused again.
-        var generated = await TestJson.Post(api, "/api/me/imap-access", new { });
+        var generated = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var imapPassword = generated.GetProperty("password").GetString()!;
-        Assert.Equal(System.Net.HttpStatusCode.NoContent, (await api.DeleteAsync("/api/me/imap-access")).StatusCode);
+        using (var revoke = new HttpRequestMessage(HttpMethod.Delete, generated.GetProperty("links").EnumerateArray()
+            .Single(l => l.GetProperty("rel").GetString() == "self").GetProperty("href").GetString()))
+        {
+            revoke.Headers.TryAddWithoutValidation("If-Match", generated.GetProperty("eTag").GetString());
+            Assert.Equal(System.Net.HttpStatusCode.NoContent, (await api.SendAsync(revoke)).StatusCode);
+        }
 
         using (var client = new ImapClient())
         {
@@ -183,9 +189,9 @@ public class ImapEndpointTests
         await _factory.SeedUserAsync(tenantId, email, "seen-1234", "Seen User");
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "seen-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
-        var davPw = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPw = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPw}")));
         using var dav = _factory.CreateClient();
         using var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{repoName}/note.eml")
@@ -247,7 +253,7 @@ public class ImapEndpointTests
         await _factory.SeedUserAsync(tenantId, email, "wr-1234", "Writer", canViewAuditLog: true);
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "wr-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         await TestJson.Post(api, $"/api/documents/{repoId}/children", new { name = "Archive" });
 
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;
@@ -332,7 +338,7 @@ public class ImapEndpointTests
         var email = $"imap-arch-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "arch-1234", "Archive User");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "arch-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // Provisioning: the sixth standing folder exists in the workbench under My Mailbox…
         var personalId = (await TestJson.Post(api, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
@@ -417,7 +423,7 @@ public class ImapEndpointTests
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "heal-1234"));
 
         // The mailbox provisioning hangs off the IMAP credential, not off the personal space alone.
-        await TestJson.Post(api, "/api/me/imap-access", new { });
+        await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var personalId = (await TestJson.Post(api, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
         var mailboxId = (await TestJson.Get(api, $"/api/documents/{personalId}/children"))
             .GetProperty("children").EnumerateArray()
@@ -438,7 +444,7 @@ public class ImapEndpointTests
         // The next pass is a plain IMAP LOGIN — the path the live report exposed (#802): a user whose
         // credential predates the new folder rotates nothing and receives no delivery, so login is the ONLY
         // provisioning moment their account ever reaches. Healing on rotation alone strands exactly them.
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
@@ -480,11 +486,11 @@ public class ImapEndpointTests
         await _factory.SeedUserAsync(tenantId, email, "wire-1234", "Wire Reader");
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "wire-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // Documents, not just emails, over IMAP — a PDF only becomes a synthetic message with the per-user
         // show-all preference on (#793).
-        (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).EnsureSuccessStatusCode();
+        (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).EnsureSuccessStatusCode();
 
         // A PDF document with a non-ASCII name in the user's own archive folder — the synthetic-message case.
         await TestJson.Post(api, "/api/me/personal-repository", new { });
@@ -577,7 +583,7 @@ public class ImapEndpointTests
         var email = $"imap-org-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "org-1234", "Organizer");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "org-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         await TestJson.Post(api, "/api/me/personal-repository", new { });
 
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;
@@ -646,7 +652,7 @@ public class ImapEndpointTests
         await _factory.SeedUserAsync(tenantId, email, "ref-1234", "Ref Mover");
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "ref-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         await TestJson.Post(api, "/api/me/personal-repository", new { });
         var repoId = (await TestJson.Post(owner, "/api/repositories", new { name = $"Ref{Guid.NewGuid():N}"[..10] }))
             .GetProperty("id").GetGuid();
@@ -774,7 +780,7 @@ public class ImapEndpointTests
         // …and the seeded user overrides their own seed — self-service survives (#793's whole premise).
         using var off = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(
             seededOff.GetProperty("email").GetString()!, SeededUserPassword));
-        (await off.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).EnsureSuccessStatusCode();
+        (await off.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).EnsureSuccessStatusCode();
         var overridden = await TestJson.Get(admin, $"/api/users/{seededOff.GetProperty("id").GetGuid()}");
         Assert.True(overridden.GetProperty("imapShowAllDocuments").GetBoolean());
     }

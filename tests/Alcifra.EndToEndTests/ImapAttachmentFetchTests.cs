@@ -38,8 +38,8 @@ public class ImapAttachmentFetchTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
-        var davGen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
+        var davGen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davGen.GetProperty("password").GetString()}")));
 
@@ -64,7 +64,7 @@ public class ImapAttachmentFetchTests
         }
 
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;
 
@@ -114,9 +114,9 @@ public class ImapAttachmentFetchTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         // A document living in the OTHER repository, then referenced into this one — the shape a user makes
         // when they file something into a working folder without moving it.
@@ -153,9 +153,9 @@ public class ImapAttachmentFetchTests
             new { canSee = true, canReadContent = true })).EnsureSuccessStatusCode();
 
         using var otherApi = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(otherEmail, otherPassword));
-        var otherImapPassword = (await TestJson.Post(otherApi, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var otherImapPassword = (await TestJson.Post(otherApi, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await otherApi.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await otherApi.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         using var otherClient = new ImapClient();
         await otherClient.ConnectAsync("127.0.0.1", port, SecureSocketOptions.None);

@@ -39,7 +39,7 @@ public class WebDavReferencedDocumentTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -141,7 +141,7 @@ public class WebDavReferencedDocumentTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -194,7 +194,7 @@ public class WebDavReferencedDocumentTests
         await _factory.SeedUserAsync(tenantId, email, "davreff-1234", "Dav RefFolder User");
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "davreff-1234"));
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
@@ -257,7 +257,7 @@ public class WebDavReferencedDocumentTests
         await _factory.SeedUserAsync(tenantId, email, "davrefc-1234", "Dav RefCycle User");
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "davrefc-1234"));
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 

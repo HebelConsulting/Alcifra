@@ -63,7 +63,7 @@ public class KekRotationTests
 
         // An encrypted object to rotate, filed through the ordinary WebDAV write path.
         var before = await SnapshotAsync();
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var name = $"kek-{Guid.NewGuid():N}.txt";
         using (var dav = _factory.CreateClient())
         {

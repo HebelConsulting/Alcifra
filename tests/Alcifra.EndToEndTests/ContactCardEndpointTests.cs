@@ -53,7 +53,7 @@ public class ContactCardEndpointTests
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
         await TestJson.Post(api, "/api/me/personal-repository", new { });
 
-        var generated = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var generated = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var auth = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{generated.GetProperty("password").GetString()}")));
         var dav = _factory.CreateClient();

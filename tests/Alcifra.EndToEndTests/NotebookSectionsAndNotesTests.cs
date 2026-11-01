@@ -30,7 +30,7 @@ public class NotebookSectionsAndNotesTests
         // and it lives under the MAILBOX rather than loose in Personal (#596). Generating an IMAP credential
         // materialises the mailbox — the second of the two triggers — so this is also the shortest honest way
         // to have one at all.
-        await TestJson.Post(api, "/api/me/imap-access", new { });
+        await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var mailboxId = (await TestJson.Get(api, $"/api/documents/{personalId}/children"))
             .GetProperty("children").EnumerateArray()
             .Single(c => c.GetProperty("name").GetString() == "My Mailbox")

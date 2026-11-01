@@ -3,36 +3,46 @@ using System.Text;
 
 namespace Alcifra.Api.ProtocolDevices;
 
-/// <summary>Where a device reaches the installation: what a profile and the hand-over name (#1970 slice 2).</summary>
-/// <param name="ImapHost">IMAP's published host.</param>
-/// <param name="ImapPort">Its published port: the TLS port when there is one.</param>
-/// <param name="ImapTls">Whether that port is TLS.</param>
+/// <summary>Where a device reaches the installation: what the Devices view, a profile and the hand-over name (#1970).</summary>
+/// <param name="ImapHost">IMAP's published host; null when IMAP is off.</param>
+/// <param name="ImapPort">Its published plain port, if any.</param>
+/// <param name="ImapTlsPort">Its published TLS port, if any; a profile prefers it.</param>
 /// <param name="OutgoingHost">The outgoing server a mail account names: the installation's own MX, port 25, without a
 /// sign-in, until authenticated submission exists (#2046; owner, 2026-10-31).</param>
 /// <param name="WebHost">The web address's host, which CalDAV, CardDAV and WebDAV share.</param>
 /// <param name="WebPort">Its port.</param>
 /// <param name="WebTls">Whether it is HTTPS.</param>
 public sealed record DeviceServers(
-    string? ImapHost, int ImapPort, bool ImapTls, string OutgoingHost, string WebHost, int WebPort, bool WebTls)
+    string? ImapHost, int? ImapPort, int? ImapTlsPort, string OutgoingHost, string WebHost, int WebPort, bool WebTls)
 {
     /// <summary>The installation's published addresses: <c>App:BaseUrl</c> for the web protocols, IMAP's published host
     /// and ports (null host when IMAP is off), and <c>Mail:OutgoingHost</c>, else IMAP's host.</summary>
-    public static DeviceServers From(IConfiguration configuration, Alcifra.Api.Imap.ImapOptions imap)
+    /// <param name="listening">
+    /// The running IMAP endpoint: a port configured as -1 is chosen by the OS at start (test hosts), and what a user is
+    /// shown is the port it actually bound, never the -1.
+    /// </param>
+    public static DeviceServers From(IConfiguration configuration, Alcifra.Api.Imap.ImapOptions imap, Alcifra.Api.Imap.ImapServer? listening = null)
     {
         var web = new Uri(configuration["App:BaseUrl"] is { Length: > 0 } baseUrl ? baseUrl : "http://localhost:8080");
         var imapHost = imap.Enabled ? imap.PublicHost ?? web.Host : null;
         return new DeviceServers(
             imapHost,
-            imap.AdvertisedTlsPort ?? imap.AdvertisedPort ?? 993,
-            imap.AdvertisedTlsPort is not null,
+            imap.Enabled ? Bound(imap.AdvertisedPort, listening?.BoundPort) : null,
+            imap.Enabled ? Bound(imap.AdvertisedTlsPort, listening?.BoundTlsPort) : null,
             configuration["Mail:OutgoingHost"] is { Length: > 0 } outgoing ? outgoing : imapHost ?? web.Host,
             web.Host,
             web.Port,
             web.Scheme == Uri.UriSchemeHttps);
     }
 
+    // -1 is "ephemeral": the bound port where the endpoint is listening, else nothing to show.
+    private static int? Bound(int? advertised, int? bound) => advertised == -1 ? bound : advertised;
+
     /// <summary>The web address's origin, which the DAV addresses hang off.</summary>
     public string WebOrigin => $"{(WebTls ? "https" : "http")}://{WebHost}{(WebPort is 443 or 80 ? string.Empty : $":{WebPort}")}";
+
+    /// <summary>The port a mail client should use, and whether it is TLS: the TLS port when there is one.</summary>
+    public (int Port, bool Tls) MailPort => ImapTlsPort is { } tls ? (tls, true) : (ImapPort ?? 993, false);
 }
 
 /// <summary>
@@ -59,8 +69,8 @@ public static class DeviceProfile
                 ("EmailAccountDescription", "string", $"{Alcifra.Localization.Strings.ProductName} ({deviceName})"),
                 ("EmailAddress", "string", email),
                 ("IncomingMailServerHostName", "string", servers.ImapHost),
-                ("IncomingMailServerPortNumber", "integer", servers.ImapPort.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                ("IncomingMailServerUseSSL", servers.ImapTls ? "true" : "false", string.Empty),
+                ("IncomingMailServerPortNumber", "integer", servers.MailPort.Port.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                ("IncomingMailServerUseSSL", servers.MailPort.Tls ? "true" : "false", string.Empty),
                 ("IncomingMailServerAuthentication", "string", "EmailAuthPassword"),
                 ("IncomingMailServerUsername", "string", email),
                 ("IncomingPassword", "string", password),

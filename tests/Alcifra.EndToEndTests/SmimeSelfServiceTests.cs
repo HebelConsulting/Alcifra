@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -39,9 +41,12 @@ public class SmimeSelfServiceTests
         await _factory.GrantTenantAdminAsync(email);
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        // The earlier IMAP password seals to the user's own certificate exactly as IMAP always did (#1970 slice 1); an
+        // ENROLLED device seals only to an attested key, which a software identity is not. So this circle signs in with
+        // an earlier IMAP password, as the users who generated identities do.
+        var imapPassword = await EarlierImapPasswordAsync(email);
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         using var dav = _factory.CreateClient();
         using var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{repoName}/note.eml")
         {
@@ -54,6 +59,19 @@ public class SmimeSelfServiceTests
         Assert.Equal(HttpStatusCode.Created, (await dav.SendAsync(put)).StatusCode);
 
         return (api, email, imapPassword, repoName);
+    }
+
+    private async Task<string> EarlierImapPasswordAsync(string email)
+    {
+        var secret = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+        var normalized = email.ToUpperInvariant();
+        var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.NormalizedEmail == normalized);
+        db.ProtocolDevices.Add(Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.New(user, Alcifra.Domain.Users.ProtocolDeviceKind.LegacyImap,
+            new Microsoft.AspNetCore.Identity.PasswordHasher<Alcifra.Domain.Users.User>().HashPassword(user, secret), DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync();
+        return secret;
     }
 
     private static async Task<string> ErrorCodeAsync(HttpResponseMessage response)

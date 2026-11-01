@@ -35,7 +35,7 @@ public class MailboxAddressClaimTests
         // The mailbox materialises when IMAP access is provisioned OR when ingress mail first delivers to
         // this user — not with the bare personal repository. This test uses the first trigger (the same one
         // ImapEndpointTests uses); LMTP delivery exercises the second.
-        await TestJson.Post(client, "/api/me/imap-access", new { });
+        await TestJson.Post(client, "/api/me/devices", E2EDevices.Any());
         var mailboxId = (await TestJson.Get(client, $"/api/documents/{personalId}/children"))
             .GetProperty("children").EnumerateArray()
             .Single(c => c.GetProperty("name").GetString() == "My Mailbox")

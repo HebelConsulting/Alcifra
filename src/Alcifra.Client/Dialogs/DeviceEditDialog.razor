@@ -1,0 +1,61 @@
+@* Enrols a device or changes an enrolled one (#1970 slice 3): name, what it reaches, mail encryption with the known
+   client limitation beside it. Locked on where the organisation seals mail. Returns the request; the caller acts. *@
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 380px;">
+            <MudTextField T="string" @bind-Value="_name" Label="@Strings.Get("DvName")" Placeholder="@Strings.Get("DvNameHint")"
+                          MaxLength="100" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
+            <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("DvColReaches")</MudText>
+            <MudCheckBox T="bool" @bind-Value="_mail" Label="@Strings.Get("DvMail")" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="_files" Label="@Strings.Get("DvFiles")" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="_calendars" Label="@Strings.Get("DvCalendars")" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="_contacts" Label="@Strings.Get("DvContacts")" Dense="true" />
+            <MudCheckBox T="bool" @bind-Value="_encrypt" Label="@Strings.Get("DvEncryptMail")" Dense="true" Disabled="EncryptLocked" Class="mt-2" />
+            @if (EncryptLocked)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("DvEncryptLocked")</MudText>
+            }
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@Strings.Get("DvEncryptHint")</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()">@Strings.Get("Cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="string.IsNullOrWhiteSpace(_name)">@Strings.Get("Save")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    /// <summary>The device to change, or null to enrol a new one.</summary>
+    [Parameter]
+    public Alcifra.Client.Services.DevicesApi.DeviceDto? Device { get; set; }
+
+    [Parameter]
+    public bool EncryptLocked { get; set; }
+
+    private string _name = string.Empty;
+    private bool _mail = true;
+    private bool _files = true;
+    private bool _calendars = true;
+    private bool _contacts = true;
+    private bool _encrypt;
+
+    protected override void OnInitialized()
+    {
+        if (Device is { } device)
+        {
+            (_name, _mail, _files, _calendars, _contacts, _encrypt) =
+                (device.Name, device.Mail, device.Files, device.Calendars, device.Contacts, device.EncryptMail);
+        }
+
+        if (EncryptLocked)
+        {
+            _encrypt = true;
+        }
+    }
+
+    private void Save() => Dialog.Close(DialogResult.Ok(new Alcifra.Client.Services.DevicesApi.DeviceRequest(
+        _name.Trim(), _mail, _files, _calendars, _contacts, _encrypt && !EncryptLocked)));
+}

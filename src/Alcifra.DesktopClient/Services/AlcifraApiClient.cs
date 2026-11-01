@@ -34,6 +34,7 @@ public sealed class AlcifraApiClient
     private RepositoryArchiveClient? _repositoryArchive;
     private ExternalLinksClient? _externalLinks;
     private ProfileClient? _profile;
+    private DevicesClient? _devices;
     private DavCollectionsClient? _davCollections;
     private MasksClient? _masks;
     private LegalHoldsClient? _legalHolds;
@@ -125,6 +126,9 @@ public sealed class AlcifraApiClient
 
     /// <summary>The signed-in account's own area (#443, ops tranche).</summary>
     public ProfileClient Profile => _profile ??= new ProfileClient(Core);
+
+    /// <summary>The user's protocol devices (#1970): each with its own password for mail, files, calendars and contacts.</summary>
+    public DevicesClient Devices => _devices ??= new DevicesClient(Core, Profile);
 
     /// <summary>The caller's addressbooks and calendars, for the Contacts/Calendar tabs (#564).</summary>
     public DavCollectionsClient DavCollections => _davCollections ??= new DavCollectionsClient(Core, Profile);

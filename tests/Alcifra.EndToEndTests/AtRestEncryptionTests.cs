@@ -21,7 +21,7 @@ public class AtRestEncryptionTests
 
     private static async Task<string> PutOverWebDavAsync(E2EApiFactory factory, HttpClient api, string email, string folder)
     {
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var name = $"atrest-{Guid.NewGuid():N}.txt";
         using var dav = factory.CreateClient();
         using var put = new HttpRequestMessage(HttpMethod.Put, $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{folder}/{name}")
@@ -93,7 +93,7 @@ public class AtRestEncryptionTests
         Assert.False(string.IsNullOrEmpty(raw.Metadata["x-amz-meta-alcifra-kek-generation"]));
 
         // The WebDAV door serves plaintext — the decorator decrypts on the way out...
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         using var dav = _factory.CreateClient();
         using var get = new HttpRequestMessage(HttpMethod.Get, $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{E2EApiFactory.CryptoTenantName}/{fileName}")
         {

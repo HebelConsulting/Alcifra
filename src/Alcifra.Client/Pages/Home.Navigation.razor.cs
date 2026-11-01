@@ -762,8 +762,9 @@ public partial class Home
     // external-links button beside it is safe because it is GATED on its href, so a load hides it entirely.
     // The account menu opens the same dialog; the ribbon is the discoverable place for it — next to the other
     // things a user does with their documents rather than buried under their name (#461).
+    // A browser cannot mount (ADR 0560): the Devices dialog gives a device its password and the address with the steps.
     private async Task OpenWebDavAsync() =>
-        await (await DialogService.ShowAsync<Dialogs.WebDavDialog>(Strings.Get("DlgWebDav"))).Result;
+        await (await DialogService.ShowAsync<Dialogs.DevicesDialog>(Strings.Get("DvTitle"), Dialogs.DevicesDialog.Options)).Result;
 
     // Addressed from the ROW whose ⋮ menu offered it (ADR 0559); the pane's links serve only when they are that row's.
     private async Task OpenReminderDialogAsync(BrowseNode item)

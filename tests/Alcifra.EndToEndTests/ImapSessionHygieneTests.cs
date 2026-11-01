@@ -41,7 +41,7 @@ public class ImapSessionHygieneTests
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
         // Get-or-create the personal repository — INBOX only projects once it exists (the IMAP layer never provisions).
         await TestJson.Post(api, "/api/me/personal-repository", new { });
-        var generated = await TestJson.Post(api, "/api/me/imap-access", new { });
+        var generated = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         return $"{email} {generated.GetProperty("password").GetString()}";
     }
 

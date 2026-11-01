@@ -29,27 +29,27 @@ public class OneRelPerResourceTests
             .GetProperty("href").GetString()!;
 
     [Fact]
-    public async Task The_imap_access_resource_advertises_its_address_once()
+    public async Task The_devices_resource_advertises_its_address_once()
     {
         var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
         var email = $"onerel-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "onerel-1234", "One Rel");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "onerel-1234"));
 
-        var status = await TestJson.Get(api, "/api/me/imap-access");
+        var devices = await TestJson.Get(api, "/api/me/devices");
 
-        // `settings` survives — it is a DIFFERENT address. `generate` and `revoke` were this one under two
-        // more names, and what actually gated the buttons was `available`/`enabled`, which are still here.
-        Assert.Equal(["self", "settings"], RelsOf(status).Order());
-        Assert.True(status.TryGetProperty("available", out _));
-        Assert.True(status.TryGetProperty("enabled", out _));
+        // `settings` is a DIFFERENT address; enrolling is a POST to the collection's own (#1970, ADR 0719).
+        Assert.Equal(["self", "settings"], RelsOf(devices).Order());
 
-        // The method is the action: POST issues a password at the same address, DELETE revokes it.
-        var generated = await TestJson.Post(api, HrefOf(status, "self"), new { });
-        Assert.True(generated.GetProperty("enabled").GetBoolean());
+        // The method is the action: POST enrols at the collection's address; a device's own address is read, changed
+        // and revoked by the method, under one rel.
+        var enrolled = await TestJson.Post(api, HrefOf(devices, "self"), E2EDevices.Any());
+        Assert.Equal(["self"], RelsOf(enrolled).Order());
 
-        (await api.DeleteAsync(HrefOf(status, "self"))).EnsureSuccessStatusCode();
-        Assert.False((await TestJson.Get(api, "/api/me/imap-access")).GetProperty("enabled").GetBoolean());
+        using var revoke = new HttpRequestMessage(HttpMethod.Delete, HrefOf(enrolled, "self"));
+        revoke.Headers.TryAddWithoutValidation("If-Match", enrolled.GetProperty("eTag").GetString());
+        (await api.SendAsync(revoke)).EnsureSuccessStatusCode();
+        Assert.Empty((await TestJson.Get(api, HrefOf(devices, "self"))).GetProperty("items").EnumerateArray());
     }
 
     [Fact]

@@ -462,20 +462,14 @@ public partial class MainWindow
         }
     });
 
-    internal void OnManageWebDav(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    // The user's devices (#1970): each one's own password for mail, files, calendars and contacts, replacing the WebDAV
+    // and IMAP access dialogs. The WebDAV button's state follows, since a device that reaches files may have come or gone.
+    internal void OnManageDevices(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
-        if (DataContext is MainWindowViewModel { Api: { } api })
+        if (DataContext is MainWindowViewModel { Api: { } api } vm)
         {
-            await new WebDavDialog(api).ShowDialog(this);
-        }
-    });
-
-    // The IMAP account dialog (#562) — connection values, the generated password, and the view toggle.
-    internal void OnManageImap(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
-    {
-        if (DataContext is MainWindowViewModel { Api: { } api })
-        {
-            await new ImapDialog(api).ShowDialog(this);
+            await new DevicesDialog(api).ShowDialog(this);
+            await vm.RefreshWebDavStateAsync();
         }
     });
 
@@ -542,22 +536,58 @@ public partial class MainWindow
             return;
         }
 
-        var status = await api.Profile.GetWebDavStatusAsync();
-        if (!status.Enabled)
+        var devices = await api.Devices.GetAsync();
+        if (!devices.ReachesFiles)
         {
-            // No credentials yet: the dialog IS the next useful thing, not an error about the missing ones.
-            await new WebDavDialog(api).ShowDialog(this);
-            await vm.RefreshWebDavStateAsync();
-            return;
+            // No device reaches files yet (owner, 2026-11-01): offer to enrol THIS computer, files only, show its
+            // password once, and mount; the system asks for the password, which the person pastes.
+            if (await EnrolThisComputerAsync(vm, api) is not { } enrolled)
+            {
+                return;
+            }
+
+            devices = await api.Devices.GetAsync();
+            vm.Status = Strings.Get("DvMountPaste");
+        }
+        else
+        {
+            vm.Status = Strings.Get("MwWebDavMounting");
         }
 
-        vm.Status = Strings.Get("MwWebDavMounting");
-        var result = await OsFileManager.OpenWebDavFolderAsync(status.Url.TrimEnd('/'), subFolder,
+        var result = await OsFileManager.OpenWebDavFolderAsync(devices.Servers.WebDavUrl.TrimEnd('/'), subFolder,
             TryGetPlatformHandle()?.Handle ?? 0); // parents the Windows credential dialog (#820)
         vm.Status = result.Success
             ? Strings.Get("MwWebDavMounted")
             : string.Format(Strings.Get("MwWebDavMountFailed"), result.Error);
         await vm.RefreshWebDavStateAsync();
+    }
+
+    // Enrols this computer for files and shows its hand-over; null when the person declines or it is refused (a device of
+    // that name already exists, say), in which case the Devices window opens so they can choose.
+    private async Task<EnrolledDevice?> EnrolThisComputerAsync(MainWindowViewModel vm, Services.AlcifraApiClient api)
+    {
+        var name = Environment.MachineName;
+        var question = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Get("DvMountEnrol"), name);
+        if (!await new ConfirmDialog(question, Strings.Get("DvEnrolTitle")).ShowDialog<bool>(this))
+        {
+            return null;
+        }
+
+        try
+        {
+            var enrolled = await new DevicesView(api.Devices).EnrolAsync(
+                new DeviceRequest(name, Mail: false, Files: true, Calendars: false, Contacts: false, EncryptMail: false));
+            await new DeviceHandOverDialog(enrolled).ShowDialog(this);
+            await vm.RefreshWebDavStateAsync();
+            return enrolled;
+        }
+        catch (ApiActionException e)
+        {
+            vm.Status = e.Message;
+            await new DevicesDialog(api).ShowDialog(this);
+            await vm.RefreshWebDavStateAsync();
+            return null;
+        }
     }
 
     // Context-menu twins of the Search toolbar's document group (#530 tranche 8), addressed from the row the

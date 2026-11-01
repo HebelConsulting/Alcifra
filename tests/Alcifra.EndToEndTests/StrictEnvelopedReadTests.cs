@@ -138,7 +138,7 @@ public class StrictEnvelopedReadTests
         // was never refused — it simply was not reachable through a presign, so the decision was written and
         // the enforcement was not. A mounted drive hands bytes to an operating system that cannot decrypt CMS.
         var reader = await StrictReaderAsync(withCertificate: true);
-        var davPassword = (await TestJson.Post(reader.Api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(reader.Api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // The REAL path — repository, then document. An earlier version of this test asked for the document at
         // the mount root, got a 404 for the wrong reason, and passed while proving nothing.

@@ -141,7 +141,7 @@ public class ModuleDavCollectionTests
                 values = new Dictionary<string, string?> { [ProtocolReadRefreshSetting.Key] = "true" },
             });
 
-            var davPassword = (await TestJson.Post(admin, "/api/me/webdav-password", new { }))
+            var davPassword = (await TestJson.Post(admin, "/api/me/devices", E2EDevices.Any()))
                 .GetProperty("password").GetString()!;
             var auth = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic",
                 Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));

@@ -166,6 +166,8 @@ builder.Services.AddScoped<Alcifra.Client.Services.ApiRoot>();
 // workbench page does not (ADR 0558).
 builder.Services.AddScoped<Alcifra.Client.Services.UploadConflictResolver>();
 builder.Services.AddScoped<Alcifra.Client.Services.WebDavMountLink>();
+// The user's protocol devices (#1970): the web's mirror of the shared DevicesClient.
+builder.Services.AddScoped<Alcifra.Client.Services.DevicesApi>();
 
 // The UI language is applied at the WASM runtime level via Blazor.start({ applicationCulture }) in index.html
 // (ADR "Web UI localization — shared resources") — set before the app runs, so the resx accessor resolves to

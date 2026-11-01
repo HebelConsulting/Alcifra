@@ -1,0 +1,63 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:api="using:Alcifra.ApiClient"
+        xmlns:pres="using:Alcifra.Presentation"
+        x:Class="Alcifra.DesktopClient.Views.DevicesDialog"
+        Title="{loc:Tr DvTitle}" Width="640" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="18" Spacing="10">
+        <TextBlock TextWrapping="Wrap" Text="{loc:Tr DvIntro}" />
+        <CheckBox x:Name="ShowAllBox" Content="{loc:Tr DvShowAll}" IsCheckedChanged="OnShowAllChanged" />
+
+        <!-- The devices (#1970): what each reaches, whether its mail is sealed, when it was last used. -->
+        <Grid ColumnDefinitions="2*,2*,1.4*,1.4*,Auto" Margin="0,4,0,0">
+            <TextBlock Grid.Column="0" Text="{loc:Tr DvColName}" FontWeight="SemiBold" FontSize="12" />
+            <TextBlock Grid.Column="1" Text="{loc:Tr DvColReaches}" FontWeight="SemiBold" FontSize="12" />
+            <TextBlock Grid.Column="2" Text="{loc:Tr DvColMail}" FontWeight="SemiBold" FontSize="12" />
+            <TextBlock Grid.Column="3" Text="{loc:Tr DvColLastUsed}" FontWeight="SemiBold" FontSize="12" />
+        </Grid>
+        <ItemsControl x:Name="DeviceRows">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="api:DeviceRow">
+                    <Grid ColumnDefinitions="2*,2*,1.4*,1.4*,Auto" Margin="0,2">
+                        <TextBlock Grid.Column="0" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Reaches}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="{Binding MailState}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="{Binding LastUsed}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6">
+                            <Button Content="{loc:Tr DvChange}" IsVisible="{Binding CanEdit}" Click="OnChange" Tag="{Binding}" />
+                            <Button Content="{loc:Tr DvRevoke}" IsVisible="{Binding CanDelete}" Click="OnRevoke" Tag="{Binding}" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock x:Name="EarlierNote" Text="{loc:Tr DvEarlierNote}" IsVisible="False" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+
+        <Button x:Name="EnrolButton" Content="{loc:Tr DvEnrol}" Click="OnEnrol" HorizontalAlignment="Left" />
+
+        <TextBlock Text="{loc:Tr DvServers}" FontWeight="SemiBold" Margin="0,8,0,0" />
+        <ItemsControl x:Name="ServerLines">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="pres:DeviceServerLine">
+                    <Grid ColumnDefinitions="160,*,Auto" Margin="0,2">
+                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="12" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBox Text="{Binding Value}" IsReadOnly="True" />
+                            <TextBlock Text="{Binding Note}" IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                       TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource WbMuted}" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Margin="6,0,0,0" Content="{loc:Tr DvCopy}" Click="OnCopyLine" Tag="{Binding Copy}" IsVisible="{Binding Copy, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                VerticalAlignment="Top" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock x:Name="StatusText" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="{loc:Tr Close}" Click="OnClose" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

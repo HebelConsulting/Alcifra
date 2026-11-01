@@ -34,7 +34,7 @@ public class ImapNotesTests
         var email = $"imap-note-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "note-1234", "Note Writer");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "note-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // The notebook is not provisioned and does not sit loose in Personal: it lives under the MAILBOX, and
         // generating the IMAP credential above has already materialised that (the second of the two triggers,
@@ -137,7 +137,7 @@ public class ImapNotesTests
         var email = $"imap-note2-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "note-1234", "Note Editor");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "note-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         var personal = await TestJson.Post(api, "/api/me/personal-repository", new { });
         var personalId = personal.GetProperty("id").GetGuid();
@@ -204,7 +204,7 @@ public class ImapNotesTests
         var email = $"imap-sect-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "sect-1234", "Section Writer");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "sect-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // The notebook the way the sibling tests make one: under the mailbox the IMAP credential materialised.
         var personalId = (await TestJson.Post(api, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
@@ -279,7 +279,7 @@ public class ImapNotesTests
         var email = $"imap-list-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "list-1234", "List Reader");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "list-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // Provision the notebook so the Notes mailbox exists to be listed.
         var personalId = (await TestJson.Post(api, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
@@ -355,7 +355,7 @@ public class ImapNotesTests
         var email = $"imap-html-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "html-1234", "Html Writer");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "html-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         var personalId = (await TestJson.Post(api, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
         var mailboxId = (await TestJson.Get(api, $"/api/documents/{personalId}/children"))

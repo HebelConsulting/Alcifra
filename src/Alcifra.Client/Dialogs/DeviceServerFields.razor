@@ -1,0 +1,32 @@
+@using Alcifra.Presentation
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+@* The server settings a device is set up with, each with Copy (#461), shared by the Devices dialog and the hand-over;
+   which lines, and what each copies, is the shared rule (Alcifra.Presentation.DeviceServerLines). *@
+@foreach (var line in DeviceServerLines.Of(Servers.Username, Servers.ImapAvailable, Servers.ImapHost, Servers.ImapPort, Servers.ImapTlsPort,
+              Servers.OutgoingHost, Servers.WebDavUrl, Servers.CalDavUrl, Servers.CardDavUrl, Strings.Get))
+{
+    @if (line.Copy is { } copy)
+    {
+        <MudTextField T="string" Label="@line.Label" Value="@line.Value" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Class="mt-2 wb-device-server-line" HelperText="@line.Note" Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.ContentCopy" AdornmentAriaLabel="@Strings.Get("DvCopy")" OnAdornmentClick="() => CopyAsync(copy)" />
+    }
+    else
+    {
+        <MudTextField T="string" Label="@line.Label" Value="@line.Value" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Class="mt-2 wb-device-server-line" />
+    }
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Alcifra.Client.Services.DevicesApi.ServersDto Servers { get; set; } = null!;
+
+    private async Task CopyAsync(string value)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+        Snackbar.Add(Strings.Get("DvCopied"), Severity.Success);
+    }
+}

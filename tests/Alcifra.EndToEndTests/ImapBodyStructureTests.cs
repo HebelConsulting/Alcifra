@@ -43,8 +43,8 @@ public class ImapBodyStructureTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
-        var davGen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
+        var davGen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davGen.GetProperty("password").GetString()}")));
 
@@ -69,7 +69,7 @@ public class ImapBodyStructureTests
         }
 
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         return new World(email, imapPassword, repoName,
             ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value);

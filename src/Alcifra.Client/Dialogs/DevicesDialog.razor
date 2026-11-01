@@ -1,0 +1,193 @@
+@using Alcifra.Presentation
+@inject Alcifra.Client.Services.DevicesApi DevicesApi
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+@* The user's devices (#1970 slice 3), the web's mirror of the desktop's Devices window (ADR 0511): each device's own
+   password for mail, files, calendars and contacts, what it reaches and whether its mail is sealed; enrol, change,
+   revoke; the mail view; every server address. Replaces the WebDAV and IMAP access dialogs. *@
+<MudDialog>
+    <DialogContent>
+        <div class="wb-devices">
+            <MudText Typo="Typo.body2" Class="mb-2">@Strings.Get("DvIntro")</MudText>
+            @if (_list is { } list)
+            {
+                <MudSwitch T="bool" Value="list.ShowAllDocuments" ValueChanged="SetShowAllAsync" Color="Color.Primary"
+                           Label="@Strings.Get("DvShowAll")" Disabled="_busy" />
+
+                <MudSimpleTable Dense="true" Class="mt-2" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>@Strings.Get("DvColName")</th>
+                            <th>@Strings.Get("DvColReaches")</th>
+                            <th>@Strings.Get("DvColMail")</th>
+                            <th>@Strings.Get("DvColLastUsed")</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var device in list.Items)
+                        {
+                            <tr class="wb-device-row">
+                                <td>@NameOf(device)</td>
+                                <td>@string.Join(", ", ProtocolDeviceText.ReachesKeys(device.Mail, device.Files, device.Calendars, device.Contacts).Select(Strings.Get))</td>
+                                <td>@Strings.Get(ProtocolDeviceText.MailStateKey(device.EncryptMailLocked, device.EncryptMail))</td>
+                                <td>@(device.LastUsedAt?.InZone(SessionTimeZone.Current).ToString("g") ?? Strings.Get("DvNever"))</td>
+                                <td style="white-space: nowrap;">
+                                    @if (device.CanEdit)
+                                    {
+                                        <MudButton Size="Size.Small" OnClick="() => ChangeAsync(device)" Disabled="_busy">@Strings.Get("DvChange")</MudButton>
+                                    }
+                                    @if (device.CanDelete)
+                                    {
+                                        <MudButton Size="Size.Small" Color="Color.Error" OnClick="() => RevokeAsync(device)" Disabled="_busy">@Strings.Get("DvRevoke")</MudButton>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+                @if (list.Items.Any(d => d.Kind != "enrolled"))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@Strings.Get("DvEarlierNote")</MudText>
+                }
+
+                <div class="mt-2">
+                    <MudButton Variant="Variant.Outlined" OnClick="EnrolAsync" Disabled="_busy">@Strings.Get("DvEnrol")</MudButton>
+                </div>
+
+                <MudText Typo="Typo.subtitle2" Class="mt-4">@Strings.Get("DvServers")</MudText>
+                <DeviceServerFields Servers="list.Servers" />
+                @if (_mountSteps is not null)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("WebDavHowToMount")</MudText>
+                    <MudText Typo="Typo.body2" Class="wb-device-mount-steps">@_mountSteps</MudText>
+                }
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Close()">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    /// <summary>How both entrances open it: wide enough for the four columns and the actions in every language.</summary>
+    public static readonly DialogOptions Options = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    private Alcifra.Client.Services.DevicesApi.DeviceListDto? _list;
+    private bool _busy;
+
+    // A browser cannot mount a drive (ADRs 0511/0560): the steps for the visitor's own OS, under the WebDAV address.
+    private string? _mountSteps;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        try
+        {
+            await using var module = await JS.InvokeAsync<IJSObjectReference>("import", "./wbLayout.js");
+            _mountSteps = Strings.Get(await module.InvokeAsync<string>("desktopOs") switch
+            {
+                "mac" => "WebDavStepsMac",
+                "windows" => "WebDavStepsWindows",
+                "linux" => "WebDavStepsLinux",
+                _ => "WebDavStepsOther",
+            });
+        }
+        catch (Exception)
+        {
+            _mountSteps = null;
+        }
+    }
+
+    private static string NameOf(Alcifra.Client.Services.DevicesApi.DeviceDto device) =>
+        ProtocolDeviceText.KindNameKey(device.Kind) is { } key ? Strings.Get(key) : device.Name;
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _list = await DevicesApi.GetAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(Strings.Get("DvChangeFailed"), Severity.Error);
+        }
+    }
+
+    private async Task Act(Func<Task> act)
+    {
+        _busy = true;
+        try
+        {
+            await act();
+            await ReloadAsync();
+        }
+        catch (Alcifra.Client.Services.DeviceRefusedException e)
+        {
+            Snackbar.Add(e.Message, Severity.Warning);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task SetShowAllAsync(bool value) => Act(() => DevicesApi.SetShowAllDocumentsAsync(_list!, value));
+
+    private async Task EnrolAsync()
+    {
+        if (_list is null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters<DeviceEditDialog> { { x => x.EncryptLocked, _list.EncryptMailLocked } };
+        var result = await (await DialogService.ShowAsync<DeviceEditDialog>(Strings.Get("DvEnrolTitle"), parameters)).Result;
+        if (result is { Canceled: false, Data: Alcifra.Client.Services.DevicesApi.DeviceRequest request })
+        {
+            Alcifra.Client.Services.DevicesApi.EnrolledDto? enrolled = null;
+            await Act(async () => enrolled = await DevicesApi.EnrolAsync(_list, request));
+            if (enrolled is not null)
+            {
+                var handOver = new DialogParameters<DeviceHandOverDialog> { { x => x.Enrolled, enrolled } };
+                await (await DialogService.ShowAsync<DeviceHandOverDialog>(
+                    string.Format(Strings.Get("DvHandOverTitle"), enrolled.Name), handOver)).Result;
+            }
+        }
+    }
+
+    private async Task ChangeAsync(Alcifra.Client.Services.DevicesApi.DeviceDto device)
+    {
+        var parameters = new DialogParameters<DeviceEditDialog>
+        {
+            { x => x.Device, device },
+            { x => x.EncryptLocked, _list?.EncryptMailLocked ?? false },
+        };
+        var result = await (await DialogService.ShowAsync<DeviceEditDialog>(Strings.Get("DvChange"), parameters)).Result;
+        if (result is { Canceled: false, Data: Alcifra.Client.Services.DevicesApi.DeviceRequest request })
+        {
+            await Act(() => DevicesApi.UpdateAsync(device, request));
+        }
+    }
+
+    private async Task RevokeAsync(Alcifra.Client.Services.DevicesApi.DeviceDto device)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = Strings.Get("DvRevoke"),
+            Message = string.Format(Strings.Get("DvRevokeConfirm"), NameOf(device)),
+            YesText = Strings.Get("DvRevoke"),
+            CancelText = Strings.Get("Cancel"),
+        }) == true;
+        if (confirmed)
+        {
+            await Act(() => DevicesApi.RevokeAsync(device));
+        }
+    }
+}

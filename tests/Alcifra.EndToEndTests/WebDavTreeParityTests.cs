@@ -37,12 +37,12 @@ public partial class WebDavTreeParityTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
         // The advertised mount URL is the single /webdav resource.
-        Assert.EndsWith(("/" + global::Alcifra.Presentation.WireNames.WebDavSegment), (await TestJson.Get(api, "/api/me/webdav-password")).GetProperty("url").GetString());
+        Assert.EndsWith(("/" + global::Alcifra.Presentation.WireNames.WebDavSegment), (await TestJson.Get(api, "/api/me/devices")).GetProperty("servers").GetProperty("webDavUrl").GetString());
 
         // The Repositories tree-pane's top level = the "Personal" node + the repositories the user can see.
         var repos = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()

@@ -32,7 +32,7 @@ public class ImapReferenceMailboxTests
         await _factory.GrantTenantAdminAsync(email);
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var generated = await TestJson.Post(api, "/api/me/imap-access", new { });
+        var generated = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         return (api, email, generated.GetProperty("password").GetString()!, tenantId, owner);
     }
 
@@ -153,7 +153,7 @@ public class ImapReferenceMailboxTests
             new { canSee = true, canReadContent = true })).EnsureSuccessStatusCode();
 
         using var otherApi = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(otherEmail, otherPassword));
-        var otherImap = (await TestJson.Post(otherApi, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var otherImap = (await TestJson.Post(otherApi, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         var mailboxes = await MailboxesAsync(Port, otherEmail, otherImap);
 

@@ -243,9 +243,6 @@
   <data name="AccountPasskeys" xml:space="preserve">
     <value>Passkey…</value>
   </data>
-  <data name="AccountWebDav" xml:space="preserve">
-    <value>Accesso WebDAV…</value>
-  </data>
   <data name="AccountNotificationPrefs" xml:space="preserve">
     <value>Preferenze di notifica…</value>
   </data>
@@ -302,9 +299,6 @@
   </data>
   <data name="DlgPasskeys" xml:space="preserve">
     <value>Passkey</value>
-  </data>
-  <data name="DlgWebDav" xml:space="preserve">
-    <value>Accesso WebDAV</value>
   </data>
   <data name="DlgNotificationPrefs" xml:space="preserve">
     <value>Preferenze di notifica</value>
@@ -426,9 +420,6 @@
   <data name="Close" xml:space="preserve">
     <value>Chiudi</value>
   </data>
-  <data name="WebDavInfo" xml:space="preserve">
-    <value>Monta l'archivio come unità di rete con un client WebDAV (Finder / Explorer / Nautilus). Usa la tua email come nome utente e una password specifica per l'app qui sotto — non la password di accesso.</value>
-  </data>
   <data name="WebDavHowToMount" xml:space="preserve">
     <value>Come montarlo</value>
   </data>
@@ -444,44 +435,8 @@
   <data name="WebDavStepsOther" xml:space="preserve">
     <value>Usa l'URL, il nome utente e la password qui sopra con un qualsiasi client WebDAV.</value>
   </data>
-  <data name="WebDavMountUrl" xml:space="preserve">
-    <value>URL di montaggio (tutti gli archivi)</value>
-  </data>
-  <data name="WebDavPersonalFolder" xml:space="preserve">
-    <value>Cartella personale (Vassoio d'ingresso, Check-out, archivio)</value>
-  </data>
-  <data name="WebDavUsername" xml:space="preserve">
-    <value>Nome utente</value>
-  </data>
-  <data name="WebDavCopyNow" xml:space="preserve">
-    <value>Copia questa password ora — non verrà più mostrata.</value>
-  </data>
-  <data name="WebDavPassword" xml:space="preserve">
-    <value>Password WebDAV</value>
-  </data>
-  <data name="WebDavEnabled" xml:space="preserve">
-    <value>L'accesso WebDAV è attivo. Rigenera per una nuova password o revoca per disattivarlo.</value>
-  </data>
-  <data name="WebDavNotSetUp" xml:space="preserve">
-    <value>L'accesso WebDAV non è ancora configurato.</value>
-  </data>
-  <data name="WebDavRevoke" xml:space="preserve">
-    <value>Revoca</value>
-  </data>
-  <data name="WebDavRegenerate" xml:space="preserve">
-    <value>Rigenera password</value>
-  </data>
-  <data name="WebDavGenerate" xml:space="preserve">
-    <value>Genera password</value>
-  </data>
   <data name="WebDavGenError" xml:space="preserve">
     <value>Impossibile generare la password WebDAV.</value>
-  </data>
-  <data name="WebDavRevoked" xml:space="preserve">
-    <value>Accesso WebDAV revocato.</value>
-  </data>
-  <data name="WebDavRevokeError" xml:space="preserve">
-    <value>Impossibile revocare l'accesso WebDAV.</value>
   </data>
   <data name="PhotoChoose" xml:space="preserve">
     <value>Scegli immagine…</value>
@@ -4344,41 +4299,8 @@
   <data name="WfNotStarted" xml:space="preserve">
     <value>non avviato</value>
   </data>
-  <data name="AccountImap" xml:space="preserve">
-    <value>Accesso e-mail (IMAP)…</value>
-  </data>
-  <data name="ImTitle" xml:space="preserve">
-    <value>Accesso e-mail (IMAP)</value>
-  </data>
-  <data name="ImBody" xml:space="preserve">
-    <value>Consulta il tuo archivio da un client di posta via IMAP. Genera una password IMAP dedicata — la password di accesso non entra mai nel client di posta.</value>
-  </data>
-  <data name="ImServer" xml:space="preserve">
-    <value>Server</value>
-  </data>
-  <data name="ImCopyServerTip" xml:space="preserve">
-    <value>Copia l'indirizzo del server</value>
-  </data>
-  <data name="ImShowAll" xml:space="preserve">
-    <value>Mostra tutti i documenti (i non-e-mail come messaggi con allegato)</value>
-  </data>
   <data name="ImUnavailable" xml:space="preserve">
     <value>IMAP non è attivo su questo server.</value>
-  </data>
-  <data name="ImGenerateError" xml:space="preserve">
-    <value>Impossibile generare la password IMAP.</value>
-  </data>
-  <data name="ImRevokeError" xml:space="preserve">
-    <value>Impossibile revocare l'accesso IMAP.</value>
-  </data>
-  <data name="ImSettingsSaved" xml:space="preserve">
-    <value>Salvato.</value>
-  </data>
-  <data name="ImSettingsError" xml:space="preserve">
-    <value>Impossibile salvare l'impostazione.</value>
-  </data>
-  <data name="ImSettingsUnavailable" xml:space="preserve">
-    <value>Le impostazioni IMAP non possono essere modificate al momento.</value>
   </data>
   <data name="StErrLoadContacts" xml:space="preserve">
     <value>Impossibile caricare i contatti: {0}</value>
@@ -4814,9 +4736,6 @@
   </data>
   <data name="TenantImapShowAllDefaultInfo" xml:space="preserve">
     <value>L'impostazione iniziale della vista IMAP per i nuovi utenti. Attivata, il client di posta mostra anche i documenti non e-mail come messaggi di sola lettura con il file allegato; disattivata, solo le e-mail. È un valore predefinito, non un permesso: la vista non mostra mai nulla che i diritti di accesso rifiuterebbero, e ogni utente può cambiare la propria impostazione in qualsiasi momento nel dialogo IMAP. Gli utenti esistenti mantengono la loro scelta.</value>
-  </data>
-  <data name="ImShowAllHint" xml:space="preserve">
-    <value>Mostra i documenti non e-mail come messaggi di sola lettura con il file allegato — mai più di quanto i tuoi diritti di accesso già consentano.</value>
   </data>
   <data name="UgImapShowAll" xml:space="preserve">
     <value>Vista IMAP: {0}</value>
@@ -5394,17 +5313,11 @@
   <data name="SearchResultCount" xml:space="preserve">
     <value>{0} risultato/i.</value>
   </data>
-  <data name="ImStatusEnabled" xml:space="preserve">
-    <value>L'accesso email è attivo. Rigenera per una nuova password o revoca per disattivarlo.</value>
-  </data>
   <data name="MobWebDavBody" xml:space="preserve">
     <value>Usa questi dati in un'app che supporta WebDAV, ad esempio un gestore di file, per vedere l'archivio come cartella.</value>
   </data>
   <data name="MobImapAddAccount" xml:space="preserve">
     <value>Aggiungi un account email…</value>
-  </data>
-  <data name="ImStatusNotSetUp" xml:space="preserve">
-    <value>L'accesso email non è ancora configurato.</value>
   </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Apri con la tua chiave</value>
@@ -6755,5 +6668,176 @@
   </data>
   <data name="PwHasCode" xml:space="preserve">
     <value>Ha un codice di verifica</value>
+  </data>
+  <data name="ApiErrDeviceNameTaken" xml:space="preserve">
+    <value>Hai già un dispositivo con questo nome.</value>
+  </data>
+  <data name="ApiErrDeviceNameInvalid" xml:space="preserve">
+    <value>Un dispositivo ha bisogno di un nome da 1 a 100 caratteri.</value>
+  </data>
+  <data name="ApiErrDeviceNotEditable" xml:space="preserve">
+    <value>Una password precedente può solo essere revocata. Registra un dispositivo per scegliere a cosa accede.</value>
+  </data>
+  <data name="ApiErrDeviceEncryptionNeedsKey" xml:space="preserve">
+    <value>La posta può essere cifrata solo per una chiave hardware, e per te non ne è registrata nessuna. Registra prima una chiave hardware.</value>
+  </data>
+  <data name="DvEnrolFailed" xml:space="preserve">
+    <value>Non è stato possibile registrare il dispositivo.</value>
+  </data>
+  <data name="DvChangeFailed" xml:space="preserve">
+    <value>Non è stato possibile salvare la modifica.</value>
+  </data>
+  <data name="DvRevokeFailed" xml:space="preserve">
+    <value>Non è stato possibile revocare il dispositivo.</value>
+  </data>
+  <data name="DvTitle" xml:space="preserve">
+    <value>Dispositivi</value>
+  </data>
+  <data name="DvMenu" xml:space="preserve">
+    <value>Dispositivi…</value>
+  </data>
+  <data name="DvIntro" xml:space="preserve">
+    <value>Ogni dispositivo accede a posta, file, calendari e contatti con una propria password. Revocarne uno lascia funzionare gli altri.</value>
+  </data>
+  <data name="DvShowAll" xml:space="preserve">
+    <value>La posta mostra tutti i documenti, non solo le e-mail</value>
+  </data>
+  <data name="DvColName" xml:space="preserve">
+    <value>Dispositivo</value>
+  </data>
+  <data name="DvColReaches" xml:space="preserve">
+    <value>Accede a</value>
+  </data>
+  <data name="DvColMail" xml:space="preserve">
+    <value>Posta</value>
+  </data>
+  <data name="DvColLastUsed" xml:space="preserve">
+    <value>Ultimo uso</value>
+  </data>
+  <data name="DvNever" xml:space="preserve">
+    <value>mai</value>
+  </data>
+  <data name="DvNoProtocols" xml:space="preserve">
+    <value>niente</value>
+  </data>
+  <data name="DvMail" xml:space="preserve">
+    <value>Posta</value>
+  </data>
+  <data name="DvFiles" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="DvCalendars" xml:space="preserve">
+    <value>Calendari</value>
+  </data>
+  <data name="DvContacts" xml:space="preserve">
+    <value>Contatti</value>
+  </data>
+  <data name="DvEncrypted" xml:space="preserve">
+    <value>cifrata</value>
+  </data>
+  <data name="DvNotEncrypted" xml:space="preserve">
+    <value>non cifrata</value>
+  </data>
+  <data name="DvEncryptLocked" xml:space="preserve">
+    <value>Richiesto dalla tua organizzazione</value>
+  </data>
+  <data name="DvEarlierDav" xml:space="preserve">
+    <value>Password WebDAV/calendario precedente</value>
+  </data>
+  <data name="DvEarlierImap" xml:space="preserve">
+    <value>Password IMAP precedente</value>
+  </data>
+  <data name="DvEarlierNote" xml:space="preserve">
+    <value>Una password precedente funziona finché non la revochi.</value>
+  </data>
+  <data name="DvEnrol" xml:space="preserve">
+    <value>Registra un dispositivo…</value>
+  </data>
+  <data name="DvEnrolTitle" xml:space="preserve">
+    <value>Registra un dispositivo</value>
+  </data>
+  <data name="DvName" xml:space="preserve">
+    <value>Nome</value>
+  </data>
+  <data name="DvNameHint" xml:space="preserve">
+    <value>ad es. Portatile, Telefono</value>
+  </data>
+  <data name="DvEncryptMail" xml:space="preserve">
+    <value>Cifra il contenuto della posta</value>
+  </data>
+  <data name="DvEncryptHint" xml:space="preserve">
+    <value>La posta viene sigillata per le tue chiavi hardware. Alcuni client di posta desktop non aprono la posta sigillata per una chiave a curva ellittica; un client simile ha bisogno di un certificato RSA sulla chiave.</value>
+  </data>
+  <data name="DvChange" xml:space="preserve">
+    <value>Modifica</value>
+  </data>
+  <data name="DvRevoke" xml:space="preserve">
+    <value>Revoca</value>
+  </data>
+  <data name="DvRevokeConfirm" xml:space="preserve">
+    <value>Revocare {0}? Ciò che accede con la sua password smette subito di funzionare.</value>
+  </data>
+  <data name="DvServers" xml:space="preserve">
+    <value>Impostazioni del server</value>
+  </data>
+  <data name="DvUsername" xml:space="preserve">
+    <value>Nome utente</value>
+  </data>
+  <data name="DvImap" xml:space="preserve">
+    <value>Posta (IMAP)</value>
+  </data>
+  <data name="DvImapPorts" xml:space="preserve">
+    <value>{0}, porta {1}</value>
+  </data>
+  <data name="DvImapTls" xml:space="preserve">
+    <value>TLS</value>
+  </data>
+  <data name="DvImapOff" xml:space="preserve">
+    <value>Questa installazione non offre l'accesso alla posta.</value>
+  </data>
+  <data name="DvOutgoing" xml:space="preserve">
+    <value>Posta in uscita</value>
+  </data>
+  <data name="DvOutgoingNote" xml:space="preserve">
+    <value>Porta 25, senza accesso: l'invio raggiunge solo gli utenti di questa installazione, e solo dove la tua rete lo consente.</value>
+  </data>
+  <data name="DvWebDav" xml:space="preserve">
+    <value>File (WebDAV)</value>
+  </data>
+  <data name="DvCalDav" xml:space="preserve">
+    <value>Calendari (CalDAV)</value>
+  </data>
+  <data name="DvCardDav" xml:space="preserve">
+    <value>Contatti (CardDAV)</value>
+  </data>
+  <data name="DvHandOverTitle" xml:space="preserve">
+    <value>Configura {0}</value>
+  </data>
+  <data name="DvPasswordOnce" xml:space="preserve">
+    <value>Questa password viene mostrata una sola volta. Copiala ora o scansionala nell'app.</value>
+  </data>
+  <data name="DvPassword" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="DvCopy" xml:space="preserve">
+    <value>Copia</value>
+  </data>
+  <data name="DvCopied" xml:space="preserve">
+    <value>Copiato.</value>
+  </data>
+  <data name="DvProfileQr" xml:space="preserve">
+    <value>Su iPhone o iPad: scansiona con la fotocamera per configurare posta, calendari e contatti in un solo passo.</value>
+  </data>
+  <data name="DvProfileExpires" xml:space="preserve">
+    <value>Questo codice funziona una volta, fino alle {0}.</value>
+  </data>
+  <data name="DvPasswordQr" xml:space="preserve">
+    <value>Per un'app che scansiona una password: questo codice è la password stessa, trattalo come tale.</value>
+  </data>
+  <data name="DvMountEnrol" xml:space="preserve">
+    <value>Nessun dispositivo accede ancora ai tuoi file. Registrare questo computer come "{0}" per montarli?</value>
+  </data>
+  <data name="DvMountPaste" xml:space="preserve">
+    <value>Quando il sistema chiede la password, incolla quella mostrata qui.</value>
   </data>
 </root>

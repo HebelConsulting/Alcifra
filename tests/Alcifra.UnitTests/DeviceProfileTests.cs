@@ -7,7 +7,7 @@ namespace Alcifra.UnitTests;
 // password, stays a valid property list whatever the user named things, and keeps its identifiers across installs.
 public class DeviceProfileTests
 {
-    private static readonly DeviceServers Servers = new("imap.example.test", 993, true, "mail.example.test", "archive.example.test", 443, true);
+    private static readonly DeviceServers Servers = new("imap.example.test", 143, 993, "mail.example.test", "archive.example.test", 443, true);
 
     private static XDocument Parse(string profile) =>
         XDocument.Parse(profile, LoadOptions.None);

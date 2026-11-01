@@ -59,11 +59,11 @@ public class ImapSyntheticDetailsTests
         (await api.PutAsJsonAsync($"/api/documents/{docId}/versions/{versionId}/document-date",
             new { documentDate = "2026-09-20", documentTime = "05:20" })).EnsureSuccessStatusCode();
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // A .txt is only served when the user asks for ALL documents — without this the mailbox lists nothing
         // but .eml and the fetch below finds no message at all. (It did, which is how this line got written.)
-        (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).EnsureSuccessStatusCode();
+        (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).EnsureSuccessStatusCode();
 
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;
         using var client = new ImapClient();
@@ -114,8 +114,8 @@ public class ImapSyntheticDetailsTests
         var maskId = mask.GetProperty("id").GetGuid();
         var fieldId = mask.GetProperty("fields").EnumerateArray().Single().GetProperty("id").GetGuid();
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
-        var davGen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
+        var davGen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davGen.GetProperty("password").GetString()}")));
 
@@ -147,7 +147,7 @@ public class ImapSyntheticDetailsTests
             new { fields = new[] { new { fieldDefinitionId = fieldId, values = new[] { "Contoso AG" } } } });
 
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;
         using var client = new ImapClient();
@@ -246,8 +246,8 @@ public class ImapSyntheticDetailsTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
-        var davGen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
+        var davGen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davGen.GetProperty("password").GetString()}")));
 

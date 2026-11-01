@@ -45,7 +45,7 @@ public class BookingSymmetryTests
             new { canSee = true, canReadContent = true, canCreateSubItems = true, canEditContent = true, canDelete = true });
 
         var userApi = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
-        var generated = await TestJson.Post(userApi, "/api/me/webdav-password", new { });
+        var generated = await TestJson.Post(userApi, "/api/me/devices", E2EDevices.Any());
         var davAuth = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{generated.GetProperty("password").GetString()}")));
         userApi.Dispose();

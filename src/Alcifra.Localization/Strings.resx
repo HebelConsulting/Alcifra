@@ -243,9 +243,6 @@
   <data name="AccountPasskeys" xml:space="preserve">
     <value>Passkeys…</value>
   </data>
-  <data name="AccountWebDav" xml:space="preserve">
-    <value>WebDAV access…</value>
-  </data>
   <data name="AccountNotificationPrefs" xml:space="preserve">
     <value>Notification preferences…</value>
   </data>
@@ -302,9 +299,6 @@
   </data>
   <data name="DlgPasskeys" xml:space="preserve">
     <value>Passkeys</value>
-  </data>
-  <data name="DlgWebDav" xml:space="preserve">
-    <value>WebDAV access</value>
   </data>
   <data name="DlgNotificationPrefs" xml:space="preserve">
     <value>Notification preferences</value>
@@ -426,9 +420,6 @@
   <data name="Close" xml:space="preserve">
     <value>Close</value>
   </data>
-  <data name="WebDavInfo" xml:space="preserve">
-    <value>Mount the archive as a network drive using a WebDAV client (Finder / Explorer / Nautilus). Use your email as the username and an app-specific password below — not your login password.</value>
-  </data>
   <data name="WebDavHowToMount" xml:space="preserve">
     <value>How to mount it</value>
   </data>
@@ -444,44 +435,8 @@
   <data name="WebDavStepsOther" xml:space="preserve">
     <value>Use the URL, username and password above with any WebDAV client.</value>
   </data>
-  <data name="WebDavMountUrl" xml:space="preserve">
-    <value>Mount URL (all repositories)</value>
-  </data>
-  <data name="WebDavPersonalFolder" xml:space="preserve">
-    <value>Personal folder (Intray, Check-out, archive)</value>
-  </data>
-  <data name="WebDavUsername" xml:space="preserve">
-    <value>Username</value>
-  </data>
-  <data name="WebDavCopyNow" xml:space="preserve">
-    <value>Copy this password now — it won't be shown again.</value>
-  </data>
-  <data name="WebDavPassword" xml:space="preserve">
-    <value>WebDAV password</value>
-  </data>
-  <data name="WebDavEnabled" xml:space="preserve">
-    <value>WebDAV access is enabled. Regenerate to get a new password, or revoke to disable it.</value>
-  </data>
-  <data name="WebDavNotSetUp" xml:space="preserve">
-    <value>WebDAV access is not set up yet.</value>
-  </data>
-  <data name="WebDavRevoke" xml:space="preserve">
-    <value>Revoke</value>
-  </data>
-  <data name="WebDavRegenerate" xml:space="preserve">
-    <value>Regenerate password</value>
-  </data>
-  <data name="WebDavGenerate" xml:space="preserve">
-    <value>Generate password</value>
-  </data>
   <data name="WebDavGenError" xml:space="preserve">
     <value>Could not generate the WebDAV password.</value>
-  </data>
-  <data name="WebDavRevoked" xml:space="preserve">
-    <value>WebDAV access revoked.</value>
-  </data>
-  <data name="WebDavRevokeError" xml:space="preserve">
-    <value>Could not revoke WebDAV access.</value>
   </data>
   <data name="PhotoChoose" xml:space="preserve">
     <value>Choose image…</value>
@@ -4344,41 +4299,8 @@
   <data name="WfNotStarted" xml:space="preserve">
     <value>not started</value>
   </data>
-  <data name="AccountImap" xml:space="preserve">
-    <value>Email access (IMAP)…</value>
-  </data>
-  <data name="ImTitle" xml:space="preserve">
-    <value>Email access (IMAP)</value>
-  </data>
-  <data name="ImBody" xml:space="preserve">
-    <value>Browse your archive from a mail client over IMAP. Generate a dedicated IMAP password — your login password never goes into the mail client.</value>
-  </data>
-  <data name="ImServer" xml:space="preserve">
-    <value>Server</value>
-  </data>
-  <data name="ImCopyServerTip" xml:space="preserve">
-    <value>Copy the server address</value>
-  </data>
-  <data name="ImShowAll" xml:space="preserve">
-    <value>Show every document (non-emails as attachment messages)</value>
-  </data>
   <data name="ImUnavailable" xml:space="preserve">
     <value>IMAP is not enabled on this server.</value>
-  </data>
-  <data name="ImGenerateError" xml:space="preserve">
-    <value>Could not generate the IMAP password.</value>
-  </data>
-  <data name="ImRevokeError" xml:space="preserve">
-    <value>Could not revoke IMAP access.</value>
-  </data>
-  <data name="ImSettingsSaved" xml:space="preserve">
-    <value>Saved.</value>
-  </data>
-  <data name="ImSettingsError" xml:space="preserve">
-    <value>Could not save the setting.</value>
-  </data>
-  <data name="ImSettingsUnavailable" xml:space="preserve">
-    <value>IMAP settings can't be changed right now.</value>
   </data>
   <data name="StErrLoadContacts" xml:space="preserve">
     <value>Could not load contacts: {0}</value>
@@ -4814,9 +4736,6 @@
   </data>
   <data name="TenantImapShowAllDefaultInfo" xml:space="preserve">
     <value>The starting position for a new user's IMAP view. On, their mail client also shows non-mail documents as read-only messages with the file attached; off, it shows only e-mails. This is a seed, not a permission: the view can never show anything the user's access rights would refuse, and every user can change their own setting in the IMAP dialog at any time. Existing users keep their current choice.</value>
-  </data>
-  <data name="ImShowAllHint" xml:space="preserve">
-    <value>Shows your non-mail documents as read-only messages with the file attached — never more than your access rights already allow.</value>
   </data>
   <data name="UgImapShowAll" xml:space="preserve">
     <value>IMAP view: {0}</value>
@@ -5394,17 +5313,11 @@
   <data name="SearchResultCount" xml:space="preserve">
     <value>{0} result(s).</value>
   </data>
-  <data name="ImStatusEnabled" xml:space="preserve">
-    <value>Email access is enabled. Regenerate to get a new password, or revoke to disable it.</value>
-  </data>
   <data name="MobWebDavBody" xml:space="preserve">
     <value>Use these values in an app that speaks WebDAV, such as a file manager, to see the archive as a folder.</value>
   </data>
   <data name="MobImapAddAccount" xml:space="preserve">
     <value>Add a mail account…</value>
-  </data>
-  <data name="ImStatusNotSetUp" xml:space="preserve">
-    <value>Email access is not set up yet.</value>
   </data>
   <data name="MobKeyTitle" xml:space="preserve">
     <value>Open with your key</value>
@@ -6755,5 +6668,176 @@
   </data>
   <data name="PwHasCode" xml:space="preserve">
     <value>Has a verification code</value>
+  </data>
+  <data name="ApiErrDeviceNameTaken" xml:space="preserve">
+    <value>You already have a device with this name.</value>
+  </data>
+  <data name="ApiErrDeviceNameInvalid" xml:space="preserve">
+    <value>A device needs a name of 1 to 100 characters.</value>
+  </data>
+  <data name="ApiErrDeviceNotEditable" xml:space="preserve">
+    <value>An earlier password can only be revoked. Enrol a device to choose what it reaches.</value>
+  </data>
+  <data name="ApiErrDeviceEncryptionNeedsKey" xml:space="preserve">
+    <value>Mail can be encrypted only to a hardware key, and none is enrolled for you. Enrol a hardware key first.</value>
+  </data>
+  <data name="DvEnrolFailed" xml:space="preserve">
+    <value>The device could not be enrolled.</value>
+  </data>
+  <data name="DvChangeFailed" xml:space="preserve">
+    <value>The change could not be saved.</value>
+  </data>
+  <data name="DvRevokeFailed" xml:space="preserve">
+    <value>The device could not be revoked.</value>
+  </data>
+  <data name="DvTitle" xml:space="preserve">
+    <value>Devices</value>
+  </data>
+  <data name="DvMenu" xml:space="preserve">
+    <value>Devices…</value>
+  </data>
+  <data name="DvIntro" xml:space="preserve">
+    <value>Each device reaches your mail, files, calendars and contacts with a password of its own. Revoking one leaves the others working.</value>
+  </data>
+  <data name="DvShowAll" xml:space="preserve">
+    <value>Mail shows all documents, not only emails</value>
+  </data>
+  <data name="DvColName" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="DvColReaches" xml:space="preserve">
+    <value>Reaches</value>
+  </data>
+  <data name="DvColMail" xml:space="preserve">
+    <value>Mail</value>
+  </data>
+  <data name="DvColLastUsed" xml:space="preserve">
+    <value>Last used</value>
+  </data>
+  <data name="DvNever" xml:space="preserve">
+    <value>never</value>
+  </data>
+  <data name="DvNoProtocols" xml:space="preserve">
+    <value>nothing</value>
+  </data>
+  <data name="DvMail" xml:space="preserve">
+    <value>Mail</value>
+  </data>
+  <data name="DvFiles" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="DvCalendars" xml:space="preserve">
+    <value>Calendars</value>
+  </data>
+  <data name="DvContacts" xml:space="preserve">
+    <value>Contacts</value>
+  </data>
+  <data name="DvEncrypted" xml:space="preserve">
+    <value>encrypted</value>
+  </data>
+  <data name="DvNotEncrypted" xml:space="preserve">
+    <value>not encrypted</value>
+  </data>
+  <data name="DvEncryptLocked" xml:space="preserve">
+    <value>Required by your organisation</value>
+  </data>
+  <data name="DvEarlierDav" xml:space="preserve">
+    <value>Earlier WebDAV/calendar password</value>
+  </data>
+  <data name="DvEarlierImap" xml:space="preserve">
+    <value>Earlier IMAP password</value>
+  </data>
+  <data name="DvEarlierNote" xml:space="preserve">
+    <value>An earlier password keeps working until you revoke it.</value>
+  </data>
+  <data name="DvEnrol" xml:space="preserve">
+    <value>Enrol a device…</value>
+  </data>
+  <data name="DvEnrolTitle" xml:space="preserve">
+    <value>Enrol a device</value>
+  </data>
+  <data name="DvName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="DvNameHint" xml:space="preserve">
+    <value>e.g. Laptop, Phone</value>
+  </data>
+  <data name="DvEncryptMail" xml:space="preserve">
+    <value>Encrypt mail content</value>
+  </data>
+  <data name="DvEncryptHint" xml:space="preserve">
+    <value>Mail is sealed to your hardware keys. Some desktop mail clients cannot open mail sealed to an elliptic-curve key; such a client needs an RSA certificate on the key.</value>
+  </data>
+  <data name="DvChange" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="DvRevoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="DvRevokeConfirm" xml:space="preserve">
+    <value>Revoke {0}? Whatever signs in with its password stops at once.</value>
+  </data>
+  <data name="DvServers" xml:space="preserve">
+    <value>Server settings</value>
+  </data>
+  <data name="DvUsername" xml:space="preserve">
+    <value>User name</value>
+  </data>
+  <data name="DvImap" xml:space="preserve">
+    <value>Mail (IMAP)</value>
+  </data>
+  <data name="DvImapPorts" xml:space="preserve">
+    <value>{0}, port {1}</value>
+  </data>
+  <data name="DvImapTls" xml:space="preserve">
+    <value>TLS</value>
+  </data>
+  <data name="DvImapOff" xml:space="preserve">
+    <value>This installation does not offer mail access.</value>
+  </data>
+  <data name="DvOutgoing" xml:space="preserve">
+    <value>Outgoing mail</value>
+  </data>
+  <data name="DvOutgoingNote" xml:space="preserve">
+    <value>Port 25, without signing in: sending reaches only this installation's own users, and only where your network allows it.</value>
+  </data>
+  <data name="DvWebDav" xml:space="preserve">
+    <value>Files (WebDAV)</value>
+  </data>
+  <data name="DvCalDav" xml:space="preserve">
+    <value>Calendars (CalDAV)</value>
+  </data>
+  <data name="DvCardDav" xml:space="preserve">
+    <value>Contacts (CardDAV)</value>
+  </data>
+  <data name="DvHandOverTitle" xml:space="preserve">
+    <value>Set up {0}</value>
+  </data>
+  <data name="DvPasswordOnce" xml:space="preserve">
+    <value>This password is shown once. Copy it now, or scan it into the app.</value>
+  </data>
+  <data name="DvPassword" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="DvCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="DvCopied" xml:space="preserve">
+    <value>Copied.</value>
+  </data>
+  <data name="DvProfileQr" xml:space="preserve">
+    <value>On an iPhone or iPad: scan with the camera to set up mail, calendars and contacts in one step.</value>
+  </data>
+  <data name="DvProfileExpires" xml:space="preserve">
+    <value>This code works once, until {0}.</value>
+  </data>
+  <data name="DvPasswordQr" xml:space="preserve">
+    <value>For an app that scans a password: this code is the password itself, so treat it like one.</value>
+  </data>
+  <data name="DvMountEnrol" xml:space="preserve">
+    <value>No device reaches your files yet. Enrol this computer as "{0}" to mount them?</value>
+  </data>
+  <data name="DvMountPaste" xml:space="preserve">
+    <value>When the system asks for the password, paste the one shown here.</value>
   </data>
 </root>

@@ -29,7 +29,7 @@ public class StructuralMaskImmutableTests
         // The mailbox is not provisioned with the personal space — it is materialised on first delivery or,
         // as here, by generating the IMAP credential (#562).
         var personalId = (await TestJson.Post(api, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
-        await TestJson.Post(api, "/api/me/imap-access", new { });
+        await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var mailboxId = (await TestJson.Get(api, $"/api/documents/{personalId}/children"))
             .GetProperty("children").EnumerateArray()
             .Single(c => c.GetProperty("name").GetString() == "My Mailbox")

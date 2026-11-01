@@ -43,7 +43,7 @@ public class AuditBookingSymmetryTests
 
         var scheduleId = await ProvisionedCollectionAsync(api, roomId, "Schedule");
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         return new World(api, _factory.CreateClient(), basic, tenantId, roomId, roomName, email, password);
     }

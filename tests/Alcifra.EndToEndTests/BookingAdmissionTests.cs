@@ -307,7 +307,7 @@ public class BookingAdmissionTests
                 await db.SaveChangesAsync();
             }
 
-            var davPassword = (await TestJson.Post(rig.Admin, "/api/me/webdav-password", new { }))
+            var davPassword = (await TestJson.Post(rig.Admin, "/api/me/devices", E2EDevices.Any()))
                 .GetProperty("password").GetString()!;
             var basic = new AuthenticationHeaderValue("Basic",
                 Convert.ToBase64String(Encoding.UTF8.GetBytes($"{rig.AdminEmail}:{davPassword}")));

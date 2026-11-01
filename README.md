@@ -68,16 +68,16 @@ Your archive also speaks the protocols your existing apps already know, so calen
 
 | What | Where to point the app | Username | Password to use |
 |---|---|---|---|
-| **Calendars** (CalDAV) | `https://demo.alcifra.dev/caldav` | your email | *WebDAV access…* |
-| **Contacts** (CardDAV) | `https://demo.alcifra.dev/carddav` | your email | *WebDAV access…* |
-| **Notes** (IMAP) | `demo.alcifra.dev`, port **993**, TLS | your email | *Email access (IMAP)…* |
-| **Files** (WebDAV) | `https://demo.alcifra.dev/webdav` | your email | *WebDAV access…* |
+| **Calendars** (CalDAV) | `https://demo.alcifra.dev/caldav` | your email | a device password |
+| **Contacts** (CardDAV) | `https://demo.alcifra.dev/carddav` | your email | a device password |
+| **Notes** (IMAP) | `demo.alcifra.dev`, port **993**, TLS | your email | a device password |
+| **Files** (WebDAV) | `https://demo.alcifra.dev/webdav` | your email | a device password |
 
-**Use an app-specific password, never your login password.** Both are generated in the account menu (top right): *WebDAV access…* issues one secret shared by files, calendars and contacts, and *Email access (IMAP)…* issues a separate one for notes. Each is shown once, and either can be revoked on its own without touching your login.
+**Use a device password, never your login password.** Open *Devices…* in the account menu (top right) and *Enrol a device…*: each device gets its own password, for whichever of mail, files, calendars and contacts you switch on, shown once with a QR code and every server address. A phone can scan a second code to set up its accounts itself. Revoking a device cuts off that device only, without touching your login or your other devices.
 
 Discovery is supported, so on most apps the host alone is enough and the paths above are the fallback when it asks for a full URL.
 
-**Where your documents show up over IMAP.** Every folder is a mailbox, and each document in it is a message with the file attached. **`INBOX` is your personal space's root**, which normally holds only folders — so an empty inbox is the expected first impression, not a broken sync. The archive's contents are in the *sibling* mailboxes (`Demo Repository/Invoices`, `Templates`, …). By default a mail app shows only emails; turn on **Email access (IMAP) ▸ show all documents** in the account menu to have every file appear as well.
+**Where your documents show up over IMAP.** Every folder is a mailbox, and each document in it is a message with the file attached. **`INBOX` is your personal space's root**, which normally holds only folders — so an empty inbox is the expected first impression, not a broken sync. The archive's contents are in the *sibling* mailboxes (`Demo Repository/Invoices`, `Templates`, …). By default a mail app shows only emails; turn on **Devices ▸ Mail shows all documents** in the account menu to have every file appear as well.
 
 - **Apple devices** — *System Settings ▸ Internet Accounts ▸ Add Account ▸ Other*, then add a CalDAV or CardDAV account. For notes, add a Mail account and enable **Notes** on it. Worth knowing: the accounts framework quietly refuses plaintext IMAP *and* untrusted certificates — no error is shown, the account simply never syncs — so the TLS port and a trusted certificate are requirements here, not preferences.
 - **Android** — the built-in accounts do not speak CalDAV/CardDAV; install a sync app that does and give it the URL, username and app password above. Notes need no extra app: any mail client that supports IMAP will show them.

@@ -440,7 +440,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         var myPasswords = await TestJson.Post(user, "/api/password-stores/mine", new { });
         var pwFolder = await TestJson.Post(user, $"/api/password-folders/{myPasswords.GetProperty("id").GetGuid()}/folders", new { name = "Reach" });
         await SeedPasswordEntryAsync(pwFolder.GetProperty("id").GetGuid(), "Reach entry", userId);
-        await TestJson.Post(user, "/api/me/imap-access", new { });
+        await TestJson.Post(user, "/api/me/devices", E2EDevices.Any());
         // A phone registered for push (SimplArchiveMobile #20), so the crawl meets a registration row and its self.
         await TestJson.Post(user, "/api/push-registrations",
             new { app = "dev.simplarchive.mobile", deviceLabel = "Reach phone", endpoint = $"https://push.example.test/up/{Guid.NewGuid():N}", p256dh = DeviceKeys.P256dh, auth = DeviceKeys.Auth });

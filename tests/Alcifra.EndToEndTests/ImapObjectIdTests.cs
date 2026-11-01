@@ -50,9 +50,9 @@ public class ImapObjectIdTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         Assert.Equal(HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         // Two children of `via` created FIRST, and the shared document created AFTER them. UIDs are handed out
         // in (CreatedAt, Id) order, so this makes the shared document the YOUNGEST in `via` (UID 3) while it is
@@ -157,9 +157,9 @@ public class ImapObjectIdTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         Assert.Equal(HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         var messageId = $"dedupe-{Guid.NewGuid():N}@e2e.local";
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;

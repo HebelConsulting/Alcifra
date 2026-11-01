@@ -304,8 +304,8 @@ heisst *webdav* und bildet den Baum der Archive exakt ab: Ihren persönlichen Be
 sehen können, und nichts sonst.]
 
 Die Schaltfläche *WebDAV* tut jeweils den nächsten sinnvollen Schritt statt immer dasselbe, und ihr Tooltip sagt, welchen. Im
-*Desktop-Client*: Haben Sie noch keine Zugangsdaten, öffnet sie den Einrichtungsdialog; haben Sie Zugangsdaten, bindet sie
-das Laufwerk ein und öffnet es (unter Windows als dauerhafter Laufwerksbuchstabe, S: oder der nächste freie); und ist das Laufwerk
+*Desktop-Client*: Erreicht noch keines Ihrer Geräte Dateien, meldet sie *Dieser Computer* an (siehe @devices), zeigt sein
+Passwort einmal und bindet dann ein; sonst bindet sie das Laufwerk ein und öffnet es (unter Windows als dauerhafter Laufwerksbuchstabe, S: oder der nächste freie); und ist das Laufwerk
 bereits eingebunden, geht sie direkt dorthin. "Zeig mir meine Dokumente im Finder" ist also nach der Einrichtung ein einziger Klick.
 
 *Sie öffnet dort, wo Sie gerade sind.*#idx("WebDAV-Direktlink") Es gibt eine Schaltfläche pro Register, und jede öffnet *ihren eigenen*
@@ -328,20 +328,18 @@ Ordner im Laufwerk statt der obersten Ebene des Archivs:
   Laufwerk des Servers, bei dem Sie angemeldet sind, welchen Namen es auch erhalten hat.
 ]
 
-Der Einrichtungsdialog zeigt die *Mount-URL* und Ihren *Benutzernamen* (Ihre E-Mail-Adresse), jeweils mit einer Schaltfläche *Kopieren*, sowie eine
-Schaltfläche *Passwort generieren*, die ein anwendungsspezifisches *WebDAV-Passwort* ausstellt — getrennt von Ihrem Anmeldepasswort und nur
-einmal angezeigt, kopieren Sie es also sofort. Der Desktop-Dialog hat zudem *Ordner öffnen*, sodass Sie vom Erzeugen der
-Zugangsdaten bis zum eingebundenen Laufwerk gelangen, ohne ihn zu schliessen. Die Mount-URL endet auf `/webdav`, daher nennt Ihr Dateimanager das
-Laufwerk "webdav"; unter Windows können Sie es wie jedes Netzlaufwerk umbenennen.
+Das Laufwerk meldet sich mit Ihrer E-Mail-Adresse und einem *Gerätepasswort* aus *Geräte…* an (siehe @devices), nie mit Ihrem
+Anmeldepasswort. Die Mount-URL endet auf `/webdav`, daher nennt Ihr Dateimanager das Laufwerk "webdav"; unter Windows können Sie
+es wie jedes Netzlaufwerk umbenennen.
 
 Der *Web-Client* kann kein Laufwerk einbinden: Ein Browser darf das nicht. Statt Sie mit einer URL allein zu lassen, ohne zu wissen,
-was damit anzufangen ist, zeigt sein Dialog die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden — im Finder
+was damit anzufangen ist, zeigt sein Dialog *Geräte* die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden — im Finder
 #emph[Gehe zu ▸ Mit Server verbinden] unter macOS, *Netzlaufwerk verbinden* unter Windows, eine `davs://`-Adresse unter Linux — neben
 den Werten, die Sie dort einfügen.
 
 #shot("screenshots/de/web-webdav.png",
-  [Der WebDAV-Dialog des Web-Clients: die Mount-URL, Ihr Benutzername und das nur einmal angezeigte Passwort, jeweils mit einer Schaltfläche
-   zum Kopieren, und die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden.])
+  [Der Dialog *Geräte* des Web-Clients: Ihr Benutzername und jede Serveradresse, jeweils mit einer Schaltfläche zum Kopieren, und
+   die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden.])
 
 == Ein Dokument direkt bearbeiten
 
@@ -416,11 +414,10 @@ Datei als Anhang trägt —, wenn Sie das einschalten.]
 Liste überall dort, wo der Verweis liegt, mit allem darunter — so lassen sich die Ziele, in die Sie am häufigsten ablegen,
 in Ihrem persönlichen Ordner sammeln und aus dem E-Mail-Programm erreichen, ohne den ganzen Baum zu durchsuchen.
 
-Öffnen Sie *E-Mail-Zugriff (IMAP) …* im Kontomenü. Der Dialog zeigt den *Server* und Ihren *Benutzernamen* (Ihre
-E-Mail-Adresse), jeweils mit einer Schaltfläche *Kopieren*, und *Passwort generieren* stellt ein eigenes *IMAP-Passwort* aus — wie das WebDAV-Passwort:
-getrennt von Ihrem Anmeldepasswort, nur einmal angezeigt, einzeln widerrufbar. Der Schalter *Alle Dokumente anzeigen* gehört
-Ihnen, pro Konto: Aus (die Voreinstellung) listet nur E-Mails; an listet alles, was Sie sehen dürfen, mit der
-angehängten Datei, die sich direkt aus dem E-Mail-Programm öffnen lässt.
+Ihr E-Mail-Programm meldet sich mit Ihrer E-Mail-Adresse und einem *Gerätepasswort* aus *Geräte…* im Kontomenü an (siehe
+@devices); der Dialog zeigt auch den *Server* und seine Ports. Der Schalter *E-Mail zeigt alle Dokumente* gehört Ihnen, für alle
+Geräte: Aus (die Voreinstellung) listet nur E-Mails; an listet alles, was Sie sehen dürfen, mit der angehängten Datei, die sich
+direkt aus dem E-Mail-Programm öffnen lässt.
 
 #note[
   *Das E-Mail-Programm kann die Ordner nicht umordnen.* Ordner werden in #product angelegt, umbenannt und gelöscht —
@@ -535,8 +532,8 @@ und jeden Kalender, den Sie sehen dürfen, wo immer er im Archiv liegt; danach w
 in beide Richtungen: Ein auf dem Telefon geänderter Kontakt wird zu einer neuen Version im Archiv, und einer, der im Arbeitsbereich geändert wird,
 erscheint auf dem Telefon.
 
-Die Anmeldung erfolgt mit *demselben DAV-Passwort*, das auch die Einbindung im Dateimanager verwendet – ein Geheimnis, eine Stelle, an der man es widerruft. Erstellen Sie
-es über *WebDAV-Zugriff…* im Kontomenü, falls Sie das noch nicht getan haben.
+Ein Gerät meldet sich mit Ihrer E-Mail-Adresse und seinem eigenen *Gerätepasswort* aus *Geräte…* im Kontomenü an (siehe
+@devices), demselben, das sein Dateimanager und sein E-Mail-Programm verwenden.
 
 #shot("screenshots/de/desktop-calendar.png",
   [Der Tab Kalender, nach Zeit geordnet – Einträge ohne Datum stehen am Ende statt in den obersten Zeilen.])
@@ -876,23 +873,27 @@ abzuweisen.
     verschlüsselter Inhalte, siehe @encryptedreads],
 )
 
-== Zwei Passwörter für Ihre Geräte
+== Ein Passwort für jedes Gerät <devices>
 
-Ihre Geräte verwenden *zwei* App-Passwörter, nicht eines, und keines davon ist Ihr Anmeldepasswort:
+Jedes Gerät, das Sie verbinden — ein Telefon, das E-Mail-Programm eines Laptops, der Kalender eines Tablets —, erhält *sein eigenes
+Passwort*#idx("Gerätepasswort"), und keines davon ist Ihr Anmeldepasswort. Öffnen Sie *Geräte…* im Kontomenü:
 
-- das *DAV-Passwort* — ausgestellt über *WebDAV-Zugriff…* im Kontomenü — für den Dateimanager (*WebDAV*), den
-  Kalender (*CalDAV*) und das Adressbuch (*CardDAV*);
-- das *IMAP-Passwort* — ausgestellt über *E-Mail-Zugriff (IMAP) …* — für das Mailprogramm und die Notizen-App.
+- *Gerät anmelden…* fragt nach einem Namen ("Annas Telefon") und danach, was es erreicht — *E-Mail*, *Dateien*, *Kalender*,
+  *Kontakte*, alle eingeschaltet, solange Sie keines ausschalten. Das Passwort wird *einmal* angezeigt, mit einem QR-Code davon,
+  und daneben jede Serveradresse, jeweils mit einer Schaltfläche *Kopieren*.
+- Erreicht das Gerät E-Mail, Kalender oder Kontakte, öffnet ein zweiter QR-Code auf einem Telefon ein *Einrichtungsprofil*:
+  Scannen Sie ihn mit der Kamera, und das Telefon richtet die Konten selbst ein. Der Link funktioniert *einmal, innerhalb von zehn
+  Minuten*, und ist nach Gebrauch weg.
+- *Ändern* benennt ein Gerät um oder schaltet ein und aus, was es erreicht; *Widerrufen* trennt dieses Gerät sofort, und nur
+  dieses. *Ein verlorenes Telefon kostet einen Widerruf*: Ihre anderen Geräte und Ihre Anmeldung bleiben, wie sie sind.
+- *E-Mail-Inhalt verschlüsseln* versiegelt, was das E-Mail-Programm dieses Geräts abruft, an Ihren eigenen Hardware-Schlüssel,
+  sodass nur ein Gerät, das ihn hält, es lesen kann. Zum Einschalten braucht es einen angemeldeten, attestierten
+  Hardware-Schlüssel; wo Ihre Organisation alle E-Mails versiegelt, ist es eingeschaltet und lässt sich nicht ausschalten. Nicht
+  jedes E-Mail-Programm kann versiegelte E-Mails lesen, was der Dialog neben dem Schalter sagt.
 
-Beide sind absichtlich von Ihrem Anmeldepasswort getrennt: Ein Gerät behält sie unbefristet, also sind sie das, was
-Sie widerrufen, wenn ein Telefon verloren geht — ohne etwas daran zu ändern, wie Sie sich anmelden. *Bei einem
-verlorenen Gerät müssen beide widerrufen werden*: Wenn Sie das DAV-Passwort widerrufen, bleiben Mail und Notizen
-dieses Telefons verbunden, und wenn Sie das IMAP-Passwort widerrufen, bleiben seine Dateien, sein Kalender und
-seine Kontakte verbunden.
-
-Das Widerrufen eines der beiden trennt sofort jedes Gerät, das es verwendet. Gerätebezogene Zugangsdaten gibt es
-heute nicht; wenn Sie ein einzelnes Gerät abhängen müssen, stellen Sie das Passwort neu aus und geben es auf den
-Geräten, die Sie behalten, erneut ein.
+Passwörter, die vor den Geräten ausgestellt wurden — eines für Dateien, Kalender und Kontakte, eines für E-Mail —, erscheinen in
+der Liste als *Früheres WebDAV-/Kalender-Passwort* und *Früheres IMAP-Passwort*. Sie funktionieren weiter, bis Sie sie
+widerrufen; melden Sie Ihre Geräte an und widerrufen Sie sie dann.
 
 == Verschlüsselung ist nicht optional
 
@@ -1191,7 +1192,7 @@ Passwort, Mehr-Faktor-Authentifizierung (Authenticator-App oder Passkeys) und Pr
 
 Ihr eigenes Konto erreichen Sie über *Profil bearbeiten…*#idx("Profil bearbeiten") im Avatar-Menü (oben rechts in beiden Clients). Es zeigt, mit welchem
 Konto Sie angemeldet sind, Ihr aktuelles Profilbild samt Zuschnitt, um es zu ersetzen, und eine Schaltfläche, die zum
-Ändern Ihres Passworts führt. Zwei-Faktor-Authentifizierung, Passkeys und das WebDAV-Passwort bleiben eigene Einträge in
+Ändern Ihres Passworts führt. Zwei-Faktor-Authentifizierung, Passkeys und Ihre Geräte bleiben eigene Einträge in
 diesem Menü, da jedes davon ein separates Anmeldemerkmal ist und nicht Teil Ihres Profils.
 
 Eines sollten Sie vom Authenticator-Code#idx("Zwei-Faktor-Authentifizierung") erwarten: Er ist *nur einmal verwendbar*. Ein sechsstelliger Code wird einmal akzeptiert und danach
@@ -2189,7 +2190,7 @@ und der Link lässt sich in dem Moment widerrufen, in dem sich zeigt, dass er ni
 )
 
 #note[
-  Alle vier verwenden *app-spezifische Passwörter*#idx("App-Passwort"), die im Kontomenü ausgestellt werden und sich einzeln widerrufen lassen — nie das
+  Alle vier verwenden *ein Passwort pro Gerät*#idx("Gerätepasswort"), ausgestellt über *Geräte…* im Kontomenü und einzeln widerrufbar — nie das
   Passwort, mit dem Sie sich anmelden. Ein verlorenes Telefon kostet einen Widerruf, keinen Passwortwechsel.
 ]
 

@@ -46,7 +46,7 @@ public class ArchiveEntryHeadTests
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "zip-1234"));
 
         // Filed over WebDAV — the shortest real upload path, and it goes through the same finalizer.
-        var dav = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var dav = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{dav.GetProperty("password").GetString()}")));
         var name = $"bundle-{Guid.NewGuid():N}"[..14];

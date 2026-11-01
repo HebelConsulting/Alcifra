@@ -31,7 +31,7 @@ public class ImapSearchTests
         var email = $"imap-search-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, email, "search-1234", "Search User");
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "search-1234"));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         await TestJson.Post(api, "/api/me/personal-repository", new { });
 
         var port = ((ImapServer)_factory.Services.GetService(typeof(ImapServer))!).BoundPort!.Value;

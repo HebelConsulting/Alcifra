@@ -43,7 +43,7 @@ public class TaskFeedTests
         (await api.PostAsJsonAsync($"/api/documents/{documentId}/versions/{versionId}/workflow/submit",
             new { reviewerId = userId })).EnsureSuccessStatusCode();
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         return (api, _factory.CreateClient(), basic, documentId, versionId, documentName);
     }

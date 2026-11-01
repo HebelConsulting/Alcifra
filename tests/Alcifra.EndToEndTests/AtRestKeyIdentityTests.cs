@@ -39,7 +39,7 @@ public class AtRestKeyIdentityTests
     private async Task<(string Bucket, string Key, string Name)> FileEncryptedDocumentAsync(HttpClient api)
     {
         var before = await RawKeysAsync();
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { }))
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any()))
             .GetProperty("password").GetString()!;
         var name = $"key-identity-{Guid.NewGuid():N}.txt";
 

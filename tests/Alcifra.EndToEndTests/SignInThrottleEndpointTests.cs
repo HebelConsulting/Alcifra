@@ -92,7 +92,7 @@ public class SignInThrottleEndpointTests
 
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
         await TestJson.Post(api, "/api/me/personal-repository", new { });
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         AuthenticationHeaderValue Basic(string secret) => new(
             "Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{secret}")));
@@ -120,9 +120,13 @@ public class SignInThrottleEndpointTests
 
         Assert.True(walled, "guessing the DAV password was never refused");
 
-        // CalDAV is a different gateway, verified by different code — but the SAME password, so it must be
-        // the same budget. A throttle an attacker escapes by knocking on the next door is decoration.
+        // CalDAV is a different gateway, verified by different code — but the SAME budget for a password with no device
+        // key in it. A throttle an attacker escapes by knocking on the next door is decoration.
         Assert.Equal(
-            HttpStatusCode.TooManyRequests, (await PropFindAsync("/caldav", Basic(davPassword))).StatusCode);
+            HttpStatusCode.TooManyRequests, (await PropFindAsync("/caldav", Basic("wrong-again"))).StatusCode);
+
+        // An enrolled device is counted under its OWN key (#1970, ADR 1020): guessing against the account never walls
+        // it up, so a phone retrying a revoked password cannot lock the user's other devices out.
+        Assert.Equal(HttpStatusCode.MultiStatus, (await PropFindAsync("/caldav", Basic(davPassword))).StatusCode);
     }
 }

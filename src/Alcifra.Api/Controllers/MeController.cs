@@ -176,8 +176,6 @@ public class MeController : ControllerBase
                 new Link("passkeys", "/api/users/me/passkeys", "GET"),
                 new Link("passkeyRegisterOptions", "/api/users/me/passkeys/register/options", "POST"),
                 new Link("passkeyRegister", "/api/users/me/passkeys/register", "POST"),
-                new Link("webdavPassword", "/api/me/webdav-password", "GET"),
-                new Link("imapAccess", "/api/me/imap-access", "GET"),
                 // Each device's own password for mail, files, calendars and contacts (#1970): list and enrol here.
                 new Link("protocolDevices", "/api/me/devices", "GET"),
                 new Link("smimeCertificate", "/api/me/smime-certificate", "GET"),

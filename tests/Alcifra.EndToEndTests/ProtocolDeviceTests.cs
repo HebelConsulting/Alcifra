@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -113,7 +115,17 @@ public class ProtocolDeviceTests
         var (api, email, devices) = await SignedInUserAsync();
         using var _ = api;
 
-        var earlier = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        // An earlier password exists only as the migration or the demo seed made it: seeded the same way here, since the
+        // endpoint that issued one is retired (slice 3).
+        const string earlier = "0123456789abcdef0123456789abcdef";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+            var user = await db.Users.IgnoreQueryFilters(["TenantFilter"]).SingleAsync(u => u.NormalizedEmail == email.ToUpperInvariant());
+            db.ProtocolDevices.Add(Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.New(user, Alcifra.Domain.Users.ProtocolDeviceKind.LegacyDav,
+                new Microsoft.AspNetCore.Identity.PasswordHasher<Alcifra.Domain.Users.User>().HashPassword(user, earlier), DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
         await TestJson.Post(api, devices, new { name = "Laptop" });
 
         Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync(WebDav, Basic(email, earlier)));
@@ -172,7 +184,7 @@ public class ProtocolDeviceTests
 
         Assert.Equal(JsonValueKind.Null, handOver.GetProperty("profileUrl").ValueKind);
         Assert.StartsWith("data:image/png;base64,", handOver.GetProperty("passwordQr").GetString());
-        Assert.EndsWith("/" + global::Alcifra.Presentation.WireNames.WebDavSegment, handOver.GetProperty("webDavUrl").GetString());
+        Assert.EndsWith("/" + global::Alcifra.Presentation.WireNames.WebDavSegment, handOver.GetProperty("servers").GetProperty("webDavUrl").GetString());
     }
 
     [Fact]

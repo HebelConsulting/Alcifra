@@ -306,16 +306,14 @@ public static partial class WebCapture
         }
     }
 
-    // Opens the WebDAV dialog from the Repositories ribbon and generates a password, so the shot shows the state a
-    // user actually mounts from: the URL, the username, the one-shot password, and the per-OS mount steps.
+    // Opens the Devices dialog from the Repositories ribbon (#1970), so the shot shows what a user mounts from: the
+    // user name and every server address, each with Copy, and the per-OS mount steps.
     //
     // This figure is load-bearing, not decorative. ADR 0560 accepts that those steps will go stale — they name OS
     // UI paths ("Go ▸ Connect to Server") that vendors rename, in four languages, with no test that can detect it —
     // and names *a screenshot in the manual* as the only realistic check. Without this capture that check does not
-    // exist, and the ADR's accepted cost is one nobody is positioned to notice.
-    //
-    // Generating is safe here: the demo stack is a throwaway container, and the password is app-specific — it is
-    // not the login password, and revoking it is a button in the same dialog.
+    // exist, and the ADR's accepted cost is one nobody is positioned to notice. Nothing is enrolled: a password is
+    // shown once, in a hand-over of its own, and the figure needs the addresses and the steps, not a secret.
     private static async Task CaptureWebDavAsync(IPage page, string outDir)
     {
         try
@@ -325,19 +323,10 @@ public static partial class WebCapture
             var dialog = page.Locator(".mud-dialog").First;
             await dialog.WaitForAsync(new() { Timeout = 10000 });
 
-            // Generate, so the mount steps and the one-shot password are on screen. Before this the dialog says
-            // only "not set up", which is the least informative of its states and the one a reader needs least.
-            // Generate, or Regenerate once the demo has a password: in English one name contains the other, which
-            // is how the English capture found the button; in German they share no words, so both are named.
-            await dialog.GetByRole(AriaRole.Button, new()
-            {
-                NameRegex = new Regex(
-                $"^({Regex.Escape(L("WebDavGenerate"))}|{Regex.Escape(L("WebDavRegenerate"))})$", RegexOptions.IgnoreCase)
-            }).ClickAsync();
-
-            // Wait for the reveal itself rather than a fixed pause — shooting early would produce a figure of the
-            // pre-generation dialog with nothing in the filename to say so.
-            await dialog.GetByText(L("WebDavCopyNow")).WaitForAsync(new() { Timeout = 15000 });
+            // The steps sit below the server lines; scrolled into view, since they are what this figure is for.
+            var steps = dialog.GetByText(L("WebDavHowToMount"));
+            await steps.WaitForAsync(new() { Timeout = 15000 });
+            await dialog.Locator(".wb-device-mount-steps").ScrollIntoViewIfNeededAsync();
             await page.WaitForTimeoutAsync(600);
             await NormalizeRunSpecificTextAsync(page);
 

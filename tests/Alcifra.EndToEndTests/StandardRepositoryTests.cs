@@ -105,7 +105,7 @@ public class StandardRepositoryTests
         Assert.Equal("STANDARD_REPOSITORY_CANNOT_BE_DELETED", await ErrorCodeAsync(refused));
 
         // The mounted drive: same refusal, a 409 the operating system can show at least as "cannot be completed".
-        var davPassword = (await TestJson.Post(tenant.Admin, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(tenant.Admin, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         using var dav = _factory.CreateClient();
         var davDelete = new HttpRequestMessage(HttpMethod.Delete, $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{tenant.RepositoryName}");
         davDelete.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{tenant.AdminEmail}:{davPassword}")));

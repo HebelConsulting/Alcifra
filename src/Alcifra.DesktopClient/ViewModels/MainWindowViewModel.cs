@@ -127,7 +127,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
 
     /// <summary>Re-reads the WebDAV button's state; safe to call whenever the session or the mount may have changed.</summary>
     public Task RefreshWebDavStateAsync() =>
-        WebDav.RefreshAsync(Api is { } api ? async () => (await api.Profile.GetWebDavStatusAsync()).Enabled : null);
+        WebDav.RefreshAsync(Api is { } api ? async () => (await api.Devices.GetAsync()).ReachesFiles : null);
 
     // ---- Panes ----------------------------------------------------------------------------------------
 

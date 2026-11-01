@@ -204,8 +204,7 @@
                         <MudMenuItem Icon="@Icons.Material.Filled.Security" OnClick="SetUpMfaAsync">@Strings.Get("AccountEnableTwoFactor")</MudMenuItem>
                     }
                     <MudMenuItem Icon="@Icons.Material.Filled.Key" OnClick="ManagePasskeysAsync">@Strings.Get("AccountPasskeys")</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Storage" OnClick="ManageWebDavAsync">@Strings.Get("AccountWebDav")</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Email" OnClick="ManageImapAsync">@Strings.Get("AccountImap")</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Devices" OnClick="ManageDevicesAsync">@Strings.Get("DvMenu")</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.MailLock" OnClick="ManageSmimeAsync">@Strings.Get("AccountSmime")</MudMenuItem>
                     @* Beside the certificate entry, which is where the manual tells a reader to look when
                        download and preview are absent. Shown only where some module declares an enrolment
@@ -570,11 +569,9 @@
     private async Task ManagePasskeysAsync() =>
         await (await DialogService.ShowAsync<PasskeysDialog>(Strings.Get("DlgPasskeys"))).Result;
 
-    private async Task ManageWebDavAsync() =>
-        await (await DialogService.ShowAsync<WebDavDialog>(Strings.Get("DlgWebDav"))).Result;
-
-    private async Task ManageImapAsync() =>
-        await (await DialogService.ShowAsync<ImapDialog>(Strings.Get("ImTitle"))).Result;
+    // Mail, files, calendars and contacts each reach the archive with a device's own password (#1970).
+    private async Task ManageDevicesAsync() =>
+        await (await DialogService.ShowAsync<DevicesDialog>(Strings.Get("DvTitle"), DevicesDialog.Options)).Result;
 
     private async Task ManageSmimeAsync() =>
         await (await DialogService.ShowAsync<SmimeDialog>(Strings.Get("SmimeTitle"))).Result;

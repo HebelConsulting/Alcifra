@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:api="using:Alcifra.ApiClient"
+        xmlns:pres="using:Alcifra.Presentation"
+        x:Class="Alcifra.DesktopClient.Views.DeviceHandOverDialog"
+        Width="560" SizeToContent="Height" CanResize="False" WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="18" Spacing="10">
+        <!-- The password, shown this once (#1970): copy it, or scan the code below into an app. -->
+        <Border Background="#2e7d32" CornerRadius="3" Padding="8">
+            <StackPanel Spacing="4">
+                <TextBlock Foreground="White" FontSize="12" TextWrapping="Wrap" Text="{loc:Tr DvPasswordOnce}" />
+                <DockPanel LastChildFill="True">
+                    <Button DockPanel.Dock="Right" Margin="6,0,0,0" Click="OnCopyPassword" Content="{loc:Tr DvCopy}" />
+                    <TextBox x:Name="PasswordBox" IsReadOnly="True" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="*,16,*">
+            <StackPanel x:Name="ProfilePanel" Grid.Column="0" Spacing="6">
+                <Image x:Name="ProfileQr" Width="200" Height="200" HorizontalAlignment="Left" />
+                <TextBlock Text="{loc:Tr DvProfileQr}" TextWrapping="Wrap" FontSize="12" />
+                <TextBlock x:Name="ProfileExpires" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="6">
+                <Image x:Name="PasswordQr" Width="200" Height="200" HorizontalAlignment="Left" />
+                <TextBlock Text="{loc:Tr DvPasswordQr}" TextWrapping="Wrap" FontSize="12" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Text="{loc:Tr DvServers}" FontWeight="SemiBold" />
+        <ItemsControl x:Name="ServerLines">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="pres:DeviceServerLine">
+                    <StackPanel Spacing="2" Margin="0,0,0,6">
+                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="12" />
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Margin="6,0,0,0" Click="OnCopyLine" Tag="{Binding Copy}" IsVisible="{Binding Copy, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                    Content="{loc:Tr DvCopy}" />
+                            <TextBox Text="{Binding Value}" IsReadOnly="True" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Note}" IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                   TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock x:Name="StatusText" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="{loc:Tr Close}" Click="OnClose" IsDefault="True" IsCancel="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

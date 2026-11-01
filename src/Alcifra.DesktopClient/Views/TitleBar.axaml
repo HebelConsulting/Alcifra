@@ -117,8 +117,7 @@
                     <MenuItem Header="{loc:Tr AccountPasskeys}" Click="OnManagePasskeys" />
                     <!-- Off until switched on (ADR 0978): the local endpoint exists only when asked for. -->
                     <MenuItem Header="{loc:Tr AccountBrowserAutofill}" Click="OnBrowserAutofill" />
-                    <MenuItem Header="{loc:Tr AccountWebDav}" Click="OnManageWebDav" />
-                    <MenuItem Header="{loc:Tr AccountImap}" Click="OnManageImap" />
+                    <MenuItem Header="{loc:Tr DvMenu}" Click="OnManageDevices" />
                     <MenuItem Header="{loc:Tr AccountSmime}" Click="OnManageSmime" />
                     <!-- Beside the certificate entry, which is where the manual already tells a reader to
                          look when download and preview are absent. Visible only where some module declares

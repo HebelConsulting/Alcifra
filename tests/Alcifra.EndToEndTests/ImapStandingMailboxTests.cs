@@ -106,7 +106,7 @@ public class ImapStandingMailboxTests
         }
 
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(address, password));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         var subject = $"Standing {Guid.NewGuid():N}"[..22];
         await DeliverAsync(address, subject);
@@ -157,7 +157,7 @@ public class ImapStandingMailboxTests
         const string password = "ownfld-1234";
         await _factory.SeedUserAsync(tenantId, email, password, "Own Folder");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         using var client = new ImapClient();
         await client.ConnectAsync("127.0.0.1", ImapPort, SecureSocketOptions.None);
@@ -204,7 +204,7 @@ public class ImapStandingMailboxTests
         }
 
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(address, password));
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // Two messages sharing a subject, deliberately: a thread is a pile of "Re: the thing", and the
         // sibling-name invariant refuses a second document of the same name in one folder. Without a free name

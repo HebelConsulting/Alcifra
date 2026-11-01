@@ -328,7 +328,7 @@ public class WebDavAtomicSaveTests
         await _factory.SeedUserAsync(ctx.TenantId, email, "peer-1234", "Peer User");
         await _factory.GrantTenantAdminAsync(email);
         var peerApi = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "peer-1234"));
-        var peerDavPassword = (await TestJson.Post(peerApi, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var peerDavPassword = (await TestJson.Post(peerApi, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var peerBasic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{peerDavPassword}")));
 
         // The dance, up to the point the live captures show the OS re-listing the folder: collection made,
@@ -457,7 +457,7 @@ public class WebDavAtomicSaveTests
         await _factory.GrantTenantAdminAsync(email);
         var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var davPassword = (await TestJson.Post(api, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         return new Context(owner, api, repoId, tenantId, basic, _factory.CreateClient());
     }

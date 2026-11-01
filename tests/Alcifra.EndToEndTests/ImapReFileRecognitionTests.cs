@@ -40,8 +40,8 @@ public class ImapReFileRecognitionTests
         await _factory.GrantTenantAdminAsync(email);
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
 
-        var imapPassword = (await TestJson.Post(api, "/api/me/imap-access", new { })).GetProperty("password").GetString()!;
-        var davGen = await TestJson.Post(api, "/api/me/webdav-password", new { });
+        var imapPassword = (await TestJson.Post(api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
+        var davGen = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
         var basic = new AuthenticationHeaderValue("Basic",
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davGen.GetProperty("password").GetString()}")));
 
@@ -59,7 +59,7 @@ public class ImapReFileRecognitionTests
         }
 
         Assert.Equal(System.Net.HttpStatusCode.NoContent,
-            (await api.PutAsJsonAsync("/api/me/imap-access/settings", new { showAllDocuments = true })).StatusCode);
+            (await api.PutAsJsonAsync("/api/me/devices/settings", new { showAllDocuments = true })).StatusCode);
 
         // The document's id, read INDEPENDENTLY of the Message-ID under test — so asserting the probe returns
         // this id proves recognition resolved the right document, not merely echoed the guid it was handed.

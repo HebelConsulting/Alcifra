@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using MudBlazor;
 using Alcifra.Localization;
@@ -22,16 +21,14 @@ namespace Alcifra.Client.Services;
 /// </remarks>
 public sealed class WebDavMountLink
 {
-    private readonly HttpClient _http;
-    private readonly ApiRoot _apiRoot;
+    private readonly DevicesApi _devices;
     private readonly IJSRuntime _js;
     private readonly ISnackbar _snackbar;
     private readonly BrowseService _browse;
 
-    public WebDavMountLink(HttpClient http, ApiRoot apiRoot, IJSRuntime js, ISnackbar snackbar, BrowseService browse)
+    public WebDavMountLink(DevicesApi devices, IJSRuntime js, ISnackbar snackbar, BrowseService browse)
     {
-        _http = http;
-        _apiRoot = apiRoot;
+        _devices = devices;
         _js = js;
         _snackbar = snackbar;
         _browse = browse;
@@ -57,8 +54,9 @@ public sealed class WebDavMountLink
     {
         try
         {
-            var status = await _http.GetFromJsonAsync<WebDavStatus>(await _apiRoot.RequireMeAsync("webdavPassword"));
-            if (status is not { Enabled: true } || string.IsNullOrEmpty(status.Url))
+            // The address mounts only with the password of a device that reaches files (#1970).
+            var devices = await _devices.GetAsync();
+            if (!devices.ReachesFiles)
             {
                 _snackbar.Add(Strings.Get("StSetUpWebDavFirst"), Severity.Info);
                 return;
@@ -68,7 +66,7 @@ public sealed class WebDavMountLink
             // Intray/Check-out, + the shared repositories). Appending the tab's folder is FOLLOWING the address
             // the server advertised, not composing one: the server owns the path, the caller adds only the
             // folder within it.
-            var mountUrl = status.Url.TrimEnd('/');
+            var mountUrl = devices.Servers.WebDavUrl.TrimEnd('/');
             if (!string.IsNullOrEmpty(subFolder))
             {
                 mountUrl += "/" + string.Join('/', subFolder.Split('/').Select(Uri.EscapeDataString));
@@ -81,12 +79,5 @@ public sealed class WebDavMountLink
         {
             _snackbar.Add(Strings.Get("StErrCopyWebDavUrl"), Severity.Error);
         }
-    }
-
-    private sealed record WebDavStatus
-    {
-        public bool Enabled { get; set; }
-
-        public string Url { get; set; } = string.Empty;
     }
 }

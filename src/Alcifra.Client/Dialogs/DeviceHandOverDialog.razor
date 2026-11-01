@@ -1,0 +1,60 @@
+@* A new device's hand-over (#1970 slices 2 and 3): its password, shown this once, a QR code of the password alone, and
+   where it reaches mail, calendars or contacts, the QR code of the one-time profile link for a phone's camera; then
+   every server address. The codes are drawn by the server as PNG data URLs. *@
+<MudDialog>
+    <DialogContent>
+        @if (Enrolled is { } enrolled)
+        {
+            <div style="min-width: 520px;">
+                <MudAlert Severity="Severity.Success" Dense="true">@Strings.Get("DvPasswordOnce")</MudAlert>
+                <MudTextField T="string" Label="@Strings.Get("DvPassword")" Value="@enrolled.Password" ReadOnly="true" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Class="mt-2" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                              OnAdornmentClick="() => CopyAsync(enrolled.Password)" />
+                <div class="d-flex gap-4 mt-3">
+                    @if (enrolled.HandOver.ProfileQr is { } profileQr)
+                    {
+                        <div style="max-width: 220px;">
+                            <img src="@profileQr" alt="@Strings.Get("DvProfileQr")" width="200" height="200" class="wb-device-profile-qr" />
+                            <MudText Typo="Typo.caption" Class="d-block">@Strings.Get("DvProfileQr")</MudText>
+                            @if (enrolled.HandOver.ProfileExpiresAt is { } expires)
+                            {
+                                <MudText Typo="Typo.caption" Class="d-block mud-text-secondary">
+                                    @string.Format(Strings.Get("DvProfileExpires"), expires.InZone(SessionTimeZone.Current).ToString("t"))
+                                </MudText>
+                            }
+                        </div>
+                    }
+                    <div style="max-width: 220px;">
+                        <img src="@enrolled.HandOver.PasswordQr" alt="@Strings.Get("DvPasswordQr")" width="200" height="200" class="wb-device-password-qr" />
+                        <MudText Typo="Typo.caption" Class="d-block">@Strings.Get("DvPasswordQr")</MudText>
+                    </div>
+                </div>
+                <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("DvServers")</MudText>
+                <DeviceServerFields Servers="enrolled.HandOver.Servers" />
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="() => Dialog.Close()">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    [Inject]
+    private IJSRuntime JS { get; set; } = null!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = null!;
+
+    [Parameter]
+    public Alcifra.Client.Services.DevicesApi.EnrolledDto? Enrolled { get; set; }
+
+    private async Task CopyAsync(string value)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+        Snackbar.Add(Strings.Get("DvCopied"), Severity.Success);
+    }
+}

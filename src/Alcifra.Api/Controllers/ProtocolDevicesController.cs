@@ -36,9 +36,12 @@ public class ProtocolDevicesController(
     ICurrentTenantAccessor currentTenant,
     ProtocolDeviceEnrolment enrolment,
     Concurrency.ProtocolDeviceVerbs devices,
+    Concurrency.UserVerbs users,
     DeviceHandOvers handOvers,
+    Alcifra.Api.Documents.PersonalMailboxProvisioner mailbox,
     IConfiguration configuration,
     Microsoft.Extensions.Options.IOptions<Alcifra.Api.Imap.ImapOptions> imap,
+    Alcifra.Api.Imap.ImapServer imapServer,
     IAuditRecorder audit,
     ILogger<ProtocolDevicesController> logger) : ControllerBase
 {
@@ -115,12 +118,26 @@ public class ProtocolDevicesController(
         /// <summary>The password alone, as a PNG data URL; the user name is shown beside it as text.</summary>
         public string PasswordQr { get; set; } = string.Empty;
 
+        /// <summary>Where the device reaches the installation.</summary>
+        public DeviceServersResource Servers { get; set; } = new();
+    }
+
+    /// <summary>Every address a device is set up with, and the user name all of them take (#1970).</summary>
+    public class DeviceServersResource
+    {
+        public string Username { get; set; } = string.Empty;
+
+        /// <summary>Whether this installation serves IMAP at all.</summary>
+        public bool ImapAvailable { get; set; }
+
         [System.Xml.Serialization.XmlElement(IsNullable = true)]
         public string? ImapHost { get; set; }
 
-        public int ImapPort { get; set; }
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public int? ImapPort { get; set; }
 
-        public bool ImapTls { get; set; }
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public int? ImapTlsPort { get; set; }
 
         /// <summary>The outgoing server a mail client names: the installation's MX on port 25, without a sign-in, until
         /// authenticated submission exists (#2046).</summary>
@@ -138,6 +155,18 @@ public class ProtocolDevicesController(
         public List<ProtocolDeviceResource> Items { get; set; } = [];
 
         public bool EncryptMailLocked { get; set; }
+
+        /// <summary>The user's own mail view, for every device (#562; owner, 2026-11-01): false shows emails only, true every
+        /// visible document. Changed through the <c>settings</c> rel.</summary>
+        public bool ShowAllDocuments { get; set; }
+
+        public DeviceServersResource Servers { get; set; } = new();
+    }
+
+    /// <summary>The user's device settings, in full (no PATCH, ADR 0872).</summary>
+    public class DeviceSettingsRequest
+    {
+        public bool ShowAllDocuments { get; set; }
     }
 
     /// <summary>A device in full (no PATCH, ADR 0872). Every switch is on unless said otherwise, as at enrolment.</summary>
@@ -176,7 +205,9 @@ public class ProtocolDevicesController(
         {
             Items = [.. rows.Select(d => ToResource<ProtocolDeviceResource>(d, locked))],
             EncryptMailLocked = locked,
-            Links = [new Link("self", Collection, "GET")],
+            ShowAllDocuments = user.ImapShowAllDocuments,
+            Servers = ServersOf(user),
+            Links = [new Link("self", Collection, "GET"), new Link("settings", $"{Collection}/settings", "PUT")],
         });
     }
 
@@ -232,7 +263,7 @@ public class ProtocolDevicesController(
 
         var switches = request.Switches();
         var (device, password) = await enrolment.EnrolAsync(user, name, switches, cancellationToken);
-        var servers = DeviceServers.From(configuration, imap.Value);
+        var servers = DeviceServers.From(configuration, imap.Value, imapServer);
         var profileReaches = (switches.Mail && servers.ImapHost is not null) || switches.Calendars || switches.Contacts;
         var link = profileReaches
             ? handOvers.Create(device, DeviceProfile.Build(device.Id, device.Name, user.Email, password, switches, servers))
@@ -242,6 +273,13 @@ public class ProtocolDevicesController(
         // A long-lived credential that bypasses the interactive login and its MFA, as the earlier ones did (#1092): the
         // event says one was issued, to whom and for what; the password never is.
         logger.LogInformation("Protocol device {DeviceId} enrolled for user {UserId}", device.Id, user.Id);
+
+        // A device that reaches mail is a statement of intent to use the mailbox (#562): create it now, so a freshly set
+        // up mail client has something to subscribe to rather than waiting for the first delivered message.
+        if (switches.Mail)
+        {
+            await mailbox.EnsureMailboxAsync(user.TenantId, user.Id, cancellationToken);
+        }
         await audit.RecordAsync(AuditActions.ProtocolDeviceEnrolled, "User", user.Id, device.Name,
             $"Enrolled the device '{device.Name}' ({Protocols(device)}).", cancellationToken: cancellationToken);
 
@@ -255,13 +293,7 @@ public class ProtocolDevicesController(
             ProfileQr = profileUrl is null ? null : Alcifra.Api.Security.QrCodes.PngDataUrl(profileUrl),
             ProfileExpiresAt = link?.ExpiresAt,
             PasswordQr = Alcifra.Api.Security.QrCodes.PngDataUrl(password),
-            ImapHost = servers.ImapHost,
-            ImapPort = servers.ImapPort,
-            ImapTls = servers.ImapTls,
-            OutgoingHost = servers.OutgoingHost,
-            WebDavUrl = $"{servers.WebOrigin}{Alcifra.Api.WebDav.WebDavMiddleware.BasePath}",
-            CalDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CalDav.BasePath}",
-            CardDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CardDav.BasePath}",
+            Servers = ServersOf(user),
         };
         Response.Headers.CacheControl = "no-store";
         devices.EmitETag(Response, device);
@@ -337,6 +369,40 @@ public class ProtocolDevicesController(
             cancellationToken: cancellationToken);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// The user's device settings: whether mail shows every visible document or emails only (#562), one setting for all
+    /// of the user's devices. A plain boolean me-setting, so tolerant of an absent If-Match, as it always was.
+    /// </summary>
+    [HttpPut("settings")]
+    public async Task<IActionResult> PutSettings([FromBody] DeviceSettingsRequest request, CancellationToken cancellationToken)
+    {
+        if (await CallerAsync(cancellationToken) is not { } user)
+        {
+            return Forbid();
+        }
+
+        user.ImapShowAllDocuments = request.ShowAllDocuments;
+        await users.MutateAsync(Request, user, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+        return NoContent();
+    }
+
+    private DeviceServersResource ServersOf(User user)
+    {
+        var servers = DeviceServers.From(configuration, imap.Value, imapServer);
+        return new DeviceServersResource
+        {
+            Username = user.Email,
+            ImapAvailable = servers.ImapHost is not null,
+            ImapHost = servers.ImapHost,
+            ImapPort = servers.ImapPort,
+            ImapTlsPort = servers.ImapTlsPort,
+            OutgoingHost = servers.OutgoingHost,
+            WebDavUrl = $"{servers.WebOrigin}{Alcifra.Api.WebDav.WebDavMiddleware.BasePath}",
+            CalDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CalDav.BasePath}",
+            CardDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CardDav.BasePath}",
+        };
     }
 
     /// <summary>The signed-in USER, or null for a service account or platform administrator (no devices).</summary>

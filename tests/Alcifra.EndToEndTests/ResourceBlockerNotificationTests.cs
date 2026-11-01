@@ -56,7 +56,7 @@ public class ResourceBlockerNotificationTests
         await TestJson.Put(pilot, $"/api/documents/{repositoryId}/acl-entries/users/{await UserIdAsync(engineer)}",
             new { canSee = true, canReadContent = true, canEditContent = true, canCreateSubItems = true });
 
-        var davPassword = (await TestJson.Post(engineer, "/api/me/webdav-password", new { })).GetProperty("password").GetString()!;
+        var davPassword = (await TestJson.Post(engineer, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{engineerEmail}:{davPassword}")));
         var dav = _factory.CreateClient();
 
