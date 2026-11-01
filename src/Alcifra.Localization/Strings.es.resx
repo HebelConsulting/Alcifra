@@ -6783,6 +6783,12 @@
   <data name="DvMountPaste" xml:space="preserve">
     <value>Cuando el sistema pida la contraseña, pegue la que se muestra aquí.</value>
   </data>
+  <data name="MobDvSetUpHere" xml:space="preserve">
+    <value>Configurar este dispositivo</value>
+  </data>
+  <data name="MobDvByHand" xml:space="preserve">
+    <value>En este dispositivo: añada la cuenta en las aplicaciones de correo, calendario y contactos con la configuración del servidor de abajo, y pegue la contraseña cuando se le pida.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Ya tienes dos certificados inscritos, el máximo permitido aquí. Revoca uno antes de inscribir otro.</value>
   </data>

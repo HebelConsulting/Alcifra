@@ -6783,6 +6783,12 @@
   <data name="DvMountPaste" xml:space="preserve">
     <value>When the system asks for the password, paste the one shown here.</value>
   </data>
+  <data name="MobDvSetUpHere" xml:space="preserve">
+    <value>Set up this device</value>
+  </data>
+  <data name="MobDvByHand" xml:space="preserve">
+    <value>On this device: add the account in the mail, calendar and contacts apps with the server settings below, and paste the password when asked.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>You already hold two enrolled certificates, the most allowed here. Revoke one before enrolling another.</value>
   </data>
