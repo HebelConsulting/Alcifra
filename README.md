@@ -2,7 +2,18 @@
 
 **A showcase of how a senior, AI-driven software developer can produce a complex, enterprise-grade system in a relatively short period of time.**
 
-**Alcifra** (this repository's working name: SimplArchive) is a multi-tenant **sovereign workspace**: a document management system (DMS) with encryption to each person's own key and open protocols (IMAP, WebDAV, CalDAV, CardDAV) for bring-your-own-device. It is a working system, built end-to-end as a demonstration of AI-assisted software engineering: Clean Architecture, a hypermedia REST API, two clients (a Blazor WebAssembly web app and a cross-platform Avalonia desktop app), OAuth/OIDC auth with MFA and passkeys, full-text + OCR search, document previews, versioning, ACLs, workflow, audit trails, legal hold & retention, WebDAV, a **fully localized UI (English, German, Italian, Spanish)**, and a production Helm chart — with an extensive automated test suite (unit, integration, container-backed E2E, and browser/desktop UI E2E) and a hardened CI pipeline.
+**Alcifra** is a multi-tenant **sovereign workspace**: a document management system (DMS) with encryption to each person's own key and open protocols (IMAP, WebDAV, CalDAV, CardDAV) for bring-your-own-device. It is a working system, built end-to-end as a demonstration of AI-assisted software engineering: Clean Architecture, a hypermedia REST API, a web app, a desktop app and phone apps, OAuth/OIDC sign-in with MFA and passkeys, full-text + OCR search, document previews, versioning, ACLs, workflow, audit trails, legal hold & retention, a **fully localized UI (English, German, Italian, Spanish)**, and a production Helm chart — with an extensive automated test suite (unit, integration, container-backed E2E, and browser/desktop UI E2E) and a hardened CI pipeline.
+
+**Website:** [www.alcifra.com](https://www.alcifra.com) — features, manuals and downloads · **Demo:** [demo.alcifra.dev](https://demo.alcifra.dev) · **Downloads:** this repository's [Releases](https://github.com/HebelConsulting/Alcifra/releases)
+
+## What's in it
+
+- **The workbench, on the web and on the desktop** — tree, list, index data, preview and chat side by side; drag and drop to file; versions you can compare; check-out and check-in; approval workflows with a task inbox; tags, reminders, references and external links; calendars and address books; an intray that straightens and splits scans.
+- **Phone and tablet apps** for Android, iPhone and iPad — coming to the app stores. The archive's tree, previews and search on the go; sealed documents opened with a hardware key over NFC or USB-C; the Password Store with autofill in other apps and the browser.
+- **Your own devices, with a password each** — mail, files, calendars and contacts over the open protocols, each device enrolled under *Devices…* with its own password, a QR code for the password and a one-time setup profile a phone's camera can install. Revoking a lost phone cuts off that phone only.
+- **A Password Store** — logins kept in the archive, sealed on your machine to the hardware keys of the people allowed to read them: folders, shared stores with their own audience, verification codes (TOTP), import from a password manager's export, autofill in the browser through an extension, and `apass`, a command-line tool in the spirit of `pass`.
+- **Sealed documents and offline exports** — a document sealed to its audience's keys before it leaves your machine, and a folder exported as one archive sealed to its recipients and to the organisation's recovery certificate.
+- **Modules** — features added per tenant: the **Messenger** (chat sealed to its members' keys; open source, in its own repository, and free), **encryption** (paid, below) and **industry modules** for a trade's own workflows, such as a flight school's bookings, aircraft and training records.
 
 ## ▶ Try the live demo
 
@@ -49,20 +60,20 @@ PROXY_HOST=192.168.1.50 S3_PUBLIC_URL=https://192.168.1.50:9444 docker compose u
 
 On the device, first visit **https://192.168.1.50:9444** once and accept the self-signed-certificate warning (needed so document previews/uploads work), then browse **https://192.168.1.50:9443** and accept its warning too. (Dev/test only.)
 
-## Native desktop app
+## Desktop app
 
-Alongside the web client, Alcifra ships a cross-platform **Avalonia desktop client**. Build self-contained installers/archives — no .NET needed on the target machine:
+Alongside the web client, Alcifra ships a cross-platform **desktop client** for macOS, Windows and Linux: opening a document in its native application, a mounted file drive, card-held keys, and everything the web workbench does. Every release attaches self-contained packages to this repository's [Releases](https://github.com/HebelConsulting/Alcifra/releases) — no .NET needed on the target machine. The **macOS `.dmg` is signed and notarized**; the Windows and Linux packages are unsigned, so SmartScreen warns on first run ("More info" → "Run anyway") and the Linux launcher may need `chmod +x`.
+
+To build them yourself:
 
 ```bash
 scripts/package-macos-dmg.sh          # macOS → dist/Alcifra-<version>-{arm64,x64}.dmg        (run on macOS)
 scripts/package-windows-linux.sh      # Win/Linux x64 → dist/Alcifra-<version>-win-x64.zip + -linux-x64.tar.gz
 ```
 
-All are self-contained and **unsigned** (a showcase build): macOS Gatekeeper warns on first open (right-click → **Open**); Windows SmartScreen warns on first run ("More info" → "Run anyway"); the Linux launcher may need `chmod +x`. The Windows/Linux script cross-builds from any OS with the .NET SDK.
+A local macOS build without a signing identity is signed ad hoc; the Windows/Linux script cross-builds from any OS with the .NET SDK.
 
 ## Connect your own apps — calendars, contacts, notes, files
-
-> **Under development.** These endpoints work and are worth trying, but they are still being built out — expect rough edges and changes.
 
 Your archive also speaks the protocols your existing apps already know, so calendars, contacts, notes and files show up alongside everything else on your devices rather than only in the workbench:
 
@@ -99,9 +110,9 @@ helm upgrade --install alcifra oci://ghcr.io/hebelconsulting/charts/alcifra \
   --version X.Y.Z -n alcifra --create-namespace -f values-production.yaml
 ```
 
-## Encryption — two paid extras, in development
+## Encryption — two paid extras
 
-Encryption for Alcifra is being built as **two separate products**, and the line between them is not
+Encryption for Alcifra comes as **two separate products**, and the line between them is not
 packaging: it is **whether the component holds a secret.**
 
 **The Encryption Module — encrypted delivery.** Content leaves the archive as an envelope addressed to the
@@ -127,7 +138,7 @@ beside one that does not:
 | Module | — | ✓ |
 | both | ✓ | ✓ |
 
-In development on top of that: a **strict** level for organisations such as government and defence, where the
+On top of that, a **strict** level for organisations such as government and defence, where the
 archive serves no readable content at all — every read is encrypted to the certificate on the reader's
 smartcard, and full-text search across document contents is given up in exchange, while names, index fields and
 dates stay searchable.
@@ -146,24 +157,28 @@ was addressed to — and, where it is used without the Service, **what is stored
 - **Hypermedia REST API** — RFC 7807 problem details, ETag/`If-Match` optimistic concurrency, media-type API versioning, and independent JSON/XML content negotiation.
 - **Documents** — a unified tree where a repository, a folder, and a leaf are all one `Document` type; immutable versioned metadata "masks"; EAV index fields; document-scoped ACLs with inheritance + override.
 - **Search & preview** — OpenSearch full-text over content (Apache Tika; scans become searchable PDFs via an **OCRmyPDF/Tesseract** sidecar), faceted navigation, search hit-overlays, and on-demand previews/renditions (images, Office → PDF via Gotenberg, email, Markdown, …).
-- **Enterprise features** — approval workflow, notifications (in-app + email + real-time), legal hold & retention with WORM immutability, check-out/check-in, a WebDAV gateway, MFA (TOTP + passkeys), and OpenBao-backed secrets.
-- **Two clients** — a Blazor WebAssembly web workbench and a native Avalonia desktop client, both driving the same API.
+- **Enterprise features** — approval workflow, notifications (in-app + email + push + real-time), legal hold & retention with WORM immutability, check-out/check-in, WebDAV/CalDAV/CardDAV/IMAP gateways with a password per device, MFA (TOTP + passkeys), and OpenBao-backed secrets.
+- **Encryption to people, not just disks** — CMS envelopes addressed to every certificate a reader holds, hardware keys with attestation, sealed content the server stores but never opens, and a per-tenant posture from plaintext to strict.
+- **Modules** — industry modules load per tenant behind a licence gate and a versioned ABI: their own controllers, read models, settings and manuals, acting through a consent-gated principal of their own.
+- **Clients** — a Blazor WebAssembly web workbench and a native Avalonia desktop client in this repository, and phone apps (.NET MAUI) beside it, all driving the same hypermedia API through one shared client library.
 
 ## Tech stack
 
-.NET 10 · ASP.NET Core · Blazor WebAssembly · Avalonia · EF Core (PostgreSQL) · OpenIddict · OpenSearch + Apache Tika · OCRmyPDF/Tesseract · Gotenberg · S3-compatible object storage · OpenBao · Serilog · Docker/Kubernetes.
+.NET 10 · ASP.NET Core · Blazor WebAssembly · Avalonia · .NET MAUI (phone apps) · EF Core (PostgreSQL) · OpenIddict · OpenSearch + Apache Tika · OCRmyPDF/Tesseract · Gotenberg · S3-compatible object storage · OpenBao · Serilog · Docker/Kubernetes.
 
 ## Support the project
 
-Alcifra is free and open source under Apache 2.0, and it stays that way — there is no paid tier, no
-telemetry and nothing held back for a commercial edition. The public demo, the container images and the
-desktop builds all cost something to run and publish.
+The core — everything in this repository — is free and open source under Apache 2.0: the archive, the web and
+desktop clients, the open protocols and the Password Store, complete, with no telemetry; so is the Messenger module. Beside it there are **paid
+extras**: the encryption products, the industry modules, and the phone apps' Standard and Pro subscriptions. They
+build on the core; nothing in the core is held back for them.
 
-If the project is useful to you, or you enjoyed poking around the architecture, you can support it here:
+The public demo, the container images and the desktop builds all cost something to run and publish. If the project
+is useful to you, or you enjoyed poking around the architecture, you can support it here:
 
-**[☕ Buy me a coffee](https://buymeacoffee.com/hebel.it)** · **[💸 Donate via PayPal](https://www.paypal.com/donate/?business=paypal@simplarchive.dev)**
+**[☕ Buy me a coffee](https://buymeacoffee.com/hebel.it)** · **[💸 Donate via PayPal](https://www.paypal.com/donate/?business=paypal@alcifra.dev)**
 
-(PayPal donations go to `paypal@simplarchive.dev`, if you would rather send one directly from your own account.)
+(PayPal donations go to `paypal@alcifra.dev`, if you would rather send one directly from your own account.)
 
 Entirely optional, and it buys no influence over the roadmap. Starring the repository or opening a thoughtful
 issue is just as welcome.
