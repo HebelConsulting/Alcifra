@@ -262,6 +262,53 @@ public class InstanceParityTests
             return; // an overlay that configures no app instance (the flight school's modules-init)
         }
 
+        BothInstancesCarryTheOverlay(file, text);
+    }
+
+    /// <summary>
+    /// The kiosk's IMAP overlay is GENERATED on the host by <c>imap-override.sh</c> (it inlines the current certificate),
+    /// so the file-reading case above never saw it. It configured <c>api</c> only: <c>api-b</c> believed the installation
+    /// offers no mail, and a device enrolled through it got a profile without its mail account (2026-11-02). Here the
+    /// script runs on a stand-in certificate and its output meets the same rule.
+    /// </summary>
+    [Fact]
+    public void The_generated_IMAP_overlay_gives_BOTH_instances_its_settings()
+    {
+        var script = Path.Combine("tools", "kiosk", "imap-override.sh");
+        if (Withheld(script))
+        {
+            return; // the public mirror has no tools/, by design
+        }
+
+        var work = Directory.CreateTempSubdirectory("imap-override-");
+        try
+        {
+            File.Copy(Path.Combine(RepoRoot(), script), Path.Combine(work.FullName, "imap-override.sh"));
+            var certificates = Directory.CreateDirectory(Path.Combine(work.FullName, "caddy_data", "caddy", "certificates", "acme", "demo.alcifra.dev"));
+            File.WriteAllText(Path.Combine(certificates.FullName, "demo.alcifra.dev.crt"), "STAND-IN CERTIFICATE\n");
+            File.WriteAllText(Path.Combine(certificates.FullName, "demo.alcifra.dev.key"), "STAND-IN KEY\n");
+
+            using var run = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("bash", "imap-override.sh")
+            {
+                WorkingDirectory = work.FullName,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            })!;
+            run.WaitForExit();
+            Assert.True(run.ExitCode == 0, run.StandardError.ReadToEnd());
+
+            var generated = File.ReadAllText(Path.Combine(work.FullName, "docker-compose.imap.yml")).ReplaceLineEndings("\n");
+            Assert.Contains("Imap__Enabled", generated);
+            BothInstancesCarryTheOverlay(script, generated);
+        }
+        finally
+        {
+            work.Delete(recursive: true);
+        }
+    }
+
+    private static void BothInstancesCarryTheOverlay(string file, string text)
+    {
         var first = EnvironmentKeys(ServiceBlock(text, "api"));
         var shared = first.Where(e => !SeedingOnly(e.Key)).ToDictionary(e => e.Key, e => e.Value);
 
