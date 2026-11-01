@@ -6789,6 +6789,12 @@
   <data name="MobDvByHand" xml:space="preserve">
     <value>On this device: add the account in the mail, calendar and contacts apps with the server settings below, and paste the password when asked.</value>
   </data>
+  <data name="MobPwScanCode" xml:space="preserve">
+    <value>Scan the QR code</value>
+  </data>
+  <data name="MobPwScanCodeHint" xml:space="preserve">
+    <value>Point the camera at the QR code the site shows for setting up verification codes.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>You already hold two enrolled certificates, the most allowed here. Revoke one before enrolling another.</value>
   </data>

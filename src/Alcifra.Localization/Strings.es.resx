@@ -6789,6 +6789,12 @@
   <data name="MobDvByHand" xml:space="preserve">
     <value>En este dispositivo: añada la cuenta en las aplicaciones de correo, calendario y contactos con la configuración del servidor de abajo, y pegue la contraseña cuando se le pida.</value>
   </data>
+  <data name="MobPwScanCode" xml:space="preserve">
+    <value>Escanear el código QR</value>
+  </data>
+  <data name="MobPwScanCodeHint" xml:space="preserve">
+    <value>Apunte la cámara al código QR que muestra el sitio para configurar los códigos de verificación.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Ya tienes dos certificados inscritos, el máximo permitido aquí. Revoca uno antes de inscribir otro.</value>
   </data>

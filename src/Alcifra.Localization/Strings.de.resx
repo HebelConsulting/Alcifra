@@ -6789,6 +6789,12 @@
   <data name="MobDvByHand" xml:space="preserve">
     <value>Auf diesem Gerät: Richten Sie das Konto in den Apps für Mail, Kalender und Kontakte mit den Servereinstellungen unten ein und fügen Sie das Passwort ein, wenn danach gefragt wird.</value>
   </data>
+  <data name="MobPwScanCode" xml:space="preserve">
+    <value>QR-Code scannen</value>
+  </data>
+  <data name="MobPwScanCodeHint" xml:space="preserve">
+    <value>Richten Sie die Kamera auf den QR-Code, den die Website zum Einrichten der Bestätigungscodes zeigt.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Sie haben bereits zwei angemeldete Zertifikate, mehr sind hier nicht erlaubt. Widerrufen Sie eines, bevor Sie ein weiteres anmelden.</value>
   </data>

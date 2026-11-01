@@ -6789,6 +6789,12 @@
   <data name="MobDvByHand" xml:space="preserve">
     <value>Su questo dispositivo: aggiungi l'account nelle app di posta, calendario e contatti con le impostazioni del server qui sotto e incolla la password quando richiesta.</value>
   </data>
+  <data name="MobPwScanCode" xml:space="preserve">
+    <value>Scansiona il codice QR</value>
+  </data>
+  <data name="MobPwScanCodeHint" xml:space="preserve">
+    <value>Inquadra con la fotocamera il codice QR che il sito mostra per configurare i codici di verifica.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Possiedi già due certificati registrati, il massimo consentito qui. Revocane uno prima di registrarne un altro.</value>
   </data>
