@@ -122,9 +122,9 @@ public class NoSecretReachesALogTests
     {
         ["src/Alcifra.Cli/Commands/TenantCreateCommand.cs"] =
             "the bootstrap password hand-off: generated once, stored nowhere retrievable, and announced as such",
-        ["src/Alcifra.Sapass/Commands/ShowCommand.cs"] =
-            "the tool's DATA output (ADR 0906): `apass show` prints the entry's password on stdout — the whole "
-            + "point of the command, pass's contract, and what `apass show x | head -1` captures (ADR 0964)",
+        ["src/Alcifra.Sapass/Commands/PasswordCommand.cs"] =
+            "the tool's DATA output (ADR 0906): `apass password` prints the entry's password alone on stdout — the "
+            + "whole point of the command, and what `$(apass password x)` captures (ADR 1024)",
         ["src/Alcifra.Cli/Commands/DeviceCommands.cs"] =
             "an enrolled device's password, its one and only sighting: `alcifra me device enrol` prints it on stdout "
             + "(data output, ADR 0906) because only its hash is stored (#1970)",

@@ -10,8 +10,10 @@ dotnet tool install --global Alcifra.Pass
 eval "$(apass login --url https://archive.example.com)"   # approve a code in your browser
 apass ls                                                  # My Passwords, folders and entries
 apass find bank
-apass show Mail/Banking                                   # password on the first line, then the fields in the form's order
-apass otp Mail/Banking                                    # the current verification code, digits only
+apass show Mail/Banking                                   # every field in the form's order: URL, user name, password, …
+apass password Mail/Banking                               # the password alone, for $(…)
+apass otp Mail/Banking                                    # the current code; "valid 17 s" on the next line
+apass otp Mail/Banking --code-only                        # the code alone, for $(…) or the clipboard
 ```
 
 - `--store <name>` reads a shared store (the default is My Passwords). Where two stores share a name, give the full

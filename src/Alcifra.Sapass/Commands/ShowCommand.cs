@@ -19,9 +19,9 @@ public sealed class ShowSettings : StoreSettings
 }
 
 /// <summary>
-/// Prints an entry's password on the FIRST line — pass's shape, so <c>apass show x | head -1</c> gives the password
-/// alone — and its other fields after it IN THE FORM'S ORDER: URL, user name, PIN, verification code, then the rest
-/// (<see cref="PasswordEntryFieldOrder"/>, ADR 0964; owner, 2026-10-31).
+/// Prints an entry's fields IN THE FORM'S ORDER, each labelled: URL, user name, password, PIN, verification code, then the
+/// rest (<see cref="PasswordEntryFieldOrder"/>, ADR 0964; owner, 2026-11-01, replacing the password-first line of
+/// 2026-10-31). One secret alone, for a script, is <c>apass password</c> or <c>apass otp</c>.
 /// </summary>
 /// <remarks>
 /// <b>This is the one command that touches the key.</b> The envelope is opened on this machine by the card in the
@@ -46,8 +46,7 @@ public sealed class ShowCommand : AsyncCommand<ShowSettings>
         var entry = await session.Passwords.GetEntryAsync(row.Href, cancellationToken);
         var opened = await session.Passwords.OpenAsync(entry, cancellationToken);
 
-        // Data output (ADR 0906): the password first, then the entry's fields in the form's order, one per line.
-        Console.Out.WriteLine(opened.Content.Password);
+        // Data output (ADR 0906): the whole entry, the password and the PIN among its lines, as the command exists to show.
         foreach (var line in FieldLines(opened.Content, TimeProvider.System))
         {
             Console.Out.WriteLine(line);
@@ -56,19 +55,27 @@ public sealed class ShowCommand : AsyncCommand<ShowSettings>
         return 0;
     }
 
-    /// <summary>What <c>show</c> prints after the password line: every field in the form's order, labelled.</summary>
+    /// <summary>Every field in the form's order, labelled by its stored name, the password among them.</summary>
     /// <remarks>
     /// The same rule every client shows an entry by (<see cref="PasswordEntryFieldOrder.Arrange{T}"/>), so the terminal
     /// lists the fields as the form does. A verification code's setup is a SECRET (an <c>otpauth://</c> link holding
-    /// the key), so it is shown as the code valid now, as every client shows it, never as itself.
+    /// the key), so it is shown as the code valid now with its seconds left, as every client shows it, never as itself.
     /// </remarks>
     internal static IEnumerable<string> FieldLines(PasswordEntryContent content, TimeProvider clock)
     {
-        foreach (var field in PasswordEntryFieldOrder.Arrange(content.Fields, f => f.Name))
+        var fields = content.Fields.Select(f => (Name: f.Name, f.Value));
+        if (content.Password.Length > 0)
         {
-            yield return PasswordEntryFieldOrder.SlotOf(field.Name) == PasswordFieldSlot.VerificationCode
-                ? $"{field.Name}: {(VerificationCodeSetup.TryParse(field.Value, out var setup) ? setup!.Current(clock).Value : "(cannot be read)")}"
-                : $"{field.Name}: {field.Value}";
+            fields = fields.Prepend(("Password", content.Password));   // the order places it third, as the form does
+        }
+
+        foreach (var (name, value) in PasswordEntryFieldOrder.Arrange(fields, f => f.Name))
+        {
+            yield return PasswordEntryFieldOrder.SlotOf(name) == PasswordFieldSlot.VerificationCode
+                ? $"{name}: {(VerificationCodeSetup.TryParse(value, out var setup) ? CodeText(setup!.Current(clock)) : "(cannot be read)")}"
+                : $"{name}: {value}";
         }
     }
+
+    private static string CodeText(VerificationCode code) => $"{code.Value} (valid {code.SecondsLeft} s)";
 }

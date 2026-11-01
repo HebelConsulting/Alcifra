@@ -68,7 +68,9 @@ public static class SapassApp
             config.AddCommand<FindCommand>("find")
                 .WithDescription("Print every path containing the text.");
             config.AddCommand<ShowCommand>("show")
-                .WithDescription("Print an entry's password and fields, opened with your card.");
+                .WithDescription("Print an entry's fields in the form's order, opened with your card.");
+            config.AddCommand<PasswordCommand>("password")
+                .WithDescription("Print an entry's password alone, opened with your card.");
             config.AddCommand<OtpCommand>("otp")
                 .WithDescription("Print an entry's current verification code, opened with your card.");
             config.AddCommand<InsertCommand>("insert")

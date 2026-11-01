@@ -765,7 +765,21 @@ An entry you come across in the *Repositories* tree shows its fields read-only i
 each time; changing it is the Passwords tab's job. In the *Repositories* list, of the desktop and of the web client
 alike, an entry with a verification code is marked as such; the web client never opens an entry, so the mark is all it
 shows. The browser extension fills a sign-in's code field with the current code of the entry you choose, and the
-command-line tool prints it with `apass otp` and the entry's path.
+command-line tool prints it too (below).
+
+*From the command line.*#idx("apass") `apass` reads the same stores in a terminal, opening each entry with your hardware
+key and its PIN, which it does not keep. It is installed with `dotnet tool install --global Alcifra.Pass`, and
+`eval "$(apass login --url https://your.server)"` signs it in. An entry is named by its path, as the tree shows it:
+
+```sh
+apass show Mail/webmail             # every field, in the form's order
+apass password Mail/webmail         # the password alone
+apass otp Mail/webmail              # the current code; "valid 17 s" on the next line
+apass otp Mail/webmail --code-only  # the code alone
+```
+
+`apass show` labels each field as the form does and shows a verification code as the code valid now, never its setup.
+`--store` names a shared store (the default is My Passwords); `apass ls` and `apass find` list what there is.
 
 == On a phone or a tablet
 

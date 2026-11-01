@@ -47,7 +47,8 @@ public class ConsoleOutputRatchetTests
         ["src/Alcifra.Sapass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
         ["src/Alcifra.Sapass/Commands/AudienceCommand.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)
         ["src/Alcifra.Sapass/Commands/FindCommand.cs"] = 1,   // data output only: the matching paths
-        ["src/Alcifra.Sapass/Commands/ShowCommand.cs"] = 2,   // data output only: the password, then the fields
+        ["src/Alcifra.Sapass/Commands/ShowCommand.cs"] = 1,   // data output only: the entry's fields in the form's order
+        ["src/Alcifra.Sapass/Commands/PasswordCommand.cs"] = 1,   // data output only: the entry's password (ADR 1024)
         ["src/Alcifra.Sapass/Commands/OtpCommand.cs"] = 1,   // data output only: the current verification code (ADR 1013)
         ["src/Alcifra.Sapass/Commands/GenerateCommand.cs"] = 1,   // data output only: the secret it generated
         ["src/Alcifra.Sapass/Commands/CompletionCommand.cs"] = 1,   // data output only: the completion script

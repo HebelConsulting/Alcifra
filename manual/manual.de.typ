@@ -769,7 +769,23 @@ Ein Eintrag, auf den Sie im Baum des Tabs *Archive* stossen, zeigt seine Felder 
 geöffnet; ihn zu ändern ist Aufgabe des Tabs Passwörter. In der Liste des Tabs *Archive*, auf dem Desktop wie im Web-Client,
 ist ein Eintrag mit Bestätigungscode als solcher markiert; der Web-Client öffnet nie einen Eintrag, darum zeigt er nur dieses
 Zeichen. Die Browser-Erweiterung füllt das Codefeld einer Anmeldung mit dem aktuellen Code des Eintrags, den Sie wählen, und
-das Kommandozeilenwerkzeug gibt ihn mit `apass otp` und dem Pfad des Eintrags aus.
+das Kommandozeilenwerkzeug gibt ihn ebenfalls aus (siehe unten).
+
+*Auf der Kommandozeile.*#idx("apass") `apass` liest dieselben Speicher im Terminal und öffnet jeden Eintrag mit Ihrem
+Hardware-Schlüssel und dessen PIN, die es nicht behält. Installiert wird es mit `dotnet tool install --global Alcifra.Pass`,
+angemeldet mit `eval "$(apass login --url https://ihr.server)"`. Ein Eintrag wird mit seinem Pfad benannt, wie ihn der Baum
+zeigt:
+
+```sh
+apass show Mail/webmail             # alle Felder, in der Reihenfolge des Formulars
+apass password Mail/webmail         # nur das Passwort
+apass otp Mail/webmail              # der aktuelle Code; "valid 17 s" auf der Zeile darunter
+apass otp Mail/webmail --code-only  # nur der Code
+```
+
+`apass show` beschriftet jedes Feld wie das Formular und zeigt einen Bestätigungscode als den jetzt gültigen Code, nie seine
+Einrichtung. `--store` nennt einen gemeinsamen Speicher (Standard ist Meine Passwörter); `apass ls` und `apass find`
+listen, was es gibt.
 
 == Auf einem Telefon oder Tablet
 
