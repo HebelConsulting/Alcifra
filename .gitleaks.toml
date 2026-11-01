@@ -46,6 +46,10 @@ regexes = [
   # ModuleAdministrationByServiceAccountTests' throwaway manager password (ADR 0870). Same class again: replaced
   # by the class's shared fixture value, but the first spelling lives on in the branch history.
   '''modsa-mgr-1234''',
+  # CertificateEnrolmentTests' throwaway holder password (#1970 slice 4). Same class again. The private scan never
+  # saw it: it arrived through a merge commit, whose diff gitleaks does not read, while the public mirror's snapshot
+  # commit carries it as an ordinary change and its full-history scan went red (public run #1267 onwards).
+  '''twokeys12345''',
   # SaConsoleTests' PLACEHOLDER private key (#1353). `saconsole me certificate register` refuses a file
   # holding key material before it is sent, and the test proves that by handing it a PEM that begins
   # `-----BEGIN PRIVATE KEY-----` — which is precisely what the private-key rule looks for. The body is the
