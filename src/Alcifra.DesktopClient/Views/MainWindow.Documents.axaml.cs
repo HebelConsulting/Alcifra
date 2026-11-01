@@ -519,9 +519,17 @@ public partial class MainWindow
     // differs, and that is the tab's own context.
     private async Task OpenWebDavAtAsync(MainWindowViewModel vm, Services.AlcifraApiClient api, string subFolder)
     {
-        // Already mounted: no server round trip and no re-mount — go straight to the folder on disk.
+        // Already mounted: go straight to the folder on disk — if it is THIS user's mount. Every user and tenant of the
+        // installation mount one address, so the volume may be another account's: then refuse, naming whose (#2053, owner
+        // decision), rather than open someone else's archive or eject it behind their back.
         if (OsFileManager.MountedPath() is { } mounted)
         {
+            if (OsFileManager.MountAccountOf(mounted) is { } owner && !owner.Is(vm.UserEmail, (await api.GetWhoAmIAsync()).TenantId))
+            {
+                vm.Status = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Get("MwWebDavMountedForOther"), owner.Address);
+                return;
+            }
+
             vm.Status = Strings.Get("MwWebDavOpening");
             var target = subFolder.Length == 0
                 ? mounted
@@ -554,8 +562,10 @@ public partial class MainWindow
             vm.Status = Strings.Get("MwWebDavMounting");
         }
 
+        // Signed in as THIS user (#2053): without the name, the system answers from what it saved for the server.
         var result = await OsFileManager.OpenWebDavFolderAsync(devices.Servers.WebDavUrl.TrimEnd('/'), subFolder,
-            TryGetPlatformHandle()?.Handle ?? 0); // parents the Windows credential dialog (#820)
+            TryGetPlatformHandle()?.Handle ?? 0, // parents the Windows credential dialog (#820)
+            devices.Servers.Username);
         vm.Status = result.Success
             ? Strings.Get("MwWebDavMounted")
             : string.Format(Strings.Get("MwWebDavMountFailed"), result.Error);

@@ -52,7 +52,11 @@ public partial class WebDavTreeParityTests
         // PROPFIND the single /webdav resource: root named "webdav", children == the tree top level.
         var names = await PropFindNamesAsync(dav, basic, ("/" + global::Alcifra.Presentation.WireNames.WebDavSegment));
         Assert.Contains(global::Alcifra.Presentation.WireNames.WebDavSegment, names);
-        Assert.Equal(expectedTopLevel, names.Where(n => n != global::Alcifra.Presentation.WireNames.WebDavSegment).ToHashSet());
+        // The one named exception (#2053, ADR 1023): the hidden file saying whose mount this is, which is not a node.
+        Assert.Contains(global::Alcifra.Presentation.WireNames.WebDavAccountFile, names);
+        Assert.Equal(expectedTopLevel, names
+            .Where(n => n != global::Alcifra.Presentation.WireNames.WebDavSegment && n != global::Alcifra.Presentation.WireNames.WebDavAccountFile)
+            .ToHashSet());
 
         // One mount, one path (#794, ADR 0987): the earlier mount paths answer like any unknown route, so a mount saved
         // under them is added again rather than served by a second way in.

@@ -51,8 +51,8 @@ internal static class WindowsDavDrive
     private static extern int WNetGetConnectionW(string localName, StringBuilder remoteName, ref int length);
 
     /// <summary>Maps <paramref name="unc"/> onto <paramref name="letter"/>:, prompting for credentials in the
-    /// system dialog when needed. Returns the Win32 error code (0 = success).</summary>
-    public static int Map(nint ownerWindow, string unc, char letter)
+    /// system dialog when needed, with <paramref name="userName"/> filled in (#2053). Returns the Win32 error code (0 = success).</summary>
+    public static int Map(nint ownerWindow, string unc, char letter, string? userName = null)
     {
         var resource = new NetResource
         {
@@ -60,7 +60,7 @@ internal static class WindowsDavDrive
             LocalName = $"{letter}:",
             RemoteName = unc,
         };
-        return WNetAddConnection3W(ownerWindow, ref resource, null, null,
+        return WNetAddConnection3W(ownerWindow, ref resource, null, userName,
             ConnectUpdateProfile | ConnectInteractive | ConnectPrompt);
     }
 

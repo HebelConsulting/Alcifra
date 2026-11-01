@@ -162,6 +162,12 @@ internal static class WebDavReads
                     await WebDavSafeSave.WorkingCopyAsync(propStorage, user, child.Document?.Id, child.Document?.CheckedOutByUserId, context.RequestAborted)));
             }
 
+            // The root also lists whose mount it is (#2053): hidden, read-only, and the one entry that is not the tree.
+            if (segments.Count == 0)
+            {
+                responses.Add(WebDavAccountFile.Prop(basePath, user));
+            }
+
             // The caller's own in-flight scratch entries — save collections and remembered sidecars. Every one
             // of these answers PROPFIND, GET and LOCK directly, and a listing that omits what a direct request
             // finds is the same defect this issue is made of, one level up: measured (#794), the OS re-listed

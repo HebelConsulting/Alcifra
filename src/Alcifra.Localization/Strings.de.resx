@@ -6840,4 +6840,7 @@
   <data name="DvMountPaste" xml:space="preserve">
     <value>Wenn das System nach dem Passwort fragt, fügen Sie das hier angezeigte ein.</value>
   </data>
+  <data name="MwWebDavMountedForOther" xml:space="preserve">
+    <value>Die Dateien dieses Servers sind für {0} eingebunden. Werfen Sie dieses Volume zuerst aus und binden Sie dann erneut ein.</value>
+  </data>
 </root>

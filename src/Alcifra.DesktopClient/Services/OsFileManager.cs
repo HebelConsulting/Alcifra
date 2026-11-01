@@ -29,7 +29,12 @@ public static class OsFileManager
 
     // The (executable, argument list) that mounts + opens the given http(s) WebDAV URL. An argument list (not a
     // pre-quoted string) so the multi-line AppleScript with embedded quotes is passed verbatim, no shell escaping.
-    public static (string FileName, string[] Arguments) BuildOpenCommand(string httpUrl, Platform platform)
+    /// <param name="userName">
+    /// The account to sign in as (#2053). Every user and tenant of an installation mount the same address, so without it
+    /// the system answers the sign-in from whatever it saved for that server: the first user's. macOS takes it as
+    /// <c>as user name</c> (AppleScript refuses a user inside the URL), Linux inside the <c>davs://</c> address.
+    /// </param>
+    public static (string FileName, string[] Arguments) BuildOpenCommand(string httpUrl, Platform platform, string? userName = null)
     {
         var uri = new Uri(httpUrl);
         return platform switch
@@ -43,8 +48,10 @@ public static class OsFileManager
             // Alcifra mounts at /Volumes/Alcifra-1, and no name derived from the URL can know that.
             // The only reliable answer is to ask the OS where it put the mount, which needs the mount to have
             // finished — so it cannot happen inside this script.
-            Platform.MacOs => ("osascript", new[] { "-e", $"mount volume \"{httpUrl}\"" }),
-            Platform.Linux => ("xdg-open", new[] { ToDavScheme(uri) }),
+            Platform.MacOs => ("osascript", new[] { "-e", userName is { Length: > 0 }
+                ? $"mount volume \"{httpUrl}\" as user name \"{AppleScriptText(userName)}\""
+                : $"mount volume \"{httpUrl}\"" }),
+            Platform.Linux => ("xdg-open", new[] { ToDavScheme(uri, userName) }),
             _ => ("explorer.exe", new[] { ToWindowsUnc(uri) }),
         };
     }
@@ -67,7 +74,7 @@ public static class OsFileManager
     /// after it produced "The file /Volumes/… does not exist" on a mount that had in fact just succeeded.
     /// </para>
     /// </remarks>
-    public static async Task<OpenResult> OpenWebDavFolderAsync(string httpBaseUrl, string relativeFolder, nint ownerWindow = 0)
+    public static async Task<OpenResult> OpenWebDavFolderAsync(string httpBaseUrl, string relativeFolder, nint ownerWindow = 0, string? userName = null)
     {
         var baseUrl = httpBaseUrl.TrimEnd('/');
         var relative = relativeFolder.Trim('/');
@@ -92,7 +99,7 @@ public static class OsFileManager
             var unc = ToWindowsUnc(new Uri(baseUrl));
             DesktopLog.Debug("WebDAV mount: mapping {Letter}: to {Unc}", letter, unc);
             var rc = await Task.Run(() =>
-                OperatingSystem.IsWindows() ? WindowsDavDrive.Map(ownerWindow, unc, letter) : -1); // guard repeated: CA1416 cannot see through the lambda
+                OperatingSystem.IsWindows() ? WindowsDavDrive.Map(ownerWindow, unc, letter, userName) : -1); // guard repeated: CA1416 cannot see through the lambda
             if (rc != 0)
             {
                 DesktopLog.Warn("WebDAV mount: WNetAddConnection3 for {Letter}: to {Unc} failed with Win32 error {Rc}", letter, unc, rc);
@@ -103,7 +110,7 @@ public static class OsFileManager
         }
         else
         {
-            var (fileName, arguments) = BuildOpenCommand(baseUrl, Current);
+            var (fileName, arguments) = BuildOpenCommand(baseUrl, Current, userName);
             var mount = await RunAsync(fileName, arguments, macOsChecksExit: Current == Platform.MacOs);
             if (!mount.Success)
             {
@@ -507,8 +514,38 @@ public static class OsFileManager
         return "STUVWXYZ".Concat("RQPONMLKJIHGFED").Cast<char?>().FirstOrDefault(c => !taken.Contains(c!.Value));
     }
 
-    private static string ToDavScheme(Uri uri) =>
-        (uri.Scheme == "https" ? "davs://" : "dav://") + uri.Authority + uri.AbsolutePath;
+    private static string ToDavScheme(Uri uri, string? userName = null) =>
+        (uri.Scheme == "https" ? "davs://" : "dav://")
+        + (userName is { Length: > 0 } ? $"{Uri.EscapeDataString(userName)}@" : string.Empty)
+        + uri.Authority + uri.AbsolutePath;
+
+    // A string inside an AppleScript literal: a backslash or a quote would end it, or change what the script does.
+    private static string AppleScriptText(string text) => text.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    /// <summary>Whose mount this is, from the server's hidden account file at its root (#2053); null when it has none.</summary>
+    /// <remarks>
+    /// An older server serves no such file, and then nothing is known: the caller opens the mount as it always did.
+    /// </remarks>
+    public static MountAccount? MountAccountOf(string mountPoint)
+    {
+        try
+        {
+            var lines = System.IO.File.ReadAllLines(System.IO.Path.Combine(mountPoint, Alcifra.Presentation.WireNames.WebDavAccountFile));
+            return lines.Length >= 2 && Guid.TryParse(lines[1], out var tenant) ? new MountAccount(lines[0].Trim(), tenant) : null;
+        }
+        catch (Exception exception) when (exception is System.IO.IOException or UnauthorizedAccessException)
+        {
+            DesktopLog.Debug("WebDAV probe: no account file under {MountPoint} ({Reason})", mountPoint, exception.Message);
+            return null;
+        }
+    }
+
+    /// <summary>The account a mounted volume belongs to: its address and its tenant.</summary>
+    public sealed record MountAccount(string Address, Guid TenantId)
+    {
+        public bool Is(string address, Guid? tenantId) =>
+            string.Equals(Address, address, StringComparison.OrdinalIgnoreCase) && TenantId == tenantId;
+    }
 
     // https://host:443/Alcifra/Intray → \\host@SSL@443\DavWWWRoot\Alcifra\Intray ; http → \\host@80\...
     private static string ToWindowsUnc(Uri uri)

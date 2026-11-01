@@ -6840,4 +6840,7 @@
   <data name="DvMountPaste" xml:space="preserve">
     <value>When the system asks for the password, paste the one shown here.</value>
   </data>
+  <data name="MwWebDavMountedForOther" xml:space="preserve">
+    <value>The files of this server are mounted for {0}. Eject that volume first, then mount again.</value>
+  </data>
 </root>

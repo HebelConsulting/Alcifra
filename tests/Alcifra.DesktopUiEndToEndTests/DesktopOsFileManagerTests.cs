@@ -198,4 +198,45 @@ public class DesktopOsFileManagerTests
 
         Assert.Equal(expected, match);
     }
+
+    // #2053: every user and tenant of an installation mount one address, so the mount names the account to sign in as —
+    // otherwise the system answers from what it saved for the server, which is the first user's.
+    [Fact]
+    public void Each_platform_mounts_as_the_named_user()
+    {
+        var mac = string.Join("\n", OsFileManager.BuildOpenCommand(Url, OsFileManager.Platform.MacOs, "anna@example.ch").Arguments);
+        Assert.Contains($"mount volume \"{Url}\" as user name \"anna@example.ch\"", mac);   // never inside the URL: AppleScript refuses it
+
+        var linux = Assert.Single(OsFileManager.BuildOpenCommand(Url, OsFileManager.Platform.Linux, "anna@example.ch").Arguments);
+        Assert.StartsWith("davs://anna%40example.ch@archive.example.com:8443/", linux);
+    }
+
+    [Fact]
+    public void A_quote_in_the_user_name_cannot_end_the_AppleScript_string()
+    {
+        var mac = string.Join("\n", OsFileManager.BuildOpenCommand(Url, OsFileManager.Platform.MacOs, "a\"b\\c").Arguments);
+        Assert.EndsWith("as user name \"a\\\"b\\\\c\"", mac);
+    }
+
+    [Fact]
+    public void The_account_file_says_whose_mount_it_is()
+    {
+        var mount = Directory.CreateTempSubdirectory("alcifra-mount-").FullName;
+        try
+        {
+            Assert.Null(OsFileManager.MountAccountOf(mount));   // an older server: nothing known, the mount opens as before
+
+            var tenant = Guid.NewGuid();
+            File.WriteAllText(Path.Combine(mount, global::Alcifra.Presentation.WireNames.WebDavAccountFile), $"anna@example.ch\n{tenant:D}\n");
+            var owner = OsFileManager.MountAccountOf(mount)!;
+
+            Assert.True(owner.Is("ANNA@example.ch", tenant));
+            Assert.False(owner.Is("tom@example.ch", tenant));          // another user of the tenant
+            Assert.False(owner.Is("anna@example.ch", Guid.NewGuid())); // the same address in another tenant
+        }
+        finally
+        {
+            Directory.Delete(mount, recursive: true);
+        }
+    }
 }

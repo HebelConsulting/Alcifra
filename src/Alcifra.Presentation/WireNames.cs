@@ -13,6 +13,13 @@ public static class WireNames
     /// <summary>The WebDAV mount's single path segment; the OS labels a mounted volume with it.</summary>
     public const string WebDavSegment = "webdav";
 
+    /// <summary>
+    /// The hidden, read-only file at the WebDAV root naming whose mount it is: the account's address and its tenant's
+    /// id, one per line (#2053). Every user and tenant of an installation share one mount address, so this is how a
+    /// client tells its own mounted volume from another user's.
+    /// </summary>
+    public const string WebDavAccountFile = ".alcifra-account";
+
     /// <summary>The desktop client's OAuth client id.</summary>
     public const string DesktopClientId = $"{Product}-desktop";
 

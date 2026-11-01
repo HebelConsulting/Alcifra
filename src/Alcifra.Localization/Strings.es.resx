@@ -6840,4 +6840,7 @@
   <data name="DvMountPaste" xml:space="preserve">
     <value>Cuando el sistema pida la contraseña, pegue la que se muestra aquí.</value>
   </data>
+  <data name="MwWebDavMountedForOther" xml:space="preserve">
+    <value>Los archivos de este servidor están montados para {0}. Expulsa primero ese volumen y vuelve a montarlo.</value>
+  </data>
 </root>

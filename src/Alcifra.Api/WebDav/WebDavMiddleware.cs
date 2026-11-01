@@ -163,6 +163,13 @@ public sealed class WebDavMiddleware
             segments[0] = personalRoot.Name;
         }
 
+        // Whose mount this is (#2053): one hidden, read-only file at the root, answered before the tree is consulted.
+        if (method != "OPTIONS" && WebDavAccountFile.Is(segments))
+        {
+            await WebDavAccountFile.HandleAsync(context, method, user, matchedBase);
+            return;
+        }
+
         switch (method)
         {
             case "OPTIONS": HandleOptions(context); break;
