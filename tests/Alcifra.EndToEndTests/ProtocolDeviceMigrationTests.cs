@@ -57,8 +57,6 @@ public class ProtocolDeviceMigrationTests : IAsyncLifetime
                 Email = "both@example.com",
                 DisplayName = "Both",
                 CreatedAt = DateTimeOffset.UtcNow,
-                WebDavPasswordHash = "dav-hash",
-                ImapPasswordHash = "imap-hash",
             });
             context.Users.Add(new User
             {
@@ -67,7 +65,6 @@ public class ProtocolDeviceMigrationTests : IAsyncLifetime
                 Email = "dav@example.com",
                 DisplayName = "Dav",
                 CreatedAt = DateTimeOffset.UtcNow,
-                WebDavPasswordHash = "dav-only-hash",
                 IsActive = false,
             });
             context.Users.Add(new User
@@ -79,6 +76,12 @@ public class ProtocolDeviceMigrationTests : IAsyncLifetime
                 CreatedAt = DateTimeOffset.UtcNow,
             });
             await context.SaveChangesAsync();
+
+            // The hash columns are no longer in the model (#2059), but they exist at this schema state: set them in SQL.
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"Users\" SET \"WebDavPasswordHash\" = 'dav-hash', \"ImapPasswordHash\" = 'imap-hash' WHERE \"Id\" = {both}");
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"Users\" SET \"WebDavPasswordHash\" = 'dav-only-hash' WHERE \"Id\" = {davOnly}");
         }
 
         await using (var context = Context())

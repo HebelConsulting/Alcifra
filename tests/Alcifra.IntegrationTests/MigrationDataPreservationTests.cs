@@ -61,6 +61,12 @@ public class MigrationDataPreservationTests
         // forward migration did. The index dropped alongside it (EmailedAt, EmailFailedAt, Id) backed the old
         // pending predicate, which no longer exists.
         "20260927151156_AddEmailOutbox",
+        // Retired Users columns (#2059, ADRs 1020/1021): drops WebDavPasswordHash, ImapPasswordHash and SmimeCertificatePem.
+        // The VALUES ARE NOT LOST: the hashes were copied into ProtocolDevices by 20261031222421_ProtocolDevices, and the
+        // certificates were carried into the registry by v0.56.0's startup. The migration REFUSES while any active user
+        // holds a certificate that was neither carried nor answered with the retirement notification. Owner-approved
+        // 2026-11-01.
+        "20261101153713_DropRetiredUserColumns",
     };
 
     private static AlcifraDbContext MetadataContext() =>

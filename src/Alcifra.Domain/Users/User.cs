@@ -29,28 +29,10 @@ public class User : ITenantScoped, IConcurrencyTracked
     // Never compare/store a raw password anywhere else.
     public string? PasswordHash { get; set; }
 
-    // A separate, app-specific password for the WebDAV gateway (ADR "WebDAV gateway (read-write, first slice)")
-    // — PasswordHasher<User>-hashed, generated once and shown to the user, so the real login password isn't
-    // typed into the OS keychain (and MFA users, who may have no simple password, can still mount). Nullable:
-    // null = WebDAV access disabled for this user; revoke = clear it.
-    public string? WebDavPasswordHash { get; set; }
-
-    // The IMAP endpoint's app-specific password (ADR "IMAP endpoint (read-only, first slice)") — the exact
-    // WebDAV pattern: PasswordHasher<User>-hashed, generated once and shown, null = IMAP disabled, revoke =
-    // clear. A separate credential per protocol surface, so revoking one does not cut the others.
-    public string? ImapPasswordHash { get; set; }
-
     // The user's own IMAP view choice (interviewed on #562): false = only email documents appear in the
     // mailboxes; true = every visible document appears, non-emails as a synthetic message carrying the file
     // as an attachment. Self-service (set from the IMAP dialog), deliberately not an admin-granted right.
     public bool ImapShowAllDocuments { get; set; }
-
-    // The user's S/MIME certificate — the PUBLIC half only, PEM (#1332): when set, IMAP fetches are
-    // enveloped to it in-process, no encryption sidecar involved. Null = plaintext IMAP, exactly the
-    // pre-existing behaviour. Single certificate by design — the per-device multi-certificate future is
-    // the encryption service's track (its ADR 0009), provisioned from outside rather than through the
-    // self-service dialog that writes this column.
-    public string? SmimeCertificatePem { get; set; }
 
     public bool IsActive { get; set; } = true;
 

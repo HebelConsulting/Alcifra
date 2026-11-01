@@ -45,8 +45,8 @@ public class PasswordPolicyIsEnforcedTests
         {
             var source = File.ReadAllText(file);
 
-            // The LOGIN password only. WebDavPasswordHash and ImapPasswordHash are 18 random bytes issued by
-            // the server and shown once — not chosen, not the exposure — and they do not match this.
+            // The LOGIN password only. A protocol device's password (ADR 1020) is random bytes issued by the
+            // server and shown once — not chosen, not the exposure — and it does not match this.
             var assignments = Regex.Matches(source, @"\.PasswordHash\s*=\s*_?\w*[Hh]asher\.HashPassword").Count;
             if (assignments == 0)
             {

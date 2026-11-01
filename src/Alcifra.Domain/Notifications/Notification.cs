@@ -92,7 +92,8 @@ public enum NotificationType
 
     // The user's own encrypted-mail certificate retired with the self-service column (#1970 slice 4), and it does not
     // address them in the certificate registry: what they fetch is no longer sealed to it until they enrol a hardware
-    // key. Sent once per user, at the startup that carries certificates into the registry.
+    // key. Sent once per user by v0.56.0's startup carry. RETIRED with the column (#2059): nothing produces it any more,
+    // and the value stays so the notifications already sent keep displaying.
     OwnCertificateRetired = 22,
 }
 

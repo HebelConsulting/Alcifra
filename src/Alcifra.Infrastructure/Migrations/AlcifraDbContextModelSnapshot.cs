@@ -2964,9 +2964,6 @@ namespace Alcifra.Infrastructure.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)");
 
-                    b.Property<string>("ImapPasswordHash")
-                        .HasColumnType("text");
-
                     b.Property<bool>("ImapShowAllDocuments")
                         .HasColumnType("boolean");
 
@@ -2990,16 +2987,10 @@ namespace Alcifra.Infrastructure.Migrations
                     b.Property<bool>("RotateIntrayUploads")
                         .HasColumnType("boolean");
 
-                    b.Property<string>("SmimeCertificatePem")
-                        .HasColumnType("text");
-
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("TotpSecret")
-                        .HasColumnType("text");
-
-                    b.Property<string>("WebDavPasswordHash")
                         .HasColumnType("text");
 
                     b.HasKey("Id");

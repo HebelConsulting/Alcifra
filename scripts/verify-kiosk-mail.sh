@@ -36,9 +36,9 @@
 #    tests nothing — it never arrives — which is why the outcome is read from the log rather than the session.
 #
 # 3. IMAP READ-BACK *IS* AVAILABLE, for the demo tenant. An earlier version of this file stated the opposite:
-#    IMAP authenticates against `User.ImapPasswordHash`, a separately generated password shown once (ADR 0594),
-#    so no automated caller has one — TRUE in general, and FALSE here, because `DemoDataSeeder` seeds that hash
-#    with the demo password for exactly these users. So the advertised credential does open IMAP on the kiosk,
+#    IMAP authenticates against a device's own password, generated and shown once (ADR 1020; before it the
+#    retired `User.ImapPasswordHash`, ADR 0594), so no automated caller has one — TRUE in general, and FALSE here,
+#    because `DemoDataSeeder` seeds an "Earlier IMAP password" device with the demo password for exactly these users. So the advertised credential does open IMAP on the kiosk,
 #    and the stronger proof is available after all. Do not carry this leg into a check against a real tenant.
 #
 # THE HISTORY IS THE POINT OF THIS PARAGRAPH. Two versions of this script have existed under one name: the
