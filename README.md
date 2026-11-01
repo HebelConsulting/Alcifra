@@ -27,7 +27,7 @@ A live instance is running at **<https://demo.alcifra.dev>** — log in and expl
 
 These are deliberately trivial, publicly posted credentials on a throwaway demo that wipes itself nightly — they are demo furniture, not an example of how the product handles secrets.
 
-It resets to a clean, known state every night, so feel free to create, upload, workflow, and delete anything. The user manual is one click away at [demo.alcifra.dev/download/manual/](https://demo.alcifra.dev/download/manual/).
+It resets to a clean, known state every night, so feel free to create, upload, workflow, and delete anything. The user manual, in English and German, is one click away at [demo.alcifra.dev/download/manual/](https://demo.alcifra.dev/download/manual/).
 
 > **This demo is not a deployment.** The kiosk above runs in Development with development certificates, a published password and a nightly wipe — it is furniture for exploring, and nothing about it describes how the product is deployed.
 >
@@ -112,7 +112,11 @@ helm upgrade --install alcifra oci://ghcr.io/hebelconsulting/charts/alcifra \
 
 ## Encryption — two paid extras
 
-Encryption for Alcifra comes as **two separate products**, and the line between them is not
+**Without either, your own hardware keys.** Every installation lets people enrol a smartcard or security key — two per
+person — and seals to it what is meant only for them: the mail a device fetches,
+where that device asks for it, the Password Store's entries, sealed documents and offline exports.
+
+Beyond that, encryption for Alcifra comes as **two separate products**, and the line between them is not
 packaging: it is **whether the component holds a secret.**
 
 **The Encryption Module — encrypted delivery.** Content leaves the archive as an envelope addressed to the
