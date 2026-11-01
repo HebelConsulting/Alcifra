@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Alcifra.Api.Hypermedia;
+using Alcifra.Api.ProtocolDevices;
 using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Users;
 using Alcifra.Infrastructure.Persistence;
@@ -14,7 +15,7 @@ namespace Alcifra.Api.Controllers;
 /// <summary>
 /// Manages the caller's app-specific WebDAV password (ADR "WebDAV gateway") — a separate credential from the
 /// login password, so it isn't typed into an OS keychain (and MFA users can still mount). Generate returns the
-/// plaintext once; only its hash is stored (<c>User.WebDavPasswordHash</c>). User-only — a ServiceAccount has
+/// plaintext once; only its hash is stored, as the earlier password's legacy device (#1970). User-only — a ServiceAccount has
 /// no WebDAV mount.
 /// </summary>
 [ApiController]
@@ -33,11 +34,13 @@ public class WebDavAccessController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly PasswordHasher<User> _passwordHasher = new();
     private readonly IAuditRecorder _audit;
+    private readonly TimeProvider _clock;
 
     public WebDavAccessController(AlcifraDbContext dbContext, ICurrentUserAccessor currentUserAccessor, IConfiguration configuration, IAuditRecorder audit,
-        Concurrency.UserVerbs users)
+        Concurrency.UserVerbs users, TimeProvider clock)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _users = users;
         _currentUserAccessor = currentUserAccessor;
         _configuration = configuration;
@@ -65,7 +68,8 @@ public class WebDavAccessController : ControllerBase
             return Forbid();
         }
 
-        return Ok(new WebDavStatusResource { Enabled = user.WebDavPasswordHash is not null, Username = user.Email, Url = MountUrl() });
+        var enabled = await LegacyProtocolDevices.ExistsAsync(_dbContext, user.Id, ProtocolDeviceKind.LegacyDav, cancellationToken);
+        return Ok(new WebDavStatusResource { Enabled = enabled, Username = user.Email, Url = MountUrl() });
     }
 
     [HttpHead]
@@ -83,8 +87,11 @@ public class WebDavAccessController : ControllerBase
 
         // A URL/Basic-auth-safe password (hex — no +/=/: characters to escape).
         var password = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-        user.WebDavPasswordHash = _passwordHasher.HashPassword(user, password);
-        await _users.MutateAsync(Request, user, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+        // The earlier WebDAV/calendar password is a legacy device until slice 3 retires this endpoint (#1970).
+        var hash = _passwordHasher.HashPassword(user, password);
+        await _users.MutateAsync(Request, user,
+            apply: () => LegacyProtocolDevices.SetAsync(_dbContext, user, ProtocolDeviceKind.LegacyDav, hash, _clock.GetUtcNow(), cancellationToken),
+            cancellationToken: cancellationToken);
 
         // Issuing one hands out a long-lived password that bypasses the interactive login and every MFA
         // policy attached to it (#1092) — precisely what a SIEM watches for, and until now unrecorded. The
@@ -104,8 +111,9 @@ public class WebDavAccessController : ControllerBase
             return Forbid();
         }
 
-        user.WebDavPasswordHash = null;
-        await _users.MutateAsync(Request, user, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+        await _users.MutateAsync(Request, user,
+            apply: () => LegacyProtocolDevices.RemoveAsync(_dbContext, user.Id, ProtocolDeviceKind.LegacyDav, cancellationToken),
+            cancellationToken: cancellationToken);
 
         // The revocation matters as much as the issue: it is what an incident response does, and a trail
         // showing the credential issued but never withdrawn tells the wrong story.

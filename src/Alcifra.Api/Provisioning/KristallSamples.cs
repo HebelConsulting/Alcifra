@@ -167,7 +167,7 @@ internal static class KristallSamples
         seed.Db.Groups.Add(accounting);
         await seed.Db.SaveChangesAsync();
 
-        await DemoSeedItems.EnableDavAndImapAsync(seed.Db, hasher, password, [seed.AdminId, lukas.Id, sofia.Id]);
+        await DemoSeedItems.EnableDavAndImapAsync(seed.Db, hasher, password, [seed.AdminId, lukas.Id, sofia.Id], seed.Now);
         AddToGroup(seed, accounting.Id, seed.AdminId, lukas.Id);
 
         // The group (the administrator and Lukas) works in the whole repository; Sofia, outside it, only

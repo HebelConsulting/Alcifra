@@ -66,3 +66,7 @@ public sealed class TenantMailDomainVerbs(AlcifraDbContext dbContext)
 
 public sealed class UserIdentityAliasVerbs(AlcifraDbContext dbContext)
     : EntityVerbContract<UserIdentityAlias>(dbContext, EtagMismatchException.ForIdentityAlias);
+
+/// <summary>A user's protocol device (#1970): renamed, switched and revoked under its own ETag.</summary>
+public sealed class ProtocolDeviceVerbs(AlcifraDbContext dbContext)
+    : EntityVerbContract<ProtocolDevice>(dbContext, EtagMismatchException.ForProtocolDevice);

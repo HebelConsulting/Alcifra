@@ -155,7 +155,7 @@ public static class DemoDataSeeder
         seed.Db.Users.AddRange(anna, tom);
         await seed.Db.SaveChangesAsync();
 
-        await DemoSeedItems.EnableDavAndImapAsync(seed.Db, hasher, password, [anna.Id, tom.Id]);
+        await DemoSeedItems.EnableDavAndImapAsync(seed.Db, hasher, password, [anna.Id, tom.Id], seed.Now);
         AddToGroup(seed, archive.Team.AccountingGroupId, anna.Id);
         GrantRead(seed, tom.Id, "tom");
         await seed.Db.SaveChangesAsync();

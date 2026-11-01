@@ -163,6 +163,8 @@ public partial class ClaimTokenDecisionTests
         }
     }
 
-    [GeneratedRegex(@"_?[dD]bContext\.(\w+)")]
+    // `db` too (#1970): a primary-constructor parameter named `db` made a claim on a tracked entity INVISIBLE here, so
+    // the guard passed on a claim nobody had decided about. Found by adding one and seeing nothing fail.
+    [GeneratedRegex(@"(?:\b_?[dD]bContext|\bdb)\.(\w+)")]
     private static partial Regex DbSetUse();
 }

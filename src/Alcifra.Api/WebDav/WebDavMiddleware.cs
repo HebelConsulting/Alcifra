@@ -78,7 +78,6 @@ public sealed class WebDavMiddleware
 
     private readonly RequestDelegate _next;
     private readonly WebDavLockStore _lockStore;
-    private readonly PasswordHasher<User> _passwordHasher = new();
 
     public WebDavMiddleware(RequestDelegate next, WebDavLockStore lockStore)
     {
@@ -127,7 +126,7 @@ public sealed class WebDavMiddleware
         });
 
         // ---- Basic auth against the app-specific WebDAV password -------------------------------------------
-        var user = await AuthenticateAsync(context, db);
+        var user = await AuthenticateAsync(context);
         if (user is null)
         {
             context.Response.Headers["WWW-Authenticate"] = $"Basic realm=\"{Alcifra.Localization.Strings.ProductName} WebDAV\"";
@@ -183,7 +182,7 @@ public sealed class WebDavMiddleware
 
     }
 
-    private async Task<User?> AuthenticateAsync(HttpContext context, AlcifraDbContext db)
+    private async Task<User?> AuthenticateAsync(HttpContext context)
     {
         var header = context.Request.Headers.Authorization.ToString();
         if (!header.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
@@ -201,21 +200,10 @@ public sealed class WebDavMiddleware
             return null;
         }
 
-        var email = decoded[..sep];
-        var password = decoded[(sep + 1)..];
-        var normalized = email.ToUpperInvariant();
-
-        // No tenant is known yet — bypass the tenant filter to find the user by email, then rely on the stored
-        // hash for verification (the same pattern as the interactive login page).
-        var user = await db.Users.IgnoreQueryFilters(["TenantFilter"])
-            .SingleOrDefaultAsync(u => u.NormalizedEmail == normalized && u.IsActive);
-        if (user?.WebDavPasswordHash is null ||
-            _passwordHasher.VerifyHashedPassword(user, user.WebDavPasswordHash, password) == PasswordVerificationResult.Failed)
-        {
-            return null;
-        }
-
-        return user;
+        // The one check every protocol shares (#1970): the device the password names, and its Files switch.
+        var signIn = await context.RequestServices.GetRequiredService<Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator>()
+            .SignInAsync(decoded[..sep], decoded[(sep + 1)..], Alcifra.Api.ProtocolDevices.DeviceProtocol.Files, context.RequestAborted);
+        return signIn?.User;
     }
 
     private static void HandleOptions(HttpContext context)

@@ -65,4 +65,8 @@ public sealed class EtagMismatchException : ConcurrencyException
     // ADR 1015: an identity alias, removed or replaced by a second administrator meanwhile.
     public static EtagMismatchException ForIdentityAlias() =>
         new("The identity alias has been modified since it was last read.");
+
+    // #1970: a protocol device, renamed, switched or revoked in another session meanwhile.
+    public static EtagMismatchException ForProtocolDevice() =>
+        new("The device has been modified since it was last read.");
 }

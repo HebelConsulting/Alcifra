@@ -28,7 +28,6 @@ public sealed class ImapSession
     private readonly X509Certificate2? _tlsCertificate;
     private readonly ImapOptions _options;
     private readonly ImapConnectionRegistry _registry;
-    private readonly PasswordHasher<User> _passwordHasher = new();
 
     private Stream _stream = Stream.Null;
     private StreamReader _reader = StreamReader.Null;
@@ -547,12 +546,13 @@ public sealed class ImapSession
         // The login runs before any tenant is known — the same cross-tenant email resolution as the login page
         // (the tenant filter's TenantId == null predicate would otherwise match nothing).
         var normalized = email.Trim().ToUpperInvariant();
+        var throttled = Alcifra.Api.ProtocolDevices.ProtocolDevicePassword.ThrottleIdentity(normalized, password);
 
         // Asked before the lookup and before the hash (ADR 0716, #843). A raw socket is the cheapest door in
         // the building to hammer — no page to render, no form to post — so it is the one that most needs the
         // wall. The refusal is worded exactly like the failure below in everything but its response code, so
         // it still tells a prober nothing about which accounts exist.
-        var verdict = await throttle.CheckAsync(Alcifra.Api.Security.SignInSurface.Imap, normalized, _address);
+        var verdict = await throttle.CheckAsync(Alcifra.Api.Security.SignInSurface.Imap, throttled, _address);
         if (!verdict.Allowed)
         {
             await WriteLineAsync($"{tag} NO [UNAVAILABLE] too many failed attempts, try again later");
@@ -560,8 +560,10 @@ public sealed class ImapSession
             return;
         }
 
-        var user = await db.Users.IgnoreQueryFilters(["TenantFilter"])
-            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalized && u.IsActive);
+        // The one check every protocol shares (#1970): the device the password names, and its Mail switch.
+        var signIn = await scope.ServiceProvider.GetRequiredService<Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator>()
+            .SignInAsync(email.Trim(), password, Alcifra.Api.ProtocolDevices.DeviceProtocol.Mail);
+        var user = signIn?.User;
 
         // The NAME rides along with the Active check because the per-tenant encryption gate matches tenant
         // names (ADR 0813) — one query answers both, and FETCH must not pay a lookup per message.
@@ -572,35 +574,15 @@ public sealed class ImapSession
                 .Select(t => t.Name)
                 .FirstOrDefaultAsync();
 
-        if (user?.ImapPasswordHash is null
-            || tenantName is null
-            || _passwordHasher.VerifyHashedPassword(user, user.ImapPasswordHash, password) == PasswordVerificationResult.Failed)
+        if (signIn is null || user is null || tenantName is null)
         {
             // One failure message for every cause — a prober learns nothing about which accounts exist or
             // have IMAP enabled. The failed attempt is Warning-logged for SIEM aggregation, like a failed login.
             _logger.LogWarning("IMAP [{Connection}] authentication failed for {Email}", _connection, email);
-            await throttle.RecordFailureAsync(Alcifra.Api.Security.SignInSurface.Imap, normalized, _address);
+            await throttle.RecordFailureAsync(Alcifra.Api.Security.SignInSurface.Imap, throttled, _address);
             await WriteLineAsync($"{tag} NO authentication failed");
             return;
         }
-
-        // The per-user cap counts at successful authentication (ADR 0618) — before it the user is unknown.
-        // The refused session stays unauthenticated, so the pre-auth timeout keeps it on the short leash.
-        if (!_registry.TryAddUser(user.Id, _options.MaxConnectionsPerUser))
-        {
-            _logger.LogDebug("IMAP [{Connection}] connection refused for {Email}: per-user connection cap ({MaxConnectionsPerUser}) reached", _connection, email, _options.MaxConnectionsPerUser);
-            await WriteLineAsync($"{tag} NO too many connections for this user");
-            return;
-        }
-
-        await throttle.RecordSuccessAsync(Alcifra.Api.Security.SignInSurface.Imap, normalized, _address);
-
-        _userId = user.Id;
-        _tenantId = user.TenantId;
-        _tenantName = tenantName;
-        _authenticated = true;
-        _email = user.Email;
-        ShowAllDocuments = user.ImapShowAllDocuments;
 
         // THE MODULE FIRST, and where it answers it is the ONLY source (ADR 0842) — not a fallback chain and
         // not a union, because a union means a certificate revoked in the module still opens mail while a
@@ -618,7 +600,44 @@ public sealed class ImapSession
             .GetRequiredService<Alcifra.Infrastructure.Modules.ModuleReaderCertificates>()
             .ForAsync(user.Id);
 
-        ReaderCertificates = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(fromModule, user.SmimeCertificatePem);
+        var resolved = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(fromModule, user.SmimeCertificatePem);
+
+        // The DEVICE decides whether this session seals (#1970): as always where the organisation seals mail or for the
+        // earlier IMAP password; by its own setting otherwise. Decided BEFORE the session counts as signed in, so a
+        // refusal leaves no connection slot taken.
+        var organisationSealsMail = scope.ServiceProvider
+            .GetRequiredService<Alcifra.Infrastructure.Encryption.EncryptionModes>().EnvelopesMail(tenantName);
+        var sealing = Alcifra.Api.ProtocolDevices.DeviceMailSealing.Decide(signIn.Device, organisationSealsMail, resolved);
+        if (sealing.Refused)
+        {
+            // The password was right, so this is not a failed attempt for the throttle. The client shows the reason;
+            // Warning, because mail the user expects will not arrive until a key is enrolled or the setting changes.
+            _logger.LogWarning(
+                "IMAP [{Connection}] refused device {DeviceId} of {Email}: it requires sealed mail and the user has no certificate to seal to",
+                _connection, signIn.Device.Id, email);
+            await WriteLineAsync($"{tag} NO [AUTHORIZATIONFAILED] this device requires encrypted mail, and no hardware key is enrolled for it");
+            return;
+        }
+
+        // The per-user cap counts at successful authentication (ADR 0618) — before it the user is unknown.
+        // The refused session stays unauthenticated, so the pre-auth timeout keeps it on the short leash.
+        if (!_registry.TryAddUser(user.Id, _options.MaxConnectionsPerUser))
+        {
+            _logger.LogDebug("IMAP [{Connection}] connection refused for {Email}: per-user connection cap ({MaxConnectionsPerUser}) reached", _connection, email, _options.MaxConnectionsPerUser);
+            await WriteLineAsync($"{tag} NO too many connections for this user");
+            return;
+        }
+
+        await throttle.RecordSuccessAsync(Alcifra.Api.Security.SignInSurface.Imap, throttled, _address);
+
+        _userId = user.Id;
+        _tenantId = user.TenantId;
+        _tenantName = tenantName;
+        _authenticated = true;
+        _email = user.Email;
+        ShowAllDocuments = user.ImapShowAllDocuments;
+
+        ReaderCertificates = sealing.Certificates;
 
         // A sign-in is a security-relevant SUCCESS, which is Information by the logging convention — the
         // counterpart of the Warning a failure already emits, so a SIEM sees both sides. ShowAllDocuments

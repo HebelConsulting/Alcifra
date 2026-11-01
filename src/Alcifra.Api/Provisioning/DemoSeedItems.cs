@@ -238,12 +238,20 @@ internal static class DemoSeedItems
     /// </para>
     /// </remarks>
     internal static async Task EnableDavAndImapAsync(
-        AlcifraDbContext dbContext, PasswordHasher<User> hasher, string demoPassword, Guid[] userIds)
+        AlcifraDbContext dbContext, PasswordHasher<User> hasher, string demoPassword, Guid[] userIds, DateTimeOffset now)
     {
+        // As the earlier passwords' devices (#1970), so a visitor's mail client finds mail, files, calendars and contacts
+        // with the one demo password, as before.
         foreach (var user in await dbContext.Users.Where(u => userIds.Contains(u.Id)).ToListAsync())
         {
-            user.WebDavPasswordHash ??= hasher.HashPassword(user, demoPassword);
-            user.ImapPasswordHash ??= hasher.HashPassword(user, demoPassword);
+            foreach (var kind in new[] { ProtocolDeviceKind.LegacyDav, ProtocolDeviceKind.LegacyImap })
+            {
+                if (!await Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.ExistsAsync(dbContext, user.Id, kind, CancellationToken.None))
+                {
+                    dbContext.ProtocolDevices.Add(
+                        Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.New(user, kind, hasher.HashPassword(user, demoPassword), now));
+                }
+            }
         }
 
         await dbContext.SaveChangesAsync();

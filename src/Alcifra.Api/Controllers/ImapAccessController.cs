@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Alcifra.Api.Documents;
 using Alcifra.Api.Hypermedia;
+using Alcifra.Api.ProtocolDevices;
 using Alcifra.Api.Imap;
 using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Users;
@@ -38,6 +39,7 @@ public class ImapAccessController : ControllerBase
     private readonly PersonalMailboxProvisioner _mailbox;
     private readonly PasswordHasher<User> _passwordHasher = new();
     private readonly IAuditRecorder _audit;
+    private readonly TimeProvider _clock;
 
     public ImapAccessController(
         AlcifraDbContext dbContext,
@@ -47,9 +49,11 @@ public class ImapAccessController : ControllerBase
         IConfiguration configuration,
         PersonalMailboxProvisioner mailbox,
         IAuditRecorder audit,
-        Concurrency.UserVerbs users)
+        Concurrency.UserVerbs users,
+        TimeProvider clock)
     {
         _dbContext = dbContext;
+        _clock = clock;
         _users = users;
         _currentUserAccessor = currentUserAccessor;
         _currentTenantAccessor = currentTenantAccessor;
@@ -92,7 +96,9 @@ public class ImapAccessController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken cancellationToken) =>
-        await LoadUserAsync(cancellationToken) is not { } user ? Forbid() : Ok(Status<ImapStatusResource>(user));
+        await LoadUserAsync(cancellationToken) is not { } user
+            ? Forbid()
+            : Ok(Status<ImapStatusResource>(user, await LegacyProtocolDevices.ExistsAsync(_dbContext, user.Id, ProtocolDeviceKind.LegacyImap, cancellationToken)));
 
     [HttpHead]
     public async Task<IActionResult> Head(CancellationToken cancellationToken) =>
@@ -108,8 +114,11 @@ public class ImapAccessController : ControllerBase
         }
 
         var password = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-        user.ImapPasswordHash = _passwordHasher.HashPassword(user, password);
-        await _users.MutateAsync(Request, user, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+        // The earlier IMAP password is a legacy device until slice 3 retires this endpoint (#1970).
+        var hash = _passwordHasher.HashPassword(user, password);
+        await _users.MutateAsync(Request, user,
+            apply: () => LegacyProtocolDevices.SetAsync(_dbContext, user, ProtocolDeviceKind.LegacyImap, hash, _clock.GetUtcNow(), cancellationToken),
+            cancellationToken: cancellationToken);
 
         // A long-lived credential that bypasses the interactive login and its MFA (#1092). The password is
         // never logged — the event records that one was issued, to whom, and when.
@@ -126,7 +135,7 @@ public class ImapAccessController : ControllerBase
             await _mailbox.EnsureMailboxAsync(tenantId, user.Id, cancellationToken);
         }
 
-        var resource = Status<ImapPasswordResource>(user);
+        var resource = Status<ImapPasswordResource>(user, enabled: true);
         resource.Password = password;
         return Ok(resource);
     }
@@ -140,8 +149,9 @@ public class ImapAccessController : ControllerBase
             return Forbid();
         }
 
-        user.ImapPasswordHash = null;
-        await _users.MutateAsync(Request, user, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+        await _users.MutateAsync(Request, user,
+            apply: () => LegacyProtocolDevices.RemoveAsync(_dbContext, user.Id, ProtocolDeviceKind.LegacyImap, cancellationToken),
+            cancellationToken: cancellationToken);
 
         await _audit.RecordAsync(AuditActions.ImapPasswordIssued, "User", user.Id, user.Email,
             "Revoked", cancellationToken: cancellationToken);
@@ -163,7 +173,7 @@ public class ImapAccessController : ControllerBase
         return NoContent();
     }
 
-    private T Status<T>(User user) where T : ImapStatusResource, new()
+    private T Status<T>(User user, bool enabled) where T : ImapStatusResource, new()
     {
         var options = _options.Value;
         var host = options.PublicHost
@@ -171,7 +181,7 @@ public class ImapAccessController : ControllerBase
         return new T
         {
             Available = options.Enabled,
-            Enabled = user.ImapPasswordHash is not null,
+            Enabled = enabled,
             Username = user.Email,
             Host = host,
             // The PUBLISHED port, not the bound one — a user can only act on what is reachable from outside,

@@ -108,6 +108,14 @@ public static class SaConsoleApp
                     certificate.AddCommand<CertificateDeleteCommand>("delete")
                         .WithDescription("Remove the registered certificate.");
                 });
+                me.AddBranch("device", device =>
+                {
+                    device.SetDescription("The devices that reach your mail, files, calendars and contacts, each with its own password.");
+                    device.AddCommand<DeviceListCommand>("list").WithDescription("List your devices, their protocols and when each was last used.");
+                    device.AddCommand<DeviceEnrolCommand>("enrol")
+                        .WithDescription("Enrol a device; its password is printed once, on stdout.");
+                    device.AddCommand<DeviceRevokeCommand>("revoke").WithDescription("Revoke a device; its password stops working at once.");
+                });
             });
 
             // CERTIFICATES, the ADMINISTRATOR's surface (owner-decided): enrolling for OTHER people, in bulk,

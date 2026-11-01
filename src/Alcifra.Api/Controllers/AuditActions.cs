@@ -147,6 +147,10 @@ public static class AuditActions
     // administrator vouching for the address, and both directions are recorded.
     public const string UserIdentityAliasAdded = "User.IdentityAliasAdded";
     public const string UserIdentityAliasRemoved = "User.IdentityAliasRemoved";
+    // #1970: a device's own password for IMAP, WebDAV, CalDAV and CardDAV. Never the password; the name and protocols.
+    public const string ProtocolDeviceEnrolled = "User.ProtocolDeviceEnrolled";
+    public const string ProtocolDeviceChanged = "User.ProtocolDeviceChanged";
+    public const string ProtocolDeviceRevoked = "User.ProtocolDeviceRevoked";
     public const string UserPasswordChanged = "User.PasswordChanged";
     public const string UserPasswordReset = "User.PasswordReset";
     public const string UserMfaEnabled = "User.MfaEnabled";

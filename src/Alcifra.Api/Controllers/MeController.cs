@@ -178,6 +178,8 @@ public class MeController : ControllerBase
                 new Link("passkeyRegister", "/api/users/me/passkeys/register", "POST"),
                 new Link("webdavPassword", "/api/me/webdav-password", "GET"),
                 new Link("imapAccess", "/api/me/imap-access", "GET"),
+                // Each device's own password for mail, files, calendars and contacts (#1970): list and enrol here.
+                new Link("protocolDevices", "/api/me/devices", "GET"),
                 new Link("smimeCertificate", "/api/me/smime-certificate", "GET"),
                 // The certificate SET envelopes are addressed to, read-only (#1741): what a client seals to its own user.
                 new Link("readerCertificates", "/api/me/reader-certificates", "GET"),

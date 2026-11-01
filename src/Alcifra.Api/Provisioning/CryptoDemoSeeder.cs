@@ -109,7 +109,7 @@ public static class CryptoDemoSeeder
         var admin = await dbContext.Users.SingleAsync(u => u.Id == provisioned.AdministratorId);
         admin.ImapShowAllDocuments = true;
         await dbContext.SaveChangesAsync();
-        await DemoSeedItems.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)]);
+        await DemoSeedItems.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)], now);
 
         // Working rights on the root repository for every seeded user — enough to see, read and file, so the
         // phones' IMAP trees show the repository and its documents. The administrators would see it through the

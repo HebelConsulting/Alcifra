@@ -2769,6 +2769,73 @@ namespace Alcifra.Infrastructure.Migrations
                     b.ToTable("TenantMailDomains");
                 });
 
+            modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CalendarsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("ContactsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CredentialKey")
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<bool>("EncryptMail")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("FilesEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("MailEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CredentialKey")
+                        .IsUnique()
+                        .HasFilter("\"CredentialKey\" IS NOT NULL");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("ProtocolDevices");
+                });
+
             modelBuilder.Entity("Alcifra.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4555,6 +4622,15 @@ namespace Alcifra.Infrastructure.Migrations
                     b.HasOne("Alcifra.Domain.Tenants.Tenant", null)
                         .WithMany()
                         .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDevice", b =>
+                {
+                    b.HasOne("Alcifra.Domain.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

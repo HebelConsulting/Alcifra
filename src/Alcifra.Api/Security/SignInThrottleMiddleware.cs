@@ -110,23 +110,29 @@ public sealed class SignInThrottleMiddleware
             return string.IsNullOrWhiteSpace(clientId) ? null : (SignInSurface.Token, clientId);
         }
 
-        return basic is null ? null : (SignInSurface.Dav, basic.ToUpperInvariant());
+        // An enrolled device's password counts under its own key (#1970, owner 2026-10-31): a revoked phone that keeps
+        // retrying throttles only itself, not every protocol of its owner on every other device.
+        return basic is null ? null : (SignInSurface.Dav, DavIdentityFrom(header) ?? basic.ToUpperInvariant());
     }
 
-    private static string? UserNameFrom(string header)
+    private static string? DavIdentityFrom(string header) =>
+        Decode(header) is { } decoded && decoded.IndexOf(':') is > 0 and var separator
+            ? Alcifra.Api.ProtocolDevices.ProtocolDevicePassword.ThrottleIdentity(
+                decoded[..separator].ToUpperInvariant(), decoded[(separator + 1)..])
+            : null;
+
+    private static string? Decode(string header)
     {
-        string decoded;
         try
         {
-            decoded = Encoding.UTF8.GetString(Convert.FromBase64String(header[BasicPrefix.Length..].Trim()));
+            return Encoding.UTF8.GetString(Convert.FromBase64String(header[BasicPrefix.Length..].Trim()));
         }
         catch (FormatException)
         {
             return null;
         }
-
-        var separator = decoded.IndexOf(':');
-
-        return separator > 0 ? decoded[..separator] : null;
     }
+
+    private static string? UserNameFrom(string header) =>
+        Decode(header) is { } decoded && decoded.IndexOf(':') is > 0 and var separator ? decoded[..separator] : null;
 }

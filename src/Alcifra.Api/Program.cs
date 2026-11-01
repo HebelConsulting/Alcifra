@@ -200,6 +200,9 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<Alcifra.Api.Imap.I
 // must not open a listener that accepts mail without authentication.
 builder.Services.Configure<Alcifra.Api.Lmtp.LmtpOptions>(builder.Configuration.GetSection("Lmtp"));
 builder.Services.AddScoped<Alcifra.Api.Lmtp.LmtpDelivery>();
+// The one check of a protocol password for IMAP, WebDAV, CalDAV and CardDAV (#1970).
+builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator>();
+builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.ProtocolDeviceEnrolment>();
 // The tenant mail-ingest keypair (#1335, ADR 0820) — minted lazily, decrypts enveloped inbound mail at
 // the LMTP boundary, rides generated profiles as an extra payload.
 builder.Services.AddScoped<Alcifra.Api.Encryption.TenantIngestKeyService>();
@@ -288,6 +291,7 @@ builder.Services.AddScoped<Alcifra.Api.Concurrency.TenantVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.UserVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.TenantMailDomainVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.UserIdentityAliasVerbs>();
+builder.Services.AddScoped<Alcifra.Api.Concurrency.ProtocolDeviceVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.ServiceAccountVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.AclEntryVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Concurrency.WorkflowStateVerbs>();

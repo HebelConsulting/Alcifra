@@ -1,6 +1,6 @@
 // PORTED from the sister project SimplCalCon (Apache-2.0, same licence) — see ADR 0621. ADAPTED: the
-// credential is Alcifra's SHARED DAV password (User.WebDavPasswordHash — one secret covering WebDAV,
-// CalDAV and CardDAV, the epic's decision), and the authenticated principal additionally carries the tenant,
+// credential is a protocol DEVICE's password (#1970; the earlier shared DAV password is now a legacy device), checked
+// against the device's Calendars or Contacts switch, and the authenticated principal additionally carries the tenant,
 // because every read here is scoped by the tenant query filter.
 using System.Security.Claims;
 using System.Text;
@@ -21,14 +21,14 @@ public sealed class DavBasicAuthenticationHandler : AuthenticationHandler<Authen
     /// <summary>The claim carrying the authenticated user's tenant — read back by the DAV controllers.</summary>
     public const string TenantClaim = "alcifra:tenant";
 
-    private readonly AlcifraDbContext _dbContext;
-    private readonly PasswordHasher<User> _passwordHasher = new();
+    private readonly Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator _devices;
 
     public DavBasicAuthenticationHandler(
-        IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, AlcifraDbContext dbContext)
+        IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder,
+        Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator devices)
         : base(options, logger, encoder)
     {
-        _dbContext = dbContext;
+        _devices = devices;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -60,14 +60,14 @@ public sealed class DavBasicAuthenticationHandler : AuthenticationHandler<Authen
             return AuthenticateResult.Fail("Malformed Basic credentials.");
         }
 
-        var normalized = decoded[..separator].ToUpperInvariant();
-        var password = decoded[(separator + 1)..];
-
-        // No tenant is known yet — the standing pre-tenant-lookup rule (ADR 0150 / TokenController).
-        var user = await _dbContext.Users.IgnoreQueryFilters(["TenantFilter"])
-            .SingleOrDefaultAsync(u => u.NormalizedEmail == normalized && u.IsActive);
-        if (user?.WebDavPasswordHash is null
-            || _passwordHasher.VerifyHashedPassword(user, user.WebDavPasswordHash, password) == PasswordVerificationResult.Failed)
+        // The one check every protocol shares (#1970): the device the password names, and the switch of the protocol
+        // this request is for. One handler serves both, so the path says which: contacts under /carddav, else
+        // calendars.
+        var protocol = Request.Path.StartsWithSegments(Alcifra.Api.CalDav.DavProtocol.CardDav.BasePath, StringComparison.OrdinalIgnoreCase)
+            ? Alcifra.Api.ProtocolDevices.DeviceProtocol.Contacts
+            : Alcifra.Api.ProtocolDevices.DeviceProtocol.Calendars;
+        if (await _devices.SignInAsync(decoded[..separator], decoded[(separator + 1)..], protocol, Context.RequestAborted)
+            is not { User: var user })
         {
             return AuthenticateResult.Fail("Invalid DAV credentials.");
         }

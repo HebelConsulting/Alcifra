@@ -125,6 +125,9 @@ public class NoSecretReachesALogTests
         ["src/Alcifra.Sapass/Commands/ShowCommand.cs"] =
             "the tool's DATA output (ADR 0906): `apass show` prints the entry's password on stdout — the whole "
             + "point of the command, pass's contract, and what `apass show x | head -1` captures (ADR 0964)",
+        ["src/Alcifra.Cli/Commands/DeviceCommands.cs"] =
+            "an enrolled device's password, its one and only sighting: `alcifra me device enrol` prints it on stdout "
+            + "(data output, ADR 0906) because only its hash is stored (#1970)",
         ["src/Alcifra.Sapass/Commands/GenerateCommand.cs"] =
             "the generated secret's one and only sighting: `apass generate` prints the password it filed, because "
             + "it exists nowhere the user can read it afterwards (the stored copy needs the card)",
