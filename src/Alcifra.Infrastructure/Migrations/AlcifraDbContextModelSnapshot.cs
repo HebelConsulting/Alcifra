@@ -2836,6 +2836,44 @@ namespace Alcifra.Infrastructure.Migrations
                     b.ToTable("ProtocolDevices");
                 });
 
+            modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDeviceHandOver", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("SealedProfile")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("ProtocolDeviceHandOvers");
+                });
+
             modelBuilder.Entity("Alcifra.Domain.Users.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4631,6 +4669,15 @@ namespace Alcifra.Infrastructure.Migrations
                     b.HasOne("Alcifra.Domain.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDeviceHandOver", b =>
+                {
+                    b.HasOne("Alcifra.Domain.Users.ProtocolDevice", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

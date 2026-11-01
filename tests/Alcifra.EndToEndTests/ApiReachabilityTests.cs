@@ -49,6 +49,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         ("api/theme.css", "a stylesheet the server's own HTML pages reference with <link rel=stylesheet>, not an API resource"),
         ("api/encrypted-content", "the token door an encrypted object's presigned URL is swapped for (ADR 0818): handed out as a URL, like a presign"),
         ("api/external-links/{token", "the public page an EXTERNAL recipient opens from the link they were sent (ADR 0827); no API principal"),
+        ("api/device-profiles/{token", "the one-time link a NEW DEVICE's camera opens (#1970): handed out once, in the enrol answer and its QR code; no API principal"),
         ("api/diagnostics/throw-", "fixtures that throw on purpose, for testing the error pipeline"),
         ("api/test-module/", "the TEST module's own fixture routes; not part of the product, and this tenant does not activate it"),
     ];

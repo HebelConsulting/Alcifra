@@ -151,6 +151,7 @@ public static class AuditActions
     public const string ProtocolDeviceEnrolled = "User.ProtocolDeviceEnrolled";
     public const string ProtocolDeviceChanged = "User.ProtocolDeviceChanged";
     public const string ProtocolDeviceRevoked = "User.ProtocolDeviceRevoked";
+    public const string ProtocolDeviceProfileTaken = "User.ProtocolDeviceProfileTaken";
     public const string UserPasswordChanged = "User.PasswordChanged";
     public const string UserPasswordReset = "User.PasswordReset";
     public const string UserMfaEnabled = "User.MfaEnabled";

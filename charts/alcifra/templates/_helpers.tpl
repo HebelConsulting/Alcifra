@@ -142,6 +142,11 @@ rolls the Deployment automatically (the pod template changes). Secrets come from
 - name: Database__MaxPoolSize
   value: {{ $pool | quote }}
 {{- end }}
+{{- if .Values.postfix.enabled }}
+{{- /* The outgoing server a device profile names (#1970): the installation's own MX, until #2046 adds submission. */}}
+- name: Mail__OutgoingHost
+  value: {{ .Values.postfix.myHostname | quote }}
+{{- end }}
 {{- if .Values.imap.enabled }}
 - name: Imap__Enabled
   value: "true"

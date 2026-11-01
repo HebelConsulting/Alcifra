@@ -203,6 +203,9 @@ builder.Services.AddScoped<Alcifra.Api.Lmtp.LmtpDelivery>();
 // The one check of a protocol password for IMAP, WebDAV, CalDAV and CardDAV (#1970).
 builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator>();
 builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.ProtocolDeviceEnrolment>();
+// The one-time profile link of a new device, and the sweep of expired ones (#1970 slice 2).
+builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.DeviceHandOvers>();
+builder.Services.AddHostedService<Alcifra.Api.ProtocolDevices.DeviceHandOverSweepWorker>();
 // The tenant mail-ingest keypair (#1335, ADR 0820) — minted lazily, decrypts enveloped inbound mail at
 // the LMTP boundary, rides generated profiles as an extra payload.
 builder.Services.AddScoped<Alcifra.Api.Encryption.TenantIngestKeyService>();

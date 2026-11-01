@@ -134,6 +134,48 @@ public class ProtocolDeviceTests
     }
 
     [Fact]
+    public async Task The_hand_over_gives_the_profile_once_to_whoever_holds_the_link()
+    {
+        var (api, email, devices) = await SignedInUserAsync();
+        using var _ = api;
+
+        var enrolled = await TestJson.Post(api, devices, new { name = "New phone" });
+        var password = enrolled.GetProperty("password").GetString()!;
+        var handOver = enrolled.GetProperty("handOver");
+        Assert.StartsWith("data:image/png;base64,", handOver.GetProperty("passwordQr").GetString());
+        Assert.StartsWith("data:image/png;base64,", handOver.GetProperty("profileQr").GetString());
+        var link = new Uri(handOver.GetProperty("profileUrl").GetString()!).PathAndQuery;
+
+        // A phone's camera browser: not signed in. The token in the link is the authorisation.
+        using var camera = _factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await camera.SendAsync(new HttpRequestMessage(HttpMethod.Head, link))).StatusCode);
+
+        var first = await camera.GetAsync(link);
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal("application/x-apple-aspen-config", first.Content.Headers.ContentType!.MediaType);
+        Assert.True(first.Headers.CacheControl!.NoStore);
+        var profile = await first.Content.ReadAsStringAsync();
+        Assert.Contains(password, profile);
+        Assert.Contains(email, profile);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await camera.GetAsync(link)).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_files_only_device_gets_no_profile_but_its_password_and_addresses()
+    {
+        var (api, _, devices) = await SignedInUserAsync();
+        using var _ = api;
+
+        var handOver = (await TestJson.Post(api, devices,
+            new { name = "Files", mail = false, files = true, calendars = false, contacts = false })).GetProperty("handOver");
+
+        Assert.Equal(JsonValueKind.Null, handOver.GetProperty("profileUrl").ValueKind);
+        Assert.StartsWith("data:image/png;base64,", handOver.GetProperty("passwordQr").GetString());
+        Assert.EndsWith("/" + global::Alcifra.Presentation.WireNames.WebDavSegment, handOver.GetProperty("webDavUrl").GetString());
+    }
+
+    [Fact]
     public async Task The_API_refuses_what_was_decided_with_its_reason()
     {
         var (api, _, devices) = await SignedInUserAsync();

@@ -36,6 +36,9 @@ public class ProtocolDevicesController(
     ICurrentTenantAccessor currentTenant,
     ProtocolDeviceEnrolment enrolment,
     Concurrency.ProtocolDeviceVerbs devices,
+    DeviceHandOvers handOvers,
+    IConfiguration configuration,
+    Microsoft.Extensions.Options.IOptions<Alcifra.Api.Imap.ImapOptions> imap,
     IAuditRecorder audit,
     ILogger<ProtocolDevicesController> logger) : ControllerBase
 {
@@ -87,6 +90,47 @@ public class ProtocolDevicesController(
 
         /// <summary>The user name every protocol signs in with.</summary>
         public string Username { get; set; } = string.Empty;
+
+        /// <summary>Everything a person needs to set the device up (#1970 slice 2).</summary>
+        public DeviceHandOverResource HandOver { get; set; } = new();
+    }
+
+    /// <summary>
+    /// The hand-over (#1970 slice 2; owner, 2026-10-29/31): every server address, a QR code of the password alone (for
+    /// apps that scan into a field), and, where the device reaches mail, calendars or contacts, a one-time, short-lived
+    /// link to a configuration profile with its QR code (for a phone's camera). The answer is a credential while it is
+    /// shown, so it is never cached.
+    /// </summary>
+    public class DeviceHandOverResource
+    {
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public string? ProfileUrl { get; set; }
+
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public string? ProfileQr { get; set; }
+
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public DateTimeOffset? ProfileExpiresAt { get; set; }
+
+        /// <summary>The password alone, as a PNG data URL; the user name is shown beside it as text.</summary>
+        public string PasswordQr { get; set; } = string.Empty;
+
+        [System.Xml.Serialization.XmlElement(IsNullable = true)]
+        public string? ImapHost { get; set; }
+
+        public int ImapPort { get; set; }
+
+        public bool ImapTls { get; set; }
+
+        /// <summary>The outgoing server a mail client names: the installation's MX on port 25, without a sign-in, until
+        /// authenticated submission exists (#2046).</summary>
+        public string OutgoingHost { get; set; } = string.Empty;
+
+        public string WebDavUrl { get; set; } = string.Empty;
+
+        public string CalDavUrl { get; set; } = string.Empty;
+
+        public string CardDavUrl { get; set; } = string.Empty;
     }
 
     public class ProtocolDevicesResource : HypermediaResource
@@ -186,7 +230,13 @@ public class ProtocolDevicesController(
         var name = await enrolment.NameAsync(user.Id, request.Name, exceptDeviceId: null, cancellationToken);
         await enrolment.RequireSealableAsync(user.Id, request.EncryptMail, locked, cancellationToken);
 
-        var (device, password) = await enrolment.EnrolAsync(user, name, request.Switches(), cancellationToken);
+        var switches = request.Switches();
+        var (device, password) = await enrolment.EnrolAsync(user, name, switches, cancellationToken);
+        var servers = DeviceServers.From(configuration, imap.Value);
+        var profileReaches = (switches.Mail && servers.ImapHost is not null) || switches.Calendars || switches.Contacts;
+        var link = profileReaches
+            ? handOvers.Create(device, DeviceProfile.Build(device.Id, device.Name, user.Email, password, switches, servers))
+            : ((string Token, DateTimeOffset ExpiresAt)?)null;
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // A long-lived credential that bypasses the interactive login and its MFA, as the earlier ones did (#1092): the
@@ -198,6 +248,22 @@ public class ProtocolDevicesController(
         var resource = ToResource<EnrolledProtocolDeviceResource>(device, locked);
         resource.Password = password;
         resource.Username = user.Email;
+        var profileUrl = link is { } l ? $"{servers.WebOrigin}/api/device-profiles/{l.Token}" : null;
+        resource.HandOver = new DeviceHandOverResource
+        {
+            ProfileUrl = profileUrl,
+            ProfileQr = profileUrl is null ? null : Alcifra.Api.Security.QrCodes.PngDataUrl(profileUrl),
+            ProfileExpiresAt = link?.ExpiresAt,
+            PasswordQr = Alcifra.Api.Security.QrCodes.PngDataUrl(password),
+            ImapHost = servers.ImapHost,
+            ImapPort = servers.ImapPort,
+            ImapTls = servers.ImapTls,
+            OutgoingHost = servers.OutgoingHost,
+            WebDavUrl = $"{servers.WebOrigin}{Alcifra.Api.WebDav.WebDavMiddleware.BasePath}",
+            CalDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CalDav.BasePath}",
+            CardDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CardDav.BasePath}",
+        };
+        Response.Headers.CacheControl = "no-store";
         devices.EmitETag(Response, device);
         return Created($"{Collection}/{device.Id}", resource);
     }

@@ -126,6 +126,8 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<ProtocolDevice> ProtocolDevices => Set<ProtocolDevice>();
 
+    public DbSet<ProtocolDeviceHandOver> ProtocolDeviceHandOvers => Set<ProtocolDeviceHandOver>();
+
     public DbSet<UserProfilePhoto> UserProfilePhotos => Set<UserProfilePhoto>();
 
     public DbSet<UserRecoveryCode> UserRecoveryCodes => Set<UserRecoveryCode>();

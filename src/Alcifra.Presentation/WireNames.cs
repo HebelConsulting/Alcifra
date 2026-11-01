@@ -31,6 +31,10 @@ public static class WireNames
     /// <summary>The mobile app's redirect URI, on the scheme of its identifier <c>com.alcifra.mobile</c>.</summary>
     public const string MobileRedirectUri = $"com.{Product}.mobile:/oauth2redirect";
 
+    /// <summary>The identifier a device configuration profile's payloads carry (#1970): a device keeps it across brands, so
+    /// installing a device's profile again replaces the one before rather than adding a second.</summary>
+    public const string DeviceProfileIdentifierPrefix = $"com.{Product}.device";
+
     /// <summary>The prefix of every header the product writes: an IMAP message's details, a webhook's signature.</summary>
     public const string HeaderPrefix = "X-Alcifra-";
 
