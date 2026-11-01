@@ -56,7 +56,7 @@
 #product ist eine neue Art von Arbeitsplatz, *souverän von Grund auf*#idx("Souveräner Arbeitsplatz"): Es vereint
 *Dokumentenmanagement*#idx("Dokumentenmanagementsystem"), Verschlüsselung auf den eigenen Schlüssel jeder Person und
 offene Protokolle, sodass eine Organisation ihre Dokumente, ihre Schlüssel und die freie Wahl ihrer Geräte behält.
-Es ist zugleich ein Schaufenster dafür, wie ein erfahrener, KI-gestützt arbeitender Softwareentwickler in relativ
+Es ist zugleich ein Vorzeigebeispiel dafür, wie ein erfahrener, KI-gestützt arbeitender Softwareentwickler in relativ
 kurzer Zeit ein komplexes System auf Unternehmensniveau erstellen kann — jede Funktion in diesem Handbuch ist
 tatsächlich implementiert und tatsächlich getestet.
 
@@ -129,7 +129,7 @@ Es gibt mehr als einen Weg hinein, und welcher der richtige ist, hängt davon ab
 zu etwas bereits Abgelegtem gehört und wie viele Sie haben. Alle enden am selben Ort.
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Weg*], [*Verwenden Sie ihn, wenn*],
@@ -178,7 +178,7 @@ weggelassenen Anhang, damit nichts stillschweigend verloren geht.
 `Invoice.pdf` dort ab, wo bereits ein `Invoice` liegt, werden Sie gefragt, was Sie gemeint haben, statt abgewiesen zu werden:
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Auswahl*], [*Was geschieht*],
@@ -255,7 +255,7 @@ Trennblättern schneiden* erzeugt dann einen Eintrag pro Dokument und verwirft d
 Dateien, die im Ordner Intray des eingebundenen Netzlaufwerks gespeichert werden:
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Schalter*], [*Was er mit einem eintreffenden Scan macht*],
@@ -312,7 +312,7 @@ bereits eingebunden, geht sie direkt dorthin. "Zeig mir meine Dokumente im Finde
 Ordner im Laufwerk statt der obersten Ebene des Archivs:
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Wo Sie sie drücken*], [*Was sich öffnet*],
@@ -2178,7 +2178,7 @@ und der Link lässt sich in dem Moment widerrufen, in dem sich zeigt, dass er ni
 == Programme, nicht Personen
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Ein Dateimanager*], [Bindet das Archiv über WebDAV ein und zeigt genau den Baum, den auch der Arbeitsbereich zeigt. Öffnen,
@@ -2330,7 +2330,7 @@ unterscheiden.
 == OWASP Top 10 (2021)
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*A01 Fehlerhafte Zugriffskontrolle*], [Berechtigungen sind eine Zugriffssteuerungsliste pro Dokument, aufgelöst von einer

@@ -127,7 +127,7 @@ There is more than one way in, and which you want depends on whether the documen
 belongs to something already filed, and how many you have. They all end in the same place.
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Route*], [*Use it when*],
@@ -176,7 +176,7 @@ attachment that was left out, so nothing goes missing quietly.
 `Invoice.pdf` where an `Invoice` already sits asks you what you meant rather than refusing:
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Choice*], [*What happens*],
@@ -253,7 +253,7 @@ this with — a batch as the scanner would produce it, and the sheet — are ser
 files saved into the Intray folder of the mounted network drive:
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Toggle*], [*What it does to an arriving scan*],
@@ -310,7 +310,7 @@ already mounted it goes straight there. So "show me my documents in Finder" is o
 folder inside the drive rather than the top of the archive:
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Where you press it*], [*What opens*],
@@ -2075,7 +2075,7 @@ it, and the link can be revoked the moment it turns out it should not have been 
 == Programs, not people
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*A file manager*], [Mounts the archive over WebDAV and shows exactly the tree the workbench shows. Opening,
@@ -2224,7 +2224,7 @@ is kept: a decision recorded is not a decision delivered, and only a test can te
 == OWASP Top 10 (2021)
 
 #table(
-  columns: (auto, 1fr),
+  columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*A01 Broken access control*], [Permissions are an access-control list per document, resolved by one
