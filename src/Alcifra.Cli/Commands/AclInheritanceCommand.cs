@@ -26,7 +26,7 @@ public sealed class AclBreakInheritanceCommand(ILogger<AclBreakInheritanceComman
     protected override async Task<int> ExecuteAsync(
         CommandContext context, AclDocumentSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var broke = await BreakAsync(new AlcifraApi(http), Guid.Parse(settings.Document), cancellationToken);
         if (broke)
         {

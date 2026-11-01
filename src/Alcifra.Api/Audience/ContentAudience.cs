@@ -337,14 +337,10 @@ public sealed class ContentAudience(
     private async Task<IReadOnlyList<string>> CertificatesOfAsync(Guid userId, AudienceRoot root, CancellationToken cancellationToken)
     {
         var (certificates, outcome) = await readerCertificates.ForUserAsync(userId, cancellationToken);
-        if (outcome != ReaderCertificateOutcome.Answered && certificates.Count > 0)
-        {
-            logger.LogDebug(
-                "User {UserId} is in the audience of {DocumentId} but no module answered for their certificates ({Outcome}); "
-                + "their own certificate column is not an attested enrolment, so nothing is sealed to it", userId, root.DocumentId, outcome);
-            return [];
-        }
-
+        // A module's answer or the core registry's (#1970 slice 4): both are enrolments that passed the tenant's
+        // attestation rules. Nothing else carries certificates.
+        logger.LogTrace("User {UserId} in the audience of {DocumentId}: {Count} certificate(s), {Outcome}",
+            userId, root.DocumentId, certificates.Count, outcome);
         return certificates;
     }
 }

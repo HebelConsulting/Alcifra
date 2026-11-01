@@ -4992,32 +4992,8 @@
   <data name="RevealOnceScanAlt" xml:space="preserve">
     <value>QR-Code der Adresse</value>
   </data>
-  <data name="AccountSmime" xml:space="preserve">
-    <value>Verschlüsselte E-Mail (S/MIME)…</value>
-  </data>
-  <data name="SmimeTitle" xml:space="preserve">
-    <value>Verschlüsselte E-Mail (S/MIME)</value>
-  </data>
-  <data name="SmimeBody" xml:space="preserve">
-    <value>Mit hinterlegtem Zertifikat werden über IMAP abgerufene Nachrichten verschlüsselt, sodass nur Ihre Geräte sie lesen können. Laden Sie Ihr Zertifikat hoch oder erzeugen Sie eine vollständige Identität für Ihre Geräte.</value>
-  </data>
-  <data name="SmimeProvisioned" xml:space="preserve">
-    <value>E-Mail-Zertifikate werden auf dieser Installation zentral bereitgestellt — hier ist nichts einzurichten. Zertifikate zum Lesen von Dokumenten werden separat hinterlegt.</value>
-  </data>
-  <data name="SmimeNone" xml:space="preserve">
-    <value>Kein Zertifikat hinterlegt — E-Mail wird unverschlüsselt ausgeliefert.</value>
-  </data>
-  <data name="SmimeSubject" xml:space="preserve">
-    <value>Zertifikat</value>
-  </data>
-  <data name="SmimeExpires" xml:space="preserve">
-    <value>Gültig bis</value>
-  </data>
   <data name="SmimeAddCard" xml:space="preserve">
     <value>Karte oder Token hinzufügen…</value>
-  </data>
-  <data name="SmimeCardOnly" xml:space="preserve">
-    <value>Zum Hinzufügen einer Karte wird der Desktop-Client benötigt — ein Browser erreicht kein Kartenlesegerät.</value>
   </data>
   <data name="CardPinTitle" xml:space="preserve">
     <value>Karten-PIN</value>
@@ -5043,9 +5019,6 @@
   <data name="CardChooseModule" xml:space="preserve">
     <value>Modul auswählen…</value>
   </data>
-  <data name="CardNoToken" xml:space="preserve">
-    <value>In keinem Lesegerät wurde eine Karte oder ein Token gefunden. Bitte einlegen und erneut versuchen.</value>
-  </data>
   <data name="CardNoCertificate" xml:space="preserve">
     <value>Das Gerät wurde gelesen, enthält aber kein Zertifikat.</value>
   </data>
@@ -5066,36 +5039,6 @@
   </data>
   <data name="CardConcernKeyUsage" xml:space="preserve">
     <value>Die angegebene Schlüsselverwendung nennt keine Schlüsselverschlüsselung. Es kann dennoch funktionieren — viele Geräte erzwingen dies nicht.</value>
-  </data>
-  <data name="SmimeUpload" xml:space="preserve">
-    <value>Zertifikat hochladen (.pem, .crt)</value>
-  </data>
-  <data name="SmimeP12Password" xml:space="preserve">
-    <value>Passwort für die .p12-Datei</value>
-  </data>
-  <data name="SmimeGenerate" xml:space="preserve">
-    <value>Identität erzeugen</value>
-  </data>
-  <data name="SmimeGeneratedKeep" xml:space="preserve">
-    <value>Laden Sie beide Dateien jetzt herunter — sie werden nicht auf dem Server gespeichert.</value>
-  </data>
-  <data name="SmimeDownloadP12" xml:space="preserve">
-    <value>.p12 herunterladen</value>
-  </data>
-  <data name="SmimeDownloadProfile" xml:space="preserve">
-    <value>.mobileconfig herunterladen</value>
-  </data>
-  <data name="SmimeDelete" xml:space="preserve">
-    <value>Zertifikat löschen</value>
-  </data>
-  <data name="SmimeUploadError" xml:space="preserve">
-    <value>Das Zertifikat konnte nicht hochgeladen werden.</value>
-  </data>
-  <data name="SmimeGenerateError" xml:space="preserve">
-    <value>Die Identität konnte nicht erzeugt werden.</value>
-  </data>
-  <data name="SmimeDeleteError" xml:space="preserve">
-    <value>Das Zertifikat konnte nicht gelöscht werden.</value>
   </data>
   <data name="DeviceTitle" xml:space="preserve">
     <value>Anmeldung bestätigen</value>
@@ -6839,6 +6782,9 @@
   </data>
   <data name="DvMountPaste" xml:space="preserve">
     <value>Wenn das System nach dem Passwort fragt, fügen Sie das hier angezeigte ein.</value>
+  </data>
+  <data name="ApiErrCertificateLimit" xml:space="preserve">
+    <value>Sie haben bereits zwei angemeldete Zertifikate, mehr sind hier nicht erlaubt. Widerrufen Sie eines, bevor Sie ein weiteres anmelden.</value>
   </data>
   <data name="MwWebDavMountedForOther" xml:space="preserve">
     <value>Die Dateien dieses Servers sind für {0} eingebunden. Werfen Sie dieses Volume zuerst aus und binden Sie dann erneut ein.</value>

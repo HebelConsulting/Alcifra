@@ -12,7 +12,7 @@ public sealed class MailDomainListCommand(ILogger<MailDomainListCommand> logger)
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var listing = await MailDomainSurface.ListAsync(new AlcifraApi(http), cancellationToken);
         foreach (var domain in listing.GetProperty("domains").EnumerateArray())
         {
@@ -55,7 +55,7 @@ public sealed class MailDomainAddCommand(ILogger<MailDomainAddCommand> logger) :
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, MailDomainAddSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var listing = await MailDomainSurface.ListAsync(api, cancellationToken);
         var add = Hypermedia.Href(Hypermedia.LinksOf(listing), "add", "The mail-domain listing");
@@ -93,7 +93,7 @@ public sealed class MailDomainRolesCommand(ILogger<MailDomainRolesCommand> logge
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, MailDomainRolesSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var row = MailDomainSurface.Find(await MailDomainSurface.ListAsync(api, cancellationToken), settings.Domain);
         var (domain, etag) = await api.GetWithETagAsync(Hypermedia.Href(Hypermedia.LinksOf(row), "self", settings.Domain), cancellationToken);

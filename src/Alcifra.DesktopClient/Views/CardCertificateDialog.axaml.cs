@@ -9,9 +9,9 @@ using Alcifra.Localization;
 
 namespace Alcifra.DesktopClient.Views;
 
-// The third way to register a certificate (#1398, ADR 0831): read one off a card or token. Opened from
-// SmimeDialog, which owns the registration itself — this window's whole job is to let the user say WHICH
-// certificate, because a device may carry several and a computer may have several devices.
+// Reads a certificate off a card or token (#1398, ADR 0831). Opened from SelfEnrolmentDialog, which owns the
+// enrolment itself — this window's whole job is to let the user say WHICH certificate, because a device may carry
+// several and a computer may have several devices.
 //
 // The private key never leaves the device. What travels is the public certificate, which is exactly what the
 // upload entrance sends too — only its provenance differs.

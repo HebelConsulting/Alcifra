@@ -39,7 +39,7 @@ public sealed class ModuleRebuildCommand(ILogger<ModuleRebuildCommand> logger) :
     protected override async Task<int> ExecuteAsync(
         CommandContext context, ModuleRebuildSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         // root → modules → this module's row → its projections. Every hop a rel, and the FIRST from the root:

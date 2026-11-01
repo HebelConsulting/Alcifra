@@ -98,7 +98,7 @@ public static class ApiErrorText
         // off and no enrolment at all already have their sentences, which the desktop's dialog shows for the same states.
         "CERTIFICATE_ALREADY_ENROLLED" => Strings.Get("ApiErrCertificateAlreadyEnrolled"),
         "CERTIFICATE_SELF_SERVICE_DISABLED" => Strings.Get("EnrolDisabled"),
-        "CERTIFICATE_ENROLMENT_NOT_OFFERED" => Strings.Get("EnrolNone"),
+        "CERTIFICATE_LIMIT_REACHED" => Strings.Get("ApiErrCertificateLimit"),
         "CERTIFICATE_REFUSED" => Strings.Get("ApiErrCertificateRefused"),
         "CERTIFICATE_POLICY_REFUSED" => Strings.Get("ApiErrCertificatePolicyRefused"),
         "CERTIFICATE_NO_HOLDER" => Strings.Get("ApiErrCertificateNoHolder"),

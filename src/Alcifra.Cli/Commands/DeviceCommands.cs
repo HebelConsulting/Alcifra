@@ -60,7 +60,7 @@ public sealed class DeviceListCommand(ILogger<DeviceListCommand> logger) : Async
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         foreach (var device in (await DeviceSurface.ReadAsync(api, cancellationToken)).GetProperty("items").EnumerateArray())
         {
@@ -82,7 +82,7 @@ public sealed class DeviceEnrolCommand(ILogger<DeviceEnrolCommand> logger) : Asy
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, DeviceEnrolSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var enrolled = await api.PostAsync(await DeviceSurface.HrefAsync(api, cancellationToken), new
         {
@@ -110,7 +110,7 @@ public sealed class DeviceRevokeCommand(ILogger<DeviceRevokeCommand> logger) : A
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, DeviceNameSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         if (DeviceSurface.Find(await DeviceSurface.ReadAsync(api, cancellationToken), settings.Name) is not { } device)
         {

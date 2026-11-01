@@ -97,13 +97,12 @@ public class ReaderDirectoryController(
     {
         var pageSize = PageSize.Resolve(limit);
 
-        // The CANDIDATES the core can see holding a certificate: the reader's own column, or an enrolment that is not
-        // revoked. A module that keeps certificates only in its own store is not enumerable here (ADR 0976 says so);
-        // its readers are reached through the pasted-chain path.
+        // The CANDIDATES the core can see holding a certificate: an enrolment that is not revoked (the user's own column
+        // retired, #1970 slice 4). A module that keeps certificates only in its own store is not enumerable here (ADR 0976
+        // says so); its readers are reached through the pasted-chain path.
         var query = dbContext.Users.AsNoTracking()
             .Where(u => u.IsActive)
-            .Where(u => (u.SmimeCertificatePem != null && u.SmimeCertificatePem != string.Empty)
-                || dbContext.EnrolledCertificates.Any(c => c.UserId == u.Id && c.RevokedAt == null));
+            .Where(u => dbContext.EnrolledCertificates.Any(c => c.UserId == u.Id && c.RevokedAt == null));
 
         if (search is { Length: > 0 } term)
         {

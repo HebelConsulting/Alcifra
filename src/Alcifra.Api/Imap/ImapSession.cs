@@ -600,7 +600,7 @@ public sealed class ImapSession
             .GetRequiredService<Alcifra.Infrastructure.Modules.ModuleReaderCertificates>()
             .ForAsync(user.Id);
 
-        var resolved = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(fromModule, user.SmimeCertificatePem);
+        var resolved = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(fromModule);
 
         // The DEVICE decides whether this session seals (#1970): as always where the organisation seals mail or for the
         // earlier IMAP password; by its own setting otherwise. Decided BEFORE the session counts as signed in, so a

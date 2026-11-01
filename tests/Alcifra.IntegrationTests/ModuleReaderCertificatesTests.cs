@@ -49,7 +49,7 @@ public class ModuleReaderCertificatesTests
     }
 
     [Fact]
-    public async Task No_module_declaring_the_capability_answers_NULL_so_the_core_resolves_as_before()
+    public async Task Without_a_module_declaring_the_capability_the_core_registry_answers()
     {
         await using var db = await FreshAsync();
         var services = new StubServices();
@@ -57,7 +57,7 @@ public class ModuleReaderCertificatesTests
         var answer = await new ModuleReaderCertificates(
             db, services, NullLogger<ModuleReaderCertificates>.Instance).ForAsync(Guid.NewGuid());
 
-        Assert.Equal(ReaderCertificateOutcome.NoModule, answer.Outcome);
+        Assert.Equal(ReaderCertificateOutcome.Registry, answer.Outcome);   // #1970 slice 4
         Assert.Empty(answer.Certificates);
     }
 
@@ -83,12 +83,12 @@ public class ModuleReaderCertificatesTests
     }
 
     // ADR 0890 narrows ADR 0859: an inactive module is a LAPSED LICENCE only where the tenant's mode delivers
-    // envelopes. Elsewhere the module has nothing to say about the tenant, and the reader's own column must keep
-    // working — or loading the Encryption Module for one tenant would silently end self-service S/MIME on every
+    // envelopes. Elsewhere the module has nothing to say about the tenant, and the core's registry answers (#1970
+    // slice 4) — or loading the Encryption Module for one tenant would silently end the readers' certificates on every
     // other (the kiosk's public demo beside its Crypto tenant).
     [Theory]
-    [InlineData("Storage", ReaderCertificateOutcome.NoModule)]
-    [InlineData("None", ReaderCertificateOutcome.NoModule)]
+    [InlineData("Storage", ReaderCertificateOutcome.Registry)]
+    [InlineData("None", ReaderCertificateOutcome.Registry)]
     [InlineData("Strict", ReaderCertificateOutcome.LicenceLapsed)]
     [InlineData("StrictRehearsal", ReaderCertificateOutcome.LicenceLapsed)]
     [InlineData("SealedDeliveryPermissive", ReaderCertificateOutcome.LicenceLapsed)]
@@ -116,9 +116,8 @@ public class ModuleReaderCertificatesTests
         Assert.Equal(expected, answer.Outcome);
         Assert.Empty(answer.Certificates);
 
-        // And the consequence the narrowing exists for: on a non-enveloping tenant the column is the source.
-        var source = ReaderCertificateSource.Resolve(answer, columnPem: "column-pem");
-        Assert.Equal(expected == ReaderCertificateOutcome.NoModule ? ["column-pem"] : [], source.Pems);
+        // And the consequence the narrowing exists for: on a non-enveloping tenant the registry spoke, not the module.
+        Assert.Equal(expected != ReaderCertificateOutcome.Registry, ReaderCertificateSource.Resolve(answer).AnsweredByModule);
     }
 
     /// <summary>The host provider, reduced to what this seam actually resolves from it.</summary>

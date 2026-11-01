@@ -12,7 +12,7 @@ namespace Alcifra.Infrastructure.Modules;
 /// answer indistinguishable from silence, and the fetch then tried the encryption service's registry next:
 /// the module said "this reader holds none", the registry said "here is one", and a certificate the module
 /// had REVOKED went on opening mail. The registry is retired (ADR 0890), but the column is a second source
-/// too, so the distinction still decides whether it may be asked.
+/// too, and the distinction decided whether it might be asked until the column retired (#1970 slice 4).
 /// </para>
 /// <para>
 /// The first draft of this change did exactly that. It is a record rather than two loose fields so the two
@@ -39,22 +39,10 @@ public sealed record ReaderCertificateSource(IReadOnlyList<string> Pems, bool An
     public bool Envelopes => Pems.Count > 0;
 
     /// <summary>
-    /// The module's answer where there is one, else the self-service column (#1332).
+    /// The answer as it came: a module's where one speaks, else the core's registry (#1970 slice 4). The user's own
+    /// certificate column (#1332) is no longer a source.
     /// </summary>
-    /// <param name="fromModule">
-    /// What <c>ModuleReaderCertificates.ForAsync</c> returned — its OUTCOME says whether a module spoke at
-    /// all, which is the distinction this type exists to preserve (ADR 0859).
-    /// </param>
-    /// <param name="columnPem">The user's own registered certificate, or null.</param>
-    public static ReaderCertificateSource Resolve(ReaderCertificateAnswer fromModule, string? columnPem) =>
-        fromModule.ModuleSpoke
-
-            // A module spoke. Its answer stands even when it names nothing — and even when the "answer" was
-            // a lapsed licence or a failure to ask, because none of those means "this reader has none"
-            // (ADR 0859) — and asking the column next is how a revocation would stop revoking.
-            ? new([.. fromModule.Certificates.Select(certificate => certificate.CertificatePem)], AnsweredByModule: true)
-
-            // No module answered, so the self-service column is the only source left — the encryption service's
-            // registry used to come next and is retired (ADR 0890).
-            : columnPem is { Length: > 0 } own ? new([own], AnsweredByModule: false) : None;
+    /// <param name="answer">What <c>ModuleReaderCertificates.ForAsync</c> returned.</param>
+    public static ReaderCertificateSource Resolve(ReaderCertificateAnswer answer) =>
+        new([.. answer.Certificates.Select(certificate => certificate.CertificatePem)], answer.ModuleSpoke);
 }

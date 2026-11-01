@@ -37,7 +37,7 @@ public sealed class IntrayPreviousListCommand(ILogger<IntrayPreviousListCommand>
     protected override async Task<int> ExecuteAsync(
         CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var rows = IntrayPreviousSurface.Rows(
@@ -90,7 +90,7 @@ public sealed class IntrayPreviousRestoreCommand(ILogger<IntrayPreviousRestoreCo
     protected override async Task<int> ExecuteAsync(
         CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var listing = await IntrayPreviousSurface.ListingAsync(api, cancellationToken);

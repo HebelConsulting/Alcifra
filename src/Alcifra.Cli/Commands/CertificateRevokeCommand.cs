@@ -75,7 +75,7 @@ public sealed class CertificateRevokeCommand(ILogger<CertificateRevokeCommand> l
     protected override async Task<int> ExecuteAsync(
         CommandContext context, CertificateRevokeSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var hypermedia = new Hypermedia(api);
         var address = await CertificateSurface.AddressAsync(hypermedia, cancellationToken);

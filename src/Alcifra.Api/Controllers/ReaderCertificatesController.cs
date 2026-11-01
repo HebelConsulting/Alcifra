@@ -3,11 +3,9 @@ using System.Security.Cryptography.X509Certificates;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Alcifra.Api.Hypermedia;
 using Alcifra.Application.Abstractions;
 using Alcifra.Infrastructure.Modules;
-using Alcifra.Infrastructure.Persistence;
 
 namespace Alcifra.Api.Controllers;
 
@@ -15,7 +13,7 @@ namespace Alcifra.Api.Controllers;
 /// The caller's certificate SET, the one the server addresses envelopes to (#1741; ADR 0842): read-only, for a client
 /// that seals something to its own user, such as the phone's offline cache (SimplArchiveMobile #5). Answered by the same
 /// rule as delivery (<see cref="ReaderCertificateSource"/>): where a module answers, its set is the only source; else the
-/// user's own column. The rel is <c>readerCertificates</c> on <c>/me</c>; editing the column stays <c>smimeCertificate</c>.
+/// core's registry (#1970 slice 4). The rel is <c>readerCertificates</c> on <c>/me</c>; enrolling is <c>certificates</c>.
 /// </summary>
 /// <remarks>
 /// An empty set says WHY (owner decision 2026-10-13), because ADR 0842 keeps the causes apart and they have different
@@ -26,13 +24,12 @@ namespace Alcifra.Api.Controllers;
 [Route("api/me/reader-certificates")]
 [Authorize]
 public class ReaderCertificatesController(
-    AlcifraDbContext dbContext,
     ModuleReaderCertificates moduleCertificates,
     ICurrentUserAccessor currentUser) : ControllerBase
 {
     public class ReaderCertificatesResource : HypermediaResource
     {
-        /// <summary><c>module</c>, <c>own</c> (the user's column) or <c>none</c>.</summary>
+        /// <summary><c>module</c>, <c>registry</c> (the core's, where no module speaks; #1970 slice 4) or <c>none</c>.</summary>
         public string Source { get; set; } = "none";
 
         /// <summary>Why the set is empty: <c>noneEnrolled</c>, <c>licenceLapsed</c> or <c>moduleFailed</c>; null when it is not.</summary>
@@ -45,7 +42,7 @@ public class ReaderCertificatesController(
     {
         public string Pem { get; set; } = string.Empty;
 
-        /// <summary>The module's label for it (e.g. the key's name), or the certificate's subject for the user's column.</summary>
+        /// <summary>The enrolment's label for it (e.g. the key's name), or the certificate's subject where it has none.</summary>
         public string Label { get; set; } = string.Empty;
 
         public DateTimeOffset NotAfter { get; set; }
@@ -63,17 +60,13 @@ public class ReaderCertificatesController(
 
     private async Task<ReaderCertificatesResource> ReadAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var fromModule = await moduleCertificates.ForAsync(userId, cancellationToken);
-        var column = fromModule.ModuleSpoke
-            ? null
-            : await dbContext.Users.Where(u => u.Id == userId).Select(u => u.SmimeCertificatePem).FirstOrDefaultAsync(cancellationToken);
-        var resource = Describe(fromModule, column);
+        var resource = Describe(await moduleCertificates.ForAsync(userId, cancellationToken));
         resource.Links = [new Link("self", "/api/me/reader-certificates", "GET")];
         return resource;
     }
 
-    /// <summary>The answer for a module's outcome and the user's column: the same choice delivery makes, with its reason.</summary>
-    public static ReaderCertificatesResource Describe(ReaderCertificateAnswer fromModule, string? columnPem)
+    /// <summary>The answer as delivery reads it, with its reason.</summary>
+    public static ReaderCertificatesResource Describe(ReaderCertificateAnswer fromModule)
     {
         if (fromModule.ModuleSpoke)
         {
@@ -91,8 +84,8 @@ public class ReaderCertificatesController(
             };
         }
 
-        return columnPem is { Length: > 0 } own
-            ? new ReaderCertificatesResource { Source = "own", Certificates = [Entry(own, null)] }
+        return fromModule.Certificates.Count > 0
+            ? new ReaderCertificatesResource { Source = "registry", Certificates = [.. fromModule.Certificates.Select(c => Entry(c.CertificatePem, c.Label))] }
             : new ReaderCertificatesResource { Source = "none", Reason = "noneEnrolled" };
     }
 

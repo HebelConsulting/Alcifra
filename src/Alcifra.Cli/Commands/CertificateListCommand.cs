@@ -35,7 +35,7 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
     protected override async Task<int> ExecuteAsync(
         CommandContext context, CertificateListSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var address = await CertificateSurface.AddressAsync(new Hypermedia(api), cancellationToken);
 

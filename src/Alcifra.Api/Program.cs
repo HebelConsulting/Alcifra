@@ -750,11 +750,11 @@ using (var scope = app.Services.CreateScope())
     await ManualDemoSeeder.SeedIfConfiguredAsync(services, app.Configuration);
 
     // Manuals for every tenant, last so the seeders' new tenants are included (ManualStartupFiling, ADR 0891).
-    // The core's certificate registry (#1790, ADR 0935), rebuilt from the Certificate documents while a module
-    // encrypts to users: idempotent, and how enrolments filed before it existed reach it.
+    // The core's certificate registry (#1790, ADR 0935), rebuilt from the Certificate documents on every installation
+    // (ADR 1021): idempotent, and how enrolments filed before it existed reach it.
     // Certificate enrolment moved into the core (ADR 0936): the Encryption Module's two settings become tenant columns, once.
     await Alcifra.Infrastructure.Certificates.EnrolmentSettingsAdoption.AdoptEverywhereAsync(app.Services);
-    await Alcifra.Api.Certificates.OwnCertificateAdoption.AdoptEverywhereAsync(app.Services);   // users' own certificates, once (#1839)
+    await Alcifra.Api.Certificates.OwnCertificateAdoption.AdoptEverywhereAsync(app.Services);   // users' own certificates, once (#1839, ADR 1021)
     await Alcifra.Infrastructure.Certificates.Attestation.AttestationRootCatalogueSeeder.EnsureAsync(app.Services);   // ADR 0963, before the rebuild verifies against it
     await Alcifra.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildEverywhereAsync(app.Services);
 

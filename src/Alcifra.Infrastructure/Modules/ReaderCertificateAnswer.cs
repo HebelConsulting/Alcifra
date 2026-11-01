@@ -28,8 +28,15 @@ namespace Alcifra.Infrastructure.Modules;
 /// </remarks>
 public enum ReaderCertificateOutcome
 {
-    /// <summary>No loaded module declares the capability — the core resolves certificates as it did before.</summary>
+    /// <summary>Nothing was asked yet: the starting value of a caller that remembers the outcome.</summary>
     NoModule,
+
+    /// <summary>
+    /// No module answers for this tenant, so the core's own registry did (#1970 slice 4): the reader's enrolled
+    /// certificates that pass the tenant's attestation rules, at most two per user. It stands alone, as a module's answer
+    /// does; the user's own certificate column is no longer asked.
+    /// </summary>
+    Registry,
 
     /// <summary>A module answered. Its answer stands alone, including when it names no certificate.</summary>
     Answered,
@@ -45,7 +52,7 @@ public enum ReaderCertificateOutcome
 /// <param name="Outcome">Why this ended as it did — see <see cref="ReaderCertificateOutcome"/>.</param>
 /// <param name="Certificates">
 /// The certificates to address. Non-empty only when <paramref name="Outcome"/> is
-/// <see cref="ReaderCertificateOutcome.Answered"/>.
+/// <see cref="ReaderCertificateOutcome.Answered"/> or <see cref="ReaderCertificateOutcome.Registry"/>.
 /// </param>
 /// <remarks>
 /// A record rather than a tuple so the outcome cannot be dropped on the way to a caller. Two of the three
@@ -57,8 +64,9 @@ public sealed record ReaderCertificateAnswer(
     ReaderCertificateOutcome Outcome,
     IReadOnlyList<ReaderCertificate> Certificates)
 {
-    /// <summary>Nothing on this installation enrols certificates.</summary>
-    public static readonly ReaderCertificateAnswer NoModule = new(ReaderCertificateOutcome.NoModule, []);
+    /// <summary>The core's registry answered with this set, no module speaking for the tenant — possibly empty.</summary>
+    public static ReaderCertificateAnswer FromRegistry(IReadOnlyList<ReaderCertificate> certificates) =>
+        new(ReaderCertificateOutcome.Registry, certificates);
 
     /// <summary>A module answered with this set — possibly empty.</summary>
     public static ReaderCertificateAnswer Answered(IReadOnlyList<ReaderCertificate> certificates) =>
@@ -70,14 +78,11 @@ public sealed record ReaderCertificateAnswer(
     /// <summary>Asked, and it threw.</summary>
     public static readonly ReaderCertificateAnswer AskFailed = new(ReaderCertificateOutcome.AskFailed, []);
 
-    /// <summary>
-    /// True when a module spoke for this reader, whatever it said — so no other source may be consulted.
-    /// </summary>
+    /// <summary>True when a module spoke for this reader, whatever it said; false when the core's registry answered.</summary>
     /// <remarks>
-    /// Every outcome but <see cref="ReaderCertificateOutcome.NoModule"/> closes the core's own sources. A
-    /// lapsed licence or a broken module has not said "this reader has none"; falling through to the column
-    /// or the registry on either would let a certificate the module revoked go on opening content — the union
+    /// A lapsed licence or a broken module has not said "this reader has none", and nothing else is consulted on either:
+    /// falling through to the registry would let a certificate the module revoked go on opening content — the union
     /// ADR 0842 forbids.
     /// </remarks>
-    public bool ModuleSpoke => Outcome is not ReaderCertificateOutcome.NoModule;
+    public bool ModuleSpoke => Outcome is not (ReaderCertificateOutcome.NoModule or ReaderCertificateOutcome.Registry);
 }

@@ -74,8 +74,8 @@ public sealed partial class E2EApiFactory
 
     /// <summary>
     /// Gives a reader <paramref name="pem"/> the way THEIR tenant gets certificates: through the module where it is
-    /// active (the Strict tenant), else on the reader's own column — the source a tenant whose mode does not
-    /// envelope keeps (ADR 0890's narrowing). The one place tests do this, so the two cannot drift apart.
+    /// active (the Strict tenant), else through the core's registry, which answers where no module speaks (#1970 slice
+    /// 4). The one place tests do this, so the two cannot drift apart.
     /// </summary>
     public async Task EnrolReaderCertificateAsync(Guid tenantId, Guid userId, string pem)
     {
@@ -86,7 +86,9 @@ public sealed partial class E2EApiFactory
             return;
         }
 
-        await SetColumnCertificateAsync(userId, pem);
+        var (enroller, holder) = (await RegistryEnrollerAsync(tenantId), await EmailOfAsync(userId));
+        using var enrolled = await enroller.PostAsJsonAsync("/api/certificates", new { certificatePem = pem, label = string.Empty, holder });
+        Assert.True(enrolled.IsSuccessStatusCode, $"enrolling answered {(int)enrolled.StatusCode}: {await enrolled.Content.ReadAsStringAsync()}");
     }
 
     /// <summary>Withdraws a reader's certificates — "lost their certificate" — from wherever their tenant keeps them.</summary>
@@ -99,15 +101,66 @@ public sealed partial class E2EApiFactory
             return;
         }
 
-        await SetColumnCertificateAsync(userId, null);
+        // Deleting the Certificate document removes it from the registry in the same save, as an administrator's delete does.
+        var (enroller, holder) = (await RegistryEnrollerAsync(tenantId), await EmailOfAsync(userId));
+        foreach (var row in (await enroller.GetFromJsonAsync<JsonElement>($"/api/certificates?holder={Uri.EscapeDataString(holder)}")).EnumerateArray())
+        {
+            var address = $"/api/documents/{row.GetProperty("documentId").GetGuid()}";
+            using var read = await enroller.GetAsync(address);
+            using var delete = new HttpRequestMessage(HttpMethod.Delete, address);
+            delete.Headers.TryAddWithoutValidation("If-Match", read.Headers.ETag!.Tag);
+            (await enroller.SendAsync(delete)).EnsureSuccessStatusCode();
+        }
     }
 
-    private async Task SetColumnCertificateAsync(Guid userId, string? pem)
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, HttpClient> _registryEnrollers = new();
+
+    // A service account that administers the tenant's certificate enrolment, with a folder chosen for it and hardware
+    // without attestation allowed, since a test certificate carries no attestation (ADR 0963). Once per tenant.
+    public async Task<HttpClient> RegistryEnrollerAsync(Guid tenantId)
+    {
+        if (_registryEnrollers.TryGetValue(tenantId, out var cached))
+        {
+            return cached;
+        }
+
+        var (clientId, secret) = await SeedServiceAccountInTenantAsync(tenantId, canManageRepositories: true);
+        using (var scope = Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+            var account = await db.ServiceAccounts.IgnoreQueryFilters(["TenantFilter"]).SingleAsync(a => a.OpenIddictApplicationClientId == clientId);
+            account.CanManageModules = true;
+            await db.SaveChangesAsync();
+        }
+
+        var enroller = CreateAuthedClient(await GetTokenAsync(clientId, secret));
+        var href = (await enroller.GetFromJsonAsync<JsonElement>("/api")).GetProperty("links").EnumerateArray()
+            .Single(l => l.GetProperty("rel").GetString() == "certificateSettings").GetProperty("href").GetString()!;
+        using var read = await enroller.GetAsync(href);
+        var current = await read.Content.ReadFromJsonAsync<JsonElement>();
+        var parent = current.TryGetProperty("parentFolderId", out var p) && p.ValueKind == JsonValueKind.String
+            ? p.GetGuid()
+            : (await (await enroller.PostAsJsonAsync("/api/repositories", new { name = $"Certificates {Guid.NewGuid():N}" }))
+                .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        using var write = new HttpRequestMessage(HttpMethod.Put, href)
+        {
+            Content = JsonContent.Create(new
+            {
+                selfServiceEnabled = current.GetProperty("selfServiceEnabled").GetBoolean(),
+                parentFolderId = parent,
+                unattestedHardwareAllowed = true,
+            }),
+        };
+        write.Headers.TryAddWithoutValidation("If-Match", read.Headers.ETag!.Tag);
+        (await enroller.SendAsync(write)).EnsureSuccessStatusCode();
+
+        return _registryEnrollers.GetOrAdd(tenantId, enroller);
+    }
+
+    private async Task<string> EmailOfAsync(Guid userId)
     {
         using var scope = Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
-        var user = await db.Users.IgnoreQueryFilters(["TenantFilter"]).SingleAsync(u => u.Id == userId);
-        user.SmimeCertificatePem = pem;
-        await db.SaveChangesAsync();
+        return await scope.ServiceProvider.GetRequiredService<AlcifraDbContext>().Users.IgnoreQueryFilters(["TenantFilter"])
+            .Where(u => u.Id == userId).Select(u => u.Email).SingleAsync();
     }
 }

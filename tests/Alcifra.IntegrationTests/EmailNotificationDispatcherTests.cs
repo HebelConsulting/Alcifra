@@ -248,7 +248,8 @@ public class EmailNotificationDispatcherTests
         using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         var pem = certificate.ExportCertificatePem();
 
-        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTimeOffset.UtcNow };
+        // Hardware without attestation allowed: the certificate stands in for a token's (ADR 0963).
+        var tenant = new Tenant { Id = Guid.NewGuid(), Name = "Acme", CreatedAt = DateTimeOffset.UtcNow, CertificateUnattestedHardwareAllowed = true };
         var certified = new User
         {
             Id = Guid.NewGuid(),
@@ -256,7 +257,6 @@ public class EmailNotificationDispatcherTests
             Email = "certified@acme.test",
             DisplayName = "C",
             CreatedAt = DateTimeOffset.UtcNow,
-            SmimeCertificatePem = pem
         };
         var plain = new User
         {
@@ -270,6 +270,7 @@ public class EmailNotificationDispatcherTests
         {
             seed.Tenants.Add(tenant);
             seed.Users.AddRange(certified, plain);
+            await RegistryRows.AddAsync(connection, seed, tenant.Id, certified.Id, pem);   // the core's registry (#1970 slice 4)
             seed.Notifications.AddRange(
                 Pending(tenant.Id, certified.Id, "Approve Salary review 2026"),
                 Pending(tenant.Id, plain.Id, "Approve Salary review 2026"));
@@ -277,10 +278,12 @@ public class EmailNotificationDispatcherTests
         }
 
         var sender = new RecordingEmailSender();
-        using (var act = CreateContext(connection))
+        // The scope's tenant is the context's, so the registry's tenant filter sees what the dispatcher asks about.
+        var tenantAccessor = new CurrentTenantAccessor();
+        using (var act = new AlcifraDbContext(new DbContextOptionsBuilder<AlcifraDbContext>().UseSqlite(connection).Options, tenantAccessor))
         {
             var dispatcher = new EmailNotificationDispatcher(act, sender,
-                NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act));
+                NullLogger<EmailNotificationDispatcher>.Instance, NoOpAuditRecorder.Instance, new NoModuleScopeFactory(act, tenantAccessor));
             await dispatcher.DispatchPendingAsync();
         }
 

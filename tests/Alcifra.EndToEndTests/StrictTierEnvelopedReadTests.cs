@@ -368,6 +368,9 @@ public class StrictTierEnvelopedReadTests
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest($"CN={email}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());   // names its holder, as enrolment requires (ADR 1017)
         using var certificate = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return (certificate.ExportCertificatePem(), certificate.Export(X509ContentType.Pkcs12, "reader"));

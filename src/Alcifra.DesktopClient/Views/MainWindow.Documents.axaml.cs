@@ -473,19 +473,8 @@ public partial class MainWindow
         }
     });
 
-    // The self-service S/MIME certificate dialog (#1332, ADR 0816) — upload/generate/delete.
-    internal void OnManageSmime(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
-    {
-        if (DataContext is MainWindowViewModel { Api: { } api })
-        {
-            await new SmimeDialog(api).ShowDialog(this);
-        }
-    });
-
-    // Enrolling your own credential, where a module offers it (ABI 1.3, ADR 0864, #1502). A DIFFERENT store
-    // from the dialog above: that one writes the core's self-service MAIL certificate, this one the READER
-    // certificate documents are addressed to. A person can have one and not the other, which is why they are
-    // two entries rather than two modes of one.
+    // Enrolling your own credential (ABI 1.3, ADR 0864, #1502): the reader certificate documents and mail are sealed
+    // to, the one store since the self-service mail certificate retired (#1970 slice 4).
     internal void OnSelfEnrol(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
         if (DataContext is MainWindowViewModel { Api: { } api })

@@ -25,11 +25,19 @@ public class RecoveryCertificateTests
 
     public RecoveryCertificateTests(E2EApiFactory factory) => _factory = factory;
 
-    private static (X509Certificate2 WithKey, string Pem, string KeyPem) Rsa(string name)
+    // With an address, the certificate names its holder, as enrolment requires of a reader certificate (ADR 1015).
+    private static (X509Certificate2 WithKey, string Pem, string KeyPem) Rsa(string name, string? email = null)
     {
         using var key = RSA.Create(2048);
-        using var made = new CertificateRequest($"CN={name}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
-            .CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(5));
+        var request = new CertificateRequest($"CN={name}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        if (email is not null)
+        {
+            var san = new SubjectAlternativeNameBuilder();
+            san.AddEmailAddress(email);
+            request.CertificateExtensions.Add(san.Build());
+        }
+
+        using var made = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(5));
         var withKey = X509CertificateLoader.LoadPkcs12(made.Export(X509ContentType.Pkcs12), null, X509KeyStorageFlags.Exportable);
         return (withKey, made.ExportCertificatePem(), key.ExportPkcs8PrivateKeyPem());
     }
@@ -121,14 +129,15 @@ public class RecoveryCertificateTests
         var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
         var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
         var (adminId, admin) = await UserAsync(tenantId, admin: true);
-        var exporterKey = Rsa("Recovery Admin");
+        string adminEmail;
         await using (var scope = _factory.Services.CreateAsyncScope())
         {
             scope.ServiceProvider.GetRequiredService<CurrentTenantAccessor>().TenantId = tenantId;
-            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
-            db.Users.Single(u => u.Id == adminId).SmimeCertificatePem = exporterKey.Pem;
-            await db.SaveChangesAsync();
+            adminEmail = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>().Users.Single(u => u.Id == adminId).Email;
         }
+
+        var exporterKey = Rsa("Recovery Admin", adminEmail);
+        await _factory.EnrolReaderCertificateAsync(tenantId, adminId, exporterKey.Pem);
 
         var recovery = Rsa("Escrow");
         await RecoveryCertificateSurface.WriteAsync(new AlcifraApi(admin), recovery.Pem, replacing: false, CancellationToken.None);

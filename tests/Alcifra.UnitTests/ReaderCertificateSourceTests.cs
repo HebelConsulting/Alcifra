@@ -6,62 +6,55 @@ namespace Alcifra.UnitTests;
 /// Where an IMAP reader's certificates come from (ADR 0855), and the distinction that is easy to lose.
 /// </summary>
 /// <remarks>
-/// Written because the first draft of that change lost it. <c>ModuleReaderCertificates.ForAsync</c> answers
-/// null for "no module asks this question" and an EMPTY LIST for "a module answered, and this reader holds
-/// none" — and where a module answers it is the ONLY source (ADR 0842). Collapse the two into "no
-/// certificates" and the next source gets asked — the encryption service's registry once, the reader's column
-/// still (the registry is retired, ADR 0890) — so a certificate the module REVOKED goes on opening mail. That
-/// is the union ADR 0842 forbids, reached by accident rather than by decision, and no test would have noticed.
+/// Written because the first draft of that change lost it. Where a module answers it is the ONLY source (ADR 0842): an
+/// empty answer, a lapsed licence and a failed ask all close every other source, or a certificate the module REVOKED
+/// goes on opening mail — the union ADR 0842 forbids. Since #1970 slice 4 the other source is the core's registry, which
+/// answers only where no module speaks; the user's own certificate column is no longer one.
 /// </remarks>
 public class ReaderCertificateSourceTests
 {
-    private static Alcifra.Infrastructure.Modules.ReaderCertificateAnswer Module(params string[] pems) =>
-        Alcifra.Infrastructure.Modules.ReaderCertificateAnswer.Answered(
-            [.. pems.Select(pem => new ReaderCertificate(pem, "device", DateTimeOffset.MaxValue))]);
-
-    private static readonly Alcifra.Infrastructure.Modules.ReaderCertificateAnswer NoModule =
-        Alcifra.Infrastructure.Modules.ReaderCertificateAnswer.NoModule;
+    private static IReadOnlyList<ReaderCertificate> Certificates(params string[] pems) =>
+        [.. pems.Select(pem => new ReaderCertificate(pem, "device", DateTimeOffset.MaxValue))];
 
     [Fact]
     public void A_modules_answer_is_used_and_no_other_source_may_be_consulted()
     {
         var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(
-            Module("card-pem", "laptop-pem"), columnPem: "column-pem");
+            Alcifra.Infrastructure.Modules.ReaderCertificateAnswer.Answered(Certificates("card-pem", "laptop-pem")));
 
-        // The column is IGNORED, which is the point: not a fallback chain and not a union.
         Assert.Equal(["card-pem", "laptop-pem"], source.Pems);
         Assert.True(source.AnsweredByModule);
         Assert.True(source.Envelopes);
-        Assert.True(source.AnsweredByModule);
     }
 
     [Fact] // THE case the first draft got wrong
     public void A_module_answering_NONE_still_closes_every_other_source()
     {
-        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(Module(), columnPem: "column-pem");
+        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(
+            Alcifra.Infrastructure.Modules.ReaderCertificateAnswer.Answered([]));
 
         Assert.Empty(source.Pems);
         Assert.False(source.Envelopes);              // nothing to envelope to...
-        Assert.True(source.AnsweredByModule);         // ...and the module has spoken, so the column is not asked
+        Assert.True(source.AnsweredByModule);         // ...and the module has spoken, so nothing else is asked
     }
 
     [Fact]
-    public void With_no_module_the_self_service_column_answers()
+    public void With_no_module_the_registry_answers()
     {
-        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(NoModule, columnPem: "column-pem");
+        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(
+            Alcifra.Infrastructure.Modules.ReaderCertificateAnswer.FromRegistry(Certificates("token-pem")));
 
-        Assert.Equal(["column-pem"], source.Pems);
+        Assert.Equal(["token-pem"], source.Pems);
         Assert.False(source.AnsweredByModule);
         Assert.True(source.Envelopes);
-        Assert.False(source.AnsweredByModule);
     }
 
     [Fact]
-    public void With_no_module_and_no_column_there_is_nothing_to_envelope_to()
+    public void With_no_module_and_nothing_enrolled_there_is_nothing_to_envelope_to()
     {
-        // An installation with neither: nothing to address, so the FETCH path serves plaintext with a Warning.
-        // The encryption service's registry used to be asked here and is retired (ADR 0890).
-        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(NoModule, columnPem: null);
+        // Nothing to address, so the FETCH path serves plaintext (or refuses a device promised sealing).
+        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(
+            Alcifra.Infrastructure.Modules.ReaderCertificateAnswer.FromRegistry([]));
 
         Assert.Empty(source.Pems);
         Assert.False(source.Envelopes);
@@ -74,26 +67,12 @@ public class ReaderCertificateSourceTests
     public void A_lapsed_licence_or_a_failed_ask_also_closes_every_other_source(
         Alcifra.Infrastructure.Modules.ReaderCertificateOutcome outcome)
     {
-        // ADR 0859's addition to the same rule: neither of these said "this reader has none" — one says the
-        // tenant is not licensed and the other that nothing could be asked — so falling through to the
-        // column on either is the union ADR 0842 forbids, arrived at from a new direction.
-        var answer = new Alcifra.Infrastructure.Modules.ReaderCertificateAnswer(outcome, []);
-
-        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(answer, columnPem: "column-pem");
+        // ADR 0859's addition to the same rule: neither of these said "this reader has none", so nothing is addressed.
+        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(
+            new Alcifra.Infrastructure.Modules.ReaderCertificateAnswer(outcome, []));
 
         Assert.Empty(source.Pems);
         Assert.False(source.Envelopes);
         Assert.True(source.AnsweredByModule);
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(null)]
-    public void An_empty_column_is_the_same_as_no_column(string? columnPem)
-    {
-        var source = Alcifra.Infrastructure.Modules.ReaderCertificateSource.Resolve(NoModule, columnPem);
-
-        Assert.Empty(source.Pems);
-        Assert.False(source.AnsweredByModule);
     }
 }

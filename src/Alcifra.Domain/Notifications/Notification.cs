@@ -89,6 +89,11 @@ public enum NotificationType
     // conversation. NEVER mailed (a chat would mail per message), and coalesced while unread like ChatMessagePosted,
     // so the phone buzzes once until the user catches up — when the module clears it, the next one buzzes again.
     ModuleSignal = 21,
+
+    // The user's own encrypted-mail certificate retired with the self-service column (#1970 slice 4), and it does not
+    // address them in the certificate registry: what they fetch is no longer sealed to it until they enrol a hardware
+    // key. Sent once per user, at the startup that carries certificates into the registry.
+    OwnCertificateRetired = 22,
 }
 
 // A per-User in-app notification (ADR "Notifications (in-app, first slice)"). Written by INotificationService

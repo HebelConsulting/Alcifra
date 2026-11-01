@@ -242,11 +242,10 @@ public class RootController : ControllerBase
             resource.Links.Add(new Link("readerDirectoryValidation", "/api/reader-directory/validation", "POST"));
         }
 
-        // Certificate enrolment, owned by the core (ADR 0936): advertised only while an active module licenses it, so a
-        // missing rel keeps meaning "not available to you here". The Encryption Module's old rel names ride along as
-        // aliases of the same core addresses until the release after next, unless an older module still serves them.
-        if (tenantAccessor.TenantId is not null
-            && await CertificateEnrolmentLicence.IsOfferedAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken))
+        // Certificate enrolment, owned by the core (ADR 0936) and offered to every tenant since #1970 slice 4 (without a
+        // licensing module, two certificates per user). The Encryption Module's old rel names ride along as aliases of the
+        // same core addresses until the release after next, unless an older module still serves them.
+        if (tenantAccessor.TenantId is not null)
         {
             resource.Links.Add(new Link("certificates", "/api/certificates", "GET"));
             resource.Links.Add(new Link("certificatePolicy", "/api/certificate-policy", "GET"));

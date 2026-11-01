@@ -143,7 +143,7 @@ public sealed partial class PasswordStoreTests : IDisposable
     // The audience a store's entries are sealed to (ADR 0983), as the API composes it, for the caller given.
     private static ContentAudience Audience(AlcifraDbContext db, Guid? caller = null) =>
         new(db, new EffectiveRightsCalculator(db),
-            new ReaderCertificateSet(db, new ModuleReaderCertificates(db, new LicensingModules(), NullLogger<ModuleReaderCertificates>.Instance), NullLogger<ReaderCertificateSet>.Instance),
+            new ReaderCertificateSet(new ModuleReaderCertificates(db, new LicensingModules(), NullLogger<ModuleReaderCertificates>.Instance), NullLogger<ReaderCertificateSet>.Instance),
             new PasswordStoreTree(db), new CurrentUserAccessor { UserId = caller }, NullLogger<ContentAudience>.Instance);
 
     private static PasswordStoreReaders Readers(AlcifraDbContext db) => new(Audience(db));

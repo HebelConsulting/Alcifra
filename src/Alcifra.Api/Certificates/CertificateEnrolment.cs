@@ -9,6 +9,7 @@ using Alcifra.Api.Errors.Exceptions.Certificates;
 using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Documents;
 using Alcifra.Domain.Masks;
+using Alcifra.Domain.Notifications;
 using Alcifra.Infrastructure.Certificates;
 using Alcifra.Infrastructure.Certificates.Attestation;
 using Alcifra.Infrastructure.Certificates.Policy;
@@ -49,15 +50,6 @@ public sealed class CertificateEnrolment(
         string? Issuer = null);
 
     private Guid TenantId => tenant.TenantId ?? throw new InvalidOperationException("Certificate enrolment needs a current tenant.");
-
-    /// <summary>Refuses with 404 unless an active module licenses enrolment for this tenant.</summary>
-    public async Task EnsureOfferedAsync(CancellationToken cancellationToken)
-    {
-        if (!await CertificateEnrolmentLicence.IsOfferedAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken))
-        {
-            throw new CertificateEnrolmentNotOfferedException();
-        }
-    }
 
     /// <summary>Whether the caller administers enrolment: enrols for others and sets the policy.</summary>
     public Task<bool> CallerAdministersAsync(CancellationToken cancellationToken) => access.CanAdministerModulesAsync(cancellationToken);
@@ -265,10 +257,24 @@ public sealed class CertificateEnrolment(
                 + "be held by two readers; if that is genuinely the intent, the existing enrolment has to be revoked first.");
         }
 
+        await EnsureRoomAsync(holderId, cancellationToken);
+
         var evidenceRow = await attestation.DecideAsync(evidence, leaf, cancellationToken);
         return (await FileEnrolmentAsync(certificatePem, leaf, thumbprint, label, holderAddress, access.GetCallerIdentity(),
             $"Holder {holderAddress}, thumbprint {thumbprint}, {(evidenceRow is null ? "no attestation" : $"attestation of token {evidenceRow.DeviceSerial}")}",
             cancellationToken, evidenceRow), true);
+    }
+
+    // The core's own tier (#1970 slice 4): without a licensing module, a holder keeps at most two unrevoked certificates.
+    // A holder who is not a user yet holds none.
+    private async Task EnsureRoomAsync(Guid? holderId, CancellationToken cancellationToken)
+    {
+        if (holderId is { } id
+            && await CertificateEnrolmentLicence.PerUserLimitAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken) is { } limit
+            && await dbContext.EnrolledCertificates.CountAsync(c => c.UserId == id && c.RevokedAt == null, cancellationToken) >= limit)
+        {
+            throw new CertificateLimitReachedException(limit);
+        }
     }
 
     // Whether another user in the tenant holds an unrevoked enrolment of this public key. Read from the stored
@@ -376,75 +382,148 @@ public sealed class CertificateEnrolment(
     }
 
     /// <summary>
-    /// Carries each active user's OWN certificate (the self-service column, <c>User.SmimeCertificatePem</c>) into the
-    /// registry, once (#1839): while a module licenses enrolment, the registry is the only answer to "which certificates
-    /// does this reader have", and a certificate left in the column would silently stop addressing them. Applies
-    /// enrolment's own checks; never carries a certificate that was filed before — revoked or deleted included, so an
-    /// administrator's act is not undone at the next start. What cannot be carried is said, by user and reason.
+    /// Carries each active user's OWN certificate (the retired self-service column, <c>User.SmimeCertificatePem</c>) into
+    /// the registry, once (#1839; on every tenant since #1970 slice 4, where the registry is the core's answer too).
+    /// Applies enrolment's own checks and the core's limit of two; never carries a certificate that was filed before —
+    /// revoked or deleted included, so an administrator's act is not undone at the next start. A user whose certificate
+    /// then does not address them (not carried, or carried but not accepted by the tenant's attestation rules, which a
+    /// bare certificate cannot pass) is told so once, by notification. The column is dropped in a later release.
     /// </summary>
-    public async Task<int> AdoptOwnCertificatesAsync(CancellationToken cancellationToken)
+    /// <returns>How many certificates were carried, and how many users were told theirs no longer addresses them.</returns>
+    public async Task<(int Carried, int Notified)> AdoptOwnCertificatesAsync(INotificationService notifications, CancellationToken cancellationToken)
     {
         var waiting = await dbContext.Users
             .Where(u => u.IsActive && u.SmimeCertificatePem != null && u.SmimeCertificatePem != string.Empty)
+            .Where(u => !dbContext.Notifications.Any(n => n.RecipientUserId == u.Id && n.Type == NotificationType.OwnCertificateRetired))
             .Select(u => new { u.Id, u.Email, Pem = u.SmimeCertificatePem! })
             .ToListAsync(cancellationToken);
         if (waiting.Count == 0)
         {
-            return 0;
+            return (0, 0);
         }
 
         var policy = await CurrentPolicyAsync(cancellationToken);
-        var adopted = 0;
+        var limit = await CertificateEnrolmentLicence.PerUserLimitAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken);
+        var (carried, notified) = (0, 0);
         foreach (var user in waiting)
         {
-            var checkedPem = EnrolmentPolicy.Check(user.Pem);
-            if (!checkedPem.Ok)
-            {
-                logger.LogWarning(
-                    "The own certificate of user {Email} is not carried into the certificate registry: {Reason} While a module "
-                    + "licenses enrolment, nothing sealed reaches them until they enrol one that can receive encrypted content (#1839).",
-                    user.Email, checkedPem.Refusal);
-                continue;
-            }
-
-            using var leaf = checkedPem.Leaf!;
-            var thumbprint = Convert.ToHexString(SHA256.HashData(leaf.RawData));
-            if (await EverFiledAsync(thumbprint, cancellationToken))
-            {
-                continue;
-            }
-
-            // Possession (ADR 1017): a user's own certificate is the user's own claim, and without a proof of possession only
-            // an administrator's enrolment says whose key it is.
-            if (policy.EffectiveBinding == CertificateBinding.Possession)
-            {
-                logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant "
-                    + "binds keys by possession, so an administrator enrols it (ADR 1017).", user.Email);
-                continue;
-            }
-
-            if (PolicyEnforcement.Refusal(policy, leaf, user.Email, user.Pem, await IdentityAliasesAsync(user.Id, cancellationToken)) is { } refusal)
-            {
-                logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant's "
-                    + "certificate policy refuses it ({Reason}) (#1839).", user.Email, refusal);
-                continue;
-            }
-
-            try
-            {
-                await FileEnrolmentAsync(user.Pem, leaf, thumbprint, label: null, user.Email, (user.Id, null),
-                    $"Holder {user.Email}, thumbprint {thumbprint}; carried over from the user's own certificate (#1839)", cancellationToken);
-                adopted++;
-            }
-            catch (CertificateFolderNotConfiguredException)
+            var outcome = await CarryAsync(user.Id, user.Email, user.Pem, policy, limit, cancellationToken);
+            if (outcome is CarryOutcome.FolderMissing)
             {
                 logger.LogWarning("{Count} users' own certificates wait to be carried into the certificate registry: this tenant has "
-                    + "no folder for reader certificates chosen yet (#1839). Choose one; the next start carries them.", waiting.Count - adopted);
+                    + "no folder for reader certificates chosen yet (#1839). Choose one before the column is dropped; the next start "
+                    + "carries them.", waiting.Count - carried);
                 break;
+            }
+
+            carried += outcome is CarryOutcome.Carried ? 1 : 0;
+            if (!await AddressesAsync(user.Id, user.Pem, cancellationToken))
+            {
+                await notifications.NotifyAsync(user.Id, NotificationType.OwnCertificateRetired,
+                    "Your encrypted-mail certificate was retired",
+                    "Mail and documents are no longer sealed to the certificate you registered for encrypted mail. To have them "
+                    + "sealed again, enrol a hardware key (a smartcard or security key) as your reader certificate.",
+                    cancellationToken: cancellationToken);
+                notified++;
             }
         }
 
-        return adopted;
+        return (carried, notified);
+    }
+
+    private enum CarryOutcome
+    {
+        Carried,
+        NotCarried,
+        FolderMissing,
+    }
+
+    // One user's own certificate into the registry, if enrolment's checks, the policy and the limit allow it.
+    private async Task<CarryOutcome> CarryAsync(
+        Guid userId, string email, string pem, CertificatePolicy policy, int? limit,
+        CancellationToken cancellationToken)
+    {
+        var checkedPem = EnrolmentPolicy.Check(pem);
+        if (!checkedPem.Ok)
+        {
+            logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: {Reason} (#1839)",
+                email, checkedPem.Refusal);
+            return CarryOutcome.NotCarried;
+        }
+
+        using var leaf = checkedPem.Leaf!;
+        var thumbprint = Convert.ToHexString(SHA256.HashData(leaf.RawData));
+        if (await EverFiledAsync(thumbprint, cancellationToken))
+        {
+            return CarryOutcome.NotCarried;
+        }
+
+        // Possession (ADR 1017): a user's own certificate is the user's own claim, and without a proof of possession only
+        // an administrator's enrolment says whose key it is.
+        if (policy.EffectiveBinding == CertificateBinding.Possession)
+        {
+            logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant "
+                + "binds keys by possession, so an administrator enrols it (ADR 1017).", email);
+            return CarryOutcome.NotCarried;
+        }
+
+        if (PolicyEnforcement.Refusal(policy, leaf, email, pem, await IdentityAliasesAsync(userId, cancellationToken)) is { } refusal)
+        {
+            logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: the tenant's "
+                + "certificate policy refuses it ({Reason}) (#1839).", email, refusal);
+            return CarryOutcome.NotCarried;
+        }
+
+        if (limit is { } most
+            && await dbContext.EnrolledCertificates.CountAsync(c => c.UserId == userId && c.RevokedAt == null, cancellationToken) >= most)
+        {
+            logger.LogWarning("The own certificate of user {Email} is not carried into the certificate registry: they already hold "
+                + "{Limit} enrolled certificates (#1970).", email, most);
+            return CarryOutcome.NotCarried;
+        }
+
+        try
+        {
+            await FileEnrolmentAsync(pem, leaf, thumbprint, label: null, email, (userId, null),
+                $"Holder {email}, thumbprint {thumbprint}; carried over from the user's own certificate (#1839)", cancellationToken);
+            return CarryOutcome.Carried;
+        }
+        catch (CertificateFolderNotConfiguredException)
+        {
+            return CarryOutcome.FolderMissing;
+        }
+    }
+
+    // Whether this certificate now addresses its holder through the registry: enrolled to them, current, and accepted by
+    // the tenant's attestation rules.
+    private async Task<bool> AddressesAsync(Guid userId, string pem, CancellationToken cancellationToken)
+    {
+        string? thumbprint;
+        try
+        {
+            using var certificate = X509Certificate2.CreateFromPem(pem);
+            thumbprint = Convert.ToHexString(SHA256.HashData(certificate.RawData));
+        }
+        catch (Exception exception) when (exception is CryptographicException or ArgumentException)
+        {
+            return false;
+        }
+
+        var addressing = await CertificateRegistry.ForReaderAsync(dbContext, userId, DateTimeOffset.UtcNow, cancellationToken);
+        return addressing.Any(c => SameThumbprint(c.CertificatePem, thumbprint));
+    }
+
+    private static bool SameThumbprint(string pem, string thumbprint)
+    {
+        try
+        {
+            using var certificate = X509Certificate2.CreateFromPem(pem);
+            return Convert.ToHexString(SHA256.HashData(certificate.RawData)) == thumbprint;
+        }
+        catch (Exception exception) when (exception is CryptographicException or ArgumentException)
+        {
+            return false;
+        }
     }
 
     // Filed before, by thumbprint: in the registry, or as any Certificate document's Thumbprint field — a deleted one too,

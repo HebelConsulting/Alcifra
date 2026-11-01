@@ -425,29 +425,26 @@ open straight from the mail client.
   to the *recycle bin* — never a hard delete. Read/unread marks are remembered per person.
 ]
 
-*Encrypting what your mail program receives.*#idx("Encryption (S/MIME)") If you want the messages your mail
-client fetches to be readable *only on your own devices*, open *Encrypted mail (S/MIME)…* in the account
-menu. Either *upload* your certificate (a `.pem` or `.crt` file — just the certificate, never a private
-key), or type a password and *generate* a complete identity: you get a `.p12` to import on any device and a
-`.mobileconfig` that installs it on an iPhone or iPad in one tap. Download both right away — they are not
-stored on the server, and the password you typed is what the device asks for at import. From the next mail
-connection on, every message arrives encrypted to that certificate; your mail program decrypts it
-automatically once the identity is installed, and devices without it see only an encrypted attachment.
-*Or read it off a card.*#idx("Smartcard") If your certificate lives on a smartcard or a USB token, *Add a card
-or token…* lists what your readers can see — every device, and every certificate on each — and registers the one
-you pick. Before choosing this, read @cardsetup on what a card covers: it is the strongest option for the
-archive itself, and it leaves mail unreadable on an iPhone or iPad, which cannot use a card for S/MIME. Only the certificate is sent; the private key never leaves the device, which is the point of keeping it
-there. You are not asked for a PIN, because reading a certificate off a device does not need one. This is a
-desktop-client feature: a browser cannot reach a card reader, and the web client says so where the option would
-be.
+*Encrypting what your mail program receives.*#idx("Encryption (S/MIME)") If you want the messages a mail client
+fetches to be readable *only with your own key*, switch on *Encrypt mail content* for that device under *Devices…*
+(see @devices): from its next connection on, every message arrives sealed to your enrolled reader certificates, and
+the mail program decrypts it once it can use the key. Switching it on needs an enrolled, *attested hardware key* —
+a smartcard or a security key — which you enrol with *Enrol a certificate…* in the account menu (@selfenrolment); in
+the desktop client, *Add a card or token…*#idx("Smartcard") reads the certificate and its attestation off the token in
+one step. Before choosing a card, read @cardsetup on what it covers: it is the strongest option, and some mail
+programs cannot use a card at all. Where your organisation seals all mail, the switch is on for every device and
+cannot be turned off.
 
-While a certificate is set, all three entrances stay greyed out — *Delete certificate* switches your mail
-back to plain, and they come back. On installations where certificates are managed centrally,
-the dialog says so and there is nothing to set up *here* — the entry beside it is then the one that enrols a
-certificate for reading documents (@selfenrolment). The profile also installs the *archive's own mail-in
-certificate*: composing an encrypted message *to* the archive's ingest address (`archive@` your
-installation's mail domain) then works out of the box — the archive decrypts it on arrival and files a
-normal, searchable document.
+#note[
+  *Earlier versions let you generate or upload an encrypted-mail certificate in the browser.* That self-service
+  certificate is retired: a key that exists as a file is exactly what a hardware key avoids. If you had one, the
+  archive carried it over where your organisation's rules allow, and told you once, by notification, if mail is no
+  longer sealed to it.
+]
+
+The setup profile a phone installs from a device's hand-over also carries the *archive's own mail-in
+certificate*: composing an encrypted message *to* the archive's ingest address (`archive@` your installation's
+mail domain) then works out of the box — the archive decrypts it on arrival and files a normal, searchable document.
 
 *Notes, too.*#idx("Notes") Point a notes app that syncs over IMAP at the same account and it finds the
 *Notes* mailbox — your personal *Notes* folder in disguise. Every note becomes a proper archive document with
@@ -1224,9 +1221,9 @@ follows from the account you sign in with.
 == When the archive hands you encrypted content <encryptedreads>
 
 On an installation configured for it, the archive does not serve readable document content at all. What arrives
-is an *envelope addressed to your own certificate*#idx("Encrypted content") — the same certificate you registered
-to make your mail readable (see @imap) — and it is opened on your own machine, with your own key, by the client
-you are working in.
+is an *envelope addressed to your own certificates*#idx("Encrypted content") — the reader certificates you enrolled
+(see @selfenrolment), the same ones your mail is sealed to — and it is opened on your own machine, with your own key,
+by the client you are working in.
 
 #note[
   *This describes the strict level.* An administrator can also set a level where documents are offered *both*
@@ -1670,10 +1667,10 @@ works: the certificate, the key behind it, the PIN, the module, and the client's
 
 == Registering it with the archive
 
-In the desktop client, open *Encrypted mail (S/MIME)…* from the account menu and choose *Add a card or
+In the desktop client, open *Enrol a certificate…* from the account menu and choose *Add a card or
 token…*. It lists every certificate on every device in a reader — not just the first — because a card can
 carry several and a computer can have more than one reader. Pick the one from the Key Management slot and
-register it. No PIN is asked: a certificate is public, and only reading a *document* needs the key.
+enrol it. No PIN is asked: a certificate is public, and only reading a *document* needs the key.
 
 From then on the archive addresses that person's content to that certificate, and @encryptedreads describes
 what they see.
@@ -1687,13 +1684,11 @@ what they see.
 
 == Enrolling it yourself, where that is open to you <selfenrolment>
 
-The registration above is the archive's own, and it holds *one* certificate per person. Where the
-installation also runs *certificate management* — several certificates per person, revocation, and a policy
-stating what counts as an acceptable certificate (@encryptionservice) — the account menu carries a second
-entry beside the mail one: *Enrol a certificate…*#idx("Enrolling a certificate"). Both clients have it.
-
-The entry is there where that management is installed and licensed, and nowhere else: on an installation
-that does not run it there is nothing the entry could have done, so it is not shown.
+*Enrol a certificate…*#idx("Enrolling a certificate") in the account menu is where every reader certificate is
+enrolled, in both clients and on every installation. Without the *Encryption Module* (@encryptionservice) a person
+holds at most *two* certificates — a card for the desk and a security key for the road, say; with it, its
+certificate policy decides how many, and what counts as an acceptable certificate. A certificate that is revoked
+no longer counts towards the two.
 
 *Whether you may use it is your organisation's decision, and the dialog tells you* rather than the menu
 hiding it. Enrolling your own certificate is switched *off* until an administrator opens it — so where it is
@@ -1721,23 +1716,17 @@ addressed to *all* of them: the card on your desk and the identity on your lapto
 with nothing having to guess which one you are at.
 
 *A refusal names which of four things happened*, because the remedy differs every time and only one of them
-is yours to act on: enrolment is not open to you here (an administrator's), the certificate is not one the
+is yours to act on (and a fifth, *you already hold two*, where the limit applies: revoke one first): enrolment is
+not open to you here (an administrator's), the certificate is not one the
 product can use at all (a re-issue), your organisation's policy does not accept this one because its key is
 too short, its curve is not on the permitted list or the e-mail address on it is not yours (ask for one that
 is — @holderaddress), or it is enrolled already (nothing to do). The sentence comes from the certificate management itself, in your own language, rather than a single
 "could not enrol" that would send all four to the same place.
 
 #note[
-  *Two entries, two stores — and where certificate management is in use, only one of them addresses your
-  documents.* *Encrypted mail (S/MIME)…* registers the certificate that makes your *mail* readable: the
-  archive's own, one per person, and on an installation without certificate management it is what documents
-  are addressed to as well. *Enrol a certificate…* enrols a *reader* certificate with the certificate
-  management — and where that management is in use, it is the *only* place the archive looks when it addresses
-  a document. Deliberately not both: a certificate revoked in one store would otherwise go on opening
-  documents because a copy of it lingered in the other, which is a revocation that does not revoke.
-
-  So on such an installation, having registered a mail certificate is *not* the same as being addressed.
-  Enrol one, and @encryptedreads describes what you then see.
+  *One store.* Earlier versions had a second entry, *Encrypted mail (S/MIME)…*, holding one certificate per
+  person beside this one. It is retired: the certificates enrolled here are the only ones the archive addresses
+  documents and mail to, so revoking one revokes it everywhere.
 ]
 
 == Only attested hardware keys are enrolled <attestedenrolment>
@@ -1909,8 +1898,8 @@ way back from a blocked PIN that does not cost the key.
 
 == What a card covers, and what it may not
 
-One certificate is registered, and *two* different things use it: the archive envelopes document content to
-it, and it also envelopes the mail your mail program fetches (see @imap). Those are read by different
+The certificates you enrol are used for *two* different things: the archive envelopes document content to
+them, and it envelopes the mail a device fetches where that device's *Encrypt mail content* is on (see @imap). Those are read by different
 software, and a key on a card changes what can read them.
 
 - *The desktop client opens card-held content.* That is what @cardsetup prepares, and it is the case this
@@ -1924,27 +1913,22 @@ software, and a key on a card changes what can read them.
   therefore leaves mail on those devices unreadable, even while documents open normally on the desktop.
 
 #note[
-  *So choose by what you need to read.* If the point is that the private key never leaves hardware, a card
-  is right and mail on a phone is the thing you give up. If people must read archived mail on phones and
-  tablets, register a *generated* identity instead (see @imap) — it installs on those devices in one tap,
-  at the cost of the key existing as a file. Registering one replaces the other: delete the current
-  certificate first — and if you need *both* at once, that is the next section.
+  *So choose by what you need to read, device by device.* Whether mail is sealed is each device's setting
+  (@devices): leave *Encrypt mail content* off on a phone whose mail app cannot use the card, and on for a
+  desktop mail program that can. Documents are sealed to the card either way. Where your organisation seals all
+  mail, every device's mail is sealed, and only programs that can use the card read it.
 ]
 
-== When one certificate per person is not enough
+== When two certificates per person are not enough
 
-The limitation behind the choice above is that this application stores *one* certificate per user. That is
-what makes a card an either/or: the certificate that is on the card is the certificate everything is
-addressed to, so the devices that cannot use the card cannot read anything.
+Without the Encryption Module, a person enrols up to *two* certificates, each addressed alongside the other, so
+the same document opens with either key — a card on the desk and a security key carried along, say. Both are
+hardware keys under the same attestation rules (@attestedenrolment).
 
-Several certificates per person dissolves it — a card for the computer and an installed identity for the
-phone, each addressed alongside the other, so the same document opens on both without the card's key ever
-leaving it. That, and *enrolment* for more people than one administrator wants to prepare by hand, belong to
-the separate *Encryption Module* described in @encryptionservice. If you need either, contact support and ask
-about it; it is a paid extra.
-
-Nothing in this appendix is wasted if you go that way — the card is prepared the same, and it is the
-registration that the module takes over: @selfenrolment is what the last step becomes.
+More certificates per person, and *enrolment* for more people than one administrator wants to prepare by hand,
+belong to the separate *Encryption Module* described in @encryptionservice. If you need either, contact support
+and ask about it; it is a paid extra. Nothing in this appendix is wasted if you go that way — the card is prepared
+the same, and @selfenrolment stays the step that enrols it.
 
 == When something looks wrong
 

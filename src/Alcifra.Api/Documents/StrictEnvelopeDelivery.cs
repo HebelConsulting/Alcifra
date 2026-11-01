@@ -24,10 +24,9 @@ namespace Alcifra.Api.Documents;
 /// refuses plaintext.
 /// </para>
 /// <para>
-/// <b>The certificate is the self-service one</b> (<c>User.SmimeCertificatePem</c>) — the same registration
-/// the IMAP funnel already envelopes to, which is the precedent this whole tier is modelled on. One
-/// registration means one place to look and one place to revoke. Several certificates per user, and cards
-/// reached over PKCS#11, are the encryption service's own track rather than the core's.
+/// <b>The certificates are the reader's set</b> (<c>ReaderCertificateSet</c>): the module's answer where one speaks,
+/// else the core's registry (#1970 slice 4) — the same set the IMAP funnel envelopes to, so there is one place to look
+/// and one place to revoke.
 /// </para>
 /// <para>
 /// Scoped, and it caches nothing across requests: a certificate can be replaced at any moment, and the cost
@@ -218,7 +217,7 @@ public sealed class StrictEnvelopeDelivery(
         Alcifra.Infrastructure.Modules.ReaderCertificateOutcome.LicenceLapsed =>
             new Errors.Exceptions.Encryption.EncryptionModuleNotLicensedException(),
 
-        // A module answered "none", or no module answered and the reader's column holds none.
+        // A module answered "none", or no module answered and the core's registry holds none.
         // Both are genuinely "you have no usable certificate here", which the reader can act on.
         _ => new Errors.Exceptions.Encryption.ContentCannotBeEnvelopedException(),
     };

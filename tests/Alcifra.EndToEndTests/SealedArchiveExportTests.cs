@@ -55,10 +55,18 @@ public class SealedArchiveExportTests
         public static string Rendition(string objectKey) => $"{objectKey}.preview.pdf";
     }
 
-    private static X509Certificate2 Rsa(string name)
+    // With an address, the certificate names its holder, as enrolment requires of a reader certificate (ADR 1015).
+    private static X509Certificate2 Rsa(string name, string? email = null)
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest($"CN={name}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        if (email is not null)
+        {
+            var san = new SubjectAlternativeNameBuilder();
+            san.AddEmailAddress(email);
+            request.CertificateExtensions.Add(san.Build());
+        }
+
         using var made = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(5));
         return X509CertificateLoader.LoadPkcs12(made.Export(X509ContentType.Pkcs12), null, X509KeyStorageFlags.Exportable);
     }
@@ -76,14 +84,10 @@ public class SealedArchiveExportTests
     {
         var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
         var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
-        var exporterId = await _factory.SeedUserAsync(tenantId, $"road-{Guid.NewGuid():N}@e2e.local", "road-1234", "Rita Road", isTenantAdmin: true);
-        var exporterKey = Rsa("Rita Road");
-        await using (var scope = Scope(tenantId, userId: null))
-        {
-            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
-            (await db.Users.SingleAsync(u => u.Id == exporterId)).SmimeCertificatePem = exporterKey.ExportCertificatePem();
-            await db.SaveChangesAsync();
-        }
+        var exporterEmail = $"road-{Guid.NewGuid():N}@e2e.local";
+        var exporterId = await _factory.SeedUserAsync(tenantId, exporterEmail, "road-1234", "Rita Road", isTenantAdmin: true);
+        var exporterKey = Rsa("Rita Road", exporterEmail);
+        await _factory.EnrolReaderCertificateAsync(tenantId, exporterId, exporterKey.ExportCertificatePem());
 
         var repoId = (await TestJson.Post(owner, "/api/repositories", new { name = $"Road {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
         var folderId = (await TestJson.Post(owner, $"/api/documents/{repoId}/children", new { name = "Contracts" })).GetProperty("id").GetGuid();

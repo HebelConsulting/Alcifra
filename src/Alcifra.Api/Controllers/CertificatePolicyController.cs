@@ -20,7 +20,6 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
     [HttpGet]
     public async Task<ActionResult<CertificatePolicyResource>> Get(CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
         var (policy, tag) = await enrolment.CurrentPolicyWithTagAsync(cancellationToken);
         Response.Headers.ETag = $"\"{tag}\"";
         return Ok(Resource(policy));
@@ -30,7 +29,6 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
     [HttpHead]
     public async Task<IActionResult> Head(CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
         Response.Headers.ETag = $"\"{(await enrolment.CurrentPolicyWithTagAsync(cancellationToken)).Tag}\"";
         return NoContent();
     }
@@ -41,7 +39,6 @@ public class CertificatePolicyController(CertificateEnrolment enrolment) : Contr
     public async Task<ActionResult<CertificatePolicyResource>> Put(
         [FromBody] CertificatePolicyResource request, CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
         // Either signal for leaving Strict wins (CertificatePolicy.EffectiveBinding): an older client switches the address
         // rule off while echoing the binding it read. Both are stored consistently.
         var binding = Binding(request.Binding) == CertificateBinding.Possession || !request.SanMustMatchAccount

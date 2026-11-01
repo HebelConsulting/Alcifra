@@ -75,7 +75,6 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? holder, CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
 
         // The holder is HONOURED, not merely a switch for "the tenant's view": `certificates list --holder` promised
         // "only this holder's" while the server ignored the value and listed everybody. Whether the caller may ask at
@@ -88,14 +87,12 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
     [HttpHead]
     public async Task<IActionResult> Head(CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
         return NoContent();
     }
 
     [HttpPost]
     public async Task<IActionResult> Enrol([FromBody] EnrolRequest request, CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
         var evidence = request.Attestation is { } a
             ? new Infrastructure.Certificates.Attestation.AttestationEvidence(a.Format, a.AttestationCertificatePem, a.IntermediateCertificatePem, a.Slot)
             : null;

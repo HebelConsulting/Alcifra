@@ -45,11 +45,11 @@ public class ReaderCertificateRefusalTests
 
     [Theory]
     [InlineData(ReaderCertificateOutcome.Answered)]
-    [InlineData(ReaderCertificateOutcome.NoModule)]
+    [InlineData(ReaderCertificateOutcome.Registry)]
     public void A_reader_who_genuinely_has_none_is_told_what_THEY_can_do(ReaderCertificateOutcome outcome)
     {
         // The two outcomes that really do mean "you have no usable certificate here": a module answered and
-        // named none, or there is no module and neither the column nor the registry had one. Both are the
+        // named none, or there is no module and the core's registry had none (#1970 slice 4). Both are the
         // reader's to fix, which is the one case the old collapsed message was right about.
         var refusal = Assert.IsType<ContentCannotBeEnvelopedException>(
             StrictEnvelopeDelivery.RefusalFor(outcome));

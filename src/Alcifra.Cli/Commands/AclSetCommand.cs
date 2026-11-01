@@ -37,7 +37,7 @@ public sealed class AclSetCommand(ILogger<AclSetCommand> logger) : AsyncCommand<
     protected override async Task<int> ExecuteAsync(
         CommandContext context, AclSetSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var target = await AclSurface.ResolveAsync(api, settings, cancellationToken);

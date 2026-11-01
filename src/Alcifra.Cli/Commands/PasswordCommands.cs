@@ -36,7 +36,7 @@ public sealed class PasswordStoreCreateCommand(ILogger<PasswordStoreCreateComman
     protected override async Task<int> ExecuteAsync(
         CommandContext context, PasswordStoreCreateSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (id, created) = await PasswordStoreSurface.FindOrCreateStoreAsync(
             new AlcifraApi(http), Guid.Parse(settings.Parent), settings.Name, cancellationToken);
         if (created)
@@ -77,7 +77,7 @@ public sealed class PasswordStoreShowCommand(ILogger<PasswordStoreShowCommand> l
     protected override async Task<int> ExecuteAsync(
         CommandContext context, PasswordStoreShowSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var store = await PasswordStoreSurface.StoreAsync(
             new PasswordStoreClient(ApiCore.Over(http)), Guid.Parse(settings.Store), cancellationToken);
 
@@ -144,7 +144,7 @@ public sealed class PasswordEntryCreateCommand(ILogger<PasswordEntryCreateComman
         // under `set -o pipefail` that fails the pipeline even when the entry was simply already there.
         var secret = await PasswordInput.ReadAsync(Console.In, cancellationToken);
 
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (id, outcome) = await PasswordStoreSurface.FindOrCreateEntryAsync(
             new PasswordStoreClient(ApiCore.Over(http)),
             Guid.Parse(settings.Store),

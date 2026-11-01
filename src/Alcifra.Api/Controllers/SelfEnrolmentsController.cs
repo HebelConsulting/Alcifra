@@ -131,9 +131,8 @@ public class SelfEnrolmentsController(
             items.Add(item);
         }
 
-        // The core's own reader-certificate enrolment (ADR 0936), present while an active module licenses it; its gate is
-        // the tenant's self-service switch rather than a module setting.
-        if (await CertificateEnrolmentLicence.IsOfferedAsync(dbContext, modules, DateTimeOffset.UtcNow, cancellationToken))
+        // The core's own reader-certificate enrolment (ADR 0936), offered to every tenant (#1970 slice 4); its gate is the
+        // tenant's self-service switch rather than a module setting.
         {
             var enabled = await dbContext.Tenants
                 .Where(t => t.Id == tenant.TenantId)

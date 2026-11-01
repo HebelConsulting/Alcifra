@@ -33,7 +33,7 @@ public sealed class UserAliasListCommand(ILogger<UserAliasListCommand> logger) :
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, UserAliasSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var aliases = await api.GetAsync(await UserAliasSurface.AliasesHrefAsync(api, settings.Email, cancellationToken), cancellationToken);
         foreach (var alias in aliases.GetProperty("aliases").EnumerateArray())
@@ -53,7 +53,7 @@ public sealed class UserAliasAddCommand(ILogger<UserAliasAddCommand> logger) : A
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, UserAliasAddressSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var aliases = await api.GetAsync(await UserAliasSurface.AliasesHrefAsync(api, settings.Email, cancellationToken), cancellationToken);
         if (UserAliasSurface.Find(aliases, settings.Address) is not null)
@@ -73,7 +73,7 @@ public sealed class UserAliasRemoveCommand(ILogger<UserAliasRemoveCommand> logge
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, UserAliasAddressSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var aliases = await api.GetAsync(await UserAliasSurface.AliasesHrefAsync(api, settings.Email, cancellationToken), cancellationToken);
         if (UserAliasSurface.Find(aliases, settings.Address) is not { } alias)

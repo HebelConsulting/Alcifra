@@ -127,7 +127,7 @@ public sealed class EmailNotificationDispatcher : IEmailNotificationDispatcher
             try
             {
                 // S/MIME enveloping (#1334; ADR 0856): THE MODULE FIRST, and where it answers it is the
-                // ONLY source (ADR 0842) — then the #1332 column, then the sidecar's registry. The same
+                // ONLY source (ADR 0842) — else the core's registry (#1970 slice 4). The same
                 // precedence the IMAP funnel now follows, so one rule serves both
                 // (`ReaderCertificateSource`). With a certificate the subject goes GENERIC (headers cannot
                 // encrypt) and the title moves into the encrypted body; without one, exactly yesterday's
@@ -273,13 +273,12 @@ public sealed class EmailNotificationDispatcher : IEmailNotificationDispatcher
                 n.Body,
                 u.Email,
                 u.DisplayName,
-                u.SmimeCertificatePem,
                 t.Name))
             .ToListAsync(cancellationToken);
     }
 
     /// <summary>
-    /// The certificates this recipient is addressed by — the module first, then the core's own sources.
+    /// The certificates this recipient is addressed by — the module where one speaks, else the core's registry.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -308,9 +307,8 @@ public sealed class EmailNotificationDispatcher : IEmailNotificationDispatcher
             .GetRequiredService<Modules.ModuleReaderCertificates>()
             .ForAsync(item.RecipientUserId, cancellationToken);
 
-        // The module where one answers, else the reader's own column — never the encryption service's registry,
-        // which is retired (ADR 0890).
-        return Modules.ReaderCertificateSource.Resolve(fromModule, item.SmimeCertificatePem).Pems;
+        // The module where one answers, else the core's registry (#1970 slice 4).
+        return Modules.ReaderCertificateSource.Resolve(fromModule).Pems;
     }
 
     /// <summary>
@@ -406,6 +404,5 @@ public sealed class EmailNotificationDispatcher : IEmailNotificationDispatcher
         string Body,
         string Email,
         string DisplayName,
-        string? SmimeCertificatePem,
         string TenantName);
 }

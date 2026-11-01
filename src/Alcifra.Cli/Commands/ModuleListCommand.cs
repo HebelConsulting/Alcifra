@@ -19,7 +19,7 @@ public sealed class ModuleListCommand(ILogger<ModuleListCommand> logger) : Async
     protected override async Task<int> ExecuteAsync(
         CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var listing = await ModuleSurface.ListingAsync(api, cancellationToken);

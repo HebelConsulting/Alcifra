@@ -403,10 +403,15 @@ public class LmtpClaimDeliveryTests
         var (tenantId, domain, _, userAddress) = await TenantWithUserAsync();
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(userAddress, "lmtp-1234"));
 
-        // Generating an identity mints the ingest key and embeds its certificate as a SECOND payload.
-        var generated = await TestJson.Post(api, "/api/me/smime-certificate", new { p12Password = "ingest-circle" });
-        var mobileConfig = Encoding.UTF8.GetString(Convert.FromBase64String(generated.GetProperty("mobileConfig").GetString()!));
-        Assert.Contains($"{(global::Alcifra.Localization.Strings.ProductName)} mail-in certificate", mobileConfig, StringComparison.Ordinal);
+        // Enrolling a device that reaches mail mints the ingest key and carries its certificate in the device's setup
+        // profile (#1970 slice 4; the retired self-service identity carried it before).
+        var enrolled = await TestJson.Post(api, "/api/me/devices", E2EDevices.Any());
+        var link = new Uri(enrolled.GetProperty("handOver").GetProperty("profileUrl").GetString()!).PathAndQuery;
+        using (var anonymous = _factory.CreateClient())
+        {
+            var profile = await anonymous.GetStringAsync(link);
+            Assert.Contains($"{(global::Alcifra.Localization.Strings.ProductName)} mail-in certificate", profile, StringComparison.Ordinal);
+        }
 
         string ingestPem;
         string ingestAddress;

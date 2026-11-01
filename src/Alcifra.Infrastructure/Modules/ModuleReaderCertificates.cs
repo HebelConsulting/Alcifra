@@ -52,8 +52,8 @@ public sealed class ModuleReaderCertificates(
 
         if (modules.Count == 0)
         {
-            // the ordinary case: nothing enrols certificates, so nothing is asked
-            return ReaderCertificateAnswer.NoModule;
+            // No module can answer, so the core's registry does (#1970 slice 4).
+            return await RegistryAsync(userId, cancellationToken);
         }
 
         logger.LogDebug(
@@ -124,15 +124,15 @@ public sealed class ModuleReaderCertificates(
         // narrowing ADR 0859): where the tenant delivers envelopes, nothing can envelope, so the read refuses —
         // LicenceLapsed, its own outcome among ADR 0842's four refusals, and it closes the column too. Where the
         // tenant does NOT envelope, the module simply has nothing to say about it: answering LicenceLapsed there
-        // shut off the reader's own self-service certificate on every tenant of an installation that licensed the
-        // module for only one — the kiosk's public demo would have lost self-service S/MIME the moment the
-        // Encryption Module was loaded for its Crypto tenant.
+        // shut off the reader's own certificates on every tenant of an installation that licensed the module for only
+        // one — the kiosk's public demo would have lost them the moment the Encryption Module was loaded for its Crypto
+        // tenant.
         if (await TenantDeliversEnvelopesAsync(cancellationToken) is false)
         {
             logger.LogDebug(
                 "A module that answers reader certificates is loaded but not active for this tenant, whose mode "
-                + "does not deliver envelopes; the core's own sources answer for user {UserId}.", userId);
-            return ReaderCertificateAnswer.NoModule;
+                + "does not deliver envelopes; the core's registry answers for user {UserId}.", userId);
+            return await RegistryAsync(userId, cancellationToken);
         }
 
         // Warning, not Debug: this tenant's mode delivers envelopes and no module is active for it, so every
@@ -145,6 +145,12 @@ public sealed class ModuleReaderCertificates(
 
         return ReaderCertificateAnswer.LicenceLapsed;
     }
+
+    // The core's own answer where no module speaks for the tenant (#1970 slice 4): the same registry a licensing module
+    // switches on, so a reader's enrolments mean the same with and without one.
+    private async Task<ReaderCertificateAnswer> RegistryAsync(Guid userId, CancellationToken cancellationToken) =>
+        ReaderCertificateAnswer.FromRegistry(
+            await Certificates.CertificateRegistry.ForReaderAsync(dbContext, userId, DateTimeOffset.UtcNow, cancellationToken));
 
     /// <summary>
     /// Whether the ambient tenant's mode delivers envelopes — null when it cannot be told (no tenant in scope, or no

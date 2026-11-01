@@ -19,12 +19,12 @@ public sealed class ReaderCertificatesDescribeTests
     }
 
     [Fact]
-    public void A_module_answer_is_the_source_even_with_a_column_and_carries_label_expiry_and_thumbprint()
+    public void A_module_answer_is_the_source_and_carries_label_expiry_and_thumbprint()
     {
         var pem = Pem("card");
         var answer = ReaderCertificateAnswer.Answered([new ReaderCertificate(pem, "YubiKey 5C", DateTimeOffset.UtcNow.AddYears(1))]);
 
-        var described = ReaderCertificatesController.Describe(answer, Pem("column"));
+        var described = ReaderCertificatesController.Describe(answer);
 
         Assert.Equal(("module", (string?)null), (described.Source, described.Reason));
         var entry = Assert.Single(described.Certificates);
@@ -46,19 +46,21 @@ public sealed class ReaderCertificatesDescribeTests
             _ => ReaderCertificateAnswer.Answered([]),
         };
 
-        var described = ReaderCertificatesController.Describe(answer, Pem("column"));   // the column is NOT a fallback
+        var described = ReaderCertificatesController.Describe(answer);
 
         Assert.Equal(("module", reason), (described.Source, described.Reason));
         Assert.Empty(described.Certificates);
     }
 
+    // #1970 slice 4: without a module the core's registry answers; the user's own column is no longer a source.
     [Fact]
-    public void Without_a_module_the_users_column_answers_or_nothing_does()
+    public void Without_a_module_the_registry_answers_or_nothing_does()
     {
-        var own = ReaderCertificatesController.Describe(ReaderCertificateAnswer.NoModule, Pem("Anna"));
-        Assert.Equal(("own", "Anna"), (own.Source, Assert.Single(own.Certificates).Label));
+        var registry = ReaderCertificatesController.Describe(
+            ReaderCertificateAnswer.FromRegistry([new ReaderCertificate(Pem("Anna"), "Anna's key", DateTimeOffset.UtcNow.AddYears(1))]));
+        Assert.Equal(("registry", "Anna's key"), (registry.Source, Assert.Single(registry.Certificates).Label));
 
-        var none = ReaderCertificatesController.Describe(ReaderCertificateAnswer.NoModule, null);
+        var none = ReaderCertificatesController.Describe(ReaderCertificateAnswer.FromRegistry([]));
         Assert.Equal(("none", "noneEnrolled"), (none.Source, none.Reason));
     }
 }

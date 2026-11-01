@@ -26,8 +26,9 @@ public class ReaderDirectoryTests
     {
         var tenantId = await _factory.SeedTenantNamedAsync($"Dir{Guid.NewGuid():N}"[..20]);
 
-        var readerId = await _factory.SeedUserAsync(tenantId, Email(), "rd-1234", "Reader Person");
-        var pem = NewCertificatePem("Reader Person");
+        var readerEmail = Email();
+        var readerId = await _factory.SeedUserAsync(tenantId, readerEmail, "rd-1234", "Reader Person");
+        var pem = NewCertificatePem("Reader Person", readerEmail);
         await _factory.EnrolReaderCertificateAsync(tenantId, readerId, pem);
 
         // A colleague with no certificate: named nowhere, because nothing can be sealed to them.
@@ -65,7 +66,7 @@ public class ReaderDirectoryTests
         await _factory.SeedUserAsync(tenantId, authorEmail, "rd-1234", "Author Person");
         using var api = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(authorEmail, "rd-1234"));
 
-        var pem = NewCertificatePem("external@example.test");
+        var pem = NewCertificatePem("external@example.test", "external@example.test");
 
         // A leaf with NO attestation chain on a tenant that refuses unattested hardware: refused by name. The tenant's
         // rule is enrolment's own (ADR 0963), not a second, weaker one for audiences.
@@ -108,10 +109,13 @@ public class ReaderDirectoryTests
         await db.SaveChangesAsync();
     }
 
-    private static string NewCertificatePem(string commonName)
+    private static string NewCertificatePem(string commonName, string email)
     {
         using var key = RSA.Create(2048);
         var request = new CertificateRequest($"CN={commonName}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());   // names its holder, as enrolment requires (ADR 1017)
         using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return certificate.ExportCertificatePem();
     }

@@ -58,8 +58,14 @@ public static class DeviceProfile
 {
     public const string ContentType = "application/x-apple-aspen-config";
 
+    /// <param name="ingestCertificatePem">
+    /// The tenant's mail-in certificate (ADR 0820), carried where the device reaches mail, so composing TO the archive's
+    /// ingest address offers encryption with no setup: iOS consults profile-installed certificates for S/MIME recipient
+    /// lookup. It rode the retired self-service identity's profile before (#1970 slice 4).
+    /// </param>
     public static string Build(
-        Guid deviceId, string deviceName, string email, string password, DeviceSwitches switches, DeviceServers servers)
+        Guid deviceId, string deviceName, string email, string password, DeviceSwitches switches, DeviceServers servers,
+        string? ingestCertificatePem = null)
     {
         var payloads = new StringBuilder();
         if (switches.Mail && servers.ImapHost is not null)
@@ -80,6 +86,23 @@ public static class DeviceProfile
                 ("OutgoingMailServerAuthentication", "string", "EmailAuthNone"),
                 ("OutgoingMailServerUsername", "string", email),
             ]));
+        }
+
+        if (switches.Mail && servers.ImapHost is not null && ingestCertificatePem is { Length: > 0 })
+        {
+            using var ingest = System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(ingestCertificatePem);
+            payloads.Append($"""
+
+                    <dict>
+                        <key>PayloadContent</key>
+                        <data>{Convert.ToBase64String(ingest.RawData)}</data>
+                        <key>PayloadDisplayName</key><string>{Escape($"{Alcifra.Localization.Strings.ProductName} mail-in certificate")}</string>
+                        <key>PayloadIdentifier</key><string>{Alcifra.Presentation.WireNames.DeviceProfileIdentifierPrefix}.{deviceId}.ingest</string>
+                        <key>PayloadType</key><string>com.apple.security.root</string>
+                        <key>PayloadUUID</key><string>{Uuid(deviceId, "ingest")}</string>
+                        <key>PayloadVersion</key><integer>1</integer>
+                    </dict>
+            """);
         }
 
         if (switches.Calendars)

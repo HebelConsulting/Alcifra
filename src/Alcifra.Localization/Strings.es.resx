@@ -4992,32 +4992,8 @@
   <data name="RevealOnceScanAlt" xml:space="preserve">
     <value>Código QR de la dirección</value>
   </data>
-  <data name="AccountSmime" xml:space="preserve">
-    <value>Correo cifrado (S/MIME)…</value>
-  </data>
-  <data name="SmimeTitle" xml:space="preserve">
-    <value>Correo cifrado (S/MIME)</value>
-  </data>
-  <data name="SmimeBody" xml:space="preserve">
-    <value>Con un certificado configurado, los mensajes descargados por IMAP se cifran para que solo sus dispositivos puedan leerlos. Suba su certificado o genere una identidad completa para sus dispositivos.</value>
-  </data>
-  <data name="SmimeProvisioned" xml:space="preserve">
-    <value>En esta instalación los certificados de correo se proporcionan de forma centralizada — aquí no hay nada que configurar. Los certificados para leer documentos se registran por separado.</value>
-  </data>
-  <data name="SmimeNone" xml:space="preserve">
-    <value>No hay certificado configurado — el correo se sirve sin cifrar.</value>
-  </data>
-  <data name="SmimeSubject" xml:space="preserve">
-    <value>Certificado</value>
-  </data>
-  <data name="SmimeExpires" xml:space="preserve">
-    <value>Válido hasta</value>
-  </data>
   <data name="SmimeAddCard" xml:space="preserve">
     <value>Añadir una tarjeta o token…</value>
-  </data>
-  <data name="SmimeCardOnly" xml:space="preserve">
-    <value>Añadir una tarjeta requiere el cliente de escritorio: un navegador no puede acceder a un lector de tarjetas.</value>
   </data>
   <data name="CardPinTitle" xml:space="preserve">
     <value>PIN de la tarjeta</value>
@@ -5043,9 +5019,6 @@
   <data name="CardChooseModule" xml:space="preserve">
     <value>Elegir módulo…</value>
   </data>
-  <data name="CardNoToken" xml:space="preserve">
-    <value>No se encontró ninguna tarjeta o token en un lector. Insértelo e inténtelo de nuevo.</value>
-  </data>
   <data name="CardNoCertificate" xml:space="preserve">
     <value>Se leyó el dispositivo, pero no contiene ningún certificado.</value>
   </data>
@@ -5066,36 +5039,6 @@
   </data>
   <data name="CardConcernKeyUsage" xml:space="preserve">
     <value>El uso de clave declarado no menciona el cifrado de clave. Puede funcionar igualmente: muchos dispositivos no lo exigen.</value>
-  </data>
-  <data name="SmimeUpload" xml:space="preserve">
-    <value>Subir certificado (.pem, .crt)</value>
-  </data>
-  <data name="SmimeP12Password" xml:space="preserve">
-    <value>Contraseña para el archivo .p12</value>
-  </data>
-  <data name="SmimeGenerate" xml:space="preserve">
-    <value>Generar identidad</value>
-  </data>
-  <data name="SmimeGeneratedKeep" xml:space="preserve">
-    <value>Descargue ambos archivos ahora — no se guardan en el servidor.</value>
-  </data>
-  <data name="SmimeDownloadP12" xml:space="preserve">
-    <value>Descargar .p12</value>
-  </data>
-  <data name="SmimeDownloadProfile" xml:space="preserve">
-    <value>Descargar .mobileconfig</value>
-  </data>
-  <data name="SmimeDelete" xml:space="preserve">
-    <value>Eliminar certificado</value>
-  </data>
-  <data name="SmimeUploadError" xml:space="preserve">
-    <value>No se pudo subir el certificado.</value>
-  </data>
-  <data name="SmimeGenerateError" xml:space="preserve">
-    <value>No se pudo generar la identidad.</value>
-  </data>
-  <data name="SmimeDeleteError" xml:space="preserve">
-    <value>No se pudo eliminar el certificado.</value>
   </data>
   <data name="DeviceTitle" xml:space="preserve">
     <value>Aprobar un inicio de sesión</value>
@@ -6839,6 +6782,9 @@
   </data>
   <data name="DvMountPaste" xml:space="preserve">
     <value>Cuando el sistema pida la contraseña, pegue la que se muestra aquí.</value>
+  </data>
+  <data name="ApiErrCertificateLimit" xml:space="preserve">
+    <value>Ya tienes dos certificados inscritos, el máximo permitido aquí. Revoca uno antes de inscribir otro.</value>
   </data>
   <data name="MwWebDavMountedForOther" xml:space="preserve">
     <value>Los archivos de este servidor están montados para {0}. Expulsa primero ese volumen y vuelve a montarlo.</value>

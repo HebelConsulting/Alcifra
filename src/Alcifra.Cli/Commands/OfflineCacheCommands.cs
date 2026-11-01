@@ -13,7 +13,7 @@ public sealed class OfflineCacheShowCommand(ILogger<OfflineCacheShowCommand> log
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (policy, _) = await OfflineCacheSurface.ReadAsync(new AlcifraApi(http), cancellationToken);
         logger.LogInformation("{Policy}", OfflineCacheSurface.Describe(policy));
         return 0;
@@ -60,7 +60,7 @@ public sealed class OfflineCacheSetCommand(ILogger<OfflineCacheSetCommand> logge
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, OfflineCacheSetSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var written = await OfflineCacheSurface.SetAsync(new AlcifraApi(http), settings, cancellationToken);
         logger.LogInformation("Offline-cache policy is now: {Policy}", OfflineCacheSurface.Describe(written));
         return 0;

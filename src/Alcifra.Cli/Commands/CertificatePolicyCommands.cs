@@ -19,7 +19,7 @@ public sealed class CertificatePolicyShowCommand(ILogger<CertificatePolicyShowCo
     protected override async Task<int> ExecuteAsync(
         CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (_, resource, _) = await CertificatePolicySurface.ReadAsync(new AlcifraApi(http), cancellationToken);
         CertificatePolicySurface.Report(logger, resource);
         return 0;
@@ -81,7 +81,7 @@ public sealed class CertificatePolicySetCommand(ILogger<CertificatePolicySetComm
     protected override async Task<int> ExecuteAsync(
         CommandContext context, CertificatePolicySetSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var written = await CertificatePolicySurface.SetAsync(new AlcifraApi(http), settings.Chosen, settings.AnchorsPem, cancellationToken);
         CertificatePolicySurface.Report(logger, written);
         return 0;

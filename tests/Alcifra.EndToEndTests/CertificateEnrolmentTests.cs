@@ -593,18 +593,28 @@ public partial class CertificateEnrolmentTests
         }
     }
 
+    // #1970 slice 4 (ADR 1021): enrolment is offered without a licensing module too, and there a holder keeps at most two
+    // unrevoked certificates.
     [Fact]
-    public async Task Without_a_licensing_module_enrolment_does_not_exist()
+    public async Task Without_a_licensing_module_enrolment_is_offered_and_a_holder_keeps_two()
     {
-        var email = $"noenrol-core-{Guid.NewGuid():N}@e2e.local";
-        const string password = "noenrol12345";
+        var email = $"twokeys-{Guid.NewGuid():N}@e2e.local";
+        const string password = "twokeys12345";
         var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
-        await _factory.SeedUserAsync(tenantId, email, password, "No Enrolment");
+        await _factory.SeedUserAsync(tenantId, email, password, "Two Keys");
         using var member = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, password));
+        Assert.Contains("certificates", Links(await TestJson.Get(member, "/api")).Keys);
 
-        Assert.DoesNotContain("certificates", Links(await TestJson.Get(member, "/api")).Keys);
-        using var response = await member.GetAsync("/api/certificates");
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var enroller = await _factory.RegistryEnrollerAsync(tenantId);
+        foreach (var key in new[] { "desk card", "security key" })
+        {
+            using var enrolled = await enroller.PostAsJsonAsync("/api/certificates", new { certificatePem = SelfSigned(key, email), label = key, holder = email });
+            Assert.Equal(HttpStatusCode.Created, enrolled.StatusCode);
+        }
+
+        using var third = await enroller.PostAsJsonAsync("/api/certificates", new { certificatePem = SelfSigned("third", email), label = "third", holder = email });
+        Assert.Equal(HttpStatusCode.Conflict, third.StatusCode);
+        Assert.Equal("CERTIFICATE_LIMIT_REACHED", (await third.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errorCode").GetString());
     }
 
     private static async Task<HttpResponseMessage> PutWithTagAsync(HttpClient client, string href, object body, string tag)
@@ -629,8 +639,9 @@ public partial class CertificateEnrolmentTests
         await TestJson.Read(write);
     }
 
-    // #1839: a user's OWN certificate (the self-service column) is carried into the registry once, so a module that
-    // licenses enrolment does not silently stop addressing them; a signing-only one is not, and nothing is carried twice.
+    // #1839: a user's OWN certificate (the retired self-service column) is carried into the registry once; a signing-only
+    // one is not, and nothing is carried twice. #1970 slice 4: whoever's certificate then does not address them is told
+    // so, once.
     [Fact]
     public async Task A_users_own_certificate_is_carried_into_the_registry_once_and_a_signing_one_is_not()
     {
@@ -647,13 +658,16 @@ public partial class CertificateEnrolmentTests
             await SetOwnCertificateAsync(rig.TenantId, rig.MemberEmail, own);
             await SetOwnCertificateAsync(rig.TenantId, signerEmail, SigningOnly("signer"));
 
-            Assert.Equal(1, await AdoptAsync(rig.TenantId));   // the member's; the signing-only certificate is refused
+            // The member's is carried; the signing-only certificate is refused, and its holder told.
+            Assert.Equal((1, 1), await AdoptAsync(rig.TenantId));
+            Assert.Equal(1, await RetiredNoticesAsync(rig.TenantId, signerEmail));
+            Assert.Equal(0, await RetiredNoticesAsync(rig.TenantId, rig.MemberEmail));
 
             var me = Links(await TestJson.Get(rig.Member, "/api/me"));
             var readers = await TestJson.Get(rig.Member, me["readerCertificates"]);
             Assert.Equal(own.Trim(), Assert.Single(readers.GetProperty("certificates").EnumerateArray().ToList()).GetProperty("pem").GetString()!.Trim());
 
-            Assert.Equal(0, await AdoptAsync(rig.TenantId));   // once: the next start carries nothing again
+            Assert.Equal((0, 0), await AdoptAsync(rig.TenantId));   // once: the next start carries and tells nothing again
 
             // Deleted by an administrator: the next start does not bring it back from the column.
             var enrolled = Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
@@ -666,7 +680,10 @@ public partial class CertificateEnrolmentTests
                 Assert.True(deleted.IsSuccessStatusCode, $"delete answered {(int)deleted.StatusCode}");
             }
 
-            Assert.Equal(0, await AdoptAsync(rig.TenantId));
+            // ...but its holder is now told, once, that it no longer addresses them.
+            Assert.Equal((0, 1), await AdoptAsync(rig.TenantId));
+            Assert.Equal(1, await RetiredNoticesAsync(rig.TenantId, rig.MemberEmail));
+            Assert.Equal((0, 0), await AdoptAsync(rig.TenantId));
         }
         finally
         {
@@ -675,16 +692,27 @@ public partial class CertificateEnrolmentTests
         }
     }
 
-    private async Task<int> AdoptAsync(Guid tenantId)
+    private async Task<(int Carried, int Notified)> AdoptAsync(Guid tenantId)
     {
         using var scope = _factory.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.CurrentTenantAccessor>().TenantId = tenantId;
         await Alcifra.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildTenantAsync(
             _factory.Services, tenantId, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
-        var adopted = await scope.ServiceProvider.GetRequiredService<Alcifra.Api.Certificates.CertificateEnrolment>().AdoptOwnCertificatesAsync(CancellationToken.None);
+        var adopted = await scope.ServiceProvider.GetRequiredService<Alcifra.Api.Certificates.CertificateEnrolment>().AdoptOwnCertificatesAsync(
+            scope.ServiceProvider.GetRequiredService<Alcifra.Application.Abstractions.INotificationService>(), CancellationToken.None);
         await Alcifra.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildTenantAsync(
             _factory.Services, tenantId, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
         return adopted;
+    }
+
+    private async Task<int> RetiredNoticesAsync(Guid tenantId, string email)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+        var normalized = email.ToUpperInvariant();
+        var userId = await db.Users.IgnoreQueryFilters().Where(u => u.TenantId == tenantId && u.NormalizedEmail == normalized).Select(u => u.Id).SingleAsync();
+        return await db.Notifications.IgnoreQueryFilters()
+            .CountAsync(n => n.RecipientUserId == userId && n.Type == Alcifra.Domain.Notifications.NotificationType.OwnCertificateRetired);
     }
 
     private async Task SetOwnCertificateAsync(Guid tenantId, string email, string pem)

@@ -42,6 +42,7 @@ public class ProtocolDevicesController(
     IConfiguration configuration,
     Microsoft.Extensions.Options.IOptions<Alcifra.Api.Imap.ImapOptions> imap,
     Alcifra.Api.Imap.ImapServer imapServer,
+    Alcifra.Api.Encryption.TenantIngestKeyService ingestKeys,
     IAuditRecorder audit,
     ILogger<ProtocolDevicesController> logger) : ControllerBase
 {
@@ -265,8 +266,12 @@ public class ProtocolDevicesController(
         var (device, password) = await enrolment.EnrolAsync(user, name, switches, cancellationToken);
         var servers = DeviceServers.From(configuration, imap.Value, imapServer);
         var profileReaches = (switches.Mail && servers.ImapHost is not null) || switches.Calendars || switches.Contacts;
+
+        // A device that reaches mail carries the tenant's mail-in certificate (ADR 0820), minted on first need as the
+        // retired self-service identity minted it (#1970 slice 4). Null without a verified receiving domain.
+        var ingest = switches.Mail ? await ingestKeys.EnsureAsync(user.TenantId, cancellationToken) : null;
         var link = profileReaches
-            ? handOvers.Create(device, DeviceProfile.Build(device.Id, device.Name, user.Email, password, switches, servers))
+            ? handOvers.Create(device, DeviceProfile.Build(device.Id, device.Name, user.Email, password, switches, servers, ingest?.CertificatePem))
             : ((string Token, DateTimeOffset ExpiresAt)?)null;
         await dbContext.SaveChangesAsync(cancellationToken);
 

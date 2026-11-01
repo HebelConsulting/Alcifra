@@ -22,7 +22,7 @@ public sealed class RecoveryCertificateShowCommand(ILogger<RecoveryCertificateSh
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, RecoveryCertificateShowSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (resource, _) = await RecoveryCertificateSurface.ReadAsync(new AlcifraApi(http), cancellationToken);
         if (!RecoveryCertificateSurface.Configured(resource))
         {
@@ -57,7 +57,7 @@ public sealed class RecoveryCertificateSetCommand(ILogger<RecoveryCertificateSet
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, RecoveryCertificateFileSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var written = await RecoveryCertificateSurface.WriteAsync(new AlcifraApi(http), await File.ReadAllTextAsync(settings.File, cancellationToken),
             replacing: false, cancellationToken);
         logger.LogInformation("Recovery certificate set: {Description}", RecoveryCertificateSurface.Describe(written));
@@ -73,7 +73,7 @@ public sealed class RecoveryCertificateReplaceCommand(ILogger<RecoveryCertificat
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, RecoveryCertificateFileSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var written = await RecoveryCertificateSurface.WriteAsync(new AlcifraApi(http), await File.ReadAllTextAsync(settings.File, cancellationToken),
             replacing: true, cancellationToken);
         logger.LogInformation("Recovery certificate replaced: {Description}. Keep the previous private key: the archives made until now open only with it.",

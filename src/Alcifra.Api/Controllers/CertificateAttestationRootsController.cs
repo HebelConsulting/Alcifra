@@ -112,7 +112,6 @@ public class CertificateAttestationRootsController(
 
     private async Task<Domain.Tenants.Tenant> AuthorizedTenantAsync(CancellationToken cancellationToken)
     {
-        await enrolment.EnsureOfferedAsync(cancellationToken);
         if (!await enrolment.CallerAdministersAsync(cancellationToken))
         {
             throw new CertificateSettingsNotYoursException();

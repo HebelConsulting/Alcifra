@@ -205,11 +205,9 @@
                     }
                     <MudMenuItem Icon="@Icons.Material.Filled.Key" OnClick="ManagePasskeysAsync">@Strings.Get("AccountPasskeys")</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.Devices" OnClick="ManageDevicesAsync">@Strings.Get("DvMenu")</MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.MailLock" OnClick="ManageSmimeAsync">@Strings.Get("AccountSmime")</MudMenuItem>
-                    @* Beside the certificate entry, which is where the manual tells a reader to look when
-                       download and preview are absent. Shown only where some module declares an enrolment
-                       (ADR 0864) — an absent affordance means the capability is absent, and this client
-                       learns that from the REL alone, never from a module id. *@
+                    @* Where the manual tells a reader to look when download and preview are absent. Shown where the
+                       `selfEnrolments` rel is (ADR 0864; every tenant since #1970 slice 4) — an absent affordance
+                       means the capability is absent, and this client learns that from the REL alone. *@
                     @if (_canSelfEnrol)
                     {
                         <MudMenuItem Icon="@Icons.Material.Filled.AddModerator" OnClick="SelfEnrolAsync">@Strings.Get("AccountSelfEnrol")</MudMenuItem>
@@ -573,12 +571,8 @@
     private async Task ManageDevicesAsync() =>
         await (await DialogService.ShowAsync<DevicesDialog>(Strings.Get("DvTitle"), DevicesDialog.Options)).Result;
 
-    private async Task ManageSmimeAsync() =>
-        await (await DialogService.ShowAsync<SmimeDialog>(Strings.Get("SmimeTitle"))).Result;
-
-    // A DIFFERENT store from the dialog above: that one writes the core's self-service MAIL certificate,
-    // this one the READER certificate documents are addressed to. A person can have one and not the other,
-    // which is why they are two entries rather than two modes of one.
+    // The reader certificate documents and mail are sealed to: the one store since the self-service mail certificate
+    // retired (#1970 slice 4).
     private async Task SelfEnrolAsync() =>
         await (await DialogService.ShowAsync<SelfEnrolmentDialog>(Strings.Get("EnrolTitle"))).Result;
 

@@ -70,6 +70,9 @@ public static class NotificationTypePolicy
             // Not offered as a preference because it is never mailed at all (EmailOutboxEnqueuer skips it): there is
             // no email channel to mute, and listing it would offer a switch that does nothing.
             NotificationType.ModuleSignal => false,
+
+            // Sent once, and what it says changes what this person's devices can read: not a preference to switch off.
+            NotificationType.OwnCertificateRetired => false,
         };
 #pragma warning restore CS8524
 

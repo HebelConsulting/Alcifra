@@ -15,7 +15,7 @@ public sealed class StandardRepositoryShowCommand(ILogger<StandardRepositoryShow
     protected override async Task<int> ExecuteAsync(
         CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var (resource, _) = await StandardRepositorySurface.ReadAsync(api, cancellationToken);
 
@@ -52,7 +52,7 @@ public sealed class StandardRepositorySetCommand(ILogger<StandardRepositorySetCo
     protected override async Task<int> ExecuteAsync(
         CommandContext context, StandardRepositorySetSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var (resource, etag) = await StandardRepositorySurface.ReadAsync(api, cancellationToken);
 

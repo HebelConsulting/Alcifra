@@ -39,7 +39,7 @@ public abstract class AclAdjustCommand(ILogger logger) : AsyncCommand<AclSetting
                 + $"Presets: {string.Join(", ", AclRights.Presets.Keys)}.");
         }
 
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var target = await AclSurface.ResolveAsync(api, settings, cancellationToken);

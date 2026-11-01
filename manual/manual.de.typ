@@ -427,29 +427,28 @@ direkt aus dem E-Mail-Programm öffnen lässt.
   in den *Papierkorb* zu schicken — nie ein endgültiges Löschen. Gelesen/Ungelesen wird pro Person gespeichert.
 ]
 
-*Verschlüsseln, was Ihr E-Mail-Programm empfängt.*#idx("Verschlüsselung (S/MIME)") Wenn die Nachrichten, die Ihr E-Mail-Programm
-abruft, *nur auf Ihren eigenen Geräten* lesbar sein sollen, öffnen Sie *Verschlüsselte E-Mail (S/MIME)…* im Kontomenü.
-Laden Sie entweder Ihr Zertifikat *hoch* (eine `.pem`- oder `.crt`-Datei — nur das Zertifikat, nie einen privaten
-Schlüssel), oder geben Sie ein Passwort ein und *erzeugen* Sie eine vollständige Identität: Sie erhalten eine `.p12` zum Importieren auf jedem Gerät und eine
-`.mobileconfig`, die sie mit einem Tippen auf einem iPhone oder iPad installiert. Laden Sie beide sofort herunter — sie werden nicht
-auf dem Server gespeichert, und das eingegebene Passwort ist dasjenige, nach dem das Gerät beim Import fragt. Ab der nächsten
-E-Mail-Verbindung kommt jede Nachricht auf dieses Zertifikat verschlüsselt an; Ihr E-Mail-Programm entschlüsselt sie
-automatisch, sobald die Identität installiert ist, und Geräte ohne sie sehen nur einen verschlüsselten Anhang.
-*Oder lesen Sie es von einer Karte.*#idx("Smartcard") Liegt Ihr Zertifikat auf einer Smartcard oder einem USB-Token, listet *Karte oder Token
-hinzufügen…* auf, was Ihre Lesegeräte sehen — jedes Gerät und jedes Zertifikat darauf — und registriert das,
-das Sie auswählen. Lesen Sie, bevor Sie sich dafür entscheiden, @cardsetup darüber, was eine Karte abdeckt: Sie ist die stärkste Option für das
-Archiv selbst, und sie macht E-Mails auf einem iPhone oder iPad unlesbar, die keine Karte für S/MIME verwenden können. Nur das Zertifikat wird übertragen; der private Schlüssel verlässt das Gerät nie, und genau darum bewahrt man ihn
-dort auf. Sie werden nicht nach einer PIN gefragt, denn das Auslesen eines Zertifikats von einem Gerät braucht keine. Dies ist eine
-Funktion des Desktop-Clients: Ein Browser kann kein Kartenlesegerät erreichen, und der Web-Client sagt das an der Stelle, an der die Option
-stünde.
+*Verschlüsseln, was Ihr E-Mail-Programm empfängt.*#idx("Verschlüsselung (S/MIME)") Wenn die Nachrichten, die ein
+E-Mail-Programm abruft, *nur mit Ihrem eigenen Schlüssel* lesbar sein sollen, schalten Sie für dieses Gerät unter
+*Geräte…* *E-Mail-Inhalt verschlüsseln* ein (siehe @devices): Ab seiner nächsten Verbindung kommt jede Nachricht an Ihre
+hinterlegten Leserzertifikate versiegelt an, und das E-Mail-Programm entschlüsselt sie, sobald es den Schlüssel verwenden
+kann. Zum Einschalten braucht es einen hinterlegten, *bestätigten Hardware-Schlüssel* — eine Smartcard oder einen
+Sicherheitsschlüssel —, den Sie mit *Zertifikat hinterlegen…* im Kontomenü hinterlegen (@selfenrolment); im Desktop-Client
+liest *Karte oder Token hinzufügen…*#idx("Smartcard") das Zertifikat und seine Bestätigung in einem Schritt vom Token.
+Lesen Sie, bevor Sie sich für eine Karte entscheiden, @cardsetup darüber, was sie abdeckt: Sie ist die stärkste Option,
+und manche E-Mail-Programme können überhaupt keine Karte verwenden. Wo Ihre Organisation alle E-Mails versiegelt, ist der
+Schalter für jedes Gerät eingeschaltet und lässt sich nicht ausschalten.
 
-Solange ein Zertifikat hinterlegt ist, bleiben alle drei Zugänge ausgegraut — *Zertifikat löschen* stellt Ihre E-Mails
-wieder auf unverschlüsselt um, und sie stehen wieder zur Verfügung. Auf Installationen, auf denen Zertifikate zentral verwaltet werden,
-sagt der Dialog das, und *hier* ist nichts einzurichten — der Eintrag daneben ist dann derjenige, mit dem Sie ein
-Zertifikat zum Lesen von Dokumenten registrieren (@selfenrolment). Das Profil installiert ausserdem das *eigene
+#note[
+  *Frühere Versionen liessen Sie im Browser ein Zertifikat für verschlüsselte E-Mail erzeugen oder hochladen.* Dieses
+  Selbstbedienungs-Zertifikat ist ausser Dienst gestellt: Ein Schlüssel, der als Datei existiert, ist genau das, was ein
+  Hardware-Schlüssel vermeidet. Wenn Sie eines hatten, hat das Archiv es übernommen, soweit die Regeln Ihrer Organisation
+  es zulassen, und Ihnen einmal per Benachrichtigung gesagt, falls E-Mails nicht mehr daran versiegelt werden.
+]
+
+Das Einrichtungsprofil, das ein Telefon aus der Übergabe eines Geräts installiert, trägt ausserdem das *eigene
 Eingangszertifikat des Archivs*: Eine verschlüsselte Nachricht *an* die Eingangsadresse des Archivs (`archive@` die
-E-Mail-Domain Ihrer Installation) zu verfassen, funktioniert dann sofort — das Archiv entschlüsselt sie beim Eintreffen und legt ein
-gewöhnliches, durchsuchbares Dokument ab.
+E-Mail-Domain Ihrer Installation) zu verfassen, funktioniert dann sofort — das Archiv entschlüsselt sie beim Eintreffen
+und legt ein gewöhnliches, durchsuchbares Dokument ab.
 
 *Auch Notizen.*#idx("Notizen") Richten Sie eine Notizen-App, die über IMAP synchronisiert, auf dasselbe Konto, und sie findet das
 Postfach *Notes* — Ihren persönlichen Ordner *Notes* in Verkleidung. Jede Notiz wird ein vollwertiges Archivdokument mit
@@ -1264,8 +1263,8 @@ ergibt sich aus dem Konto, mit dem Sie sich anmelden.
 == Wenn das Archiv Ihnen verschlüsselte Inhalte liefert <encryptedreads>
 
 Auf einer entsprechend konfigurierten Installation liefert das Archiv überhaupt keine lesbaren Dokumentinhalte aus. Was ankommt,
-ist ein *an Ihr eigenes Zertifikat adressierter Umschlag*#idx("Verschlüsselte Inhalte") — dasselbe Zertifikat, das Sie registriert haben,
-um Ihre E-Mails lesbar zu machen (siehe @imap) —, und er wird auf Ihrem eigenen Rechner, mit Ihrem eigenen Schlüssel, von dem Client
+ist ein *an Ihre eigenen Zertifikate adressierter Umschlag*#idx("Verschlüsselte Inhalte") — die Leserzertifikate, die Sie hinterlegt
+haben (siehe @selfenrolment), dieselben, an die Ihre E-Mails versiegelt werden —, und er wird auf Ihrem eigenen Rechner, mit Ihrem eigenen Schlüssel, von dem Client
 geöffnet, in dem Sie arbeiten.
 
 #note[
@@ -1737,10 +1736,10 @@ Clients.
 
 == Im Archiv registrieren
 
-Öffnen Sie im Desktop-Client *Verschlüsselte E-Mail (S/MIME)…* im Kontomenü und wählen Sie *Karte oder Token
+Öffnen Sie im Desktop-Client *Zertifikat hinterlegen…* im Kontomenü und wählen Sie *Karte oder Token
 hinzufügen…*. Der Dialog listet jedes Zertifikat auf jedem Gerät in einem Lesegerät auf — nicht nur das erste —,
 weil eine Karte mehrere tragen kann und ein Computer mehr als ein Lesegerät haben kann. Wählen Sie das aus dem
-Key-Management-Slot und registrieren Sie es. Es wird keine PIN verlangt: Ein Zertifikat ist öffentlich, und nur
+Key-Management-Slot und hinterlegen Sie es. Es wird keine PIN verlangt: Ein Zertifikat ist öffentlich, und nur
 das Lesen eines *Dokuments* braucht den Schlüssel.
 
 Von da an adressiert das Archiv die Inhalte dieser Person an dieses Zertifikat, und @encryptedreads beschreibt,
@@ -1755,13 +1754,11 @@ was sie sieht.
 
 == Selbst hinterlegen, wo Ihnen das offensteht <selfenrolment>
 
-Die Registrierung oben ist die eigene des Archivs, und sie führt *ein* Zertifikat pro Person. Wo die Installation
-zusätzlich eine *Zertifikatsverwaltung* betreibt — mehrere Zertifikate pro Person, Widerruf und eine Richtlinie,
-die festlegt, was als annehmbares Zertifikat gilt (@encryptionservice) —, trägt das Kontomenü neben dem
-E-Mail-Eintrag einen zweiten: *Zertifikat hinterlegen…*#idx("Zertifikat hinterlegen"). Beide Clients haben ihn.
-
-Der Eintrag ist dort vorhanden, wo diese Verwaltung installiert und lizenziert ist, und sonst nirgends: Auf einer
-Installation ohne sie gäbe es nichts, was der Eintrag tun könnte, also wird er nicht angezeigt.
+*Zertifikat hinterlegen…*#idx("Zertifikat hinterlegen") im Kontomenü ist der Ort, an dem jedes Leserzertifikat
+hinterlegt wird, in beiden Clients und auf jeder Installation. Ohne das *Encryption Module* (@encryptionservice) führt
+eine Person höchstens *zwei* Zertifikate — etwa eine Karte für den Schreibtisch und einen Sicherheitsschlüssel für
+unterwegs; mit ihm entscheidet seine Zertifikatsrichtlinie, wie viele, und was als annehmbares Zertifikat gilt. Ein
+widerrufenes Zertifikat zählt nicht mehr zu den zweien.
 
 *Ob Sie ihn benutzen dürfen, entscheidet Ihre Organisation, und der Dialog sagt es Ihnen*, statt dass das Menü
 ihn verbirgt. Das Hinterlegen des eigenen Zertifikats ist *ausgeschaltet*, bis eine Administratorin oder ein
@@ -1790,7 +1787,8 @@ weil ein Dokument an *alle* adressiert wird: Die Karte auf Ihrem Schreibtisch un
 Laptop öffnen dasselbe Dokument, ohne dass irgendetwas raten muss, an welchem Gerät Sie gerade sitzen.
 
 *Eine Ablehnung nennt, welcher von vier Fällen eingetreten ist*, weil die Abhilfe jedes Mal eine andere ist und
-nur einer davon bei Ihnen liegt: Das Hinterlegen steht Ihnen hier nicht offen (Sache der Administration); das
+nur einer davon bei Ihnen liegt (und ein fünfter, *Sie führen bereits zwei*, wo die Grenze gilt: Widerrufen Sie zuerst
+eines): Das Hinterlegen steht Ihnen hier nicht offen (Sache der Administration); das
 Zertifikat ist keines, das das Produkt überhaupt verwenden kann (eine Neuausstellung); die Richtlinie Ihrer
 Organisation akzeptiert dieses nicht, weil sein Schlüssel zu kurz ist, seine Kurve nicht auf der Liste der
 zugelassenen steht oder die E-Mail-Adresse darauf nicht Ihre ist (verlangen Sie eines, auf dem sie es ist —
@@ -1799,17 +1797,9 @@ selbst, in Ihrer eigenen Sprache, statt eines einzigen "konnte nicht hinterlegt 
 dieselbe Stelle schicken würde.
 
 #note[
-  *Zwei Einträge, zwei Speicher — und wo die Zertifikatsverwaltung im Einsatz ist, adressiert nur einer davon
-  Ihre Dokumente.* *Verschlüsselte E-Mail (S/MIME)…* registriert das Zertifikat, das Ihre *E-Mails* lesbar
-  macht: das eigene des Archivs, eines pro Person, und auf einer Installation ohne Zertifikatsverwaltung ist es
-  auch das, woran Dokumente adressiert werden. *Zertifikat hinterlegen…* hinterlegt ein *Leserzertifikat* bei
-  der Zertifikatsverwaltung — und wo diese Verwaltung im Einsatz ist, ist sie der *einzige* Ort, an dem das
-  Archiv nachsieht, wenn es ein Dokument adressiert. Bewusst nicht beide: Ein in einem Speicher widerrufenes
-  Zertifikat würde sonst weiterhin Dokumente öffnen, weil eine Kopie davon im anderen zurückgeblieben ist — ein
-  Widerruf, der nicht widerruft.
-
-  Auf einer solchen Installation ist ein registriertes E-Mail-Zertifikat also *nicht* dasselbe, wie adressiert
-  zu werden. Hinterlegen Sie eines, und @encryptedreads beschreibt, was Sie dann sehen.
+  *Ein Speicher.* Frühere Versionen hatten neben diesem einen zweiten Eintrag, *Verschlüsselte E-Mail (S/MIME)…*, mit
+  einem Zertifikat pro Person. Er ist ausser Dienst gestellt: Die hier hinterlegten Zertifikate sind die einzigen, an die
+  das Archiv Dokumente und E-Mails adressiert, also widerruft ein Widerruf überall.
 ]
 
 == Nur bestätigte Hardware-Schlüssel werden hinterlegt <attestedenrolment>
@@ -2000,8 +1990,9 @@ PIN, der nicht den Schlüssel kostet.
 
 == Was eine Karte abdeckt, und was nicht
 
-Ein Zertifikat wird registriert, und *zwei* verschiedene Dinge verwenden es: Das Archiv packt Dokumentinhalte für
-es in Umschläge, und es packt auch die E-Mails, die Ihr E-Mail-Programm abholt, für es in Umschläge (siehe @imap).
+Die Zertifikate, die Sie hinterlegen, werden für *zwei* verschiedene Dinge verwendet: Das Archiv packt
+Dokumentinhalte für sie in Umschläge, und es packt die E-Mails, die ein Gerät abholt, für sie in Umschläge, wo bei
+diesem Gerät *E-Mail-Inhalt verschlüsseln* eingeschaltet ist (siehe @imap).
 Diese werden von unterschiedlicher Software gelesen, und ein Schlüssel auf einer Karte ändert, was sie lesen kann.
 
 - *Der Desktop-Client öffnet Inhalte, deren Schlüssel auf einer Karte liegt.* Das ist es, was @cardsetup
@@ -2016,29 +2007,24 @@ Diese werden von unterschiedlicher Software gelesen, und ein Schlüssel auf eine
   Dokumente auf dem Desktop ganz normal öffnen.
 
 #note[
-  *Wählen Sie also danach, was Sie lesen müssen.* Geht es darum, dass der private Schlüssel die Hardware nie
-  verlässt, ist eine Karte richtig, und E-Mail auf dem Smartphone ist das, worauf Sie verzichten. Müssen Leute
-  archivierte E-Mails auf Smartphones und Tablets lesen, registrieren Sie stattdessen eine *erzeugte* Identität
-  (siehe @imap) — sie lässt sich auf diesen Geräten mit einem Antippen installieren, um den Preis, dass der
-  Schlüssel als Datei existiert. Das Registrieren der einen ersetzt die andere: Löschen Sie zuerst das aktuelle
-  Zertifikat — und wenn Sie *beide* gleichzeitig brauchen, ist das der nächste Abschnitt.
+  *Wählen Sie also Gerät für Gerät danach, was Sie lesen müssen.* Ob E-Mails versiegelt werden, ist die Einstellung
+  jedes Geräts (@devices): Lassen Sie *E-Mail-Inhalt verschlüsseln* auf einem Telefon aus, dessen E-Mail-App die Karte
+  nicht verwenden kann, und schalten Sie es für ein Desktop-E-Mail-Programm ein, das es kann. Dokumente werden so
+  oder so an die Karte versiegelt. Wo Ihre Organisation alle E-Mails versiegelt, werden die E-Mails jedes Geräts
+  versiegelt, und nur Programme, die die Karte verwenden können, lesen sie.
 ]
 
-== Wenn ein Zertifikat pro Person nicht genügt
+== Wenn zwei Zertifikate pro Person nicht genügen
 
-Die Einschränkung hinter der obigen Wahl ist, dass diese Anwendung *ein* Zertifikat pro Benutzer speichert. Das
-macht eine Karte zu einem Entweder-oder: Das Zertifikat auf der Karte ist das Zertifikat, an das alles adressiert
-wird, also können die Geräte, die die Karte nicht verwenden können, nichts lesen.
+Ohne das Encryption Module hinterlegt eine Person bis zu *zwei* Zertifikate, jedes neben dem anderen adressiert,
+sodass sich dasselbe Dokument mit jedem der beiden Schlüssel öffnet — etwa eine Karte auf dem Schreibtisch und ein
+mitgeführter Sicherheitsschlüssel. Beide sind Hardware-Schlüssel unter denselben Bestätigungsregeln (@attestedenrolment).
 
-Mehrere Zertifikate pro Person lösen das auf — eine Karte für den Computer und eine installierte Identität für
-das Smartphone, jede neben der anderen adressiert, sodass sich dasselbe Dokument auf beiden öffnet, ohne dass der
-Schlüssel der Karte diese je verlässt. Das, und das *Hinterlegen* für mehr Personen, als eine Administratorin oder
-ein Administrator von Hand vorbereiten möchte, gehören zum separaten *Encryption Module*, das in
-@encryptionservice beschrieben ist. Brauchen Sie eines davon, wenden Sie sich an den Support und fragen Sie danach;
-es ist eine kostenpflichtige Erweiterung.
-
-Nichts in diesem Anhang ist vergeblich, wenn Sie diesen Weg gehen — die Karte wird gleich vorbereitet, und es ist
-die Registrierung, die das Modul übernimmt: @selfenrolment ist das, was aus dem letzten Schritt wird.
+Mehr Zertifikate pro Person und das *Hinterlegen* für mehr Personen, als eine Administratorin oder ein Administrator
+von Hand vorbereiten möchte, gehören zum separaten *Encryption Module*, das in @encryptionservice beschrieben ist.
+Brauchen Sie eines davon, wenden Sie sich an den Support und fragen Sie danach; es ist eine kostenpflichtige
+Erweiterung. Nichts in diesem Anhang ist vergeblich, wenn Sie diesen Weg gehen — die Karte wird gleich vorbereitet,
+und @selfenrolment bleibt der Schritt, der sie hinterlegt.
 
 == Wenn etwas nicht stimmt
 

@@ -26,7 +26,7 @@ public sealed class ModuleSettingsShowCommand(ILogger<ModuleSettingsShowCommand>
     protected override async Task<int> ExecuteAsync(
         CommandContext context, ModuleSettingsSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var row = ModuleSurface.Row(await ModuleSurface.ListingAsync(api, cancellationToken), settings.Module);
@@ -147,7 +147,7 @@ public sealed class ModuleSettingsSetCommand(ILogger<ModuleSettingsSetCommand> l
     {
         var value = await ValueAsync(settings, cancellationToken);
 
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
 
         var row = ModuleSurface.Row(await ModuleSurface.ListingAsync(api, cancellationToken), settings.Module);

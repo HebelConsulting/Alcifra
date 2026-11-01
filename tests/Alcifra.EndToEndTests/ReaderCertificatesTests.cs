@@ -15,18 +15,21 @@ public class ReaderCertificatesTests
 
     public ReaderCertificatesTests(E2EApiFactory factory) => _factory = factory;
 
-    private async Task<(HttpClient Api, Guid UserId)> UserAsync(Guid tenantId)
+    private async Task<(HttpClient Api, Guid UserId, string Email)> UserAsync(Guid tenantId)
     {
         var email = $"certs-{Guid.NewGuid():N}@e2e.local";
         var userId = await _factory.SeedUserAsync(tenantId, email, "rc-1234", "Cert User");
-        return (_factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "rc-1234")), userId);
+        return (_factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "rc-1234")), userId, email);
     }
 
-    private static string Pem(string subject)
+    private static string Pem(string subject, string email)
     {
         using var key = RSA.Create(2048);
-        using var certificate = new CertificateRequest($"CN={subject}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
-            .CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
+        var request = new CertificateRequest($"CN={subject}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddEmailAddress(email);
+        request.CertificateExtensions.Add(san.Build());   // names its holder, as enrolment requires (ADR 1017)
+        using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1));
         return certificate.ExportCertificatePem();
     }
 
@@ -42,20 +45,20 @@ public class ReaderCertificatesTests
     }
 
     [Fact]
-    public async Task Without_a_module_the_users_own_certificate_answers_and_none_says_so()
+    public async Task Without_a_module_the_registry_answers_and_none_says_so()
     {
         var tenantId = await _factory.SeedTenantNamedAsync($"certs-{Guid.NewGuid():N}");
-        var (api, userId) = await UserAsync(tenantId);
+        var (api, userId, email) = await UserAsync(tenantId);
 
         var none = await ReadAsync(api);
         Assert.Equal(("none", "noneEnrolled"), (none.GetProperty("source").GetString(), none.GetProperty("reason").GetString()));
 
-        var pem = Pem("Own Column");
-        await _factory.EnrolReaderCertificateAsync(tenantId, userId, pem);   // the user's column on this tenant
+        var pem = Pem("Own Card", email);
+        await _factory.EnrolReaderCertificateAsync(tenantId, userId, pem);   // the core registry on this tenant (#1970 slice 4)
         var own = await ReadAsync(api);
-        Assert.Equal("own", own.GetProperty("source").GetString());
+        Assert.Equal("registry", own.GetProperty("source").GetString());
         var entry = Assert.Single(own.GetProperty("certificates").EnumerateArray().ToList());
-        Assert.Equal("Own Column", entry.GetProperty("label").GetString());
+        Assert.Equal("Own Card", entry.GetProperty("label").GetString());
         using var certificate = X509Certificate2.CreateFromPem(pem);
         Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(certificate.RawData)), entry.GetProperty("thumbprintSha256").GetString());
     }
@@ -64,9 +67,9 @@ public class ReaderCertificatesTests
     public async Task On_a_strict_tenant_the_modules_set_answers_and_a_withdrawn_one_is_none_enrolled()
     {
         var tenantId = await _factory.SeedTenantNamedAsync(E2EApiFactory.StrictTenantName);
-        var (api, userId) = await UserAsync(tenantId);
+        var (api, userId, email) = await UserAsync(tenantId);
 
-        await _factory.EnrolReaderCertificateAsync(tenantId, userId, Pem("Card One"));
+        await _factory.EnrolReaderCertificateAsync(tenantId, userId, Pem("Card One", email));
         var answered = await ReadAsync(api);
         Assert.Equal("module", answered.GetProperty("source").GetString());
         Assert.Single(answered.GetProperty("certificates").EnumerateArray());

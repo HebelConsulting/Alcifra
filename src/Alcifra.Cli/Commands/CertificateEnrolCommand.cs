@@ -62,7 +62,7 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
         var pem = PemOf(await File.ReadAllBytesAsync(settings.File, cancellationToken), settings.File);
         var attestation = AttestationFiles.Read(settings.Attestation, settings.AttestationIntermediates, settings.Slot);
 
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var certificates = await CertificateSurface.AddressAsync(new Hypermedia(api), cancellationToken);
 
@@ -106,7 +106,7 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
     /// chose it. DER is converted rather than refused: a certificate exported from a card tool is as likely
     /// to be one as the other, and refusing it would be refusing the format rather than the content.
     /// </remarks>
-    private static string PemOf(byte[] bytes, string path)
+    internal static string PemOf(byte[] bytes, string path)
     {
         var text = Encoding.UTF8.GetString(bytes);
         if (text.Contains("PRIVATE KEY", StringComparison.Ordinal))

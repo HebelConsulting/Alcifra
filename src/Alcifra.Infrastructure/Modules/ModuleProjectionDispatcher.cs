@@ -30,11 +30,6 @@ public sealed class ModuleProjectionDispatcher : IModuleProjectionDispatcher
     private readonly TimeProvider _clock;
     private readonly ILogger<ModuleProjectionDispatcher>? _logger;
 
-    // The core's own certificate registry (#1790, ADR 0935), kept only while a loaded module encrypts to users: one
-    // that licenses enrolment (ABI 1.17), or one answering reader certificates itself (before 1.17). Otherwise no
-    // save pays the ChangeTracker walk for it, which is the cost the empty-mask gate exists to avoid.
-    private readonly bool _projectsCertificates;
-
     public ModuleProjectionDispatcher(
         IReadOnlyList<ModuleLoader.LoadedModule> modules,
         IServiceScopeFactory scopes,
@@ -62,11 +57,9 @@ public sealed class ModuleProjectionDispatcher : IModuleProjectionDispatcher
             masks.UnionWith(own);
         }
 
-        _projectsCertificates = modules.Any(m => m.Module.LicensesCertificateEnrolment || m.Module.ReaderCertificates is not null);
-        if (_projectsCertificates)
-        {
-            masks.Add(Domain.Masks.WellKnownMaskIds.Certificate);
-        }
+        // The core's own certificate registry (#1790, ADR 0935), kept on every installation since enrolment is offered
+        // without a licensing module too (#1970 slice 4): what the registry does not hold, nothing addresses.
+        masks.Add(Domain.Masks.WellKnownMaskIds.Certificate);
 
         _declared = declared;
         ProjectedMasks = masks;
@@ -83,7 +76,7 @@ public sealed class ModuleProjectionDispatcher : IModuleProjectionDispatcher
         CancellationToken cancellationToken = default)
     {
         var interested = _declared.Where(d => d.Masks.Contains(maskId)).ToList();
-        var registry = _projectsCertificates && maskId == Domain.Masks.WellKnownMaskIds.Certificate;
+        var registry = maskId == Domain.Masks.WellKnownMaskIds.Certificate;
         if (interested.Count == 0 && !registry)
         {
             return;

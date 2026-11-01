@@ -17,7 +17,7 @@ public sealed class CertificateAttestationRootListCommand(ILogger<CertificateAtt
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (selection, _) = await TenantAttestationRootSurface.ReadAsync(new AlcifraApi(http), cancellationToken);
         var table = new Table().Border(TableBorder.Rounded);
         foreach (var column in new[] { "name", "here", "thumbprint", "id" })
@@ -53,7 +53,7 @@ public sealed class CertificateAttestationRootDisableCommand(ILogger<Certificate
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, CertificateAttestationRootSelectSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var written = await TenantAttestationRootSurface.SwitchAsync(new AlcifraApi(http), settings.Root, off: true, cancellationToken);
         logger.LogInformation("Switched off for this tenant; {Count} root(s) are now off here.", TenantAttestationRootSurface.Disabled(written).Count);
         return 0;
@@ -66,7 +66,7 @@ public sealed class CertificateAttestationRootEnableCommand(ILogger<CertificateA
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, CertificateAttestationRootSelectSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var written = await TenantAttestationRootSurface.SwitchAsync(new AlcifraApi(http), settings.Root, off: false, cancellationToken);
         logger.LogInformation("Switched back on for this tenant; {Count} root(s) are still off here.", TenantAttestationRootSurface.Disabled(written).Count);
         return 0;

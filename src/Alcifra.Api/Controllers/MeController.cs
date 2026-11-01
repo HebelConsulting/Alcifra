@@ -178,7 +178,6 @@ public class MeController : ControllerBase
                 new Link("passkeyRegister", "/api/users/me/passkeys/register", "POST"),
                 // Each device's own password for mail, files, calendars and contacts (#1970): list and enrol here.
                 new Link("protocolDevices", "/api/me/devices", "GET"),
-                new Link("smimeCertificate", "/api/me/smime-certificate", "GET"),
                 // The certificate SET envelopes are addressed to, read-only (#1741): what a client seals to its own user.
                 new Link("readerCertificates", "/api/me/reader-certificates", "GET"),
                 // The tenant's encryption posture, read-only (#1864, ADR 0955): the mode and its four membership answers.
@@ -195,9 +194,8 @@ public class MeController : ControllerBase
                 // installation whose modules declare no such surface would otherwise hand every client an
                 // address that can only ever answer an empty list. The gate inside is evaluated per tenant,
                 // which is why this cannot live on the admin-only modules listing — see the controller.
-                .. _modules.Any(m => m.Module.PerUserCertificateEnrolment is not null || m.Module.LicensesCertificateEnrolment)
-                    ? new[] { new Link("selfEnrolments", "/api/me/self-enrolments", "GET") }
-                    : [],
+                // Always, since the core's own reader-certificate enrolment is offered to every tenant (#1970 slice 4).
+                new Link("selfEnrolments", "/api/me/self-enrolments", "GET"),
             // The caller's addressbooks and calendars, for the Calendar/Contacts tabs (#564). The DAV home set
             // answers the same question for external clients; our own clients follow this rel and get JSON.
             new Link("davCollections", "/api/dav-collections", "GET"),

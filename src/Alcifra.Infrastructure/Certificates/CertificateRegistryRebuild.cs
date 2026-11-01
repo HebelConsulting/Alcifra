@@ -16,8 +16,7 @@ namespace Alcifra.Infrastructure.Certificates;
 /// projection) reach the registry without a data migration.
 /// </summary>
 /// <remarks>
-/// Only while a loaded module encrypts to users (one licensing enrolment, ABI 1.17, or answering reader certificates
-/// itself): otherwise nothing reads the registry and nothing should pay for it. Each tenant in its own scope with its
+/// On every installation, since enrolment is offered without a licensing module too (#1970 slice 4). Each tenant in its own scope with its
 /// tenant set, like the manual filing; a failure is logged and the next tenant proceeds.
 /// </remarks>
 public static class CertificateRegistryRebuild
@@ -25,13 +24,6 @@ public static class CertificateRegistryRebuild
     public static async Task RebuildEverywhereAsync(IServiceProvider root, CancellationToken cancellationToken = default)
     {
         var logger = root.GetRequiredService<ILoggerFactory>().CreateLogger("Alcifra.Infrastructure.Certificates.CertificateRegistry");
-        var modules = root.GetService<IReadOnlyList<ModuleLoader.LoadedModule>>() ?? [];
-        if (!modules.Any(m => m.Module.LicensesCertificateEnrolment || m.Module.ReaderCertificates is not null))
-        {
-            logger.LogDebug("Certificate registry rebuild skipped: no loaded module encrypts to users");
-            return;
-        }
-
         var started = System.Diagnostics.Stopwatch.StartNew();
         logger.LogDebug("Certificate registry rebuild: starting");
 

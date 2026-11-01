@@ -19,7 +19,7 @@ public sealed class CertificateSettingsShowCommand(ILogger<CertificateSettingsSh
     protected override async Task<int> ExecuteAsync(
         CommandContext context, TenantSessionSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var (resource, _) = await CertificateSettingsSurface.ReadAsync(new AlcifraApi(http), cancellationToken);
         var (selfService, parent, unattested) = CertificateSettingsSurface.Current(resource);
         logger.LogInformation("Self-service enrolment: {SelfService}. Reader-certificate folder parent: {Parent}. Hardware without attestation: {Unattested}.",
@@ -68,7 +68,7 @@ public sealed class CertificateSettingsSetCommand(ILogger<CertificateSettingsSet
     protected override async Task<int> ExecuteAsync(
         CommandContext context, CertificateSettingsSetSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var (resource, etag) = await CertificateSettingsSurface.ReadAsync(api, cancellationToken);
         var (selfService, parent, unattested) = CertificateSettingsSurface.Current(resource);

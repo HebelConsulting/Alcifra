@@ -80,7 +80,7 @@ public sealed class PasswordStoreAudienceSetCommand(ILogger<PasswordStoreAudienc
     protected override async Task<int> ExecuteAsync(
         CommandContext context, PasswordStoreAudienceSetSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var core = ApiCore.Over(http);
         var store = await PasswordStoreSurface.StoreAsync(new PasswordStoreClient(core), Guid.Parse(settings.Store), cancellationToken);
         var audiences = new ContentAudienceClient(core);
@@ -134,7 +134,7 @@ public sealed class PasswordStoreAudienceShowCommand(ILogger<PasswordStoreAudien
     protected override async Task<int> ExecuteAsync(
         CommandContext context, PasswordStoreAudienceShowSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var core = ApiCore.Over(http);
         var store = await PasswordStoreSurface.StoreAsync(new PasswordStoreClient(core), Guid.Parse(settings.Store), cancellationToken);
         var audience = await new ContentAudienceClient(core).GetAsync(store.Links, cancellationToken);
@@ -161,7 +161,7 @@ public sealed class PasswordStoreAudienceAppointCommand(ILogger<PasswordStoreAud
     protected override async Task<int> ExecuteAsync(
         CommandContext context, PasswordStoreAudienceAppointSettings settings, CancellationToken cancellationToken)
     {
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var core = ApiCore.Over(http);
         var store = await PasswordStoreSurface.StoreAsync(new PasswordStoreClient(core), Guid.Parse(settings.Store), cancellationToken);
         var audiences = new ContentAudienceClient(core);

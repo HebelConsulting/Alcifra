@@ -4992,32 +4992,8 @@
   <data name="RevealOnceScanAlt" xml:space="preserve">
     <value>Codice QR dell'indirizzo</value>
   </data>
-  <data name="AccountSmime" xml:space="preserve">
-    <value>E-mail cifrata (S/MIME)…</value>
-  </data>
-  <data name="SmimeTitle" xml:space="preserve">
-    <value>E-mail cifrata (S/MIME)</value>
-  </data>
-  <data name="SmimeBody" xml:space="preserve">
-    <value>Con un certificato impostato, i messaggi scaricati via IMAP vengono cifrati in modo che solo i tuoi dispositivi possano leggerli. Carica il tuo certificato oppure genera un'identità completa per i tuoi dispositivi.</value>
-  </data>
-  <data name="SmimeProvisioned" xml:space="preserve">
-    <value>Su questa installazione i certificati di posta vengono forniti centralmente — qui non c'è nulla da configurare. I certificati per leggere i documenti si registrano separatamente.</value>
-  </data>
-  <data name="SmimeNone" xml:space="preserve">
-    <value>Nessun certificato impostato — la posta viene servita in chiaro.</value>
-  </data>
-  <data name="SmimeSubject" xml:space="preserve">
-    <value>Certificato</value>
-  </data>
-  <data name="SmimeExpires" xml:space="preserve">
-    <value>Valido fino al</value>
-  </data>
   <data name="SmimeAddCard" xml:space="preserve">
     <value>Aggiungi una carta o un token…</value>
-  </data>
-  <data name="SmimeCardOnly" xml:space="preserve">
-    <value>Per aggiungere una carta serve il client desktop: un browser non può raggiungere un lettore di carte.</value>
   </data>
   <data name="CardPinTitle" xml:space="preserve">
     <value>PIN della carta</value>
@@ -5043,9 +5019,6 @@
   <data name="CardChooseModule" xml:space="preserve">
     <value>Scegli modulo…</value>
   </data>
-  <data name="CardNoToken" xml:space="preserve">
-    <value>Nessuna carta o token trovato in un lettore. Inserirlo e riprovare.</value>
-  </data>
   <data name="CardNoCertificate" xml:space="preserve">
     <value>Il dispositivo è stato letto, ma non contiene alcun certificato.</value>
   </data>
@@ -5066,36 +5039,6 @@
   </data>
   <data name="CardConcernKeyUsage" xml:space="preserve">
     <value>L'uso della chiave dichiarato non menziona la cifratura della chiave. Potrebbe funzionare comunque: molti dispositivi non lo impongono.</value>
-  </data>
-  <data name="SmimeUpload" xml:space="preserve">
-    <value>Carica certificato (.pem, .crt)</value>
-  </data>
-  <data name="SmimeP12Password" xml:space="preserve">
-    <value>Password per il file .p12</value>
-  </data>
-  <data name="SmimeGenerate" xml:space="preserve">
-    <value>Genera identità</value>
-  </data>
-  <data name="SmimeGeneratedKeep" xml:space="preserve">
-    <value>Scarica subito entrambi i file — non vengono conservati sul server.</value>
-  </data>
-  <data name="SmimeDownloadP12" xml:space="preserve">
-    <value>Scarica .p12</value>
-  </data>
-  <data name="SmimeDownloadProfile" xml:space="preserve">
-    <value>Scarica .mobileconfig</value>
-  </data>
-  <data name="SmimeDelete" xml:space="preserve">
-    <value>Elimina certificato</value>
-  </data>
-  <data name="SmimeUploadError" xml:space="preserve">
-    <value>Impossibile caricare il certificato.</value>
-  </data>
-  <data name="SmimeGenerateError" xml:space="preserve">
-    <value>Impossibile generare l'identità.</value>
-  </data>
-  <data name="SmimeDeleteError" xml:space="preserve">
-    <value>Impossibile eliminare il certificato.</value>
   </data>
   <data name="DeviceTitle" xml:space="preserve">
     <value>Approva un accesso</value>
@@ -6839,6 +6782,9 @@
   </data>
   <data name="DvMountPaste" xml:space="preserve">
     <value>Quando il sistema chiede la password, incolla quella mostrata qui.</value>
+  </data>
+  <data name="ApiErrCertificateLimit" xml:space="preserve">
+    <value>Possiedi già due certificati registrati, il massimo consentito qui. Revocane uno prima di registrarne un altro.</value>
   </data>
   <data name="MwWebDavMountedForOther" xml:space="preserve">
     <value>I file di questo server sono montati per {0}. Espelli prima quel volume, poi monta di nuovo.</value>

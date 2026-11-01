@@ -19,7 +19,8 @@ namespace Alcifra.IntegrationTests;
 /// <remarks>
 /// The dispatcher resolved column-then-registry and never asked a module, so a reader whose only
 /// certificate is enrolled in one got PLAINTEXT notification mail — the same defect ADR 0855 fixed for IMAP.
-/// These assert the three answers a module can give and what each does to the other sources.
+/// These assert the three answers a module can give and what each does to the core's registry, which answers where no
+/// module speaks (#1970 slice 4; the user's own column did before).
 /// </remarks>
 public class NotificationsAskTheModuleTests
 {
@@ -31,22 +32,22 @@ public class NotificationsAskTheModuleTests
     {
         await using var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
-        await SeedAsync(connection, columnPem: "column-pem", activateModule: true);
+        await SeedAsync(connection, registryPem: "registry-pem", activateModule: true);
 
         var sent = await DispatchAsync(connection, new EnrollingModule("card-pem", "laptop-pem"));
 
-        // BOTH of the module's, and NOT the column's — where a module answers it is the only source.
+        // BOTH of the module's, and NOT the registry's — where a module answers it is the only source.
         Assert.Equal(["card-pem", "laptop-pem"], sent);
     }
 
     [Fact]
     public async Task A_module_answering_NONE_sends_plaintext_rather_than_falling_back()
     {
-        // The module is active and says this reader holds no certificate. The column has one; it must NOT
+        // The module is active and says this reader holds no certificate. The registry has one; it must NOT
         // be used, or a certificate the module revoked would go on opening the reader's mail.
         await using var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
-        await SeedAsync(connection, columnPem: "column-pem", activateModule: true);
+        await SeedAsync(connection, registryPem: "registry-pem", activateModule: true);
 
         var sent = await DispatchAsync(connection, new EnrollingModule());
 
@@ -54,15 +55,15 @@ public class NotificationsAskTheModuleTests
     }
 
     [Fact]
-    public async Task With_no_module_the_column_still_answers()
+    public async Task With_no_module_the_registry_answers()
     {
         await using var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
-        await SeedAsync(connection, columnPem: "column-pem", activateModule: false);
+        await SeedAsync(connection, registryPem: "registry-pem", activateModule: false);
 
         var sent = await DispatchAsync(connection, module: null);
 
-        Assert.Equal(["column-pem"], sent);
+        Assert.Equal(["registry-pem"], sent);
     }
 
     [Fact]
@@ -70,25 +71,26 @@ public class NotificationsAskTheModuleTests
     {
         // Worth pinning because it is the surprising case, and it is a DOWNGRADE on a fail-open path: a
         // declared-but-unactivated module answers EMPTY (ModuleReaderCertificatesTests says so), empty
-        // closes every other source, and notification mail therefore goes plaintext where the column would
-        // previously have sealed it. Accepted rather than worked around — the alternative is consulting the
-        // column anyway, which is the union ADR 0842 forbids and which breaks revocation. The operator's fix
+        // closes every other source, and notification mail therefore goes plaintext where the registry would
+        // otherwise have sealed it. Accepted rather than worked around — the alternative is consulting the
+        // registry anyway, which is the union ADR 0842 forbids and which breaks revocation. The operator's fix
         // is to license the module; ADR 0740's grace ladder is what warns them first.
         await using var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
-        await SeedAsync(connection, columnPem: "column-pem", activateModule: false);
+        await SeedAsync(connection, registryPem: "registry-pem", activateModule: false);
 
         var sent = await DispatchAsync(connection, new EnrollingModule("card-pem"));
 
         Assert.Empty(sent);
     }
 
-    private static async Task SeedAsync(SqliteConnection connection, string? columnPem, bool activateModule)
+    private static async Task SeedAsync(SqliteConnection connection, string? registryPem, bool activateModule)
     {
         await using var db = Context(connection);
         await db.Database.EnsureCreatedAsync();
 
-        db.Tenants.Add(new Tenant { Id = TenantId, Name = "Acme", Status = TenantStatus.Active, CreatedAt = DateTimeOffset.UtcNow });
+        // Hardware without attestation allowed, since the stand-in certificates carry none (ADR 0963).
+        db.Tenants.Add(new Tenant { Id = TenantId, Name = "Acme", Status = TenantStatus.Active, CreatedAt = DateTimeOffset.UtcNow, CertificateUnattestedHardwareAllowed = true });
         db.Users.Add(new User
         {
             Id = UserId,
@@ -96,9 +98,12 @@ public class NotificationsAskTheModuleTests
             Email = "reader@acme.test",
             DisplayName = "Reader",
             IsActive = true,
-            SmimeCertificatePem = columnPem,
             CreatedAt = DateTimeOffset.UtcNow,
         });
+        if (registryPem is not null)
+        {
+            await RegistryRows.AddAsync(connection, db, TenantId, UserId, registryPem);
+        }
 
         if (activateModule)
         {

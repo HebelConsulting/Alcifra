@@ -48,7 +48,7 @@ public sealed class CertificateImportCommand(ILogger<CertificateImportCommand> l
     {
         var manifest = CertificateManifest.Read(settings.Manifest);
 
-        using var http = CertificateEndpoint.Client(settings);
+        using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var hypermedia = new Hypermedia(api);
 
