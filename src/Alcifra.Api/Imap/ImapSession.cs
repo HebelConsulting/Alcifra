@@ -492,6 +492,7 @@ public sealed class ImapSession
     {
         if (!arguments.StartsWith("PLAIN", StringComparison.OrdinalIgnoreCase))
         {
+            RefusedSignIn("a mechanism other than PLAIN");
             await WriteLineAsync($"{tag} NO only AUTH=PLAIN is supported");
             return;
         }
@@ -515,6 +516,7 @@ public sealed class ImapSession
         }
         catch (FormatException)
         {
+            RefusedSignIn("a SASL response that is not base64");
             await WriteLineAsync($"{tag} BAD malformed SASL response");
             return;
         }
@@ -522,12 +524,18 @@ public sealed class ImapSession
         var pieces = decoded.Split('\0');
         if (pieces.Length != 3)
         {
+            RefusedSignIn("a SASL response that is not three NUL-separated parts");
             await WriteLineAsync($"{tag} BAD malformed SASL response");
             return;
         }
 
         await AuthenticateAsync(tag, pieces[1], pieces[2]);
     }
+
+    // A sign-in refused before any account is looked at (#2069, ADR 0626): the client sees only a short answer, so the log
+    // names what was refused. Never the credentials: the reason is one of a fixed few phrases.
+    private void RefusedSignIn(string reason) =>
+        _logger.LogWarning("IMAP [{Connection}] sign-in refused: the client sent {Reason}; Trace carries the exchange", _connection, reason);
 
     private async Task AuthenticateAsync(string tag, string email, string password)
     {
@@ -555,6 +563,11 @@ public sealed class ImapSession
         var verdict = await throttle.CheckAsync(Alcifra.Api.Security.SignInSurface.Imap, throttled, _address);
         if (!verdict.Allowed)
         {
+            // The throttle logs when it SETS a block; every refusal while it holds says so too, or a mail client that
+            // keeps retrying is refused for minutes with nothing in the log (#2069). The address is not logged here:
+            // it identifies the person, and the session's own lines already carry it.
+            _logger.LogWarning("IMAP [{Connection}] sign-in refused for {Email}: too many failed attempts, throttled; Trace carries the exchange",
+                _connection, email);
             await WriteLineAsync($"{tag} NO [UNAVAILABLE] too many failed attempts, try again later");
 
             return;

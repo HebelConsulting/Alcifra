@@ -519,6 +519,9 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
             Task.FromResult<IReadOnlyList<string>>(_records.TryGetValue(name, out var values) ? values : []);
     }
 
+    /// <summary>Every log event the app writes, for a test asserting that a refusal says why (ADR 0626).</summary>
+    public CapturedLogEvents Logs { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // Development so OpenIddict allows token requests over the in-process HTTP test server (its transport
@@ -531,6 +534,7 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
             services.RemoveAll<Alcifra.Application.Abstractions.IDnsTxtLookup>();
             services.AddSingleton<Alcifra.Application.Abstractions.IDnsTxtLookup>(Dns);
             RehearseThePresignGuard(services);
+            services.AddSingleton<Serilog.Core.ILogEventSink>(Logs);
         });
     }
 
