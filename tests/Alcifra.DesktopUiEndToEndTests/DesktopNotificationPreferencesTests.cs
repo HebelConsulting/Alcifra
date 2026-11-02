@@ -43,4 +43,27 @@ public class DesktopNotificationPreferencesTests
             await client.Profile.SetNotificationPreferencesAsync(restore);
         }
     }
+    // #1729: the phone column — a type's push to the phone is switched off and reads back, apart from its email.
+    [Fact]
+    public async Task The_phone_channel_is_set_apart_from_email_and_reads_back()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var client = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+        try
+        {
+            var defaults = await client.Profile.GetNotificationPreferencesAsync();
+            await client.Profile.SetNotificationPreferencesAsync(defaults.Select(p => p with { EmailEnabled = true, PhoneEnabled = p.Type != 4 }));
+
+            var after = await client.Profile.GetNotificationPreferencesAsync();
+            var chat = after.Single(p => p.Type == 4);
+            Assert.True(chat.EmailEnabled);
+            Assert.False(chat.PhoneEnabled);
+            Assert.All(after.Where(p => p.Type != 4), p => Assert.True(p.PhoneEnabled));
+        }
+        finally
+        {
+            var restore = (await client.Profile.GetNotificationPreferencesAsync()).Select(p => p with { EmailEnabled = true, PhoneEnabled = true });
+            await client.Profile.SetNotificationPreferencesAsync(restore);
+        }
+    }
 }

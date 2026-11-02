@@ -17,13 +17,18 @@
                 <MudText Typo="Typo.body2" Class="mb-2 mud-text-secondary">
                     @Strings.Get("NotifPrefsDesc")
                 </MudText>
-                @foreach (var p in _prefs)
-                {
-                    <div style="display:flex; align-items:center; justify-content:space-between; padding:2px 0;">
+                @* Two channels per type (#1729): email, and the phone's push (ADR 0919); the desktop's columns. *@
+                <div style="display:grid; grid-template-columns: 1fr 72px 72px; align-items:center; gap:2px 0;">
+                    <span></span>
+                    <MudText Typo="Typo.caption" Align="Align.Center"><b>@Strings.Get("NotifPrefEmail")</b></MudText>
+                    <MudText Typo="Typo.caption" Align="Align.Center"><b>@Strings.Get("NotifPrefPhone")</b></MudText>
+                    @foreach (var p in _prefs)
+                    {
                         <span>@Label(p.TypeName)</span>
-                        <MudSwitch T="bool" @bind-Value="p.EmailEnabled" Color="Color.Primary" />
-                    </div>
-                }
+                        <MudSwitch T="bool" @bind-Value="p.EmailEnabled" Color="Color.Primary" Class="justify-center" data-testid="@($"pref-email-{p.Type}")" />
+                        <MudSwitch T="bool" @bind-Value="p.PhoneEnabled" Color="Color.Primary" Class="justify-center" data-testid="@($"pref-phone-{p.Type}")" />
+                    }
+                </div>
             }
         </div>
     </DialogContent>
@@ -62,7 +67,7 @@
         _busy = true;
         try
         {
-            var body = new { preferences = _prefs.Select(p => new { type = p.Type, emailEnabled = p.EmailEnabled }) };
+            var body = new { preferences = _prefs.Select(p => new { type = p.Type, emailEnabled = p.EmailEnabled, phoneEnabled = p.PhoneEnabled }) };
             using var resp = await Http.PutAsJsonAsync(await ApiRoot.RequireMeAsync("notificationPreferences"), body);
             if (resp.IsSuccessStatusCode)
             {
@@ -98,5 +103,5 @@
     };
 
     private record PrefsResponse { public List<Pref> Preferences { get; set; } = []; }
-    private class Pref { public int Type { get; set; } public string TypeName { get; set; } = string.Empty; public bool EmailEnabled { get; set; } }
+    private class Pref { public int Type { get; set; } public string TypeName { get; set; } = string.Empty; public bool EmailEnabled { get; set; } public bool PhoneEnabled { get; set; } = true; }
 }

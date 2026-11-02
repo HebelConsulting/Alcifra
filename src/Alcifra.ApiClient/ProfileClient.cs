@@ -489,7 +489,9 @@ public sealed class ProfileClient(ApiCore core)
 
     // ---- Notification email preferences (ADR "Notification preferences") -----------------------------
 
-    public sealed record NotificationPreferenceInfo(int Type, string TypeName, bool EmailEnabled);
+    /// <param name="PhoneEnabled">Whether the type is also pushed to the user's phones (ADR 0919); on where a server
+    /// predates the setting.</param>
+    public sealed record NotificationPreferenceInfo(int Type, string TypeName, bool EmailEnabled, bool PhoneEnabled = true);
 
     public async Task<List<NotificationPreferenceInfo>> GetNotificationPreferencesAsync(CancellationToken cancellationToken = default)
     {
@@ -502,7 +504,8 @@ public sealed class ProfileClient(ApiCore core)
                 list.Add(new NotificationPreferenceInfo(
                     p.GetProperty("type").GetInt32(),
                     p.GetProperty("typeName").GetString() ?? "",
-                    p.GetProperty("emailEnabled").GetBoolean()));
+                    p.GetProperty("emailEnabled").GetBoolean(),
+                    !p.TryGetProperty("phoneEnabled", out var phone) || phone.ValueKind != JsonValueKind.False));
             }
         }
 
@@ -511,7 +514,7 @@ public sealed class ProfileClient(ApiCore core)
 
     public async Task SetNotificationPreferencesAsync(IEnumerable<NotificationPreferenceInfo> preferences, CancellationToken cancellationToken = default)
     {
-        var body = new { preferences = preferences.Select(p => new { type = p.Type, emailEnabled = p.EmailEnabled }) };
+        var body = new { preferences = preferences.Select(p => new { type = p.Type, emailEnabled = p.EmailEnabled, phoneEnabled = p.PhoneEnabled }) };
         using var response = await _core.Http.PutAsJsonAsync(await MeHrefAsync("notificationPreferences", cancellationToken), body, cancellationToken);
         response.EnsureSuccessStatusCode();
     }

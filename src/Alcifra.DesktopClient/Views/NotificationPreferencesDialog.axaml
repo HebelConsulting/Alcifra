@@ -7,10 +7,19 @@
     <StackPanel Margin="18" Spacing="12">
         <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource WbMuted}"
                    Text="{loc:Tr NotifPrefBody}" />
+        <!-- Two channels per type (#1729): email, and the phone's push (ADR 0919). -->
+        <Grid ColumnDefinitions="*,64,64">
+            <TextBlock Grid.Column="1" Text="{loc:Tr NotifPrefEmail}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" />
+            <TextBlock Grid.Column="2" Text="{loc:Tr NotifPrefPhone}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" />
+        </Grid>
         <ItemsControl x:Name="PrefList">
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:CompileBindings="False">
-                    <CheckBox Content="{Binding Label}" IsChecked="{Binding EmailEnabled, Mode=TwoWay}" Margin="0,2" />
+                    <Grid ColumnDefinitions="*,64,64" Margin="0,2">
+                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding EmailEnabled, Mode=TwoWay}" HorizontalAlignment="Center" />
+                        <CheckBox Grid.Column="2" IsChecked="{Binding PhoneEnabled, Mode=TwoWay}" HorizontalAlignment="Center" />
+                    </Grid>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

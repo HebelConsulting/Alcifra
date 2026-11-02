@@ -613,7 +613,7 @@
     <value>Diese Version konnte nicht als aktuell festgelegt werden.</value>
   </data>
   <data name="NotifPrefsDesc" xml:space="preserve">
-    <value>Wählen Sie, welche Benachrichtigungen auch an Ihre E-Mail gesendet werden. In-App-Benachrichtigungen erscheinen immer in der Glocke.</value>
+    <value>Wählen Sie, welche Benachrichtigungen auch per E-Mail und an Ihr Telefon gesendet werden. In-App-Benachrichtigungen erscheinen immer in der Glocke.</value>
   </data>
   <data name="NotifPrefsSaved" xml:space="preserve">
     <value>Benachrichtigungseinstellungen gespeichert.</value>
@@ -2275,7 +2275,13 @@
     <value>Benachrichtigungseinstellungen</value>
   </data>
   <data name="NotifPrefBody" xml:space="preserve">
-    <value>Wählen Sie, welche Benachrichtigungen auch per E-Mail gesendet werden. In-App-Benachrichtigungen erscheinen immer in der Glocke.</value>
+    <value>Wählen Sie, welche Benachrichtigungen auch an Ihre E-Mail und an Ihr Telefon gesendet werden. In-App-Benachrichtigungen erscheinen immer in der Glocke.</value>
+  </data>
+  <data name="NotifPrefEmail" xml:space="preserve">
+    <value>E-Mail</value>
+  </data>
+  <data name="NotifPrefPhone" xml:space="preserve">
+    <value>Telefon</value>
   </data>
   <data name="BulkTagsTitle" xml:space="preserve">
     <value>Schlagwörter hinzufügen</value>

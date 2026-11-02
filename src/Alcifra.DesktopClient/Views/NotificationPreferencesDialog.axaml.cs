@@ -7,8 +7,8 @@ using Alcifra.DesktopClient.Services;
 
 namespace Alcifra.DesktopClient.Views;
 
-// Per-type email-notification preferences (ADR "Notification preferences"). In-app notifications always show;
-// these toggles only control which types are also emailed. The deadline/compliance escalations aren't listed
+// Per-type notification preferences (ADR "Notification preferences"). In-app notifications always show; these
+// toggles control which types are also emailed and which are also pushed to the phone (#1729, ADR 0919). The deadline/compliance escalations aren't listed
 // (always emailed). ShowDialog returns nothing — the account menu just opens it.
 public partial class NotificationPreferencesDialog : Window
 {
@@ -33,6 +33,8 @@ public partial class NotificationPreferencesDialog : Window
         public int Type { get; init; }
         public string Label { get; init; } = string.Empty;
         public bool EmailEnabled { get; set; }
+
+        public bool PhoneEnabled { get; set; } = true;
     }
 
     private async Task LoadAsync()
@@ -47,7 +49,7 @@ public partial class NotificationPreferencesDialog : Window
             _rows.Clear();
             foreach (var p in await _api.Profile.GetNotificationPreferencesAsync())
             {
-                _rows.Add(new PrefRow { Type = p.Type, Label = Label(p.TypeName), EmailEnabled = p.EmailEnabled });
+                _rows.Add(new PrefRow { Type = p.Type, Label = Label(p.TypeName), EmailEnabled = p.EmailEnabled, PhoneEnabled = p.PhoneEnabled });
             }
 
             Error.IsVisible = false;
@@ -65,7 +67,7 @@ public partial class NotificationPreferencesDialog : Window
         try
         {
             await _api.Profile.SetNotificationPreferencesAsync(
-                System.Linq.Enumerable.Select(_rows, r => new ProfileClient.NotificationPreferenceInfo(r.Type, "", r.EmailEnabled)));
+                System.Linq.Enumerable.Select(_rows, r => new ProfileClient.NotificationPreferenceInfo(r.Type, string.Empty, r.EmailEnabled, r.PhoneEnabled)));
             Close();
         }
         catch (Exception)

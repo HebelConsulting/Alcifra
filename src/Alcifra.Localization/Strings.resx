@@ -613,7 +613,7 @@
     <value>Could not make that version current.</value>
   </data>
   <data name="NotifPrefsDesc" xml:space="preserve">
-    <value>Choose which notifications are also sent to your email. In-app notifications always appear in the bell.</value>
+    <value>Choose which notifications are also sent to your email and to your phone. In-app notifications always appear in the bell.</value>
   </data>
   <data name="NotifPrefsSaved" xml:space="preserve">
     <value>Notification preferences saved.</value>
@@ -2275,7 +2275,13 @@
     <value>Notification preferences</value>
   </data>
   <data name="NotifPrefBody" xml:space="preserve">
-    <value>Choose which notifications are also sent to your email. In-app notifications always appear in the bell.</value>
+    <value>Choose which notifications are also sent to your email and to your phone. In-app notifications always appear in the bell.</value>
+  </data>
+  <data name="NotifPrefEmail" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="NotifPrefPhone" xml:space="preserve">
+    <value>Phone</value>
   </data>
   <data name="BulkTagsTitle" xml:space="preserve">
     <value>Add tags</value>

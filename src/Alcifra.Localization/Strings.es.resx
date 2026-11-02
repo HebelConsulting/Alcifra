@@ -613,7 +613,7 @@
     <value>No se pudo establecer esa versión como actual.</value>
   </data>
   <data name="NotifPrefsDesc" xml:space="preserve">
-    <value>Elige qué notificaciones se envían también a tu correo. Las notificaciones en la app siempre aparecen en la campana.</value>
+    <value>Elige qué notificaciones también se envían a tu correo y a tu teléfono. Las notificaciones en la app siempre aparecen en la campana.</value>
   </data>
   <data name="NotifPrefsSaved" xml:space="preserve">
     <value>Preferencias de notificación guardadas.</value>
@@ -2275,7 +2275,13 @@
     <value>Preferencias de notificación</value>
   </data>
   <data name="NotifPrefBody" xml:space="preserve">
-    <value>Elige qué notificaciones también se envían a tu correo. Las notificaciones en la app siempre aparecen en la campana.</value>
+    <value>Elige qué notificaciones se envían también a tu correo y a tu teléfono. Las notificaciones en la app siempre aparecen en la campana.</value>
+  </data>
+  <data name="NotifPrefEmail" xml:space="preserve">
+    <value>Correo</value>
+  </data>
+  <data name="NotifPrefPhone" xml:space="preserve">
+    <value>Teléfono</value>
   </data>
   <data name="BulkTagsTitle" xml:space="preserve">
     <value>Añadir etiquetas</value>

@@ -613,7 +613,7 @@
     <value>Impossibile rendere corrente quella versione.</value>
   </data>
   <data name="NotifPrefsDesc" xml:space="preserve">
-    <value>Scegli quali notifiche vengono inviate anche alla tua email. Le notifiche in-app appaiono sempre nella campanella.</value>
+    <value>Scegli quali notifiche vengono inviate anche alla tua email e al tuo telefono. Le notifiche in-app appaiono sempre nella campanella.</value>
   </data>
   <data name="NotifPrefsSaved" xml:space="preserve">
     <value>Preferenze di notifica salvate.</value>
@@ -2275,7 +2275,13 @@
     <value>Preferenze di notifica</value>
   </data>
   <data name="NotifPrefBody" xml:space="preserve">
-    <value>Scegli quali notifiche vengono inviate anche alla tua email. Le notifiche in-app appaiono sempre nella campanella.</value>
+    <value>Scegli quali notifiche vengono inviate anche alla tua email e al tuo telefono. Le notifiche in-app appaiono sempre nella campanella.</value>
+  </data>
+  <data name="NotifPrefEmail" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="NotifPrefPhone" xml:space="preserve">
+    <value>Telefono</value>
   </data>
   <data name="BulkTagsTitle" xml:space="preserve">
     <value>Aggiungi tag</value>
