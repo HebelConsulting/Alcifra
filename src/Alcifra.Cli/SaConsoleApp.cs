@@ -90,6 +90,9 @@ public static class SaConsoleApp
                 .WithDescription("Sign in through the device grant and print the session as shell exports.");
             config.AddCommand<WhoAmICommand>("whoami")
                 .WithDescription("Name the installation and identity the current session acts as.");
+            // What a sealed file is and who can open it (#2007): local, no session, no key.
+            config.AddCommand<InspectCommand>("inspect")
+                .WithDescription("Show what a sealed file is (envelope, signature, archive) and whom it is sealed to, without decrypting it.");
 
             // The caller's OWN settings. Its self-service certificate (#1353, ADR 0833) retired with the column
             // (#1970 slice 4): a reader certificate is enrolled through `certificate enrol`.

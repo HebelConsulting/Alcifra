@@ -44,12 +44,24 @@ configured from a terminal or a script:
 | `acl set`, `grant`, `revoke`, `break-inheritance` | Decide who may do what to a document; `break-inheritance` makes a document's own grants the ones that apply |
 | `passwords store create`, `show`, `passwords entry create` | Set up a shared password store: create it, then file entries sealed on your machine to every certificate its readers hold. The password is read from stdin only (`printf '%s' "$pw" \| alcifra passwords entry create --store <id> --name … --password-stdin`); a re-run changes nothing |
 | `me certificate`, `intray previous` | A user's own certificate, and recovering intray content |
+| `inspect <file>` | What a sealed file is (an encrypted or signed `.p7m`, an S/MIME message, a sealed archive, a password entry's content) and whom it is sealed to, without decrypting it. `--certs <file or folder>` matches recipients to people; `-v` adds algorithms and references, `--extra-verbose` the ASN.1 tree; `--json` for a script. No session needed (ADR 1029) |
 
 Every command has `--help`. For example, to fix how phones unlock their offline cache and keep the rest:
 
 ```sh
 alcifra tenant offline-cache set --unlock-mode Session --max-unlocked-minutes 10
 alcifra tenant offline-cache show
+```
+
+Or to see who can open a sealed file:
+
+```sh
+alcifra inspect board-pack.p7m --certs ./readers/
+# Format:     CMS EnvelopedData
+# Encryption: aes256 (2.16.840.1.101.3.4.1.42)
+# Recipients: 2
+#   - Anna Muster <anna@example.test>
+#   - unknown recipient (issuer CN=Somebody Else, serial 4EEB…)
 ```
 
 ## Install and sign in
