@@ -6795,6 +6795,9 @@
   <data name="MobPwScanCodeHint" xml:space="preserve">
     <value>Apunte la cámara al código QR que muestra el sitio para configurar los códigos de verificación.</value>
   </data>
+  <data name="MobPwDroppedOffline" xml:space="preserve">
+    <value>{0}: eliminado de la copia sin conexión, porque se revocó una llave que podía leer este almacén. Volverá cuando el almacén se vuelva a sellar.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Ya tienes dos certificados inscritos, el máximo permitido aquí. Revoca uno antes de inscribir otro.</value>
   </data>

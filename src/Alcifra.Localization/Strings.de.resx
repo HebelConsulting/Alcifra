@@ -6795,6 +6795,9 @@
   <data name="MobPwScanCodeHint" xml:space="preserve">
     <value>Richten Sie die Kamera auf den QR-Code, den die Website zum Einrichten der Bestätigungscodes zeigt.</value>
   </data>
+  <data name="MobPwDroppedOffline" xml:space="preserve">
+    <value>{0}: aus der Offline-Kopie entfernt, weil ein Schlüssel, der diesen Speicher lesen konnte, widerrufen wurde. Er kommt zurück, sobald der Speicher neu versiegelt ist.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Sie haben bereits zwei angemeldete Zertifikate, mehr sind hier nicht erlaubt. Widerrufen Sie eines, bevor Sie ein weiteres anmelden.</value>
   </data>

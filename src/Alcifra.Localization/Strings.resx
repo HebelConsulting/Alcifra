@@ -6795,6 +6795,9 @@
   <data name="MobPwScanCodeHint" xml:space="preserve">
     <value>Point the camera at the QR code the site shows for setting up verification codes.</value>
   </data>
+  <data name="MobPwDroppedOffline" xml:space="preserve">
+    <value>{0}: removed from the offline copy, because a key that could read it was revoked. It comes back after the store is re-sealed.</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>You already hold two enrolled certificates, the most allowed here. Revoke one before enrolling another.</value>
   </data>
