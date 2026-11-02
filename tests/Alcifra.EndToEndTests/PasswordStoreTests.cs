@@ -87,14 +87,15 @@ public sealed partial class PasswordStoreTests
             .GroupBy(l => l.GetProperty("rel").GetString()!)
             .ToDictionary(g => g.Key, g => g.First().GetProperty("href").GetString()!);
 
-    private async Task<T> WithEnrolmentAsync<T>(Func<Rig, Task<T>> test)
+    /// <param name="tenantName">A tenant the configuration names (an encryption tier); null for a fresh one of its own.</param>
+    private async Task<T> WithEnrolmentAsync<T>(Func<Rig, Task<T>> test, string? tenantName = null)
     {
         using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
         Environment.SetEnvironmentVariable(LicensesVariable, "1");
         try
         {
-            return await test(await RigAsync(vendorKey));
+            return await test(await RigAsync(vendorKey, tenantName));
         }
         finally
         {
@@ -103,9 +104,11 @@ public sealed partial class PasswordStoreTests
         }
     }
 
-    private async Task<Rig> RigAsync(ECDsa vendorKey)
+    private async Task<Rig> RigAsync(ECDsa vendorKey, string? tenantName)
     {
-        var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
+        var (clientId, secret, tenantId) = tenantName is null
+            ? await _factory.SeedServiceAccountAsync(canManageRepositories: true)
+            : await InNamedTenantAsync(tenantName);
         var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
         var repoId = (await TestJson.Post(owner, "/api/repositories", new { name = $"Passwords {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
 
@@ -163,6 +166,13 @@ public sealed partial class PasswordStoreTests
             canMove = true,
         });
         return new Rig(tenantId, repoId, owner, admin, anna, bob) { AdminId = adminId, AdminEmail = adminEmail };
+    }
+
+    private async Task<(string ClientId, string Secret, Guid TenantId)> InNamedTenantAsync(string tenantName)
+    {
+        var tenantId = await _factory.SeedTenantNamedAsync(tenantName);
+        var (clientId, secret) = await _factory.SeedServiceAccountInTenantAsync(tenantId, canManageRepositories: true);
+        return (clientId, secret, tenantId);
     }
 
     // Who a store is encrypted for (ADR 0983): its manager — Anna, who created it, or an administrator appointing one to

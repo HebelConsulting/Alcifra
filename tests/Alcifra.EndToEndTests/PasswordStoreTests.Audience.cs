@@ -213,6 +213,37 @@ public sealed partial class PasswordStoreTests
         return 0;
     });
 
+    // On a tenant that wraps at rest the version's answer tells the client to encrypt its upload, and the finalize must
+    // declare the wrapped key. The Sealed document's upload did not: the server held ciphertext it could not tell from
+    // plaintext, refused it as "not a CMS envelope", and the client took the document back out (the kiosk's Crypto
+    // tenant, 2026-11-02). Filed, read back and re-sealed here on such a tenant.
+    [Fact]
+    public Task A_sealed_document_is_filed_and_re_sealed_on_a_tenant_that_encrypts_at_rest() => WithEnrolmentAsync(async rig =>
+    {
+        await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+        var documents = new Alcifra.ApiClient.DocumentsClient(Alcifra.ApiClient.ApiCore.Over(rig.Anna.Http), () => throw new InvalidOperationException("no reminders here"));
+        var childrenHref = Links(await TestJson.Get(rig.Anna.Http, $"/api/documents/{rig.RepoId}"))["children"];
+
+        var bob = new Alcifra.ApiClient.AudienceCandidateInfo(rig.Bob.Id, null, "Bob");
+        var id = await documents.CreateSealedDocumentAsync(childrenHref, $"Board pack {Guid.NewGuid():N}", "minutes"u8.ToArray(), "text/plain", "minutes.txt", [bob]);
+
+        // Stored as ciphertext beneath the seal, served as the envelope: the readers' keys open what the door hands out.
+        var download = (await TestJson.Get(rig.Anna.Http, $"/api/documents/{id}/versions")).GetProperty("versions").EnumerateArray().Single()
+            .GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "download").GetProperty("href").GetString()!;
+        // An object wrapped at rest is handed out through the server's own door (a relative address), not presigned.
+        var recipients = Alcifra.SealedArchive.CmsRecipients.Of(await rig.Anna.Http.GetByteArrayAsync(download));
+        Assert.Contains(recipients, r => r.Is(rig.Anna.Key));
+        Assert.Contains(recipients, r => r.Is(rig.Bob.Key));
+
+        // The re-seal takes the same upload, so it is held to the same rule.
+        var document = await rig.Anna.Http.GetAsync($"/api/documents/{id}");
+        var tag = document.Headers.ETag!.Tag;
+        var resealed = Alcifra.ApiClient.SealedDocument.Seal("minutes, again"u8.ToArray(), "text/plain", [rig.Anna.Key, rig.Bob.Key], "minutes.txt");
+        await documents.ResealAsync(Links(await document.Content.ReadFromJsonAsync<JsonElement>())["versions"], tag, "Board pack", resealed);
+        Assert.Equal(2, (await TestJson.Get(rig.Anna.Http, $"/api/documents/{id}/versions")).GetProperty("versions").EnumerateArray().Count());
+        return 0;
+    }, E2EApiFactory.StorageTenantName);
+
     // Unattended seeding (owner, 2026-10-26): the service account that created a store writes its whole audience while no
     // person manages it — the nightly demo seed's case — and loses that say as soon as the audience names a manager.
     [Fact]

@@ -75,11 +75,16 @@ public sealed partial class DocumentsClient
         await VersionFailedAsync(versionResponse, name, cancellationToken);
         var version = await versionResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
 
-        await PutEnvelopeAsync(version, sealedBytes, cancellationToken);
+        var encrypted = await PutEnvelopeAsync(version, sealedBytes, cancellationToken);
 
         using var finalize = new HttpRequestMessage(HttpMethod.Put, ApiCore.RequireRel(version, "self", "The pending version"))
         {
-            Content = JsonContent.Create(new { commentKind = SealedDocument.ResealedAfterAccessChange }),
+            Content = JsonContent.Create(new
+            {
+                commentKind = SealedDocument.ResealedAfterAccessChange,
+                wrappedDek = encrypted?.WrappedDek,
+                kekGeneration = encrypted?.KekGeneration,
+            }),
         };
         finalize.Headers.TryAddWithoutValidation("If-Match", eTag);
 
@@ -157,8 +162,11 @@ public sealed partial class DocumentsClient
             using var versionResponse = await _core.Http.PostAsJsonAsync(draft.VersionsHref, new { fileExtension = SealedDocument.FileExtension }, cancellationToken);
             await VersionFailedAsync(versionResponse, draft.Name, cancellationToken);
             var version = await versionResponse.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-            await PutEnvelopeAsync(version, sealedBytes, cancellationToken);
-            using var finalize = new HttpRequestMessage(HttpMethod.Put, ApiCore.RequireRel(version, "self", "The pending version")) { Content = JsonContent.Create(new { }) };
+            var encrypted = await PutEnvelopeAsync(version, sealedBytes, cancellationToken);
+            using var finalize = new HttpRequestMessage(HttpMethod.Put, ApiCore.RequireRel(version, "self", "The pending version"))
+            {
+                Content = JsonContent.Create(new { wrappedDek = encrypted?.WrappedDek, kekGeneration = encrypted?.KekGeneration }),
+            };
             using var finalized = await _core.Http.SendAsync(finalize, cancellationToken);
             await VersionFailedAsync(finalized, draft.Name, cancellationToken);
             return draft.Id;
@@ -226,15 +234,18 @@ public sealed partial class DocumentsClient
     }
 
     /// <summary>Uploads the envelope to the pending version's presigned address, encrypting at rest where the server says so.</summary>
-    private static async Task PutEnvelopeAsync(JsonElement version, byte[] sealedBytes, CancellationToken cancellationToken)
+    // At-rest encryption is the tenant's own layer BENEATH the seal (ADR 0818): the envelope is what the readers' keys
+    // open, and the wrapped DEK is what this installation's storage opens. Both, where both apply. The caller's finalize
+    // MUST declare the answer's wrapped DEK: without it the server holds ciphertext it cannot tell from plaintext, its
+    // envelope check fails, and the filing is refused (the kiosk's Strict tenant, 2026-11-02).
+    private static async Task<UploadEncryption.Encrypted?> PutEnvelopeAsync(JsonElement version, byte[] sealedBytes, CancellationToken cancellationToken)
     {
-        // At-rest encryption is the tenant's own layer BENEATH the seal (ADR 0818): the envelope is what the readers'
-        // keys open, and the wrapped DEK is what this installation's storage opens. Both, where both apply.
         var encrypted = UploadEncryption.EncryptIfInstructed(version, sealedBytes);
         using var upload = new ByteArrayContent(encrypted?.Blob ?? sealedBytes);
         upload.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
         using var put = await ApiCore.Anonymous.PutAsync(version.GetProperty("uploadUrl").GetString()!, upload, cancellationToken);
         put.EnsureSuccessStatusCode();
+        return encrypted;
     }
 
     /// <summary>The server's own refusal, or its problem document — a sealed filing that failed must say why.</summary>

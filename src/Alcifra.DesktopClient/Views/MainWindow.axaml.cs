@@ -169,7 +169,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        var audience = await new ContentAudienceDialog(draft.Audience, draft.Name).ShowDialog<IReadOnlyList<AudienceChange>?>(this);
+        // In a personal space the audience is its owner and cannot change (ADR 0983), so there is nothing to choose: the
+        // editor would only say so, with no way on but Close, which takes the document back out.
+        var audience = draft.Audience.IsPersonal
+            ? []
+            : await new ContentAudienceDialog(draft.Audience, draft.Name).ShowDialog<IReadOnlyList<AudienceChange>?>(this);
         if (audience is null)
         {
             await vm.AbandonSealedDocumentAsync(draft);

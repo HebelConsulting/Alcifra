@@ -137,6 +137,10 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
     // The tenant itself is created by whichever test wants it, under exactly this name.
     public const string StrictTenantName = "StrictTier";
 
+    // A tenant that wraps at rest (Storage) for a test that changes tenant-wide settings: the seeded Crypto tenant is
+    // shared seed data and is not to be re-configured (ADR 0884). Created by the test that wants it, under this name.
+    public const string StorageTenantName = "StorageTier";
+
     private int _decryptedEnvelopeCalls;
 
     /// <summary>
@@ -380,6 +384,7 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
         // tenant still gets plaintext) while the seeded tenant carries the positive one.
         Environment.SetEnvironmentVariable($"Encryption__Modes__{CryptoTenantName}", "Storage");
         Environment.SetEnvironmentVariable($"Encryption__Modes__{StrictTenantName}", "Strict");
+        Environment.SetEnvironmentVariable($"Encryption__Modes__{StorageTenantName}", "Storage");
         Environment.SetEnvironmentVariable("CryptoDemo__Tenant__Name", CryptoTenantName);
         Environment.SetEnvironmentVariable("CryptoDemo__Administrator__Email", CryptoAdminEmail);
         Environment.SetEnvironmentVariable("CryptoDemo__Password", CryptoPassword);
