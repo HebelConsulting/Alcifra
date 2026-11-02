@@ -55,7 +55,9 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
             }
             else
             {
-                logger.LogInformation("Nothing is enrolled in this tenant.");
+                // Without --holder the server answers the caller's own, or the whole tenant's for an administrator (#1838):
+                // an empty answer is "nothing you can see", which is not "nothing in this tenant" for anyone else.
+                logger.LogInformation("Nothing is enrolled that you can see: your own certificates, or the whole tenant's when you administer it.");
             }
 
             return 0;
