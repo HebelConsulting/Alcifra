@@ -45,6 +45,12 @@ public static class SapassApp
             return Completion.RunAsync([.. args[1..]], CancellationToken.None).GetAwaiter().GetResult();
         }
 
+        if (args.Length > 0 && args[0] == Clipboard.ClearVerb)
+        {
+            // The detached half of --clip: waits, then clears the clipboard if it still holds the copied secret.
+            return Clipboard.RunClearAsync([.. args[1..]]).GetAwaiter().GetResult();
+        }
+
         if (args.Length > 0 && args[0] == BrowserHostVerb)
         {
             // The browser speaks on stdin/stdout for as long as its port is open. Nothing but the protocol may be

@@ -780,7 +780,12 @@ apass show Mail/webmail             # alle Felder, in der Reihenfolge des Formul
 apass password Mail/webmail         # nur das Passwort
 apass otp Mail/webmail              # der aktuelle Code; "valid 17 s" auf der Zeile darunter
 apass otp Mail/webmail --code-only  # nur der Code
+apass password Mail/webmail -c      # in die Zwischenablage statt auf den Bildschirm
 ```
+
+Mit `-c` (`--clip`) legen `apass password` und `apass otp` das Geheimnis in die Zwischenablage, statt es auszugeben, und
+entfernen es nach 45 Sekunden wieder (einen Code, wenn er abläuft) — aber nur, wenn es noch dort liegt; was Sie
+inzwischen kopiert haben, bleibt.
 
 `apass show` beschriftet jedes Feld wie das Formular und zeigt einen Bestätigungscode als den jetzt gültigen Code, nie seine
 Einrichtung. `--store` nennt einen gemeinsamen Speicher (Standard ist Meine Passwörter); `apass ls` und `apass find`

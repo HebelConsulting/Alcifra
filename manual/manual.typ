@@ -773,7 +773,12 @@ apass show Mail/webmail             # every field, in the form's order
 apass password Mail/webmail         # the password alone
 apass otp Mail/webmail              # the current code; "valid 17 s" on the next line
 apass otp Mail/webmail --code-only  # the code alone
+apass password Mail/webmail -c      # onto the clipboard, not the screen
 ```
+
+With `-c` (`--clip`), `apass password` and `apass otp` put the secret on the clipboard instead of printing it, and take
+it off again after 45 seconds (a code, when it expires) — but only if it is still there, so anything you copied in the
+meantime stays.
 
 `apass show` labels each field as the form does and shows a verification code as the code valid now, never its setup.
 `--store` names a shared store (the default is My Passwords); `apass ls` and `apass find` list what there is.

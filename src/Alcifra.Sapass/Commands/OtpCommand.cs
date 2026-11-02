@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.Extensions.Logging;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.Sapass.Infrastructure;
 using Spectre.Console;
@@ -11,6 +12,10 @@ public sealed class OtpSettings : StoreSettings
     [CommandArgument(0, "<entry>")]
     [Description("The entry's path, e.g. Mail/Banking.")]
     public string Entry { get; init; } = string.Empty;
+
+    [CommandOption("-c|--clip")]
+    [Description("Copy the code to the clipboard instead of printing it; cleared when it expires, at most after 45 s.")]
+    public bool Clip { get; init; }
 
     [CommandOption("--code-only")]
     [Description("Print the code alone, without the line saying how long it stays valid: $(apass otp <entry> --code-only).")]
@@ -32,7 +37,7 @@ public sealed class OtpSettings : StoreSettings
 /// The entry is opened with the card like <c>apass show</c>; an entry without a verification code, or one whose setup
 /// does not read, is refused by name rather than printing nothing.
 /// </remarks>
-public sealed class OtpCommand : AsyncCommand<OtpSettings>
+public sealed class OtpCommand(ILogger<OtpCommand> logger) : AsyncCommand<OtpSettings>
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, OtpSettings settings, CancellationToken cancellationToken)
     {
@@ -56,8 +61,18 @@ public sealed class OtpCommand : AsyncCommand<OtpSettings>
             throw new SapassException($"'{row.Path}' has a verification code that cannot be read; replace it in the desktop or phone app.");
         }
 
+        var code = parsed!.Current(TimeProvider.System);
+        if (settings.Clip)
+        {
+            // Never printed (owner, 2026-11-01): onto the clipboard, and off it again when the code expires, at most 45 s.
+            var seconds = Math.Min(code.SecondsLeft, Clipboard.ClearAfterSeconds);
+            await Clipboard.CopyAndClearLaterAsync(code.Value, seconds, cancellationToken);
+            logger.LogInformation("Copied the verification code of {Entry} to the clipboard; it is cleared in {Seconds} s.", row.Path, seconds);
+            return 0;
+        }
+
         // Data output (ADR 0906): the code valid now and, unless asked not to, how long it stays valid.
-        foreach (var line in Lines(parsed!.Current(TimeProvider.System), settings.CodeOnly))
+        foreach (var line in Lines(code, settings.CodeOnly))
         {
             Console.Out.WriteLine(line);
         }

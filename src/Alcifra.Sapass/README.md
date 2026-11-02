@@ -13,7 +13,9 @@ apass find bank
 apass show Mail/Banking                                   # every field in the form's order: URL, user name, password, …
 apass password Mail/Banking                               # the password alone, for $(…)
 apass otp Mail/Banking                                    # the current code; "valid 17 s" on the next line
-apass otp Mail/Banking --code-only                        # the code alone, for $(…) or the clipboard
+apass otp Mail/Banking --code-only                        # the code alone, for $(…)
+apass password Mail/Banking -c                            # onto the clipboard instead, cleared after 45 s
+apass otp Mail/Banking -c                                 # the code onto the clipboard, cleared when it expires
 ```
 
 - `--store <name>` reads a shared store (the default is My Passwords). Where two stores share a name, give the full

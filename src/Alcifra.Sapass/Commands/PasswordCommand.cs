@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.Extensions.Logging;
 using Alcifra.Sapass.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -11,6 +12,10 @@ public sealed class PasswordSettings : StoreSettings
     [Description("The entry's path, e.g. Mail/Banking.")]
     public string Entry { get; init; } = string.Empty;
 
+    [CommandOption("-c|--clip")]
+    [Description("Copy the password to the clipboard instead of printing it; cleared after 45 s if it is still there.")]
+    public bool Clip { get; init; }
+
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(Entry)
         ? ValidationResult.Error("Name the entry: apass password <entry>.")
         : ValidationResult.Success();
@@ -22,7 +27,7 @@ public sealed class PasswordSettings : StoreSettings
 /// An entry without a password is refused by name rather than printing an empty line.
 /// </summary>
 /// <remarks>The entry is opened with the card like <c>apass show</c>; the PIN is typed at the terminal and not kept.</remarks>
-public sealed class PasswordCommand : AsyncCommand<PasswordSettings>
+public sealed class PasswordCommand(ILogger<PasswordCommand> logger) : AsyncCommand<PasswordSettings>
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, PasswordSettings settings, CancellationToken cancellationToken)
     {
@@ -42,6 +47,14 @@ public sealed class PasswordCommand : AsyncCommand<PasswordSettings>
         if (opened.Content.Password.Length == 0)
         {
             throw new SapassException($"'{row.Path}' has no password.");
+        }
+
+        if (settings.Clip)
+        {
+            // Never printed (owner, 2026-11-01): onto the clipboard, and off it again after pass's 45 s.
+            await Clipboard.CopyAndClearLaterAsync(opened.Content.Password, Clipboard.ClearAfterSeconds, cancellationToken);
+            logger.LogInformation("Copied the password of {Entry} to the clipboard; it is cleared in {Seconds} s.", row.Path, Clipboard.ClearAfterSeconds);
+            return 0;
         }
 
         // Data output (ADR 0906): the password alone — the whole point of the command, what a script captures.
