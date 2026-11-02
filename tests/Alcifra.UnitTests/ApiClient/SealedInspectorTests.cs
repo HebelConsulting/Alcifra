@@ -126,4 +126,32 @@ public class SealedInspectorTests
         Assert.Contains("l= inf", Asn1Tree.Lines(ber), StringComparison.Ordinal);
         Assert.Contains(ber, n => n.Tag == "OBJECT" && n.Value!.Contains("1.2.840.113549.1.7.3", StringComparison.Ordinal));
     }
+
+    // #2007 slice 2: a member of the declared audience whose certificate the envelope does not name is MISSING (the file
+    // needs a re-seal); a recipient no longer in the audience is EXTRA.
+    [Fact]
+    public void The_audience_gap_names_who_is_missing_and_who_is_extra()
+    {
+        var sealedBytes = Alcifra.ApiClient.SealedDocument.Seal("minutes"u8.ToArray(), "text/plain", [PublicOnly(Anna), PublicOnly(Stranger)]);
+        var recipients = SealedInspector.Inspect(sealedBytes).Recipients;
+        var audience = new Alcifra.ApiClient.ContentAudienceInfo(Guid.NewGuid(), false, false, "\"1\"", true, false, true, [],
+            [new(Guid.NewGuid(), "Anna", true, [Anna.ExportCertificatePem()]), new(Guid.NewGuid(), "Tom", false, [Tom.ExportCertificatePem()])],
+            [], Alcifra.ApiClient.LinkMap.Empty);
+
+        var gap = AudienceGap.Of(recipients, audience);
+
+        Assert.Equal("Tom", Assert.Single(gap.Missing).Person);
+        Assert.True(Assert.Single(gap.Extra).Reference.Is(Stranger));
+    }
+
+    [Fact]
+    public void An_installation_certificate_is_matched_by_issuer_and_serial_or_by_subject_key_identifier()
+    {
+        var byIssuer = new Alcifra.SealedArchive.CmsRecipient(Anna.Issuer, Anna.SerialNumber, null);
+        var bySki = new Alcifra.SealedArchive.CmsRecipient(null, null, "A1B2");
+
+        Assert.True(new KnownCertificate(Anna.Issuer, Anna.SerialNumber.ToLowerInvariant(), null, "key", "Anna", null, null, "attested").Is(byIssuer));
+        Assert.True(new KnownCertificate(null, null, "a1b2", "key", "Ina", null, null, "attested").Is(bySki));
+        Assert.False(new KnownCertificate(Tom.Issuer, Tom.SerialNumber, null, "key", "Tom", null, null, "attested").Is(byIssuer));
+    }
 }

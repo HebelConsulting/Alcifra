@@ -44,6 +44,14 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
 
         /// <summary>The token's serial number, as its attestation states it.</summary>
         public string? DeviceSerial { get; set; }
+
+        /// <summary>The certificate's subject key identifier: the other way an envelope names it (#2007).</summary>
+        public string? SubjectKeyIdentifier { get; set; }
+
+        /// <summary>Who holds it, as the listing's own rights allow (an administrator every holder, a user themself).</summary>
+        public string? HolderName { get; set; }
+
+        public string? HolderEmail { get; set; }
     }
 
     /// <summary>A key's attestation as the enrolling client read it from the token (ADR 0963).</summary>
@@ -116,6 +124,9 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         Attestation = row.Attestation,
         AttestationRoot = row.AttestationRoot,
         DeviceSerial = row.DeviceSerial,
+        SubjectKeyIdentifier = row.SubjectKeyIdentifier,
+        HolderName = row.HolderName,
+        HolderEmail = row.HolderEmail,
         Links = [new Link("document", $"/api/documents/{row.DocumentId}", "GET")],
     };
 }

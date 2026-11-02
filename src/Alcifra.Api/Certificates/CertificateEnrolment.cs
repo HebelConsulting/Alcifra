@@ -46,7 +46,7 @@ public sealed class CertificateEnrolment(
     public sealed record Listed(
         Guid DocumentId, string Label, string Thumbprint, string Serial, DateTimeOffset NotAfter, DateTimeOffset? RevokedAt,
         bool Usable, string? FailsPolicy, string Attestation = "notAttested", string? AttestationRoot = null, string? DeviceSerial = null,
-        string? Issuer = null);
+        string? Issuer = null, string? SubjectKeyIdentifier = null, string? HolderName = null, string? HolderEmail = null);
 
     private Guid TenantId => tenant.TenantId ?? throw new InvalidOperationException("Certificate enrolment needs a current tenant.");
 
@@ -94,6 +94,12 @@ public sealed class CertificateEnrolment(
         var ids = rows.Select(r => r.DocumentId).ToList();
         var serials = await dbContext.CertificateAttestations.AsNoTracking().Where(a => ids.Contains(a.DocumentId))
             .ToDictionaryAsync(a => a.DocumentId, a => a.DeviceSerial, cancellationToken);
+
+        // Who holds each one (#2007): the listing already shows only what the caller may see (an administrator every
+        // holder, a user their own), so naming the holder reveals nothing more, and lets `inspect` say who can open a file.
+        var holderIds = rows.Select(r => r.UserId).Distinct().ToList();
+        var holders = await dbContext.Users.AsNoTracking().Where(u => holderIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => new { u.DisplayName, u.Email }, cancellationToken);
         return [.. rows
             .OrderByDescending(r => r.NotAfter)
             .ThenBy(r => r.Thumbprint, StringComparer.Ordinal)
@@ -104,7 +110,10 @@ public sealed class CertificateEnrolment(
                 StateName(trust.StateOf(r.AttestationRootThumbprint)),
                 r.AttestationRootThumbprint is { } root ? trust.RootNames.GetValueOrDefault(root) : null,
                 serials.GetValueOrDefault(r.DocumentId) is { Length: > 0 } serial ? serial : null,
-                IssuerOf(r.CertificatePem)))];
+                IssuerOf(r.CertificatePem),
+                SubjectKeyIdentifierOf(r.CertificatePem),
+                holders.GetValueOrDefault(r.UserId)?.DisplayName,
+                holders.GetValueOrDefault(r.UserId)?.Email))];
     }
 
     /// <summary>An enrolled certificate as an envelope names its recipient, with the label its holder knows it by.</summary>
@@ -137,6 +146,21 @@ public sealed class CertificateEnrolment(
     /// tell "sealed to a key of yours that is not here" from "sealed for other keys" (ADR 0969). Read from the stored
     /// certificate at listing time, so no column is needed; null for one that does not parse.
     /// </summary>
+    // The other way an envelope names its recipient (an ECDH recipient often is named so): null where the certificate
+    // carries no subject key identifier.
+    private static string? SubjectKeyIdentifierOf(string certificatePem)
+    {
+        try
+        {
+            using var certificate = X509Certificate2.CreateFromPem(certificatePem);
+            return certificate.Extensions.OfType<X509SubjectKeyIdentifierExtension>().FirstOrDefault()?.SubjectKeyIdentifier;
+        }
+        catch (CryptographicException)
+        {
+            return null;
+        }
+    }
+
     private static string? IssuerOf(string certificatePem)
     {
         try

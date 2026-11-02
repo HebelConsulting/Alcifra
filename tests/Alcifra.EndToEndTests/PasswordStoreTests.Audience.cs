@@ -244,6 +244,45 @@ public sealed partial class PasswordStoreTests
         return 0;
     }, E2EApiFactory.StorageTenantName);
 
+    // `alcifra inspect --document` (#2007 slice 2): the stored envelope's recipients matched to the installation's
+    // certificates as the caller may see them (a user their own, an administrator every holder), and compared with the
+    // declared audience: a member removed without a re-seal shows as EXTRA, who can still open this version.
+    [Fact]
+    public Task Inspect_names_the_holders_the_caller_may_see_and_shows_the_audience_gap() => WithEnrolmentAsync(async rig =>
+    {
+        await TestJson.Put(rig.Owner, $"/api/documents/{rig.RepoId}/acl-entries/users/{rig.Bob.Id}", new { canSee = true, canReadContent = true });
+        var documents = new Alcifra.ApiClient.DocumentsClient(Alcifra.ApiClient.ApiCore.Over(rig.Anna.Http), () => throw new InvalidOperationException("no reminders here"));
+        var childrenHref = Links(await TestJson.Get(rig.Anna.Http, $"/api/documents/{rig.RepoId}"))["children"];
+        var id = await documents.CreateSealedDocumentAsync(childrenHref, $"Board pack {Guid.NewGuid():N}", "minutes"u8.ToArray(), "text/plain", "minutes.txt",
+            [new Alcifra.ApiClient.AudienceCandidateInfo(rig.Bob.Id, null, "Bob")]);
+        var anna = new Alcifra.Cli.Infrastructure.AlcifraApi(rig.Anna.Http);
+
+        var (content, audience) = await Alcifra.Cli.Commands.InspectSurface.FetchDocumentAsync(rig.Anna.Http, anna, id.ToString(), CancellationToken.None);
+        var inspection = Alcifra.ApiClient.Inspection.SealedInspector.Inspect(content);
+        Assert.Equal(2, inspection.Recipients.Count);
+        Assert.True(Alcifra.ApiClient.Inspection.AudienceGap.Of(inspection.Recipients, audience!).None);
+
+        // Anna sees her own certificate's holder; Bob's is somebody she may not see named.
+        var asAnna = Alcifra.Cli.Commands.InspectSurface.Rows(inspection.Recipients,
+            await Alcifra.Cli.Commands.InspectSurface.KnownCertificatesAsync(anna, CancellationToken.None), []);
+        Assert.Single(asAnna, r => r.Known is { HolderName: "Anna" });
+        Assert.Single(asAnna, r => r.Known is null);
+
+        // An administrator sees both holders.
+        var asAdmin = Alcifra.Cli.Commands.InspectSurface.Rows(inspection.Recipients,
+            await Alcifra.Cli.Commands.InspectSurface.KnownCertificatesAsync(new Alcifra.Cli.Infrastructure.AlcifraApi(rig.Admin), CancellationToken.None), []);
+        Assert.Equal(new[] { "Anna", "Bob" }, asAdmin.Select(r => r.Known?.HolderName).Order());
+
+        // Bob leaves the audience with no re-seal: he is EXTRA, and can still open this version.
+        var audiences = new Alcifra.ApiClient.ContentAudienceClient(Alcifra.ApiClient.ApiCore.Over(rig.Anna.Http));
+        await audiences.SaveAsync(audience!, [.. audience!.Members.Where(m => m.UserId != rig.Bob.Id).Select(Alcifra.ApiClient.AudienceChange.Of)]);
+        var (_, after) = await Alcifra.Cli.Commands.InspectSurface.FetchDocumentAsync(rig.Anna.Http, anna, id.ToString(), CancellationToken.None);
+        var gap = Alcifra.ApiClient.Inspection.AudienceGap.Of(inspection.Recipients, after!);
+        Assert.Empty(gap.Missing);
+        Assert.True(Assert.Single(gap.Extra).Reference.Is(rig.Bob.Key));
+        return 0;
+    });
+
     // Unattended seeding (owner, 2026-10-26): the service account that created a store writes its whole audience while no
     // person manages it — the nightly demo seed's case — and loses that say as soon as the audience names a manager.
     [Fact]

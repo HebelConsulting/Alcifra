@@ -44,7 +44,7 @@ configured from a terminal or a script:
 | `acl set`, `grant`, `revoke`, `break-inheritance` | Decide who may do what to a document; `break-inheritance` makes a document's own grants the ones that apply |
 | `passwords store create`, `show`, `passwords entry create` | Set up a shared password store: create it, then file entries sealed on your machine to every certificate its readers hold. The password is read from stdin only (`printf '%s' "$pw" \| alcifra passwords entry create --store <id> --name … --password-stdin`); a re-run changes nothing |
 | `me certificate`, `intray previous` | A user's own certificate, and recovering intray content |
-| `inspect <file>` | What a sealed file is (an encrypted or signed `.p7m`, an S/MIME message, a sealed archive, a password entry's content) and whom it is sealed to, without decrypting it. `--certs <file or folder>` matches recipients to people; `-v` adds algorithms and references, `--extra-verbose` the ASN.1 tree; `--json` for a script. No session needed (ADR 1029) |
+| `inspect <file>`, `inspect --document <id>` | What a sealed file or document is (an encrypted or signed `.p7m`, an S/MIME message, a sealed archive, a password entry's content) and whom it is sealed to, without decrypting it. Signed in, recipients are matched to the installation's certificates (holder, key, revoked, attestation); `--certs <file or folder>` matches the rest; a document is compared with its declared audience (missing, extra). `-v` adds algorithms and references, `--extra-verbose` the ASN.1 tree; `--json` for a script. A local file needs no session (ADR 1029) |
 
 Every command has `--help`. For example, to fix how phones unlock their offline cache and keep the rest:
 
