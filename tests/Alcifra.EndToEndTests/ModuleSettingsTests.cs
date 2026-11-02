@@ -44,7 +44,7 @@ public class ModuleSettingsTests
             var before = await TestJson.Get(rig.Admin, SettingsUrl);
             var declared = before.GetProperty("items").EnumerateArray().ToList();
             Assert.Equal(
-                ["apiSecret", "core.protocolReadRefresh", "endpoint", "posture", "selfEnrolmentOpen"],
+                ["apiSecret", "core.protocolReadRefresh", "endpoint", "posture", "publicHost", "selfEnrolmentOpen"],
                 declared.Select(i => i.GetProperty("key").GetString()).Order());
             Assert.All(declared, item => Assert.False(item.GetProperty("hasValue").GetBoolean()));
 

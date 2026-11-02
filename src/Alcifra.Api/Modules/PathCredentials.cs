@@ -22,7 +22,7 @@ public sealed class PathCredentialPrefixes
     /// </summary>
     public void Load(IServiceProvider services, IReadOnlyList<ModuleLoader.LoadedModule> modules, ILogger logger)
     {
-        if (modules.All(m => m.Module.RootRoutePrefixes.Count == 0))
+        if (modules.All(m => m.Module.ClaimedRootPrefixes().Count == 0))
         {
             return;
         }
@@ -47,7 +47,7 @@ public sealed class PathCredentialPrefixes
             var owner = modules.FirstOrDefault(m => m.Module.GetType().Assembly == authenticator.GetType().Assembly);
             foreach (var prefix in authenticator.PathCredentialPrefixes)
             {
-                if (owner is not null && owner.Module.RootRoutePrefixes.Contains(prefix, StringComparer.OrdinalIgnoreCase))
+                if (owner is not null && owner.Module.ClaimedRootPrefixes().Contains(prefix, StringComparer.OrdinalIgnoreCase))
                 {
                     loaded.Add(prefix);
                     continue;

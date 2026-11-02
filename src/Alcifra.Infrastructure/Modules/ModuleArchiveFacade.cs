@@ -17,7 +17,7 @@ namespace Alcifra.Infrastructure.Modules;
 /// core's invariants (sibling names, containment, required fields, tenant isolation) apply to a module's
 /// writes exactly as they do to anyone else's.
 /// </summary>
-public sealed class ModuleArchiveFacade : IModuleArchiveFacade
+public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
 {
     private readonly AlcifraDbContext _dbContext;
     private readonly ICurrentUserAccessor _currentUser;
@@ -231,44 +231,6 @@ public sealed class ModuleArchiveFacade : IModuleArchiveFacade
     }
 
     private static string FieldNames(IEnumerable<string> names) => $"fields {string.Join(", ", names.Order(StringComparer.Ordinal))}";
-
-    /// <summary>
-    /// A presigned URL for the current content (ABI 1.8, ADR 0899): the module-side form of "the Api never proxies
-    /// stored bytes". Same consent gate as a content read; through <c>IObjectStorageClient</c>, so the at-rest
-    /// decorator applies and the strict tier answers null; the ttl is clamped to <see cref="ContentUrlCeiling"/>.
-    /// The URL is logged never, the document id at Debug.
-    /// </summary>
-    public async Task<Uri?> GetDocumentContentUrlAsync(Guid documentId, TimeSpan ttl, CancellationToken cancellationToken = default)
-    {
-        if (!await ModuleMaySeeAsync(documentId, cancellationToken) || await IsAudienceContentAsync(documentId, cancellationToken))
-        {
-            return null;
-        }
-
-        var pointer = await _dbContext.Documents
-            .Where(d => d.Id == documentId)
-            .Select(d => d.CurrentVersionId)
-            .SingleOrDefaultAsync(cancellationToken);
-        var version = await CurrentVersion.ResolveAsync(_dbContext.DocumentVersions, documentId, pointer, cancellationToken);
-        if (version is null)
-        {
-            return null;
-        }
-
-        if (_objectStorage is null)
-        {
-            throw new InvalidOperationException(
-                "Content URLs need an object-storage client; the host wires one — a test facade that presigns must supply it.");
-        }
-
-        var lifetime = ttl <= TimeSpan.Zero || ttl > ContentUrlCeiling ? ContentUrlCeiling : ttl;
-        var url = await _objectStorage.GetPresignedDownloadUrlAsync(version.ObjectKey, lifetime, cancellationToken: cancellationToken);
-        _logger?.LogDebug(
-            "Module {ModuleId} presigned the content of document {DocumentId} for {Lifetime}; issued: {Issued}",
-            _identity?.ModuleId, documentId, lifetime, url is not null);
-
-        return url;
-    }
 
     /// <summary>
     /// Whether the document is the core's ENCRYPTED CONTENT — a Password Entry or a Sealed document — which goes only to

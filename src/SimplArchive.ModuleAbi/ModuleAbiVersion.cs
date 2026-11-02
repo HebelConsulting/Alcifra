@@ -65,7 +65,7 @@ public static class ModuleAbiVersion
     /// member and new types only, so a 1.6 module is unaffected.
     /// </para>
     /// <para>
-    /// 1.8 adds <see cref="IModuleArchiveFacade.GetDocumentContentUrlAsync"/> (a presigned content URL, so a module
+    /// 1.8 adds <see cref="IModuleArchiveFacade.GetDocumentContentUrlAsync(System.Guid, System.TimeSpan, System.Threading.CancellationToken)"/> (a presigned content URL, so a module
     /// redirects instead of proxying bytes) and <see cref="ModuleActionResult"/> (an action's outcome, optionally a
     /// value revealed once), core ADR 0899. A default member and new types only, so a 1.7 module is unaffected.
     /// </para>
@@ -158,5 +158,12 @@ public static class ModuleAbiVersion
     /// payloads to a device's setup profile and learns of a revoked device (core ADR 1036, the provisioning module of
     /// core #2101). A default-null property and new types only, so a 1.26 module is unaffected.
     /// </para>
-    public const int Minor = 27;
+    /// <para>
+    /// 1.28 adds <see cref="IIndustryModule.AnonymousRootPrefixes"/> (a root prefix served without a credential, the tenant
+    /// resolved from the Host through a module setting), the player's form of
+    /// <see cref="IModuleArchiveFacade.GetDocumentContentUrlAsync(Guid, TimeSpan, string, bool, CancellationToken)"/>
+    /// and <see cref="IModuleCallerContext.TenantEncryptsAtRestAsync"/> (core ADR 1038, the video module of core #2062).
+    /// Default-implemented members and a new type only, so a 1.27 module is unaffected.
+    /// </para>
+    public const int Minor = 28;
 }

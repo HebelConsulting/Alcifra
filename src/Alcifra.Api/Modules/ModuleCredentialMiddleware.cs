@@ -37,7 +37,7 @@ public sealed class ModuleCredentialMiddleware(
     public const string AuthenticationType = "ModuleCredential";
 
     private readonly Dictionary<string, ModuleLoader.LoadedModule> _byPrefix = modules
-        .SelectMany(m => m.Module.RootRoutePrefixes.Select(p => (Prefix: p, Module: m)))
+        .SelectMany(m => m.Module.ClaimedRootPrefixes().Select(p => (Prefix: p, Module: m)))
         .ToDictionary(x => x.Prefix, x => x.Module, StringComparer.OrdinalIgnoreCase);
 
     public async Task InvokeAsync(HttpContext context)
@@ -56,6 +56,13 @@ public sealed class ModuleCredentialMiddleware(
             || action.ControllerTypeInfo.Assembly != ownAssembly)
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if (owner.Module.AnonymousRootPrefixes.FirstOrDefault(p => Covers(p.Prefix, path)) is { } anonymous)
+        {
+            // Served without a credential (ABI 1.28, ADR 1038): the tenant is whoever set the named setting to this Host.
+            await AnonymousAsync(context, owner, anonymous, path);
             return;
         }
 
@@ -122,6 +129,47 @@ public sealed class ModuleCredentialMiddleware(
 
     /// <summary>The credential the request presents and how: the Basic password, a Bearer token, or the first
     /// declared API-key header. The Basic user name is ignored (core #1552).</summary>
+    // The anonymous branch: Host → tenant through the module's setting, the limiter per client address, then the
+    // activation gate and the module's principal exactly as a credentialed request gets them; the user stays nobody.
+    private async Task AnonymousAsync(HttpContext context, ModuleLoader.LoadedModule owner, AnonymousRootPrefix anonymous, string path)
+    {
+        var moduleId = owner.Module.ModuleId;
+        var services = context.RequestServices;
+        var limiter = services.GetRequiredService<AnonymousRequestLimiter>();
+        var address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        if (!limiter.Admit(address))
+        {
+            logger.LogWarning("Refused an anonymous request to module {ModuleId} from {Address}: over the rate limit", moduleId, address);
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            context.Response.Headers.RetryAfter = "60";
+            return;
+        }
+
+        var host = context.Request.Host.Host;
+        var dbContext = services.GetRequiredService<AlcifraDbContext>();
+        var tenantId = await AnonymousHosts.TenantForAsync(dbContext, moduleId, anonymous.HostSettingKey, host, context.RequestAborted);
+        if (tenantId is null)
+        {
+            logger.LogDebug("No tenant serves module {ModuleId} on host {Host}; {Path} is not found", moduleId, host, path);
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        ((CurrentTenantAccessor)services.GetRequiredService<ICurrentTenantAccessor>()).TenantId = tenantId;
+        var principal = await ModuleActivationCheck.IsActiveAsync(dbContext, moduleId, DateTimeOffset.UtcNow, context.RequestAborted)
+            ? await ModulePrincipal.FindAsync(dbContext, moduleId, context.RequestAborted)
+            : null;
+        if (principal is null)
+        {
+            throw new ModuleNotActiveException(moduleId);
+        }
+
+        ((CurrentServiceAccountAccessor)services.GetRequiredService<ICurrentServiceAccountAccessor>()).ServiceAccountId = principal.Id;
+        services.GetRequiredService<ModuleIdentityAccessor>().ModuleId = moduleId;
+        logger.LogTrace("Module {ModuleId} serves an anonymous request on {Path} for host {Host}", moduleId, path, host);
+        await next(context);
+    }
+
     public static (string? Scheme, string? Credential) Presented(HttpRequest request, IReadOnlyList<string> apiKeyHeaders)
     {
         var authorization = request.Headers.Authorization.ToString();

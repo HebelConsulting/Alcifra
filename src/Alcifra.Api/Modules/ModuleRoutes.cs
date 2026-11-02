@@ -26,7 +26,7 @@ public static class ModuleRoutes
     /// store client, which sends no authentication, so the credential rides in the path (ADR 0909).
     /// <c>apps</c>: where a release pipeline PUSHES an app to that repository, with a push key in a header (ADR 0910).
     /// </remarks>
-    public static readonly IReadOnlyList<string> AllowedRootPrefixes = ["nuget", "fdroid", "apps"];
+    public static readonly IReadOnlyList<string> AllowedRootPrefixes = ["nuget", "fdroid", "apps", "peertube"];
 
     /// <summary>The modules whose route claims and controller routes are admissible, in load order. A refused module
     /// is dropped before anything of it is registered; the first claimant of a prefix keeps it.</summary>
@@ -40,7 +40,7 @@ public static class ModuleRoutes
             IReadOnlyList<string> prefixes = [];
             try
             {
-                prefixes = loaded.Module.RootRoutePrefixes;
+                prefixes = loaded.Module.ClaimedRootPrefixes();
                 refusal = Refusal(loaded.Module.ModuleId, prefixes, claimedBy, ControllerTypes(loaded.Module.GetType().Assembly));
             }
             catch (Exception e) when (e is not OutOfMemoryException)

@@ -57,6 +57,14 @@ public interface IModuleArchiveFacade
         throw new NotSupportedException($"{GetType().Name} does not implement the ABI 1.8 GetDocumentContentUrlAsync.");
 
     /// <summary>
+    /// The same link, for a player (ABI 1.28, core ADR 1038): served with <paramref name="contentType"/> (stored content
+    /// is octet-stream) and, when <paramref name="inline"/>, an inline disposition instead of an attachment. DEFAULT-
+    /// IMPLEMENTED as the plain link, so a host or test facade built against 1.27 still compiles.
+    /// </summary>
+    Task<Uri?> GetDocumentContentUrlAsync(Guid documentId, TimeSpan ttl, string contentType, bool inline, CancellationToken cancellationToken = default) =>
+        GetDocumentContentUrlAsync(documentId, ttl, cancellationToken);
+
+    /// <summary>
     /// Hands out a presigned upload (ABI 1.12, core ADR 0910): a client PUTs up to <paramref name="maxBytes"/> straight
     /// to object storage, so large content (an APK) never passes through the API. Nothing exists in the archive until
     /// <see cref="FileUploadAsync"/>; an upload never filed is swept after a day.

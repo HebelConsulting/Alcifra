@@ -184,6 +184,12 @@ public interface IIndustryModule
     IReadOnlyList<string> RootRoutePrefixes => [];
 
     /// <summary>
+    /// Root route prefixes served without a credential (ABI 1.28, core ADR 1038): the tenant comes from the request's
+    /// Host through the named module setting. Default: none. On the core's allowlist like <see cref="RootRoutePrefixes"/>.
+    /// </summary>
+    IReadOnlyList<AnonymousRootPrefix> AnonymousRootPrefixes => [];
+
+    /// <summary>
     /// Whether this module sends notices to addresses that are NOT users of the tenant through <see cref="IModuleNotices"/>
     /// (ABI 1.10, core ADR 0902): a renewal confirmation to a customer. Default false: the module cannot become a mail
     /// relay by accident, and an external address is refused with a Warning.

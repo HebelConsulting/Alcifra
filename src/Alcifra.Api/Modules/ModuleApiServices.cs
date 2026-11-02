@@ -16,6 +16,7 @@ public static class ModuleApiServices
     public static IServiceCollection AddModuleApiSeams(this IServiceCollection services)
     {
         services.AddScoped<IModuleCallerContext, ModuleCallerContext>();
+        services.AddSingleton<AnonymousRequestLimiter>();   // ABI 1.28: anonymous module prefixes (ADR 1038)
         services.AddScoped<IModuleDocumentRights, ModuleDocumentRights>();
         // The identity a protocol request authenticated as (ABI 1.7, ADR 0898): the middleware sets it, a module
         // controller reads it through the ABI interface.
@@ -50,7 +51,7 @@ public static class ModuleApiServices
     }
 }
 
-internal sealed class ModuleCallerContext(DocumentAccessService access, ICurrentTenantAccessor tenant, AlcifraDbContext dbContext) : IModuleCallerContext
+internal sealed class ModuleCallerContext(DocumentAccessService access, ICurrentTenantAccessor tenant, AlcifraDbContext dbContext, IConfiguration configuration) : IModuleCallerContext
 {
     // A module route is tenant-scoped by construction: the activation gate has already refused any request
     // with no resolvable tenant, so an empty accessor here is a programming error, not a caller state.
@@ -66,6 +67,12 @@ internal sealed class ModuleCallerContext(DocumentAccessService access, ICurrent
 
     public Task<bool> CanAdministerModulesAsync(CancellationToken cancellationToken = default) =>
         access.CanAdministerModulesAsync(cancellationToken);
+
+    public async Task<bool> TenantEncryptsAtRestAsync(CancellationToken cancellationToken = default)
+    {
+        var name = await dbContext.Tenants.Where(t => t.Id == TenantId).Select(t => t.Name).SingleOrDefaultAsync(cancellationToken);
+        return name is not null && new Alcifra.Infrastructure.Encryption.EncryptionModes(configuration).WrapsAtRest(name);
+    }
 
     public async Task<ModuleCallerIdentity?> GetIdentityAsync(CancellationToken cancellationToken = default)
     {

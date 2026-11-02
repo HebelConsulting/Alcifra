@@ -353,6 +353,7 @@ public sealed class TestModule : IIndustryModule
     public IReadOnlyList<ModuleSetting> Settings { get; } =
     [
         new ModuleSetting("endpoint", "Service endpoint", Description: "Where the fixture would call."),
+        new ModuleSetting("publicHost", "Public host", Description: "The host the anonymous prefix is served on (ABI 1.28)."),
         new ModuleSetting("apiSecret", "API secret", IsSecret: true),
         // A CHOICE (ABI 0.29): one decision whose values are a fixed set, rather than independent flags an
         // administrator could combine into something meaningless. Declared here because the host's refusal of
@@ -465,6 +466,9 @@ public sealed class TestModule : IIndustryModule
 
     /// <summary>The protocol-route fixture's claim (ABI 1.7, ADR 0898): <c>nuget</c>, the allowlist's one entry.</summary>
     public IReadOnlyList<string> RootRoutePrefixes => ["nuget", "fdroid", "apps"];
+
+    /// <summary>ABI 1.28 (core ADR 1038): a prefix served to anyone on the host the tenant named in "publicHost".</summary>
+    public IReadOnlyList<AnonymousRootPrefix> AnonymousRootPrefixes => [new AnonymousRootPrefix("peertube", "publicHost")];
 
     public void ConfigureServices(IServiceCollection services)
     {

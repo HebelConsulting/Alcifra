@@ -75,6 +75,13 @@ public interface IModuleCallerContext
     /// endpoint should never see; the activation gate refused the anonymous case already).
     /// </summary>
     Task<ModuleCallerIdentity?> GetIdentityAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether the caller's tenant wraps stored content at rest (ABI 1.28, core ADR 1038): a module that hands out
+    /// presigned links refuses by name there, rather than pointing a player at the core's decrypting door, which would
+    /// carry the bytes through the server. DEFAULT-IMPLEMENTED (false), so a host or test double built against 1.27 compiles.
+    /// </summary>
+    Task<bool> TenantEncryptsAtRestAsync(CancellationToken cancellationToken = default) => Task.FromResult(false);
 }
 
 /// <summary>The caller as a person would name them (ABI 0.2): display name, and e-mail when the principal
