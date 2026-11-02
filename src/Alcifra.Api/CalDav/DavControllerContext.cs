@@ -61,6 +61,13 @@ internal sealed class DavControllerContext
     /// </summary>
     internal ILogger? Log { get; }
 
+    private DavScope? _scope;
+
+    /// <summary>Which collections the signed-in device shows (#2090), read once per request.</summary>
+    internal async Task<DavScope> ScopeAsync() => _scope ??= await DavScope.ForAsync(Db,
+        Guid.TryParse(_request.HttpContext.User.FindFirst(Authentication.DavBasicAuthenticationHandler.DeviceClaim)?.Value, out var device) ? device : null,
+        Cancellation);
+
     internal Task<System.Xml.Linq.XElement?> ReadBodyAsync() => DavXml.ReadBodyAsync(_request, Cancellation);
 
     internal IActionResult MultiStatus(PropRequest request, IEnumerable<DavResource> resources) =>

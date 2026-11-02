@@ -67,6 +67,13 @@ public class ProtocolDevice : ITenantScoped, IConcurrencyTracked
     /// which behaves as IMAP always did, and under the Module's Strict mode, which always seals.</summary>
     public bool EncryptMail { get; set; }
 
+    /// <summary>
+    /// Whether the device shows CHOSEN calendars and address books (#2090): the user's own always, a shared one only while
+    /// a <see cref="ProtocolDeviceCollection"/> ticks it. False (all of them, as before) for every device enrolled before
+    /// it existed; set when an iPhone or iPad setup profile is taken through a hand-over link, and switchable in Devices.
+    /// </summary>
+    public bool CollectionsChosen { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>When a login last used it; moved at most hourly by a claim that leaves the token (it drifts on its own,

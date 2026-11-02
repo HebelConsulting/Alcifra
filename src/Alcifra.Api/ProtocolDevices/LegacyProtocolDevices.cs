@@ -54,6 +54,8 @@ public static class LegacyProtocolDevices
         FilesEnabled = true,
         CalendarsEnabled = true,
         ContactsEnabled = true,
+        // Its profile sets up an iPhone or iPad: the visitor's own calendars and contacts until they tick more (#2090, owner 2026-11-02).
+        CollectionsChosen = true,
         CreatedAt = now,
     };
 

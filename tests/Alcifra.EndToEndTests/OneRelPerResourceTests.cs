@@ -42,9 +42,10 @@ public class OneRelPerResourceTests
         Assert.Equal(["self", "settings"], RelsOf(devices).Order());
 
         // The method is the action: POST enrols at the collection's address; a device's own address is read, changed
-        // and revoked by the method, under one rel.
+        // and revoked by the method, under one rel. `collections` is a DIFFERENT address: the shared calendars and
+        // address books the device can tick (ADR 1034).
         var enrolled = await TestJson.Post(api, HrefOf(devices, "self"), E2EDevices.Any());
-        Assert.Equal(["self"], RelsOf(enrolled).Order());
+        Assert.Equal(["collections", "self"], RelsOf(enrolled).Order());
 
         using var revoke = new HttpRequestMessage(HttpMethod.Delete, HrefOf(enrolled, "self"));
         revoke.Headers.TryAddWithoutValidation("If-Match", enrolled.GetProperty("eTag").GetString());

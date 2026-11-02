@@ -64,7 +64,12 @@ public sealed class DevicesView(DevicesClient devices)
 
     /// <summary>A device's request as it stands, the base of a change (every field stated, ADR 0872).</summary>
     public static DeviceRequest RequestOf(ProtocolDevice device) =>
-        new(device.Name, device.Mail, device.Files, device.Calendars, device.Contacts, device.EncryptMail && !device.EncryptMailLocked);
+        new(device.Name, device.Mail, device.Files, device.Calendars, device.Contacts, device.EncryptMail && !device.EncryptMailLocked,
+            device.CollectionsChosen, device.ChosenCollections ?? []);
+
+    /// <summary>The shared calendars and address books the device can tick (#2090); empty where it offers none.</summary>
+    public async Task<IReadOnlyList<DeviceCollectionChoice>> CollectionsAsync(ProtocolDevice device, CancellationToken cancellationToken = default) =>
+        device.OffersCollections ? await devices.CollectionsAsync(device, cancellationToken) : [];
 
     /// <summary>The rows, in the list's order.</summary>
     public static IReadOnlyList<DeviceRow> RowsOf(DeviceList list, CultureInfo culture) =>

@@ -56,6 +56,28 @@ public class WebDevicesTests
         await Expect(row).ToHaveCountAsync(0);
     }
 
+    // #2090: a device's edit form offers all or chosen calendars and address books; the choice is saved and read back.
+    [Fact]
+    public async Task A_device_is_switched_to_chosen_calendars_and_contacts()
+    {
+        var page = await Ui.LoginAsync(_app);
+        var name = $"ui-{Guid.NewGuid():N}"[..12];
+        var devices = await OpenDevicesAsync(page);
+        await EnrolAsync(page, name);
+
+        var row = devices.Locator(".wb-device-row", new() { HasText = name });
+        await row.GetByRole(AriaRole.Button, new() { Name = "Change" }).ClickAsync();
+        var form = page.Locator(".mud-dialog").Last;
+        await Expect(form.GetByText("Calendars and contacts")).ToBeVisibleAsync();
+        await form.GetByText("Your own, and the ones ticked here").ClickAsync();
+        await form.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
+        await Expect(page.Locator(".mud-dialog")).ToHaveCountAsync(1);
+
+        await row.GetByRole(AriaRole.Button, new() { Name = "Change" }).ClickAsync();
+        form = page.Locator(".mud-dialog").Last;
+        await Expect(form.GetByRole(AriaRole.Radio, new() { Name = "Your own, and the ones ticked here" })).ToBeCheckedAsync();
+    }
+
     [Fact]
     public async Task The_ribbon_button_opens_the_devices_dialog()
     {

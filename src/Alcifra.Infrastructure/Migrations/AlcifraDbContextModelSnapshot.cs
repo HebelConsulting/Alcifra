@@ -2778,6 +2778,9 @@ namespace Alcifra.Infrastructure.Migrations
                     b.Property<bool>("CalendarsEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("CollectionsChosen")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("ConcurrencyToken")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
@@ -2834,6 +2837,26 @@ namespace Alcifra.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ProtocolDevices");
+                });
+
+            modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDeviceCollection", b =>
+                {
+                    b.Property<Guid>("ProtocolDeviceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FolderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ProtocolDeviceId", "FolderId");
+
+                    b.HasIndex("FolderId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("ProtocolDeviceCollections");
                 });
 
             modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDeviceHandOver", b =>
@@ -4663,6 +4686,21 @@ namespace Alcifra.Infrastructure.Migrations
                     b.HasOne("Alcifra.Domain.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Alcifra.Domain.Users.ProtocolDeviceCollection", b =>
+                {
+                    b.HasOne("Alcifra.Domain.Documents.Document", null)
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Alcifra.Domain.Users.ProtocolDevice", null)
+                        .WithMany()
+                        .HasForeignKey("ProtocolDeviceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

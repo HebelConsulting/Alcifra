@@ -21,6 +21,9 @@ public sealed class DavBasicAuthenticationHandler : AuthenticationHandler<Authen
     /// <summary>The claim carrying the authenticated user's tenant — read back by the DAV controllers.</summary>
     public const string TenantClaim = "alcifra:tenant";
 
+    /// <summary>The device the password named (#2090): what decides which collections the request shows.</summary>
+    public const string DeviceClaim = "alcifra:device";
+
     private readonly Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator _devices;
 
     public DavBasicAuthenticationHandler(
@@ -67,7 +70,7 @@ public sealed class DavBasicAuthenticationHandler : AuthenticationHandler<Authen
             ? Alcifra.Api.ProtocolDevices.DeviceProtocol.Contacts
             : Alcifra.Api.ProtocolDevices.DeviceProtocol.Calendars;
         if (await _devices.SignInAsync(decoded[..separator], decoded[(separator + 1)..], protocol, Context.RequestAborted)
-            is not { User: var user })
+            is not { User: var user, Device: var device })
         {
             return AuthenticateResult.Fail("Invalid DAV credentials.");
         }
@@ -77,6 +80,7 @@ public sealed class DavBasicAuthenticationHandler : AuthenticationHandler<Authen
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.DisplayName),
             new Claim(TenantClaim, user.TenantId.ToString()),
+            new Claim(DeviceClaim, device.Id.ToString()),
         ], DavAuthenticationDefaults.Scheme);
 
         return AuthenticateResult.Success(

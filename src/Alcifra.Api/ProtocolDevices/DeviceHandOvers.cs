@@ -104,6 +104,15 @@ public sealed class DeviceHandOvers(AlcifraDbContext dbContext, IDataProtectionP
 
     private async Task<(string Profile, ProtocolDevice Device)> OpenAsync(ProtocolDeviceHandOver handOver, CancellationToken cancellationToken)
     {
+        // The profile sets up an iPhone or iPad, which offers no way to pick collections: the device now shows the chosen
+        // ones (#2090, owner 2026-11-02). It changes what the device's editor shows, so the token moves; idempotent, so a
+        // second take changes nothing.
+        await dbContext.ProtocolDevices.IgnoreQueryFilters(TenantFilter)
+            .Where(d => d.Id == handOver.DeviceId && !d.CollectionsChosen)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.CollectionsChosen, true)
+                .SetProperty(d => d.ConcurrencyToken, Guid.NewGuid()), cancellationToken);
+
         var device = await dbContext.ProtocolDevices.IgnoreQueryFilters(TenantFilter).AsNoTracking()
             .FirstAsync(d => d.Id == handOver.DeviceId, cancellationToken);
         return (Encoding.UTF8.GetString(Protector.Unprotect(handOver.SealedProfile)), device);

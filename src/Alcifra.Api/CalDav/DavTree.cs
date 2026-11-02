@@ -42,8 +42,9 @@ internal static class DavTree
     /// </summary>
     internal static async Task<List<DavCollection>> CollectionsAsync(
         AlcifraDbContext db, IEffectiveRightsCalculator rights, Guid userId, DavProtocol protocol,
-        IDavCollectionKindRegistry registry, CancellationToken cancellationToken)
+        IDavCollectionKindRegistry registry, CancellationToken cancellationToken, DavScope? scope = null)
     {
+        scope ??= DavScope.All;
         var candidates = await FolderQuery(db, protocol, registry)
             .Select(d => new FolderRow(d.Id, d.Name, d.ParentId))
             .ToListAsync(cancellationToken);
@@ -65,6 +66,12 @@ internal static class DavTree
             }
 
             var parent = candidate.ParentId is { } parentId ? parents.GetValueOrDefault(parentId) : null;
+            // A device set to chosen collections shows a shared one only while it is ticked (#2090).
+            if (!scope.Shows(candidate.Id, isOwn: parent?.PersonalOfUserId == userId))
+            {
+                continue;
+            }
+
             collections.Add((
                 new DavCollection(candidate.Id, DisplayName(candidate, parent), effective.CanEditContent, Color: null),
                 // The caller's own personal defaults sort first; another user's personal folder shared with
@@ -102,8 +109,9 @@ internal static class DavTree
     /// </summary>
     internal static async Task<DavCollection?> CollectionAsync(
         AlcifraDbContext db, IEffectiveRightsCalculator rights, Guid userId, DavProtocol protocol,
-        IDavCollectionKindRegistry registry, Guid folderId, CancellationToken cancellationToken)
+        IDavCollectionKindRegistry registry, Guid folderId, CancellationToken cancellationToken, DavScope? scope = null)
     {
+        scope ??= DavScope.All;
         // A task feed first: its id belongs to no document, so every query below would miss it — and the ACL
         // walk would not merely miss it but throw, since it resolves a document's ancestors.
         if (protocol == DavProtocol.CalDav && TaskFeeds.KindOf(userId, folderId) is not null)
@@ -140,6 +148,13 @@ internal static class DavTree
                 .Select(d => new ParentRow(d.Id, d.Name, d.PersonalOfUserId))
                 .FirstOrDefaultAsync(cancellationToken)
             : null;
+
+        // Addressed directly, an unticked shared collection is absent too (#2090): a client that kept its address from
+        // before stops syncing it rather than reading past the scope.
+        if (!scope.Shows(folder.Id, isOwn: parent?.PersonalOfUserId == userId))
+        {
+            return null;
+        }
 
         var colors = await ColorsAsync(db, userId, protocol, registry, [folder.Id], cancellationToken);
         return new DavCollection(folder.Id, DisplayName(folder, parent), effective.CanEditContent, colors.GetValueOrDefault(folder.Id));

@@ -19,10 +19,19 @@ public sealed class DevicesApi(HttpClient http, ApiRoot apiRoot)
 
     public sealed record DeviceDto(
         string Name, string Kind, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail, bool EncryptMailLocked,
-        DateTimeOffset CreatedAt, DateTimeOffset? LastUsedAt, bool CanEdit, bool CanDelete, string ETag, List<LinkDto>? Links)
+        DateTimeOffset CreatedAt, DateTimeOffset? LastUsedAt, bool CanEdit, bool CanDelete, string ETag, List<LinkDto>? Links,
+        bool CollectionsChosen = false, List<Guid>? ChosenCollections = null)
     {
         public string? Self => Links?.FirstOrDefault(l => l.Rel == "self")?.Href;
+
+        /// <summary>The shared calendars and address books it can tick (#2090), where the server advertised them.</summary>
+        public string? CollectionsHref => Links?.FirstOrDefault(l => l.Rel == "collections")?.Href;
     }
+
+    /// <summary>A shared calendar or address book a device can tick (#2090); <c>Kind</c> is <c>calendar</c> or <c>contacts</c>.</summary>
+    public sealed record CollectionDto(Guid Id, string Name, string Kind, bool Ticked);
+
+    private sealed record CollectionsDto(List<CollectionDto> Items);
 
     public sealed record DeviceListDto(
         List<DeviceDto> Items, bool EncryptMailLocked, bool ShowAllDocuments, ServersDto Servers, List<LinkDto>? Links)
@@ -38,7 +47,9 @@ public sealed class DevicesApi(HttpClient http, ApiRoot apiRoot)
         string Name, string Kind, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail, string Password,
         string Username, HandOverDto HandOver);
 
-    public sealed record DeviceRequest(string Name, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail);
+    /// <param name="CollectionsChosen">All (false) or chosen (true) calendars and address books (#2090); null states nothing.</param>
+    public sealed record DeviceRequest(string Name, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail,
+        bool? CollectionsChosen = null, List<Guid>? ChosenCollections = null);
 
     private sealed record ProblemResponse { public string? ErrorCode { get; set; } }
 
@@ -59,6 +70,10 @@ public sealed class DevicesApi(HttpClient http, ApiRoot apiRoot)
         using var response = await http.SendAsync(message);
         await ThrowIfRefusedAsync(response, "DvChangeFailed");
     }
+
+    /// <summary>The shared calendars and address books the device can tick, by its rel; empty where it offers none.</summary>
+    public async Task<List<CollectionDto>> CollectionsAsync(DeviceDto device) =>
+        device.CollectionsHref is { } href ? (await http.GetFromJsonAsync<CollectionsDto>(href))?.Items ?? [] : [];
 
     public async Task RevokeAsync(DeviceDto device)
     {

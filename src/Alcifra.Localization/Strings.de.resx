@@ -6747,6 +6747,21 @@
   <data name="DvContacts" xml:space="preserve">
     <value>Kontakte</value>
   </data>
+  <data name="DvCollections" xml:space="preserve">
+    <value>Kalender und Kontakte</value>
+  </data>
+  <data name="DvCollectionsAll" xml:space="preserve">
+    <value>Alle, die Sie sehen</value>
+  </data>
+  <data name="DvCollectionsChosen" xml:space="preserve">
+    <value>Ihre eigenen und die hier angekreuzten</value>
+  </data>
+  <data name="DvCollectionsHint" xml:space="preserve">
+    <value>Ein iPhone oder iPad kann nicht selbst auswählen: Es zeigt nur, was hier angekreuzt ist. Ihre eigenen Kalender und Adressbücher werden immer gezeigt.</value>
+  </data>
+  <data name="DvCollectionsNone" xml:space="preserve">
+    <value>Mit Ihnen ist noch nichts geteilt.</value>
+  </data>
   <data name="DvEncrypted" xml:space="preserve">
     <value>verschlüsselt</value>
   </data>

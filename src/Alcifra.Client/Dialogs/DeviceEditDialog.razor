@@ -16,6 +16,30 @@
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("DvEncryptLocked")</MudText>
             }
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@Strings.Get("DvEncryptHint")</MudText>
+            @if (_choices is not null)
+            {
+                @* Calendars and contacts (#2090): all, or the user's own plus the ticked shared ones — what an iPhone or iPad shows. *@
+                <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("DvCollections")</MudText>
+                <MudRadioGroup T="bool" @bind-Value="_chosen" data-testid="device-collections">
+                    <MudRadio T="bool" Value="false" Dense="true">@Strings.Get("DvCollectionsAll")</MudRadio>
+                    <MudRadio T="bool" Value="true" Dense="true">@Strings.Get("DvCollectionsChosen")</MudRadio>
+                </MudRadioGroup>
+                @if (_chosen)
+                {
+                    <div class="ml-6" style="max-height: 180px; overflow-y: auto;">
+                        @foreach (var choice in _choices)
+                        {
+                            <MudCheckBox T="bool" Value="_ticked.Contains(choice.Id)" ValueChanged="on => Tick(choice.Id, on)" Dense="true"
+                                         Label="@($"{Strings.Get(choice.Kind == "calendar" ? "DvCalendars" : "DvContacts")}: {choice.Name}")" />
+                        }
+                        @if (_choices.Count == 0)
+                        {
+                            <MudText Typo="Typo.caption">@Strings.Get("DvCollectionsNone")</MudText>
+                        }
+                    </div>
+                }
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@Strings.Get("DvCollectionsHint")</MudText>
+            }
         </div>
     </DialogContent>
     <DialogActions>
@@ -41,8 +65,37 @@
     private bool _calendars = true;
     private bool _contacts = true;
     private bool _encrypt;
+    private bool _chosen;
+    private List<Alcifra.Client.Services.DevicesApi.CollectionDto>? _choices;
+    private readonly HashSet<Guid> _ticked = [];
 
-    protected override void OnInitialized()
+    [Inject]
+    private Alcifra.Client.Services.DevicesApi DevicesApi { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        OnInitializedFields();
+        if (Device is { CollectionsHref: not null } device)
+        {
+            _chosen = device.CollectionsChosen;
+            _choices = await DevicesApi.CollectionsAsync(device);
+            _ticked.UnionWith(_choices.Where(c => c.Ticked).Select(c => c.Id));
+        }
+    }
+
+    private void Tick(Guid id, bool on)
+    {
+        if (on)
+        {
+            _ticked.Add(id);
+        }
+        else
+        {
+            _ticked.Remove(id);
+        }
+    }
+
+    private void OnInitializedFields()
     {
         if (Device is { } device)
         {
@@ -56,6 +109,9 @@
         }
     }
 
+    // The collections are stated once their choices were read; until then, as stored.
     private void Save() => Dialog.Close(DialogResult.Ok(new Alcifra.Client.Services.DevicesApi.DeviceRequest(
-        _name.Trim(), _mail, _files, _calendars, _contacts, _encrypt && !EncryptLocked)));
+        _name.Trim(), _mail, _files, _calendars, _contacts, _encrypt && !EncryptLocked,
+        _choices is null ? Device?.CollectionsChosen : _chosen,
+        _choices is null ? Device?.ChosenCollections : [.. _ticked])));
 }

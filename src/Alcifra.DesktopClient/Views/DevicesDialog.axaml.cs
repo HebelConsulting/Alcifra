@@ -107,7 +107,8 @@ public partial class DevicesDialog : Window
             return;
         }
 
-        if (await new DeviceEditDialog(row.Device, list.EncryptMailLocked, request => _view.ChangeAsync(row.Device, request))
+        if (await new DeviceEditDialog(row.Device, list.EncryptMailLocked, request => _view.ChangeAsync(row.Device, request),
+                () => _view.CollectionsAsync(row.Device))
                 .ShowDialog<bool>(this))
         {
             Draw();

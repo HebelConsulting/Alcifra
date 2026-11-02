@@ -38,6 +38,7 @@ public class ProtocolDevicesController(
     Concurrency.ProtocolDeviceVerbs devices,
     Concurrency.UserVerbs users,
     DeviceHandOvers handOvers,
+    DeviceCollections collections,
     Alcifra.Api.Documents.PersonalMailboxProvisioner mailbox,
     IConfiguration configuration,
     Microsoft.Extensions.Options.IOptions<Alcifra.Api.Imap.ImapOptions> imap,
@@ -73,6 +74,15 @@ public class ProtocolDevicesController(
         /// <summary>The organisation seals mail, so the setting is shown on and cannot be changed ("Required by your
         /// organisation").</summary>
         public bool EncryptMailLocked { get; set; }
+
+        /// <summary>
+        /// Whether the device shows CHOSEN calendars and address books (#2090): the user's own always, a shared one only
+        /// when it is in <see cref="ChosenCollections"/>. False: all of them.
+        /// </summary>
+        public bool CollectionsChosen { get; set; }
+
+        /// <summary>The shared collections ticked on the device (folder ids); the <c>collections</c> rel names them.</summary>
+        public List<Guid> ChosenCollections { get; set; } = [];
 
         public DateTimeOffset CreatedAt { get; set; }
 
@@ -186,7 +196,34 @@ public class ProtocolDevicesController(
 
         public bool EncryptMail { get; set; }
 
+        /// <summary>
+        /// All or chosen calendars and address books (#2090). Null leaves the stored setting as it is: a client from before
+        /// the setting existed sends none, and its save must not switch an iPhone back to everything.
+        /// </summary>
+        public bool? CollectionsChosen { get; set; }
+
+        /// <summary>The ticked shared collections, in full; null leaves them as they are, for the same reason.</summary>
+        public List<Guid>? ChosenCollections { get; set; }
+
         public DeviceSwitches Switches() => new(Mail, Files, Calendars, Contacts, EncryptMail);
+    }
+
+    /// <summary>The shared calendars and address books a device can tick (#2090).</summary>
+    public class DeviceCollectionsResource : HypermediaResource
+    {
+        public List<DeviceCollectionResource> Items { get; set; } = [];
+    }
+
+    public class DeviceCollectionResource
+    {
+        public Guid Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary><c>calendar</c> or <c>contacts</c>.</summary>
+        public string Kind { get; set; } = string.Empty;
+
+        public bool Ticked { get; set; }
     }
 
     [HttpGet]
@@ -202,10 +239,11 @@ public class ProtocolDevicesController(
             .Where(d => d.UserId == user.Id)
             .OrderBy(d => d.CreatedAt).ThenBy(d => d.Id)
             .ToListAsync(cancellationToken);
+        var ticked = await collections.TickedAsync([.. rows.Select(d => d.Id)], cancellationToken);
 
         return Ok(new ProtocolDevicesResource
         {
-            Items = [.. rows.Select(d => ToResource<ProtocolDeviceResource>(d, locked))],
+            Items = [.. rows.Select(d => ToResource<ProtocolDeviceResource>(d, locked, ticked.GetValueOrDefault(d.Id)))],
             EncryptMailLocked = locked,
             ShowAllDocuments = user.ImapShowAllDocuments,
             Servers = ServersOf(user),
@@ -231,8 +269,37 @@ public class ProtocolDevicesController(
         }
 
         devices.EmitETag(Response, device);
-        return Ok(ToResource<ProtocolDeviceResource>(device, await enrolment.OrganisationSealsMailAsync(user.TenantId, cancellationToken)));
+        return Ok(ToResource<ProtocolDeviceResource>(device, await enrolment.OrganisationSealsMailAsync(user.TenantId, cancellationToken),
+            (await collections.TickedAsync([device.Id], cancellationToken)).GetValueOrDefault(device.Id)));
     }
+
+    /// <summary>The shared calendars and address books the device can tick (#2090); the user's own are always shown.</summary>
+    [HttpGet("{deviceId:guid}/collections")]
+    public async Task<IActionResult> Collections(Guid deviceId, CancellationToken cancellationToken)
+    {
+        if (await CallerAsync(cancellationToken) is not { } user)
+        {
+            return Forbid();
+        }
+
+        if (await FindAsync(user.Id, deviceId, cancellationToken) is not { } device)
+        {
+            return NotFound();
+        }
+
+        return Ok(new DeviceCollectionsResource
+        {
+            Items = [.. (await collections.ChoicesAsync(user.Id, device.Id, cancellationToken))
+                .Select(c => new DeviceCollectionResource { Id = c.Id, Name = c.Name, Kind = c.Kind, Ticked = c.Ticked })],
+            Links = [new Link("self", $"{Collection}/{device.Id}/collections", "GET")],
+        });
+    }
+
+    [HttpHead("{deviceId:guid}/collections")]
+    public async Task<IActionResult> HeadCollections(Guid deviceId, CancellationToken cancellationToken) =>
+        await CallerAsync(cancellationToken) is not { } user ? Forbid()
+        : await FindAsync(user.Id, deviceId, cancellationToken) is null ? NotFound()
+        : Ok();
 
     [HttpHead("{deviceId:guid}")]
     public async Task<IActionResult> Head(Guid deviceId, CancellationToken cancellationToken)
@@ -330,18 +397,27 @@ public class ProtocolDevicesController(
         await enrolment.RequireSealableAsync(user.Id, request.EncryptMail, locked, cancellationToken);
 
         await devices.MutateAsync(Request, device,
-            apply: () =>
+            apply: async () =>
             {
                 device.Name = name;
                 request.Switches().ApplyTo(device);
-                return Task.CompletedTask;
+                if (request.CollectionsChosen is { } chosen)
+                {
+                    device.CollectionsChosen = chosen;
+                }
+
+                if (request.ChosenCollections is { } ticks)
+                {
+                    await collections.ReplaceAsync(device, ticks, cancellationToken);
+                }
             },
             afterCommit: () => audit.RecordAsync(AuditActions.ProtocolDeviceChanged, "User", user.Id, device.Name,
                 $"Changed the device '{device.Name}' ({Protocols(device)}).", cancellationToken: cancellationToken),
             cancellationToken: cancellationToken);
 
         devices.EmitETag(Response, device);
-        return Ok(ToResource<ProtocolDeviceResource>(device, locked));
+        return Ok(ToResource<ProtocolDeviceResource>(device, locked,
+            (await collections.TickedAsync([device.Id], cancellationToken)).GetValueOrDefault(device.Id)));
     }
 
     [HttpDelete("{deviceId:guid}")]
@@ -429,7 +505,7 @@ public class ProtocolDevicesController(
             device.ContactsEnabled ? "contacts" : null,
         }.Where(p => p is not null)) is { Length: > 0 } list ? list : "no protocols";
 
-    private static T ToResource<T>(ProtocolDevice device, bool locked) where T : ProtocolDeviceResource, new() => new()
+    private static T ToResource<T>(ProtocolDevice device, bool locked, List<Guid>? ticked = null) where T : ProtocolDeviceResource, new() => new()
     {
         Id = device.Id,
         Name = device.Name,
@@ -446,11 +522,16 @@ public class ProtocolDevicesController(
         Contacts = device.ContactsEnabled,
         EncryptMail = locked || (!LegacyProtocolDevices.IsEarlier(device.Kind) && device.EncryptMail),
         EncryptMailLocked = locked,
+        CollectionsChosen = device.CollectionsChosen,
+        ChosenCollections = ticked ?? [],
         CreatedAt = device.CreatedAt,
         LastUsedAt = device.LastUsedAt,
         CanEdit = !LegacyProtocolDevices.IsEarlier(device.Kind),
         CanDelete = true,
         ETag = $"\"{device.ConcurrencyToken}\"",
-        Links = [new Link("self", $"{Collection}/{device.Id}", "GET")],
+        // The shared collections a device can tick, where it can be edited and reaches calendars or contacts (#2090).
+        Links = LegacyProtocolDevices.IsEarlier(device.Kind) || !(device.CalendarsEnabled || device.ContactsEnabled)
+            ? [new Link("self", $"{Collection}/{device.Id}", "GET")]
+            : [new Link("self", $"{Collection}/{device.Id}", "GET"), new Link("collections", $"{Collection}/{device.Id}/collections", "GET")],
     };
 }

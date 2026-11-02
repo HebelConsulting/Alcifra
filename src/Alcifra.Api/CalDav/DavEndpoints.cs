@@ -35,7 +35,7 @@ internal static class DavEndpoints
 
         if (context.Depth >= 1)
         {
-            foreach (var collection in await DavTree.CollectionsAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, context.Cancellation))
+            foreach (var collection in await DavTree.CollectionsAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, context.Cancellation, await context.ScopeAsync()))
             {
                 var rights = await RightsForAsync(context, collection.FolderId);
                 var sequence = await SequenceForAsync(context, collection.FolderId);
@@ -75,7 +75,7 @@ internal static class DavEndpoints
     /// <summary>PROPFIND on one collection, and (Depth ≥ 1) its items.</summary>
     internal static async Task<IActionResult> CollectionAsync(DavControllerContext context, Guid folderId)
     {
-        var collection = await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation);
+        var collection = await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation, await context.ScopeAsync());
         if (collection is null)
         {
             return new NotFoundResult();
@@ -154,7 +154,7 @@ internal static class DavEndpoints
     /// <summary>PROPFIND on one item.</summary>
     internal static async Task<IActionResult> ItemAsync(DavControllerContext context, Guid folderId, string resourceName)
     {
-        if (await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation) is null)
+        if (await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation, await context.ScopeAsync()) is null)
         {
             return new NotFoundResult();
         }
@@ -294,7 +294,7 @@ internal static class DavEndpoints
 
     internal static async Task<IActionResult> ReportAsync(DavControllerContext context, Guid folderId)
     {
-        if (await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation) is null)
+        if (await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation, await context.ScopeAsync()) is null)
         {
             return new NotFoundResult();
         }
@@ -356,7 +356,7 @@ internal static class DavEndpoints
     /// <summary>GET/HEAD one item: its stored bytes, with the ETag a client conditions on.</summary>
     internal static async Task<IActionResult> GetAsync(DavControllerContext context, Guid folderId, string resourceName, bool body)
     {
-        if (await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation) is null)
+        if (await DavTree.CollectionAsync(context.Db, context.Rights, context.UserId, context.Protocol, context.Kinds, folderId, context.Cancellation, await context.ScopeAsync()) is null)
         {
             return new NotFoundResult();
         }

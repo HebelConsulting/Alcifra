@@ -14,8 +14,12 @@ public sealed record DeviceServers(
 /// <c>seeded</c> for the demo seed's device (ADR 1030).</param>
 public sealed record ProtocolDevice(
     string Name, string Kind, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail, bool EncryptMailLocked,
-    DateTimeOffset CreatedAt, DateTimeOffset? LastUsedAt, bool CanEdit, bool CanDelete, string ETag, LinkMap? Links)
+    DateTimeOffset CreatedAt, DateTimeOffset? LastUsedAt, bool CanEdit, bool CanDelete, string ETag, LinkMap? Links,
+    bool CollectionsChosen = false, IReadOnlyList<Guid>? ChosenCollections = null)
 {
+    /// <summary>Whether its calendars and address books can be chosen: the server advertised the <c>collections</c> rel (#2090).</summary>
+    public bool OffersCollections => Links?.Href("collections") is not null;
+
     public bool IsEarlier => Kind is "earlierDav" or "earlierImap";
 
     /// <summary>The demo seed's device (ADR 1030), whose name carries the demo password.</summary>
@@ -37,7 +41,17 @@ public sealed record DeviceHandOver(string? ProfileUrl, string? ProfileQr, DateT
 public sealed record EnrolledDevice(ProtocolDevice Device, string Password, string Username, DeviceHandOver HandOver);
 
 /// <summary>A device in full, as enrolment and a change state it (no PATCH, ADR 0872).</summary>
-public sealed record DeviceRequest(string Name, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail);
+/// <param name="CollectionsChosen">All (false) or chosen (true) calendars and address books (#2090); null states nothing.</param>
+/// <param name="ChosenCollections">The ticked shared collections; null states nothing.</param>
+public sealed record DeviceRequest(string Name, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail,
+    bool? CollectionsChosen = null, IReadOnlyList<Guid>? ChosenCollections = null);
+
+/// <summary>A shared calendar or address book a device can tick (#2090).</summary>
+/// <param name="Kind"><c>calendar</c> or <c>contacts</c>.</param>
+public sealed record DeviceCollectionChoice(Guid Id, string Name, string Kind, bool Ticked)
+{
+    public bool IsCalendar => Kind == "calendar";
+}
 
 /// <summary>
 /// The user's protocol devices (#1970), reached by <c>me</c>'s <c>protocolDevices</c> rel and then by the rels each answer
@@ -76,6 +90,16 @@ public sealed class DevicesClient(ApiCore core, ProfileClient profile)
         await ApiWire.ThrowIfProblemAsync(response, Strings.Get("DvChangeFailed"), cancellationToken);
     }
 
+    /// <summary>The shared calendars and address books the device can tick, by its <c>collections</c> rel (#2090).</summary>
+    public async Task<IReadOnlyList<DeviceCollectionChoice>> CollectionsAsync(ProtocolDevice device, CancellationToken cancellationToken = default)
+    {
+        var href = device.Links?.Href("collections") ?? throw new InvalidOperationException("The device advertised no 'collections' rel (ADR 0543).");
+        var json = await core.Http.GetFromJsonAsync<JsonElement>(href, cancellationToken);
+        return [.. json.GetProperty("items").EnumerateArray().Select(c => new DeviceCollectionChoice(
+            c.GetProperty("id").GetGuid(), c.GetProperty("name").GetString() ?? string.Empty,
+            c.GetProperty("kind").GetString() ?? "calendar", Flag(c, "ticked")))];
+    }
+
     public async Task RevokeAsync(ProtocolDevice device, CancellationToken cancellationToken = default)
     {
         using var message = new HttpRequestMessage(HttpMethod.Delete, Self(device.Links));
@@ -103,6 +127,8 @@ public sealed class DevicesClient(ApiCore core, ProfileClient profile)
         calendars = request.Calendars,
         contacts = request.Contacts,
         encryptMail = request.EncryptMail,
+        collectionsChosen = request.CollectionsChosen,
+        chosenCollections = request.ChosenCollections,
     };
 
     private static DeviceList ParseList(JsonElement json) => new(
@@ -121,7 +147,11 @@ public sealed class DevicesClient(ApiCore core, ProfileClient profile)
         json.TryGetProperty("lastUsedAt", out var used) && used.ValueKind == JsonValueKind.String ? used.GetDateTimeOffset() : null,
         Flag(json, "canEdit"), Flag(json, "canDelete"),
         json.GetProperty("eTag").GetString() ?? string.Empty,
-        ApiCore.ParseLinks(json));
+        ApiCore.ParseLinks(json),
+        Flag(json, "collectionsChosen"),
+        json.TryGetProperty("chosenCollections", out var chosen) && chosen.ValueKind == JsonValueKind.Array
+            ? [.. chosen.EnumerateArray().Select(c => c.GetGuid())]
+            : []);
 
     private static DeviceServers ParseServers(JsonElement json) => new(
         json.GetProperty("username").GetString() ?? string.Empty,

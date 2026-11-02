@@ -23,6 +23,18 @@
                    Foreground="{DynamicResource WbMuted}" FontSize="12" />
         <TextBlock Text="{loc:Tr DvEncryptHint}" TextWrapping="Wrap" Foreground="{DynamicResource WbMuted}" FontSize="12" />
 
+        <!-- Calendars and contacts (#2090): all, or the user's own plus the ticked shared ones — what an iPhone or iPad
+             shows, since it cannot pick by itself. Only for a device that reaches calendars or contacts. -->
+        <StackPanel x:Name="CollectionsPanel" Spacing="6" IsVisible="False">
+            <TextBlock Text="{loc:Tr DvCollections}" FontWeight="SemiBold" FontSize="12" />
+            <RadioButton x:Name="AllCollections" GroupName="Collections" Content="{loc:Tr DvCollectionsAll}" IsChecked="True" />
+            <RadioButton x:Name="ChosenCollections" GroupName="Collections" Content="{loc:Tr DvCollectionsChosen}" />
+            <ScrollViewer MaxHeight="180" IsVisible="{Binding #ChosenCollections.IsChecked}">
+                <StackPanel x:Name="CollectionList" Margin="24,0,0,0" Spacing="2" />
+            </ScrollViewer>
+            <TextBlock Text="{loc:Tr DvCollectionsHint}" TextWrapping="Wrap" Foreground="{DynamicResource WbMuted}" FontSize="12" />
+        </StackPanel>
+
         <TextBlock x:Name="ErrorText" Foreground="#c62828" FontSize="12" TextWrapping="Wrap" IsVisible="False" />
 
         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">

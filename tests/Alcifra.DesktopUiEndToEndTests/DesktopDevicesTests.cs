@@ -41,4 +41,30 @@ public class DesktopDevicesTests
         await view.RevokeAsync(row.Device);
         Assert.DoesNotContain(view.Rows, r => r.Name == name);
     }
+    // #2090: the shared view states a device's calendars and contacts as all or chosen, with the ticks the collections
+    // rel offers; a change made through it reads back.
+    [Fact]
+    public async Task A_device_is_switched_to_chosen_collections_through_the_collections_rel()
+    {
+        DesktopClientOptions.ApiBaseUrl = _app.BaseUrl;
+        var api = new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl));
+        var view = new DevicesView(api.Devices);
+        var name = $"Desktop scope {Guid.NewGuid():N}"[..24];
+        await view.EnrolAsync(new DeviceRequest(name, Mail: false, Files: false, Calendars: true, Contacts: true, EncryptMail: false));
+        var device = Assert.Single(view.Rows, r => r.Name == name).Device;
+        Assert.True(device.OffersCollections);
+        Assert.False(device.CollectionsChosen);
+
+        var choices = await view.CollectionsAsync(device);
+        await view.ChangeAsync(device, DevicesView.RequestOf(device) with
+        {
+            CollectionsChosen = true,
+            ChosenCollections = [.. choices.Take(1).Select(c => c.Id)],
+        });
+
+        var changed = Assert.Single(view.Rows, r => r.Name == name).Device;
+        Assert.True(changed.CollectionsChosen);
+        Assert.Equal(choices.Take(1).Select(c => c.Id), changed.ChosenCollections!);
+        await view.RevokeAsync(changed);
+    }
 }
