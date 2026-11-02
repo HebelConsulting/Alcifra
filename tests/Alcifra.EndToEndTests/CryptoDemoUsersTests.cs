@@ -43,4 +43,20 @@ public class CryptoDemoUsersTests
         Assert.True(await db.AclEntries.IgnoreQueryFilters(["TenantFilter"])
             .AnyAsync(a => a.DocumentId == tenant.StandardRepositoryId && a.UserId == user.Id && a.CanReadContent && a.CanCreateSubItems));
     }
+
+    // ADR 1039: every seeded Crypto user keeps a confirmed alias on the former login domain, so a reader certificate
+    // issued for the former address still names its holder.
+    [Fact]
+    public async Task Every_seeded_user_has_a_confirmed_alias_on_the_former_domain()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+        var tenant = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Name == E2EApiFactory.CryptoTenantName);
+        foreach (var localPart in new[] { "crypt", "florian", "thomas", "alex", "tanja", "mihaela" })
+        {
+            var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.TenantId == tenant.Id && u.NormalizedEmail == $"{localPart}@{E2EApiFactory.CryptoAdminEmail.Split('@')[1]}".ToUpperInvariant());
+            var alias = await db.UserIdentityAliases.IgnoreQueryFilters().SingleAsync(a => a.UserId == user.Id && a.NormalizedAddress == $"{localPart}@{E2EApiFactory.CryptoFormerDomain}".ToUpperInvariant());
+            Assert.NotNull(alias.ConfirmedAt);
+        }
+    }
 }

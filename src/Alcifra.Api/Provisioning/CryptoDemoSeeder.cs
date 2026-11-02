@@ -109,6 +109,7 @@ public static class CryptoDemoSeeder
         var admin = await dbContext.Users.SingleAsync(u => u.Id == provisioned.AdministratorId);
         admin.ImapShowAllDocuments = true;
         await dbContext.SaveChangesAsync();
+        await AddFormerAddressesAsync(dbContext, provisioned.TenantId, [admin, .. people.Select(p => p.Item2)], configuration, now);
         await DemoSeedItems.EnableDavAndImapAsync(dbContext, hasher, password, [admin.Id, .. people.Select(p => p.Item2.Id)], now);
 
         // Working rights on the root repository for every seeded user — enough to see, read and file, so the
@@ -235,6 +236,51 @@ public static class CryptoDemoSeeder
                 CanManagePermissions = true,
                 CreatedAt = now,
             });
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    // CryptoDemo:AliasDomains, comma-separated (ADR 1039): the domains these accounts USED to sign in with. Each seeded
+    // user gets a confirmed identity alias <local part>@<former domain>, so a reader certificate issued for the former
+    // address still binds to its holder under Strict binding (ADR 1015), and the certificate manifest keeps naming it.
+    // Only at provisioning: on a kept database the users still carry the former address as their own, and an alias
+    // equal to a user's address is refused by the invariant. A former domain must be among the identity domains.
+    private static async Task AddFormerAddressesAsync(AlcifraDbContext dbContext, Guid tenantId, IReadOnlyList<User> users, IConfiguration configuration, DateTimeOffset now)
+    {
+        var former = (configuration["CryptoDemo:AliasDomains"] ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(d => d.ToLowerInvariant())
+            .Where(d => d.Length > 0)
+            .Distinct()
+            .ToList();
+        if (former.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var user in users)
+        {
+            var localPart = user.Email.Split('@')[0];
+            foreach (var domain in former)
+            {
+                var address = $"{localPart}@{domain}";
+                if (string.Equals(address, user.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;   // the former domain is the current one: nothing to alias
+                }
+
+                dbContext.UserIdentityAliases.Add(new UserIdentityAlias
+                {
+                    Id = DemoId.For(tenantId, $"alias/{address}"),
+                    TenantId = tenantId,
+                    UserId = user.Id,
+                    Address = address,
+                    NormalizedAddress = address.ToUpperInvariant(),
+                    ConfirmedAt = now,
+                    CreatedAt = now,
+                });
+            }
         }
 
         await dbContext.SaveChangesAsync();

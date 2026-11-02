@@ -154,6 +154,7 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
     public int DecryptedEnvelopeCalls => Volatile.Read(ref _decryptedEnvelopeCalls);
     public const string CryptoAdminEmail = "crypt@crypto.e2e.local";
     public const string CryptoPassword = "CryptoDemo-1234!";
+    public const string CryptoFormerDomain = "former.e2e.local";
 
     /// <summary>The stub's KEK keypairs, one per generation — real RSA, so the crypto facts are real.</summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Security.Cryptography.RSA> _keks =
@@ -388,6 +389,9 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
         Environment.SetEnvironmentVariable("CryptoDemo__Tenant__Name", CryptoTenantName);
         Environment.SetEnvironmentVariable("CryptoDemo__Administrator__Email", CryptoAdminEmail);
         Environment.SetEnvironmentVariable("CryptoDemo__Password", CryptoPassword);
+        // The former login domain as confirmed aliases (ADR 1039), on a declared identity domain as the invariant asks.
+        Environment.SetEnvironmentVariable("CryptoDemo__IdentityDomains", CryptoFormerDomain);
+        Environment.SetEnvironmentVariable("CryptoDemo__AliasDomains", CryptoFormerDomain);
 
         // Stage the TestModule into a Modules directory so the REAL loader brings it up through the real
         // seams (ADR 0737's activation circle, ModuleControllerTests). Deliberately present for EVERY E2E
