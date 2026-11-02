@@ -141,15 +141,15 @@
                 <MenuItem Header="{loc:Tr UgDelete}" Click="OnDelete" IsVisible="{Binding CanDeleteSelected}">
                     <MenuItem.Icon><i:Icon Value="mdi-delete" /></MenuItem.Icon>
                 </MenuItem>
-                <Separator IsVisible="{Binding CanManageAccess}" />
+                <Separator />
                 <MenuItem AutomationProperties.AutomationId="tour:action-manage-access" Header="{loc:Tr MaManageAccess}" Click="OnManageAccess" IsVisible="{Binding CanManageAccess}">
                     <MenuItem.Icon><i:Icon Value="mdi-shield-account-outline" /></MenuItem.Icon>
                 </MenuItem>
-                <Separator IsVisible="{Binding CanLegalHold}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr CtxPlaceLegalHold}" Click="OnPlaceLegalHold" IsVisible="{Binding CanLegalHold}">
                     <MenuItem.Icon><i:Icon Value="mdi-gavel" /></MenuItem.Icon>
                 </MenuItem>
-                <Separator IsVisible="{Binding CanStartWorkflow}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr CtxWorkflow}" Click="OnStartWorkflow" IsVisible="{Binding CanStartWorkflow}">
                     <MenuItem.Icon><i:Icon Value="mdi-sitemap-outline" /></MenuItem.Icon>
                 </MenuItem>
@@ -160,7 +160,7 @@
                      pane for here and the ribbon's Documents group. A right-click SELECTS the row first, so
                      these follow the shell's subject, and each is absent until that subject's detail has
                      loaded — never the previous row's (ADR 0559). -->
-                <Separator IsVisible="{Binding HasDocumentOwnActions}" />
+                <Separator />
                 <MenuItem AutomationProperties.AutomationId="ctx-follow" Header="{Binding SubscriptionMenuHeader}" Command="{Binding ToggleSubscriptionCommand}" IsVisible="{Binding CanToggleSubscription}">
                     <MenuItem.Icon><i:Icon Value="{Binding SubscriptionIcon}" /></MenuItem.Icon>
                 </MenuItem>
@@ -203,18 +203,18 @@
                         </ControlTheme>
                     </MenuItem.ItemContainerTheme>
                 </MenuItem>
-                <Separator IsVisible="{Binding CanCheckOut}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr CtxCheckOut}" Command="{Binding CheckOutSelectedCommand}" IsVisible="{Binding CanCheckOut}">
                     <MenuItem.Icon><i:Icon Value="mdi-lock-outline" /></MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Header="{loc:Tr CtxOverrideCheckout}" Command="{Binding OverrideCheckoutSelectedCommand}" IsVisible="{Binding CanOverrideSelected}">
                     <MenuItem.Icon><i:Icon Value="mdi-lock-open-variant-outline" /></MenuItem.Icon>
                 </MenuItem>
-                <Separator IsVisible="{Binding SelectedHasReferences}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr MwReferences}" Click="OnReferences" IsVisible="{Binding SelectedHasReferences}">
                     <MenuItem.Icon><i:Icon Value="mdi-link-variant" /></MenuItem.Icon>
                 </MenuItem>
-                <Separator IsVisible="{Binding SelectedIsReference}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr MwGoTo}" Click="OnGoTo" IsVisible="{Binding SelectedIsReference}">
                     <MenuItem.Icon><i:Icon Value="mdi-arrow-right-thin-circle-outline" /></MenuItem.Icon>
                 </MenuItem>

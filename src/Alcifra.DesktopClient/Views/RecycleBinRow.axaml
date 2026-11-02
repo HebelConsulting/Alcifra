@@ -27,7 +27,7 @@
                 </MenuItem>
                 <!-- Hard delete is separated AND admin-only: hidden rather than greyed, because a right the
                      caller does not hold is not advertised (ADR 0543/0554). -->
-                <Separator IsVisible="{Binding IsTenantAdmin}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr MwDeletePermanently}" Click="OnHardDelete" IsVisible="{Binding IsTenantAdmin}">
                     <MenuItem.Icon><i:Icon Value="mdi-delete-forever" /></MenuItem.Icon>
                 </MenuItem>

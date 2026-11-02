@@ -21,7 +21,7 @@
                 <MenuItem Header="{loc:Tr SearchGoToDocument}" Click="OnGoTo">
                     <MenuItem.Icon><i:Icon Value="mdi-open-in-new" /></MenuItem.Icon>
                 </MenuItem>
-                <Separator IsVisible="{Binding CanRemove}" />
+                <Separator />
                 <MenuItem Header="{loc:Tr LhRemoveFromHold}" Click="OnRemove" IsVisible="{Binding CanRemove}">
                     <MenuItem.Icon><i:Icon Value="mdi-close" /></MenuItem.Icon>
                 </MenuItem>
