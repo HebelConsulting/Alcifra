@@ -157,7 +157,8 @@ public sealed class BrowseService(HttpClient http, ApiRoot apiRoot)
                     Icon: c.Icon,
                     Folder: c.IsFolder,
                     EncryptedForCaller: c.EncryptedForCaller,
-                    HasCode: c.HasCode));
+                    HasCode: c.HasCode,
+                    HasPasskey: c.HasPasskey));
             }
             url = Links.Href(page?.Links, "next");
         }

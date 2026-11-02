@@ -6612,6 +6612,72 @@
   <data name="PwHasCode" xml:space="preserve">
     <value>Has a verification code</value>
   </data>
+  <data name="PwPasskey" xml:space="preserve">
+    <value>Passkey</value>
+  </data>
+  <data name="PwPasskeyUnreadable" xml:space="preserve">
+    <value>(a passkey that cannot be read)</value>
+  </data>
+  <data name="PwHasPasskey" xml:space="preserve">
+    <value>Has a passkey</value>
+  </data>
+  <data name="PwPasskeyRemove" xml:space="preserve">
+    <value>Remove passkey</value>
+  </data>
+  <data name="PwPasskeyRemoveHint" xml:space="preserve">
+    <value>Signing in to the site with this passkey stops working once you save.</value>
+  </data>
+  <data name="PwPasskeyAddTo" xml:space="preserve">
+    <value>Add to {0}</value>
+  </data>
+  <data name="PwPasskeyAddToHint" xml:space="preserve">
+    <value>Opens the entry with your key and keeps the passkey in it.</value>
+  </data>
+  <data name="PwPasskeyNewEntry" xml:space="preserve">
+    <value>New entry</value>
+  </data>
+  <data name="PwPasskeyNewEntryHint" xml:space="preserve">
+    <value>Choose the password store the passkey is kept in.</value>
+  </data>
+  <data name="PwPasskeyCallerRefused" xml:space="preserve">
+    <value>This app or browser cannot use a passkey for {0}.</value>
+  </data>
+  <data name="PwPasskeyAlreadyThere" xml:space="preserve">
+    <value>{0} already holds one of your passkeys.</value>
+  </data>
+  <data name="PwPasskeyUnsupported" xml:space="preserve">
+    <value>{0} asks for a kind of passkey this store does not make.</value>
+  </data>
+  <data name="PwPasskeyBrowsers" xml:space="preserve">
+    <value>Passkey browsers</value>
+  </data>
+  <data name="PwPasskeyBrowsersIntro" xml:space="preserve">
+    <value>The browsers a passkey may be signed for come from a public list the app downloads itself. Each browser on this phone is shown with what the list says of it.</value>
+  </data>
+  <data name="PwPasskeyBrowsersKept" xml:space="preserve">
+    <value>Downloaded {0}: {1} browsers.</value>
+  </data>
+  <data name="PwPasskeyBrowsersNone" xml:space="preserve">
+    <value>Not downloaded yet: no browser can use a passkey until it is.</value>
+  </data>
+  <data name="PwPasskeyBrowsersDownload" xml:space="preserve">
+    <value>Download again</value>
+  </data>
+  <data name="PwPasskeyBrowsersDownloadFailed" xml:space="preserve">
+    <value>The list could not be downloaded; the copy kept stays.</value>
+  </data>
+  <data name="PwPasskeyBrowserBelieved" xml:space="preserve">
+    <value>Can use passkeys</value>
+  </data>
+  <data name="PwPasskeyBrowserNotListed" xml:space="preserve">
+    <value>Not on the list</value>
+  </data>
+  <data name="PwPasskeyBrowserOtherCertificate" xml:space="preserve">
+    <value>On the list with another signing certificate</value>
+  </data>
+  <data name="PwPasskeyBrowserCertificateUnreadable" xml:space="preserve">
+    <value>Its signing certificate cannot be read</value>
+  </data>
   <data name="ApiErrDeviceNameTaken" xml:space="preserve">
     <value>You already have a device with this name.</value>
   </data>

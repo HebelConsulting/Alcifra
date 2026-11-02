@@ -21,6 +21,9 @@
   <ItemGroup>
     <!-- Pinned above what other packages bring (10.0.0/10.0.9): CVE-2026-84008 and CVE-2026-70162, fixed in 10.0.13. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <!-- System.Formats.Cbor (MIT, the runtime's own) — a passkey's attestation object and public key are CBOR
+         (WebAuthn; PasskeyAuthenticator, Mobile#183). -->
+    <PackageReference Include="System.Formats.Cbor" Version="10.0.13" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
     <!-- MimeKit (MIT) — reads the S/MIME envelope a strict-tier read arrives in (#1353, ADR 0828; SmimeEnvelope).
          Same version Infrastructure builds those envelopes with, deliberately: two versions of one format is how

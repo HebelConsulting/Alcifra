@@ -24,6 +24,10 @@ public static class PasswordEntryFieldNames
     /// <summary>The verification code's setup (ADR 1013): an <c>otpauth://totp/…</c> link, always secret. Any spelling of
     /// the slot (<see cref="PasswordEntryFieldOrder"/>) is read; a form files a new one under this name.</summary>
     public const string VerificationCode = "Verification code";
+
+    /// <summary>The passkey (ADR 1033): a <see cref="PasswordStore.Passkey"/>'s stored text, always secret. Made by a site's
+    /// registration, never typed.</summary>
+    public const string Passkey = "Passkey";
 }
 
 /// <summary>
@@ -88,6 +92,43 @@ public sealed record PasswordEntryContent(string Password, IReadOnlyList<Passwor
     /// one-time-code field can be offered this entry without opening it. It says only THAT a code exists.
     /// </summary>
     public bool HasCode => VerificationCode is not null;
+
+    /// <summary>The passkey the entry holds (ADR 1033): the first field of that slot, read; null where there is none or it
+    /// does not read.</summary>
+    public Passkey? Passkey =>
+        PasswordStore.Passkey.TryParse(Fields.FirstOrDefault(f => PasswordEntryFieldOrder.SlotOf(f.Name) == PasswordFieldSlot.Passkey)?.Value);
+
+    /// <summary>
+    /// The passkey's index values (ADR 1033): the site it signs in to, its credential id and the site's user handle, filed
+    /// with the version so a sign-in can be offered this entry without opening it. Empty where the entry has none, which
+    /// clears them.
+    /// </summary>
+    public (string Site, string Id, string UserHandle) PasskeyIndex =>
+        Passkey is { } passkey ? (passkey.RpId, passkey.CredentialIdText, passkey.UserHandleText) : (string.Empty, string.Empty, string.Empty);
+
+    /// <summary>The entry with this passkey in its slot: replacing the one there, else added after the other fields.</summary>
+    public PasswordEntryContent WithPasskey(Passkey passkey)
+    {
+        var field = new PasswordEntryField(PasswordEntryFieldNames.Passkey, passkey.ToText(), IsSecret: true);
+        var at = Fields.ToList().FindIndex(f => PasswordEntryFieldOrder.SlotOf(f.Name) == PasswordFieldSlot.Passkey);
+        var fields = Fields.ToList();
+        if (at < 0)
+        {
+            fields.Add(field);
+        }
+        else
+        {
+            fields[at] = field;
+        }
+
+        if (passkey.UserName is { } name && string.IsNullOrEmpty(UserName)
+            && !fields.Any(f => PasswordEntryFieldOrder.SlotOf(f.Name) == PasswordFieldSlot.UserName))
+        {
+            fields.Insert(0, new PasswordEntryField(PasswordEntryFieldNames.UserName, name));
+        }
+
+        return this with { Fields = fields };
+    }
 
     /// <summary>The first field of that name, compared without case; null when there is none.</summary>
     public string? Value(string fieldName) =>

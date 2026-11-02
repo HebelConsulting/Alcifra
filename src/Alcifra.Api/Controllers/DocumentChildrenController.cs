@@ -130,6 +130,9 @@ public class DocumentChildrenController : ControllerBase
         /// <summary>A password entry that carries a verification code, by its index (ADR 1013); false on every other row.</summary>
         public bool HasCode { get; set; }
 
+        /// <summary>A password entry that holds a passkey, by its index (ADR 1033); false on every other row.</summary>
+        public bool HasPasskey { get; set; }
+
 
         public Guid Id { get; set; }
 
@@ -463,11 +466,15 @@ public class DocumentChildrenController : ControllerBase
         var encryptedFor = await _encryptedFor.ForRowsAsync(page.Select(d => (d.Id, d.MaskId)), cancellationToken);
         children.ForEach(c => c.EncryptedForCaller = encryptedFor.GetValueOrDefault(c.Id));
 
-        // A password entry met as a document says whether it has a verification code (ADR 1013): the web never opens
+        // A password entry met as a document says whether it has a verification code (ADR 1013) or a passkey (ADR 1033): the web never opens
         // one, so this marker is all it can show. One query, and only when the page holds an entry.
         var entries = page.Where(d => d.MaskId == WellKnownMaskIds.PasswordEntry).Select(d => d.Id).ToList();
         var codes = await PasswordStores.PasswordIndexValues.LoadAsync(_dbContext, entries, cancellationToken);
-        children.ForEach(c => c.HasCode = codes.GetValueOrDefault(c.Id)?.HasCode ?? false);
+        children.ForEach(c =>
+        {
+            c.HasCode = codes.GetValueOrDefault(c.Id)?.HasCode ?? false;
+            c.HasPasskey = codes.GetValueOrDefault(c.Id)?.HasPasskey ?? false;
+        });
 
         // The FOLDER's own rights, which the per-row batch above does not cover — it answers the children, and
         // this answers their parent. One document's worth of work on a read that already does several queries,

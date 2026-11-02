@@ -653,4 +653,43 @@ public sealed partial class PasswordStoreTests
         Assert.Equal("anna", saved.UserName);
         return 0;
     });
+    // ADR 1033: a passkey's site, credential id and user handle ride with the version a client files, so a phone lists
+    // the passkey and a sign-in finds it without opening anything; the key itself never reaches an index value. Removing
+    // the passkey clears them with the next version.
+    [Fact]
+    public Task An_entry_says_which_passkey_it_holds_without_being_opened() => WithEnrolmentAsync(async rig =>
+    {
+        var client = rig.Anna.Client;
+        var mine = await client.EnsureMyPasswordsAsync();
+        var passkey = Passkey.Create("example.com", "anna-7f3a"u8.ToArray(), "anna");
+        var content = PasswordEntryContent.Of("hunter2", url: "https://login.example.com").WithPasskey(passkey);
+        var expected = new PasskeyIdentity("example.com", passkey.CredentialIdText, passkey.UserHandleText);
+
+        var entry = await client.CreateEntryAsync(mine, "Example with passkey", content);
+        Assert.Equal(expected, entry.Passkey);
+        Assert.Equal("anna", entry.UserName);
+        Assert.Equal(expected, Assert.Single((await client.GetFolderAsync(mine.Links.Href("self")!)).Items, i => i.Id == entry.Id).Passkey);
+        var (rows, _) = await client.DescendantsPageAsync(mine.Links.Href("descendants")!);
+        Assert.Equal(expected, Assert.Single(rows, r => r.Id == entry.Id).Passkey);
+
+        var children = await TestJson.Get(rig.Anna.Http, $"/api/documents/{mine.Id}/children");
+        var child = children.GetProperty("children").EnumerateArray().Single(i => i.GetProperty("id").GetGuid() == entry.Id);
+        Assert.True(child.GetProperty("hasPasskey").GetBoolean());
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+            var values = await db.FieldValues.IgnoreQueryFilters().Where(v => v.DocumentId == entry.Id).Select(v => v.Value).ToListAsync();
+            var key = System.Text.Json.Nodes.JsonNode.Parse(passkey.ToText())!["key"]!.GetValue<string>();
+            Assert.DoesNotContain(values, v => v.Contains(key, StringComparison.Ordinal));
+        }
+
+        var opened = await client.OpenAsync(entry);
+        Assert.Equal(passkey.ToText(), opened.Content.Passkey!.ToText());
+        var form = PasswordEntryForm.From(opened.Content);
+        form.RemovePasskey();
+        var saved = await client.SaveEntryAsync(opened, form.ToContent());
+        Assert.Null(saved.Passkey);
+        return 0;
+    });
 }

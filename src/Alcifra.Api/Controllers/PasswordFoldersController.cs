@@ -193,6 +193,9 @@ public class PasswordFoldersController(
                         UserName = index.GetValueOrDefault(r.Id)?.UserName,
                         App = index.GetValueOrDefault(r.Id)?.App,
                         HasCode = index.GetValueOrDefault(r.Id)?.HasCode ?? false,
+                        PasskeySite = index.GetValueOrDefault(r.Id)?.PasskeySite,
+                        PasskeyId = index.GetValueOrDefault(r.Id)?.PasskeyId,
+                        PasskeyUserHandle = index.GetValueOrDefault(r.Id)?.PasskeyUserHandle,
                     };
                     row.Links.Add(new Link("self",
                         isFolder ? PasswordStoreResourceBuilder.FolderHref(r.Id) : PasswordStoreResourceBuilder.EntryHref(r.Id), "GET"));

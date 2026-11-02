@@ -78,6 +78,9 @@ public sealed class PasswordItemRowViewModel(PasswordItemInfo item)
 
     /// <summary>The entry carries a verification code (ADR 1013), from the listing's index: a marker beside its name.</summary>
     public bool HasCode => Item.HasCode;
+
+    /// <summary>The entry holds a passkey (ADR 1033), from the listing's index: a marker beside its name.</summary>
+    public bool HasPasskey => Item.Passkey is not null;
 }
 
 /// <summary>A notice above the list (ADR 0964): re-seal, urgent re-seal, the spare key, nothing to seal to.</summary>

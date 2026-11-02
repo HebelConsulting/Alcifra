@@ -86,6 +86,9 @@ public sealed class NodeViewModel
     /// <summary>A password entry with a verification code (ADR 1013), by its index: a marker in the list.</summary>
     public bool HasCode { get; init; }
 
+    /// <summary>A password entry with a passkey (ADR 1033), by its index: a marker in the list.</summary>
+    public bool HasPasskey { get; init; }
+
     /// <summary>"Not encrypted for you": the caller sees it but is not in its audience.</summary>
     public bool NotEncryptedForMe => EncryptedFor == Alcifra.ApiClient.EncryptedFor.NotYou;
 

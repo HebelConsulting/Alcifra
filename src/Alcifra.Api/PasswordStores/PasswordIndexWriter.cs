@@ -6,7 +6,7 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.PasswordStores;
 
 /// <summary>
-/// Writes the autofill index values a password entry carries (ADR 0973; "Has code", ADR 1013), from the finalize body of the version
+/// Writes the autofill index values a password entry carries (ADR 0973; "Has code", ADR 1013; the passkey's, ADR 1033), from the finalize body of the version
 /// being filed.
 /// </summary>
 /// <remarks>
@@ -58,6 +58,21 @@ public static class PasswordIndexWriter
         if (index.HasCode is { } hasCode)
         {
             wanted[WellKnownMaskIds.PasswordEntryFields.HasCode] = hasCode ? "true" : null;
+        }
+
+        // The passkey's three values (ADR 1033) likewise: absent (a client older than ADR 1033, which keeps the passkey as
+        // an ordinary secret field) leaves them alone; empty clears them.
+        foreach (var (field, value) in new[]
+        {
+            (WellKnownMaskIds.PasswordEntryFields.PasskeySite, index.PasskeySite),
+            (WellKnownMaskIds.PasswordEntryFields.PasskeyId, index.PasskeyId),
+            (WellKnownMaskIds.PasswordEntryFields.PasskeyUserHandle, index.PasskeyUserHandle),
+        })
+        {
+            if (value is not null)
+            {
+                wanted[field] = value;
+            }
         }
 
         var names = wanted.Keys.ToArray();
@@ -118,4 +133,13 @@ public sealed class PasswordIndex
 
     /// <summary>Whether the content carries a verification code (ADR 1013); null (an older client) leaves it alone.</summary>
     public bool? HasCode { get; set; }
+
+    /// <summary>The site the content's passkey signs in to (ADR 1033); null (an older client) leaves it alone.</summary>
+    public string? PasskeySite { get; set; }
+
+    /// <summary>The passkey's credential id, base64url (ADR 1033); null leaves it alone.</summary>
+    public string? PasskeyId { get; set; }
+
+    /// <summary>The site's user handle for the passkey's account, base64url (ADR 1033); null leaves it alone.</summary>
+    public string? PasskeyUserHandle { get; set; }
 }

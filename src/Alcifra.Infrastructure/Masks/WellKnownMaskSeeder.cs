@@ -340,6 +340,9 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.UserName, FieldDataType.Text, IsRequired: false),
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.App, FieldDataType.Text, IsRequired: false),
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.HasCode, FieldDataType.Boolean, IsRequired: false),
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.PasskeySite, FieldDataType.Text, IsRequired: false),
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.PasskeyId, FieldDataType.Text, IsRequired: false),
+            new FieldSpec(WellKnownMaskIds.PasswordEntryFields.PasskeyUserHandle, FieldDataType.Text, IsRequired: false),
         ], cancellationToken);
 
         // A sealed document (owner decision 2026-10-24): the content is a CMS envelope sealed on the device to an

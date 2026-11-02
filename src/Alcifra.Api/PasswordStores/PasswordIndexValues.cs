@@ -5,7 +5,7 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.PasswordStores;
 
 /// <summary>
-/// The autofill index values an entry can carry (ADR 0973, and ADR 1013's "Has code"), read for a set of entries in ONE
+/// The autofill index values an entry can carry (ADR 0973, ADR 1013's "Has code" and ADR 1033's passkey), read for a set of entries in ONE
 /// query.
 /// </summary>
 /// <remarks>
@@ -23,6 +23,18 @@ public sealed class PasswordIndexValues
 
     /// <summary>Whether the sealed content carries a verification code (ADR 1013); false where the field is absent.</summary>
     public bool HasCode { get; private init; }
+
+    /// <summary>The site the entry's passkey signs in to (ADR 1033), or null where it has none.</summary>
+    public string? PasskeySite { get; private init; }
+
+    /// <summary>The passkey's credential id, base64url (ADR 1033).</summary>
+    public string? PasskeyId { get; private init; }
+
+    /// <summary>The site's user handle for the passkey's account, base64url (ADR 1033).</summary>
+    public string? PasskeyUserHandle { get; private init; }
+
+    /// <summary>Whether the entry holds a passkey: it has a credential id.</summary>
+    public bool HasPasskey => !string.IsNullOrEmpty(PasskeyId);
 
     public static readonly PasswordIndexValues None = new();
 
@@ -42,7 +54,10 @@ public sealed class PasswordIndexValues
                     && (definition.Name == WellKnownMaskIds.PasswordEntryFields.Site
                         || definition.Name == WellKnownMaskIds.PasswordEntryFields.UserName
                         || definition.Name == WellKnownMaskIds.PasswordEntryFields.App
-                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.HasCode)
+                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.HasCode
+                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.PasskeySite
+                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.PasskeyId
+                        || definition.Name == WellKnownMaskIds.PasswordEntryFields.PasskeyUserHandle)
                 select new { value.DocumentId, definition.Name, value.Value })
             .ToListAsync(cancellationToken);
 
@@ -58,6 +73,9 @@ public sealed class PasswordIndexValues
                     // A Boolean index field is stored as its invariant text, as every Boolean field is (SearchFieldMapper).
                     HasCode = bool.TryParse(g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.HasCode)?.Value, out var hasCode)
                         && hasCode,
+                    PasskeySite = g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.PasskeySite)?.Value,
+                    PasskeyId = g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.PasskeyId)?.Value,
+                    PasskeyUserHandle = g.FirstOrDefault(r => r.Name == WellKnownMaskIds.PasswordEntryFields.PasskeyUserHandle)?.Value,
                 });
     }
 }

@@ -6612,6 +6612,72 @@
   <data name="PwHasCode" xml:space="preserve">
     <value>Tiene un código de verificación</value>
   </data>
+  <data name="PwPasskey" xml:space="preserve">
+    <value>Llave de acceso</value>
+  </data>
+  <data name="PwPasskeyUnreadable" xml:space="preserve">
+    <value>(una llave de acceso que no se puede leer)</value>
+  </data>
+  <data name="PwHasPasskey" xml:space="preserve">
+    <value>Tiene una llave de acceso</value>
+  </data>
+  <data name="PwPasskeyRemove" xml:space="preserve">
+    <value>Quitar la llave de acceso</value>
+  </data>
+  <data name="PwPasskeyRemoveHint" xml:space="preserve">
+    <value>Al guardar, el inicio de sesión en el sitio con esta llave de acceso deja de funcionar.</value>
+  </data>
+  <data name="PwPasskeyAddTo" xml:space="preserve">
+    <value>Añadir a {0}</value>
+  </data>
+  <data name="PwPasskeyAddToHint" xml:space="preserve">
+    <value>Abre la entrada con su llave y guarda en ella la llave de acceso.</value>
+  </data>
+  <data name="PwPasskeyNewEntry" xml:space="preserve">
+    <value>Nueva entrada</value>
+  </data>
+  <data name="PwPasskeyNewEntryHint" xml:space="preserve">
+    <value>Elija el almacén de contraseñas donde se guarda la llave de acceso.</value>
+  </data>
+  <data name="PwPasskeyCallerRefused" xml:space="preserve">
+    <value>Esta aplicación o este navegador no puede usar una llave de acceso para {0}.</value>
+  </data>
+  <data name="PwPasskeyAlreadyThere" xml:space="preserve">
+    <value>{0} ya tiene una de sus llaves de acceso.</value>
+  </data>
+  <data name="PwPasskeyUnsupported" xml:space="preserve">
+    <value>{0} pide un tipo de llave de acceso que este almacén no crea.</value>
+  </data>
+  <data name="PwPasskeyBrowsers" xml:space="preserve">
+    <value>Navegadores para llaves de acceso</value>
+  </data>
+  <data name="PwPasskeyBrowsersIntro" xml:space="preserve">
+    <value>Los navegadores para los que una llave de acceso puede firmar vienen de una lista pública que la aplicación descarga ella misma. Cada navegador de este teléfono se muestra con lo que la lista dice de él.</value>
+  </data>
+  <data name="PwPasskeyBrowsersKept" xml:space="preserve">
+    <value>Descargada {0}: {1} navegadores.</value>
+  </data>
+  <data name="PwPasskeyBrowsersNone" xml:space="preserve">
+    <value>Aún no descargada: hasta entonces ningún navegador puede usar una llave de acceso.</value>
+  </data>
+  <data name="PwPasskeyBrowsersDownload" xml:space="preserve">
+    <value>Descargar de nuevo</value>
+  </data>
+  <data name="PwPasskeyBrowsersDownloadFailed" xml:space="preserve">
+    <value>No se pudo descargar la lista; la copia guardada se mantiene.</value>
+  </data>
+  <data name="PwPasskeyBrowserBelieved" xml:space="preserve">
+    <value>Puede usar llaves de acceso</value>
+  </data>
+  <data name="PwPasskeyBrowserNotListed" xml:space="preserve">
+    <value>No está en la lista</value>
+  </data>
+  <data name="PwPasskeyBrowserOtherCertificate" xml:space="preserve">
+    <value>En la lista con otro certificado de firma</value>
+  </data>
+  <data name="PwPasskeyBrowserCertificateUnreadable" xml:space="preserve">
+    <value>Su certificado de firma no se puede leer</value>
+  </data>
   <data name="ApiErrDeviceNameTaken" xml:space="preserve">
     <value>Ya tiene un dispositivo con este nombre.</value>
   </data>

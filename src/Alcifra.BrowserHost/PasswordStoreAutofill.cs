@@ -54,14 +54,15 @@ public static class PasswordStoreAutofill
 
     /// <summary>
     /// What an opened entry hands the browser: the password, the user name, every field but the verification code's
-    /// setup — which never leaves this machine — and the code valid now on <paramref name="clock"/> (ADR 1013).
+    /// setup and the passkey — which never leave this machine (ADRs 1013, 1033) — and the code valid now on
+    /// <paramref name="clock"/>.
     /// </summary>
     public static AutofillCredentials Credentials(PasswordEntryContent content, TimeProvider clock) => new(
         content.Password,
         content.UserName,
         [
             .. content.Fields
-                .Where(f => PasswordEntryFieldOrder.SlotOf(f.Name) != PasswordFieldSlot.VerificationCode)
+                .Where(f => PasswordEntryFieldOrder.SlotOf(f.Name) is not (PasswordFieldSlot.VerificationCode or PasswordFieldSlot.Passkey))
                 .Select(f => new AutofillField(f.Name, f.Value)),
         ],
         VerificationCodeSetup.TryParse(content.VerificationCode, out var setup) ? setup!.Current(clock).Value : null);

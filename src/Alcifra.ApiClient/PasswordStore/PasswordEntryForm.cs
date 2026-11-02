@@ -68,6 +68,21 @@ public sealed class PasswordEntryForm
 
     public string Notes { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The passkey the entry holds (ADR 1033), as stored, or null. Never edited: a site's registration makes it, so a form
+    /// keeps it untouched or removes it whole (<see cref="RemovePasskey"/>).
+    /// </summary>
+    public string? Passkey { get; private set; }
+
+    /// <summary>Whether the form still holds a passkey.</summary>
+    public bool HasPasskey => Passkey is not null;
+
+    /// <summary>What the passkey row says: the account and site it signs in to, never the key.</summary>
+    public string PasskeyDescription => PasswordStore.Passkey.TryParse(Passkey)?.ToString() ?? string.Empty;
+
+    /// <summary>The user removed the passkey: saving drops it, and the site's sign-in with it stops working.</summary>
+    public void RemovePasskey() => Passkey = null;
+
     /// <summary>Every other field, in its order; an edit keeps them, a new one may be added.</summary>
     public List<PasswordFormField> Fields { get; } = [];
 
@@ -77,6 +92,7 @@ public sealed class PasswordEntryForm
     private string _userName = PasswordEntryFieldNames.UserName;
     private string _pinName = PinFieldName;
     private string _codeName = PasswordEntryFieldNames.VerificationCode;
+    private string _passkeyName = PasswordEntryFieldNames.Passkey;
     private string _notesName = PasswordEntryFieldNames.Notes;
 
     /// <summary>A form filled from an opened entry: the first field of each place (by the core's spellings) and the first
@@ -91,6 +107,7 @@ public sealed class PasswordEntryForm
         {
             var slot = PasswordEntryFieldOrder.SlotOf(field.Name);
             if (slot is PasswordFieldSlot.Url or PasswordFieldSlot.UserName or PasswordFieldSlot.Pin or PasswordFieldSlot.VerificationCode
+                    or PasswordFieldSlot.Passkey
                 && taken.Add(slot))
             {
                 switch (slot)
@@ -103,6 +120,9 @@ public sealed class PasswordEntryForm
                         break;
                     case PasswordFieldSlot.VerificationCode:
                         (form.VerificationCode, form._codeName, form.HasVerificationCode) = (field.Value, field.Name, true);
+                        break;
+                    case PasswordFieldSlot.Passkey:
+                        (form.Passkey, form._passkeyName) = (field.Value, field.Name);
                         break;
                     default:
                         (form.Pin, form._pinName, form.HasPin) = (field.Value, field.Name, true);
@@ -141,7 +161,7 @@ public sealed class PasswordEntryForm
         return Fields.Where(f => !IsBlank(f)).Any(f => !IsValidName(f.Name)) ? "PwFieldNameInvalid" : null;
     }
 
-    /// <summary>The content to seal: URL, user name, PIN, verification code, the further fields, then the notes; empty boxes are left out
+    /// <summary>The content to seal: URL, user name, PIN, verification code, passkey, the further fields, then the notes; empty boxes are left out
     /// (the core's order decides how it is shown, whatever order it is stored in).</summary>
     public PasswordEntryContent ToContent() => new(Password,
     [
@@ -149,6 +169,7 @@ public sealed class PasswordEntryForm
         .. Known(_userName, UserName),
         .. Known(_pinName, Pin, secret: true),   // a PIN is always hidden like a password (ADR 0965)
         .. Known(_codeName, StoredCode(), secret: true),
+        .. Known(_passkeyName, Passkey ?? string.Empty, secret: true),
         .. Fields.Where(f => !IsBlank(f)).Select(f => new PasswordEntryField(f.Name.Trim(), f.Value, f.IsSecret)),
         .. Known(_notesName, Notes),
     ]);

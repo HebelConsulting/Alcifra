@@ -50,6 +50,9 @@ public record DocumentSummary
 
     // A password entry with a verification code (ADR 1013), from its index: the web never opens one, it marks it.
     public bool HasCode { get; set; }
+
+    // A password entry with a passkey (ADR 1033), from its index: marked likewise.
+    public bool HasPasskey { get; set; }
     public bool CheckedOut { get; set; }
     public bool CheckedOutByMe { get; set; }
     public string CheckedOutByName { get; set; } = string.Empty;

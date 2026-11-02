@@ -12,13 +12,17 @@ public enum PasswordFieldSlot
     /// never as itself.</summary>
     VerificationCode,
 
+    /// <summary>A passkey (Mobile#183, ADR 1033): its private key and the ids the site knows it by, shown as the site and
+    /// account it signs in to, never as itself. Made by a site's registration, never typed.</summary>
+    Passkey,
+
     /// <summary>Every other field, in the entry's own order.</summary>
     Other,
 }
 
 /// <summary>
 /// The ORDER of a password entry's fields, which every client answers identically (owner decision 2026-10-23, ADR 0964):
-/// 1. URL, 2. user name, 3. password, 4. PIN, 5. verification code (ADR 1013), then every other field in the entry's own
+/// 1. URL, 2. user name, 3. password, 4. PIN, 5. verification code (ADR 1013), 6. passkey (ADR 1033), then every other field in the entry's own
 /// order. A missing one is skipped when showing; a form always offers the first three (<see cref="AlwaysOffered"/>) and
 /// suggests the PIN, then the verification code, as the first fields to add (<see cref="Suggested"/>); a PIN, once there,
 /// is always shown like a password (<see cref="SecretFields.ForField"/>). A field is placed by its NAME, without case,
@@ -28,7 +32,7 @@ public enum PasswordFieldSlot
 public static class PasswordEntryFieldOrder
 {
     /// <summary>The order of the slots, first to last.</summary>
-    public static readonly IReadOnlyList<PasswordFieldSlot> Order = [PasswordFieldSlot.Url, PasswordFieldSlot.UserName, PasswordFieldSlot.Password, PasswordFieldSlot.Pin, PasswordFieldSlot.VerificationCode];
+    public static readonly IReadOnlyList<PasswordFieldSlot> Order = [PasswordFieldSlot.Url, PasswordFieldSlot.UserName, PasswordFieldSlot.Password, PasswordFieldSlot.Pin, PasswordFieldSlot.VerificationCode, PasswordFieldSlot.Passkey];
 
     /// <summary>The slots a create or edit form always offers, in their order (owner, 2026-10-23).</summary>
     public static readonly IReadOnlyList<PasswordFieldSlot> AlwaysOffered = [PasswordFieldSlot.Url, PasswordFieldSlot.UserName, PasswordFieldSlot.Password];
@@ -38,9 +42,10 @@ public static class PasswordEntryFieldOrder
     public static readonly IReadOnlyList<PasswordFieldSlot> Suggested = [PasswordFieldSlot.Pin, PasswordFieldSlot.VerificationCode];
 
     /// <summary>Whether a field in this slot is shown like a password whatever its author marked: the password, the
-    /// PIN and the verification code's setup (whose secret is never shown; a client shows the current code instead).</summary>
+    /// PIN, the verification code's setup (whose secret is never shown; a client shows the current code instead) and the
+    /// passkey (shown as its site and account).</summary>
     public static bool IsSecret(PasswordFieldSlot slot) =>
-        slot is PasswordFieldSlot.Password or PasswordFieldSlot.Pin or PasswordFieldSlot.VerificationCode;
+        slot is PasswordFieldSlot.Password or PasswordFieldSlot.Pin or PasswordFieldSlot.VerificationCode or PasswordFieldSlot.Passkey;
 
     private static readonly Dictionary<string, PasswordFieldSlot> Spellings = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -60,6 +65,7 @@ public static class PasswordEntryFieldOrder
         ["TOTP"] = PasswordFieldSlot.VerificationCode,
         ["2FA"] = PasswordFieldSlot.VerificationCode,
         ["OTP"] = PasswordFieldSlot.VerificationCode,
+        ["Passkey"] = PasswordFieldSlot.Passkey,
     };
 
     /// <summary>The slot a field of this name belongs in; <see cref="PasswordFieldSlot.Other"/> for any other name.</summary>

@@ -59,7 +59,8 @@ public sealed class ShowCommand : AsyncCommand<ShowSettings>
     /// <remarks>
     /// The same rule every client shows an entry by (<see cref="PasswordEntryFieldOrder.Arrange{T}"/>), so the terminal
     /// lists the fields as the form does. A verification code's setup is a SECRET (an <c>otpauth://</c> link holding
-    /// the key), so it is shown as the code valid now with its seconds left, as every client shows it, never as itself.
+    /// the key), so it is shown as the code valid now with its seconds left, as every client shows it, never as itself;
+    /// a passkey (ADR 1033) as the account and site it signs in to, never its key.
     /// </remarks>
     internal static IEnumerable<string> FieldLines(PasswordEntryContent content, TimeProvider clock)
     {
@@ -71,9 +72,13 @@ public sealed class ShowCommand : AsyncCommand<ShowSettings>
 
         foreach (var (name, value) in PasswordEntryFieldOrder.Arrange(fields, f => f.Name))
         {
-            yield return PasswordEntryFieldOrder.SlotOf(name) == PasswordFieldSlot.VerificationCode
-                ? $"{name}: {(VerificationCodeSetup.TryParse(value, out var setup) ? CodeText(setup!.Current(clock)) : "(cannot be read)")}"
-                : $"{name}: {value}";
+            yield return PasswordEntryFieldOrder.SlotOf(name) switch
+            {
+                PasswordFieldSlot.VerificationCode =>
+                    $"{name}: {(VerificationCodeSetup.TryParse(value, out var setup) ? CodeText(setup!.Current(clock)) : "(cannot be read)")}",
+                PasswordFieldSlot.Passkey => $"{name}: {Passkey.TryParse(value)?.ToString() ?? "(cannot be read)"}",
+                _ => $"{name}: {value}",
+            };
         }
     }
 

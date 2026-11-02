@@ -147,6 +147,12 @@
                         <MudIcon Icon="@Icons.Material.Outlined.PhonelinkLock" Size="Size.Small" Style="color: var(--mud-palette-text-secondary)" title="@Strings.Get("PwHasCode")"
                                  aria-label="@Strings.Get("PwHasCode")" data-testid="has-code" />
                     }
+                    @* A password entry with a passkey (ADR 1033): the index says so; the web never opens it. *@
+                    @if (node.HasPasskey)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.Key" Size="Size.Small" Style="color: var(--mud-palette-text-secondary)" title="@Strings.Get("PwHasPasskey")"
+                                 aria-label="@Strings.Get("PwHasPasskey")" data-testid="has-passkey" />
+                    }
                     @if (!string.IsNullOrEmpty(node.SensitivityLabelName))
                     {
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Class="ma-0"

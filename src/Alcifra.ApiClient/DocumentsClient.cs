@@ -695,7 +695,8 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
         item.TryGetProperty("canCreateChildren", out var ccc) && ccc.ValueKind == JsonValueKind.True,
         RowFlags.IsFolderOf(item),
         EncryptedForOf(item),
-        ApiWire.TrueOrFalse(item, "hasCode"));
+        ApiWire.TrueOrFalse(item, "hasCode"),
+        ApiWire.TrueOrFalse(item, "hasPasskey"));
 
     // The row's sign for encrypted content (ADR 0983); an absent or unknown value marks nothing.
     internal static EncryptedFor EncryptedForOf(JsonElement item) =>

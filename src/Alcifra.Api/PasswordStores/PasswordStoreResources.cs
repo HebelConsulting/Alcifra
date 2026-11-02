@@ -109,6 +109,16 @@ public class PasswordItemResource : HypermediaResource
     /// <summary>Whether the entry carries a verification code (ADR 1013): THAT a one-time code exists, never anything of
     /// its secret. False for a folder, and for an entry no client has filed since the field existed.</summary>
     public bool HasCode { get; set; }
+
+    /// <summary>The site the entry's passkey signs in to (ADR 1033): WebAuthn's relying-party id. Null where the entry
+    /// has no passkey; with the two below, what a phone lists to its system without opening the entry.</summary>
+    public string? PasskeySite { get; set; }
+
+    /// <summary>The passkey's credential id, base64url (ADR 1033), or null.</summary>
+    public string? PasskeyId { get; set; }
+
+    /// <summary>The site's opaque id for the passkey's account, base64url (ADR 1033), or null.</summary>
+    public string? PasskeyUserHandle { get; set; }
 }
 
 /// <summary>One entry: what opening, editing and re-sealing it needs. Its ETag is the <c>If-Match</c> of a new version.</summary>
@@ -163,6 +173,16 @@ public class PasswordEntryResource : HypermediaResource
     /// <summary>Whether the entry carries a verification code (ADR 1013): THAT a one-time code exists, never anything of
     /// its secret. False for a folder, and for an entry no client has filed since the field existed.</summary>
     public bool HasCode { get; set; }
+
+    /// <summary>The site the entry's passkey signs in to (ADR 1033): WebAuthn's relying-party id. Null where the entry
+    /// has no passkey; with the two below, what a phone lists to its system without opening the entry.</summary>
+    public string? PasskeySite { get; set; }
+
+    /// <summary>The passkey's credential id, base64url (ADR 1033), or null.</summary>
+    public string? PasskeyId { get; set; }
+
+    /// <summary>The site's opaque id for the passkey's account, base64url (ADR 1033), or null.</summary>
+    public string? PasskeyUserHandle { get; set; }
 }
 public class PasswordStoreRecipientsResource : HypermediaResource
 {
@@ -255,4 +275,14 @@ public class PasswordDescendantResource : HypermediaResource
     /// <summary>Whether the entry carries a verification code (ADR 1013): THAT a one-time code exists, never anything of
     /// its secret. False for a folder, and for an entry no client has filed since the field existed.</summary>
     public bool HasCode { get; set; }
+
+    /// <summary>The site the entry's passkey signs in to (ADR 1033): WebAuthn's relying-party id. Null where the entry
+    /// has no passkey; with the two below, what a phone lists to its system without opening the entry.</summary>
+    public string? PasskeySite { get; set; }
+
+    /// <summary>The passkey's credential id, base64url (ADR 1033), or null.</summary>
+    public string? PasskeyId { get; set; }
+
+    /// <summary>The site's opaque id for the passkey's account, base64url (ADR 1033), or null.</summary>
+    public string? PasskeyUserHandle { get; set; }
 }

@@ -93,7 +93,9 @@ public record BrowseNode(Guid Id, string Name, bool HasChildren, bool HasVersion
     // Whether the caller can decrypt it, for encrypted content (ADR 0983): marked before it is opened.
     string? EncryptedForCaller = null,
     // A password entry with a verification code (ADR 1013): marked in the list, never opened here.
-    bool HasCode = false)
+    bool HasCode = false,
+    // A password entry with a passkey (ADR 1033): marked in the list, never opened here.
+    bool HasPasskey = false)
 {
     // A folder by its mask, as the listing says (#1708). "Has no file version" is only the fallback: it read a
     // file-less record (a push key, a credential) as an empty folder, so its index data never showed.

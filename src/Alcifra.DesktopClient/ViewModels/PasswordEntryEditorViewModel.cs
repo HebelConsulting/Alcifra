@@ -328,6 +328,20 @@ public sealed partial class PasswordEntryEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(SuggestsVerificationCode));
     }
 
+    /// <summary>Whether the entry holds a passkey (ADR 1033): shown as its account and site, never edited.</summary>
+    public bool HasPasskey => _form.HasPasskey;
+
+    /// <summary>The account and site the passkey signs in to.</summary>
+    public string PasskeyDescription => _form.PasskeyDescription;
+
+    /// <summary>Drops the passkey from the entry; saving removes it, and the site's sign-in with it stops working.</summary>
+    [RelayCommand]
+    private void RemovePasskey()
+    {
+        _form.RemovePasskey();
+        OnPropertyChanged(nameof(HasPasskey));
+    }
+
     /// <summary>
     /// What a QR code read from an image held (the clipboard's screenshot or a file, read by the view): a setup link
     /// fills the box; no code found, or one that is not a setup, is said beside it and leaves the box as it was.

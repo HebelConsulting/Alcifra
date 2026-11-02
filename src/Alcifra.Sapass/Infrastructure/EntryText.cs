@@ -1,4 +1,5 @@
 using Alcifra.ApiClient.PasswordStore;
+using Alcifra.Presentation;
 
 namespace Alcifra.Sapass.Infrastructure;
 
@@ -14,13 +15,14 @@ namespace Alcifra.Sapass.Infrastructure;
 /// </remarks>
 internal static class EntryText
 {
-    /// <summary>The text the editor opens.</summary>
+    /// <summary>The text the editor opens. A passkey (ADR 1033) is left out: a site's registration makes it, nobody
+    /// types it, and its key has no business on a terminal; <see cref="Parse"/> carries it over unchanged.</summary>
     public static string Format(PasswordEntryContent content) =>
-        string.Join('\n', new[] { content.Password }.Concat(content.Fields.Select(f => $"{f.Name}: {f.Value}"))) + "\n";
+        string.Join('\n', new[] { content.Password }.Concat(content.Fields.Where(f => !IsPasskey(f.Name)).Select(f => $"{f.Name}: {f.Value}"))) + "\n";
 
     /// <summary>The content a saved edit describes.</summary>
     /// <param name="text">What the editor left behind.</param>
-    /// <param name="previous">The fields as they were opened: only their <c>IsSecret</c> flags are carried over.</param>
+    /// <param name="previous">The fields as they were opened: their <c>IsSecret</c> flags are carried over, and the passkey whole.</param>
     /// <exception cref="SapassException">A line that is not a field, a duplicated name, or no password.</exception>
     public static PasswordEntryContent Parse(string text, IReadOnlyList<PasswordEntryField> previous)
     {
@@ -48,6 +50,11 @@ internal static class EntryText
             }
 
             var name = line[..separator];
+            if (IsPasskey(name))
+            {
+                throw new SapassException($"Line {i + 1} names a passkey; a passkey is made by a site's registration and cannot be typed. Nothing was saved.");
+            }
+
             if (fields.Any(f => string.Equals(f.Name, name, StringComparison.Ordinal)))
             {
                 throw new SapassException($"Line {i + 1} repeats the field '{name}'; nothing was saved.");
@@ -56,6 +63,10 @@ internal static class EntryText
             fields.Add(new PasswordEntryField(name, line[(separator + 2)..], secret.GetValueOrDefault(name)));
         }
 
+        // The passkey the editor never saw, kept as it was opened.
+        fields.AddRange(previous.Where(f => IsPasskey(f.Name)));
         return new PasswordEntryContent(lines[0], fields);
     }
+
+    private static bool IsPasskey(string name) => PasswordEntryFieldOrder.SlotOf(name) == PasswordFieldSlot.Passkey;
 }

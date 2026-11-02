@@ -368,6 +368,21 @@ public static class WellKnownMaskIds
         /// field can be offered the entries that can fill it without opening any. Derived with <see cref="Site"/>.
         /// </summary>
         public const string HasCode = "Has code";
+
+        /// <summary>
+        /// The site the entry's passkey signs in to (ADR 1033): WebAuthn's relying-party id, lowercased. A sign-in names
+        /// it, so the entries that can answer are found WITHOUT opening any. It can differ from <see cref="Site"/>, which is
+        /// the URL's host. Derived with <see cref="Site"/>.
+        /// </summary>
+        public const string PasskeySite = "Passkey site";
+
+        /// <summary>The passkey's credential id, base64url (ADR 1033): a site may ask for specific credentials by it, and
+        /// a phone lists the passkey to its system by it. Derived with <see cref="Site"/>.</summary>
+        public const string PasskeyId = "Passkey id";
+
+        /// <summary>The site's opaque id for the account the passkey belongs to, base64url (ADR 1033): the phone's system
+        /// lists a passkey only with it. Random and chosen by the site, not a secret. Derived with <see cref="Site"/>.</summary>
+        public const string PasskeyUserHandle = "Passkey user handle";
     }
 
     /// <summary>

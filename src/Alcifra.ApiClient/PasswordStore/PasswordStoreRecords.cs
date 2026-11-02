@@ -20,7 +20,7 @@ public sealed record PasswordStoreInfo(Guid Id, string Name, bool IsPersonal, st
 /// <param name="App">The Android package name an entry also fills (ADR 0973), or null.</param>
 public sealed record PasswordItemInfo(
     Guid Id, string Name, bool IsFolder, string ETag, bool CanEdit, bool CanRename, bool CanDelete, bool CanMove, LinkMap Links,
-    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false)
+    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false, PasskeyIdentity? Passkey = null)
 {
     /// <summary>The row's own resource: a folder's contents, or an entry.</summary>
     public string Href => Links.Href("self") ?? throw new InvalidOperationException($"'{Name}' advertised no 'self' rel (ADR 0543).");
@@ -97,7 +97,7 @@ public enum NewEntryUnavailability
 public sealed record PasswordEntryInfo(
     Guid Id, string Name, Guid StoreId, Guid ParentId, int? VersionNumber, string ETag, bool NeedsReseal, DateOnly? ExposedSince,
     bool CanEdit, bool CanRename, bool CanDelete, bool CanMove, LinkMap Links,
-    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false)
+    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false, PasskeyIdentity? Passkey = null)
 {
     /// <summary>Whether it has content yet: an entry whose first upload never finished has none.</summary>
     /// <remarks>
@@ -125,7 +125,8 @@ public sealed record PasswordEntryInfo(
         ApiWire.StrOrNull(json, "site"),
         ApiWire.StrOrNull(json, "userName"),
         ApiWire.StrOrNull(json, "app"),
-        ApiWire.TrueOrFalse(json, "hasCode"));
+        ApiWire.TrueOrFalse(json, "hasCode"),
+        PasskeyIdentity.From(json));
 }
 
 /// <summary>An entry opened with the reader's key: its resource as read, and its content.</summary>
@@ -174,4 +175,4 @@ public sealed class PasswordEntryCreationWithheldException(string folderName, Ne
 /// resource address (the <c>self</c> rel the server advertised — followed, never composed, ADR 0543).</summary>
 public sealed record PasswordDescendantInfo(
     Guid Id, string Name, bool IsFolder, Guid ParentId, string Href,
-    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false);
+    string? Site = null, string? UserName = null, string? App = null, bool HasCode = false, PasskeyIdentity? Passkey = null);

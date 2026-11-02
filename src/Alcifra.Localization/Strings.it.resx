@@ -6612,6 +6612,72 @@
   <data name="PwHasCode" xml:space="preserve">
     <value>Ha un codice di verifica</value>
   </data>
+  <data name="PwPasskey" xml:space="preserve">
+    <value>Passkey</value>
+  </data>
+  <data name="PwPasskeyUnreadable" xml:space="preserve">
+    <value>(una passkey che non si può leggere)</value>
+  </data>
+  <data name="PwHasPasskey" xml:space="preserve">
+    <value>Ha una passkey</value>
+  </data>
+  <data name="PwPasskeyRemove" xml:space="preserve">
+    <value>Rimuovi passkey</value>
+  </data>
+  <data name="PwPasskeyRemoveHint" xml:space="preserve">
+    <value>Dopo il salvataggio l'accesso al sito con questa passkey non funziona più.</value>
+  </data>
+  <data name="PwPasskeyAddTo" xml:space="preserve">
+    <value>Aggiungi a {0}</value>
+  </data>
+  <data name="PwPasskeyAddToHint" xml:space="preserve">
+    <value>Apre la voce con la sua chiave e vi conserva la passkey.</value>
+  </data>
+  <data name="PwPasskeyNewEntry" xml:space="preserve">
+    <value>Nuova voce</value>
+  </data>
+  <data name="PwPasskeyNewEntryHint" xml:space="preserve">
+    <value>Scelga l'archivio di password in cui conservare la passkey.</value>
+  </data>
+  <data name="PwPasskeyCallerRefused" xml:space="preserve">
+    <value>Questa app o questo browser non può usare una passkey per {0}.</value>
+  </data>
+  <data name="PwPasskeyAlreadyThere" xml:space="preserve">
+    <value>{0} ha già una delle sue passkey.</value>
+  </data>
+  <data name="PwPasskeyUnsupported" xml:space="preserve">
+    <value>{0} chiede un tipo di passkey che questo archivio non crea.</value>
+  </data>
+  <data name="PwPasskeyBrowsers" xml:space="preserve">
+    <value>Browser per le passkey</value>
+  </data>
+  <data name="PwPasskeyBrowsersIntro" xml:space="preserve">
+    <value>I browser per cui una passkey può firmare provengono da un elenco pubblico che l'app scarica da sé. Ogni browser di questo telefono è mostrato con ciò che l'elenco dice di lui.</value>
+  </data>
+  <data name="PwPasskeyBrowsersKept" xml:space="preserve">
+    <value>Scaricato {0}: {1} browser.</value>
+  </data>
+  <data name="PwPasskeyBrowsersNone" xml:space="preserve">
+    <value>Non ancora scaricato: fino ad allora nessun browser può usare una passkey.</value>
+  </data>
+  <data name="PwPasskeyBrowsersDownload" xml:space="preserve">
+    <value>Scarica di nuovo</value>
+  </data>
+  <data name="PwPasskeyBrowsersDownloadFailed" xml:space="preserve">
+    <value>Non è stato possibile scaricare l'elenco; la copia conservata resta.</value>
+  </data>
+  <data name="PwPasskeyBrowserBelieved" xml:space="preserve">
+    <value>Può usare le passkey</value>
+  </data>
+  <data name="PwPasskeyBrowserNotListed" xml:space="preserve">
+    <value>Non è nell'elenco</value>
+  </data>
+  <data name="PwPasskeyBrowserOtherCertificate" xml:space="preserve">
+    <value>Nell'elenco con un altro certificato di firma</value>
+  </data>
+  <data name="PwPasskeyBrowserCertificateUnreadable" xml:space="preserve">
+    <value>Il suo certificato di firma non si può leggere</value>
+  </data>
   <data name="ApiErrDeviceNameTaken" xml:space="preserve">
     <value>Hai già un dispositivo con questo nome.</value>
   </data>

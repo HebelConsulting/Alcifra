@@ -18,11 +18,15 @@ public sealed record PasswordEntryRow(string Label, string Value, SecretFieldPre
     /// <summary>The verification code's row (ADR 1013): its value is the setup link, which is never shown; a client shows
     /// the current code from it (<see cref="SecretField.CurrentCode"/>).</summary>
     public bool IsVerificationCode => PasswordEntryFieldOrder.SlotOf(FieldName) == PasswordFieldSlot.VerificationCode;
+
+    /// <summary>The passkey's row (ADR 1033): its value is already the account and site it signs in to, shown plainly; the
+    /// key behind it is never handed to a row.</summary>
+    public bool IsPasskey => PasswordEntryFieldOrder.SlotOf(FieldName) == PasswordFieldSlot.Passkey;
 }
 
 /// <summary>
 /// An opened entry as both native clients show it (Mobile ADR 0037; both native clients since ADR 0968), in the core's order (<see cref="PasswordEntryFieldOrder"/>, core ADR
-/// 0965): URL, user name, password, PIN, verification code, then every other field in the entry's own order; what it does not have is
+/// 0965): URL, user name, password, PIN, verification code, passkey, then every other field in the entry's own order; what it does not have is
 /// skipped. The password, the PIN and fields marked secret are hidden, the rest plain. The well-known names are labelled in the
 /// user's language, every other field by its own name.
 /// </summary>
@@ -44,6 +48,7 @@ public static class PasswordEntryRows
         PasswordFieldSlot.UserName => Strings.Get("PwUserName"),
         PasswordFieldSlot.Pin => Strings.Get("MobKeyPin"),
         PasswordFieldSlot.VerificationCode => Strings.Get("PwVerificationCode"),
+        PasswordFieldSlot.Passkey => Strings.Get("PwPasskey"),
         _ when IsNotes(fieldName) => Strings.Get("PwNotes"),
         _ => fieldName,
     };
@@ -52,6 +57,14 @@ public static class PasswordEntryRows
     // after the real one, never in its place.
     private static PasswordEntryRow Row(PasswordEntryField field)
     {
+        // A passkey is shown as the account and site it signs in to, plainly, and its key never reaches a row: there is
+        // nothing to reveal or copy (ADR 1033). One that does not read says so.
+        if (PasswordEntryFieldOrder.SlotOf(field.Name) == PasswordFieldSlot.Passkey)
+        {
+            return new(Label(field.Name), Passkey.TryParse(field.Value)?.ToString() ?? Strings.Get("PwPasskeyUnreadable"),
+                SecretFields.For(isPassword: false, markedSecret: false), FieldName: field.Name);
+        }
+
         var presentation = SecretFields.ForField(field.Name, field.IsSecret);
         return new(Label(field.Name), field.Value, presentation,
             IsMultiline: IsNotes(field.Name) || field.Value.Contains('\n'), FieldName: field.Name)
