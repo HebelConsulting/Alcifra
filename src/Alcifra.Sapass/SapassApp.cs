@@ -105,7 +105,7 @@ public static class SapassApp
     }
 
     /// <summary>Four kinds of failure, told apart — calling them all "an error" is how a tool starts lying.</summary>
-    private static int Fail(ILoggerFactory logging, Exception exception)
+    internal static int Fail(ILoggerFactory logging, Exception exception)
     {
         var log = logging.CreateLogger("apass");
         switch (exception)
@@ -118,6 +118,11 @@ public static class SapassApp
                 return 1;
             case Exception e when e is PasswordEntryCreationWithheldException or PasswordStoreHasNoRecipientsException:
                 // The shared client's refusals carry their sentence (ADR 0982): a state of the store, not a bug.
+                log.LogError("{Message}", e.Message);
+                return 1;
+            case ApiActionException e:
+                // Any other refusal the server answered: the client already put it into a sentence, in the reader's
+                // language (ApiWire.ThrowIfProblemAsync). Naming only the type hid what was refused.
                 log.LogError("{Message}", e.Message);
                 return 1;
             case CommandRuntimeException e:
