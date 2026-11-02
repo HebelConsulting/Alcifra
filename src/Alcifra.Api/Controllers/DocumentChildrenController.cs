@@ -661,6 +661,17 @@ public class DocumentChildrenController : ControllerBase
         // MaskId wins over FolderMask: it is the general form, and a client sending it is newer than one
         // sending only a slug. Both come from the `admits` entry the server handed out, so they can disagree
         // only if something assembled the body by hand.
+        // A password entry has its store's own door, which carries ADR 0982's rule (#1931): refused here whether named or
+        // implied — an unnamed item in a store or password folder is an entry-to-be. Folders there are still made here.
+        if (request.MaskId == WellKnownMaskIds.PasswordEntry
+            || (request.MaskId is null && request.FolderMask is not { Length: > 0 }
+                && parent.MaskVersionId is { } passwordParentVersion
+                && await _dbContext.MaskVersions.AnyAsync(v => v.Id == passwordParentVersion
+                    && (v.MaskId == WellKnownMaskIds.PasswordStore || v.MaskId == WellKnownMaskIds.PasswordFolder), cancellationToken)))
+        {
+            throw new Errors.Exceptions.PasswordStores.PasswordEntryUsesItsStoreException();
+        }
+
         var rules = await _containment.ForAsync(_dbContext, parent.TenantId, cancellationToken);
         var folderMaskId = WellKnownMaskIds.Folder;
         var folderMaskRequested = request.MaskId is not null || request.FolderMask is { Length: > 0 };
