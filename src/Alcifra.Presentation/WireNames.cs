@@ -83,7 +83,7 @@ public static class WireNames
     /// </summary>
     /// <remarks>
     /// Retirement trigger (ADR 0885): remove this class and every use of it in the first core release after the one that
-    /// introduced the alcifra names, i.e. v0.57.0 (release checklist, <c>docs/deploy/release.md</c>). The mobile redirect
+    /// introduced the alcifra names, moved to v0.58.0 by ADR 1032 (release checklist, <c>docs/deploy/release.md</c>). The mobile redirect
     /// waits for the app's own identifier to move (Mobile #187), and goes with that release instead if it is later.
     /// </remarks>
     public static class Legacy
