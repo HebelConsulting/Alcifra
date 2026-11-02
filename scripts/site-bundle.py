@@ -3,6 +3,7 @@
 
     scripts/site-bundle.py build    --out DIR --product-id core --product-name Alcifra --lang en
                                     --typ manual/manual.typ --pdf <manual.pdf> [--version main] [--commit <sha>]
+                                    [--icons artifacts/brand-icons/web]
     scripts/site-bundle.py stamp    --zip site-bundle.zip --version 0.56.0 [--notes notes.md] [--lang en]
     scripts/site-bundle.py validate <site-bundle.zip | DIR>
 
@@ -14,11 +15,14 @@ breach, naming each.
 
 The contract, version 1:
     manifest.json   {"schema": "alcifra-site-bundle", "schemaVersion": 1,
-                     "product": {"id", "name"}, "version", "commit",
+                     "product": {"id", "name"}, "icons": {"ico", "png"} | null, "version", "commit",
                      "languages": {"<lang>": {"manual": {"pdf", "html"}, "notes",
                                               "features": [{"id", "title", "summary", "figure"}],
                                               "figures": [{"id", "files", "caption"}]}}}
     <lang>/manual.pdf, <lang>/figures/<file>, <lang>/notes.md   (paths in the manifest are relative to the bundle)
+    icons/favicon.ico, icons/favicon.png   the product's tab icons, generated from the brand (ADR 0993); a website shows
+                                           the core's as its own favicon
+
 A feature's `figure` names a figure by its id (the file stem of its first image). `html` and `notes` may be null.
 A consumer refuses a schemaVersion it does not know; a new FIELD is not a new version, a changed one is.
 """
@@ -87,6 +91,13 @@ def build(args):
                                                  text=True, cwd=root).stdout.strip(),
         "languages": {},
     }
+    if args.icons:
+        # The brand's tab icons (ADR 0993), copied as the build generated them; the same for every language.
+        os.makedirs(os.path.join(out, "icons"), exist_ok=True)
+        for name in ("favicon.ico", "favicon.png"):
+            shutil.copyfile(os.path.join(args.icons, name), os.path.join(out, "icons", name))
+        manifest["icons"] = {"ico": "icons/favicon.ico", "png": "icons/favicon.png"}
+    manifest.setdefault("icons", None)
     manifest["languages"][lang] = {
         "manual": {"pdf": f"{lang}/manual.pdf", "html": None},
         "notes": None,
@@ -166,6 +177,10 @@ def check(directory, manifest):
     need(isinstance(manifest.get("version"), str) and manifest["version"].strip(), "version is empty")
     need(isinstance(manifest.get("commit"), str) and re.fullmatch(r"[0-9a-f]{7,40}", manifest["commit"] or ""),
          f"commit {manifest.get('commit')!r} is not a commit id")
+    icons = manifest.get("icons")
+    if icons is not None:
+        exists(icons.get("ico"), "icons.ico")
+        exists(icons.get("png"), "icons.png")
     languages = manifest.get("languages") or {}
     need(len(languages) > 0, "no language")
     for lang, content in languages.items():
@@ -224,6 +239,7 @@ def main():
     b.add_argument("--version", default="main")
     b.add_argument("--commit")
     b.add_argument("--root", default=".")
+    b.add_argument("--icons", help="the directory holding the brand's generated favicon.ico and favicon.png")
     s = sub.add_parser("stamp")
     s.add_argument("--zip", required=True)
     s.add_argument("--version", required=True)

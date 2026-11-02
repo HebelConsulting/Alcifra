@@ -186,7 +186,8 @@ jobs:
           set -euo pipefail
           source scripts/brand.sh
           python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
-            --product-name "$BRAND_NAME" --lang en --typ manual/manual.typ --pdf "$MANUAL_PDF" --commit "$GITHUB_SHA"
+            --product-name "$BRAND_NAME" --lang en --typ manual/manual.typ --pdf "$MANUAL_PDF" --commit "$GITHUB_SHA" \
+            --icons artifacts/brand-icons/web
           python3 -I scripts/site-bundle.py build --out "$RUNNER_TEMP/site-bundle" --product-id core \
             --product-name "$BRAND_NAME" --lang de --typ manual/manual.de.typ --pdf "$MANUAL_PDF_DE" --commit "$GITHUB_SHA"
           python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
