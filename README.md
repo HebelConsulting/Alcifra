@@ -84,7 +84,9 @@ Your archive also speaks the protocols your existing apps already know, so calen
 | **Notes** (IMAP) | `demo.alcifra.dev`, port **993**, TLS | your email | a device password |
 | **Files** (WebDAV) | `https://demo.alcifra.dev/webdav` | your email | a device password |
 
-**Use a device password, never your login password.** Open *Devices…* in the account menu (top right) and *Enrol a device…*: each device gets its own password, for whichever of mail, files, calendars and contacts you switch on, shown once with a QR code and every server address. A phone can scan a second code to set up its accounts itself. Revoking a device cuts off that device only, without touching your login or your other devices.
+**On this demo, each login already has a device:** *Demo device*, whose password is the demo password, for mail,
+calendars and contacts; and the account menu offers **Demo profile for iPhone and iPad**, which sets up all three on an
+iPhone or iPad in one step. **Anywhere else, use a device password, never your login password.** Open *Devices…* in the account menu (top right) and *Enrol a device…*: each device gets its own password, for whichever of mail, files, calendars and contacts you switch on, shown once with a QR code and every server address. A phone can scan a second code to set up its accounts itself. Revoking a device cuts off that device only, without touching your login or your other devices.
 
 Discovery is supported, so on most apps the host alone is enough and the paths above are the fallback when it asks for a full URL.
 
@@ -162,7 +164,7 @@ was addressed to — and, where it is used without the Service, **what is stored
 - **Documents** — a unified tree where a repository, a folder, and a leaf are all one `Document` type; immutable versioned metadata "masks"; EAV index fields; document-scoped ACLs with inheritance + override.
 - **Search & preview** — OpenSearch full-text over content (Apache Tika; scans become searchable PDFs via an **OCRmyPDF/Tesseract** sidecar), faceted navigation, search hit-overlays, and on-demand previews/renditions (images, Office → PDF via Gotenberg, email, Markdown, …).
 - **Enterprise features** — approval workflow, notifications (in-app + email + push + real-time), legal hold & retention with WORM immutability, check-out/check-in, WebDAV/CalDAV/CardDAV/IMAP gateways with a password per device, MFA (TOTP + passkeys), and OpenBao-backed secrets.
-- **Encryption to people, not just disks** — CMS envelopes addressed to every certificate a reader holds, hardware keys with attestation, sealed content the server stores but never opens, and a per-tenant posture from plaintext to strict.
+- **Encryption to people, not just disks** — CMS envelopes addressed to every certificate a reader holds, hardware keys with attestation, sealed content the server stores but never opens, a per-tenant posture from plaintext to strict, and `alcifra inspect`, which says what a sealed file is, whose keys can open it, and whether that matches who should.
 - **Modules** — industry modules load per tenant behind a licence gate and a versioned ABI: their own controllers, read models, settings and manuals, acting through a consent-gated principal of their own.
 - **Clients** — a Blazor WebAssembly web workbench and a native Avalonia desktop client in this repository, and phone apps (.NET MAUI) beside it, all driving the same hypermedia API through one shared client library.
 
