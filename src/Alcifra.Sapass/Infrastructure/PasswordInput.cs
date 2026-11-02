@@ -1,3 +1,4 @@
+using Alcifra.ConsoleLogging;
 namespace Alcifra.Sapass.Infrastructure;
 
 /// <summary>Where a NEW password comes from: stdin (a pipe) or the terminal, asked twice with no echo.</summary>
@@ -17,8 +18,8 @@ internal static class PasswordInput
                 : throw new SapassException("No password arrived on stdin. Pipe it in: printf '%s' \"$pw\" | apass insert …");
         }
 
-        var first = SecretInput.ReadHidden("Password:");
-        var second = SecretInput.ReadHidden("Repeat:");
+        var first = SecretInput.ReadHidden("Password:", SapassLog.For(nameof(SecretInput)));
+        var second = SecretInput.ReadHidden("Repeat:", SapassLog.For(nameof(SecretInput)));
         if (first is null || second is null)
         {
             throw new SapassException("There is no terminal to ask at; pipe the password in instead.");

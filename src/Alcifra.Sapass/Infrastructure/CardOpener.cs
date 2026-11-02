@@ -1,3 +1,4 @@
+using Alcifra.ConsoleLogging;
 using Microsoft.Extensions.Logging;
 using Alcifra.ApiClient;
 using Alcifra.HardwareKeys;
@@ -37,5 +38,5 @@ internal static class PinPrompt
 {
     /// <summary>Asks for the card's PIN; null when there is no terminal to ask at (a pipe is not a person).</summary>
     public static Task<string?> AskAsync(CardBeingUnlocked card) =>
-        Task.FromResult(SecretInput.ReadHidden($"PIN for {card.TokenLabel} ({card.ObjectLabel}):"));
+        Task.FromResult(SecretInput.ReadHidden($"PIN for {card.TokenLabel} ({card.ObjectLabel}):", SapassLog.For(nameof(SecretInput))));
 }

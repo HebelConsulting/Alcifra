@@ -26,6 +26,14 @@ public sealed class InspectSettings : TenantSessionSettings
     [Description("Certificates to match the recipients against (PEM or DER; a folder is read whole), after the installation's.")]
     public string? Certificates { get; init; }
 
+    [CommandOption("--try-open")]
+    [Description("Try your own key: a hardware key in a reader (its PIN is asked), or the one in --key. Says which key opens it; the content is never kept or written.")]
+    public bool TryOpen { get; init; }
+
+    [CommandOption("--key <FILE>")]
+    [Description("With --try-open: a key on this computer, as a PEM file holding the certificate and its private key, or a PKCS#12 file.")]
+    public string? Key { get; init; }
+
     [CommandOption("--offline")]
     [Description("Do not ask the installation even when signed in: match only against --certs.")]
     public bool Offline { get; init; }
@@ -90,18 +98,24 @@ public sealed class InspectCommand(ILogger<InspectCommand> logger) : AsyncComman
         var gap = audience is null ? null : AudienceGap.Of(inspection.Recipients, audience);
         var verbose = settings.Verbose || settings.ExtraVerbose;
         var tree = settings.ExtraVerbose && inspection.Cms is { } cms ? Asn1Tree.Of(cms) : null;
+        var opened = settings.TryOpen && inspection.Kind is SealedKind.Enveloped or SealedKind.Archive && inspection.Cms is { } envelope
+            ? await InspectSurface.TryOpenAsync(envelope, inspection.Recipients, settings.Key, logger)
+            : null;
 
         if (settings.Json)
         {
             // Data output (ADR 0906): the inspection as JSON, the result a script captures; nothing else goes to stdout.
-            Console.Out.WriteLine(JsonSerializer.Serialize(InspectSurface.Json(inspection, rows, gap, verbose, tree), InspectSurface.JsonOptions));
+            Console.Out.WriteLine(JsonSerializer.Serialize(InspectSurface.Json(inspection, rows, gap, verbose, tree, opened), InspectSurface.JsonOptions));
             return 0;
         }
 
-        logger.LogInformation("{Inspection}", InspectSurface.Describe(inspection, rows, gap, verbose, tree));
+        logger.LogInformation("{Inspection}", InspectSurface.Describe(inspection, rows, gap, verbose, tree, opened));
         return inspection.Kind == SealedKind.NotSealed ? 2 : 0;
     }
 }
+
+/// <summary>What `--try-open` found: the key that opened the envelope, or why none did.</summary>
+public sealed record TryOpenResult(string? OpenedBy, string? Why);
 
 /// <summary>A recipient, and who it was matched to: the installation's certificate first, else a local one, else nobody.</summary>
 public sealed record RecipientRow(InspectedRecipient Recipient, KnownCertificate? Known, X509Certificate2? Local);
@@ -208,7 +222,8 @@ public static class InspectSurface
         [.. recipients.Select(r => new RecipientRow(r, known.FirstOrDefault(k => k.Is(r.Reference)), local.FirstOrDefault(r.Reference.Is)))];
 
     /// <summary>The inspection as a person reads it: the default level, or with <paramref name="verbose"/> the details.</summary>
-    public static string Describe(SealedInspection inspection, IReadOnlyList<RecipientRow> rows, AudienceGap? gap, bool verbose, IReadOnlyList<Asn1Node>? tree)
+    public static string Describe(SealedInspection inspection, IReadOnlyList<RecipientRow> rows, AudienceGap? gap, bool verbose, IReadOnlyList<Asn1Node>? tree,
+        TryOpenResult? opened = null)
     {
         var text = new StringBuilder();
         text.AppendLine(CultureInfo.InvariantCulture, $"Format:     {inspection.Format}{(inspection.SmimeWrapped ? " (in an S/MIME message)" : string.Empty)}");
@@ -266,6 +281,13 @@ public static class InspectSurface
             }
         }
 
+        if (opened is not null)
+        {
+            text.AppendLine(opened.OpenedBy is { } by
+                ? $"Try-open:   opened with {by} (the content was discarded at once)"
+                : $"Try-open:   none of your keys opens it ({opened.Why})");
+        }
+
         if (inspection.Kind == SealedKind.AuthEnveloped)
         {
             text.AppendLine("Recipients: not decoded for AuthEnvelopedData; --extra-verbose shows the structure.");
@@ -300,40 +322,42 @@ public static class InspectSurface
     }
 
     /// <summary>The inspection as data, at the level asked for.</summary>
-    public static object Json(SealedInspection inspection, IReadOnlyList<RecipientRow> rows, AudienceGap? gap, bool verbose, IReadOnlyList<Asn1Node>? tree) => new
-    {
-        format = inspection.Format,
-        kind = inspection.Kind.ToString(),
-        smimeWrapped = inspection.SmimeWrapped,
-        size = inspection.Size,
-        contentType = inspection.ContentType,
-        contentEncryption = inspection.ContentEncryption,
-        recipients = rows.Select(r => new
+    public static object Json(SealedInspection inspection, IReadOnlyList<RecipientRow> rows, AudienceGap? gap, bool verbose, IReadOnlyList<Asn1Node>? tree,
+        TryOpenResult? opened = null) => new
         {
-            holder = r.Known?.HolderName,
-            holderEmail = r.Known?.HolderEmail,
-            label = r.Known?.Label,
-            revokedAt = r.Known?.RevokedAt,
-            attestation = r.Known?.Attestation,
-            matched = r.Local?.Subject,
-            issuer = r.Recipient.Reference.Issuer,
-            serial = r.Recipient.Reference.Serial,
-            subjectKeyIdentifier = r.Recipient.Reference.SubjectKeyIdentifier,
-            method = verbose ? r.Recipient.Method : null,
-            keyEncryptionAlgorithm = verbose ? r.Recipient.KeyEncryptionAlgorithm : null,
-            originatorKeyAlgorithm = verbose ? r.Recipient.OriginatorKeyAlgorithm : null,
-        }),
-        audience = gap is null ? null : new
-        {
-            matches = gap.None,
-            missing = gap.Missing.Select(m => new { person = m.Person, thumbprint = m.Certificate.Thumbprint }),
-            extra = gap.Extra.Select(e => new { issuer = e.Reference.Issuer, serial = e.Reference.Serial, subjectKeyIdentifier = e.Reference.SubjectKeyIdentifier }),
-        },
-        signers = inspection.Signers,
-        certificates = inspection.Certificates,
-        archive = inspection.Archive,
-        asn1 = tree,
-    };
+            tryOpen = opened is null ? null : new { opened = opened.OpenedBy is not null, openedBy = opened.OpenedBy, why = opened.Why },
+            format = inspection.Format,
+            kind = inspection.Kind.ToString(),
+            smimeWrapped = inspection.SmimeWrapped,
+            size = inspection.Size,
+            contentType = inspection.ContentType,
+            contentEncryption = inspection.ContentEncryption,
+            recipients = rows.Select(r => new
+            {
+                holder = r.Known?.HolderName,
+                holderEmail = r.Known?.HolderEmail,
+                label = r.Known?.Label,
+                revokedAt = r.Known?.RevokedAt,
+                attestation = r.Known?.Attestation,
+                matched = r.Local?.Subject,
+                issuer = r.Recipient.Reference.Issuer,
+                serial = r.Recipient.Reference.Serial,
+                subjectKeyIdentifier = r.Recipient.Reference.SubjectKeyIdentifier,
+                method = verbose ? r.Recipient.Method : null,
+                keyEncryptionAlgorithm = verbose ? r.Recipient.KeyEncryptionAlgorithm : null,
+                originatorKeyAlgorithm = verbose ? r.Recipient.OriginatorKeyAlgorithm : null,
+            }),
+            audience = gap is null ? null : new
+            {
+                matches = gap.None,
+                missing = gap.Missing.Select(m => new { person = m.Person, thumbprint = m.Certificate.Thumbprint }),
+                extra = gap.Extra.Select(e => new { issuer = e.Reference.Issuer, serial = e.Reference.Serial, subjectKeyIdentifier = e.Reference.SubjectKeyIdentifier }),
+            },
+            signers = inspection.Signers,
+            certificates = inspection.Certificates,
+            archive = inspection.Archive,
+            asn1 = tree,
+        };
 
     // The installation's holder first (with the key's label and what is wrong with it), else a local certificate's name.
     private static string Who(RecipientRow row) => row switch
@@ -351,6 +375,117 @@ public static class InspectSurface
         { Issuer: { } issuer, Serial: { } serial } => $"issuer {issuer}, serial {serial}",
         _ => "no reference",
     };
+
+    /// <summary>
+    /// Which of the caller's keys opens the envelope (#2007 slice 3): the key in <paramref name="keyFile"/>, or else a
+    /// hardware key in a reader (its PIN asked only if it holds a recipient's certificate). The content is wiped at once
+    /// and never written; only which key opened it is said. The PIN is never logged (ADR 0886).
+    /// </summary>
+    public static async Task<TryOpenResult> TryOpenAsync(byte[] cms, IReadOnlyList<InspectedRecipient> recipients, string? keyFile, ILogger logger)
+    {
+        if (keyFile is not null)
+        {
+            using var key = LoadKey(keyFile, logger);
+            if (!recipients.Any(r => r.Reference.Is(key)))
+            {
+                return new TryOpenResult(null, $"it is not addressed to {key.Subject}");
+            }
+
+            return OpensWithSoftwareKey(cms, recipients, key, logger)
+                ? new TryOpenResult($"the key in {Path.GetFileName(keyFile)} ({key.Subject})", null)
+                : new TryOpenResult(null, $"the key in {Path.GetFileName(keyFile)} did not open it");
+        }
+
+        var named = recipients.Where(r => r.Reference is { Issuer: not null, Serial: not null })
+            .Select(r => (r.Reference.Issuer!, r.Reference.Serial!)).ToList();
+        Alcifra.HardwareKeys.CardSession.PinPrompt = card =>
+            Task.FromResult(Alcifra.ConsoleLogging.SecretInput.ReadHidden($"PIN for {card.TokenLabel} ({card.ObjectLabel}):", logger));
+        try
+        {
+            if (await Alcifra.HardwareKeys.CardEnvelopeOpener.TryOpenRawAsync(cms, named, _ => true) is { } content)
+            {
+                Array.Clear(content);
+                var card = Alcifra.HardwareKeys.CardEnvelopeOpener.LastSeen.FirstOrDefault(c => recipients.Any(r => r.Reference.Is(c)));
+                return new TryOpenResult($"the hardware key's certificate {card?.Subject ?? "(unnamed)"}", null);
+            }
+
+            return new TryOpenResult(null, Alcifra.HardwareKeys.CardEnvelopeOpener.LastSeen.Count == 0
+                ? Alcifra.HardwareKeys.CardEnvelopeOpener.WhatIsMissing()
+                : "the hardware key in the reader is not one it is sealed to");
+        }
+        finally
+        {
+            Alcifra.HardwareKeys.CardSession.Close();
+        }
+    }
+
+    // RSA through the shared S/MIME opener; ECDH through the key-agreement opener the card uses, with the raw shared secret
+    // derived from the key in the file (the mail library's S/MIME context does not open ECDH key agreement). The content
+    // is wiped either way.
+    private static bool OpensWithSoftwareKey(byte[] cms, IReadOnlyList<InspectedRecipient> recipients, X509Certificate2 key, ILogger logger)
+    {
+        if (key.GetECDiffieHellmanPrivateKey() is { } ecdh)
+        {
+            using (ecdh)
+            {
+                var index = recipients.ToList().FindIndex(r => r.Reference.Is(key));
+                try
+                {
+                    var content = Alcifra.HardwareKeys.CardEnvelopeOpener.OpenWithAgreement(cms, point => Agree(ecdh, point), index);
+                    Array.Clear(content);
+                    return true;
+                }
+                catch (Exception e) when (e is System.Security.Cryptography.CryptographicException or EnvelopeNotOpenedException or ArgumentException)
+                {
+                    logger.LogDebug("The ECDH key of {Subject} did not open it: {Reason}", key.Subject, e.Message);
+                    return false;
+                }
+            }
+        }
+
+        if (SoftwareKeyEnvelope.TryOpenRaw(cms, [key],
+                (certificate, e) => logger.LogDebug("The key of {Subject} could not be used: {Reason}", certificate.Subject, e.Message)) is { } decrypted)
+        {
+            Array.Clear(decrypted);
+            return true;
+        }
+
+        return false;
+    }
+
+    // The RAW agreement (the unhashed Z the X9.63 KDF consumes), with the sender's ephemeral point.
+    private static byte[] Agree(System.Security.Cryptography.ECDiffieHellman key, byte[] uncompressedPoint)
+    {
+        var half = (uncompressedPoint.Length - 1) / 2;
+        using var originator = System.Security.Cryptography.ECDiffieHellman.Create(new System.Security.Cryptography.ECParameters
+        {
+            Curve = key.ExportParameters(false).Curve,
+            Q = new System.Security.Cryptography.ECPoint { X = uncompressedPoint[1..(1 + half)], Y = uncompressedPoint[(1 + half)..] },
+        });
+        return key.DeriveRawSecretAgreement(originator.PublicKey);
+    }
+
+    // A PEM file holding the certificate and its private key, or a PKCS#12 file (its password asked, never logged).
+    private static X509Certificate2 LoadKey(string path, ILogger logger)
+    {
+        var bytes = System.IO.File.ReadAllBytes(path);
+        var text = Encoding.ASCII.GetString(bytes);
+        if (text.Contains("-----BEGIN CERTIFICATE-----", StringComparison.Ordinal) && text.Contains("PRIVATE KEY-----", StringComparison.Ordinal))
+        {
+            // A key read from PEM is ephemeral, and the S/MIME context imports it by exporting it: re-loaded as exportable.
+            using var ephemeral = X509Certificate2.CreateFromPem(text, text);
+            return X509CertificateLoader.LoadPkcs12(ephemeral.Export(X509ContentType.Pkcs12), null, X509KeyStorageFlags.Exportable);
+        }
+
+        try
+        {
+            return X509CertificateLoader.LoadPkcs12(bytes, null);
+        }
+        catch (System.Security.Cryptography.CryptographicException)
+        {
+            return X509CertificateLoader.LoadPkcs12(bytes, Alcifra.ConsoleLogging.SecretInput.ReadHidden($"Password for {Path.GetFileName(path)}:", logger));
+        }
+    }
 
     private static string? Text(JsonElement json, string name) =>
         json.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;

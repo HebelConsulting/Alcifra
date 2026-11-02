@@ -199,60 +199,11 @@ public static class EnvelopeOpener
         // And only the signed-in user's own (ADR 0969): a certificate in this store that is somebody else's enrolled key
         // is not touched.
         var candidates = EnvelopeRecipients.AddressedTo(recipients, Keys()).Where(admitted).ToList();
-        if (candidates.Count == 0)
-        {
-            return null;
-        }
 
-        using var context = new TemporarySecureMimeContext();
-        var imported = 0;
-        foreach (var certificate in candidates)
-        {
-            try
-            {
-                context.Import(certificate);
-                imported++;
-            }
-            catch (Exception e)
-            {
-                // A certificate the platform will not hand over. OBSERVED on macOS: importing a keychain
-                // identity raises "Unable to obtain authorization for this operation" from Security.framework,
-                // intermittently — and before this guard that exception escaped the whole opener chain, so a
-                // machine that could have read the document WITH ITS CARD failed outright because an unrelated
-                // software certificate refused to be exported.
-                //
-                // Still guarded even though only addressees are imported now: the user's OWN certificate can
-                // refuse just as easily, and then the card is still the way in.
-                DesktopLog.Debug("Skipping certificate {Subject}: {Reason}", certificate.Subject, e.Message);
-            }
-        }
-
-        if (imported == 0)
-        {
-            return null;
-        }
-
-        MimeEntity decrypted;
-        try
-        {
-            decrypted = enveloped.Decrypt(context);
-        }
-        // CmsException is matched BY NAME, and that is deliberate. MimeKit decrypts through BouncyCastle, which
-        // reports the commonest real failure — "A suitable private key could not be found for decrypting" — as
-        // Org.BouncyCastle.Cms.CmsException rather than a CryptographicException. Naming the type would bind
-        // this client to a package it only has transitively, and catching everything would swallow genuine
-        // defects and report them to the reader as a missing key. Found by writing the wrong-recipient test
-        // and watching it throw the wrong type, which is exactly what that test is for.
-        //
-        // DECLINING rather than throwing, since the ordered list took over (ADR 0832): "no software key opens
-        // this" is precisely the case the card exists for, so it must fall through instead of ending the walk.
-        catch (Exception e) when (e is CryptographicException or ArgumentException or FormatException
-            || e.GetType().Name == "CmsException")
-        {
-            return null;
-        }
-
-        return SmimeEnvelope.Payload(decrypted);
+        // The opening itself is the shared one (Alcifra.ApiClient.SoftwareKeyEnvelope), which `alcifra inspect --try-open`
+        // uses too; a certificate the platform will not hand over is skipped there, so the card is still the way in.
+        return Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpen(enveloped, candidates,
+            (certificate, e) => DesktopLog.Debug("Skipping certificate {Subject}: {Reason}", certificate.Subject, e.Message));
     }
 }
 
