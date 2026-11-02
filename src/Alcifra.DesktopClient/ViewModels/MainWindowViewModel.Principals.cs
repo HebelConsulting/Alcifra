@@ -337,6 +337,31 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    /// <summary>
+    /// Whether the account menu offers the demo's configuration profile for an iPhone or iPad (owner, 2026-11-02): only
+    /// where the user has the demo seed's device. Built here, never asked of the server (ADR 1030).
+    /// </summary>
+    [ObservableProperty] private bool _offersDemoProfile;
+
+    /// <summary>The demo profile's bytes while it is offered.</summary>
+    public byte[]? DemoProfileBytes { get; private set; }
+
+    /// <summary>Reads the device list and builds the demo profile where there is one; quietly nothing otherwise, as
+    /// <see cref="OffersSelfEnrolmentAsync"/> (an optional item must not take a core one down).</summary>
+    internal async Task LoadDemoProfileAsync()
+    {
+        try
+        {
+            DemoProfileBytes = Api is { } api ? Alcifra.ApiClient.DemoProfile.TryBuild(await api.Devices.GetAsync()) : null;
+        }
+        catch (Exception)
+        {
+            DemoProfileBytes = null;
+        }
+
+        OffersDemoProfile = DemoProfileBytes is not null;
+    }
+
     [ObservableProperty] private bool _canResetMfa;
 
     // Exposed for the MFA setup dialog, which drives enroll/enable interactively against the API.

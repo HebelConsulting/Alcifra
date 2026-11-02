@@ -6798,6 +6798,9 @@
   <data name="MobPwDroppedOffline" xml:space="preserve">
     <value>{0}: rimosso dalla copia offline, perché è stata revocata una chiave che poteva leggere questo archivio. Tornerà quando l'archivio sarà stato risigillato.</value>
   </data>
+  <data name="DemoProfileForIPhone" xml:space="preserve">
+    <value>Profilo demo per iPhone e iPad</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Possiedi già due certificati registrati, il massimo consentito qui. Revocane uno prima di registrarne un altro.</value>
   </data>

@@ -55,7 +55,8 @@ public class ProtocolDevicesController(
 
         public string Name { get; set; } = string.Empty;
 
-        /// <summary><c>enrolled</c>, or <c>earlierDav</c> / <c>earlierImap</c> for a password from before enrolment.</summary>
+        /// <summary><c>enrolled</c>; <c>earlierDav</c> / <c>earlierImap</c> for a password from before enrolment; <c>seeded</c>
+        /// for the demo seed's device (ADR 1030).</summary>
         public string Kind { get; set; } = string.Empty;
 
         public bool Mail { get; set; }
@@ -318,7 +319,7 @@ public class ProtocolDevicesController(
             return NotFound();
         }
 
-        if (device.Kind != ProtocolDeviceKind.Enrolled)
+        if (LegacyProtocolDevices.IsEarlier(device.Kind))
         {
             throw new ProtocolDeviceNotEditableException();
         }
@@ -436,17 +437,18 @@ public class ProtocolDevicesController(
         {
             ProtocolDeviceKind.LegacyDav => "earlierDav",
             ProtocolDeviceKind.LegacyImap => "earlierImap",
+            ProtocolDeviceKind.Seeded => "seeded",   // the demo's device: a device like any, whose name carries the demo password
             _ => "enrolled",
         },
         Mail = device.MailEnabled,
         Files = device.FilesEnabled,
         Calendars = device.CalendarsEnabled,
         Contacts = device.ContactsEnabled,
-        EncryptMail = locked || (device.Kind == ProtocolDeviceKind.Enrolled && device.EncryptMail),
+        EncryptMail = locked || (!LegacyProtocolDevices.IsEarlier(device.Kind) && device.EncryptMail),
         EncryptMailLocked = locked,
         CreatedAt = device.CreatedAt,
         LastUsedAt = device.LastUsedAt,
-        CanEdit = device.Kind == ProtocolDeviceKind.Enrolled,
+        CanEdit = !LegacyProtocolDevices.IsEarlier(device.Kind),
         CanDelete = true,
         ETag = $"\"{device.ConcurrencyToken}\"",
         Links = [new Link("self", $"{Collection}/{device.Id}", "GET")],

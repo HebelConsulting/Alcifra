@@ -6798,6 +6798,9 @@
   <data name="MobPwDroppedOffline" xml:space="preserve">
     <value>{0}: eliminado de la copia sin conexión, porque se revocó una llave que podía leer este almacén. Volverá cuando el almacén se vuelva a sellar.</value>
   </data>
+  <data name="DemoProfileForIPhone" xml:space="preserve">
+    <value>Perfil de demostración para iPhone y iPad</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Ya tienes dos certificados inscritos, el máximo permitido aquí. Revoca uno antes de inscribir otro.</value>
   </data>

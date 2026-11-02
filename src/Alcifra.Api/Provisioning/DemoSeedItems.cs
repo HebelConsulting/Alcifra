@@ -240,17 +240,18 @@ internal static class DemoSeedItems
     internal static async Task EnableDavAndImapAsync(
         AlcifraDbContext dbContext, PasswordHasher<User> hasher, string demoPassword, Guid[] userIds, DateTimeOffset now)
     {
-        // As the earlier passwords' devices (#1970), so a visitor's mail client finds mail, files, calendars and contacts
-        // with the one demo password, as before.
+        // ONE device with the demo password for mail, files, calendars and contacts (owner, 2026-11-02), so a visitor's
+        // mail client finds everything with the password they already know. It replaces the two earlier passwords' rows
+        // the seed made before (#1970), which are removed from the demo users.
         foreach (var user in await dbContext.Users.Where(u => userIds.Contains(u.Id)).ToListAsync())
         {
-            foreach (var kind in new[] { ProtocolDeviceKind.LegacyDav, ProtocolDeviceKind.LegacyImap })
+            dbContext.ProtocolDevices.RemoveRange(await dbContext.ProtocolDevices
+                .Where(d => d.UserId == user.Id && (d.Kind == ProtocolDeviceKind.LegacyDav || d.Kind == ProtocolDeviceKind.LegacyImap))
+                .ToListAsync());
+            if (!await Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.ExistsAsync(dbContext, user.Id, ProtocolDeviceKind.Seeded, CancellationToken.None))
             {
-                if (!await Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.ExistsAsync(dbContext, user.Id, kind, CancellationToken.None))
-                {
-                    dbContext.ProtocolDevices.Add(
-                        Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.New(user, kind, hasher.HashPassword(user, demoPassword), now));
-                }
+                dbContext.ProtocolDevices.Add(
+                    Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.Demo(user, demoPassword, hasher.HashPassword(user, demoPassword), now));
             }
         }
 

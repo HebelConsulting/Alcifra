@@ -20,7 +20,7 @@ public static class DeviceMailSealing
     /// seal to.</summary>
     public static (ReaderCertificateSource Certificates, bool Refused) Decide(
         ProtocolDevice device, bool organisationSealsMail, ReaderCertificateSource resolved) =>
-        (organisationSealsMail || device.Kind != ProtocolDeviceKind.Enrolled, device.EncryptMail) switch
+        (organisationSealsMail || LegacyProtocolDevices.IsEarlier(device.Kind), device.EncryptMail) switch
         {
             (true, _) => (resolved, false),
             (false, true) => resolved.Envelopes ? (resolved, false) : (ReaderCertificateSource.None, true),

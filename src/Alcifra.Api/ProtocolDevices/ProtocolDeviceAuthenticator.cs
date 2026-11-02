@@ -86,7 +86,8 @@ public sealed class ProtocolDeviceAuthenticator(
     };
 
     // With a key, exactly one hash is verified: the enrolled device the key names, if it is this user's. Without one,
-    // the password is a legacy one and is tried against the user's legacy devices (at most two).
+    // the password is a chosen one and is tried against the user's devices without a key: the earlier passwords (at most
+    // two) and the demo's seeded device.
     private async Task<ProtocolDevice?> DeviceOpenedByAsync(User user, string password, DeviceProtocol protocol, CancellationToken cancellationToken)
     {
         var devices = dbContext.ProtocolDevices.IgnoreQueryFilters(TenantFilter).AsNoTracking().Where(d => d.UserId == user.Id);

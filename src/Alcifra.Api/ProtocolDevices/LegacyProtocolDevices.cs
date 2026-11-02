@@ -34,6 +34,29 @@ public static class LegacyProtocolDevices
         CreatedAt = now,
     };
 
+    /// <summary>Whether a device is one of the two earlier passwords: fixed protocols, not editable, its mail sealed as
+    /// IMAP always did. Every other kind (enrolled, seeded) is a device with its own switches.</summary>
+    public static bool IsEarlier(ProtocolDeviceKind kind) => kind is ProtocolDeviceKind.LegacyDav or ProtocolDeviceKind.LegacyImap;
+
+    /// <summary>
+    /// The demo's one device (owner, 2026-11-02): the demo login's own password for mail, files, calendars and contacts,
+    /// named so a visitor sees which password it takes. Demo-only: only the env-gated demo seed creates it.
+    /// </summary>
+    public static ProtocolDevice Demo(User user, string demoPassword, string secretHash, DateTimeOffset now) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = user.TenantId,
+        UserId = user.Id,
+        Kind = ProtocolDeviceKind.Seeded,
+        Name = Alcifra.Presentation.DemoDevice.Name(demoPassword),   // the clients read the password back from it
+        SecretHash = secretHash,
+        MailEnabled = true,
+        FilesEnabled = true,
+        CalendarsEnabled = true,
+        ContactsEnabled = true,
+        CreatedAt = now,
+    };
+
     /// <summary>Whether the user has the legacy device of this kind.</summary>
     public static Task<bool> ExistsAsync(AlcifraDbContext db, Guid userId, ProtocolDeviceKind kind, CancellationToken cancellationToken) =>
         db.ProtocolDevices.AnyAsync(d => d.UserId == userId && d.Kind == kind, cancellationToken);

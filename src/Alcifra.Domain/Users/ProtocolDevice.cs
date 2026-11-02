@@ -13,6 +13,12 @@ public enum ProtocolDeviceKind
 
     /// <summary>The IMAP password from before per-device enrolment (Mail); its encryption behaves as IMAP always did.</summary>
     LegacyImap = 2,
+
+    /// <summary>
+    /// A device the demo seed made with a CHOSEN password, the demo login's (owner, 2026-11-02): its password has no key,
+    /// so it is checked as the earlier ones are; otherwise it is a device like an enrolled one, with its own switches.
+    /// </summary>
+    Seeded = 3,
 }
 
 /// <summary>

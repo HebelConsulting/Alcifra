@@ -46,6 +46,8 @@ public partial class TitleBar : UserControl
 
     private void OnManageDevices(object? sender, RoutedEventArgs e) => Window()?.OnManageDevices(sender, e);
 
+    private void OnSaveDemoProfile(object? sender, RoutedEventArgs e) => Window()?.OnSaveDemoProfile(sender, e);
+
 
     private void OnSelfEnrol(object? sender, RoutedEventArgs e) => Window()?.OnSelfEnrol(sender, e);
 

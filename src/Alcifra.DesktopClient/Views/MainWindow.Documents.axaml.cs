@@ -470,6 +470,28 @@ public partial class MainWindow
         {
             await new DevicesDialog(api).ShowDialog(this);
             await vm.RefreshWebDavStateAsync();
+            await vm.LoadDemoProfileAsync();   // the demo device may have been changed or revoked
+        }
+    });
+
+    // The demo's configuration profile (owner, 2026-11-02), saved where the user chooses: AirDrop or mail it to an
+    // iPhone or iPad, which offers it under Settings.
+    internal void OnSaveDemoProfile(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is not MainWindowViewModel { DemoProfileBytes: { } profile })
+        {
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = Strings.Get("DemoProfileForIPhone"),
+            SuggestedFileName = Alcifra.Presentation.DemoDevice.ProfileFileName,
+        });
+        if (file is not null)
+        {
+            await using var stream = await file.OpenWriteAsync();
+            await stream.WriteAsync(profile);
         }
     });
 

@@ -10,12 +10,16 @@ public sealed record DeviceServers(
     string WebDavUrl, string CalDavUrl, string CardDavUrl);
 
 /// <summary>One device that reaches mail, files, calendars or contacts with a password of its own (#1970).</summary>
-/// <param name="Kind"><c>enrolled</c>, or <c>earlierDav</c> / <c>earlierImap</c> for a password from before enrolment.</param>
+/// <param name="Kind"><c>enrolled</c>; <c>earlierDav</c> / <c>earlierImap</c> for a password from before enrolment;
+/// <c>seeded</c> for the demo seed's device (ADR 1030).</param>
 public sealed record ProtocolDevice(
     string Name, string Kind, bool Mail, bool Files, bool Calendars, bool Contacts, bool EncryptMail, bool EncryptMailLocked,
     DateTimeOffset CreatedAt, DateTimeOffset? LastUsedAt, bool CanEdit, bool CanDelete, string ETag, LinkMap? Links)
 {
-    public bool IsEarlier => Kind != "enrolled";
+    public bool IsEarlier => Kind is "earlierDav" or "earlierImap";
+
+    /// <summary>The demo seed's device (ADR 1030), whose name carries the demo password.</summary>
+    public bool IsSeeded => Kind == "seeded";
 }
 
 /// <summary>The user's devices, the addresses they reach, and the user's mail view (one setting for every device).</summary>

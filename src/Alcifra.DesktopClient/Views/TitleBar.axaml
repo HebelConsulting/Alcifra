@@ -118,6 +118,8 @@
                     <!-- Off until switched on (ADR 0978): the local endpoint exists only when asked for. -->
                     <MenuItem Header="{loc:Tr AccountBrowserAutofill}" Click="OnBrowserAutofill" />
                     <MenuItem Header="{loc:Tr DvMenu}" Click="OnManageDevices" />
+                    <!-- The demo only (owner, 2026-11-02): where the user has the demo seed's device. -->
+                    <MenuItem Header="{loc:Tr DemoProfileForIPhone}" Click="OnSaveDemoProfile" IsVisible="{Binding OffersDemoProfile}" />
                     <!-- Where the manual tells a reader to look when download and preview are absent. Visible where
                          the selfEnrolments rel is (ADR 0864; every tenant since #1970 slice 4). -->
                     <MenuItem Header="{loc:Tr AccountSelfEnrol}" Click="OnSelfEnrol"

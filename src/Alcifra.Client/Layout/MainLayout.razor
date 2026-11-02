@@ -17,6 +17,7 @@
 @inject Alcifra.Client.Services.ImpersonationService ImpersonationSvc
 @inject Alcifra.Client.Services.AppNavigationState AppNav
 @inject Alcifra.Client.Services.ApiRoot ApiRoot
+@inject Alcifra.Client.Services.DevicesApi DevicesApi
 @inject IHttpClientFactory HttpFactory
 @inject Alcifra.Presentation.ModuleLiveEventRouter ModuleLiveEvents
 
@@ -205,6 +206,12 @@
                     }
                     <MudMenuItem Icon="@Icons.Material.Filled.Key" OnClick="ManagePasskeysAsync">@Strings.Get("AccountPasskeys")</MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.Devices" OnClick="ManageDevicesAsync">@Strings.Get("DvMenu")</MudMenuItem>
+                    @* The demo only (owner, 2026-11-02): where the user has the demo seed's device. Built here, never
+                       asked of the server (ADR 1030). *@
+                    @if (_demoProfile is not null)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.PhoneIphone" OnClick="DownloadDemoProfileAsync">@Strings.Get("DemoProfileForIPhone")</MudMenuItem>
+                    }
                     @* Where the manual tells a reader to look when download and preview are absent. Shown where the
                        `selfEnrolments` rel is (ADR 0864; every tenant since #1970 slice 4) — an absent affordance
                        means the capability is absent, and this client learns that from the REL alone. *@
@@ -355,6 +362,36 @@
     // dialog's to report: hiding the entry when an administrator could turn it on is indistinguishable from
     // the installation not having the capability.
     private bool _canSelfEnrol;
+    private string? _demoProfile;
+
+    // The demo's configuration profile for an iPhone or iPad, from the device list by the one shared rule; null (no menu
+    // item) where there is no demo device or the list could not be read.
+    private async Task LoadDemoProfileAsync()
+    {
+        try
+        {
+            var list = await DevicesApi.GetAsync();
+            var s = list.Servers;
+            _demoProfile = Alcifra.Presentation.DemoDevice.Profile(list.Items.Select(d => (d.Kind, d.Name, d.Mail, d.Calendars, d.Contacts)),
+                s.Username, s.ImapAvailable, s.ImapHost, s.ImapPort, s.ImapTlsPort, s.OutgoingHost, s.CalDavUrl, Strings.ProductName);
+        }
+        catch (Exception)
+        {
+            _demoProfile = null;
+        }
+    }
+
+    private async Task DownloadDemoProfileAsync()
+    {
+        if (_demoProfile is null)
+        {
+            return;
+        }
+
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(_demoProfile));
+        using var streamRef = new DotNetStreamReference(stream);
+        await JsRuntime.InvokeVoidAsync("downloadFileFromStream", Alcifra.Presentation.DemoDevice.ProfileFileName, streamRef);
+    }
     private string? _impersonatedBy;
 
     private async Task StopImpersonatingAsync() => await ImpersonationSvc.StopAsync();
@@ -492,6 +529,8 @@
                 _canSelfEnrol = false;
             }
 
+            await LoadDemoProfileAsync();
+
             // whoami advertises `photo` exactly when there is one to fetch, so the rel's presence replaces both
             // the HasPhoto check and the composed /users/{id}/photo path (issue #416).
             _photoDataUrl = me?.Links.FirstOrDefault(l => l.Rel == "photo")?.Href is { } photoHref
@@ -568,8 +607,11 @@
         await (await DialogService.ShowAsync<PasskeysDialog>(Strings.Get("DlgPasskeys"))).Result;
 
     // Mail, files, calendars and contacts each reach the archive with a device's own password (#1970).
-    private async Task ManageDevicesAsync() =>
+    private async Task ManageDevicesAsync()
+    {
         await (await DialogService.ShowAsync<DevicesDialog>(Strings.Get("DvTitle"), DevicesDialog.Options)).Result;
+        await LoadDemoProfileAsync();   // the demo device may have been changed or revoked
+    }
 
     // The reader certificate documents and mail are sealed to: the one store since the self-service mail certificate
     // retired (#1970 slice 4).

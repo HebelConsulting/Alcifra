@@ -9,7 +9,7 @@ namespace Alcifra.UiEndToEndTests;
 //
 // WebDAV/CalDAV/CardDAV and IMAP use APP-SPECIFIC passwords that normally do not exist until a user generates
 // one — right for a product, wrong for a demo, where a credential you must find two dialogs to create is one
-// nobody tries. The seeder pre-sets both to the known demo password.
+// nobody tries. The seeder gives each demo login one device with the known demo password (owner, 2026-11-02).
 //
 // Asserted against the real seeded app rather than the seeder's code, because "enabled" is a property of what
 // the running system reports, and the endpoint the clients read is the only thing that makes it true for a user.
@@ -28,21 +28,21 @@ public class DesktopDemoProtocolPasswordsTests
     private static string AnnaEmail =>
         $"anna@{SelfHostedAppFixture.AdminEmail.Split('@')[1]}";
 
-    [Theory]
-    [InlineData("earlierDav")]
-    [InlineData("earlierImap")]
-    public async Task The_demo_login_already_has_a_protocol_password(string kind)
+    [Fact]
+    public async Task The_demo_login_has_one_device_for_everything_and_no_earlier_passwords()
     {
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer", await Ui.GetUserTokenAsync(_app.BaseUrl, AnnaEmail, SelfHostedAppFixture.AdminPassword));
 
-        // The demo's passwords are the earlier devices (#1970): a demo visitor mounts and adds the mailbox at once.
-        var devices = await http.GetFromJsonAsync<JsonElement>("/api/me/devices");
+        // ONE device with the demo password (owner, 2026-11-02): a demo visitor mounts and adds the mailbox at once, and
+        // the device says which password it takes. The two earlier passwords the seed made before are gone.
+        var items = (await http.GetFromJsonAsync<JsonElement>("/api/me/devices")).GetProperty("items").EnumerateArray().ToList();
 
-        Assert.True(
-            devices.GetProperty("items").EnumerateArray().Any(d => d.GetProperty("kind").GetString() == kind),
-            $"The demo login has no {kind} device — a demo visitor would have to enrol a device before mounting anything.");
+        var device = Assert.Single(items);
+        Assert.Equal("seeded", device.GetProperty("kind").GetString());
+        Assert.Equal($"Demo device (password {SelfHostedAppFixture.AdminPassword})", device.GetProperty("name").GetString());
+        Assert.All(new[] { "mail", "files", "calendars", "contacts", "canEdit" }, p => Assert.True(device.GetProperty(p).GetBoolean(), p));
     }
 
     [Fact]

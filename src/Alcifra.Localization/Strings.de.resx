@@ -6798,6 +6798,9 @@
   <data name="MobPwDroppedOffline" xml:space="preserve">
     <value>{0}: aus der Offline-Kopie entfernt, weil ein Schlüssel, der diesen Speicher lesen konnte, widerrufen wurde. Er kommt zurück, sobald der Speicher neu versiegelt ist.</value>
   </data>
+  <data name="DemoProfileForIPhone" xml:space="preserve">
+    <value>Demo-Profil für iPhone und iPad</value>
+  </data>
   <data name="ApiErrCertificateLimit" xml:space="preserve">
     <value>Sie haben bereits zwei angemeldete Zertifikate, mehr sind hier nicht erlaubt. Widerrufen Sie eines, bevor Sie ein weiteres anmelden.</value>
   </data>

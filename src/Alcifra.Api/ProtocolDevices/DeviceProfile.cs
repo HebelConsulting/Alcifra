@@ -1,6 +1,3 @@
-using System.Security;
-using System.Text;
-
 namespace Alcifra.Api.ProtocolDevices;
 
 /// <summary>Where a device reaches the installation: what the Devices view, a profile and the hand-over name (#1970).</summary>
@@ -46,131 +43,21 @@ public sealed record DeviceServers(
 }
 
 /// <summary>
-/// The configuration profile that sets up a device's mail, calendars and contacts in one tap (#1970, owner 2026-10-29):
-/// one account per protocol the device's switches open. Files (WebDAV) has no profile payload; it is shown as an
-/// address instead.
+/// The configuration profile of an enrolled device (#1970): the shared builder (<see cref="Alcifra.Presentation.ConfigurationProfile"/>)
+/// fed with the server's addresses and the product's name.
 /// </summary>
-/// <remarks>
-/// The password is IN the profile, which is why it is only ever stored sealed and served once. Every value is XML
-/// escaped: a device or user name is the user's own text.
-/// </remarks>
 public static class DeviceProfile
 {
-    public const string ContentType = "application/x-apple-aspen-config";
+    /// <summary>The <c>Content-Type</c> a configuration profile is served with.</summary>
+    public const string ContentType = Alcifra.Presentation.ConfigurationProfile.ContentType;
 
-    /// <param name="ingestCertificatePem">
-    /// The tenant's mail-in certificate (ADR 0820), carried where the device reaches mail, so composing TO the archive's
-    /// ingest address offers encryption with no setup: iOS consults profile-installed certificates for S/MIME recipient
-    /// lookup. It rode the retired self-service identity's profile before (#1970 slice 4).
-    /// </param>
+    /// <inheritdoc cref="Alcifra.Presentation.ConfigurationProfile.Build"/>
     public static string Build(
         Guid deviceId, string deviceName, string email, string password, DeviceSwitches switches, DeviceServers servers,
-        string? ingestCertificatePem = null)
-    {
-        var payloads = new StringBuilder();
-        if (switches.Mail && servers.ImapHost is not null)
-        {
-            payloads.Append(Payload("com.apple.mail.managed", deviceId, "mail", $"{deviceName}: mail", [
-                ("EmailAccountType", "string", "EmailTypeIMAP"),
-                ("EmailAccountDescription", "string", $"{Alcifra.Localization.Strings.ProductName} ({deviceName})"),
-                ("EmailAddress", "string", email),
-                ("IncomingMailServerHostName", "string", servers.ImapHost),
-                ("IncomingMailServerPortNumber", "integer", servers.MailPort.Port.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                ("IncomingMailServerUseSSL", servers.MailPort.Tls ? "true" : "false", string.Empty),
-                ("IncomingMailServerAuthentication", "string", "EmailAuthPassword"),
-                ("IncomingMailServerUsername", "string", email),
-                ("IncomingPassword", "string", password),
-                ("OutgoingMailServerHostName", "string", servers.OutgoingHost),
-                ("OutgoingMailServerPortNumber", "integer", "25"),
-                ("OutgoingMailServerUseSSL", "false", string.Empty),
-                ("OutgoingMailServerAuthentication", "string", "EmailAuthNone"),
-                ("OutgoingMailServerUsername", "string", email),
-            ]));
-        }
-
-        if (switches.Mail && servers.ImapHost is not null && ingestCertificatePem is { Length: > 0 })
-        {
-            using var ingest = System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(ingestCertificatePem);
-            payloads.Append($"""
-
-                    <dict>
-                        <key>PayloadContent</key>
-                        <data>{Convert.ToBase64String(ingest.RawData)}</data>
-                        <key>PayloadDisplayName</key><string>{Escape($"{Alcifra.Localization.Strings.ProductName} mail-in certificate")}</string>
-                        <key>PayloadIdentifier</key><string>{Alcifra.Presentation.WireNames.DeviceProfileIdentifierPrefix}.{deviceId}.ingest</string>
-                        <key>PayloadType</key><string>com.apple.security.root</string>
-                        <key>PayloadUUID</key><string>{Uuid(deviceId, "ingest")}</string>
-                        <key>PayloadVersion</key><integer>1</integer>
-                    </dict>
-            """);
-        }
-
-        if (switches.Calendars)
-        {
-            payloads.Append(Payload("com.apple.caldav.account", deviceId, "caldav", $"{deviceName}: calendars", [
-                ("CalDAVAccountDescription", "string", $"{Alcifra.Localization.Strings.ProductName} ({deviceName})"),
-                ("CalDAVHostName", "string", servers.WebHost),
-                ("CalDAVPort", "integer", servers.WebPort.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                ("CalDAVUseSSL", servers.WebTls ? "true" : "false", string.Empty),
-                ("CalDAVUsername", "string", email),
-                ("CalDAVPassword", "string", password),
-            ]));
-        }
-
-        if (switches.Contacts)
-        {
-            payloads.Append(Payload("com.apple.carddav.account", deviceId, "carddav", $"{deviceName}: contacts", [
-                ("CardDAVAccountDescription", "string", $"{Alcifra.Localization.Strings.ProductName} ({deviceName})"),
-                ("CardDAVHostName", "string", servers.WebHost),
-                ("CardDAVPort", "integer", servers.WebPort.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                ("CardDAVUseSSL", servers.WebTls ? "true" : "false", string.Empty),
-                ("CardDAVUsername", "string", email),
-                ("CardDAVPassword", "string", password),
-            ]));
-        }
-
-        return $"""
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-                <key>PayloadContent</key>
-                <array>{payloads}</array>
-                <key>PayloadDisplayName</key><string>{Escape($"{Alcifra.Localization.Strings.ProductName}: {deviceName}")}</string>
-                <key>PayloadIdentifier</key><string>{Alcifra.Presentation.WireNames.DeviceProfileIdentifierPrefix}.{deviceId}</string>
-                <key>PayloadType</key><string>Configuration</string>
-                <key>PayloadUUID</key><string>{Uuid(deviceId, "profile")}</string>
-                <key>PayloadVersion</key><integer>1</integer>
-            </dict>
-            </plist>
-            """;
-    }
-
-    // A value is (key, type, text): type "string" or "integer" carries the text; "true"/"false" is a boolean element.
-    private static string Payload(string type, Guid deviceId, string part, string displayName, (string Key, string Type, string Value)[] values)
-    {
-        var body = new StringBuilder();
-        foreach (var (key, kind, value) in values)
-        {
-            body.Append($"<key>{key}</key>");
-            body.Append(kind is "true" or "false" ? $"<{kind}/>" : $"<{kind}>{Escape(value)}</{kind}>");
-        }
-
-        return $"""
-
-                    <dict>{body}
-                        <key>PayloadDisplayName</key><string>{Escape(displayName)}</string>
-                        <key>PayloadIdentifier</key><string>{Alcifra.Presentation.WireNames.DeviceProfileIdentifierPrefix}.{deviceId}.{part}</string>
-                        <key>PayloadType</key><string>{type}</string>
-                        <key>PayloadUUID</key><string>{Uuid(deviceId, part)}</string>
-                        <key>PayloadVersion</key><integer>1</integer>
-                    </dict>
-            """;
-    }
-
-    private static string Escape(string text) => SecurityElement.Escape(text) ?? string.Empty;
-
-    // Stable per device and part, so installing a device's profile again replaces it rather than adding a second.
-    private static string Uuid(Guid deviceId, string part) =>
-        new Guid(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes($"{deviceId}:{part}"))[..16]).ToString().ToUpperInvariant();
+        string? ingestCertificatePem = null) =>
+        Alcifra.Presentation.ConfigurationProfile.Build(
+            deviceId, deviceName, Alcifra.Localization.Strings.ProductName, email, password, switches.Mail, switches.Calendars, switches.Contacts,
+            new Alcifra.Presentation.ProfileServers(servers.ImapHost, servers.MailPort.Port, servers.MailPort.Tls, servers.OutgoingHost,
+                servers.WebHost, servers.WebPort, servers.WebTls),
+            ingestCertificatePem);
 }

@@ -48,7 +48,7 @@
                         }
                     </tbody>
                 </MudSimpleTable>
-                @if (list.Items.Any(d => d.Kind != "enrolled"))
+                @if (list.Items.Any(d => d.Kind is "earlierDav" or "earlierImap"))
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@Strings.Get("DvEarlierNote")</MudText>
                 }

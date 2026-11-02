@@ -145,6 +145,41 @@ public class ProtocolDeviceTests
         Assert.Contains("PROTOCOL_DEVICE_NOT_EDITABLE", await refused.Content.ReadAsStringAsync());
     }
 
+    // The demo's one device (owner, 2026-11-02): its password is chosen (the demo login's), so it has no key and is checked
+    // as the earlier ones are; otherwise it is a device: every protocol it is switched on for, and editable like one.
+    [Fact]
+    public async Task A_seeded_device_opens_mail_and_files_with_its_chosen_password_and_is_edited_like_any_device()
+    {
+        var (api, email, devices) = await SignedInUserAsync();
+        using var _ = api;
+        const string chosen = "DemoChosen2026!";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+            var user = await db.Users.IgnoreQueryFilters(["TenantFilter"]).SingleAsync(u => u.NormalizedEmail == email.ToUpperInvariant());
+            db.ProtocolDevices.Add(Alcifra.Api.ProtocolDevices.LegacyProtocolDevices.Demo(user, chosen,
+                new Microsoft.AspNetCore.Identity.PasswordHasher<Alcifra.Domain.Users.User>().HashPassword(user, chosen), DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync(WebDav, Basic(email, chosen)));
+        Assert.True(await ImapSignsInAsync(email, chosen));
+
+        var device = Assert.Single((await TestJson.Get(api, devices)).GetProperty("items").EnumerateArray());
+        Assert.Equal(("seeded", true), (device.GetProperty("kind").GetString(), device.GetProperty("canEdit").GetBoolean()));
+
+        // Files switched off: the same password no longer mounts the drive, and still opens mail.
+        using var edit = new HttpRequestMessage(HttpMethod.Put,
+            device.GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "self").GetProperty("href").GetString())
+        {
+            Content = JsonContent.Create(new { name = "Demo", mail = true, files = false, calendars = true, contacts = true, encryptMail = false }),
+        };
+        edit.Headers.TryAddWithoutValidation("If-Match", device.GetProperty("eTag").GetString());
+        Assert.True((await api.SendAsync(edit)).IsSuccessStatusCode);
+        Assert.NotEqual(HttpStatusCode.MultiStatus, await PropfindAsync(WebDav, Basic(email, chosen)));
+        Assert.True(await ImapSignsInAsync(email, chosen));
+    }
+
     [Fact]
     public async Task The_hand_over_gives_the_profile_to_whoever_holds_the_link_within_its_takes()
     {
