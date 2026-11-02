@@ -152,6 +152,51 @@ public sealed class DesktopMessagesParityTests : IDisposable
         Assert.Equal(ViewText.Get("Deleted"), left.Text);
     }
 
+    // #2037: files dropped on the conversation take Attach's path: chips first, nothing sent until Send, which then sends
+    // one message carrying them all with the caption. (The drop gesture itself is the view's; it hands the files here.)
+    [Fact]
+    public async Task Files_dropped_on_the_conversation_wait_as_chips_and_go_with_the_caption_on_Send()
+    {
+        var (id, _) = _messenger.AddConversation("Crew", isDirect: false, [_me, _tom]);
+        var thread = await OpenAsync(id);
+        IReadOnlyList<PickedFile> dropped =
+            [new("route.pdf", Encoding.UTF8.GetBytes("%PDF-1.4 route")), new("notes.txt", Encoding.UTF8.GetBytes("fuel 42"))];
+
+        Assert.True(thread.Composer.AcceptsFiles);
+        await thread.Composer.AddFilesAsync(() => Task.FromResult(dropped));
+        Assert.Equal(2, thread.Composer.Chips.Count);
+        Assert.Empty(_messenger.ChatOf(id).Messages);   // queued, not sent
+
+        thread.Composer.Text = "for the flight";
+        await thread.Composer.SendAsync();
+
+        var sent = Assert.Single(_messenger.ChatOf(id).Messages);
+        Assert.Equal(2, sent.Files.Count);
+        Assert.Equal("for the flight", thread.Bubbles.Single(b => b.IsMine).Text);
+    }
+
+    // #2037: a message being edited takes no files (a message with files is not edited), so a drop changes nothing.
+    [Fact]
+    public async Task A_drop_while_a_message_is_edited_is_refused_and_changes_nothing()
+    {
+        var (id, _) = _messenger.AddConversation("Crew", isDirect: false, [_me, _tom]);
+        var thread = await OpenAsync(id);
+        thread.Composer.Text = "10:30";
+        await thread.Composer.SendAsync();
+        thread.EditCommand.Execute(thread.Bubbles.Single(b => b.IsMine));
+
+        Assert.False(thread.Composer.AcceptsFiles);
+        var read = false;
+        await thread.Composer.AddFilesAsync(() =>
+        {
+            read = true;
+            return Task.FromResult<IReadOnlyList<PickedFile>>([new("route.pdf", [1])]);
+        });
+
+        Assert.False(read);   // not even read: the drop is refused before anything is touched
+        Assert.Empty(thread.Composer.Chips);
+    }
+
     [Fact]
     public async Task Several_files_go_as_chips_into_one_message_each_sealed_to_every_member()
     {

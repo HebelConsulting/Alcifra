@@ -30,7 +30,36 @@ public partial class MessagesTab : UserControl
         {
             scroll.ScrollChanged += OnThreadScrolled;
         }
+
+        if (this.FindControl<DockPanel>("ThreadArea") is { } area)
+        {
+            area.AddHandler(DragDrop.DragOverEvent, OnThreadDragOver);
+            area.AddHandler(DragDrop.DropEvent, OnThreadDrop);
+        }
     }
+
+#pragma warning disable CS0618 // DragEventArgs.Data / DataFormats.Files — the pre-DataTransfer drag API, as WorkbenchDragDrop uses
+    // Files dropped on the open conversation become chips, as Attach makes them (#2037): never sent before Send. The drag
+    // shows "no" where they would not be taken: no conversation, a message being edited, a send on its way, or anything
+    // that is not a file (a folder).
+    private void OnThreadDragOver(object? sender, DragEventArgs e) =>
+        e.DragEffects = DropTarget() is not null && DroppedFiles(e) is { Count: > 0 } ? DragDropEffects.Copy : DragDropEffects.None;
+
+    private void OnThreadDrop(object? sender, DragEventArgs e) => Services.Safe.Fire(async () =>
+    {
+        if (DropTarget() is { } composer && DroppedFiles(e) is { Count: > 0 } files)
+        {
+            await composer.AddFilesAsync(() => ReadAsync(files));
+        }
+    });
+
+    private MessengerComposerViewModel? DropTarget() =>
+        _tab?.Thread is { CanWrite: true, Composer: { AcceptsFiles: true } composer } ? composer : null;
+
+    // Only files: a folder among them refuses the whole drop rather than dropping part of it.
+    private static IReadOnlyList<IStorageFile>? DroppedFiles(DragEventArgs e) =>
+        e.Data.GetFiles()?.ToList() is { Count: > 0 } items && items.All(i => i is IStorageFile) ? [.. items.Cast<IStorageFile>()] : null;
+#pragma warning restore CS0618
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
 
@@ -193,7 +222,13 @@ public partial class MessagesTab : UserControl
             return [];
         }
 
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = ViewText.Get("Attach"), AllowMultiple = true });
+        return await ReadAsync(await storage.OpenFilePickerAsync(new FilePickerOpenOptions { Title = ViewText.Get("Attach"), AllowMultiple = true }));
+    }
+
+    // Read into memory, as Attach always did: a file is sealed before anything leaves the machine, and nothing new is
+    // written to disk.
+    private static async Task<IReadOnlyList<PickedFile>> ReadAsync(IReadOnlyList<IStorageFile> files)
+    {
         var picked = new List<PickedFile>();
         foreach (var file in files)
         {

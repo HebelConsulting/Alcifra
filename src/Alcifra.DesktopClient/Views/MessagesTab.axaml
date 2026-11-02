@@ -115,7 +115,10 @@
 
         <!-- ═══ The conversation ═══ -->
         <DockPanel IsVisible="{Binding ShowsThread}" LastChildFill="True">
-          <DockPanel DataContext="{Binding Thread}" x:DataType="vm:MessengerThreadViewModel" LastChildFill="True" IsVisible="{Binding $parent[UserControl].((vm:MessagesTabViewModel)DataContext).Thread, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <!-- The open conversation takes dropped files as chips, as Attach does (#2037): its empty space too, hence the
+               transparent background, which makes the whole area a hit target. -->
+          <DockPanel x:Name="ThreadArea" Background="Transparent" DragDrop.AllowDrop="True"
+                     DataContext="{Binding Thread}" x:DataType="vm:MessengerThreadViewModel" LastChildFill="True" IsVisible="{Binding $parent[UserControl].((vm:MessagesTabViewModel)DataContext).Thread, Converter={x:Static ObjectConverters.IsNotNull}}">
 
             <Border DockPanel.Dock="Top" Classes="paneHeader">
               <DockPanel LastChildFill="True">

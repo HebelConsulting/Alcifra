@@ -654,8 +654,8 @@ einen haben, sonst mit Ihrer Karte, die einmal nach ihrer PIN fragt.]
 
 *Schreiben.* Tippen Sie in das Feld unten: *Enter* sendet, *Shift+Enter* beginnt eine neue Zeile. Solange eine Nachricht
 unterwegs ist, zeigt sie *Wird gesendet…*, und das Feld wartet, sodass ein Klick nie doppelt sendet. Die Büroklammer fügt Dateien hinzu – mehrere
-auf einmal – als Chips über dem Feld, jeder mit eigenem ✕; *Senden* verschickt sie zusammen mit Ihrem Text als *eine* Nachricht, der Text
-als ihre Beschriftung. Ein Rechtsklick auf eine Nachricht zeigt, was Sie damit tun können: *Antworten* (eine Leiste über dem Feld sagt, an wen; ✕ oder
+auf einmal – als Chips über dem Feld, jeder mit eigenem ✕; *Dateien auf die Unterhaltung ziehen* bewirkt dasselbe. *Senden*
+verschickt sie zusammen mit Ihrem Text als *eine* Nachricht, der Text als ihre Beschriftung. Ein Rechtsklick auf eine Nachricht zeigt, was Sie damit tun können: *Antworten* (eine Leiste über dem Feld sagt, an wen; ✕ oder
 *Esc* nimmt es zurück), Ihre eigene Nachricht *Bearbeiten* (sie wandert ins Feld; *Speichern* oder *Ctrl+S* bzw. *Cmd+S* übernimmt die Änderung,
 *Esc* lässt sie, wie sie war), *Text kopieren*, *Gelesen von…* in einer Gruppe sowie *Für alle löschen* oder *Für mich löschen*. Wer sonst
 gerade tippt, erscheint unter dem Verlauf; die Tastatur-Schaltfläche im Menüband schaltet das in beide Richtungen ab. Haben Sie

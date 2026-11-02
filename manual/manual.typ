@@ -650,8 +650,8 @@ one, otherwise your card, which asks for its PIN once.]
 
 *Writing.* Type into the field at the bottom: *Enter* sends, *Shift+Enter* starts a new line. While a message is on
 its way it shows as *Sending…* and the field waits, so one click never sends twice. The paper clip adds files — several
-at once — as chips above the field, each with its own ✕; *Send* sends them and your text as *one* message, the text
-as their caption. Right-click a message for what you can do with it: *Reply* (a bar above the field says to whom; ✕ or
+at once — as chips above the field, each with its own ✕; *dragging files* onto the conversation does the same. *Send*
+sends them and your text as *one* message, the text as their caption. Right-click a message for what you can do with it: *Reply* (a bar above the field says to whom; ✕ or
 *Esc* takes it back), *Edit* your own message (it moves into the field; *Save* or *Ctrl+S* or *Cmd+S* keeps the change,
 *Esc* leaves it as it was), *Copy text*, *Read by…* in a group, and *Delete for everyone* or *Delete for me*. Who else
 is typing shows beneath the thread; the keyboard button in the ribbon switches that off in both directions. If you have

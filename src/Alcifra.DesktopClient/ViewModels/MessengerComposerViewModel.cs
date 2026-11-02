@@ -197,16 +197,28 @@ public sealed partial class MessengerComposerViewModel : ObservableObject
 
     /// <summary>Attach: the chosen files join the draft as chips (several at once); Send sends them all as one message.</summary>
     [RelayCommand]
-    public async Task AttachAsync()
+    public Task AttachAsync() => _dialogs.PickFiles is { } pick ? AddFilesAsync(pick) : Task.CompletedTask;
+
+    /// <summary>
+    /// Whether files may join the draft now: not while a send is on its way, nor while a message is edited (a message
+    /// with files is not edited). Attach and a drop on the conversation (#2037) both ask it; a drop shows "no" when not.
+    /// </summary>
+    public bool AcceptsFiles => !_gate.Sending && !IsEditing;
+
+    /// <summary>
+    /// Files join the draft as chips, read by <paramref name="read"/>: the picker's choice (Attach) or the files dropped on
+    /// the conversation (#2037). Nothing is sent until Send; the first refusal (too large, too many) is reported.
+    /// </summary>
+    public async Task AddFilesAsync(Func<Task<IReadOnlyList<PickedFile>>> read)
     {
-        if (_gate.Sending || IsEditing || _dialogs.PickFiles is not { } pick)
+        if (!AcceptsFiles)
         {
             return;
         }
 
         try
         {
-            foreach (var file in await pick())
+            foreach (var file in await read())
             {
                 if (Add(file) is { } refused)
                 {
