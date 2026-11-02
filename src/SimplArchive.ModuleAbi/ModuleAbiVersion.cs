@@ -153,5 +153,10 @@ public static class ModuleAbiVersion
     /// one signed as <see cref="MobileLicense.LegacyKind"/> (core #1117 phase 4b, ADR 1002). A new constant only, so a 1.25
     /// module is unaffected; a licence it signed still verifies.
     /// </para>
-    public const int Minor = 26;
+    /// <para>
+    /// 1.27 adds <see cref="IModuleDeviceProfiles"/> through <see cref="IIndustryModule.DeviceProfiles"/>: a module adds
+    /// payloads to a device's setup profile and learns of a revoked device (core ADR 1036, the provisioning module of
+    /// core #2101). A default-null property and new types only, so a 1.26 module is unaffected.
+    /// </para>
+    public const int Minor = 27;
 }

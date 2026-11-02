@@ -247,6 +247,13 @@ public interface IIndustryModule
     Func<BookingAdmissionContext, Task>? ReviewBooking => null;
 
     /// <summary>
+    /// The module's part in a device's setup profile, and its word on a revoked device (ABI 1.27, core ADR 1036). Null —
+    /// the default — means the module adds nothing and is told nothing. A DEFAULT-IMPLEMENTED property, so a module
+    /// built against 1.26 or earlier compiles and runs unchanged.
+    /// </summary>
+    IModuleDeviceProfiles? DeviceProfiles => null;
+
+    /// <summary>
     /// Answers which certificates a reader is addressed by, for a tenant whose content is delivered as
     /// envelopes (core ADR 0842, ABI 0.31). Default null — a module that enrols no certificates declares
     /// nothing, and the core resolves them as it did before.

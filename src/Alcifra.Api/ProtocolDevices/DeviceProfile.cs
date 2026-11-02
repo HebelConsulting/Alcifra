@@ -54,10 +54,10 @@ public static class DeviceProfile
     /// <inheritdoc cref="Alcifra.Presentation.ConfigurationProfile.Build"/>
     public static string Build(
         Guid deviceId, string deviceName, string email, string password, DeviceSwitches switches, DeviceServers servers,
-        string? ingestCertificatePem = null) =>
+        string? ingestCertificatePem = null, IReadOnlyList<Alcifra.Presentation.ExtraPayload>? extra = null) =>
         Alcifra.Presentation.ConfigurationProfile.Build(
             deviceId, deviceName, Alcifra.Localization.Strings.ProductName, email, password, switches.Mail, switches.Calendars, switches.Contacts,
             new Alcifra.Presentation.ProfileServers(servers.ImapHost, servers.MailPort.Port, servers.MailPort.Tls, servers.OutgoingHost,
                 servers.WebHost, servers.WebPort, servers.WebTls),
-            ingestCertificatePem);
+            ingestCertificatePem, extra);
 }

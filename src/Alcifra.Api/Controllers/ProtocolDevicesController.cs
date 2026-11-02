@@ -45,7 +45,8 @@ public class ProtocolDevicesController(
     Alcifra.Api.Imap.ImapServer imapServer,
     Alcifra.Api.Encryption.TenantIngestKeyService ingestKeys,
     IAuditRecorder audit,
-    ILogger<ProtocolDevicesController> logger) : ControllerBase
+    ILogger<ProtocolDevicesController> logger,
+    Alcifra.Infrastructure.Modules.ModuleDeviceProfiles moduleProfiles) : ControllerBase
 {
     private const string Collection = "/api/me/devices";
 
@@ -338,8 +339,11 @@ public class ProtocolDevicesController(
         // A device that reaches mail carries the tenant's mail-in certificate (ADR 0820), minted on first need as the
         // retired self-service identity minted it (#1970 slice 4). Null without a verified receiving domain.
         var ingest = switches.Mail ? await ingestKeys.EnsureAsync(user.TenantId, cancellationToken) : null;
-        var link = profileReaches
-            ? handOvers.Create(device, DeviceProfile.Build(device.Id, device.Name, user.Email, password, switches, servers, ingest?.CertificatePem))
+        // What the active modules add (ABI 1.27, ADR 1036): a device whose profile would otherwise carry nothing still
+        // gets one when a module has a part for it.
+        var extra = await moduleProfiles.PayloadsAsync(user.TenantId, user.Id, user.Email, device.Id, device.Name, servers.WebHost, cancellationToken);
+        var link = profileReaches || extra.Count > 0
+            ? handOvers.Create(device, DeviceProfile.Build(device.Id, device.Name, user.Email, password, switches, servers, ingest?.CertificatePem, extra))
             : ((string Token, DateTimeOffset ExpiresAt)?)null;
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -446,6 +450,8 @@ public class ProtocolDevicesController(
                 logger.LogInformation("Protocol device {DeviceId} of user {UserId} revoked", device.Id, user.Id);
                 await audit.RecordAsync(AuditActions.ProtocolDeviceRevoked, "User", user.Id, device.Name,
                     $"Revoked the device '{device.Name}'.", cancellationToken: cancellationToken);
+                // The modules revoke what they issued for the device (ABI 1.27, ADR 1036); a module's failure is its own.
+                await moduleProfiles.DeviceRevokedAsync(user.TenantId, user.Id, device.Id, cancellationToken);
             },
             touchEntity: false,
             cancellationToken: cancellationToken);

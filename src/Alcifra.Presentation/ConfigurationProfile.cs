@@ -32,9 +32,16 @@ public static class ConfigurationProfile
     /// <param name="productName">The product's name as the reader sees it, which titles the accounts.</param>
     public static string Build(
         Guid deviceId, string deviceName, string productName, string email, string password, bool mail, bool calendars, bool contacts,
-        ProfileServers servers, string? ingestCertificatePem = null)
+        ProfileServers servers, string? ingestCertificatePem = null, IReadOnlyList<ExtraPayload>? extra = null)
     {
         var payloads = new StringBuilder();
+        // What a module adds (ABI 1.27, ADR 1036): wrapped like the core's own payloads, so a module writes none of the
+        // Payload* keys and its UUIDs are the core's.
+        foreach (var payload in extra ?? [])
+        {
+            payloads.Append(Payload(payload.Type, deviceId, payload.Part, payload.DisplayName, payload.BodyXml));
+        }
+
         if (mail && servers.ImapHost is not null)
         {
             payloads.Append(Payload("com.apple.mail.managed", deviceId, "mail", $"{deviceName}: mail", [
@@ -123,6 +130,12 @@ public static class ConfigurationProfile
             body.Append(kind is "true" or "false" ? $"<{kind}/>" : $"<{kind}>{Escape(value)}</{kind}>");
         }
 
+        return Payload(type, deviceId, part, displayName, body.ToString());
+    }
+
+    // The payload's own keys as plist XML, wrapped with the five Payload* keys every payload carries.
+    private static string Payload(string type, Guid deviceId, string part, string displayName, string body)
+    {
         return $"""
 
                     <dict>{body}
@@ -137,7 +150,15 @@ public static class ConfigurationProfile
 
     private static string Escape(string text) => SecurityElement.Escape(text) ?? string.Empty;
 
+    /// <summary>The UUID of a device's payload part: stable per device and part, so installing a device's profile
+    /// again replaces it rather than adding a second, and a payload can reference another's.</summary>
+    public static string PayloadUuid(Guid deviceId, string part) => Uuid(deviceId, part);
+
     // Stable per device and part, so installing a device's profile again replaces it rather than adding a second.
     private static string Uuid(Guid deviceId, string part) =>
         new Guid(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes($"{deviceId}:{part}"))[..16]).ToString().ToUpperInvariant();
 }
+
+/// <summary>A payload a module adds to a device's profile (ABI 1.27, ADR 1036): the core wraps its body with the
+/// Payload* keys. The body is the payload's own keys as plist XML elements.</summary>
+public sealed record ExtraPayload(string Type, string Part, string DisplayName, string BodyXml);

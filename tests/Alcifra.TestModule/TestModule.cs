@@ -167,6 +167,30 @@ public sealed class TestModule : IIndustryModule
             ]);
         };
 
+    /// <summary>ABI 1.27 (core ADR 1036): one payload in every device profile of an active tenant, and the revoked device ids.</summary>
+    public IModuleDeviceProfiles? DeviceProfiles => new E2EDeviceProfiles();
+
+    /// <summary>The revoked device ids, comma-separated, in an environment variable: the host loads this module in its own
+    /// load context, so a static here is not the test's static; the process environment is shared.</summary>
+    public const string RevokedDevicesVariable = "SIMPLARCHIVE_TESTMODULE_REVOKED_DEVICES";
+
+    private sealed class E2EDeviceProfiles : IModuleDeviceProfiles
+    {
+        public Task<IReadOnlyList<ProfilePayload>> PayloadsAsync(DeviceProfileContext context, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ProfilePayload>>(
+            [
+                new ProfilePayload("com.apple.vpn.managed", "vpn", $"E2E VPN for {context.DeviceName}",
+                    $"<key>UserDefinedName</key><string>E2E VPN {context.UserEmail}</string><key>PayloadCertificateUUID</key><string>{context.PayloadUuid("scep")}</string>"),
+            ]);
+
+        public Task DeviceRevokedAsync(DeviceRevokedContext context, CancellationToken cancellationToken)
+        {
+            var before = Environment.GetEnvironmentVariable(RevokedDevicesVariable);
+            Environment.SetEnvironmentVariable(RevokedDevicesVariable, string.IsNullOrEmpty(before) ? $"{context.DeviceId:D}" : $"{before},{context.DeviceId:D}");
+            return Task.CompletedTask;
+        }
+    }
+
     public Func<BookingAdmissionContext, Task>? ReviewBooking => async context =>
     {
         switch (Environment.GetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_BOOKING_REVIEW"))

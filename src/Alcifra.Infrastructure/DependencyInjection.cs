@@ -160,6 +160,7 @@ public static class DependencyInjection
         // The booking-admission seam (ADR 0781): asked on every booking write, answering instantly when no
         // module vets bookings — which is every tenant without one, and every test.
         services.AddScoped<Application.Abstractions.IBookingAdmissionReviewer, Modules.ModuleBookingAdmissionReviewer>();
+        services.AddScoped<Alcifra.Infrastructure.Modules.ModuleDeviceProfiles>();   // ABI 1.27: a module's part in a device profile (ADR 1036)
         services.AddScoped<Modules.ModuleReaderCertificates>();
         services.AddScoped<Modules.ModuleOfflineExportPolicy>();   // ABI 1.15, ADR 0928
         services.AddScoped<Modules.ModuleMaskSeeder>();
