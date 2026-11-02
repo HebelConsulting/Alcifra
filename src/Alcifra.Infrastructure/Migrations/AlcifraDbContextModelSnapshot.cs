@@ -2852,6 +2852,9 @@ namespace Alcifra.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("bytea");
 
+                    b.Property<int>("TakenCount")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 

@@ -146,7 +146,7 @@ public class ProtocolDeviceTests
     }
 
     [Fact]
-    public async Task The_hand_over_gives_the_profile_once_to_whoever_holds_the_link()
+    public async Task The_hand_over_gives_the_profile_to_whoever_holds_the_link_within_its_takes()
     {
         var (api, email, devices) = await SignedInUserAsync();
         using var _ = api;
@@ -169,6 +169,13 @@ public class ProtocolDeviceTests
         var profile = await first.Content.ReadAsStringAsync();
         Assert.Contains(password, profile);
         Assert.Contains(email, profile);
+
+        // A browser that cannot install the profile hands it to one that can, which fetches the link again (ADR 1028):
+        // it answers within its takes, then never again.
+        for (var take = 1; take < Alcifra.Api.ProtocolDevices.DeviceHandOvers.MaxTakes; take++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await camera.GetAsync(link)).StatusCode);
+        }
 
         Assert.Equal(HttpStatusCode.NotFound, (await camera.GetAsync(link)).StatusCode);
     }

@@ -8,13 +8,14 @@ using Alcifra.Domain.Audit;
 namespace Alcifra.Api.Controllers;
 
 /// <summary>
-/// A new device's configuration profile, through the one-time link its QR code carries (#1970 slice 2; owner,
-/// 2026-10-29/31): anyone holding the link, once, within about ten minutes.
+/// A new device's configuration profile, through the short-lived link its QR code carries (#1970 slice 2; owner,
+/// 2026-10-29/31): anyone holding the link, within about ten minutes, and for two minutes after its first take, so a
+/// browser that cannot install a profile can hand it to one that can (ADR 1028).
 /// </summary>
 /// <remarks>
 /// <b>Anonymous on purpose.</b> A new phone's camera opens the link in a browser that is not signed in, so the link's
-/// token is the authorisation. It is 256 random bits, works once, and expires; the answer is never cached. An unknown,
-/// used or expired link answers 404, the same for every cause.
+/// token is the authorisation. It is 256 random bits, works a few times within a short grace, and expires; the answer
+/// is never cached. An unknown, spent or expired link answers 404, the same for every cause.
 /// </remarks>
 [ApiController]
 [ApiVersion("1.0")]

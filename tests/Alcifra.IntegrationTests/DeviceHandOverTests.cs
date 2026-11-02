@@ -8,8 +8,9 @@ using Alcifra.Infrastructure.Persistence;
 
 namespace Alcifra.IntegrationTests;
 
-// #1970 slice 2: the one-time profile link (owner, 2026-10-29/31). Taken ONCE, by the delete that removes it; gone
-// after its lifetime; the stored row holds the profile sealed and only the token's hash.
+// #1970 slice 2: the profile link (owner, 2026-10-29/31); the stored row holds the profile sealed and only the token's
+// hash. ADR 1028 (owner, 2026-11-01): a browser that cannot install a profile hands it to one that can, which fetches the
+// link again, so the first take leaves it working for a short grace, MaxTakes times in all.
 public class DeviceHandOverTests
 {
     private sealed class Clock(DateTimeOffset now) : TimeProvider
@@ -55,7 +56,7 @@ public class DeviceHandOverTests
     }
 
     [Fact]
-    public async Task A_link_gives_the_profile_once_and_then_nothing()
+    public async Task A_link_gives_the_profile_at_most_MaxTakes_times_and_then_nothing()
     {
         var (connection, device) = await SeedAsync();
         await using var open = connection;
@@ -77,12 +78,16 @@ public class DeviceHandOverTests
             var handOvers = new DeviceHandOvers(context, _keys, _clock);
             Assert.True(await handOvers.ExistsAsync(token, CancellationToken.None));
 
-            var taken = await handOvers.TakeAsync(token, CancellationToken.None);
-            Assert.Equal(Profile, taken!.Value.Profile);
-            Assert.Equal(device.Id, taken.Value.Device.Id);
+            for (var take = 0; take < DeviceHandOvers.MaxTakes; take++)
+            {
+                var taken = await handOvers.TakeAsync(token, CancellationToken.None);
+                Assert.Equal(Profile, taken!.Value.Profile);
+                Assert.Equal(device.Id, taken.Value.Device.Id);
+            }
 
             Assert.Null(await handOvers.TakeAsync(token, CancellationToken.None));
             Assert.False(await handOvers.ExistsAsync(token, CancellationToken.None));
+            Assert.Empty(await context.ProtocolDeviceHandOvers.IgnoreQueryFilters(["TenantFilter"]).ToListAsync());   // the last take removed it
         }
     }
 
@@ -106,6 +111,57 @@ public class DeviceHandOverTests
             Assert.Null(await handOvers.TakeAsync(token, CancellationToken.None));
             Assert.Equal(1, await handOvers.SweepAsync(CancellationToken.None));
             Assert.Empty(await context.ProtocolDeviceHandOvers.IgnoreQueryFilters(["TenantFilter"]).ToListAsync());
+        }
+    }
+
+    [Fact]
+    public async Task The_first_take_leaves_the_link_working_only_for_the_grace()
+    {
+        var (connection, device) = await SeedAsync();
+        await using var open = connection;
+
+        string token;
+        await using (var context = Context(connection, device.TenantId))
+        {
+            (token, _) = new DeviceHandOvers(context, _keys, _clock).Create(device, Profile);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = Context(connection))
+        {
+            // The first browser downloads it; the installer fetches it again within the grace.
+            var handOvers = new DeviceHandOvers(context, _keys, _clock);
+            Assert.NotNull(await handOvers.TakeAsync(token, CancellationToken.None));
+            _clock.Now += DeviceHandOvers.Grace - TimeSpan.FromSeconds(1);
+            Assert.NotNull(await handOvers.TakeAsync(token, CancellationToken.None));
+
+            // The grace counts from the FIRST take, well inside the link's ten minutes.
+            _clock.Now += TimeSpan.FromSeconds(2);
+            Assert.Null(await handOvers.TakeAsync(token, CancellationToken.None));
+            Assert.Equal(1, await handOvers.SweepAsync(CancellationToken.None));
+        }
+    }
+
+    [Fact]
+    public async Task The_grace_never_runs_past_the_links_lifetime()
+    {
+        var (connection, device) = await SeedAsync();
+        await using var open = connection;
+
+        string token;
+        await using (var context = Context(connection, device.TenantId))
+        {
+            (token, _) = new DeviceHandOvers(context, _keys, _clock).Create(device, Profile);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = Context(connection))
+        {
+            var handOvers = new DeviceHandOvers(context, _keys, _clock);
+            _clock.Now += DeviceHandOvers.Lifetime - TimeSpan.FromSeconds(30);
+            Assert.NotNull(await handOvers.TakeAsync(token, CancellationToken.None));
+            _clock.Now += TimeSpan.FromSeconds(31);
+            Assert.Null(await handOvers.TakeAsync(token, CancellationToken.None));
         }
     }
 
