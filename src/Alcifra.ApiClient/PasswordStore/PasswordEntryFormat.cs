@@ -28,9 +28,15 @@ public static class PasswordEntryFormat
     public const string SecretMarker = " [secret]";
 
     /// <summary>The MIME entity, ready to seal.</summary>
+    /// <exception cref="PasswordEntryEmptyException">The entry holds no password, verification code or passkey (ADR 1044).</exception>
     public static MimeEntity ToMime(PasswordEntryContent content)
     {
         ArgumentNullException.ThrowIfNull(content);
+        if (!content.HasAnyPart)
+        {
+            throw new PasswordEntryEmptyException();
+        }
+
         var body = new StringBuilder();
         foreach (var field in content.Fields)
         {
@@ -45,6 +51,12 @@ public static class PasswordEntryFormat
 
         var text = new TextPart("plain") { ContentTransferEncoding = ContentEncoding.QuotedPrintable };
         text.SetText(Encoding.UTF8, body.ToString());
+
+        // No password, no passwd.txt (ADR 1044): an entry may hold only a verification code or a passkey.
+        if (!content.HasPassword)
+        {
+            return new Multipart("mixed") { text };
+        }
 
         var password = new MimePart("text", "plain")
         {
@@ -84,15 +96,20 @@ public static class PasswordEntryFormat
     public static PasswordEntryContent Parse(MimeEntity entity)
     {
         var parts = entity is Multipart multipart ? multipart.ToList() : [entity];
+        // The password part is optional (ADR 1044); an entry written before with an empty one reads the same way.
         var passwordPart = parts.OfType<MimePart>().FirstOrDefault(p =>
-            string.Equals(p.FileName, PasswordFileName, StringComparison.OrdinalIgnoreCase))
-            ?? throw new PasswordEntryUnreadableException($"it holds no {PasswordFileName}");
-        var password = Decode(passwordPart).TrimEnd('\r', '\n');
+            string.Equals(p.FileName, PasswordFileName, StringComparison.OrdinalIgnoreCase));
+        var password = passwordPart is null ? string.Empty : Decode(passwordPart).TrimEnd('\r', '\n');
 
         var fields = new List<PasswordEntryField>();
-        if (parts.OfType<TextPart>().FirstOrDefault(p => !ReferenceEquals(p, passwordPart)) is { } text)
+        var text = parts.OfType<TextPart>().FirstOrDefault(p => !ReferenceEquals(p, passwordPart));
+        if (text is not null)
         {
             fields.AddRange(Fields(text.Text ?? string.Empty));
+        }
+        else if (passwordPart is null)
+        {
+            throw new PasswordEntryUnreadableException($"it holds neither a {PasswordFileName} nor any field");
         }
 
         return new PasswordEntryContent(password, fields);
@@ -150,3 +167,10 @@ public static class PasswordEntryFormat
 /// <summary>The content opened, but it is not a password entry: never shown as an empty one.</summary>
 public sealed class PasswordEntryUnreadableException(string reason, Exception? inner = null)
     : Exception($"This password entry could not be read: {reason}.", inner);
+
+/// <summary>
+/// An entry to seal holds no password, no verification code and no passkey (ADR 1044): there is nothing to sign in with.
+/// Removing its last part is deleting the entry.
+/// </summary>
+public sealed class PasswordEntryEmptyException()
+    : InvalidOperationException("An entry holds at least one of a password, a verification code and a passkey.");

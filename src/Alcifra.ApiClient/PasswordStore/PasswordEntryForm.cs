@@ -32,6 +32,21 @@ public sealed class PasswordEntryForm
 
     public string Password { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether the form shows the password (ADR 1044): a new entry starts with it; an opened entry only when it has one, so
+    /// a passkey-only or code-only entry offers "Add password" instead of an empty box.
+    /// </summary>
+    public bool HasPassword { get; private set; } = true;
+
+    /// <summary>What "Add field" offers first while the form shows no password.</summary>
+    public bool SuggestsPassword => !HasPassword;
+
+    /// <summary>The user added a password.</summary>
+    public void AddPassword() => HasPassword = true;
+
+    /// <summary>The user removed the password: saving drops it (allowed while a code or passkey remains, ADR 1044).</summary>
+    public void RemovePassword() => (Password, HasPassword) = (string.Empty, false);
+
     public string Pin { get; set; } = string.Empty;
 
     /// <summary>Whether the form shows the PIN: the entry has one, or the user added it (<see cref="AddPin"/>). The core
@@ -100,7 +115,7 @@ public sealed class PasswordEntryForm
     /// nothing.</summary>
     public static PasswordEntryForm From(PasswordEntryContent content)
     {
-        var form = new PasswordEntryForm { Password = content.Password };
+        var form = new PasswordEntryForm { Password = content.Password, HasPassword = content.HasPassword };
         var taken = new HashSet<PasswordFieldSlot>();
         var notes = false;
         foreach (var field in content.Fields)
@@ -158,12 +173,18 @@ public sealed class PasswordEntryForm
             return "PwVerificationCodeInvalid";
         }
 
-        return Fields.Where(f => !IsBlank(f)).Any(f => !IsValidName(f.Name)) ? "PwFieldNameInvalid" : null;
+        if (Fields.Where(f => !IsBlank(f)).Any(f => !IsValidName(f.Name)))
+        {
+            return "PwFieldNameInvalid";
+        }
+
+        // At least one of a password, a verification code and a passkey (ADR 1044); removing the last is deleting the entry.
+        return ToContent().HasAnyPart ? null : "PwEntryNeedsAPart";
     }
 
     /// <summary>The content to seal: URL, user name, PIN, verification code, passkey, the further fields, then the notes; empty boxes are left out
     /// (the core's order decides how it is shown, whatever order it is stored in).</summary>
-    public PasswordEntryContent ToContent() => new(Password,
+    public PasswordEntryContent ToContent() => new(HasPassword ? Password : string.Empty,
     [
         .. Known(_urlName, Url),
         .. Known(_userName, UserName),

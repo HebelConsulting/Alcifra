@@ -19,6 +19,33 @@ public sealed class PasswordScreenRulesTests
     ]);
 
     // Owner decision 2026-10-23 (ADR 0965): URL, user name, password, PIN, then the rest in the entry's own order.
+    // ADR 1044 (#2130): the password is optional; the form shows it only where the entry has one, offers "Add password",
+    // and refuses a save that would leave no password, code or passkey.
+    [Fact]
+    public void A_code_only_entry_shows_no_password_and_offers_to_add_one()
+    {
+        var form = PasswordEntryForm.From(new PasswordEntryContent(string.Empty, [new(PasswordEntryFieldNames.VerificationCode, "JBSWY3DPEHPK3PXP", IsSecret: true)]));
+        Assert.False(form.HasPassword);
+        Assert.True(form.SuggestsPassword);
+
+        form.AddPassword();
+        form.Password = "pw";
+        Assert.Equal("pw", form.ToContent().Password);
+    }
+
+    [Fact]
+    public void The_password_may_be_removed_while_a_code_remains_but_not_as_the_last_part()
+    {
+        var withCode = PasswordEntryForm.From(new PasswordEntryContent("pw", [new(PasswordEntryFieldNames.VerificationCode, "JBSWY3DPEHPK3PXP", IsSecret: true)]));
+        withCode.RemovePassword();
+        Assert.Null(withCode.Problem(creating: false));
+        Assert.False(withCode.ToContent().HasPassword);
+
+        var passwordOnly = PasswordEntryForm.From(new PasswordEntryContent("pw", [new(PasswordEntryFieldNames.UserName, "anna")]));
+        passwordOnly.RemovePassword();
+        Assert.Equal("PwEntryNeedsAPart", passwordOnly.Problem(creating: false));
+    }
+
     [Fact]
     public void The_fields_come_in_the_cores_order_and_the_password_and_marked_fields_are_hidden()
     {

@@ -68,9 +68,48 @@ public sealed class PasswordEntryFormatTests
     public void A_field_name_that_cannot_be_read_back_is_refused(string name) =>
         Assert.Throws<ArgumentException>(() => PasswordEntryFormat.ToBytes(new PasswordEntryContent("pw", [new(name, "v")])));
 
+    // The password is optional (ADR 1044, #2130): an entry holds at least one of password, code and passkey.
     [Fact]
-    public void Content_without_passwd_txt_is_unreadable_never_an_empty_entry() =>
-        Assert.Throws<PasswordEntryUnreadableException>(() => PasswordEntryFormat.Parse(new Multipart("mixed") { new TextPart("plain") { Text = "User name: x" } }));
+    public void An_entry_with_only_a_verification_code_has_no_passwd_txt_and_reads_back_without_a_password()
+    {
+        var content = new PasswordEntryContent(string.Empty,
+            [new(PasswordEntryFieldNames.UserName, "anna"), new(PasswordEntryFieldNames.VerificationCode, "JBSWY3DPEHPK3PXP", IsSecret: true)]);
+
+        var mime = PasswordEntryFormat.ToMime(content);
+        Assert.DoesNotContain(((Multipart)mime).OfType<MimePart>(), p => p.FileName == PasswordEntryFormat.PasswordFileName);
+
+        var read = PasswordEntryFormat.Parse(PasswordEntryFormat.ToBytes(content));
+        Assert.False(read.HasPassword);
+        Assert.True(read.HasCode);
+        Assert.Equal("anna", read.UserName);
+    }
+
+    [Fact]
+    public void An_entry_written_earlier_with_an_empty_password_reads_as_having_none()
+    {
+        var legacy = new Multipart("mixed")
+        {
+            new TextPart("plain") { Text = "User name: x\r\n" },
+            new MimePart("text", "plain") { Content = new MimeContent(new MemoryStream([])), FileName = PasswordEntryFormat.PasswordFileName },
+        };
+
+        Assert.False(PasswordEntryFormat.Parse(legacy).HasPassword);
+    }
+
+    [Fact]
+    public void An_entry_with_no_password_code_or_passkey_is_refused_before_sealing() =>
+        Assert.Throws<PasswordEntryEmptyException>(() => PasswordEntryFormat.ToBytes(new PasswordEntryContent(string.Empty, [new(PasswordEntryFieldNames.UserName, "x")])));
+
+    [Fact]
+    public void Content_with_neither_passwd_txt_nor_any_field_is_unreadable_never_an_empty_entry() =>
+        Assert.Throws<PasswordEntryUnreadableException>(() => PasswordEntryFormat.Parse(new MimePart("application", "octet-stream") { Content = new MimeContent(new MemoryStream([1, 2])) }));
+
+    [Fact]
+    public void The_preview_shows_no_password_row_where_there_is_no_password()
+    {
+        var rows = PasswordEntryRows.Of(new PasswordEntryContent(string.Empty, [new(PasswordEntryFieldNames.VerificationCode, "JBSWY3DPEHPK3PXP", IsSecret: true)]));
+        Assert.DoesNotContain(rows, r => r.IsPassword);
+    }
 
     [Fact]
     public void Sealed_to_two_readers_each_opens_it_through_the_shared_S_MIME_step()

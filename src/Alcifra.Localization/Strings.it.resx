@@ -6408,6 +6408,12 @@
   <data name="PwCancelShortcut" xml:space="preserve">
     <value>Annulla (Esc)</value>
   </data>
+  <data name="PwRemovePassword" xml:space="preserve">
+    <value>Rimuovi la password</value>
+  </data>
+  <data name="PwEntryNeedsAPart" xml:space="preserve">
+    <value>Una voce richiede una password, un codice di verifica o una passkey. Per rimuovere l'ultimo, elimina la voce.</value>
+  </data>
   <data name="PwRemoveField" xml:space="preserve">
     <value>Rimuovi campo</value>
   </data>

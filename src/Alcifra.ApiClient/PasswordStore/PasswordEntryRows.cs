@@ -36,7 +36,10 @@ public static class PasswordEntryRows
 
     public static IReadOnlyList<PasswordEntryRow> Of(PasswordEntryContent content) => PasswordEntryFieldOrder.Arrange(
         [
-            new PasswordEntryRow(Strings.Get("PwPassword"), content.Password, SecretFields.For(isPassword: true, markedSecret: false), IsPassword: true, FieldName: PasswordName),
+            // No password row where the entry has none (ADR 1044): it may hold only a code or a passkey.
+            .. content.HasPassword
+                ? [new PasswordEntryRow(Strings.Get("PwPassword"), content.Password, SecretFields.For(isPassword: true, markedSecret: false), IsPassword: true, FieldName: PasswordName)]
+                : Array.Empty<PasswordEntryRow>(),
             .. content.Fields.Select(Row),
         ],
         row => row.FieldName);

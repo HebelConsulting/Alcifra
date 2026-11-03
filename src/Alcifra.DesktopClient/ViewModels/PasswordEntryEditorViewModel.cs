@@ -312,6 +312,31 @@ public sealed partial class PasswordEntryEditorViewModel : ObservableObject
 
     [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SaveCommand))] private bool _isSaving;
 
+    /// <summary>Whether the form shows the password: an entry may hold only a code or a passkey (ADR 1044).</summary>
+    public bool HasPassword => _form.HasPassword;
+
+    /// <summary>"Add field" offers the password first while the form shows none (ADR 1044).</summary>
+    public bool SuggestsPassword => _form.SuggestsPassword;
+
+    [RelayCommand]
+    private void AddPassword()
+    {
+        _form.AddPassword();
+        OnPropertyChanged(nameof(HasPassword));
+        OnPropertyChanged(nameof(SuggestsPassword));
+    }
+
+    /// <summary>Drops the password; saving refuses it only when nothing else would remain (ADR 1044).</summary>
+    [RelayCommand]
+    private void RemovePassword()
+    {
+        _form.RemovePassword();
+        GeneratorOpen = false;
+        OnPropertyChanged(nameof(Password));
+        OnPropertyChanged(nameof(HasPassword));
+        OnPropertyChanged(nameof(SuggestsPassword));
+    }
+
     [RelayCommand]
     private void AddPin()
     {

@@ -116,7 +116,7 @@ public static class SapassApp
             case DeviceFlowException e:
                 log.LogError("{Message}", e.Message);
                 return 1;
-            case Exception e when e is PasswordEntryCreationWithheldException or PasswordStoreHasNoRecipientsException:
+            case Exception e when e is PasswordEntryCreationWithheldException or PasswordStoreHasNoRecipientsException or PasswordEntryEmptyException:
                 // The shared client's refusals carry their sentence (ADR 0982): a state of the store, not a bug.
                 log.LogError("{Message}", e.Message);
                 return 1;

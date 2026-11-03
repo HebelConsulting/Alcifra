@@ -77,7 +77,10 @@
     if (username && credentials.userName) {
       setValue(username, credentials.userName);
     }
-    setValue(target, credentials.password);
+    // An entry may hold no password (ADR 1044): then the field keeps what it has, never an empty fill.
+    if (credentials.password) {
+      setValue(target, credentials.password);
+    }
     closeAll();
   }
 

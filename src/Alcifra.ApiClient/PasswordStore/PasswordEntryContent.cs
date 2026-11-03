@@ -34,8 +34,18 @@ public static class PasswordEntryFieldNames
 /// What a password entry holds once opened (ADR 0964): its password, and every other field in order. The NAME is not
 /// here: it is the document's, in the clear.
 /// </summary>
+/// <remarks>
+/// The password is optional (ADR 1044, #2130): an entry holds at least one of a password, a verification code and a
+/// passkey, in any combination. No password is the empty string here, and no <c>passwd.txt</c> part in the format.
+/// </remarks>
 public sealed record PasswordEntryContent(string Password, IReadOnlyList<PasswordEntryField> Fields)
 {
+    /// <summary>Whether the entry has a password (ADR 1044): one may hold only a verification code or a passkey.</summary>
+    public bool HasPassword => Password.Length > 0;
+
+    /// <summary>Whether the entry holds anything a sign-in uses: a password, a verification code or a passkey (ADR 1044).</summary>
+    public bool HasAnyPart => HasPassword || HasCode || Passkey is not null;
+
     public string? UserName => Value(PasswordEntryFieldNames.UserName);
 
     public string? Url => Value(PasswordEntryFieldNames.Url);
