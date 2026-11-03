@@ -21,7 +21,7 @@ SEED="$(cd "$(dirname "$0")/.." && pwd)/docs/SeedCLAUDE.md"
 
 # The repositories initialised FROM the seed. A repo arrives here by a decision, not by discovery: adding it
 # is the moment somebody decides it is seeded, and discovery would quietly start measuring one that never was.
-SEEDED=(AlcifraCertificateAuthority AlcifraEncryption AlcifraEncryptionService AlcifraFlightSchool AlcifraLicensing AlcifraMobile AlcifraProvisioning AlcifraTube AlcifraWebsite)
+SEEDED=(AlcifraCertificateAuthority AlcifraEncryption AlcifraEncryptionService AlcifraFlightSchool AlcifraLicensing AlcifraMobile AlcifraProvisioning AlcifraWebsite)
 
 # Deliberately NOT measured, each for its own reason — recorded here because an unexplained exclusion is
 # indistinguishable from an oversight, and counting these would make the problem look twice its size.
@@ -29,7 +29,9 @@ SEEDED=(AlcifraCertificateAuthority AlcifraEncryption AlcifraEncryptionService A
 #   SimplArchiveDeck  a deliberately bespoke CLAUDE.md in a different shape (content lives once, bundled
 #                     fonts only, measure text through LibreOffice).
 #   Alcifra      the public mirror of THIS repository; CLAUDE.md is withheld from it by ADR 0484.
-EXCLUDED=(CAManagement SimplArchiveDeck Alcifra SimplArchivePrivate)
+#   AlcifraTube  public; its seeded CLAUDE.md stays local and gitignored, like the Messenger's, and its ADRs
+#                live here under docs/modules/tube/adr/ (owner, 2026-11-03: the seed is not published).
+EXCLUDED=(CAManagement SimplArchiveDeck Alcifra SimplArchivePrivate AlcifraTube)
 
 # A title, reduced to what a reader would call "the same principle": the prose, without the ADR or issue
 # pointer a sibling may legitimately drop, case-folded. Keeps an exact-looking comparison from failing on
