@@ -11,7 +11,7 @@
 - **The workbench, on the web and on the desktop** — tree, list, index data, preview and chat side by side; drag and drop to file; versions you can compare; check-out and check-in; approval workflows with a task inbox; tags, reminders, references and external links; calendars and address books; an intray that straightens and splits scans.
 - **Phone and tablet apps** for Android, iPhone and iPad — coming to the app stores. The archive's tree, previews and search on the go; sealed documents opened with a hardware key over NFC or USB-C; the Password Store with autofill in other apps and the browser.
 - **Your own devices, with a password each** — mail, files, calendars and contacts over the open protocols, each device enrolled under *Devices…* with its own password, a QR code for the password and a one-time setup profile a phone's camera can install. A device shows all your calendars and address books, or only your own and the shared ones you tick for it; an iPhone or iPad set up from its profile starts with your own. Revoking a lost phone cuts off that phone only.
-- **A Password Store** — logins kept in the archive, sealed on your machine to the hardware keys of the people allowed to read them: folders, shared stores with their own audience, verification codes (TOTP), import from a password manager's export, autofill in the browser through an extension, and `apass`, a command-line tool in the spirit of `pass`.
+- **A Password Store** — logins kept in the archive, sealed on your machine to the hardware keys of the people allowed to read them: folders, shared stores with their own audience, verification codes (TOTP) and passkeys (an entry needs no password when it holds either), import from a password manager's export, autofill in the browser through an extension, and `apass`, a command-line tool in the spirit of `pass`.
 - **Sealed documents and offline exports** — a document sealed to its audience's keys before it leaves your machine, and a folder exported as one archive sealed to its recipients and to the organisation's recovery certificate.
 - **Modules** — features added per tenant: the **Messenger** (chat sealed to its members' keys; open source, in its own repository, and free), **encryption** (paid, below) and **industry modules** for a trade's own workflows, such as a flight school's bookings, aircraft and training records.
 
@@ -96,7 +96,7 @@ Discovery is supported, so on most apps the host alone is enough and the paths a
 - **Android** — the built-in accounts do not speak CalDAV/CardDAV; install a sync app that does and give it the URL, username and app password above. Notes need no extra app: any mail client that supports IMAP will show them.
 - **Desktop mail/calendar clients** — usually the smoothest route on any operating system, since one client covers all three protocols. Add a calendar/address book by URL, and a mail account for notes.
 
-**Files (WebDAV) is not universal.** A desktop file manager mounts it directly; **iPhone/iPad have no built-in WebDAV support**, so a third-party file client is needed there.
+**Files (WebDAV) is not universal.** A desktop file manager mounts it directly, and the address *Devices…* shows for files is your account's own (`/webdav/…/<Name (Tenant)>`), so two accounts on one computer are two volumes; **iPhone/iPad have no built-in WebDAV support**, so a third-party file client is needed there.
 
 Running your own instance instead of the demo? Substitute your host; the paths and the account-menu steps are identical.
 
