@@ -242,6 +242,12 @@ public static class SaConsoleApp
                 repository.AddCommand<RepositoryCreateCommand>("create")
                     .WithDescription("Create a repository, or find the one of that name. Prints its id on stdout.");
             });
+            config.AddBranch("document", document =>
+            {
+                document.SetDescription("Documents: filed with a mask and index data (ADR 1040).");
+                document.AddCommand<DocumentFileCommand>("file")
+                    .WithDescription("File a local file under a folder, with a mask and fields. Prints its id on stdout.");
+            });
 
             // ACL: `set` states the complete set of rights (a replace, because the endpoint is a PUT), while
             // `grant` and `revoke` adjust what is there. Three verbs for one concept, owner-decided

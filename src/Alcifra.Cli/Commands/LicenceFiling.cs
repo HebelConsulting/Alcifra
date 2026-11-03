@@ -68,7 +68,7 @@ public static class LicenceFiling
                 return (existingId, Outcome.Unchanged);
             }
 
-            await FileVersionAsync(api, versionsHref, licence, cancellationToken);
+            await FileVersionAsync(api, versionsHref, licence, ".json", cancellationToken);
             return (existingId, Outcome.NewVersion);
         }
 
@@ -99,7 +99,7 @@ public static class LicenceFiling
                 Links(await ResolveAsync(api, hypermedia, documentId, cancellationToken)),
                 "versions", $"Document {documentId:D}");
 
-        await FileVersionAsync(api, createdVersionsHref, licence, cancellationToken);
+        await FileVersionAsync(api, createdVersionsHref, licence, ".json", cancellationToken);
         return (documentId, Outcome.Filed);
     }
 
@@ -131,7 +131,7 @@ public static class LicenceFiling
     }
 
     /// <summary>The hash of the newest CONFIRMED version, or null when none ever confirmed — the half-finished state.</summary>
-    private static async Task<string?> CurrentHashAsync(
+    internal static async Task<string?> CurrentHashAsync(
         AlcifraApi api, string versionsHref, CancellationToken cancellationToken)
     {
         var listing = await api.GetAsync(versionsHref, cancellationToken);
@@ -148,17 +148,23 @@ public static class LicenceFiling
     /// Content in THREE acts — the API never proxies file bytes: ask for a version, put the bytes straight into
     /// object storage, then confirm the version.
     /// </summary>
-    private static async Task FileVersionAsync(
-        AlcifraApi api, string versionsHref, byte[] licence, CancellationToken cancellationToken)
+    /// <remarks>
+    /// On a tenant whose storage encrypts at rest the create answer instructs the client to encrypt before the
+    /// presigned PUT (ADR 0818), and the confirm then declares the wrapped key; without it such a tenant refuses the
+    /// version. The shared client's <see cref="Alcifra.ApiClient.UploadEncryption"/> does that for every filing path.
+    /// </remarks>
+    internal static async Task FileVersionAsync(
+        AlcifraApi api, string versionsHref, byte[] content, string fileExtension, CancellationToken cancellationToken)
     {
-        var version = await api.PostAsync(versionsHref, new { fileExtension = ".json" }, cancellationToken);
+        var version = await api.PostAsync(versionsHref, new { fileExtension }, cancellationToken);
         var versionId = version.GetProperty("id").GetGuid();
         var uploadUrl = version.GetProperty("uploadUrl").GetString()
             ?? throw new CliException("The new version answered without an uploadUrl.");
+        var encrypted = Alcifra.ApiClient.UploadEncryption.EncryptIfInstructed(version, content);
 
         // Used EXACTLY as returned, with no bearer token: it is signed, and points at object storage on a
         // possibly different host than the API (PublicServiceUrl, ADR 0213).
-        await AlcifraApi.UploadAsync(new Uri(uploadUrl), licence, cancellationToken);
+        await AlcifraApi.UploadAsync(new Uri(uploadUrl), encrypted?.Blob ?? content, cancellationToken);
 
         // Confirm by following the new version's OWN `self`, never by appending the id to the collection
         // address — that is ADR 0557's "composing in disguise". The rel is advertised as GET and the confirm is
@@ -169,7 +175,7 @@ public static class LicenceFiling
         // activation then refuses as "no confirmed content version", so a failure here is worth telling
         // apart from a failed upload.
         var versionHref = Hypermedia.Href(Links(version), "self", $"The new version {versionId:D}");
-        await api.PutAsync(versionHref, new { }, cancellationToken);
+        await api.PutAsync(versionHref, new { wrappedDek = encrypted?.WrappedDek, kekGeneration = encrypted?.KekGeneration }, cancellationToken);
     }
 
     /// <summary>
@@ -189,7 +195,7 @@ public static class LicenceFiling
         return await api.GetAsync(template.Replace("{id}", documentId.ToString("D"), StringComparison.Ordinal), cancellationToken);
     }
 
-    private static Dictionary<string, string> Links(JsonElement resource)
+    internal static Dictionary<string, string> Links(JsonElement resource)
     {
         var links = new Dictionary<string, string>(StringComparer.Ordinal);
 

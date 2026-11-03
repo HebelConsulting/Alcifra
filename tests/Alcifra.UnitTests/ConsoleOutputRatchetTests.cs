@@ -30,6 +30,7 @@ public class ConsoleOutputRatchetTests
     private static readonly Dictionary<string, int> Remaining = new()
     {
         ["src/Alcifra.Cli/Commands/DeviceCommands.cs"] = 1,   // data output only (ADR 0906): an enrolled device's password, once (#1970)
+        ["src/Alcifra.Cli/Commands/DocumentFileCommand.cs"] = 1,   // data output only (ADR 0906): the filed document's id (ADR 1040)
         ["src/Alcifra.Cli/Commands/InspectCommand.cs"] = 1,   // data output only (ADR 0906): `--json`, the inspection a script captures (#2007)
         ["src/Alcifra.Cli/Commands/LoginCommand.cs"] = 2,   // data output only (ADR 0906)
         ["src/Alcifra.Cli/Commands/ModuleUploadCommand.cs"] = 1,   // data output only (ADR 0906): the module's filing answer
