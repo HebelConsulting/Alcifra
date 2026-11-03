@@ -17,6 +17,7 @@ public_repo="HebelConsulting/Alcifra"
 
 git fetch --quiet --tags origin
 created=0
+refused=()
 while read -r public_sha ref; do
   tag="${ref#refs/tags/}"
   # An existing tag is never moved, and not even looked up: the earliest releases were tagged here directly, before
@@ -39,10 +40,21 @@ while read -r public_sha ref; do
     echo "would tag $tag at $private_sha"
   else
     git tag "$tag" "$private_sha"
-    git push --quiet origin "refs/tags/$tag"
+    # One refused push must not stop the rest: v0.1.0's commit once failed every run from the oldest tag on, so no
+    # release after v0.54.0 was tagged here for days. The run still fails at the end, naming what was refused.
+    if ! git push --quiet origin "refs/tags/$tag"; then
+      git tag -d "$tag" >/dev/null
+      echo "::error::$tag: the push of $private_sha was refused; not tagged."
+      refused+=("$tag")
+      continue
+    fi
     echo "tagged $tag at $private_sha"
   fi
   created=$((created + 1))
 done < <(git ls-remote --tags --refs "https://github.com/$public_repo.git" 'v*' | sed 's#\t# #')
 
 echo "$created tag(s) $($dry_run && echo would be || echo were) added."
+if (( ${#refused[@]} > 0 )); then
+  echo "::error::${#refused[@]} tag(s) refused: ${refused[*]}"
+  exit 1
+fi
