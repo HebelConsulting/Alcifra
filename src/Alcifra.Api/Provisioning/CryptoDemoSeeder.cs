@@ -241,35 +241,27 @@ public static class CryptoDemoSeeder
         await dbContext.SaveChangesAsync();
     }
 
-    // CryptoDemo:AliasDomains, comma-separated (ADR 1039): the domains these accounts USED to sign in with. Each seeded
-    // user gets a confirmed identity alias <local part>@<former domain>, so a reader certificate issued for the former
-    // address still binds to its holder under Strict binding (ADR 1015), and the certificate manifest keeps naming it.
-    // Only at provisioning: on a kept database the users still carry the former address as their own, and an alias
-    // equal to a user's address is refused by the invariant. A former domain must be among the identity domains.
+    // Confirmed identity aliases for the seeded accounts (ADR 1015), so a reader certificate naming another address of
+    // its holder binds under Strict binding. Two sources, both only at provisioning (on a kept database an alias may
+    // already exist, and an alias equal to a user's address is refused by the invariant); every alias's domain must be
+    // among the identity domains.
+    // - CryptoDemo:AliasDomains, comma-separated (ADR 1039): the domains these accounts USED to sign in with; each user
+    //   gets <local part>@<former domain>, so the certificate manifest keeps naming the former addresses.
+    // - CryptoDemo:Aliases:<local part>, comma-separated (ADR 1041): further addresses of ONE account, such as the
+    //   address a person's own hardware key was issued for.
     private static async Task AddFormerAddressesAsync(AlcifraDbContext dbContext, Guid tenantId, IReadOnlyList<User> users, IConfiguration configuration, DateTimeOffset now)
     {
-        var former = (configuration["CryptoDemo:AliasDomains"] ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(d => d.ToLowerInvariant())
-            .Where(d => d.Length > 0)
-            .Distinct()
-            .ToList();
-        if (former.Count == 0)
-        {
-            return;
-        }
-
+        var former = Addresses(configuration["CryptoDemo:AliasDomains"]);
+        var added = false;
         foreach (var user in users)
         {
             var localPart = user.Email.Split('@')[0];
-            foreach (var domain in former)
+            var addresses = former.Select(domain => $"{localPart}@{domain}")
+                .Concat(Addresses(configuration[$"CryptoDemo:Aliases:{localPart}"]))
+                .Where(address => !string.Equals(address, user.Email, StringComparison.OrdinalIgnoreCase))   // nothing to alias
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            foreach (var address in addresses)
             {
-                var address = $"{localPart}@{domain}";
-                if (string.Equals(address, user.Email, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;   // the former domain is the current one: nothing to alias
-                }
-
                 dbContext.UserIdentityAliases.Add(new UserIdentityAlias
                 {
                     Id = DemoId.For(tenantId, $"alias/{address}"),
@@ -280,11 +272,21 @@ public static class CryptoDemoSeeder
                     ConfirmedAt = now,
                     CreatedAt = now,
                 });
+                added = true;
             }
         }
 
-        await dbContext.SaveChangesAsync();
+        if (added)
+        {
+            await dbContext.SaveChangesAsync();
+        }
     }
+
+    private static List<string> Addresses(string? commaSeparated) =>
+        [.. (commaSeparated ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(a => a.ToLowerInvariant())
+            .Distinct()];
 
     // CryptoDemo:IdentityDomains, comma-separated: the domains this tenant's account addresses live on, identity only
     // (ADR 1015). They route no mail, so they may also be another tenant's; declared by configuration, so verified.

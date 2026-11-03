@@ -59,4 +59,18 @@ public class CryptoDemoUsersTests
             Assert.NotNull(alias.ConfirmedAt);
         }
     }
+
+    [Fact]
+    public async Task An_account_named_in_the_aliases_setting_gets_that_address_as_a_confirmed_alias()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+        var tenant = await db.Tenants.IgnoreQueryFilters().SingleAsync(t => t.Name == E2EApiFactory.CryptoTenantName);
+        var florian = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.TenantId == tenant.Id && u.NormalizedEmail == $"florian@{E2EApiFactory.CryptoAdminEmail.Split('@')[1]}".ToUpperInvariant());
+
+        var own = await db.UserIdentityAliases.IgnoreQueryFilters().SingleAsync(a => a.NormalizedAddress == E2EApiFactory.CryptoOwnAddress.ToUpperInvariant());
+
+        Assert.Equal(florian.Id, own.UserId);
+        Assert.NotNull(own.ConfirmedAt);
+    }
 }
