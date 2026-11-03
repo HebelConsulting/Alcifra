@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <!-- Pinned above what other packages bring: CVE-2026-84008 and CVE-2026-70162, fixed in 10.0.13 (as ApiClient). -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
     <!-- Apache-2.0: ConversationKeys.SealTo, the ONE sealer that addresses RSA (key transport) and elliptic-curve (key
          agreement) certificates alike; the platform's CMS addresses RSA only. Never a second CMS writer (ADR 0961).
          The desktop already references this version. -->
