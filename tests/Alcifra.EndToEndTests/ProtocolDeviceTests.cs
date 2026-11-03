@@ -226,7 +226,8 @@ public class ProtocolDeviceTests
 
         Assert.Equal(JsonValueKind.Null, handOver.GetProperty("profileUrl").ValueKind);
         Assert.StartsWith("data:image/png;base64,", handOver.GetProperty("passwordQr").GetString());
-        Assert.EndsWith("/" + global::Alcifra.Presentation.WireNames.WebDavSegment, handOver.GetProperty("servers").GetProperty("webDavUrl").GetString());
+        // The account's own address (#2128): /webdav/<tenant>/<user>/<Name (Tenant)>.
+        Assert.Matches($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/[A-Za-z0-9_-]{{22}}/[A-Za-z0-9_-]{{22}}/[^/]+$", handOver.GetProperty("servers").GetProperty("webDavUrl").GetString());
     }
 
     [Fact]

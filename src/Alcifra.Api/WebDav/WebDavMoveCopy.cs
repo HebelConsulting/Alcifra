@@ -279,7 +279,12 @@ internal static class WebDavMoveCopy
         var matchedLength = WebDavMiddleware.BasePath.Length;
 
         var tail = baseIndex >= 0 ? absolute[(baseIndex + matchedLength)..] : absolute;
-        return tail.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.UnescapeDataString).ToList();
+        var segments = tail.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.UnescapeDataString).ToList();
+
+        // A per-account address (#2128): its three account segments are the base, not part of the tree.
+        return segments.Count >= 3 && WebDavMiddleware.AccountOf($"{WebDavMiddleware.BasePath}/{string.Join('/', segments.Take(3))}") is not null
+            ? segments[3..]
+            : segments;
     }
 
     // ---- COPY (duplicate a file or a folder subtree) ------------------------------------------------------

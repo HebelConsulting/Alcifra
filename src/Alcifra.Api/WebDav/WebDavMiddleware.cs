@@ -35,10 +35,77 @@ public sealed class WebDavMiddleware
     /// </summary>
     internal static bool IsGatewayPath(string path) => MatchedBase(path) is not null;
 
-    private static string? MatchedBase(string path) =>
-        path.Equals(BasePath, StringComparison.OrdinalIgnoreCase) || path.StartsWith(BasePath + "/", StringComparison.OrdinalIgnoreCase)
-            ? BasePath
+    // The gateway's base for this path: the per-account address (#2128, ADR 1043) when the path starts with one, else
+    // the plain /webdav, which stays served for good. Escaped, because every href in an answer starts with it.
+    private static string? MatchedBase(string path)
+    {
+        if (!path.Equals(BasePath, StringComparison.OrdinalIgnoreCase) && !path.StartsWith(BasePath + "/", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return AccountOf(path) is { } account ? AccountBase(account.TenantId, account.UserId, account.Label) : BasePath;
+    }
+
+    /// <summary>
+    /// The account a per-account address names: <c>/webdav/&lt;tenant id&gt;/&lt;user id&gt;/&lt;label&gt;</c> (#2128), the
+    /// ids in URL-safe base64. Each
+    /// account mounts an address of its own, so two accounts on one computer are two volumes, never one that the
+    /// second finds already mounted (#2053). The ids decide, and a sign-in for another account is refused; the label
+    /// only names the volume, so a rename leaves an old mount working.
+    /// </summary>
+    internal static (Guid TenantId, Guid UserId, string Label)? AccountOf(string path)
+    {
+        var rest = path.Length > BasePath.Length ? path[(BasePath.Length + 1)..] : string.Empty;
+        var parts = rest.Split('/', 4);
+        return parts.Length >= 3 && IdOf(parts[0]) is { } tenantId && IdOf(parts[1]) is { } userId && parts[2].Length > 0
+            ? (tenantId, userId, parts[2])
             : null;
+    }
+
+    // How much of the (unescaped) request path the base takes: the escaped base is longer when the label has a space.
+    private static int PrefixLength(string path)
+    {
+        if (AccountOf(path) is null)
+        {
+            return BasePath.Length;
+        }
+
+        var parts = path[(BasePath.Length + 1)..].Split('/', 4);
+        return BasePath.Length + 1 + parts[0].Length + 1 + parts[1].Length + 1 + parts[2].Length;
+    }
+
+    /// <summary>The per-account address's path, its label escaped: what the devices answer advertises and every href starts with.</summary>
+    internal static string AccountBase(Guid tenantId, Guid userId, string label) =>
+        $"{BasePath}/{Segment(tenantId)}/{Segment(userId)}/{Uri.EscapeDataString(label)}";
+
+    // An id as 22 characters of URL-safe base64, not the 36 of its usual form (owner, 2026-11-03): macOS's mount table
+    // cuts a mount's address at 89 characters. The address is 61 characters plus the host, so the whole user id stays
+    // listed for a host of up to 28 characters, and at least 10 of its characters (60 bits) up to 40.
+    internal static string Segment(Guid id) => System.Buffers.Text.Base64Url.EncodeToString(id.ToByteArray());
+
+    private static Guid? IdOf(string segment)
+    {
+        if (segment.Length != 22)
+        {
+            return null;
+        }
+
+        Span<byte> bytes = stackalloc byte[16];
+        return System.Buffers.Text.Base64Url.TryDecodeFromChars(segment, bytes, out var written) && written == 16 ? new Guid(bytes) : null;
+    }
+
+    /// <summary>
+    /// The volume's name, "Name (Tenant)" (owner, 2026-11-03): two mounted accounts are told apart at a glance. A path
+    /// separator or a control character cannot be part of one segment, so they are left out.
+    /// </summary>
+    internal static string VolumeLabel(string displayName, string tenantName)
+    {
+        static string Clean(string text) => new([.. text.Where(c => c is not ('/' or '\\') && !char.IsControl(c))]);
+        var name = Clean(displayName).Trim();
+        var tenant = Clean(tenantName).Trim();
+        return name.Length == 0 ? tenant : tenant.Length == 0 ? name : $"{name} ({tenant})";
+    }
 
     // Two special folders nested under the caller's Personal repository (ADR "WebDAV Inbox + Check-out folders",
     // grouped under Personal by ADR "WebDAV Inbox/Check-out under Personal"): the per-user Intray (an S3-backed
@@ -134,6 +201,14 @@ public sealed class WebDavMiddleware
             return;
         }
 
+        // A per-account address answers its own account only (#2128): another account's device password is refused
+        // there, never shown that account's tree. 403, not 401: the sign-in itself was good.
+        if (AccountOf(path) is { } addressed && (addressed.TenantId != user.TenantId || addressed.UserId != user.Id))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
         // Make the tenant/user visible to the DbContext query filter + the effective-rights calculator.
         services.GetRequiredService<CurrentTenantAccessor>().TenantId = user.TenantId;
         services.GetRequiredService<CurrentUserAccessor>().UserId = user.Id;
@@ -143,7 +218,7 @@ public sealed class WebDavMiddleware
         var personalRoot = await services.GetRequiredService<PersonalRepositoryProvisioner>().EnsureAsync(user.Id, user.TenantId, context.RequestAborted);
         context.Items[PersonalNameKey] = personalRoot.Name;
 
-        var segments = path[matchedBase.Length..].Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
+        var segments = path[PrefixLength(path)..].Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
             .Select(Uri.UnescapeDataString).ToList();
 
         // A mount saved before the #795 heal still addresses the space as "Personal" — canonicalise the alias

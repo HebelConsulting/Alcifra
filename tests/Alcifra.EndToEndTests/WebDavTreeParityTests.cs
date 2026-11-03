@@ -41,8 +41,12 @@ public partial class WebDavTreeParityTests
         var basic = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{davPassword}")));
         using var dav = _factory.CreateClient();
 
-        // The advertised mount URL is the single /webdav resource.
-        Assert.EndsWith(("/" + global::Alcifra.Presentation.WireNames.WebDavSegment), (await TestJson.Get(api, "/api/me/devices")).GetProperty("servers").GetProperty("webDavUrl").GetString());
+        // The advertised mount URL is the account's own address under /webdav (#2128): tenant id, user id, then the
+        // volume's name, "Name (Tenant)".
+        var advertised = new Uri((await TestJson.Get(api, "/api/me/devices")).GetProperty("servers").GetProperty("webDavUrl").GetString()!);
+        var userId = (await TestJson.Get(api, "/api/diagnostics/whoami")).GetProperty("userId").GetGuid();
+        Assert.StartsWith($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{Id(tenantId)}/{Id(userId)}/", advertised.AbsolutePath);
+        Assert.StartsWith("Dav User (", Uri.UnescapeDataString(advertised.AbsolutePath.Split('/')[^1]));
 
         // The Repositories tree-pane's top level = the "Personal" node + the repositories the user can see.
         var repos = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()
@@ -58,6 +62,34 @@ public partial class WebDavTreeParityTests
             .Where(n => n != global::Alcifra.Presentation.WireNames.WebDavSegment && n != global::Alcifra.Presentation.WireNames.WebDavAccountFile)
             .ToHashSet());
 
+        // The account's address serves the same tree (the label decides nothing), and another account's ids are refused.
+        var own = await PropFindNamesAsync(dav, basic, advertised.AbsolutePath);
+        Assert.Equal(expectedTopLevel, own
+            .Where(n => n != global::Alcifra.Presentation.WireNames.WebDavAccountFile && n != global::Alcifra.Presentation.WireNames.WebDavSegment)
+            .ToHashSet());
+        using var foreign = new HttpRequestMessage(new HttpMethod("PROPFIND"),
+            $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{Id(tenantId)}/{Id(Guid.NewGuid())}/Someone")
+        { Headers = { Authorization = basic } };
+        foreign.Headers.TryAddWithoutValidation("Depth", "1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await dav.SendAsync(foreign)).StatusCode);
+
+        // Writes too: a file PUT and then MOVEd through the account's address, the Destination naming the same escaped
+        // label, lands where the plain address sees it.
+        var repo = repos.First();
+        var baseAddress = advertised.AbsolutePath.TrimEnd('/');
+        using (var put = new HttpRequestMessage(HttpMethod.Put, $"{baseAddress}/{Uri.EscapeDataString(repo)}/first.txt") { Headers = { Authorization = basic }, Content = new ByteArrayContent(Encoding.UTF8.GetBytes("x")) })
+        {
+            Assert.True((await dav.SendAsync(put)).IsSuccessStatusCode);
+        }
+
+        using (var move = new HttpRequestMessage(new HttpMethod("MOVE"), $"{baseAddress}/{Uri.EscapeDataString(repo)}/first.txt") { Headers = { Authorization = basic } })
+        {
+            move.Headers.TryAddWithoutValidation("Destination", $"http://localhost{baseAddress}/{Uri.EscapeDataString(repo)}/moved.txt");
+            Assert.True((await dav.SendAsync(move)).IsSuccessStatusCode);
+        }
+
+        Assert.Contains("moved.txt", await PropFindNamesAsync(dav, basic, $"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{Uri.EscapeDataString(repo)}"));
+
         // One mount, one path (#794, ADR 0987): the earlier mount paths answer like any unknown route, so a mount saved
         // under them is added again rather than served by a second way in.
         using var legacy = _factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -68,6 +100,9 @@ public partial class WebDavTreeParityTests
             Assert.NotEqual(HttpStatusCode.MultiStatus, (await legacy.SendAsync(legacyProbe)).StatusCode);
         }
     }
+
+    // The ids as the address carries them: 22 characters of URL-safe base64 (ADR 1043).
+    private static string Id(Guid id) => System.Buffers.Text.Base64Url.EncodeToString(id.ToByteArray());
 
     private static async Task<List<string>> PropFindNamesAsync(HttpClient dav, AuthenticationHeaderValue basic, string path)
     {

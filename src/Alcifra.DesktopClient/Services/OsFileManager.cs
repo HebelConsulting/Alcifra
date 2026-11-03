@@ -346,12 +346,31 @@ public static class OsFileManager
         return Current switch
         {
             // `mount` prints "<source> on <point> (type, …)"; the source is the mounted URL.
-            Platform.MacOs => MountEntries()
-                .FirstOrDefault(e => string.Equals(e.Source.TrimEnd('/'), wanted, StringComparison.OrdinalIgnoreCase)).Point,
-            Platform.Windows => Uri.TryCreate(wanted, UriKind.Absolute, out var server) ? WindowsMountedDrive(server) : null,
-            _ => GvfsDavMount(),
+            Platform.MacOs => MountEntries().FirstOrDefault(e => MountSourceIs(e.Source, wanted)).Point,
+            // Windows and Linux compare the whole address too (#2128): with an address per account, the host alone would
+            // find ANOTHER account's volume on the same server.
+            Platform.Windows => Uri.TryCreate(wanted, UriKind.Absolute, out var server) ? WindowsMountedDrive(server, exact: true) : null,
+            _ => Uri.TryCreate(wanted, UriKind.Absolute, out var address) ? GvfsDavMount(address) : GvfsDavMount(),
         };
     }
+
+    /// <summary>
+    /// Whether a source the macOS mount table lists is this address. Compared unescaped, because a per-account
+    /// address's label may be listed either way (#2128). And the table CUTS a source at 89 characters (the kernel's
+    /// mount-name limit): a per-account address is longer, and its listed source ended inside the user id when this
+    /// was first measured (2026-11-03). A cut source therefore matches the address it begins; on a host of ordinary
+    /// length about 20 characters of the user id survive, which tells accounts apart.
+    /// </summary>
+    public static bool MountSourceIs(string listedSource, string address)
+    {
+        var listed = Uri.UnescapeDataString(listedSource.TrimEnd('/'));
+        var wanted = Uri.UnescapeDataString(address.TrimEnd('/'));
+        return string.Equals(listed, wanted, StringComparison.OrdinalIgnoreCase)
+            || (listedSource.Length >= MacMountNameLimit && address.StartsWith(listedSource, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // The longest source the macOS mount table lists (MNAMELEN 90, less the terminator).
+    private const int MacMountNameLimit = 89;
 
     // The (source, point) pairs `mount` reports. Best-effort: if it can't be run, callers fall back to treating
     // the volume as not mounted, which costs a redundant mount attempt rather than opening the wrong thing.
@@ -451,7 +470,7 @@ public static class OsFileManager
     // the macOS arm follows (#820). The volume-label test this replaces asked the wrong question: a WebDAV
     // mapping commonly reports NO label, so the client concluded "not mounted" forever and re-opened the bare
     // UNC on every click.
-    private static string? WindowsMountedDrive(Uri server)
+    private static string? WindowsMountedDrive(Uri server, bool exact = false)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -467,7 +486,7 @@ public static class OsFileManager
 
             var remote = WindowsDavDrive.RemoteOf(char.ToUpperInvariant(drive.Name[0]));
             DesktopLog.Debug("WebDAV probe: {Drive} -> {Remote}", drive.Name, remote ?? "(not a mapping)");
-            if (remote is not null && UncMatchesServer(remote, server))
+            if (remote is not null && (exact ? UncMatchesAddress(remote, server) : UncMatchesServer(remote, server)))
             {
                 return drive.Name;
             }
@@ -491,12 +510,64 @@ public static class OsFileManager
         return string.Equals(host, server.Host, StringComparison.OrdinalIgnoreCase) && port == serverPort;
     }
 
-    private static string? GvfsDavMount()
+    /// <summary>
+    /// Whether a mapped drive's UNC is exactly this address: the server as <see cref="UncMatchesServer"/> asks, and the
+    /// same path after <c>DavWWWRoot</c> (#2128). Each account mounts its own address, so the host alone is not enough.
+    /// </summary>
+    public static bool UncMatchesAddress(string remoteUnc, Uri address)
+    {
+        if (!UncMatchesServer(remoteUnc, address))
+        {
+            return false;
+        }
+
+        var parts = remoteUnc.TrimStart('\\').Split('\\', 3);
+        var remotePath = parts.Length == 3 && parts[1].Equals("DavWWWRoot", StringComparison.OrdinalIgnoreCase) ? parts[2] : string.Empty;
+        return string.Equals(
+            Uri.UnescapeDataString(remotePath.Replace('\\', '/').Trim('/')),
+            Uri.UnescapeDataString(address.AbsolutePath.Trim('/')),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    // GVFS names a mount "dav:host=<host>,ssl=true,prefix=<escaped path>"; with an address, only that one matches (#2128).
+    private static string? GvfsDavMount(Uri? address = null)
     {
         var gvfs = $"/run/user/{Environment.GetEnvironmentVariable("UID") ?? "1000"}/gvfs";
         return System.IO.Directory.Exists(gvfs)
-            ? System.IO.Directory.EnumerateDirectories(gvfs).FirstOrDefault(d => d.Contains("dav", StringComparison.OrdinalIgnoreCase))
+            ? System.IO.Directory.EnumerateDirectories(gvfs).FirstOrDefault(d => address is null
+                ? d.Contains("dav", StringComparison.OrdinalIgnoreCase)
+                : GvfsNameMatches(System.IO.Path.GetFileName(d), address))
             : null;
+    }
+
+    /// <summary>Whether a GVFS mount's directory name is this address: its host and its prefix (the path), unescaped.</summary>
+    public static bool GvfsNameMatches(string name, Uri address)
+    {
+        if (!name.StartsWith("dav", StringComparison.OrdinalIgnoreCase) || name.IndexOf(':', StringComparison.Ordinal) is var colon && colon < 0)
+        {
+            return false;
+        }
+
+        string? host = null;
+        var path = string.Empty;
+        foreach (var field in name[(colon + 1)..].Split(','))
+        {
+            var pair = field.Split('=', 2);
+            if (pair.Length != 2)
+            {
+                continue;
+            }
+
+            var value = Uri.UnescapeDataString(pair[1]);
+            switch (pair[0].ToLowerInvariant())
+            {
+                case "host": host = value; break;
+                case "prefix": path = value; break;
+            }
+        }
+
+        return string.Equals(host, address.Host, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(path.Trim('/'), Uri.UnescapeDataString(address.AbsolutePath.Trim('/')), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

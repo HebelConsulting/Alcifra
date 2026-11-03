@@ -537,7 +537,12 @@ public partial class MainWindow
         // A volume that no longer answers is no one's to protect: its credentials stopped working (a reset removed the
         // device password, a revoked device), every read fails, and opening a folder in it says "does not exist". It is
         // unmounted and mounted fresh below — the account file that would name its owner cannot be read on it either.
-        if (OsFileManager.MountedPath() is { } dead && !await OsFileManager.MountAnswersAsync(dead, TimeSpan.FromSeconds(5)))
+        //
+        // THIS account's address (#2128, ADR 1043): each account mounts its own, so another account's volume on the same
+        // server is simply a different mount, not this one.
+        var devices = await api.Devices.GetAsync();
+        var address = devices.Servers.WebDavUrl.TrimEnd('/');
+        if (OsFileManager.MountedPathFor(address) is { } dead && !await OsFileManager.MountAnswersAsync(dead, TimeSpan.FromSeconds(5)))
         {
             var unmounted = await OsFileManager.ForceUnmountAsync(dead);
             if (!unmounted.Success)
@@ -547,7 +552,7 @@ public partial class MainWindow
             }
         }
 
-        if (OsFileManager.MountedPath() is { } mounted)
+        if (OsFileManager.MountedPathFor(address) is { } mounted)
         {
             if (OsFileManager.MountAccountOf(mounted) is { } owner && !owner.Is(vm.UserEmail, (await api.GetWhoAmIAsync()).TenantId))
             {
@@ -569,7 +574,6 @@ public partial class MainWindow
             return;
         }
 
-        var devices = await api.Devices.GetAsync();
         if (!devices.ReachesFiles)
         {
             // No device reaches files yet (owner, 2026-11-01): offer to enrol THIS computer, files only, show its

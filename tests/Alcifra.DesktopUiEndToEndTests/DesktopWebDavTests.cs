@@ -21,7 +21,8 @@ public class DesktopWebDavTests
 
         await view.LoadAsync();
         Assert.False(string.IsNullOrEmpty(view.List!.Servers.Username));
-        Assert.EndsWith(("/" + global::Alcifra.Presentation.WireNames.WebDavSegment), view.List.Servers.WebDavUrl); // the single mount (ADR 0509)
+        // The account's own address under /webdav (#2128): tenant id, user id, then "Name (Tenant)".
+        Assert.Matches($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/[A-Za-z0-9_-]{{22}}/[A-Za-z0-9_-]{{22}}/[^/]+$", view.List.Servers.WebDavUrl);
 
         var name = $"wd-{Guid.NewGuid():N}"[..20];
         var enrolled = await view.EnrolAsync(new Alcifra.ApiClient.DeviceRequest(name, Mail: false, Files: true, Calendars: false, Contacts: false, EncryptMail: false));

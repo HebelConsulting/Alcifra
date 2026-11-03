@@ -106,7 +106,8 @@ public class WebDevicesTests
         // The space is addressed by its OWNER's name, not the literal "Personal" — that is what the mount
         // actually serves, and a client that composed the placeholder produced a path nothing answers.
         var personal = Uri.EscapeDataString(SelfHostedAppFixture.AdminDisplayName);
-        Assert.EndsWith($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{personal}/Intray", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
+        // The account's own address (#2128, ADR 1043), then the folder: /webdav/<tenant>/<user>/<Name (Tenant)>/<personal>/Intray.
+        Assert.Matches($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/[A-Za-z0-9_-]{{22}}/[A-Za-z0-9_-]{{22}}/[^/]+/{System.Text.RegularExpressions.Regex.Escape(personal)}/Intray$", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
     }
 
     // The two tabs must copy DIFFERENT addresses — that is the whole point of the deep link, and a shared
@@ -121,7 +122,8 @@ public class WebDevicesTests
         await page.GetByRole(AriaRole.Button, new() { Name = "Copy WebDAV URL" }).ClickAsync();
         await Expect(page.GetByText("Copied WebDAV URL")).ToBeVisibleAsync();
         var personal = Uri.EscapeDataString(SelfHostedAppFixture.AdminDisplayName);
-        Assert.EndsWith($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{personal}/Check-out", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
+        // The account's own address (#2128, ADR 1043), then the folder: /webdav/<tenant>/<user>/<Name (Tenant)>/<personal>/Check-out.
+        Assert.Matches($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/[A-Za-z0-9_-]{{22}}/[A-Za-z0-9_-]{{22}}/[^/]+/{System.Text.RegularExpressions.Regex.Escape(personal)}/Check-out$", await page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
     }
 
     private static async Task<ILocator> OpenDevicesAsync(IPage page)

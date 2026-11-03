@@ -247,7 +247,7 @@ public class ProtocolDevicesController(
             Items = [.. rows.Select(d => ToResource<ProtocolDeviceResource>(d, locked, ticked.GetValueOrDefault(d.Id)))],
             EncryptMailLocked = locked,
             ShowAllDocuments = user.ImapShowAllDocuments,
-            Servers = ServersOf(user),
+            Servers = await ServersOfAsync(user, cancellationToken),
             Links = [new Link("self", Collection, "GET"), new Link("settings", $"{Collection}/settings", "PUT")],
         });
     }
@@ -370,7 +370,7 @@ public class ProtocolDevicesController(
             ProfileQr = profileUrl is null ? null : Alcifra.Api.Security.QrCodes.PngDataUrl(profileUrl),
             ProfileExpiresAt = link?.ExpiresAt,
             PasswordQr = Alcifra.Api.Security.QrCodes.PngDataUrl(password),
-            Servers = ServersOf(user),
+            Servers = await ServersOfAsync(user, cancellationToken),
         };
         Response.Headers.CacheControl = "no-store";
         devices.EmitETag(Response, device);
@@ -476,9 +476,12 @@ public class ProtocolDevicesController(
         return NoContent();
     }
 
-    private DeviceServersResource ServersOf(User user)
+    private async Task<DeviceServersResource> ServersOfAsync(User user, CancellationToken cancellationToken)
     {
         var servers = DeviceServers.From(configuration, imap.Value, imapServer);
+        var tenantName = await dbContext.Tenants.Where(t => t.Id == user.TenantId).Select(t => t.Name).SingleOrDefaultAsync(cancellationToken) ?? string.Empty;
+        var webDav = Alcifra.Api.WebDav.WebDavMiddleware.AccountBase(user.TenantId, user.Id,
+            Alcifra.Api.WebDav.WebDavMiddleware.VolumeLabel(user.DisplayName, tenantName));
         return new DeviceServersResource
         {
             Username = user.Email,
@@ -487,7 +490,9 @@ public class ProtocolDevicesController(
             ImapPort = servers.ImapPort,
             ImapTlsPort = servers.ImapTlsPort,
             OutgoingHost = servers.OutgoingHost,
-            WebDavUrl = $"{servers.WebOrigin}{Alcifra.Api.WebDav.WebDavMiddleware.BasePath}",
+            // The account's own address (#2128, ADR 1043): two accounts on one computer are two volumes. Plain /webdav
+            // stays served for good, for addresses typed by hand.
+            WebDavUrl = $"{servers.WebOrigin}{webDav}",
             CalDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CalDav.BasePath}",
             CardDavUrl = $"{servers.WebOrigin}{Alcifra.Api.CalDav.DavProtocol.CardDav.BasePath}",
         };

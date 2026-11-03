@@ -168,6 +168,8 @@ public partial class ConcurrencyContractRatchetTests
         ["CertificateAttestationRootsController.cs:TrustedAttestationRoot"] =
             "Reads only: lists the installation's roots and checks the selected ids exist (ADR 0963). What it writes is the "
             + "tenant's join rows, under TenantVerbs.",
+        ["ProtocolDevicesController.cs:Tenant"] =
+            "Reads only: the tenant's name labels the account's own WebDAV address, \"Name (Tenant)\" (#2128, ADR 1043).",
         ["AttestationRootsController.cs:Tenant"] =
             "Reads only: lists the active tenants to record a platform administrator's root change in each (ADR 0963). "
             + "What it writes is TrustedAttestationRoot, through TrustedAttestationRootVerbs.",
