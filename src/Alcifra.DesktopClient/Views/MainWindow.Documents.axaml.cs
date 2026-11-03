@@ -533,6 +533,20 @@ public partial class MainWindow
         // Already mounted: go straight to the folder on disk — if it is THIS user's mount. Every user and tenant of the
         // installation mount one address, so the volume may be another account's: then refuse, naming whose (#2053, owner
         // decision), rather than open someone else's archive or eject it behind their back.
+        //
+        // A volume that no longer answers is no one's to protect: its credentials stopped working (a reset removed the
+        // device password, a revoked device), every read fails, and opening a folder in it says "does not exist". It is
+        // unmounted and mounted fresh below — the account file that would name its owner cannot be read on it either.
+        if (OsFileManager.MountedPath() is { } dead && !await OsFileManager.MountAnswersAsync(dead, TimeSpan.FromSeconds(5)))
+        {
+            var unmounted = await OsFileManager.ForceUnmountAsync(dead);
+            if (!unmounted.Success)
+            {
+                vm.Status = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Get("MwWebDavDeadMount"), dead, unmounted.Error);
+                return;
+            }
+        }
+
         if (OsFileManager.MountedPath() is { } mounted)
         {
             if (OsFileManager.MountAccountOf(mounted) is { } owner && !owner.Is(vm.UserEmail, (await api.GetWhoAmIAsync()).TenantId))
@@ -560,27 +574,57 @@ public partial class MainWindow
         {
             // No device reaches files yet (owner, 2026-11-01): offer to enrol THIS computer, files only, show its
             // password once, and mount; the system asks for the password, which the person pastes.
-            if (await EnrolThisComputerAsync(vm, api) is not { } enrolled)
+            if (await EnrollForFilesAsync(vm, api) is not { } enrolled)
             {
                 return;
             }
 
-            devices = await api.Devices.GetAsync();
-            vm.Status = Strings.Get("DvMountPaste");
+            devices = enrolled;
         }
         else
         {
             vm.Status = Strings.Get("MwWebDavMounting");
         }
 
-        // Signed in as THIS user (#2053): without the name, the system answers from what it saved for the server.
-        var result = await OsFileManager.OpenWebDavFolderAsync(devices.Servers.WebDavUrl.TrimEnd('/'), subFolder,
-            TryGetPlatformHandle()?.Handle ?? 0, // parents the Windows credential dialog (#820)
-            devices.Servers.Username);
+        var result = await MountAsync(devices, subFolder);
+
+        // Refused, and this computer has no device for files (any more): its saved password belongs to a device that is
+        // gone. Say so and offer to enrol it again, then mount once more (owner, 2026-11-03).
+        if (!result.Success && !devices.Items.Any(d => d.Files && string.Equals(d.Name, Environment.MachineName, StringComparison.OrdinalIgnoreCase)))
+        {
+            vm.Status = Strings.Get("MwWebDavNoDeviceHere");
+            if (await EnrollForFilesAsync(vm, api) is { } again)
+            {
+                result = await MountAsync(again, subFolder);
+            }
+        }
+
         vm.Status = result.Success
             ? Strings.Get("MwWebDavMounted")
             : string.Format(Strings.Get("MwWebDavMountFailed"), result.Error);
         await vm.RefreshWebDavStateAsync();
+    }
+
+    // Signed in as THIS user (#2053): without the name, the system answers from what it saved for the server.
+    private Task<OsFileManager.OpenResult> MountAsync(Alcifra.ApiClient.DeviceList devices, string subFolder) =>
+        OsFileManager.OpenWebDavFolderAsync(devices.Servers.WebDavUrl.TrimEnd('/'), subFolder,
+            TryGetPlatformHandle()?.Handle ?? 0, // parents the Windows credential dialog (#820)
+            devices.Servers.Username);
+
+    // Enrols this computer for files and forgets what the system saved for the server: that password belongs to a device
+    // that no longer reaches files, and macOS would send it silently instead of asking for the new one (owner,
+    // 2026-11-03: the system asks, the person pastes). The devices as they are now, or null when declined or refused.
+    private async Task<Alcifra.ApiClient.DeviceList?> EnrollForFilesAsync(MainWindowViewModel vm, Services.AlcifraApiClient api)
+    {
+        if (await EnrolThisComputerAsync(vm, api) is null)
+        {
+            return null;
+        }
+
+        var devices = await api.Devices.GetAsync();
+        await OsFileManager.ForgetSavedPasswordAsync(devices.Servers.WebDavUrl, devices.Servers.Username);
+        vm.Status = Strings.Get("DvMountPaste");
+        return devices;
     }
 
     // Enrols this computer for files and shows its hand-over; null when the person declines or it is refused (a device of

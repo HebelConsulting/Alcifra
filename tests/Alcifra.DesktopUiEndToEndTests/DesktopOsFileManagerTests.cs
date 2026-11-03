@@ -239,4 +239,31 @@ public class DesktopOsFileManagerTests
             Directory.Delete(mount, recursive: true);
         }
     }
+
+    // A mount whose credentials stopped working stays in the mount table but answers nothing (2026-11-03, after a reset
+    // removed its device password): the desktop asks whether the volume still answers before treating it as mounted.
+    [Fact]
+    public async Task A_volume_that_lists_answers_and_one_that_cannot_be_read_does_not()
+    {
+        var alive = Directory.CreateTempSubdirectory("alcifra-mount-").FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(alive, "entry"), "x");
+            Assert.True(await OsFileManager.MountAnswersAsync(alive, TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            Directory.Delete(alive, recursive: true);
+        }
+
+        Assert.False(await OsFileManager.MountAnswersAsync(Path.Combine(Path.GetTempPath(), $"gone-{Guid.NewGuid():N}"), TimeSpan.FromSeconds(5)));
+    }
+
+    // Forgetting what the system saved is best-effort and quiet: nothing saved, or another platform, is not an error.
+    [Fact]
+    public async Task Forgetting_a_password_nobody_saved_is_quiet()
+    {
+        await OsFileManager.ForgetSavedPasswordAsync($"https://nothing-saved-{Guid.NewGuid():N}.invalid/webdav", "nobody@example.invalid");
+        await OsFileManager.ForgetSavedPasswordAsync("not a url", "nobody@example.invalid");
+    }
 }

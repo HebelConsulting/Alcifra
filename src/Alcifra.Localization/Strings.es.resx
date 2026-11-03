@@ -2586,6 +2586,12 @@
   <data name="MwWebDavMountFailed" xml:space="preserve">
     <value>No se pudo montar {Product}: {0}</value>
   </data>
+  <data name="MwWebDavDeadMount" xml:space="preserve">
+    <value>{Product} en {0} ya no responde y no se pudo desmontar: {1}</value>
+  </data>
+  <data name="MwWebDavNoDeviceHere" xml:space="preserve">
+    <value>Este ordenador ya no tiene un dispositivo para archivos, así que el servidor rechazó la contraseña guardada.</value>
+  </data>
   <data name="WdRegenerate" xml:space="preserve">
     <value>Regenerar contraseña</value>
   </data>

@@ -2586,6 +2586,12 @@
   <data name="MwWebDavMountFailed" xml:space="preserve">
     <value>{Product} konnte nicht eingebunden werden: {0}</value>
   </data>
+  <data name="MwWebDavDeadMount" xml:space="preserve">
+    <value>{Product} unter {0} antwortet nicht mehr und konnte nicht ausgeworfen werden: {1}</value>
+  </data>
+  <data name="MwWebDavNoDeviceHere" xml:space="preserve">
+    <value>Dieser Computer hat kein Gerät für Dateien mehr, daher hat der Server das gespeicherte Passwort abgelehnt.</value>
+  </data>
   <data name="WdRegenerate" xml:space="preserve">
     <value>Passwort neu generieren</value>
   </data>

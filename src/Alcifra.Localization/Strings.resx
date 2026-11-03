@@ -2586,6 +2586,12 @@
   <data name="MwWebDavMountFailed" xml:space="preserve">
     <value>Could not mount {Product}: {0}</value>
   </data>
+  <data name="MwWebDavDeadMount" xml:space="preserve">
+    <value>{Product} at {0} no longer answers and could not be unmounted: {1}</value>
+  </data>
+  <data name="MwWebDavNoDeviceHere" xml:space="preserve">
+    <value>This computer has no device for files any more, so the server refused the saved password.</value>
+  </data>
   <data name="WdRegenerate" xml:space="preserve">
     <value>Regenerate password</value>
   </data>

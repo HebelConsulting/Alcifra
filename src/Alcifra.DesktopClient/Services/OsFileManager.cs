@@ -540,6 +540,59 @@ public static class OsFileManager
         }
     }
 
+    /// <summary>
+    /// Whether a mounted volume still answers: its root lists within <paramref name="timeout"/>. A volume whose
+    /// credentials the server stopped accepting stays in the mount table but answers every read with an error
+    /// ("Invalid argument") or not at all, and opening a folder in it then fails as "does not exist" (2026-11-03,
+    /// after a nightly reset removed the device password it was mounted with).
+    /// </summary>
+    public static async Task<bool> MountAnswersAsync(string mountPoint, TimeSpan timeout)
+    {
+        try
+        {
+            await Task.Run(() => System.IO.Directory.EnumerateFileSystemEntries(mountPoint).Take(1).ToList()).WaitAsync(timeout);
+            return true;
+        }
+        catch (Exception exception) when (exception is System.IO.IOException or UnauthorizedAccessException or TimeoutException)
+        {
+            DesktopLog.Warn("WebDAV probe: the volume at {MountPoint} does not answer ({Reason})", mountPoint, exception.Message);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Unmounts a volume that no longer answers, so the next mount starts fresh. macOS only: a dead mount there
+    /// keeps the server's address, and every later mount would find it "already mounted".
+    /// </summary>
+    public static Task<OpenResult> ForceUnmountAsync(string mountPoint) => Current == Platform.MacOs
+        ? RunAsync("diskutil", ["unmount", "force", mountPoint], macOsChecksExit: true)
+        : Task.FromResult(new OpenResult(false, "Unmounting a dead volume is done on macOS only."));
+
+    /// <summary>
+    /// Removes what macOS saved for this server and user, so the next mount ASKS for the password rather than
+    /// silently sending one the server no longer accepts. Called after this computer was enrolled anew: the person
+    /// then pastes the new device password into the system's prompt (owner, 2026-11-01 and 2026-11-03). Nothing is
+    /// written, and no password passes through the app. A no-op elsewhere and when nothing was saved.
+    /// </summary>
+    public static async Task ForgetSavedPasswordAsync(string httpBaseUrl, string userName)
+    {
+        if (Current != Platform.MacOs || !Uri.TryCreate(httpBaseUrl, UriKind.Absolute, out var server) || userName.Length == 0)
+        {
+            return;
+        }
+
+        // One entry per protocol or path may exist; `security` deletes one per call and fails once none is left.
+        for (var removed = 0; removed < 5; removed++)
+        {
+            var result = await RunAsync("security", ["delete-internet-password", "-s", server.Host, "-a", userName], macOsChecksExit: true);
+            if (!result.Success)
+            {
+                DesktopLog.Debug("WebDAV credentials: {Removed} saved password(s) for {User} at {Host} removed", removed, userName, server.Host);
+                return;
+            }
+        }
+    }
+
     /// <summary>The account a mounted volume belongs to: its address and its tenant.</summary>
     public sealed record MountAccount(string Address, Guid TenantId)
     {
