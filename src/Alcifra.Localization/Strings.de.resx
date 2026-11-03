@@ -2583,6 +2583,9 @@
   <data name="MwWebDavMounted" xml:space="preserve">
     <value>{Product} ist eingebunden.</value>
   </data>
+  <data name="MwModuleNoAccessHere" xml:space="preserve">
+    <value>Das Modul, das diesen Ordner füllt, hat keinen Zugriff auf seinen Ort. Verschieben Sie den Ordner in ein gemeinsames Archiv, für das das Modul berechtigt ist.</value>
+  </data>
   <data name="MwWebDavMountFailed" xml:space="preserve">
     <value>{Product} konnte nicht eingebunden werden: {0}</value>
   </data>

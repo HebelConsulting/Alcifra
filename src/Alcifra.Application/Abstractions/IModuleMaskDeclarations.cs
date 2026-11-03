@@ -39,6 +39,9 @@ public interface IModuleMaskDeclarations
 
     /// <summary>The folder masks provisioned in every user's personal space, with the module that declared each.</summary>
     IReadOnlyList<ProvisionedFolder> ProvisionedInPersonalSpace { get; }
+
+    /// <summary>The masks <paramref name="moduleId"/> declares; empty for a module that is not loaded (#2132).</summary>
+    IReadOnlySet<Guid> MasksOf(string moduleId);
 }
 
 /// <summary>A folder a module asks the core to provision in each user's personal space (ABI 1.18).</summary>

@@ -556,8 +556,19 @@ public partial class Home
     // safe direction.
     private const string PopulateOutcomeHeader = "X-Populate-Outcome";
 
-    private static bool PopulateRan(HttpResponseMessage response) =>
-        !response.Headers.TryGetValues(PopulateOutcomeHeader, out var values) || !values.Contains("current");
+    private bool PopulateRan(HttpResponseMessage response)
+    {
+        // Not run because its module may not read this place (#2132): said once per folder, the folder stays empty.
+        if (response.Headers.TryGetValues("X-Populate-Unavailable", out var why) && why.Contains("module-has-no-access")
+            && response.RequestMessage?.RequestUri is { } asked && _noAccessSaid.Add(asked.AbsolutePath))
+        {
+            Snackbar.Add(Strings.Get("MwModuleNoAccessHere"), Severity.Info);
+        }
+
+        return !response.Headers.TryGetValues(PopulateOutcomeHeader, out var values) || !values.Contains("current");
+    }
+
+    private readonly HashSet<string> _noAccessSaid = new(StringComparer.Ordinal);
 
     private async Task AutoRefreshSelectionAsync(BrowseNode item, int token)
     {

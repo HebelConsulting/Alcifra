@@ -2583,6 +2583,9 @@
   <data name="MwWebDavMounted" xml:space="preserve">
     <value>{Product} è montato.</value>
   </data>
+  <data name="MwModuleNoAccessHere" xml:space="preserve">
+    <value>Il modulo che riempie questa cartella non ha accesso al luogo in cui si trova. Sposta la cartella in un archivio condiviso a cui il modulo ha accesso.</value>
+  </data>
   <data name="MwWebDavMountFailed" xml:space="preserve">
     <value>Impossibile montare {Product}: {0}</value>
   </data>

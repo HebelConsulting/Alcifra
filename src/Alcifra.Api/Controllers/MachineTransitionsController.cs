@@ -42,6 +42,12 @@ public class MachineTransitionsController : ControllerBase
     /// </summary>
     public const string PopulateOutcomeHeader = "X-Populate-Outcome";
 
+    /// <summary>
+    /// Beside <c>current</c> when the hook was NOT run because its module may not read the subject (#2132, ADR 1045):
+    /// value <c>module-has-no-access</c>. <c>current</c> keeps every client, older ones included, from reloading; this says why.
+    /// </summary>
+    public const string PopulateUnavailableHeader = "X-Populate-Unavailable";
+
     private readonly AlcifraDbContext _dbContext;
     private readonly DocumentAccessService _access;
     private readonly StateMachineCatalog _catalog;
@@ -50,14 +56,23 @@ public class MachineTransitionsController : ControllerBase
     private readonly ModuleContentHealthRecorder _health;
     private readonly ICurrentTenantAccessor _currentTenantAccessor;
     private readonly Alcifra.Api.Modules.TransitionInvocationRule _invocation;
+    private readonly IEffectiveRightsCalculator _rights;
+    private readonly IModuleMaskDeclarations _masks;
+    private readonly ILogger<MachineTransitionsController> _logger;
 
     public MachineTransitionsController(
         AlcifraDbContext dbContext, DocumentAccessService access, StateMachineCatalog catalog,
         StateMachineEngine engine, IAuditRecorder audit,
         Alcifra.Api.Modules.ModuleContentHealthRecorder health,
         ICurrentTenantAccessor currentTenantAccessor,
-        Alcifra.Api.Modules.TransitionInvocationRule invocation)
+        Alcifra.Api.Modules.TransitionInvocationRule invocation,
+        IEffectiveRightsCalculator rights,
+        IModuleMaskDeclarations masks,
+        ILogger<MachineTransitionsController> logger)
     {
+        _rights = rights;
+        _masks = masks;
+        _logger = logger;
         _dbContext = dbContext;
         _access = access;
         _catalog = catalog;
@@ -122,6 +137,19 @@ public class MachineTransitionsController : ControllerBase
         // SUCCESS deliberately — the hook's contract is "make this folder current", and it already is.
         if (autoRefresh)
         {
+            // A hook whose module may not read the subject would read nothing and still answer "ran", and a client
+            // reloads on "ran": a folder of a module in a place the module has no access to looped several times a
+            // second (#2132). Not run, "current", and the reason for the client to say once.
+            if (machine.ModuleId is { } owner
+                && !await Alcifra.Infrastructure.Modules.ModuleReach.MaySeeAsync(_dbContext, _rights, _masks, owner, documentId, cancellationToken))
+            {
+                _logger.LogDebug("Populate hook {Machine}/{Transition} not run on {DocumentId}: module {Module} has no access there",
+                    machineId, transitionName, documentId, owner);
+                Response.Headers[PopulateOutcomeHeader] = "current";
+                Response.Headers[PopulateUnavailableHeader] = "module-has-no-access";
+                return NoContent();
+            }
+
             var now = DateTimeOffset.UtcNow;
             var interval = machine.Transitions[transitionName].MinimumRefreshInterval;
             if (await PopulateCooldown.HoldsUnexpiredContentAsync(_dbContext, documentId, now, cancellationToken)

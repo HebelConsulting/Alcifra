@@ -98,7 +98,10 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
             return new Dictionary<Guid, EffectiveRights>();
         }
 
-        return await _rights.GetEffectiveRightsForManyForServiceAccountAsync(principalId, documentIds, cancellationToken);
+        // Its grants, and a folder of its own that a person made in their space (#2132, ADR 1045).
+        var masks = (_services?.GetService(typeof(IModuleMaskDeclarations)) as IModuleMaskDeclarations)?.MasksOf(moduleId)
+            ?? new HashSet<Guid>();
+        return await ModuleReach.ForPrincipalAsync(_dbContext, _rights, masks, principalId, documentIds, cancellationToken);
     }
 
     private async Task<bool> ModuleMaySeeAsync(Guid documentId, CancellationToken cancellationToken)

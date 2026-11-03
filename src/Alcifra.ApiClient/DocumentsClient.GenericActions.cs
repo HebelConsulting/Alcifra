@@ -60,13 +60,22 @@ public sealed partial class DocumentsClient
     /// "current" (the X-Populate-Outcome header, ADR 0814) when the folder already holds unexpired staged
     /// content — nothing executed, so a caller skips its reload. A response without the header (a
     /// deliberate action, or an older server) reads as ran: reloading too often is the safe direction.</returns>
-    public async Task<bool> ExecuteActionAsync(GenericActionInfo action, CancellationToken cancellationToken = default)
+    public async Task<bool> ExecuteActionAsync(GenericActionInfo action, CancellationToken cancellationToken = default) =>
+        (await RunActionAsync(action, cancellationToken)).Ran;
+
+    /// <summary>
+    /// As <see cref="ExecuteActionAsync"/>, and why an auto-refresh did not run: its module may not read this document
+    /// (the X-Populate-Unavailable header, #2132), so a client can say so once instead of showing an empty folder silently.
+    /// </summary>
+    public async Task<ActionOutcome> RunActionAsync(GenericActionInfo action, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(new HttpMethod(action.Method), action.Href);
         var response = await _core.Http.SendAsync(request, cancellationToken);
         if (response.IsSuccessStatusCode)
         {
-            return !response.Headers.TryGetValues("X-Populate-Outcome", out var values) || !values.Contains("current");
+            var ran = !response.Headers.TryGetValues("X-Populate-Outcome", out var values) || !values.Contains("current");
+            var noAccess = response.Headers.TryGetValues("X-Populate-Unavailable", out var why) && why.Contains("module-has-no-access");
+            return new ActionOutcome(ran, noAccess);
         }
 
         // Parse ONCE, branch from the parse (the read-the-problem-body-once lesson). Mapped through
@@ -76,3 +85,6 @@ public sealed partial class DocumentsClient
         throw new ApiActionException(Alcifra.Localization.ApiErrorText.For(code, module, detail));
     }
 }
+
+/// <summary>What an action did: whether it ran, and whether an auto-refresh was skipped because its module may not read the document.</summary>
+public sealed record ActionOutcome(bool Ran, bool ModuleHasNoAccess);

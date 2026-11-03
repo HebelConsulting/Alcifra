@@ -141,6 +141,18 @@ public partial class MainWindowViewModel
     /// stages fresh content under the folder — and reload the contents so it appears. The reload is a
     /// same-folder reload (<c>isReload</c> is derived true), so it cannot re-enter this hook and loop.
     /// </summary>
+    // Whether an auto-refresh ran; one that was skipped because its module may not read this place says so on the status
+    // line (#2132) — the folder stays empty for a reason the user can act on (move it into a shared repository).
+    private bool Ran(ActionOutcome outcome)
+    {
+        if (outcome.ModuleHasNoAccess)
+        {
+            Status = Strings.Get("MwModuleNoAccessHere");
+        }
+
+        return outcome.Ran;
+    }
+
     private async Task AutoRefreshOpenFolderAsync()
     {
         if (_api is null || _currentFolderId is not { } id)
@@ -159,7 +171,7 @@ public partial class MainWindowViewModel
             var contentChanged = false;
             foreach (var action in autoRefresh)
             {
-                contentChanged |= await _api.Documents.ExecuteActionAsync(action);
+                contentChanged |= Ran(await _api.Documents.RunActionAsync(action));
             }
 
             if (!contentChanged)
@@ -257,7 +269,7 @@ public partial class MainWindowViewModel
         {
             foreach (var action in actions)
             {
-                contentChanged |= await _api.Documents.ExecuteActionAsync(action);
+                contentChanged |= Ran(await _api.Documents.RunActionAsync(action));
             }
         }
         catch (ApiActionException)

@@ -2583,6 +2583,9 @@
   <data name="MwWebDavMounted" xml:space="preserve">
     <value>{Product} is mounted.</value>
   </data>
+  <data name="MwModuleNoAccessHere" xml:space="preserve">
+    <value>The module that fills this folder has no access to where it is. Move the folder into a shared repository the module is granted.</value>
+  </data>
   <data name="MwWebDavMountFailed" xml:space="preserve">
     <value>Could not mount {Product}: {0}</value>
   </data>

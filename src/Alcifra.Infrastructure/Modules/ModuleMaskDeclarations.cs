@@ -26,6 +26,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
     private readonly Dictionary<Guid, string> _segments = [];
     private readonly HashSet<string> _unrenderedSegments = new(StringComparer.Ordinal);
     private readonly HashSet<string> _sealedSegments = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<Guid>> _masksOf = new(StringComparer.Ordinal);
 
     public ModuleMaskDeclarations(IReadOnlyList<ModuleLoader.LoadedModule> modules)
     {
@@ -39,6 +40,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
 
         foreach (var loaded in modules)
         {
+            _masksOf[loaded.Module.ModuleId] = [.. loaded.Module.Masks.Select(m => m.MaskId)];
             foreach (var mask in loaded.Module.Masks)
             {
                 if (mask.ContentSegment is { } segment)
@@ -159,4 +161,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
 
     [GeneratedRegex("^[a-z][a-z0-9-]{1,39}$")]
     private static partial Regex Segment();
+
+    public IReadOnlySet<Guid> MasksOf(string moduleId) =>
+        _masksOf.TryGetValue(moduleId, out var masks) ? masks : new HashSet<Guid>();
 }
