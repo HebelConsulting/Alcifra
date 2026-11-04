@@ -30,6 +30,12 @@ public interface IModuleMaskDeclarations
     /// object only, can ask.</summary>
     bool IsUnrenderedContent(string objectKey);
 
+    /// <summary>What a mask accepts as content (ABI 1.29, ADR 1046), for the masks that say; every other mask takes anything.</summary>
+    IReadOnlyDictionary<Guid, AcceptedContent> AcceptedContentOf { get; }
+
+    /// <summary>Folder masks whose admission also binds the references placed in them (ABI 1.29, ADR 1046).</summary>
+    IReadOnlySet<Guid> ReferencesObeyAdmission { get; }
+
     /// <summary>Masks whose content arrives sealed to its readers (ABI 1.20, ADR 0940): checked at filing.</summary>
     IReadOnlySet<Guid> SealedContent { get; }
 
@@ -46,3 +52,10 @@ public interface IModuleMaskDeclarations
 
 /// <summary>A folder a module asks the core to provision in each user's personal space (ABI 1.18).</summary>
 public sealed record ProvisionedFolder(string ModuleId, Guid MaskId, string Name);
+
+/// <summary>The file extensions one mask accepts (ABI 1.29, ADR 1046): lower case, without the dot.</summary>
+public sealed record AcceptedContent(string MaskName, IReadOnlySet<string> Extensions)
+{
+    /// <summary>Whether an object key, or a file name, ends in an accepted extension.</summary>
+    public bool Accepts(string key) => Extensions.Contains(Path.GetExtension(key).TrimStart('.').ToLowerInvariant());
+}

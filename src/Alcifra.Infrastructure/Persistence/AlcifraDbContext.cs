@@ -464,6 +464,9 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     // it, so none of these checks can be bypassed the way a per-handler check could be.
     private async Task ValidateDocumentsAsync(CancellationToken cancellationToken)
     {
+        await AcceptedContentInvariants.EnforceAsync(this, _moduleMasks, cancellationToken);
+        await ReferenceAdmissionInvariants.EnforceAsync(this, _moduleMasks, _containmentProvider, cancellationToken);
+
         var changedDocuments = ChangeTracker.Entries<Document>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified)
             .Select(e => e.Entity)

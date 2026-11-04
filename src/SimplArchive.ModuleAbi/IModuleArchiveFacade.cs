@@ -328,6 +328,21 @@ public interface IModuleArchiveFacade
         throw new NotSupportedException("This facade predates ABI 1.18.");
 
     /// <summary>
+    /// The documents wearing <paramref name="maskId"/> referenced in <paramref name="folderId"/> (ABI 1.29, ADR 1046), the
+    /// oldest reference first and only what this module may read: a folder's other half beside
+    /// <see cref="GetChildrenAsync"/>. A published video is offered in every channel that references it.
+    /// </summary>
+    Task<IReadOnlyList<ModuleDocument>> GetReferencedAsync(Guid folderId, Guid maskId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This facade predates ABI 1.29.");
+
+    /// <summary>
+    /// The extension of the document's current content, lower case and without the dot, as it is stored (ABI 1.29, ADR 1046);
+    /// null with no content, or where this module may not read it. A document's name proves nothing about its bytes.
+    /// </summary>
+    Task<string?> GetDocumentContentExtensionAsync(Guid documentId, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException("This facade predates ABI 1.29.");
+
+    /// <summary>
     /// Active users of this tenant who have at least one usable enrolled certificate, whose name or e-mail contains
     /// <paramref name="term"/> (ABI 1.18, ADR 0937): the people a sealed conversation can include. At most
     /// <paramref name="limit"/>, ordered by name. Nobody without a key is offered, because they could not be added.
@@ -374,6 +389,12 @@ public sealed record ModuleDocument(
     Guid? MaskId,
     IReadOnlyDictionary<string, string> Fields)
 {
+    /// <summary>
+    /// When the reference that listed this document was placed; set by
+    /// <see cref="IModuleArchiveFacade.GetReferencedAsync"/> only (ABI 1.29), null everywhere else.
+    /// </summary>
+    public DateTimeOffset? ReferencedAt { get; init; }
+
     /// <summary>
     /// Every field's values in stored (ordinal) order (ABI 0.2, #1014) — the faithful shape.
     /// <see cref="Fields"/> keeps its joined single-string form so 0.1 modules read on unchanged; a list

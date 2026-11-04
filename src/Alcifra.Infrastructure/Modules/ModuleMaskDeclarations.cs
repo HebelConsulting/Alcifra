@@ -24,6 +24,8 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
     public static ModuleMaskDeclarations None { get; } = new([]);
 
     private readonly Dictionary<Guid, string> _segments = [];
+    private readonly Dictionary<Guid, AcceptedContent> _acceptedContent = [];
+    private readonly HashSet<Guid> _referencesObeyAdmission = [];
     private readonly HashSet<string> _unrenderedSegments = new(StringComparer.Ordinal);
     private readonly HashSet<string> _sealedSegments = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<Guid>> _masksOf = new(StringComparer.Ordinal);
@@ -60,6 +62,16 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
                     }
 
                     (mask.ContentIsSealed ? _sealedSegments : unsealedSegments).Add(segment);
+                }
+
+                if (mask.ReferencesObeyAdmission)
+                {
+                    _referencesObeyAdmission.Add(mask.MaskId);
+                }
+
+                if (mask.AcceptedExtensions is { } accepted)
+                {
+                    _acceptedContent[mask.MaskId] = AcceptedOf(loaded.Module.ModuleId, mask.Name, accepted);
                 }
 
                 if (mask.ContentIsSealed)
@@ -125,6 +137,24 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
             (notSearched, notRetained, notHeld, notRendered, sealedMasks, provisioned);
     }
 
+    public IReadOnlyDictionary<Guid, AcceptedContent> AcceptedContentOf => _acceptedContent;
+
+    public IReadOnlySet<Guid> ReferencesObeyAdmission => _referencesObeyAdmission;
+
+    // A declaration that cannot mean anything stops the module loading, rather than refuse every file later with no reason.
+    private static AcceptedContent AcceptedOf(string moduleId, string maskName, IReadOnlyList<string> extensions)
+    {
+        var normalized = extensions.Select(e => e.Trim().TrimStart('.').ToLowerInvariant()).ToHashSet(StringComparer.Ordinal);
+        if (normalized.Count == 0 || normalized.Any(e => !Extension().IsMatch(e)))
+        {
+            throw new InvalidOperationException(
+                $"Module '{moduleId}' declares the accepted extensions of mask '{maskName}' as [{string.Join(", ", extensions)}]. "
+                + "At least one is needed, each letters and digits.");
+        }
+
+        return new AcceptedContent(maskName, normalized);
+    }
+
     public IReadOnlySet<Guid> NotSearched { get; }
 
     public IReadOnlySet<Guid> NotRetained { get; }
@@ -161,6 +191,9 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
 
     [GeneratedRegex("^[a-z][a-z0-9-]{1,39}$")]
     private static partial Regex Segment();
+
+    [GeneratedRegex("^[a-z0-9]+$")]
+    private static partial Regex Extension();
 
     public IReadOnlySet<Guid> MasksOf(string moduleId) =>
         _masksOf.TryGetValue(moduleId, out var masks) ? masks : new HashSet<Guid>();

@@ -42,7 +42,7 @@ public class ModuleLoaderTests
             // its Test Case (a folder with a REQUIRED field, #1634). The certificate is the one whose typed fields
             // prove the boundary; the count is here to prove the boundary carries ALL of them, so it moves whenever
             // the fixture grows and that is the point.
-            Assert.Equal(9, module.Masks.Count);
+            Assert.Equal(10, module.Masks.Count);
             var mask = module.Masks.Single(m => m.Name == "Test Certificate");
             Assert.False(mask.IsBookable);
 

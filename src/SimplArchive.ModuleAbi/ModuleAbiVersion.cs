@@ -165,5 +165,13 @@ public static class ModuleAbiVersion
     /// and <see cref="IModuleCallerContext.TenantEncryptsAtRestAsync"/> (core ADR 1038, the video module of core #2062).
     /// Default-implemented members and a new type only, so a 1.27 module is unaffected.
     /// </para>
-    public const int Minor = 28;
+    /// <para>
+    /// 1.29 adds <see cref="ModuleMaskSeed.AcceptedExtensions"/>: a mask names the file types it holds and the core refuses
+    /// the rest at every filing door (core ADR 1046, the video module's masks of core #2144);
+    /// <see cref="ModuleMaskSeed.ReferencesObeyAdmission"/> and <see cref="IModuleArchiveFacade.GetReferencedAsync"/>: what
+    /// is referenced in a folder, and <see cref="IModuleArchiveFacade.GetDocumentContentExtensionAsync"/>: what it is stored as. The module may also read a document of its own masks referenced from a folder of its own
+    /// that it can see, and one that such a document names in a reference field. Init properties and a default-implemented
+    /// member, so a 1.28 module is unaffected.
+    /// </para>
+    public const int Minor = 29;
 }

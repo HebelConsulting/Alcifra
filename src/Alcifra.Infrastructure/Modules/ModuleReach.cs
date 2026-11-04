@@ -1,4 +1,5 @@
 using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Masks;
 using Alcifra.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,8 @@ namespace Alcifra.Infrastructure.Modules;
 /// that person made with one of the module's masks and what that folder holds (#2132, owner 2026-11-03). Making the folder
 /// is the invitation; nothing else of the space is reached, and the reach ends the moment the folder moves out, is
 /// deleted or changes its mask, because it is computed, never stored.
+/// Beyond a person's space too (ADR 1046): a document of its own masks referenced from a folder of its own that it can
+/// see, and one such a document names in a reference field.
 /// </summary>
 /// <remarks>
 /// One rule for the facade's read gate and for the populate step's question "may the module act on this subject at all",
@@ -37,6 +40,18 @@ public static class ModuleReach
         }
 
         var invited = await WithinOwnFoldersAsync(db, moduleMasks, missing, cancellationToken);
+        var open = missing.Where(id => !invited.Contains(id)).ToList();
+        if (open.Count > 0)
+        {
+            invited.UnionWith(await ReferencedFromOwnFoldersAsync(db, rights, moduleMasks, principalId, open, cancellationToken));
+            open.RemoveAll(invited.Contains);
+        }
+
+        if (open.Count > 0)
+        {
+            invited.UnionWith(await NamedByOwnDocumentsAsync(db, rights, moduleMasks, principalId, open, cancellationToken));
+        }
+
         if (invited.Count == 0)
         {
             return granted;
@@ -63,6 +78,90 @@ public static class ModuleReach
 
         var visible = await ForPrincipalAsync(db, rights, masks.MasksOf(moduleId), principal.Id, [documentId], cancellationToken);
         return visible.TryGetValue(documentId, out var r) && r.CanSee;
+    }
+
+    /// <summary>
+    /// Documents of the module's own masks referenced from a folder of its own that it can see (ABI 1.29, ADR 1046): placing
+    /// the reference is the invitation, so a video can be prepared anywhere and offered in a channel, and removing it ends
+    /// the reach. A document of any other mask stays out of reach, wherever it is referenced.
+    /// </summary>
+    private static async Task<HashSet<Guid>> ReferencedFromOwnFoldersAsync(
+        AlcifraDbContext db, IEffectiveRightsCalculator rights, IReadOnlySet<Guid> moduleMasks, Guid principalId,
+        IReadOnlyCollection<Guid> documentIds, CancellationToken cancellationToken)
+    {
+        var masks = moduleMasks.ToList();
+        var links = await (
+                from r in db.DocumentReferences
+                where documentIds.Contains(r.TargetDocumentId)
+                join target in db.Documents on r.TargetDocumentId equals target.Id
+                join targetMask in db.MaskVersions on target.MaskVersionId equals targetMask.Id
+                where masks.Contains(targetMask.MaskId)
+                join folder in db.Documents on r.ParentFolderId equals folder.Id
+                join folderMask in db.MaskVersions on folder.MaskVersionId equals folderMask.Id
+                where masks.Contains(folderMask.MaskId)
+                select new { r.TargetDocumentId, r.ParentFolderId })
+            .ToListAsync(cancellationToken);
+        if (links.Count == 0)
+        {
+            return [];
+        }
+
+        var folders = links.Select(l => l.ParentFolderId).Distinct().ToList();
+        var seen = await rights.GetEffectiveRightsForManyForServiceAccountAsync(principalId, folders, cancellationToken);
+        var own = await WithinOwnFoldersAsync(db, moduleMasks, folders, cancellationToken);
+        return [.. links
+            .Where(l => own.Contains(l.ParentFolderId) || (seen.TryGetValue(l.ParentFolderId, out var r) && r.CanSee))
+            .Select(l => l.TargetDocumentId)];
+    }
+
+    /// <summary>
+    /// Documents of the module's own masks that a document of its own, which it can see, names in a reference field (ABI
+    /// 1.29, ADR 1046): a video's thumbnail, wherever the thumbnail lies. One step, never a chain.
+    /// </summary>
+    private static async Task<HashSet<Guid>> NamedByOwnDocumentsAsync(
+        AlcifraDbContext db, IEffectiveRightsCalculator rights, IReadOnlySet<Guid> moduleMasks, Guid principalId,
+        IReadOnlyCollection<Guid> documentIds, CancellationToken cancellationToken)
+    {
+        var masks = moduleMasks.ToList();
+        var own = await (
+                from d in db.Documents
+                where documentIds.Contains(d.Id)
+                join v in db.MaskVersions on d.MaskVersionId equals v.Id
+                where masks.Contains(v.MaskId)
+                select d.Id)
+            .ToListAsync(cancellationToken);
+        if (own.Count == 0)
+        {
+            return [];
+        }
+
+        var values = own.Select(id => id.ToString("D")).ToList();
+        var namers = await (
+                from value in db.FieldValues
+                where values.Contains(value.Value)
+                join field in db.FieldDefinitions on value.FieldDefinitionId equals field.Id
+                where field.DataType == FieldDataType.DocumentReference
+                join namer in db.Documents on value.DocumentId equals namer.Id
+                join namerMask in db.MaskVersions on namer.MaskVersionId equals namerMask.Id
+                where masks.Contains(namerMask.MaskId)
+                select new { value.Value, value.DocumentId })
+            .ToListAsync(cancellationToken);
+        if (namers.Count == 0)
+        {
+            return [];
+        }
+
+        var owners = namers.Select(n => n.DocumentId).Distinct().ToList();
+        var granted = await rights.GetEffectiveRightsForManyForServiceAccountAsync(principalId, owners, cancellationToken);
+        var visible = owners.Where(id => granted.TryGetValue(id, out var r) && r.CanSee).ToHashSet();
+        var rest = owners.Where(id => !visible.Contains(id)).ToList();
+        if (rest.Count > 0)
+        {
+            visible.UnionWith(await WithinOwnFoldersAsync(db, moduleMasks, rest, cancellationToken));
+            visible.UnionWith(await ReferencedFromOwnFoldersAsync(db, rights, moduleMasks, principalId, rest, cancellationToken));
+        }
+
+        return [.. namers.Where(n => visible.Contains(n.DocumentId)).Select(n => Guid.Parse(n.Value))];
     }
 
     /// <summary>

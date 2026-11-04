@@ -83,6 +83,9 @@ public class ApiExceptionHandler : IExceptionHandler
             // same code the translating paths answer, rather than a 500 for a rule the caller can act on (ADR 0964).
             Alcifra.Domain.Documents.PersonalSpaceStructureException structure =>
                 ("PERSONAL_SPACE_STRUCTURE", StatusCodes.Status409Conflict, structure.Message),
+            // A version filed through a path that does not translate its own save (ABI 1.29, ADR 1046).
+            Alcifra.Domain.Masks.ContentExtensionNotAcceptedException content =>
+                ("CONTENT_EXTENSION_NOT_ACCEPTED", StatusCodes.Status415UnsupportedMediaType, content.Message),
             _ => ("INTERNAL_ERROR", StatusCodes.Status500InternalServerError, "An unexpected error occurred."),
         };
 

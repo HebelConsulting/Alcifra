@@ -50,6 +50,9 @@ public static class TypedFolderSave
         Domain.Masks.TypedFolderContainmentException x =>
             new Errors.Exceptions.Documents.TypedFolderContainmentException(x.Message),
 
+        Domain.Masks.ContentExtensionNotAcceptedException x =>
+            new Errors.Exceptions.Documents.ContentExtensionNotAcceptedException(x.Message),
+
         // Third time, same shape: the mask endpoint's own catch assumes a missing required field, so an
         // untranslated refusal here would tell the user to fill in a value that is not the problem.
         Domain.Masks.StructuralMaskImmutableException x =>

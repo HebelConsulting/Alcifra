@@ -130,6 +130,20 @@ public sealed record ModuleMaskSeed(
     /// object only by its key.
     /// </summary>
     public bool ContentIsSealed { get; init; }
+
+    /// <summary>
+    /// The file extensions a document wearing this mask may hold, without the dot and in any case (ABI 1.29, core ADR 1046):
+    /// the core refuses anything else wherever content is filed or the mask is assigned, with a named error, so no client
+    /// and no protocol door gets around it. Null accepts anything; an empty list is refused when the module loads.
+    /// </summary>
+    public IReadOnlyList<string>? AcceptedExtensions { get; init; }
+
+    /// <summary>
+    /// For a folder mask that admits only declared children: a reference placed in it obeys that admission too (ABI 1.29,
+    /// core ADR 1046), refused with the containment error otherwise. Off by default, because a folder may hold references
+    /// to what could never be its child.
+    /// </summary>
+    public bool ReferencesObeyAdmission { get; init; }
 }
 
 /// <summary>What the core leaves a module's documents out of (ABI 1.18, ADR 0937).</summary>

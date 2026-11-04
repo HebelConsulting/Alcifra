@@ -295,7 +295,20 @@ internal static class WebDavWrites
         // ONE unit of work for one PUT (#1171): the version row and everything finalization writes commit
         // together, or not at all. Filed separately, a failure part-way left a version whose document had not
         // been reclassified — a half-filed state that reads as success to the client.
-        await finalizer.FileAsync(version, context.RequestAborted);
+        try
+        {
+            await finalizer.FileAsync(version, context.RequestAborted);
+        }
+        catch (Domain.Masks.ContentExtensionNotAcceptedException refused)
+        {
+            // The bytes went to storage first, so the refusal takes them back. A file client shows only the status, so
+            // the reason goes to the log (ADR 0626, ADR 1046).
+            await storage.DeleteObjectForGoodAsync(objectKey, context.RequestAborted);
+            services.GetRequiredService<ILogger<WebDavMiddleware>>().LogWarning(
+                "WebDAV PUT of {FileName} refused: {Reason} Trace carries the exchange.", fileName, refused.Message);
+            context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+            return;
+        }
 
         context.Response.StatusCode = existing is null ? StatusCodes.Status201Created : StatusCodes.Status204NoContent;
     }

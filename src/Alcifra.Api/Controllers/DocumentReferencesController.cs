@@ -311,7 +311,14 @@ public class DocumentReferencesController : ControllerBase
         };
 
         _dbContext.DocumentReferences.Add(reference);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception e) when (TypedFolderSave.Translate(e) is { } translated)
+        {
+            throw translated;
+        }
 
         var target = await _dbContext.Documents
             .Where(d => d.Id == request.TargetId)

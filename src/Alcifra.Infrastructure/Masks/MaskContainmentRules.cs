@@ -166,6 +166,16 @@ public sealed class MaskContainmentRules
         }
     }
 
+    /// <summary>A reference placed in a folder whose admission binds references too (ABI 1.29, ADR 1046).</summary>
+    public void VerifyReference(string documentName, Guid? targetMaskId, Guid folderMaskId)
+    {
+        if (targetMaskId is not { } target || !AdmittedBy(folderMaskId).Contains(target))
+        {
+            throw TypedFolderContainmentException.FolderAdmitsOnly(
+                documentName, NameOf(folderMaskId), [.. AdmittedBy(folderMaskId).Select(NameOf)]);
+        }
+    }
+
     /// <summary>
     /// The same question without the refusal — for deciding whether to OFFER an action (#673).
     /// </summary>

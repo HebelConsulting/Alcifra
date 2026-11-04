@@ -11,6 +11,9 @@ namespace Alcifra.TestModule;
 public sealed class TestModule : IIndustryModule
 {
     public static readonly Guid DossierMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000000");
+
+    /// <summary>A file mask naming the types it holds (ABI 1.29, ADR 1046).</summary>
+    public static readonly Guid ClipMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-0000000C11B0");
     public static readonly Guid CertificateMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000001");
     public static readonly Guid EntryMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000002");
 
@@ -244,6 +247,10 @@ public sealed class TestModule : IIndustryModule
             new ModuleFieldSeed("Instructor", "Text", IsRequired: false),
             new ModuleFieldSeed("Pilot", "Text", IsRequired: false),
         ]),
+        new ModuleMaskSeed(ClipMaskId, "Test Clip", IsFolderMask: false, IsBookable: false, [])
+        {
+            AcceptedExtensions = ["mp4", ".MOV"],
+        },
         new ModuleMaskSeed(BinderMaskId, "Test Binder", IsFolderMask: true, IsBookable: false, [],
             AdmitsOnlyDeclaredChildren: true, AdmittedChildren: [CertificateMaskId]),
         new ModuleMaskSeed(RegisterMaskId, "Test Register", IsFolderMask: true, IsBookable: false, [],
