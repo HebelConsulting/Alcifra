@@ -7011,6 +7011,9 @@
   <data name="ToggleDisabled" xml:space="preserve">
     <value>Disabled</value>
   </data>
+  <data name="PvPlayVideo" xml:space="preserve">
+    <value>Play the video</value>
+  </data>
   <data name="PvMediaUseApp" xml:space="preserve">
     <value>Video or sound file: open it in an application to play it.</value>
   </data>

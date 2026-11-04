@@ -611,7 +611,7 @@
                     Links.Href(latest.Links, "text-layout"),
                     latest.PreviewConverted,
                     seedQuery: S.Query,
-                    facts: new(latest.SizeBytes, latest.FileExtension));
+                    facts: new(latest.SizeBytes, latest.FileExtension, Links.Href(latest.Links, "poster")));
             }
         }
         catch (HttpRequestException)

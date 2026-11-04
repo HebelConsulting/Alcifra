@@ -90,7 +90,25 @@
                 <div class="wb-preview-empty wb-pv-media-pane" style="flex-direction:column; gap:12px; text-align:center; padding:16px;">
                     @if (Alcifra.Presentation.MediaFiles.IsVideoABrowserPlays(_mediaExtension))
                     {
-                        <video @key="State.Url" class="wb-pv-player" controls playsinline preload="none" src="@State.Url" style="max-width:100%; max-height:100%; background:#000;"></video>
+                        @if (_playing)
+                        {
+                            <video @key="State.Url" class="wb-pv-player" controls playsinline preload="none" autoplay src="@State.Url" style="max-width:100%; max-height:100%; background:#000;"></video>
+                        }
+                        else
+                        {
+                            @* No video element until the click, so nothing of it can be fetched; a picture where the document names one (#2160). *@
+                            <button type="button" class="wb-pv-play" aria-label="@Strings.Get("PvPlayVideo")" title="@Strings.Get("PvPlayVideo")"
+                                    style="position:relative; display:flex; align-items:center; justify-content:center; width:min(100%, 640px); aspect-ratio:16/9; padding:0; border:1px solid var(--mud-palette-lines-default); border-radius:8px; overflow:hidden; cursor:pointer; background:var(--mud-palette-background-gray);"
+                                    @onclick="() => _playing = true">
+                                @if (_posterUrl is not null)
+                                {
+                                    <img class="wb-pv-poster" src="@_posterUrl" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />
+                                }
+                                <span style="position:relative; display:flex; padding:12px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff;">
+                                    <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Style="font-size:3rem;" />
+                                </span>
+                            </button>
+                        }
                     }
                     else if (Alcifra.Presentation.MediaFiles.IsSoundABrowserPlays(_mediaExtension))
                     {
@@ -233,6 +251,8 @@
     // RenderAsync, so another version, or this one selected again, asks again.
     private Func<Task>? _waiting;
     private string? _mediaExtension;
+    private bool _playing;
+    private string? _posterUrl;
 
     /// <summary>Told when Open has rendered, for whoever draws on the pages (the annotations).</summary>
     [Parameter] public EventCallback Opened { get; set; }
@@ -255,6 +275,8 @@
     {
         var isMedia = previewUrl is not null && Alcifra.Presentation.MediaFiles.IsMedia(facts?.FileExtension);
         _mediaExtension = isMedia ? facts?.FileExtension : null;
+        _playing = false;
+        _posterUrl = null;
         _waiting = previewUrl is not null && !isMedia && Alcifra.Presentation.LargePreview.Waits(facts?.SizeBytes)
             ? () => RenderAsync(previewUrl, textLayoutUrl, converted, seedQuery)
             : null;
@@ -282,6 +304,7 @@
         {
             State.Kind = "media";
             State.Converted = false;
+            await LoadPosterAsync(facts?.PosterHref, previewUrl);
             return;
         }
 
@@ -349,10 +372,38 @@
     /// just loaded. That is exactly what happened to the intray pane when this returned a Task. Leaving
     /// full-screen stays fire-and-forget because it only touches the JS overlay, never what is displayed.
     /// </remarks>
+    // Best effort: a picture the reader may not see, or one sealed, leaves the placeholder. The pane may have moved on by
+    // the time it answers, and then it shows nothing of the previous subject (ADR 0661).
+    private async Task LoadPosterAsync(string? posterHref, string? previewUrl)
+    {
+        if (posterHref is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var versions = await Http.GetFromJsonAsync<VersionListResponse>(posterHref);
+            var confirmed = versions?.Versions?.Where(v => v.Status == "Confirmed").ToList() ?? [];
+            var current = VersionListResponse.PickCurrent(confirmed, versions?.CurrentVersionId);
+            if (current is not null && !current.ContentIsEnveloped && State.Url == previewUrl && !_playing)
+            {
+                _posterUrl = Http.Absolute(Links.Href(current.Links, "preview"));
+                StateHasChanged();
+            }
+        }
+        catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException)
+        {
+            _posterUrl = null;
+        }
+    }
+
     public void Clear()
     {
         _waiting = null;
         _mediaExtension = null;
+        _playing = false;
+        _posterUrl = null;
         State.Clear();
         if (_fullscreen)
         {

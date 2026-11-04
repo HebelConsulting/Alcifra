@@ -38,8 +38,15 @@ public class WebLargePreviewTests(SelfHostedAppFixture app)
 
         var preview = page.Locator(".wb-preview");
         await list.GetByText(video).First.ClickAsync();
-        await Expect(preview.Locator("video[preload='none']")).ToHaveCountAsync(1);
+        await Expect(preview.Locator(".wb-pv-play")).ToBeVisibleAsync();
+        await Expect(preview.Locator("video")).ToHaveCountAsync(0);
+        await Expect(preview.Locator(".wb-pv-poster")).ToHaveCountAsync(0);
         Assert.Empty(fetched);
+
+        await preview.Locator(".wb-pv-play").ClickAsync();
+        await Expect(preview.Locator("video[preload='none']")).ToHaveCountAsync(1);
+        await Expect(preview.Locator(".wb-pv-play")).ToHaveCountAsync(0);
+        fetched.Clear();
 
         await list.GetByText(other).First.ClickAsync();
         await Expect(preview.Locator(".wb-pv-media-pane")).ToContainTextAsync("open it in an application");

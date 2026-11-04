@@ -7011,6 +7011,9 @@
   <data name="ToggleDisabled" xml:space="preserve">
     <value>Desactivado</value>
   </data>
+  <data name="PvPlayVideo" xml:space="preserve">
+    <value>Reproducir el vídeo</value>
+  </data>
   <data name="PvMediaUseApp" xml:space="preserve">
     <value>Archivo de vídeo o de sonido: ábralo en una aplicación para reproducirlo.</value>
   </data>

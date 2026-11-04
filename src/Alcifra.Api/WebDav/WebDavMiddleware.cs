@@ -122,6 +122,23 @@ public sealed class WebDavMiddleware
     // Taken from the ROOT DOCUMENT rather than recomputed from the display name, and that distinction is
     // load-bearing: the rename is not backfilled, so a space provisioned earlier is still called "Personal" and a
     // check against the sanitised display name would stop finding its Intray.
+    // The space's current name on every request, and the provisioning behind it only when it was not checked a moment ago
+    // (#2179, ADR 1054).
+    private static async Task<string> PersonalNameAsync(IServiceProvider services, AlcifraDbContext db, User user, CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var checkedSpaces = services.GetRequiredService<CheckedPersonalSpaces>();
+        if (checkedSpaces.IsChecked(user.Id, now)
+            && await db.Documents.AsNoTracking().Where(d => d.PersonalOfUserId == user.Id).Select(d => d.Name).FirstOrDefaultAsync(cancellationToken) is { } name)
+        {
+            return name;
+        }
+
+        var root = await services.GetRequiredService<PersonalRepositoryProvisioner>().EnsureAsync(user.Id, user.TenantId, cancellationToken);
+        checkedSpaces.Remember(user.Id, now);
+        return root.Name;
+    }
+
     private const string PersonalNameKey = "webdav.personalName";
 
     internal static string PersonalNameFor(HttpContext context) =>
@@ -215,8 +232,8 @@ public sealed class WebDavMiddleware
 
         // The Personal repository is the home for the Intray / Check-out folders and always appears at the WebDAV
         // root — ensure it exists (get-or-create, idempotent) before serving any request.
-        var personalRoot = await services.GetRequiredService<PersonalRepositoryProvisioner>().EnsureAsync(user.Id, user.TenantId, context.RequestAborted);
-        context.Items[PersonalNameKey] = personalRoot.Name;
+        var personalName = await PersonalNameAsync(services, db, user, context.RequestAborted);
+        context.Items[PersonalNameKey] = personalName;
 
         var segments = path[PrefixLength(path)..].Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries)
             .Select(Uri.UnescapeDataString).ToList();
@@ -230,12 +247,12 @@ public sealed class WebDavMiddleware
         // serves the wrong archive, which is worse than a broken mount.
         if (segments.Count > 0
             && segments[0] == PersonalRepositoryProvisioner.LegacyPersonalRepositoryName
-            && personalRoot.Name != PersonalRepositoryProvisioner.LegacyPersonalRepositoryName
+            && personalName != PersonalRepositoryProvisioner.LegacyPersonalRepositoryName
             && !await db.Documents.AnyAsync(d =>
                 d.ParentId == null && d.PersonalOfUserId == null
                 && d.Name == PersonalRepositoryProvisioner.LegacyPersonalRepositoryName))
         {
-            segments[0] = personalRoot.Name;
+            segments[0] = personalName;
         }
 
         // Whose mount this is (#2053): one hidden, read-only file at the root, answered before the tree is consulted.

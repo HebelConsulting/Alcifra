@@ -140,7 +140,7 @@ public sealed class DetailLoader(
                     TextLayoutUrl = Links.Href(latest.Links, "text-layout"),
                     Converted = latest.PreviewConverted,
                     HasVersion = true,
-                    Facts = new(latest.SizeBytes, latest.FileExtension),
+                    Facts = new(latest.SizeBytes, latest.FileExtension, Links.Href(latest.Links, "poster")),
                 };
             }
 

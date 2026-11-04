@@ -1,7 +1,7 @@
 namespace Alcifra.Presentation;
 
 /// <summary>What a client knows about a preview before fetching any of it, and all it needs to decide whether to fetch.</summary>
-public sealed record PreviewFacts(long? SizeBytes, string? FileExtension);
+public sealed record PreviewFacts(long? SizeBytes, string? FileExtension, string? PosterHref = null);
 
 /// <summary>
 /// When a document version's preview waits for a click on Open instead of loading by itself (ADR 1048). Both clients ask
@@ -30,6 +30,9 @@ public static class MediaFiles
 
     public static bool IsMedia(string? extension) =>
         IsVideoABrowserPlays(extension) || IsSoundABrowserPlays(extension) || Others.Contains(Bare(extension));
+
+    /// <summary>The reference field whose document is a video's picture before it plays (#2160, ADR 1053).</summary>
+    public const string ThumbnailField = "Thumbnail";
 
     public static bool IsVideoABrowserPlays(string? extension) => BrowserVideo.Contains(Bare(extension));
 

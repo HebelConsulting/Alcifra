@@ -85,6 +85,18 @@ public sealed class DocumentVersionResourceBuilder(
         return _servesContentAsEnvelope[documentId] = maskId == WellKnownMaskIds.SealedDocument;
     }
 
+    private async Task<Guid?> PosterDocumentAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        var named = await dbContext.FieldValues.AsNoTracking()
+            .Where(v => v.DocumentId == documentId)
+            .Join(dbContext.FieldDefinitions.Where(d => d.Name == Alcifra.Presentation.MediaFiles.ThumbnailField
+                    && d.DataType == FieldDataType.DocumentReference),
+                v => v.FieldDefinitionId, d => d.Id, (v, _) => v.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return Guid.TryParse(named, out var id) ? id : null;
+    }
+
     public async Task<DocumentVersionResource> BuildAsync(VersionRow version, string documentName, CancellationToken cancellationToken)
     {
         var links = new List<Link> { new("self", $"/api/documents/{version.DocumentId}/versions/{version.Id}", "GET") };
@@ -290,6 +302,14 @@ public sealed class DocumentVersionResourceBuilder(
             {
                 links.Add(new Link("make-searchable", $"/api/documents/{version.DocumentId}/versions/{version.Id}/searchable", "PUT"));
             }
+        }
+
+        // The picture a video shows before it plays (#2160, ADR 1053). The rel names the picture's own versions, so reading
+        // them asks that document's rights, and a reader who may not see it simply gets the placeholder.
+        if (!contentWithheld && Alcifra.Presentation.MediaFiles.IsVideoABrowserPlays(Path.GetExtension(version.ObjectKey))
+            && await PosterDocumentAsync(version.DocumentId, cancellationToken) is { } poster)
+        {
+            links.Add(new Link("poster", $"/api/documents/{poster}/versions", "GET"));
         }
 
         return new DocumentVersionResource

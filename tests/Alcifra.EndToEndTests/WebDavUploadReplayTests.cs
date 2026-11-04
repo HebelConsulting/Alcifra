@@ -47,6 +47,8 @@ public class WebDavUploadReplayTests
         var rows = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Recordings", recording));
         var verified = _factory.Services.GetRequiredService<VerifiedDevicePasswords>();
         var verifiedBefore = verified.Remembered;
+        var spaces = _factory.Services.GetRequiredService<Alcifra.Api.WebDav.CheckedPersonalSpaces>();
+        var spacesBefore = spaces.Checks;
 
         (await SendAsync(dav, credentials, "MKCOL", $"{WebDav}/{personal}/My%20Documents", new Dictionary<string, string>(), null)).Dispose();
 
@@ -99,6 +101,7 @@ public class WebDavUploadReplayTests
         Assert.Empty(refused);
         Assert.True(clock.Elapsed < limit, $"{rows.Length} requests took {clock.Elapsed.TotalSeconds:F1} s, over the limit of {limitSeconds} s.");
         Assert.Equal(1, verified.Remembered - verifiedBefore);
+        Assert.Equal(1, spaces.Checks - spacesBefore);
 
         using var listing = await SendAsync(dav, credentials, "PROPFIND", $"{WebDav}/{personal}/My%20Documents/{folder}/{listedBelow}",
             new Dictionary<string, string> { ["Depth"] = "1" }, null);
