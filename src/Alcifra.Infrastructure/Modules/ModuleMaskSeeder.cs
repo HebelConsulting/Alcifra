@@ -110,7 +110,7 @@ public sealed class ModuleMaskSeeder
             var field = seed.Fields[i];
             if (existingFields.FirstOrDefault(f => string.Equals(f.Name, field.Name, StringComparison.Ordinal)) is { } existing)
             {
-                await RetypeToToggleAsync(moduleId, existing, field, tenantId, cancellationToken);
+                await RetypeAsync(moduleId, existing, field, tenantId, cancellationToken);
                 continue;
             }
 
@@ -133,24 +133,38 @@ public sealed class ModuleMaskSeeder
     }
 
     /// <summary>
-    /// A Text field the seed now declares a Toggle becomes one, its stored values with it (ADR 1047): the one retyping a
-    /// seed may ask for, since every Text value has an answer. Whatever does not say yes is disabled, as it read before.
+    /// A Text field the seed now declares a Toggle or a DocumentReference becomes one, its stored values with it (ADR
+    /// 1047, #2168): the only retypings a seed may ask for, since the seed is the authority for its own masks and these
+    /// have a safe reading of what is stored. A toggle reads every value: whatever does not say yes is disabled, as it read
+    /// before. A reference reads only document ids, so one value that is not an id leaves the field Text, with a warning.
     /// </summary>
-    private async Task RetypeToToggleAsync(string moduleId, FieldDefinition existing, ModuleFieldSeed field, Guid tenantId, CancellationToken cancellationToken)
+    private async Task RetypeAsync(string moduleId, FieldDefinition existing, ModuleFieldSeed field, Guid tenantId, CancellationToken cancellationToken)
     {
-        if (existing.DataType != FieldDataType.Text || ParseDataType(field.DataType) != FieldDataType.Toggle)
+        var wanted = ParseDataType(field.DataType);
+        if (existing.DataType != FieldDataType.Text || wanted is not (FieldDataType.Toggle or FieldDataType.DocumentReference))
         {
             return;
         }
 
-        _logger.LogInformation("Module {ModuleId}: field {Field} becomes a toggle in tenant {TenantId}.", moduleId, field.Name, tenantId);
-        existing.DataType = FieldDataType.Toggle;
         var values = await _dbContext.FieldValues.IgnoreQueryFilters(["TenantFilter"])
             .Where(v => v.TenantId == tenantId && v.FieldDefinitionId == existing.Id)
             .ToListAsync(cancellationToken);
-        foreach (var value in values)
+        if (wanted == FieldDataType.DocumentReference && values.Any(v => !Guid.TryParse(v.Value, out _)))
         {
-            value.Value = value.Value.Trim().ToLowerInvariant() is "yes" or "true" or "on" or "1" ? "true" : "false";
+            _logger.LogWarning(
+                "Module {ModuleId}: field {Field} stays Text in tenant {TenantId}: the seed declares a document reference, and a stored value is not a document id.",
+                moduleId, field.Name, tenantId);
+            return;
+        }
+
+        _logger.LogInformation("Module {ModuleId}: field {Field} becomes {DataType} in tenant {TenantId}.", moduleId, field.Name, wanted, tenantId);
+        existing.DataType = wanted;
+        if (wanted == FieldDataType.Toggle)
+        {
+            foreach (var value in values)
+            {
+                value.Value = value.Value.Trim().ToLowerInvariant() is "yes" or "true" or "on" or "1" ? "true" : "false";
+            }
         }
     }
 

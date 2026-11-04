@@ -95,6 +95,38 @@ public class ToggleFieldTests
     }
 
     [Fact]
+    public async Task A_seed_turning_a_text_field_of_document_ids_into_a_reference_keeps_the_values()
+    {
+        await using var connection = await OpenAsync();
+        var thumbnail = Guid.NewGuid().ToString("D");
+        var (tenantId, _, fieldId) = await WornMaskAsync(connection, thumbnail);
+
+        using (var context = Context(connection, tenantId))
+        {
+            await new ModuleMaskSeeder(context, NullLogger<ModuleMaskSeeder>.Instance).SeedAsync(new Stub(Seed("DocumentReference")), tenantId);
+        }
+
+        using var read = Context(connection, tenantId);
+        Assert.Equal(FieldDataType.DocumentReference, (await read.FieldDefinitions.SingleAsync(f => f.Id == fieldId)).DataType);
+        Assert.Equal(thumbnail, (await read.FieldValues.SingleAsync(v => v.FieldDefinitionId == fieldId)).Value);
+    }
+
+    [Fact]
+    public async Task A_stored_value_that_is_no_document_id_leaves_the_field_text()
+    {
+        await using var connection = await OpenAsync();
+        var (tenantId, _, fieldId) = await WornMaskAsync(connection, Guid.NewGuid().ToString("D"), "not an id");
+
+        using (var context = Context(connection, tenantId))
+        {
+            await new ModuleMaskSeeder(context, NullLogger<ModuleMaskSeeder>.Instance).SeedAsync(new Stub(Seed("DocumentReference")), tenantId);
+        }
+
+        using var read = Context(connection, tenantId);
+        Assert.Equal(FieldDataType.Text, (await read.FieldDefinitions.SingleAsync(f => f.Id == fieldId)).DataType);
+    }
+
+    [Fact]
     public async Task Any_other_seed_leaves_an_existing_field_as_it_is()
     {
         await using var connection = await OpenAsync();
