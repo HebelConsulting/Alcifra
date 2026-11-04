@@ -176,10 +176,12 @@ if (!string.IsNullOrWhiteSpace(valkeyConnection))
     });
 
     builder.Services.AddSingleton<Alcifra.Api.Security.IThrottleCounterStore, Alcifra.Api.Security.ValkeyThrottleCounterStore>();
+    builder.Services.AddSingleton<Alcifra.Api.WebDav.IWebDavLockStore, Alcifra.Api.WebDav.ValkeyWebDavLockStore>();
 }
 else
 {
     builder.Services.AddSingleton<Alcifra.Api.Security.IThrottleCounterStore, Alcifra.Api.Security.InMemoryThrottleCounterStore>();
+    builder.Services.AddSingleton<Alcifra.Api.WebDav.IWebDavLockStore, Alcifra.Api.WebDav.InMemoryWebDavLockStore>();
 }
 
 builder.Services.AddSingleton<Alcifra.Api.Security.ISignInThrottle, Alcifra.Api.Security.SignInThrottle>();
@@ -340,7 +342,6 @@ builder.Services.AddScoped<Alcifra.Api.Documents.PersonalMailboxProvisioner>();
 // CanSee authority is IEffectiveRightsCalculator.
 builder.Services.AddScoped<Alcifra.Api.Documents.IClearanceScopeResolver, Alcifra.Api.Documents.ClearanceScopeResolver>();
 // In-memory WebDAV lock store (ADR "WebDAV hardening") — a singleton so locks live across requests.
-builder.Services.AddSingleton<Alcifra.Api.WebDav.WebDavLockStore>();
 
 // TOTP two-factor helpers (secret/QR/verify/recovery codes) — shared by the login page and UsersController
 // (ADR "MFA (interactive login, TOTP)"). Stateless singleton.

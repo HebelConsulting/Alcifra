@@ -19,12 +19,12 @@ namespace Alcifra.Api.WebDav;
 /// </summary>
 /// <remarks>
 /// Static, with the lock store passed in — the shape <see cref="WebDavLockHandling"/> already uses, and the
-/// only middleware state these needed (each verb asks <c>IsLocked</c> before it writes).
+/// only middleware state these needed (each verb asks <c>IsLockedAsync</c> before it writes).
 /// </remarks>
 internal static class WebDavWrites
 {
     // ---- PUT (create or new version) ----------------------------------------------------------------------
-    internal static async Task HandlePutAsync(WebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
+    internal static async Task HandlePutAsync(IWebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
     {
         if (WebDavMiddleware.IsSpecialPath(context, segments))
         {
@@ -77,7 +77,7 @@ internal static class WebDavWrites
             return;
         }
 
-        if (WebDavLockHandling.IsLocked(lockStore, context, user, segments))
+        if (await WebDavLockHandling.IsLockedAsync(lockStore, context, user, segments))
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
             return;
@@ -314,7 +314,7 @@ internal static class WebDavWrites
     }
 
     // ---- MKCOL (create folder) ----------------------------------------------------------------------------
-    internal static async Task HandleMkColAsync(WebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
+    internal static async Task HandleMkColAsync(IWebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
     {
         // BEFORE the special-path refusal, and that ordering is the fix (#764). A word processor's atomic replace
         // creates a `<file>.sb-<hex>-<rand>` collection; refusing it made the editor roll back and DELETE THE
@@ -346,7 +346,7 @@ internal static class WebDavWrites
             return;
         }
 
-        if (WebDavLockHandling.IsLocked(lockStore, context, user, segments))
+        if (await WebDavLockHandling.IsLockedAsync(lockStore, context, user, segments))
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
             return;
@@ -390,7 +390,7 @@ internal static class WebDavWrites
     }
 
     // ---- DELETE (soft-delete to the recycle bin) ----------------------------------------------------------
-    internal static async Task HandleDeleteAsync(WebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
+    internal static async Task HandleDeleteAsync(IWebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
     {
         // The safe-save collection, or anything inside it (#762). It was never materialised, so there is nothing
         // to delete — but 404 is the wrong answer to give an editor tidying up after a save it believes
@@ -479,7 +479,7 @@ internal static class WebDavWrites
             return;
         }
 
-        if (WebDavLockHandling.IsLocked(lockStore, context, user, segments))
+        if (await WebDavLockHandling.IsLockedAsync(lockStore, context, user, segments))
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
             return;

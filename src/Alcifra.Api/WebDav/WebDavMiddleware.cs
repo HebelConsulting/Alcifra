@@ -144,9 +144,9 @@ public sealed class WebDavMiddleware
         && !WebDavClutter.IsSafeSaveScope(segments);
 
     private readonly RequestDelegate _next;
-    private readonly WebDavLockStore _lockStore;
+    private readonly IWebDavLockStore _lockStore;
 
-    public WebDavMiddleware(RequestDelegate next, WebDavLockStore lockStore)
+    public WebDavMiddleware(RequestDelegate next, IWebDavLockStore lockStore)
     {
         _next = next;
         _lockStore = lockStore;
@@ -257,7 +257,7 @@ public sealed class WebDavMiddleware
             case "MOVE": await WebDavMoveCopy.HandleMoveAsync(_lockStore, context, services, db, user, segments); break;
             case "COPY": await WebDavMoveCopy.HandleCopyAsync(_lockStore, context, services, db, user, segments); break;
             case "LOCK": await WebDavLockHandling.HandleLockAsync(_lockStore, services, context, user, segments); break;
-            case "UNLOCK": WebDavLockHandling.HandleUnlock(_lockStore, context, user, segments); break;
+            case "UNLOCK": await WebDavLockHandling.HandleUnlockAsync(_lockStore, context, user, segments); break;
             case "PROPPATCH": await HandlePropPatchAsync(context, db, user, segments, matchedBase); break;
             default: context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed; break;
         }

@@ -25,7 +25,7 @@ namespace Alcifra.Api.WebDav;
 internal static class WebDavMoveCopy
 {
     // ---- MOVE (reparent + rename) -------------------------------------------------------------------------
-    internal static async Task HandleMoveAsync(WebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
+    internal static async Task HandleMoveAsync(IWebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
     {
         // An atomic save in the INTRAY, whose two halves both cross the special-path boundary (#794). Handled
         // ahead of the divert below, because the source or the destination is an ordinary Intray item while the
@@ -41,7 +41,7 @@ internal static class WebDavMoveCopy
             return;
         }
 
-        if (WebDavLockHandling.IsLocked(lockStore, context, user, segments))
+        if (await WebDavLockHandling.IsLockedAsync(lockStore, context, user, segments))
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
             return;
@@ -211,7 +211,7 @@ internal static class WebDavMoveCopy
             return;
         }
 
-        if (WebDavLockHandling.IsLocked(lockStore, context, user, destSegments))
+        if (await WebDavLockHandling.IsLockedAsync(lockStore, context, user, destSegments))
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
             return;
@@ -288,7 +288,7 @@ internal static class WebDavMoveCopy
     }
 
     // ---- COPY (duplicate a file or a folder subtree) ------------------------------------------------------
-    internal static async Task HandleCopyAsync(WebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
+    internal static async Task HandleCopyAsync(IWebDavLockStore lockStore, HttpContext context, IServiceProvider services, AlcifraDbContext db, User user, List<string> segments)
     {
         if (WebDavMiddleware.IsSpecialPath(context, segments))
         {
@@ -316,7 +316,7 @@ internal static class WebDavMoveCopy
             return;
         }
 
-        if (WebDavLockHandling.IsLocked(lockStore, context, user, destSegments))
+        if (await WebDavLockHandling.IsLockedAsync(lockStore, context, user, destSegments))
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
             return;

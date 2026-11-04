@@ -4,7 +4,7 @@ using Alcifra.Domain.Users;
 
 namespace Alcifra.Api.WebDav;
 
-// The LOCK/UNLOCK verb family (ADR "WebDAV hardening") beside the WebDavLockStore it drives (issue #466 moved
+// The LOCK/UNLOCK verb family (ADR "WebDAV hardening") beside the IWebDavLockStore it drives (issue #466 moved
 // it out of the middleware): acquire/refresh, release, the 423 gate for mutations, and the token/timeout
 // header parsing. Static partial for the GeneratedRegex sources.
 internal static partial class WebDavLockHandling
@@ -31,7 +31,7 @@ internal static partial class WebDavLockHandling
     /// because creating one anywhere else would mean inventing a Document nobody asked for.
     /// </remarks>
     internal static async Task HandleLockAsync(
-        WebDavLockStore lockStore, IServiceProvider services, HttpContext context, User user, List<string> segments)
+        IWebDavLockStore lockStore, IServiceProvider services, HttpContext context, User user, List<string> segments)
     {
         var created = false;
         if (segments.Count > 0 && ShadowableLeaf(segments))
@@ -56,7 +56,7 @@ internal static partial class WebDavLockHandling
             }
         }
 
-        HandleLock(lockStore, context, user, segments, created);
+        await HandleLockAsync(lockStore, context, user, segments, created);
     }
 
     /// <summary>Paths we already keep out of the archive, and can therefore hold a lock-null for.</summary>
@@ -65,11 +65,11 @@ internal static partial class WebDavLockHandling
         || WebDavClutter.IsOsClutter(segments[^1])
         || WebDavClutter.IsTransientClutter(segments[^1]);
 
-    internal static void HandleLock(WebDavLockStore lockStore, HttpContext context, User user, List<string> segments, bool created = false)
+    private static async Task HandleLockAsync(IWebDavLockStore lockStore, HttpContext context, User user, List<string> segments, bool created)
     {
         var pathKey = PathKey(segments);
         var timeout = TimeSpan.FromSeconds(ParseTimeoutSeconds(context));
-        var lockInfo = lockStore.TryLock(user.TenantId, pathKey, user.Id, timeout, DateTimeOffset.UtcNow);
+        var lockInfo = await lockStore.TryLockAsync(user.TenantId, pathKey, user.Id, timeout, DateTimeOffset.UtcNow);
         if (lockInfo is null)
         {
             context.Response.StatusCode = StatusCodes.Status423Locked;
@@ -85,22 +85,22 @@ internal static partial class WebDavLockHandling
         // next PROPFIND then contradicts.
         context.Response.StatusCode = created ? StatusCodes.Status201Created : StatusCodes.Status200OK;
         context.Response.ContentType = "application/xml; charset=utf-8";
-        context.Response.WriteAsync(xml).GetAwaiter().GetResult();
+        await context.Response.WriteAsync(xml);
     }
 
-    internal static void HandleUnlock(WebDavLockStore lockStore, HttpContext context, User user, List<string> segments)
+    internal static async Task HandleUnlockAsync(IWebDavLockStore lockStore, HttpContext context, User user, List<string> segments)
     {
         var token = context.Request.Headers["Lock-Token"].ToString().Trim().Trim('<', '>');
-        context.Response.StatusCode = lockStore.Unlock(user.TenantId, PathKey(segments), token)
+        context.Response.StatusCode = await lockStore.UnlockAsync(user.TenantId, PathKey(segments), token)
             ? StatusCodes.Status204NoContent
             : StatusCodes.Status409Conflict;
     }
 
     // A mutating op is refused 423 Locked when a *different* owner holds an unexpired lock and the request didn't
     // present its token (in the If or Lock-Token header).
-    internal static bool IsLocked(WebDavLockStore lockStore, HttpContext context, User user, List<string> segments)
+    internal static Task<bool> IsLockedAsync(IWebDavLockStore lockStore, HttpContext context, User user, List<string> segments)
     {
-        return lockStore.IsBlocked(user.TenantId, PathKey(segments), user.Id, PresentedLockTokens(context), DateTimeOffset.UtcNow);
+        return lockStore.IsBlockedAsync(user.TenantId, PathKey(segments), user.Id, PresentedLockTokens(context), DateTimeOffset.UtcNow);
     }
 
     internal static string PathKey(List<string> segments) => string.Join("/", segments);
