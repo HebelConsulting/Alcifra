@@ -436,6 +436,11 @@ internal static class Program
             return;
         }
 
+        if (Views.FolderPickerCheck.TryRun(args))
+        {
+            return;
+        }
+
         // Headless render-to-PNG mode for verification without a display: `--screenshot <path>`.
         var screenshotIndex = Array.IndexOf(args, "--screenshot");
         if (screenshotIndex >= 0 && screenshotIndex + 1 < args.Length)

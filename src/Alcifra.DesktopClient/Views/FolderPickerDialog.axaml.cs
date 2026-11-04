@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Alcifra.DesktopClient.Services;
 using Alcifra.DesktopClient.ViewModels;
 
 namespace Alcifra.DesktopClient.Views;
@@ -12,6 +13,16 @@ public partial class FolderPickerDialog : Window
     public FolderPickerDialog()
     {
         InitializeComponent();
+
+        // The dialog fills itself, so no caller can forget to: four of them did, and Move, Place reference and the
+        // certificate folder each opened a picker with no folders in it (#2146).
+        Opened += (_, _) => Safe.Fire(async () =>
+        {
+            if (DataContext is FolderPickerViewModel vm)
+            {
+                await vm.LoadAsync();
+            }
+        });
     }
 
     private void OnCancel(object? sender, RoutedEventArgs e) => Close(null);

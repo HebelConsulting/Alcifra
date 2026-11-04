@@ -52,6 +52,8 @@ public sealed partial class FolderPickerViewModel : ObservableObject
         else { _modePicked = true; }
     }
 
+    private Task? _loading;
+
     public bool ShowAsVersion { get; }
     public bool ShowInFolder { get; }
     public bool HasOptions { get; }
@@ -106,7 +108,10 @@ public sealed partial class FolderPickerViewModel : ObservableObject
     /// and the outcome cannot disagree about what counts as one.</summary>
     public bool CanCommit => BuildResult() is not null;
 
-    public async Task LoadAsync()
+    /// <summary>Fills the roots, once: a caller may load ahead to fail before the dialog opens, and the dialog loads when it opens.</summary>
+    public Task LoadAsync() => _loading ??= LoadRootsAsync();
+
+    private async Task LoadRootsAsync()
     {
         Roots.Clear();
 
