@@ -1,8 +1,11 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Alcifra.DesktopClient.Services;
 using Alcifra.DesktopClient.ViewModels;
+using Alcifra.Localization;
 
 namespace Alcifra.DesktopClient.Views;
 
@@ -31,10 +34,11 @@ public static class FolderPickerCheck
             .SetupWithoutStarting();
 
         DesktopClientOptions.ApiBaseUrl = args[index + 1];
-        var picker = new FolderPickerViewModel(new AlcifraApiClient(args[index + 2]), null, bulk: true);
+        var picker = new FolderPickerViewModel(new AlcifraApiClient(args[index + 2]), null, bulk: true, FolderPickerPurpose.Move);
         var owner = new LogonWindow();
         owner.Show();
-        _ = new FolderPickerDialog { DataContext = picker }.ShowDialog<FilingResult?>(owner);
+        var dialog = new FolderPickerDialog { DataContext = picker };
+        _ = dialog.ShowDialog<FilingResult?>(owner);
 
         var deadline = DateTime.UtcNow + Patience;
         while (picker.Roots.Count == 0 && DateTime.UtcNow < deadline)
@@ -44,7 +48,13 @@ public static class FolderPickerCheck
         }
 
         DesktopLog.Info("The picker opened with {Count} root(s), unloaded by its caller", picker.Roots.Count);
-        DesktopLog.Verdict(picker.Roots.Count > 0);
+
+        // Opened for a Move it says so: no "File" button, no comment nobody would post (#2146).
+        var commit = dialog.FindControl<Button>("CommitButton")?.Content as string;
+        var comments = dialog.GetVisualDescendants().OfType<TextBox>().Count(box => box.IsVisible);
+        DesktopLog.Info("Titled {Title}, its button says {Commit}, {Comments} comment box(es) showing", dialog.Title, commit, comments);
+        DesktopLog.Verdict(picker.Roots.Count > 0 && dialog.Title == picker.Title && commit == Strings.Get("FpCommitMove")
+            && commit != Strings.Get("FpFile") && comments == 0);
         return true;
     }
 }

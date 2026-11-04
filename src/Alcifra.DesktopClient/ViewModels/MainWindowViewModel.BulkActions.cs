@@ -76,8 +76,8 @@ public sealed partial class MainWindowViewModel
     }
 
     // A pure folder picker (no filing options) for choosing a bulk-move target.
-    public FolderPickerViewModel CreateMoveTargetPickerViewModel() =>
-        _api is null ? null! : new FolderPickerViewModel(_api, null, bulk: true);
+    public FolderPickerViewModel CreateMoveTargetPickerViewModel(FolderPickerPurpose purpose = FolderPickerPurpose.Move) =>
+        _api is null ? null! : new FolderPickerViewModel(_api, null, bulk: true, purpose);
 
     // The tenant tag catalog, for the bulk add-tags dialog's autocomplete.
     public async Task<IReadOnlyList<string>> GetTagCatalogAsync()

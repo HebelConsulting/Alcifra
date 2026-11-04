@@ -107,7 +107,7 @@ public partial class MainWindow : Window
                 vm.Search.ShowShareSavedSearchDialog = svm => new ShareSavedSearchDialog(svm).ShowDialog<bool>(this);
                 // Where the reader-certificate folder goes (ADR 0936): the same folders-only picker Move uses.
                 vm.PickCertificateParentAsync = async () =>
-                    await new FolderPickerDialog { DataContext = vm.CreateMoveTargetPickerViewModel() }.ShowDialog<FilingResult?>(this) is { } chosen
+                    await new FolderPickerDialog { DataContext = vm.CreateMoveTargetPickerViewModel(FolderPickerPurpose.Choose) }.ShowDialog<FilingResult?>(this) is { } chosen
                         ? chosen.TargetId
                         : null;
             }

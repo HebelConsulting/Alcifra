@@ -18,6 +18,7 @@ public class DesktopFolderPickerTests
 
         Assert.True(exitCode == 0, $"The hook exited {exitCode}. Output:\n{output}");
         Assert.Contains("The picker opened with", output, StringComparison.Ordinal);
+        Assert.Contains("comment box(es) showing", output, StringComparison.Ordinal);
         Assert.False(output.Contains("FAILED", StringComparison.Ordinal), $"The hook reported FAILED. Output:\n{output}");
     }
 }

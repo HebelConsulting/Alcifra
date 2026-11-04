@@ -2370,6 +2370,12 @@
   <data name="FpFile" xml:space="preserve">
     <value>Archivia</value>
   </data>
+  <data name="FpCommitMove" xml:space="preserve">
+    <value>Sposta</value>
+  </data>
+  <data name="FpCommitPlace" xml:space="preserve">
+    <value>Inserisci qui</value>
+  </data>
   <data name="ImpTitle" xml:space="preserve">
     <value>Importa archivio</value>
   </data>

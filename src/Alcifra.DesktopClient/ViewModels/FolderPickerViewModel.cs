@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Alcifra.DesktopClient.Services;
+using Alcifra.Localization;
 using Alcifra.Presentation;
 
 namespace Alcifra.DesktopClient.ViewModels;
@@ -23,6 +24,9 @@ public enum FilingMode { AsVersion, InFolder, PickedFolder }
 // The dialog's outcome: file the item as a new version of TargetId (AsVersion) or into folder TargetId, plus
 // an optional feed comment (ADR "Filing posts a feed comment"). TargetLinks is the chosen row's own advertised
 // address set (ADR 0555) — the consumer follows it (`versions`, `children`, or `self` to resolve one).
+/// <summary>What a picked folder is for, which decides what the dialog calls it.</summary>
+public enum FolderPickerPurpose { File, Move, PlaceReference, Choose }
+
 public sealed record FilingResult(FilingMode Mode, Guid TargetId, string? Comment, LinkMap? TargetLinks = null);
 
 // Backs the folder-picker dialog (ADR "S3-backed inbox", phase 2): a folders-only tree of repositories,
@@ -36,10 +40,12 @@ public sealed partial class FolderPickerViewModel : ObservableObject
 
     // bulk = filing multiple items at once (ADR "Bulk-file multiple inbox items") — no "as new version" option
     // (that's single-item only), just file-in-folder / pick.
-    public FolderPickerViewModel(AlcifraApiClient api, DocumentFilingContext? context = null, bool bulk = false)
+    public FolderPickerViewModel(AlcifraApiClient api, DocumentFilingContext? context = null, bool bulk = false,
+        FolderPickerPurpose purpose = FolderPickerPurpose.File)
     {
         _api = api;
         _context = context;
+        Purpose = purpose;
 
         // "As version" only when a real document is selected and this isn't a bulk file; "in folder" whenever a
         // context (a folder target) is present.
@@ -53,6 +59,27 @@ public sealed partial class FolderPickerViewModel : ObservableObject
     }
 
     private Task? _loading;
+
+    public FolderPickerPurpose Purpose { get; }
+
+    // The dialog says what the pick does (#2146): Move and Place reference are not filing, and their callers post no comment.
+    public string Title => Purpose switch
+    {
+        FolderPickerPurpose.Move => Strings.Get("CtxMoveTo").TrimEnd('…'),
+        FolderPickerPurpose.PlaceReference => Strings.Get("CtxPlaceReference").TrimEnd('…'),
+        FolderPickerPurpose.Choose => Strings.Get("FilingChooseFolder").TrimEnd('…'),
+        _ => Strings.Get("FpTitle"),
+    };
+
+    public string CommitLabel => Purpose switch
+    {
+        FolderPickerPurpose.Move => Strings.Get("FpCommitMove"),
+        FolderPickerPurpose.PlaceReference => Strings.Get("FpCommitPlace"),
+        FolderPickerPurpose.Choose => Strings.Get("Ok"),
+        _ => Strings.Get("FpFile"),
+    };
+
+    public bool AsksComment => Purpose == FolderPickerPurpose.File;
 
     public bool ShowAsVersion { get; }
     public bool ShowInFolder { get; }

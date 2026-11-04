@@ -225,7 +225,7 @@ public partial class MainWindow
     internal void OnTreePlaceReference(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
         if (DataContext is not MainWindowViewModel vm || _treeContextNode is not { } node
-            || vm.CreateMoveTargetPickerViewModel() is not { } picker)
+            || vm.CreateMoveTargetPickerViewModel(FolderPickerPurpose.PlaceReference) is not { } picker)
         {
             return;
         }
