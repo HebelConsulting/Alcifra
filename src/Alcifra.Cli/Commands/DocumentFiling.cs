@@ -96,11 +96,63 @@ public static class DocumentFiling
         return (documentId, existing is null ? LicenceFiling.Outcome.Filed : LicenceFiling.Outcome.NewVersion);
     }
 
+    /// <summary>
+    /// A folder under a parent, wearing a mask, and its fields (ADR 1046). Re-runnable: a child of that name is reused and
+    /// its fields stated again. The mask is given at creation, the path a folder mask is made by.
+    /// </summary>
+    public static async Task<Guid> FolderAsync(
+        AlcifraApi api, Hypermedia hypermedia, Guid parentId, string name, string mask, IReadOnlyList<FieldValue> fields, CancellationToken cancellationToken)
+    {
+        var maskFields = await ResolveMaskAsync(api, hypermedia, mask, cancellationToken, assigning: false);
+        var groups = FieldGroups(maskFields, fields);
+
+        var parent = await LicenceFiling.ResolveAsync(api, hypermedia, parentId, cancellationToken);
+        var childrenHref = Hypermedia.Href(LicenceFiling.Links(parent), "children", $"Document {parentId:D}");
+        Guid folderId;
+        if (await LicenceFiling.FindChildAsync(api, childrenHref, name, cancellationToken) is { } found)
+        {
+            folderId = found;
+        }
+        else
+        {
+            var created = await api.PostAsync(childrenHref, new { name, maskId = maskFields.Id }, cancellationToken);
+            folderId = created.TryGetProperty("id", out var id) && id.TryGetGuid(out var value)
+                ? value
+                : throw new CliException("Creating the folder answered without an id.");
+        }
+
+        if (groups.Count > 0)
+        {
+            var folder = LicenceFiling.Links(await LicenceFiling.ResolveAsync(api, hypermedia, folderId, cancellationToken));
+            await SaveDetailAsync(api, Hypermedia.Href(folder, "detail", $"Document {folderId:D}"), maskFields.Id, groups, cancellationToken);
+        }
+
+        return folderId;
+    }
+
+    /// <summary>Places a reference to a document in a folder (ADR 1046); true when placed, false when it was there already.</summary>
+    public static async Task<bool> PlaceReferenceAsync(
+        AlcifraApi api, Hypermedia hypermedia, Guid targetId, Guid folderId, CancellationToken cancellationToken)
+    {
+        var folder = LicenceFiling.Links(await LicenceFiling.ResolveAsync(api, hypermedia, folderId, cancellationToken));
+        var href = Hypermedia.Href(folder, "references", $"Document {folderId:D}");
+
+        // Following, not composing (ADR 0557): a query on the advertised address.
+        var listing = await api.GetAsync($"{href}?limit=200", cancellationToken);
+        if (listing.GetProperty("references").EnumerateArray().Any(r => r.GetProperty("id").GetGuid() == targetId))
+        {
+            return false;
+        }
+
+        await api.PostAsync(href, new { targetId }, cancellationToken);
+        return true;
+    }
+
     /// <summary>A mask's id and its fields by name, found through the root's <c>masks</c> rel by name or id.</summary>
     internal sealed record MaskFields(Guid Id, IReadOnlyDictionary<string, Guid> FieldIds);
 
     private static async Task<MaskFields> ResolveMaskAsync(
-        AlcifraApi api, Hypermedia hypermedia, string mask, CancellationToken cancellationToken)
+        AlcifraApi api, Hypermedia hypermedia, string mask, CancellationToken cancellationToken, bool assigning = true)
     {
         var listing = await api.GetAsync(await hypermedia.RootHrefAsync("masks", cancellationToken), cancellationToken);
         var row = listing.GetProperty("masks").EnumerateArray().FirstOrDefault(m =>
@@ -113,7 +165,7 @@ public static class DocumentFiling
 
         // The same question the clients' pickers ask (ADR 0653): a folder mask, a typed item or a sealed mask is
         // made by its own path, never assigned to a document whose content already exists.
-        if (row.TryGetProperty("isFreelyAssignable", out var assignable) && assignable.ValueKind == JsonValueKind.False)
+        if (assigning && row.TryGetProperty("isFreelyAssignable", out var assignable) && assignable.ValueKind == JsonValueKind.False)
         {
             throw new CliException($"The mask '{mask}' cannot be assigned to a filed document.");
         }

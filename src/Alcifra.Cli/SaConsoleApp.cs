@@ -245,6 +245,10 @@ public static class SaConsoleApp
             config.AddBranch("document", document =>
             {
                 document.SetDescription("Documents: filed with a mask and index data (ADR 1040).");
+                document.AddCommand<DocumentFolderCommand>("folder")
+                    .WithDescription("Create a folder wearing a mask under a parent. Prints its id on stdout.");
+                document.AddCommand<DocumentReferenceCommand>("reference")
+                    .WithDescription("Place a reference to a document in a folder.");
                 document.AddCommand<DocumentFileCommand>("file")
                     .WithDescription("File a local file under a folder, with a mask and fields. Prints its id on stdout.");
             });

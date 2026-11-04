@@ -47,6 +47,36 @@ public class DocumentFileCommandTests(E2EApiFactory factory)
         Assert.Single(await ConfirmedHashesAsync(http, filed.DocumentId));
     }
 
+    // What a channel needs from the tool (ADR 1046): a folder wearing a folder mask, and a reference placed in it, both re-runnable.
+    [Fact]
+    public async Task A_folder_with_a_folder_mask_and_a_reference_are_made_once_however_often_it_runs()
+    {
+        var rig = await TestModuleRig.CreateAsync(factory);
+        using var vendorKey = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_VERIFY_KEY", vendorKey.ExportSubjectPublicKeyInfoPem());
+        try
+        {
+            await TestModuleRig.ActivateAsync(rig, vendorKey);
+            var api = new AlcifraApi(rig.Admin);
+            var hypermedia = new Hypermedia(api);
+            var name = $"Folder {Guid.NewGuid():N}"[..15];
+            DocumentFiling.FieldValue[] noFields = [];
+
+            var folder = await DocumentFiling.FolderAsync(api, hypermedia, rig.RepoId, name, "Test Dossier", noFields, CancellationToken.None);
+            Assert.Equal(folder, await DocumentFiling.FolderAsync(api, hypermedia, rig.RepoId, name, "Test Dossier", noFields, CancellationToken.None));
+            Assert.Equal("Test Dossier", (await TestJson.Get(rig.Admin, $"/api/documents/{folder}/detail")).GetProperty("maskName").GetString());
+
+            var target = (await TestJson.Post(rig.Admin, $"/api/documents/{rig.RepoId}/children", new { name = $"Target {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+            Assert.True(await DocumentFiling.PlaceReferenceAsync(api, hypermedia, target, folder, CancellationToken.None));
+            Assert.False(await DocumentFiling.PlaceReferenceAsync(api, hypermedia, target, folder, CancellationToken.None));
+            Assert.Equal(1, (await TestJson.Get(rig.Admin, $"/api/documents/{folder}/references")).GetProperty("references").GetArrayLength());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_VERIFY_KEY", null);
+        }
+    }
+
     [Fact]
     public async Task An_unknown_field_is_refused_before_anything_is_written()
     {
