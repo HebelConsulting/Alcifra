@@ -34,8 +34,12 @@ public sealed record DeviceSignIn(User User, ProtocolDevice Device);
 public sealed class ProtocolDeviceAuthenticator(
     AlcifraDbContext dbContext,
     TimeProvider clock,
-    ILogger<ProtocolDeviceAuthenticator> logger)
+    ILogger<ProtocolDeviceAuthenticator> logger,
+    VerifiedDevicePasswords? verifiedPasswords = null)
 {
+    // Registered as a singleton in the host; a test that makes its own authenticator gets its own memory.
+    private readonly VerifiedDevicePasswords verified = verifiedPasswords ?? new VerifiedDevicePasswords();
+
     // Constructed, not injected, as every protocol door did before: the hasher is stateless and not registered.
     private readonly PasswordHasher<User> passwordHasher = new();
 
@@ -57,10 +61,16 @@ public sealed class ProtocolDeviceAuthenticator(
             return null;
         }
 
-        var device = await DeviceOpenedByAsync(user, password, protocol, cancellationToken);
+        var device = await RememberedDeviceAsync(user, password, protocol, cancellationToken);
         if (device is null)
         {
-            return null;
+            device = await DeviceOpenedByAsync(user, password, protocol, cancellationToken);
+            if (device is null)
+            {
+                return null;
+            }
+
+            verified.Remember(user.Id, password, protocol, device, clock.GetUtcNow());
         }
 
         if (!Opens(device, protocol))
@@ -84,6 +94,20 @@ public sealed class ProtocolDeviceAuthenticator(
         DeviceProtocol.Contacts => device.ContactsEnabled,
         _ => false,
     };
+
+    // A password verified moments ago (ADR 1050): the row is still read, so a revoked device is gone at once, and its stored
+    // hash still has to be the one verified, so a changed password is not carried along. The caller checks the switch.
+    private async Task<ProtocolDevice?> RememberedDeviceAsync(User user, string password, DeviceProtocol protocol, CancellationToken cancellationToken)
+    {
+        if (verified.Find(user.Id, password, protocol, clock.GetUtcNow()) is not { } remembered)
+        {
+            return null;
+        }
+
+        var device = await dbContext.ProtocolDevices.IgnoreQueryFilters(TenantFilter).AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == remembered.DeviceId && d.UserId == user.Id, cancellationToken);
+        return device is not null && device.SecretHash == remembered.SecretHash ? device : null;
+    }
 
     // With a key, exactly one hash is verified: the enrolled device the key names, if it is this user's. Without one,
     // the password is a chosen one and is tried against the user's devices without a key: the earlier passwords (at most

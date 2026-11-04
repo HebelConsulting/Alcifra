@@ -62,4 +62,8 @@
     <Compile Include="..\Shared\TestAttestationHierarchy.cs" Link="Shared\TestAttestationHierarchy.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Recordings/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

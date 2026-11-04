@@ -201,6 +201,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<Alcifra.Api.Imap.I
 builder.Services.Configure<Alcifra.Api.Lmtp.LmtpOptions>(builder.Configuration.GetSection("Lmtp"));
 builder.Services.AddScoped<Alcifra.Api.Lmtp.LmtpDelivery>();
 // The one check of a protocol password for IMAP, WebDAV, CalDAV and CardDAV (#1970).
+builder.Services.AddSingleton<Alcifra.Api.ProtocolDevices.VerifiedDevicePasswords>();
 builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.ProtocolDeviceAuthenticator>();
 builder.Services.AddScoped<Alcifra.Api.ProtocolDevices.ProtocolDeviceEnrolment>();
 // The one-time profile link of a new device, and the sweep of expired ones (#1970 slice 2).
