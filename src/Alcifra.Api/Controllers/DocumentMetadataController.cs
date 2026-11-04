@@ -77,6 +77,9 @@ public class DocumentMetadataController : ControllerBase
         public string? Name { get; set; }
 
         public int? VersionNumber { get; set; }
+
+        /// <summary>What this document's mask picker offers (#2169, ADR 1049).</summary>
+        public List<Documents.MaskChoiceResource> Choices { get; set; } = [];
     }
 
     public class SetMaskRequest
@@ -150,6 +153,7 @@ public class DocumentMetadataController : ControllerBase
         // Which version is current, and the refusal when there is none, is MaskAssignment's — shared with
         // ADR 0794's combined PUT .../detail. The assignment itself stays here: it is one line.
         var mask = await Documents.MaskAssignment.ResolveCurrentVersionAsync(_dbContext, request.MaskId, cancellationToken);
+        await Documents.MaskAssignment.EnsureKindFitsAsync(_dbContext, documentId, request.MaskId, mask.Name, cancellationToken);
 
         document.MaskVersionId = mask.VersionId;
 
@@ -374,6 +378,8 @@ public class DocumentMetadataController : ControllerBase
             .Where(v => v.Id == id)
             .Select(v => new { v.MaskId, v.Name, v.VersionNumber })
             .SingleAsync(cancellationToken);
+
+        resource.Choices = await Documents.MaskChoiceList.ForAsync(_dbContext, documentId, version.MaskId, cancellationToken);
 
         resource.MaskId = version.MaskId;
         resource.MaskVersionId = id;

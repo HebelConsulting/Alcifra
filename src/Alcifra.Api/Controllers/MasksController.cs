@@ -343,11 +343,7 @@ public class MasksController : ControllerBase
             // "Sealed document" would leave its confirmed plaintext version under a mask that declares the content
             // sealed, and every door would then serve it typed as an S/MIME envelope that it is not. Password Entry
             // was already excluded through its typed-folder rule; this makes the reason true of the class.
-            mask.IsFreelyAssignable = !mask.IsFolderMask
-                && mask.FileExtensions.Count == 0
-                && !WellKnownMaskIds.AdmittingFolders.ContainsKey(mask.Id)
-                && !WellKnownMaskIds.NotUserCreatable.Contains(mask.Id)
-                && !WellKnownMaskIds.SealedContentMasks.ContainsKey(mask.Id);
+            mask.IsFreelyAssignable = Documents.MaskChoiceList.IsFreelyAssignable(mask.Id, mask.IsFolderMask, mask.FileExtensions.Count > 0);
             mask.Links = [new Link("self", $"/api/masks/{mask.Id}", "GET")];
 
             // NO create rel here, deliberately. Creating a typed folder needs a PARENT, which this resource does

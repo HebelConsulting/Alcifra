@@ -490,7 +490,7 @@
     // catalogue service. They were four parameters, which made the shell hold four copies of tenant-wide lists
     // it does not otherwise care about — and made a pane that merely DISPLAYS a label depend on someone having
     // remembered to pass it.
-    private IReadOnlyList<MaskSummary> AvailableMasks => Catalogs.Masks;
+    private IReadOnlyList<MaskSummary> AvailableMasks => Detail.MaskChoices.Count > 0 ? Detail.MaskChoices : Catalogs.Masks;
 
     /// <summary>Whether the current mask is one the catalogue does not offer, so the picker must supply it.</summary>
     /// <remarks>

@@ -12,6 +12,9 @@ namespace Alcifra.Client.Models;
 /// </remarks>
 public record MaskResponse
 {
+    /// <summary>What this document's picker offers (#2169, ADR 1049).</summary>
+    public List<MaskSummary> Choices { get; set; } = [];
+
     public Guid? MaskId { get; set; }
 
     public string? Name { get; set; }

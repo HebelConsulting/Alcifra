@@ -771,7 +771,7 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
         _ => "application/octet-stream",
     };
 
-    public sealed record MaskInfo(Guid? MaskId, string? Name, int? VersionNumber, string? DefinitionHref = null); // DefinitionHref: this mask's field definitions, which the catalogue never carries for a typed folder (#729, ADR 0688)
+    public sealed record MaskInfo(Guid? MaskId, string? Name, int? VersionNumber, string? DefinitionHref = null, IReadOnlyList<MasksClient.MaskOptionInfo>? Choices = null); // DefinitionHref: this mask's field definitions, which the catalogue never carries for a typed folder (#729, ADR 0688)
 
     public async Task<MaskInfo> GetMaskAsync(string maskHref, CancellationToken cancellationToken = default)
     {
@@ -779,7 +779,11 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
         return new MaskInfo(
             mask.TryGetProperty("maskId", out var mid) && mid.ValueKind == JsonValueKind.String ? mid.GetGuid() : null,
             mask.TryGetProperty("name", out var n) ? n.GetString() : null,
-            mask.TryGetProperty("versionNumber", out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : null, ApiCore.RelHref(mask, "definition"));
+            mask.TryGetProperty("versionNumber", out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : null, ApiCore.RelHref(mask, "definition"),
+            mask.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array
+                ? [.. choices.EnumerateArray().Select(c => new MasksClient.MaskOptionInfo(
+                    c.GetProperty("id").GetGuid(), c.GetProperty("name").GetString() ?? string.Empty, ApiCore.RelHref(c, "self")))]
+                : null);
     }
 
 

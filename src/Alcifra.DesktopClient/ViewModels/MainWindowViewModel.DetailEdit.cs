@@ -103,14 +103,15 @@ public sealed partial class MainWindowViewModel
                 try { foreach (var t in await _api.Tags.GetTagCatalogAsync()) TagCatalog.Add(t); } catch (Exception) { /* optional */ }
             }
 
+            // What this document may wear is the server's answer (#2169, ADR 1049); an older server gives none, so the catalogue.
+            var currentMask = await _api.Documents.GetMaskAsync(DetailHref("mask"));
             AvailableMasks.Clear();
-            AvailableMasks.Add(new MaskChoiceViewModel(null, "(No mask)"));
-            foreach (var mask in await _api.Masks.GetMasksAsync())
+            foreach (var mask in currentMask.Choices ?? await _api.Masks.GetMasksAsync())
             {
                 AvailableMasks.Add(new MaskChoiceViewModel(mask.Id, mask.Name, mask));
             }
 
-            SelectedMaskChoice = MaskChoices.Select(AvailableMasks, await _api.Documents.GetMaskAsync(DetailHref("mask")));
+            SelectedMaskChoice = MaskChoices.Select(AvailableMasks, currentMask);
             _originalMaskId = SelectedMaskChoice.MaskId; // Select always answers the document's own mask
             await LoadMaskEditFieldsAsync(SelectedMaskChoice.Mask, withCurrentValues: true);
 

@@ -37,4 +37,24 @@ public static class MaskAssignment
 
         return (mask.Id, mask.Name);
     }
+
+    /// <summary>
+    /// Refuses a folder mask on what holds content and an item mask on what holds children (#2169, ADR 1049). Decided by
+    /// those facts, not by the mask it wears now: a new, empty document wears Folder until something says otherwise, and
+    /// giving it an item mask before its content arrives is an ordinary path.
+    /// </summary>
+    public static async Task EnsureKindFitsAsync(
+        AlcifraDbContext dbContext, Guid documentId, Guid maskId, string maskName, CancellationToken cancellationToken)
+    {
+        var isFolderMask = await dbContext.Masks.Where(m => m.Id == maskId).Select(m => m.IsFolderMask).SingleOrDefaultAsync(cancellationToken);
+        if (isFolderMask && await dbContext.DocumentVersions.AnyAsync(v => v.DocumentId == documentId, cancellationToken))
+        {
+            throw MaskKindMismatchException.FolderMaskOnItem(maskName);
+        }
+
+        if (!isFolderMask && await dbContext.Documents.AnyAsync(d => d.ParentId == documentId, cancellationToken))
+        {
+            throw MaskKindMismatchException.ItemMaskOnFolder(maskName);
+        }
+    }
 }

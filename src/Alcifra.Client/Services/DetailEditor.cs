@@ -228,7 +228,7 @@ public sealed class DetailEditor(HttpClient http, DetailState detail, DetailCata
         // offer": it is a different question, answered by the document itself, whose mask resource advertises
         // where its definitions live (#729, ADR 0688). Without this the editor opened on a typed folder with no
         // boxes at all, which is how a Mailbox's address list became unsettable from the UI.
-        var maskHref = Links.Href(catalogs.Masks.FirstOrDefault(m => m.Id == id)?.Links, "self")
+        var maskHref = Links.Href(detail.MaskChoices.Concat(catalogs.Masks).FirstOrDefault(m => m.Id == id)?.Links, "self")
                        ?? (id == detail.MaskId ? detail.MaskDefinitionHref : null);
         if (maskHref is null)
         {

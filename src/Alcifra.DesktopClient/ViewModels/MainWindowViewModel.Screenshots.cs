@@ -161,10 +161,9 @@ public partial class MainWindowViewModel
     internal void PopulateMaskEditForScreenshot()
     {
         PopulateDemoForScreenshot();
-        AvailableMasks.Add(new MaskChoiceViewModel(null, "(No mask)"));
         AvailableMasks.Add(new MaskChoiceViewModel(Guid.NewGuid(), "Basic Entry"));
         AvailableMasks.Add(new MaskChoiceViewModel(Guid.NewGuid(), "eMail"));
-        SelectedMaskChoice = AvailableMasks[1];
+        SelectedMaskChoice = AvailableMasks[0];
         MaskEditFields.Add(MaskFieldEditViewModel.Create(new MasksClient.MaskFieldInfo(Guid.NewGuid(), "Keywords", "MultiSelect", false), ["finance", "quarterly"]));
         MaskEditFields.Add(MaskFieldEditViewModel.Create(new MasksClient.MaskFieldInfo(Guid.NewGuid(), "Amount", "Number", true), ["1240"]));
         MaskEditFields.Add(MaskFieldEditViewModel.Create(new MasksClient.MaskFieldInfo(Guid.NewGuid(), "Due date", "Date", false), ["2026-07-28"]));

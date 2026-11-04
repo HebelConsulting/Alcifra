@@ -225,6 +225,7 @@ public class DocumentDetailWriter(
             if (request.MaskId is { } maskId)
             {
                 var mask = await MaskAssignment.ResolveCurrentVersionAsync(dbContext, maskId, cancellationToken);
+                await MaskAssignment.EnsureKindFitsAsync(dbContext, document.Id, maskId, mask.Name, cancellationToken);
                 document.MaskVersionId = mask.VersionId;
                 maskName = mask.Name;
             }

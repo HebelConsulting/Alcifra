@@ -202,7 +202,11 @@ public sealed class DetailState
         // Qualified: this class has a Links PROPERTY of its own, which shadows the helper's name here.
         MaskDefinitionHref = Hypermedia.Links.Href(mask?.Links, "definition");
         VersionNumber = mask?.VersionNumber;
+        MaskChoices = mask?.Choices ?? [];
     }
+
+    /// <summary>What the picker offers this document: the server's answer, not a list a client filters (#2169, ADR 1049).</summary>
+    public IReadOnlyList<MaskSummary> MaskChoices { get; private set; } = [];
 
     /// <summary>
     /// The detail resource as it was when the pencil opened, and the tag that read carried (ADR 0794).

@@ -102,6 +102,8 @@ public class WebTreeMarkerAndFixedMaskTests
         // every folder and extension-claimed document — a rule nobody asked for, since re-typing a Calendar
         // costs only CalDAV subscribability.
         await maskRow.Locator(".mud-input-control").First.ClickAsync();
-        await Expect(page.Locator(".mud-list-item").Filter(new() { HasText = "Basic Entry" }).First).ToBeVisibleAsync();
+        // A folder's list is folder masks (#2169, ADR 1049): another one is on offer, and no mask for documents.
+        await Expect(page.Locator(".mud-list-item").Filter(new() { HasText = "Calendar" }).First).ToBeVisibleAsync();
+        await Expect(page.Locator(".mud-list-item").Filter(new() { HasText = "Basic Entry" })).ToHaveCountAsync(0);
     }
 }

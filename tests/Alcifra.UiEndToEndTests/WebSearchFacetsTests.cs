@@ -32,15 +32,17 @@ public class WebSearchFacetsTests
         // index-based pick is not stable against the well-known set growing. The pick has to clear two
         // separate refusals: a TYPED mask (Note/Contact/Calendar) is admitted only inside its own folder
         // (containment, #564/ADR 0619), and a mask with REQUIRED fields — eMail wants From/To/Subject —
-        // is refused on assignment until they are filled (ADR 0176). Basic Entry and Folder clear both.
+        // is refused on assignment until they are filled (ADR 0176). Basic Entry clears both, and the second is this
+        // test's own, because a folder mask no longer goes on a document (#2169, ADR 1049).
         var maskA = masks.First(m => m.GetProperty("name").GetString() == "Basic Entry");
-        var maskB = masks.First(m => m.GetProperty("name").GetString() == "Folder");
+        var maskBName = $"facet-mask-{suffix}";
+        var maskBId = await PostIdAsync(http, "/api/masks", new { name = maskBName, fields = Array.Empty<object>() });
         var (maskAId, maskAName) = (maskA.GetProperty("id").GetGuid(), maskA.GetProperty("name").GetString()!);
 
         var repoId = await PostIdAsync(http, "/api/repositories", new { name = $"webfacets-{suffix}" });
         await UploadClassifiedAsync(http, repoId, $"a1-{suffix}", word, maskAId);
         await UploadClassifiedAsync(http, repoId, $"a2-{suffix}", word, maskAId);
-        await UploadClassifiedAsync(http, repoId, $"b1-{suffix}", word, maskB.GetProperty("id").GetGuid());
+        await UploadClassifiedAsync(http, repoId, $"b1-{suffix}", word, maskBId);
 
         // Wait (over the API) until all three are indexed, so the browser search sees results + facets.
         await Eventually(async () =>
@@ -69,7 +71,6 @@ public class WebSearchFacetsTests
 
         // Post-filter faceting: the Type dimension stays open — the maskB type chip is still shown after drilling
         // (so the user can broaden the selection), rather than the dimension collapsing to the chosen value.
-        var maskBName = maskB.GetProperty("name").GetString()!;
         await Expect(page.Locator(".wb-search-facets").GetByText(maskBName, new() { Exact = false }).First).ToBeVisibleAsync();
     }
 
