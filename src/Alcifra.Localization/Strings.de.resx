@@ -6921,4 +6921,82 @@
   <data name="MwWebDavMountedForOther" xml:space="preserve">
     <value>Die Dateien dieses Servers sind für {0} eingebunden. Werfen Sie dieses Volume zuerst aus und binden Sie dann erneut ein.</value>
   </data>
+  <data name="TabTube" xml:space="preserve">
+    <value>Tube</value>
+  </data>
+  <data name="TubeChannels" xml:space="preserve">
+    <value>Kanäle</value>
+  </data>
+  <data name="TubeNoneSelected" xml:space="preserve">
+    <value>Haken Sie einen Kanal an, um seine Videos zu sehen.</value>
+  </data>
+  <data name="TubeEmpty" xml:space="preserve">
+    <value>Hier gibt es keine Videos.</value>
+  </data>
+  <data name="TubeNoChannels" xml:space="preserve">
+    <value>Es gibt keine Kanäle, die Sie sehen können.</value>
+  </data>
+  <data name="TubeEncrypts" xml:space="preserve">
+    <value>Auf einem Mandanten, der seinen Speicher verschlüsselt, werden keine Videos ausgeliefert.</value>
+  </data>
+  <data name="TubeDraft" xml:space="preserve">
+    <value>Entwurf</value>
+  </data>
+  <data name="TubeReference" xml:space="preserve">
+    <value>Verweis</value>
+  </data>
+  <data name="TubeReadOnly" xml:space="preserve">
+    <value>Diesen Kanal können Sie nur ansehen.</value>
+  </data>
+  <data name="TubePublish" xml:space="preserve">
+    <value>Veröffentlichen</value>
+  </data>
+  <data name="TubeUnpublish" xml:space="preserve">
+    <value>Veröffentlichung zurückziehen</value>
+  </data>
+  <data name="TubeWatch" xml:space="preserve">
+    <value>Im Browser ansehen</value>
+  </data>
+  <data name="TubeNoWatch" xml:space="preserve">
+    <value>Dieses Video hat keine Ansichtsseite: Es ist ein Entwurf, oder der Mandant hat keinen Video-Host angegeben.</value>
+  </data>
+  <data name="TubeEdit" xml:space="preserve">
+    <value>Details bearbeiten</value>
+  </data>
+  <data name="TubeRemove" xml:space="preserve">
+    <value>Aus diesem Kanal entfernen</value>
+  </data>
+  <data name="TubeRemoveHint" xml:space="preserve">
+    <value>Entfernt den Verweis. Das Video bleibt, wo es vorbereitet wurde.</value>
+  </data>
+  <data name="TubePlace" xml:space="preserve">
+    <value>In Kanal ablegen</value>
+  </data>
+  <data name="TubeName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="TubeDescription" xml:space="preserve">
+    <value>Beschreibung</value>
+  </data>
+  <data name="TubeTags" xml:space="preserve">
+    <value>Schlagwörter, durch Kommas getrennt</value>
+  </data>
+  <data name="TubeChannelLabel" xml:space="preserve">
+    <value>Kanal</value>
+  </data>
+  <data name="TubeRemoved" xml:space="preserve">
+    <value>Aus {0} entfernt.</value>
+  </data>
+  <data name="TubePlaced" xml:space="preserve">
+    <value>In {0} abgelegt.</value>
+  </data>
+  <data name="TubeSaved" xml:space="preserve">
+    <value>Gespeichert.</value>
+  </data>
+  <data name="TubeSaveFailed" xml:space="preserve">
+    <value>Speichern fehlgeschlagen: {0}</value>
+  </data>
+  <data name="TubeLoadFailed" xml:space="preserve">
+    <value>Die Kanäle konnten nicht gelesen werden: {0}</value>
+  </data>
 </root>

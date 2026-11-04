@@ -1,0 +1,289 @@
+@using Alcifra.Client.Services
+@using Alcifra.Presentation
+@inject TubeService Tube
+@inject ISnackbar Snackbar
+
+@* The Tube tab of the workbench (#2148), the web twin of the desktop tab (ADR 0511): channels │ videos │ detail, shaped like
+   Contacts. The web plays in the tab; a draft plays for who may edit it. *@
+
+<div class="wb-tube" style="height:100%; display:flex; flex-direction:column; flex:1 1 auto; min-height:0;">
+    <div class="wb-search-bar pa-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+        <MudButton Class="wb-rib-btn" Size="Size.Small" OnClick="LoadAsync"
+                   title="@Strings.Get("RibbonRefresh")" aria-label="@Strings.Get("RibbonRefresh")">
+            <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RibbonRefresh")</span>
+        </MudButton>
+        <MudButton Class="wb-rib-btn ml-3" Size="Size.Small" Disabled="@(!CanEdit)" OnClick="TogglePublishAsync" data-testid="tube-publish"
+                   title="@PublishLabel" aria-label="@PublishLabel">
+            <MudIcon Icon="@Icons.Material.Filled.Publish" Size="Size.Small" /><span class="wb-rib-label">@PublishLabel</span>
+        </MudButton>
+        <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(!CanEdit)" OnClick="BeginEdit" data-testid="tube-edit"
+                   title="@Strings.Get("TubeEdit")" aria-label="@Strings.Get("TubeEdit")">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("TubeEdit")</span>
+        </MudButton>
+        <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(!CanRemove)" OnClick="RemoveAsync" data-testid="tube-remove"
+                   title="@Strings.Get("TubeRemoveHint")" aria-label="@Strings.Get("TubeRemove")">
+            <MudIcon Icon="@Icons.Material.Filled.LinkOff" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("TubeRemove")</span>
+        </MudButton>
+    </div>
+
+    <div style="flex:1 1 auto; min-height:0; display:flex;">
+        <div style="flex:0 0 220px; border-right:1px solid var(--mud-palette-lines-default); min-width:0; overflow:auto;" class="pa-2">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@Strings.Get("TubeChannels")</MudText>
+            @foreach (var channel in _shelf.Items)
+            {
+                <div style="display:flex; align-items:center; gap:4px;" data-testid="tube-channel" data-channel="@channel.Name">
+                    <MudCheckBox T="bool" Dense="true" Value="@_ticked.Contains(channel.Id)" ValueChanged="@(on => Tick(channel.Id, on))" />
+                    <span style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@channel.Name</span>
+                    @if (!channel.CanWrite)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" title="@Strings.Get("TubeReadOnly")" data-testid="tube-lock" />
+                    }
+                </div>
+            }
+        </div>
+
+        <div style="flex:1 1 auto; min-width:0; display:flex; flex-direction:column;">
+            <div class="pa-2" style="border-bottom:1px solid var(--mud-palette-lines-default);">
+                <SearchField @bind-Value="_filter" Placeholder="@Strings.Get("FilterHint")" />
+            </div>
+            <div style="flex:1 1 auto; min-height:0; overflow:auto;">
+                @if (Rows.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary pa-3" data-testid="tube-empty">@EmptyMessage</MudText>
+                }
+                @foreach (var row in Rows)
+                {
+                    <div class="@($"wb-row {(row == _selected ? "wb-row-selected" : string.Empty)}")" style="display:flex; gap:8px; padding:4px 10px; cursor:pointer;"
+                         data-testid="tube-row" @onclick="@(() => SelectAsync(row))">
+                        @if (row.Video.IsReference)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.NorthEast" Size="Size.Small" title="@Strings.Get("TubeReference")" />
+                        }
+                        <span style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@row.Video.Name</span>
+                        <span class="mud-text-secondary">@row.Channel.Name</span>
+                        @if (row.Video.IsDraft)
+                        {
+                            <MudChip T="string" Size="Size.Small" data-testid="tube-draft">@Strings.Get("TubeDraft")</MudChip>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div style="flex:0 0 380px; border-left:1px solid var(--mud-palette-lines-default); min-width:0; overflow:auto;" class="pa-3">
+            @if (_selected is { } selected)
+            {
+                @if (_play is { } play)
+                {
+                    <video controls playsinline preload="metadata" src="@play.Url" poster="@_poster?.Url" style="width:100%; max-height:240px; background:#000;" data-testid="tube-player"></video>
+                }
+
+                @if (_editing)
+                {
+                    <div class="mb-2">
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" OnClick="SaveEditAsync" data-testid="tube-save">@Strings.Get("Save")</MudButton>
+                        <MudButton Size="Size.Small" OnClick="@(() => _editing = false)">@Strings.Get("Cancel")</MudButton>
+                    </div>
+                    <MudTextField @bind-Value="_editName" Label="@Strings.Get("TubeName")" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                    <MudTextField @bind-Value="_editDescription" Label="@Strings.Get("TubeDescription")" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3" Class="mb-2" />
+                    <MudTextField @bind-Value="_editTags" Label="@Strings.Get("TubeTags")" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.h6">@selected.Video.Name</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@selected.Channel.Name</MudText>
+                    @if (selected.Video.PublishedAt is { } at)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@at.InZone(SessionTimeZone.Current).ToString("d")</MudText>
+                    }
+                    <p style="white-space:pre-wrap;">@selected.Video.Description</p>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@string.Join(", ", selected.Video.Tags)</MudText>
+                }
+
+                @if (PlaceTargets.Count > 0 && !_editing)
+                {
+                    <div class="mt-3" style="display:flex; gap:6px; align-items:center;">
+                        <MudSelect T="Guid" @bind-Value="_placeIn" Label="@Strings.Get("TubePlace")" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                            @foreach (var channel in PlaceTargets)
+                            {
+                                <MudSelectItem Value="@channel.Id">@channel.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="PlaceAsync" data-testid="tube-place">@Strings.Get("FpCommitPlace")</MudButton>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private TubeShelfAnswer _shelf = new();
+    private readonly HashSet<Guid> _ticked = [];
+    private bool _firstRead = true;
+    private string _filter = string.Empty;
+    private TubeListing? _selected;
+    private TubeForm? _form;
+    private TubeContentLink? _play;
+    private TubeContentLink? _poster;
+    private bool _editing;
+    private string _editName = string.Empty;
+    private string? _editDescription;
+    private string? _editTags;
+    private Guid _placeIn;
+
+    private IReadOnlyList<TubeListing> Rows => TubeShelf.Visible(_shelf.Items, _ticked, _filter);
+
+    private IReadOnlyList<TubeChannelRow> PlaceTargets => _selected is { } row ? TubeShelf.PlaceableIn(_shelf.Items, row.Video.Id) : [];
+
+    private bool CanEdit => !_editing && _form is not null && _selected is { Video.CanEdit: true };
+
+    private bool CanRemove => !_editing && _selected is { Video.CanRemoveFromChannel: true };
+
+    private string PublishLabel => Strings.Get(_selected?.Video.Published == true ? "TubeUnpublish" : "TubePublish");
+
+    private string EmptyMessage => Strings.Get((_shelf.EncryptsAtRest, _shelf.Items.Count, _ticked.Count) switch
+    {
+        (true, _, _) => "TubeEncrypts",
+        (_, 0, _) => "TubeNoChannels",
+        (_, _, 0) => "TubeNoneSelected",
+        _ => "TubeEmpty",
+    });
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var keep = _selected;
+        try
+        {
+            _shelf = await Tube.ReadAsync();
+        }
+        catch (HttpRequestException e)
+        {
+            Snackbar.Add(string.Format(Strings.Get("TubeLoadFailed"), e.Message), Severity.Error);
+            return;
+        }
+
+        if (_firstRead)
+        {
+            _ticked.UnionWith(_shelf.Items.Select(c => c.Id));
+            _firstRead = false;
+        }
+
+        _ticked.IntersectWith(_shelf.Items.Select(c => c.Id));
+        await SelectAsync(keep is null ? null : Rows.FirstOrDefault(r => r.Video.Id == keep.Video.Id && r.Channel.Id == keep.Channel.Id));
+    }
+
+    private void Tick(Guid channel, bool on)
+    {
+        if (on)
+        {
+            _ticked.Add(channel);
+        }
+        else
+        {
+            _ticked.Remove(channel);
+        }
+    }
+
+    // The pane shows nothing of the previous subject, and its actions wait for this subject's own read (ADRs 0559, 0661).
+    private async Task SelectAsync(TubeListing? row)
+    {
+        (_selected, _form, _play, _poster, _editing) = (row, null, null, null, false);
+        if (row is null)
+        {
+            return;
+        }
+
+        _placeIn = PlaceTargets.FirstOrDefault()?.Id ?? Guid.Empty;
+        try
+        {
+            var form = row.Video.CanEdit ? await Tube.OpenAsync(row.Video.Id) : null;
+            var play = await Tube.LinkAsync(row.Video, "play");
+            var poster = await Tube.LinkAsync(row.Video, "thumbnail");
+            if (_selected == row)
+            {
+                (_form, _play, _poster) = (form, play, poster);
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            // It may have gone since the list was read; the actions stay disabled, and it says so.
+            Snackbar.Add(string.Format(Strings.Get("TubeLoadFailed"), e.Message), Severity.Warning);
+        }
+    }
+
+    private Task TogglePublishAsync() =>
+        _selected is { } row ? SaveAsync(new TubeVideoChange(Published: !row.Video.Published)) : Task.CompletedTask;
+
+    private void BeginEdit()
+    {
+        if (_selected is { } row)
+        {
+            (_editName, _editDescription, _editTags, _editing) = (row.Video.Name, row.Video.Description, string.Join(", ", row.Video.Tags), true);
+        }
+    }
+
+    private Task SaveEditAsync() => SaveAsync(new TubeVideoChange(
+        Name: _editName.Trim(),
+        Description: _editDescription ?? string.Empty,
+        Tags: [.. (_editTags ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)]));
+
+    private async Task SaveAsync(TubeVideoChange change)
+    {
+        if (_form is not { } form)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!await Tube.SaveAsync(form, change))
+            {
+                Snackbar.Add(Strings.Get("SaveFailChangedElsewhere"), Severity.Warning);
+                return;
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            Snackbar.Add(string.Format(Strings.Get("TubeSaveFailed"), e.Message), Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(Strings.Get("TubeSaved"), Severity.Success);
+        await LoadAsync();
+    }
+
+    private async Task RemoveAsync()
+    {
+        if (_selected is { Video.CanRemoveFromChannel: true } row)
+        {
+            await ActAsync(() => Tube.RemoveFromChannelAsync(row.Channel.Id, row.Video.Id), string.Format(Strings.Get("TubeRemoved"), row.Channel.Name));
+        }
+    }
+
+    private async Task PlaceAsync()
+    {
+        if (_selected is { } row && PlaceTargets.FirstOrDefault(c => c.Id == _placeIn) is { } channel)
+        {
+            await ActAsync(() => Tube.PlaceAsync(channel.Id, row.Video.Id), string.Format(Strings.Get("TubePlaced"), channel.Name));
+        }
+    }
+
+    private async Task ActAsync(Func<Task> act, string done)
+    {
+        try
+        {
+            await act();
+        }
+        catch (Exception e) when (e is HttpRequestException or InvalidOperationException)
+        {
+            Snackbar.Add(string.Format(Strings.Get("TubeSaveFailed"), e.Message), Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(done, Severity.Success);
+        await LoadAsync();
+    }
+}

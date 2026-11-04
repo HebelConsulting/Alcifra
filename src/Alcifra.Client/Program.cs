@@ -82,6 +82,7 @@ builder.Services.AddScoped<Alcifra.Client.Services.BrowseService>();
 // the two tabs ask the same endpoint with a different kind, so a client per tab would be one copy to keep in
 // step with the other.
 builder.Services.AddScoped<Alcifra.Client.Services.DavCollections>();
+builder.Services.AddScoped<Alcifra.Client.Services.TubeService>();
 builder.Services.AddScoped<Alcifra.Client.Services.StructuredEditors>();
 
 // The external-link and booking WRITES, each owning the If-Match its route requires (#1218). They live

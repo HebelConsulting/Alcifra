@@ -304,6 +304,9 @@ public sealed class TestModule : IIndustryModule
         // The module's entry into the hypermedia graph (ADR 0737): module-prefixed rel, module-private path.
         new ModuleRootLink("test-module:status", "/api/test-module/status", "GET"),
 
+        // The Tube tab's stand-in (#2148): the clients offer the tab where this rel appears, whichever module serves it.
+        new ModuleRootLink("tube:channels", "/api/test-module/tube-channels", "GET"),
+
         // A protocol endpoint's entry (ABI 1.14, ADR 0918): every caller of the root sees it while the module is
         // loaded, so a client holding only a module credential can find the upload.
         new ModuleRootLink("test-module:upload", "/apps/test-upload", "POST", InstallationWide: true),

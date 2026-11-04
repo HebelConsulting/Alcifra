@@ -279,20 +279,9 @@
     /* Fill the space between the ribbon and the bottom tab bar (and scroll internally), so the tab bar stays
        pinned — same as .wb-cols/.wb-search. Without this the content-sized panel lets the tab bar ride up or
        get pushed off-screen. */
-    .wb-tasks, .wb-checkout, .wb-tenant, .wb-mywork, .wb-tags, .wb-contacts, .wb-calendar { flex: 1 1 auto; min-height: 0; }
+    .wb-tasks, .wb-checkout, .wb-tenant, .wb-mywork, .wb-tags, .wb-contacts, .wb-calendar, .wb-tube { flex: 1 1 auto; min-height: 0; }
     .wb-setting-row { display: flex; align-items: flex-start; gap: 4px; }
     .wb-setting-row .mud-icon-button { margin-top: 6px; }
-    /* Users & groups admin tab: principal list | rights matrix. Fills to the tab bar, same as .wb-cols. */
-    .wb-ug { flex: 1 1 auto; min-height: 0; display: flex; }
-    .wb-ug-list { flex: 0 0 300px; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--mud-palette-lines-default); }
-    .wb-ug-rows { flex: 1 1 auto; min-height: 0; overflow: auto; }
-    .wb-ug-rights { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; padding: 14px 18px; overflow: auto; }
-    .wb-ug-rights-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-    .wb-ug-rights-grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 0 24px; }
-    .wb-ug-right { margin: 0; }
-    .wb-ug-photo { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .wb-ug-members { max-width: 360px; }
-    .wb-ug-member { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
     .drop-target-active { outline: 2px dashed var(--mud-palette-primary); outline-offset: -3px; background: var(--mud-palette-primary-hover); }
     /* Shared by the Search AND Intray tabs, so these stay in the shell rather than moving into SearchTab's own
        style block with the rest of #462's search CSS: a rule that exists only while the Search tab renders strips
@@ -889,6 +878,10 @@
                    selection, so the shell hands it nothing (ADR 0558). *@
                 <ContactsTab OnGoToDocument="GoToCollectionEntryAsync" />
             }
+            else if (_activeTab == Tab.Tube)
+            {
+                <TubeTab />
+            }
             else if (_activeTab == Tab.Calendar)
             {
                 <CalendarTab OnGoToDocument="GoToCollectionEntryAsync" />
@@ -925,6 +918,11 @@
                               Active="@(_activeTab == Tab.Contacts)" OnClick="@(() => SetTab(Tab.Contacts))" />
                 <WorkbenchTab Icon="@Icons.Material.Filled.CalendarMonth" Label="@Strings.Get("TabCalendar")" Tour="tab-calendar"
                               Active="@(_activeTab == Tab.Calendar)" OnClick="@(() => SetTab(Tab.Calendar))" />
+                @if (_tubeOffered)
+                {
+                    <WorkbenchTab Icon="@Icons.Material.Filled.VideoLibrary" Label="@Strings.Get("TabTube")" Tour="tab-tube"
+                                  Active="@(_activeTab == Tab.Tube)" OnClick="@(() => SetTab(Tab.Tube))" />
+                }
                 <WorkbenchTab Icon="@Icons.Material.Filled.Dashboard" Label="@Strings.Get("TabMyWork")" Tour="tab-my-work"
                               Active="@(_activeTab == Tab.MyWork)" OnClick="@(() => SetTab(Tab.MyWork))" />
                 @if (_canManageUsers)
@@ -969,7 +967,7 @@
 </AuthorizeView>
 
 @code {
-    private enum Tab { Repositories, Intray, Checkout, Tasks, Search, RecycleBin, MyWork, UsersGroups, Audit, LegalHolds, Retention, Tenant, Tags, Contacts, Calendar }
+    private enum Tab { Repositories, Intray, Checkout, Tasks, Search, RecycleBin, MyWork, UsersGroups, Audit, LegalHolds, Retention, Tenant, Tags, Contacts, Calendar, Tube }
 
 
     // Reference (shortcut) metadata mirrors the desktop client: for a reference, Id is the TARGET's id (so
@@ -1146,6 +1144,7 @@
             _canManageUsers = me?.CanManageUsers ?? false;
             _canManageServiceAccounts = me?.CanManageServiceAccounts ?? false;
             _canViewAuditLog = me?.CanViewAuditLog ?? false;
+            _tubeOffered = await Tube.IsOfferedAsync();
             _canResetMfa = me?.CanResetMfa ?? false;
             _canLegalHold = me?.CanLegalHold ?? false;
             _canManageClassification = me?.CanManageClassification ?? false;
@@ -1164,6 +1163,7 @@
             _canManageUsers = false;
             _canManageServiceAccounts = false;
             _canViewAuditLog = false;
+            _tubeOffered = false;
             _canResetMfa = false;
             _canLegalHold = false;
             _canManageClassification = false;

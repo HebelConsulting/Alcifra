@@ -11,6 +11,13 @@ public partial class MainWindowViewModel
     /// <summary>The Messages tab's index: appended after Calendar, so no other tab is re-indexed.</summary>
     public const int MessagesTabIndex = 15;
 
+    /// <summary>The Tube tab's index: appended after Passwords, so no other tab is re-indexed.</summary>
+    public const int TubeTabIndex = 17;
+
+    private TubeTabViewModel? _tubeTab;
+
+    public TubeTabViewModel TubeTab => _tubeTab ??= new TubeTabViewModel(this, () => _api);
+
     private MessagesTabViewModel? _messagesTab;
 
     public MessagesTabViewModel MessagesTab => _messagesTab ??=
@@ -30,6 +37,7 @@ public partial class MainWindowViewModel
         {
             Services.Safe.Fire(MessagesTab.DiscoverAsync);
             Services.Safe.Fire(PasswordsTab.DiscoverAsync);   // the Passwords tab likewise (ADR 0968)
+            Services.Safe.Fire(TubeTab.DiscoverAsync);   // the Tube tab likewise (#2148)
             Services.Safe.Fire(ApplyProductNameAsync);   // the installation's product name (core #1117)
         }
         else
@@ -37,6 +45,7 @@ public partial class MainWindowViewModel
             ForgetProductName();
             MessagesTab.Reset();
             PasswordsTab.Reset();
+            TubeTab.Reset();
         }
     }
 
@@ -78,6 +87,7 @@ public partial class MainWindowViewModel
     {
         MessagesTabIndex => MessagesTab.LoadAsync(),
         PasswordsTabIndex => PasswordsTab.LoadAsync(),
+        TubeTabIndex => TubeTab.LoadAsync(),
         _ => Task.CompletedTask,
     };
 }

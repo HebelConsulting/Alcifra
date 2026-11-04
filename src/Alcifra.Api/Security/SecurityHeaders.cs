@@ -162,6 +162,8 @@ public static class SecurityHeaders
             "font-src 'self' data:",
             $"img-src 'self' data: blob:{remote}",
             $"connect-src 'self'{remote}",
+            // The Tube tab's <video> plays from a presigned link (#2148); without this, default-src refuses it silently.
+            $"media-src 'self'{remote}",
             "worker-src 'self' blob:",
             "object-src 'none'",
             "base-uri 'self'",

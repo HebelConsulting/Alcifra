@@ -6921,4 +6921,82 @@
   <data name="MwWebDavMountedForOther" xml:space="preserve">
     <value>The files of this server are mounted for {0}. Eject that volume first, then mount again.</value>
   </data>
+  <data name="TabTube" xml:space="preserve">
+    <value>Tube</value>
+  </data>
+  <data name="TubeChannels" xml:space="preserve">
+    <value>Channels</value>
+  </data>
+  <data name="TubeNoneSelected" xml:space="preserve">
+    <value>Tick a channel to see its videos.</value>
+  </data>
+  <data name="TubeEmpty" xml:space="preserve">
+    <value>No videos here.</value>
+  </data>
+  <data name="TubeNoChannels" xml:space="preserve">
+    <value>There are no channels you can see.</value>
+  </data>
+  <data name="TubeEncrypts" xml:space="preserve">
+    <value>Videos aren't served on a tenant that encrypts its storage.</value>
+  </data>
+  <data name="TubeDraft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="TubeReference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="TubeReadOnly" xml:space="preserve">
+    <value>You can only watch this channel.</value>
+  </data>
+  <data name="TubePublish" xml:space="preserve">
+    <value>Publish</value>
+  </data>
+  <data name="TubeUnpublish" xml:space="preserve">
+    <value>Unpublish</value>
+  </data>
+  <data name="TubeWatch" xml:space="preserve">
+    <value>Watch in the browser</value>
+  </data>
+  <data name="TubeNoWatch" xml:space="preserve">
+    <value>This video has no watch page: it is a draft, or the tenant named no video host.</value>
+  </data>
+  <data name="TubeEdit" xml:space="preserve">
+    <value>Edit details</value>
+  </data>
+  <data name="TubeRemove" xml:space="preserve">
+    <value>Remove from this channel</value>
+  </data>
+  <data name="TubeRemoveHint" xml:space="preserve">
+    <value>Removes the reference. The video stays where it was prepared.</value>
+  </data>
+  <data name="TubePlace" xml:space="preserve">
+    <value>Place in channel</value>
+  </data>
+  <data name="TubeName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="TubeDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="TubeTags" xml:space="preserve">
+    <value>Tags, separated by commas</value>
+  </data>
+  <data name="TubeChannelLabel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="TubeRemoved" xml:space="preserve">
+    <value>Removed from {0}.</value>
+  </data>
+  <data name="TubePlaced" xml:space="preserve">
+    <value>Placed in {0}.</value>
+  </data>
+  <data name="TubeSaved" xml:space="preserve">
+    <value>Saved.</value>
+  </data>
+  <data name="TubeSaveFailed" xml:space="preserve">
+    <value>Could not save: {0}</value>
+  </data>
+  <data name="TubeLoadFailed" xml:space="preserve">
+    <value>Could not read the channels: {0}</value>
+  </data>
 </root>

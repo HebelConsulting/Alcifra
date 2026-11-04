@@ -60,6 +60,15 @@ public static class NativeFileOpener
     // report: no association, a sandbox refusal, a path that is not where the user thinks. The log records WHICH
     // path went to WHICH launcher, and the failure with it — the launcher's own error goes to a console that a
     // packaged build does not have (ADR 0613).
+    /// <summary>Opens a web address in the system browser. Only https, since the address comes from a server's answer.</summary>
+    public static void OpenWebAddress(string address)
+    {
+        if (Uri.TryCreate(address, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps)
+        {
+            OpenPath(uri.AbsoluteUri);
+        }
+    }
+
     private static void OpenPath(string path)
     {
         try

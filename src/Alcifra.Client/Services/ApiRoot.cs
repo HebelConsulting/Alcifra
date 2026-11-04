@@ -30,6 +30,7 @@ public sealed class ApiRoot
     private readonly HttpClient _anonymous;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private Dictionary<string, string>? _rels;
+    private Dictionary<string, string>? _memberRels;
 
     /// <remarks>
     /// Two clients, because the two documents differ in kind. The ROOT is [AllowAnonymous], has no conditional
@@ -50,6 +51,21 @@ public sealed class ApiRoot
     {
         var rels = await LoadAsync(cancellationToken);
         return rels.TryGetValue(rel, out var href) ? href : null;
+    }
+
+    /// <summary>
+    /// The href for a rel only a member of the tenant sees, or null: a module's rels are advertised per tenant, so the
+    /// anonymous read above never carries them. Read once with the token, and only by a caller that is signed in.
+    /// </summary>
+    public async Task<string?> MemberHrefAsync(string rel, CancellationToken cancellationToken = default)
+    {
+        if (_memberRels is null)
+        {
+            var root = await ReadRootAsync(_http, cancellationToken);
+            _memberRels = root?.Links.ToDictionary(l => l.Rel, l => l.Href) ?? [];
+        }
+
+        return _memberRels.TryGetValue(rel, out var href) ? href : null;
     }
 
     /// <summary>
@@ -168,6 +184,9 @@ public sealed class ApiRoot
     private string? _meEmail;
     private string? _meTimeZoneId;
 
+    private static Task<RootResponse?> ReadRootAsync(HttpClient client, CancellationToken cancellationToken) =>
+        client.GetFromJsonAsync<RootResponse>("api", cancellationToken);
+
     private async Task<Dictionary<string, string>> LoadAsync(CancellationToken cancellationToken)
     {
         if (_rels is { } cached)
@@ -185,7 +204,7 @@ public sealed class ApiRoot
                 return inner;
             }
 
-            var root = await _anonymous.GetFromJsonAsync<RootResponse>("api", cancellationToken);
+            var root = await ReadRootAsync(_anonymous, cancellationToken);
             // The installation's product name (core #1117): every text that names the product says it from here on.
             if (root?.ProductName is { Length: > 0 } productName)
             {

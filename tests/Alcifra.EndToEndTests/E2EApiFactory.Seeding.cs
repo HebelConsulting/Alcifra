@@ -314,6 +314,42 @@ public sealed partial class E2EApiFactory
         return (mask.Id, field.Id);
     }
 
+    // A mask with named Text fields, the last optionally a list, for tests that save a whole detail.
+    public async Task<(Guid MaskId, IReadOnlyDictionary<string, Guid> Fields)> SeedMaskWithTextFieldsAsync(Guid tenantId, string listField, params string[] textFields)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+        var mask = new Alcifra.Domain.Masks.Mask { Id = Guid.NewGuid(), TenantId = tenantId, CreatedAt = DateTimeOffset.UtcNow };
+        db.Masks.Add(mask);
+        var version = new Alcifra.Domain.Masks.MaskVersion
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            MaskId = mask.Id,
+            Name = $"Fields {Guid.NewGuid():N}",
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+        db.MaskVersions.Add(version);
+        var fields = new Dictionary<string, Guid>();
+        foreach (var name in textFields.Append(listField))
+        {
+            fields[name] = Guid.NewGuid();
+            db.FieldDefinitions.Add(new Alcifra.Domain.Masks.FieldDefinition
+            {
+                Id = fields[name],
+                TenantId = tenantId,
+                MaskVersionId = version.Id,
+                Name = name,
+                DataType = Alcifra.Domain.Masks.FieldDataType.Text,
+                IsList = name == listField,
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+        return (mask.Id, fields);
+    }
+
     // Sets a tenant's storage quota directly (for the WebDAV 507 test) — null = unlimited.
     public async Task SetTenantStorageQuotaAsync(Guid tenantId, long? quotaBytes)
     {

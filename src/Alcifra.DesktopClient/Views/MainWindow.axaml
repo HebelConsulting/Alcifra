@@ -597,6 +597,12 @@
                 <v:PasswordsTab DataContext="{Binding PasswordsTab}" />
             </TabItem>
 
+            <!-- Tube (#2148): the channels, appended last, shown where the archive offers the module. -->
+            <TabItem ToolTip.Tip="{loc:Tr TabTube}" IsVisible="{Binding TubeTab.IsOffered}">
+                <TabItem.Header><i:Icon Value="mdi-video-outline" FontSize="20" /></TabItem.Header>
+                <v:TubeTab DataContext="{Binding TubeTab}" />
+            </TabItem>
+
         </TabControl>
     </DockPanel>
 </Window>

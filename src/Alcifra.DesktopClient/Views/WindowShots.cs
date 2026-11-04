@@ -634,6 +634,38 @@ public static class WindowShots
             fileDialog.CaptureRenderedFrame()?.Save(args[fileShotIndex + 1]);
             return true;
         }
+        var tubeShotIndex = Array.IndexOf(args, "--tube-screenshot");
+        if (tubeShotIndex >= 0 && tubeShotIndex + 1 < args.Length)
+        {
+            AppBuilder.Configure<App>()
+                .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+                .UseSkia()
+                .WithBrandFont()
+                .SetupWithoutStarting();
+            var tube = new ViewModels.TubeTabViewModel(new ViewModels.MainWindowViewModel(), () => null);
+            tube.Adopt(new Alcifra.Presentation.TubeShelfAnswer
+            {
+                Items =
+                [
+                    new() { Id = Guid.NewGuid(), Name = "Company", CanWrite = true, Videos =
+                    [
+                        new() { Id = Guid.NewGuid(), Name = "Annual keynote", Published = true, Description = "The year in review.", Tags = ["keynote", "2026"], PublishedAt = DateTimeOffset.UtcNow, CanEdit = true },
+                        new() { Id = Guid.NewGuid(), Name = "Unfinished cut", CanEdit = true },
+                    ] },
+                    new() { Id = Guid.NewGuid(), Name = "Product", Videos =
+                    [
+                        new() { Id = Guid.NewGuid(), Name = "Annual keynote", Published = true, IsReference = true },
+                    ] },
+                ],
+            });
+            tube.Selected = tube.Rows[0];
+            var tubeWindow = new Avalonia.Controls.Window { Width = 1100, Height = 560, Content = new TubeTab { DataContext = tube } };
+            tubeWindow.Show();
+            Dispatcher.UIThread.RunJobs();
+            tubeWindow.CaptureRenderedFrame()?.Save(args[tubeShotIndex + 1]);
+            return true;
+        }
+
         return false;
     }
 

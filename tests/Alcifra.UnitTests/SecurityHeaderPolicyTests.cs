@@ -19,6 +19,7 @@ public class SecurityHeaderPolicyTests
 
         Assert.Contains("connect-src 'self' https://storage.example.com", policy);
         Assert.Contains("img-src 'self' data: blob: https://storage.example.com", policy);
+        Assert.Contains("media-src 'self' https://storage.example.com", policy);
     }
 
     [Theory]

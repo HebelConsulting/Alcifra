@@ -6921,4 +6921,82 @@
   <data name="MwWebDavMountedForOther" xml:space="preserve">
     <value>I file di questo server sono montati per {0}. Espelli prima quel volume, poi monta di nuovo.</value>
   </data>
+  <data name="TabTube" xml:space="preserve">
+    <value>Tube</value>
+  </data>
+  <data name="TubeChannels" xml:space="preserve">
+    <value>Canali</value>
+  </data>
+  <data name="TubeNoneSelected" xml:space="preserve">
+    <value>Seleziona un canale per vederne i video.</value>
+  </data>
+  <data name="TubeEmpty" xml:space="preserve">
+    <value>Nessun video qui.</value>
+  </data>
+  <data name="TubeNoChannels" xml:space="preserve">
+    <value>Non ci sono canali che puoi vedere.</value>
+  </data>
+  <data name="TubeEncrypts" xml:space="preserve">
+    <value>I video non vengono serviti su un tenant che cifra l'archiviazione.</value>
+  </data>
+  <data name="TubeDraft" xml:space="preserve">
+    <value>Bozza</value>
+  </data>
+  <data name="TubeReference" xml:space="preserve">
+    <value>Riferimento</value>
+  </data>
+  <data name="TubeReadOnly" xml:space="preserve">
+    <value>Puoi solo guardare questo canale.</value>
+  </data>
+  <data name="TubePublish" xml:space="preserve">
+    <value>Pubblica</value>
+  </data>
+  <data name="TubeUnpublish" xml:space="preserve">
+    <value>Annulla pubblicazione</value>
+  </data>
+  <data name="TubeWatch" xml:space="preserve">
+    <value>Guarda nel browser</value>
+  </data>
+  <data name="TubeNoWatch" xml:space="preserve">
+    <value>Questo video non ha una pagina di visione: è una bozza, o il tenant non ha indicato un host video.</value>
+  </data>
+  <data name="TubeEdit" xml:space="preserve">
+    <value>Modifica dettagli</value>
+  </data>
+  <data name="TubeRemove" xml:space="preserve">
+    <value>Rimuovi da questo canale</value>
+  </data>
+  <data name="TubeRemoveHint" xml:space="preserve">
+    <value>Rimuove il riferimento. Il video resta dove è stato preparato.</value>
+  </data>
+  <data name="TubePlace" xml:space="preserve">
+    <value>Inserisci nel canale</value>
+  </data>
+  <data name="TubeName" xml:space="preserve">
+    <value>Nome</value>
+  </data>
+  <data name="TubeDescription" xml:space="preserve">
+    <value>Descrizione</value>
+  </data>
+  <data name="TubeTags" xml:space="preserve">
+    <value>Tag, separati da virgole</value>
+  </data>
+  <data name="TubeChannelLabel" xml:space="preserve">
+    <value>Canale</value>
+  </data>
+  <data name="TubeRemoved" xml:space="preserve">
+    <value>Rimosso da {0}.</value>
+  </data>
+  <data name="TubePlaced" xml:space="preserve">
+    <value>Inserito in {0}.</value>
+  </data>
+  <data name="TubeSaved" xml:space="preserve">
+    <value>Salvato.</value>
+  </data>
+  <data name="TubeSaveFailed" xml:space="preserve">
+    <value>Salvataggio non riuscito: {0}</value>
+  </data>
+  <data name="TubeLoadFailed" xml:space="preserve">
+    <value>Impossibile leggere i canali: {0}</value>
+  </data>
 </root>

@@ -1,0 +1,133 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="using:Projektanker.Icons.Avalonia"
+             xmlns:loc="using:Alcifra.DesktopClient.Localization"
+             xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+             xmlns:v="using:Alcifra.DesktopClient.Views"
+             xmlns:p="using:Alcifra.Presentation"
+             x:Class="Alcifra.DesktopClient.Views.TubeTab"
+             x:DataType="vm:TubeTabViewModel">
+
+  <!-- The Tube tab (#2148): channels │ videos │ detail, the Contacts tab's shape (ADR 0511). -->
+  <DockPanel LastChildFill="True" Margin="8">
+
+    <Border DockPanel.Dock="Top" Classes="ribbon">
+      <StackPanel Orientation="Horizontal" Spacing="4">
+        <Button Command="{Binding LoadCommand}" ToolTip.Tip="{loc:Tr RibbonRefresh}"
+                AutomationProperties.Name="{loc:Tr RibbonRefresh}">
+          <i:Icon Value="mdi-refresh" FontSize="18" />
+        </Button>
+        <Button Command="{Binding WatchCommand}" IsEnabled="{Binding CanWatch}"
+                ToolTip.Tip="{loc:Tr TubeWatch}" AutomationProperties.Name="{loc:Tr TubeWatch}">
+          <i:Icon Value="mdi-play-circle-outline" FontSize="18" />
+        </Button>
+        <Border Width="1" Background="{DynamicResource WbBorder}" Margin="4,2" />
+        <Button Command="{Binding TogglePublishCommand}" IsEnabled="{Binding CanPublish}"
+                ToolTip.Tip="{Binding PublishLabel}" AutomationProperties.Name="{Binding PublishLabel}">
+          <i:Icon Value="mdi-publish" FontSize="18" />
+        </Button>
+        <Button Command="{Binding BeginEditCommand}" IsEnabled="{Binding CanEdit}"
+                ToolTip.Tip="{loc:Tr TubeEdit}" AutomationProperties.Name="{loc:Tr TubeEdit}">
+          <i:Icon Value="mdi-pencil-outline" FontSize="18" />
+        </Button>
+        <Button Command="{Binding RemoveCommand}" IsEnabled="{Binding CanRemove}"
+                ToolTip.Tip="{loc:Tr TubeRemoveHint}" AutomationProperties.Name="{loc:Tr TubeRemove}">
+          <i:Icon Value="mdi-link-off" FontSize="18" />
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <Grid ColumnDefinitions="220,4,*,4,320">
+
+      <DockPanel Grid.Column="0" LastChildFill="True">
+        <TextBlock DockPanel.Dock="Top" Text="{loc:Tr TubeChannels}" FontWeight="SemiBold" Margin="2,0,0,6" />
+        <ListBox ItemsSource="{Binding Channels}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:TubeChannelItemViewModel">
+              <DockPanel LastChildFill="True">
+                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsChecked}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <i:Icon DockPanel.Dock="Right" Value="mdi-lock-outline" FontSize="13" Foreground="{DynamicResource WbMuted}"
+                        VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding Locked}"
+                        ToolTip.Tip="{loc:Tr TubeReadOnly}" />
+                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource WbBorder}" />
+
+      <DockPanel Grid.Column="2" LastChildFill="True">
+        <TextBox DockPanel.Dock="Top" Text="{Binding Filter}" Watermark="{loc:Tr FilterHint}" Margin="0,0,0,6"
+                 v:SearchField.Clearable="True" />
+        <SelectableTextBlock DockPanel.Dock="Top" Text="{Binding EmptyMessage}" Foreground="{DynamicResource WbMuted}"
+                             Margin="2,4,0,0" TextWrapping="Wrap" IsVisible="{Binding !HasRows}" />
+        <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="p:TubeListing">
+              <DockPanel LastChildFill="True" Margin="0,2">
+                <Border DockPanel.Dock="Right" CornerRadius="3" Padding="6,0" Margin="6,0,0,0" Background="{DynamicResource WbBorder}"
+                        IsVisible="{Binding Video.IsDraft}">
+                  <TextBlock Text="{loc:Tr TubeDraft}" FontSize="11" />
+                </Border>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Channel.Name}" Foreground="{DynamicResource WbMuted}"
+                           Margin="8,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="180" />
+                <i:Icon DockPanel.Dock="Left" Value="mdi-arrow-top-right" FontSize="13" Margin="0,0,4,0" VerticalAlignment="Center"
+                        IsVisible="{Binding Video.IsReference}" ToolTip.Tip="{loc:Tr TubeReference}" />
+                <TextBlock Text="{Binding Video.Name}" TextTrimming="CharacterEllipsis" />
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="{DynamicResource WbBorder}" />
+
+      <!-- Sized to its content (ADR 0550); Save and Cancel appear beside the fields they act on. -->
+      <ScrollViewer Grid.Column="4">
+        <StackPanel Spacing="8" Margin="8,0,0,0" IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <Image Source="{Binding Thumbnail}" MaxHeight="180" Stretch="Uniform" HorizontalAlignment="Left"
+                 IsVisible="{Binding Thumbnail, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+          <StackPanel Spacing="4" IsVisible="{Binding !IsEditing}">
+            <SelectableTextBlock Text="{Binding Selected.Video.Name}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <SelectableTextBlock Text="{Binding Selected.Channel.Name}" Foreground="{DynamicResource WbMuted}" />
+            <SelectableTextBlock Text="{Binding SelectedDate}" Foreground="{DynamicResource WbMuted}" />
+            <SelectableTextBlock Text="{Binding Selected.Video.Description}" TextWrapping="Wrap" />
+            <SelectableTextBlock Text="{Binding SelectedTags}" Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding WatchHint}" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap"
+                       IsVisible="{Binding WatchHint, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+
+          <StackPanel Spacing="6" IsVisible="{Binding IsEditing}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="{loc:Tr Save}" Command="{Binding SaveEditCommand}" IsDefault="True" />
+              <Button Content="{loc:Tr Cancel}" Command="{Binding CancelEditCommand}" IsCancel="True" />
+            </StackPanel>
+            <TextBlock Text="{loc:Tr TubeName}" Foreground="{DynamicResource WbMuted}" />
+            <TextBox Text="{Binding EditName}" />
+            <TextBlock Text="{loc:Tr TubeDescription}" Foreground="{DynamicResource WbMuted}" />
+            <TextBox Text="{Binding EditDescription}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="70" />
+            <TextBlock Text="{loc:Tr TubeTags}" Foreground="{DynamicResource WbMuted}" />
+            <TextBox Text="{Binding EditTags}" />
+          </StackPanel>
+
+          <StackPanel Spacing="4" IsVisible="{Binding CanPlace}">
+            <TextBlock Text="{loc:Tr TubePlace}" Foreground="{DynamicResource WbMuted}" />
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ComboBox ItemsSource="{Binding PlaceTargets}" SelectedItem="{Binding PlaceTarget}" MinWidth="180">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="p:TubeChannelRow">
+                    <TextBlock Text="{Binding Name}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Content="{loc:Tr FpCommitPlace}" Command="{Binding PlaceCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</UserControl>

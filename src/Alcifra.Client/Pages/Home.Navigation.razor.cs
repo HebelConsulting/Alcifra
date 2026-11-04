@@ -25,6 +25,11 @@ namespace Alcifra.Client.Pages;
 // to leave 484 lines in the shell.
 public partial class Home
 {
+    [Inject] private Alcifra.Client.Services.TubeService Tube { get; set; } = null!;
+
+    // Whether the archive offers the Tube tab here (#2148): the root's rel, asked once per sign-in.
+    private bool _tubeOffered;
+
 
     // Rebuilds the tree's roots and re-renders the pane. The nodes live in the injected TreeState (they must
     // outlive the pane, which is disposed on every tab switch), so refreshing them is two steps: reload the

@@ -39,6 +39,7 @@ public sealed class AlcifraApiClient
     private MasksClient? _masks;
     private LegalHoldsClient? _legalHolds;
     private StructuredEditorClient? _structuredEditors;
+    private TubeClient? _tube;
 
     public AlcifraApiClient(string accessToken)
     {
@@ -131,6 +132,8 @@ public sealed class AlcifraApiClient
     public DevicesClient Devices => _devices ??= new DevicesClient(Core, Profile);
 
     /// <summary>The caller's addressbooks and calendars, for the Contacts/Calendar tabs (#564).</summary>
+    public TubeClient Tube => _tube ??= new TubeClient(Core, Documents, Masks, References);
+
     public DavCollectionsClient DavCollections => _davCollections ??= new DavCollectionsClient(Core, Profile);
 
     /// <summary>The legal-holds + retention area (#443, ops tranche).</summary>
