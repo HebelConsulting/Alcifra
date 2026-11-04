@@ -261,7 +261,10 @@ public class ExternalLinkApiTests
 
         // The recipient has no account and may never have heard of Alcifra, so the footer names it, links
         // it, and says who is behind it (issue #411).
-        Assert.Contains("https://www.alcifra.com", html, StringComparison.Ordinal);
+        // What the footer credits is the build's: an edition names its own credit (ADR 0996).
+        Assert.Contains(
+            Alcifra.Theming.Brand.Shipped.Credit is { } credit ? System.Text.Encodings.Web.HtmlEncoder.Default.Encode(credit) : "https://www.alcifra.com",
+            html, StringComparison.Ordinal);
         Assert.Contains("Hebel Consulting GmbH", html, StringComparison.Ordinal);
 
         // Asking for JSON explicitly still gets the resource, so an integration is not forced to scrape markup.
