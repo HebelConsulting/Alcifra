@@ -118,14 +118,28 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
 
     /// <summary>Opens an entry with the host's key: the sealed bytes through the content funnel, then the opener.</summary>
     /// <exception cref="EnvelopeNotOpenedException">No key at hand opens it (none present, or it is not sealed to this reader).</exception>
-    public async Task<OpenedPasswordEntry> OpenAsync(PasswordEntryInfo entry, CancellationToken cancellationToken = default)
+    public async Task<OpenedPasswordEntry> OpenAsync(PasswordEntryInfo entry, CancellationToken cancellationToken = default) =>
+        await OpenFetchedAsync(await FetchSealedAsync(entry, cancellationToken));
+
+    /// <summary>
+    /// An entry's sealed content, from the server, with no key involved. For a host that must finish every server step
+    /// before it touches the key: over NFC the key leaves the field if the network comes between the tap and the PIN
+    /// (Mobile #244). <see cref="OpenFetchedAsync"/> then opens it with no request.
+    /// </summary>
+    public async Task<SealedPasswordEntry> FetchSealedAsync(PasswordEntryInfo entry, CancellationToken cancellationToken = default)
     {
         var href = entry.Links.Href("content")
             ?? throw new InvalidOperationException($"'{entry.Name}' has no content this reader may fetch (no 'content' rel, ADR 0543).");
-        var sealedBytes = await ApiCore.GetContentBytesAsync(href, cancellationToken);
-        var (opened, _) = await Opener.OpenAsync(AsSmime(sealedBytes), EnvelopeType);
-        ApiClientSettings.Logger.LogDebug("Opened password entry {EntryId}", entry.Id);
-        return new OpenedPasswordEntry(entry, PasswordEntryFormat.Parse(opened));
+        return new SealedPasswordEntry(entry, await ApiCore.GetContentBytesAsync(href, cancellationToken));
+    }
+
+    /// <summary>Opens content already fetched, with the host's key. Sends nothing to the server.</summary>
+    /// <exception cref="EnvelopeNotOpenedException">No key at hand opens it (none present, or it is not sealed to this reader).</exception>
+    public async Task<OpenedPasswordEntry> OpenFetchedAsync(SealedPasswordEntry fetched)
+    {
+        var (opened, _) = await Opener.OpenAsync(AsSmime(fetched.SealedBytes), EnvelopeType);
+        ApiClientSettings.Logger.LogDebug("Opened password entry {EntryId}", fetched.Entry.Id);
+        return new OpenedPasswordEntry(fetched.Entry, PasswordEntryFormat.Parse(opened));
     }
 
     /// <summary>Who a store's entries must be sealed to, from any store, folder or entry of it.</summary>

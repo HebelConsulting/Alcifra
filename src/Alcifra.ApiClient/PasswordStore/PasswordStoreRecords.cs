@@ -132,6 +132,9 @@ public sealed record PasswordEntryInfo(
 /// <summary>An entry opened with the reader's key: its resource as read, and its content.</summary>
 public sealed record OpenedPasswordEntry(PasswordEntryInfo Entry, PasswordEntryContent Content);
 
+/// <summary>An entry's content as fetched, still sealed: nothing has asked the key yet (Mobile #244).</summary>
+public sealed record SealedPasswordEntry(PasswordEntryInfo Entry, byte[] SealedBytes);
+
 /// <summary>A certificate a store's entries are sealed to, and whose it is.</summary>
 public sealed record PasswordStoreRecipientInfo(Guid UserId, string DisplayName, string CertificatePem);
 
