@@ -1773,6 +1773,12 @@
   <data name="CtxMoveTo" xml:space="preserve">
     <value>Move to…</value>
   </data>
+  <data name="MoveWhyNoRight" xml:space="preserve">
+    <value>You may not move every selected item.</value>
+  </data>
+  <data name="MoveWhyReference" xml:space="preserve">
+    <value>References cannot be moved: delete the reference and place a new one.</value>
+  </data>
   <data name="CtxRename" xml:space="preserve">
     <value>Rename…</value>
   </data>

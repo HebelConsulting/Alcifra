@@ -273,6 +273,7 @@ public partial class MainWindowViewModel
         OnPropertyChanged(nameof(CanManageAccess));
         OnPropertyChanged(nameof(CanRenameSelected));
         OnPropertyChanged(nameof(CanDeleteSelected));
+        NotifyMoveSelectionChanged();
         OnPropertyChanged(nameof(CanCheckOut));
         OnPropertyChanged(nameof(CanOverrideSelected));
         OnPropertyChanged(nameof(DetailIsFolder)); // the pane's subject changed, and with it the folder-only row

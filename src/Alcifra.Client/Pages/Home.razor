@@ -453,6 +453,9 @@
                     <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(_selectedItem is null)" OnClick="() => OpenWorkflowAsync(_selectedItem!)" title="@Detail.WorkflowRibbonLabel" aria-label="@Detail.WorkflowRibbonLabel">
                         <MudIcon Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small" /><span class="wb-rib-label">@Detail.WorkflowRibbonLabel</span>
                     </MudButton>
+                    <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(!CanMoveSelected)" OnClick="MoveSelectedAsync" title="@MoveHint" aria-label="@Strings.Get("CtxMoveTo")" data-testid="ribbon-move">
+                        <MudIcon Icon="@Icons.Material.Filled.DriveFileMove" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("CtxMoveTo")</span>
+                    </MudButton>
                     <DocumentActionsRibbon Offer="@OfferFor(Detail.Node)" Host="this" />
                     <MudButton Class="wb-rib-btn" Size="Size.Small" OnClick="RefreshAsync" title="@Strings.Get("RibbonRefresh")" aria-label="@Strings.Get("RibbonRefresh")">
                         <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RibbonRefresh")</span>
@@ -680,9 +683,9 @@
                             {
                                 <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => RunAndRefreshAsync(Actions.RenameAsync(node))">@Strings.Get("CtxRename")</MudMenuItem>
                             }
-                            @if (!node.IsReference && node.CanMove)
+                            @if (ShowsMoveFor(node))
                             {
-                                <MudMenuItem Icon="@Icons.Material.Filled.DriveFileMove" OnClick="() => RunAndRefreshAsync(Actions.MoveAsync(node))">@Strings.Get("CtxMoveTo")</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.DriveFileMove" Disabled="@(!CanMoveFromRow(node))" title="@MoveHint" OnClick="() => MoveFromRowAsync(node)">@Strings.Get("CtxMoveTo")</MudMenuItem>
                             }
                             @if (!node.IsReference && _canLegalHold)
                             {

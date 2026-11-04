@@ -326,7 +326,8 @@ public partial class Home
             if (!_bulkIds.Remove(node.Id))
             {
                 _bulkIds.Add(node.Id);
-                if (_bulkIds.Count == 1 && _bulkAnchorId is { } prior && prior != node.Id)
+                // Only a row still listed: one just moved or deleted would count as a row nobody may act on (#2146).
+                if (_bulkIds.Count == 1 && _bulkAnchorId is { } prior && prior != node.Id && _folderContents.Any(n => n.Id == prior))
                 {
                     _bulkIds.Add(prior); // fold the previously single-selected row into the multi-selection
                 }

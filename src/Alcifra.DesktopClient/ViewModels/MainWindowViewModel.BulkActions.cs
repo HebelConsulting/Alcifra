@@ -1,3 +1,4 @@
+using Alcifra.Presentation;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Alcifra.DesktopClient.Services;
 using Alcifra.Localization;
@@ -20,9 +21,58 @@ public sealed partial class MainWindowViewModel
     // The bulk-action bar shows when ≥2 real items are selected.
     public void SetBulkSelection(IEnumerable<NodeViewModel> selected)
     {
-        _bulkSelection = selected.Where(n => !n.IsReference && !n.IsArchiveEntry && !n.IsArchiveBack).ToList();
+        _listSelection = [.. selected];
+        _bulkSelection = _listSelection.Where(n => !n.IsReference && !n.IsArchiveEntry && !n.IsArchiveBack).ToList();
         BulkSelectionCount = _bulkSelection.Count;
         HasBulkSelection = _bulkSelection.Count >= 2;
+        NotifyMoveSelectionChanged();
+    }
+
+    // The rows as selected, references and all: Move says why not where the bulk list would silently drop them (#2146).
+    private List<NodeViewModel> _listSelection = [];
+
+    private IReadOnlyList<NodeViewModel> MoveRows => _listSelection.Count > 0 ? _listSelection : SelectedItem is { } one ? [one] : [];
+
+    private static bool NotMovableKind(NodeViewModel n) => n.IsReference || n.IsArchiveEntry || n.IsArchiveBack;
+
+    public MoveOffer MoveOffer => MoveSelection.Of(MoveRows, NotMovableKind, n => n.CanMove);
+
+    /// <summary>Move to… in the ribbon and the list's menu: one selected row moves it, several move them all (#2146).</summary>
+    public bool CanMoveSelected => MoveOffer == MoveOffer.Allowed;
+
+    public bool ShowMoveInMenu => MoveSelection.ShowsInMenu(MoveRows, NotMovableKind, n => n.CanMove);
+
+    public string MoveHint => MoveSelection.WhyNotKey(MoveOffer) is { } key ? Strings.Get(key) : Strings.Get("CtxMoveTo");
+
+    private void NotifyMoveSelectionChanged()
+    {
+        OnPropertyChanged(nameof(MoveOffer));
+        OnPropertyChanged(nameof(CanMoveSelected));
+        OnPropertyChanged(nameof(ShowMoveInMenu));
+        OnPropertyChanged(nameof(MoveHint));
+    }
+
+    /// <summary>Moves what is selected, addressed from the rows themselves (ADR 0559); a folder among them changes the tree.</summary>
+    public async Task MoveSelectedAsync(Guid targetFolderId)
+    {
+        var rows = MoveRows;
+        if (MoveOffer != MoveOffer.Allowed)
+        {
+            return;
+        }
+
+        if (rows.Count == 1)
+        {
+            await MoveFolderAsync(rows[0].Href("self"), rows[0].Name, targetFolderId);
+            return;
+        }
+
+        var foldersAmongThem = rows.Any(n => n.IsFolder);
+        await BulkMoveAsync(targetFolderId);
+        if (foldersAmongThem)
+        {
+            await ReloadTreeAsync();
+        }
     }
 
     // A pure folder picker (no filing options) for choosing a bulk-move target.

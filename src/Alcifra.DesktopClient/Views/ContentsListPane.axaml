@@ -138,6 +138,10 @@
                 <MenuItem Header="{loc:Tr CtxRename}" Click="OnRename" IsVisible="{Binding CanRenameSelected}">
                     <MenuItem.Icon><i:Icon Value="mdi-rename-box" /></MenuItem.Icon>
                 </MenuItem>
+                <MenuItem Header="{loc:Tr CtxMoveTo}" Click="OnMoveSelected" IsVisible="{Binding ShowMoveInMenu}" IsEnabled="{Binding CanMoveSelected}"
+                          ToolTip.Tip="{Binding MoveHint}" ToolTip.ShowOnDisabled="True">
+                    <MenuItem.Icon><i:Icon Value="mdi-folder-move" /></MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Header="{loc:Tr UgDelete}" Click="OnDelete" IsVisible="{Binding CanDeleteSelected}">
                     <MenuItem.Icon><i:Icon Value="mdi-delete" /></MenuItem.Icon>
                 </MenuItem>

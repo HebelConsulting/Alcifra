@@ -601,6 +601,20 @@ public partial class MainWindow : Window
         }
     });
 
+    // Move to… in the ribbon and the list's menu: one picker, for one row or all the selected ones (#2146).
+    internal void OnMoveSelected(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is not MainWindowViewModel { CanMoveSelected: true } vm || vm.CreateMoveTargetPickerViewModel() is not { } picker)
+        {
+            return;
+        }
+
+        if (await new FolderPickerDialog { DataContext = picker }.ShowDialog<FilingResult?>(this) is { } result)
+        {
+            await vm.MoveSelectedAsync(result.TargetId);
+        }
+    });
+
     internal void OnBulkDelete(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
         if (DataContext is MainWindowViewModel vm

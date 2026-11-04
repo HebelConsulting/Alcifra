@@ -7,6 +7,7 @@ using Alcifra.Client.Hypermedia;
 using Alcifra.Client.Models;
 using Alcifra.Client.Services;
 using Alcifra.Localization;
+using Alcifra.Presentation;
 
 namespace Alcifra.Client.Pages;
 
@@ -218,4 +219,34 @@ public partial class Home
             await NavigateToFolderAsync(folderId, node.Id);
         }
     }
+
+    // ---- Move to… in the ribbon and the row menu (#2146): one selected row moves it, several move them all. ----
+
+    // A selected row no longer in the loaded list counts as not permitting, as BulkAll says: unknown is not permission.
+    // The listed row's flags, not the selection's: describing a folder replaces the node, and the copy has lost IsReference.
+    private IReadOnlyList<BrowseNode?> MoveRows => _bulkIds.Count >= 2
+        ? [.. _bulkIds.Select(id => _folderContents.FirstOrDefault(n => n.Id == id))]
+        : _selectedNode is { } one ? [_folderContents.FirstOrDefault(n => n.Id == one.Id) ?? one] : [];
+
+    private MoveOffer MoveOfferNow => MoveSelection.Of(MoveRows, n => n?.IsReference == true, n => n?.CanMove == true);
+
+    private bool CanMoveSelected => MoveOfferNow == MoveOffer.Allowed;
+
+    private string MoveHint => MoveSelection.WhyNotKey(MoveOfferNow) is { } key ? Strings.Get(key) : Strings.Get("CtxMoveTo");
+
+    private bool RowIsInSelection(BrowseNode node) => _bulkIds.Count >= 2 && _bulkIds.Contains(node.Id);
+
+    private bool ShowsMoveFor(BrowseNode node) => RowIsInSelection(node)
+        ? MoveSelection.ShowsInMenu(MoveRows, n => n?.IsReference == true, n => n?.CanMove == true)
+        : !node.IsReference && node.CanMove;
+
+    private bool CanMoveFromRow(BrowseNode node) => !RowIsInSelection(node) || CanMoveSelected;
+
+    private Task MoveFromRowAsync(BrowseNode node) =>
+        RowIsInSelection(node) ? BulkMoveAsync() : RunAndRefreshAsync(Actions.MoveAsync(node));
+
+    private Task MoveSelectedAsync() =>
+        !CanMoveSelected ? Task.CompletedTask
+        : _bulkIds.Count >= 2 ? BulkMoveAsync()
+        : RunAndRefreshAsync(Actions.MoveAsync(MoveRows[0]!));
 }

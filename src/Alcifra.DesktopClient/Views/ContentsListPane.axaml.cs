@@ -89,6 +89,8 @@ public partial class ContentsListPane : UserControl
 
     private void OnReferences(object? sender, RoutedEventArgs e) => Window()?.OnReferences(sender, e);
 
+    private void OnMoveSelected(object? sender, RoutedEventArgs e) => Window()?.OnMoveSelected(sender, e);
+
     private void OnRename(object? sender, RoutedEventArgs e) => Window()?.OnRename(sender, e);
 
     private void OnSaveAs(object? sender, RoutedEventArgs e) => Window()?.OnSaveAs(sender, e);
