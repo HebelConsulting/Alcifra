@@ -157,7 +157,7 @@
 
     // A preview requested before the pane existed — the pane lives inside "is a row selected?", so the first
     // selection is what creates it (ADR 0558).
-    private (string? Url, string? Layout, bool Converted)? _pendingPreview;
+    private (string? Url, string? Layout, bool Converted, Alcifra.Presentation.PreviewFacts? Facts)? _pendingPreview;
 
     protected override async Task OnInitializedAsync() => await LoadRecycleBinAsync();
 
@@ -166,20 +166,20 @@
         if (_pendingPreview is { } pending && _preview is not null)
         {
             _pendingPreview = null;
-            await ShowPreviewAsync(pending.Url, pending.Layout, pending.Converted);
+            await ShowPreviewAsync(pending.Url, pending.Layout, pending.Converted, pending.Facts);
             StateHasChanged();
         }
     }
 
-    private async Task ShowPreviewAsync(string? url, string? layout, bool converted)
+    private async Task ShowPreviewAsync(string? url, string? layout, bool converted, Alcifra.Presentation.PreviewFacts? facts)
     {
         if (_preview is null)
         {
-            _pendingPreview = (url, layout, converted);
+            _pendingPreview = (url, layout, converted, facts);
             return;
         }
 
-        await _preview.RenderAsync(url, layout, converted);
+        await _preview.RenderAsync(url, layout, converted, facts: facts);
     }
 
     private bool _rbPreviewSealed;
@@ -245,7 +245,7 @@
             // Sealed, and no door this browser can read (2026-10-24): the pane says so rather than "no preview".
             _rbPreviewSealed = latest is { ContentIsEnveloped: true } && previewUrl is null;
             var textLayoutUrl = latest is null ? null : Links.Href(latest.Links, "text-layout");
-            await ShowPreviewAsync(previewUrl, textLayoutUrl, latest?.PreviewConverted ?? false);
+            await ShowPreviewAsync(previewUrl, textLayoutUrl, latest?.PreviewConverted ?? false, new(latest?.SizeBytes, latest?.FileExtension));
         }
         catch (Exception)
         {

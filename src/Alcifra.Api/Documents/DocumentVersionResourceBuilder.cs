@@ -14,7 +14,7 @@ public sealed record VersionRow(
     Guid Id, Guid DocumentId, DocumentVersionStatus Status, int? VersionNumber, string ObjectKey,
     string? Sha256Hash, DateTimeOffset CreatedAt, DateOnly DocumentDate, TimeOnly? DocumentTime,
     Guid? CreatedByUserId, Guid? CreatedByServiceAccountId, string? OcrLanguages, string? Comment,
-    OcrVerdict? OcrVerdict = null, bool? IsSigned = null);
+    OcrVerdict? OcrVerdict = null, bool? IsSigned = null, long? SizeBytes = null);
 
 /// <summary>
 /// Builds a <see cref="DocumentVersionResource"/> — its links, its preview address and its creator's name.
@@ -304,6 +304,7 @@ public sealed class DocumentVersionResourceBuilder(
                 .Select(w => (WorkflowStatus?)w.Status)
                 .FirstOrDefaultAsync(cancellationToken))?.ToString(),
             PreviewConverted = previewConverted,
+            SizeBytes = version.SizeBytes,
             CreatedAt = version.CreatedAt,
             CreatedByName = await ResolveCreatorNameAsync(version.CreatedByUserId, version.CreatedByServiceAccountId, cancellationToken),
             CreatedByUserId = version.CreatedByUserId,

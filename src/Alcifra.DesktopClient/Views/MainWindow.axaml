@@ -255,6 +255,7 @@
                                                         <Panel Grid.Column="1">
                                                             <CalendarDatePicker IsVisible="{Binding IsDate}" HorizontalAlignment="Left" SelectedDate="{Binding DateValue}" Watermark="yyyy-MM-dd" />
                                                             <CheckBox IsVisible="{Binding IsBoolean}" IsChecked="{Binding BoolValue}" />
+                                                            <ToggleSwitch Classes="field-toggle" IsVisible="{Binding IsToggle}" IsEnabled="{Binding !Locked}" IsChecked="{Binding BoolValue}" OnContent="{loc:Tr ToggleEnabled}" OffContent="{loc:Tr ToggleDisabled}" />
                                                             <TextBox IsVisible="{Binding IsMultiLine}" Text="{Binding TextValue}" IsReadOnly="{Binding Locked}" AcceptsReturn="True" Height="60" Watermark="{loc:Tr OneValuePerLine}" />
                                                             <TextBox IsVisible="{Binding IsSingleLine}" Text="{Binding TextValue}" Height="28" Padding="4,2" VerticalContentAlignment="Center" />
                                                         </Panel>

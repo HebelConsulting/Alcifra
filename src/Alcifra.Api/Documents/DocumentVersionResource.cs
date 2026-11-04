@@ -26,6 +26,10 @@ public class DocumentVersionResource : HypermediaResource
     // overlay badge").
     public bool PreviewConverted { get; set; }
 
+    /// <summary>The content's size in bytes, or null when not known; a client decides from it whether a preview loads by itself (ADR 1048).</summary>
+    [System.Xml.Serialization.XmlElement(IsNullable = true)]
+    public long? SizeBytes { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     // The creator's display name (User.DisplayName / ServiceAccount.Name) — a read-only system field.

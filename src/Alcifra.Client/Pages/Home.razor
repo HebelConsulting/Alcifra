@@ -776,7 +776,7 @@
                                annotation tools ride in as Toolbar, and the gestures come back through
                                IPreviewAnnotationHost, because acting on one writes to the version's
                                annotation collection — document state this pane deliberately does not hold. *@
-                            <PreviewPane @ref="_repoPreview" DataPane="preview" DataTour="pane-preview" CollapseGutter="true"
+                            <PreviewPane @ref="_repoPreview" Opened="OnRepoPreviewOpenedAsync" DataPane="preview" DataTour="pane-preview" CollapseGutter="true"
                                          EmptyText="@PreviewEmptyText"
                                          ConvertedBadgeTooltip="@Strings.Get("ConvertedPreviewTooltip")"
                                          AnnotationHost="Annotations">
@@ -1070,7 +1070,7 @@
     private PreviewPane? _repoPreview;
 
     // A preview requested before the pane existed, replayed once it does (see ShowPreviewAsync).
-    private (string? Url, string? Layout, bool Converted, bool HasVersion)? _pendingPreview;
+    private (string? Url, string? Layout, bool Converted, bool HasVersion, Alcifra.Presentation.PreviewFacts? Facts)? _pendingPreview;
 
     // Renders into the pane — or remembers the request when the pane is not in the DOM yet.
     //
@@ -1080,20 +1080,6 @@
     // host div; a child component cannot do that on its own behalf, so the request waits for
     // OnAfterRenderAsync. Rendering into a null ref would lose the preview silently, which is the worst
     // possible failure for something this visible.
-    private async Task ShowPreviewAsync(string? url, string? layout, bool converted, bool hasVersion = false)
-    {
-        if (_repoPreview is null)
-        {
-            _pendingPreview = (url, layout, converted, hasVersion);
-            return;
-        }
-
-        await _repoPreview.RenderAsync(url, layout, converted);
-        Annotations.Attach(_repoPreview);
-        await Annotations.ApplyAnnotatableAsync(hasVersion);
-    }
-
-
     // ---- Shell state and lifecycle -------------------------------------------------------------------
     // What the page itself owns: the selection and its epoch, the auth cascade, the caller's rights as whoami
     // reported them, the tab switch, and clearing the preview pane.

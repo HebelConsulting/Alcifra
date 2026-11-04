@@ -66,6 +66,8 @@ public record VersionListResponse
 
 public record VersionResponse
 {
+    public long? SizeBytes { get; set; }
+
     /// <summary>Draft/InReview/Approved/Rejected/Released — or null when no workflow was ever started;
     /// what labels the workflow affordance by state without following the rel (review round).</summary>
     public string? WorkflowStatus { get; set; }

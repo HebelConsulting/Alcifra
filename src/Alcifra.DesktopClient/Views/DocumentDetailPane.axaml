@@ -167,6 +167,7 @@
                                 <Grid ColumnDefinitions="180,*" Margin="0,2">
                                     <SelectableTextBlock Grid.Column="0" Text="{Binding DisplayName}" Foreground="{DynamicResource WbMuted}" />
                                     <SelectableTextBlock Grid.Column="1" Text="{Binding Values}" TextWrapping="Wrap" IsVisible="{Binding ShowPlainText}" />
+                                    <ToggleSwitch Grid.Column="1" Classes="field-toggle" IsVisible="{Binding IsToggle}" IsChecked="{Binding ToggleOn, Mode=OneWay}" IsHitTestVisible="False" Focusable="False" OnContent="{loc:Tr ToggleEnabled}" OffContent="{loc:Tr ToggleDisabled}" />
                                     <!-- A DocumentReference names another document (ADR 0773): each target opens
                                          IN the workbench. An unavailable one is drawn as plain text — the server
                                          withheld its name and address, so there is nothing to click. -->
@@ -275,6 +276,7 @@
                                             <TimePicker SelectedTime="{Binding TimeValue}" />
                                         </StackPanel>
                                         <CheckBox IsVisible="{Binding IsBoolean}" IsChecked="{Binding BoolValue}" />
+                                        <ToggleSwitch Classes="field-toggle" IsVisible="{Binding IsToggle}" IsEnabled="{Binding !Locked}" IsChecked="{Binding BoolValue}" OnContent="{loc:Tr ToggleEnabled}" OffContent="{loc:Tr ToggleDisabled}" />
                                         <TextBox IsVisible="{Binding IsMultiLine}" Text="{Binding TextValue}" IsReadOnly="{Binding Locked}" AcceptsReturn="True" Height="60" Watermark="{loc:Tr OneValuePerLine}" />
                                         <!-- A field the server offers values for completes as you type (#1127):
                                              an aerodrome, a cost centre, a project code — a vocabulary the tenant

@@ -251,6 +251,10 @@
                         {
                             <MudCheckBox T="bool" @bind-Value="f.BoolValue" />
                         }
+                        else if (f.IsToggle)
+                        {
+                            <ToggleField @bind-Value="f.BoolValue" ReadOnly="@f.Locked" />
+                        }
                         else if (f.IsMultiLine)
                         {
                             <MudTextField @bind-Value="f.TextValue" Lines="3" Placeholder="@Strings.Get("OneValuePerLine")" Margin="Margin.Dense" Variant="Variant.Outlined" />
@@ -339,6 +343,10 @@
                                         {
                                             <a href="@url" target="_blank" rel="noopener noreferrer" class="mr-2">@url</a>
                                         }
+                                    }
+                                    else if (field.IsToggle)
+                                    {
+                                        <ToggleField Value="@field.ToggleOn" ReadOnly="true" />
                                     }
                                     else if (field.IsDocumentReference)
                                     {

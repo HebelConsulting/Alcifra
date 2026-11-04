@@ -84,7 +84,33 @@
         }
         @if (!State.HasPages)
         {
-            @if (State.Kind == "text")
+            @if (State.Kind == "media")
+            {
+                @* preload="none": nothing is fetched until play, and then only the ranges the browser needs (#2160). *@
+                <div class="wb-preview-empty wb-pv-media-pane" style="flex-direction:column; gap:12px; text-align:center; padding:16px;">
+                    @if (Alcifra.Presentation.MediaFiles.IsVideoABrowserPlays(_mediaExtension))
+                    {
+                        <video @key="State.Url" class="wb-pv-player" controls playsinline preload="none" src="@State.Url" style="max-width:100%; max-height:100%; background:#000;"></video>
+                    }
+                    else if (Alcifra.Presentation.MediaFiles.IsSoundABrowserPlays(_mediaExtension))
+                    {
+                        <audio @key="State.Url" class="wb-pv-player" controls preload="none" src="@State.Url"></audio>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@Strings.Get("PvMediaUseApp")</MudText>
+                    }
+                </div>
+            }
+            else if (_waiting is not null)
+            {
+                @* Over the limit a version waits for Open (ADR 1048). *@
+                <div class="wb-preview-empty wb-pv-large" style="flex-direction:column; gap:12px; text-align:center; padding:16px;">
+                    <MudText Typo="Typo.body2">@Strings.Get("PvLargeMessage")</MudText>
+                    <MudButton Class="wb-pv-large-open" Variant="Variant.Outlined" Size="Size.Small" OnClick="OpenWaitingAsync">@Strings.Get("PvLargeOpen")</MudButton>
+                </div>
+            }
+            else if (State.Kind == "text")
             {
                 @* Inline mark styles, deliberately: index.html does not link the scoped-CSS bundle, and a
                    class with no ruleset is the invisible-control trap — a find that "works" but shows nothing.
@@ -203,13 +229,35 @@
 
     private record PvResult { public string Kind { get; set; } = string.Empty; public string Text { get; set; } = string.Empty; }
 
+    // The render a click on Open will run; null unless the pane is waiting for that click. Never remembered past the next
+    // RenderAsync, so another version, or this one selected again, asks again.
+    private Func<Task>? _waiting;
+    private string? _mediaExtension;
+
+    /// <summary>Told when Open has rendered, for whoever draws on the pages (the annotations).</summary>
+    [Parameter] public EventCallback Opened { get; set; }
+
+    private async Task OpenWaitingAsync()
+    {
+        if (_waiting is { } render)
+        {
+            await render();
+            await Opened.InvokeAsync();
+        }
+    }
+
     /// <summary>
     /// Renders a preview (image/pdf/text) with its hit-overlay into the JS host. <paramref name="previewUrl"/>
     /// is the presigned rendition URL; <paramref name="textLayoutUrl"/> is the version's text-layout link
     /// (may be null, or 204 when there is no overlay).
     /// </summary>
-    public async Task RenderAsync(string? previewUrl, string? textLayoutUrl, bool converted = false, string? seedQuery = null)
+    public async Task RenderAsync(string? previewUrl, string? textLayoutUrl, bool converted = false, string? seedQuery = null, Alcifra.Presentation.PreviewFacts? facts = null)
     {
+        var isMedia = previewUrl is not null && Alcifra.Presentation.MediaFiles.IsMedia(facts?.FileExtension);
+        _mediaExtension = isMedia ? facts?.FileExtension : null;
+        _waiting = previewUrl is not null && !isMedia && Alcifra.Presentation.LargePreview.Waits(facts?.SizeBytes)
+            ? () => RenderAsync(previewUrl, textLayoutUrl, converted, seedQuery)
+            : null;
         State.Kind = string.Empty;
         State.Text = null;
         State.Count = 0;
@@ -227,6 +275,21 @@
         if (previewUrl is null)
         {
             State.Kind = "unsupported";
+            return;
+        }
+
+        if (isMedia)
+        {
+            State.Kind = "media";
+            State.Converted = false;
+            return;
+        }
+
+        if (_waiting is not null)
+        {
+            State.Kind = "large";
+            State.Url = null;
+            State.Converted = false;
             return;
         }
 
@@ -288,6 +351,8 @@
     /// </remarks>
     public void Clear()
     {
+        _waiting = null;
+        _mediaExtension = null;
         State.Clear();
         if (_fullscreen)
         {

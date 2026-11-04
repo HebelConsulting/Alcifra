@@ -335,6 +335,21 @@ public sealed partial class PreviewViewModel : ObservableObject
             return;
         }
 
+        // Nothing to draw, so nothing is fetched to find that out (#2160); the open action stays where it was.
+        if (Alcifra.Presentation.MediaFiles.IsMedia(preview.FileExtension))
+        {
+            Reset(Strings.Get("PvMediaUseApp"));
+            return;
+        }
+
+        // Over the limit a version waits for Open, and only the click on this very preview lets it through (ADR 1048).
+        if (Alcifra.Presentation.LargePreview.Waits(preview.SizeBytes) && !ReferenceEquals(_openedLarge, preview))
+        {
+            Reset(Strings.Get("PvLargeMessage"));
+            CanOpenLarge = true;
+            return;
+        }
+
         // A sealed document this machine cannot open is a STATE of the pane, not an error (owner, 2026-10-24): it
         // used to stay on "Loading…" for ever while the reason went to the status line. Which state is the shared
         // decision (SealedContent), so the phone shows the same document the same way.
@@ -358,6 +373,32 @@ public sealed partial class PreviewViewModel : ObservableObject
             // Said in the pane too, and passed on: a failed load is what the status line already reports.
             Reset(Strings.Get("PvFailedNetwork"));
             throw;
+        }
+    }
+
+    private Preview? _openedLarge;
+
+    /// <summary>The pane is waiting for a click on Open, because the version is over the limit (ADR 1048).</summary>
+    [ObservableProperty] private bool _canOpenLarge;
+
+    [RelayCommand]
+    private async Task OpenLargeAsync()
+    {
+        if (LastRendered is not { } preview)
+        {
+            return;
+        }
+
+        _openedLarge = preview;
+        Reset(Strings.Get("StLoading"));
+        try
+        {
+            await RenderAsync(preview);
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            // Already said in the pane; there is no load around this one to report it.
+            DesktopLog.Warn(e, "Loading the large preview failed");
         }
     }
 
@@ -588,6 +629,7 @@ public sealed partial class PreviewViewModel : ObservableObject
         FindCount = 0;
         FindIndex = -1;
         PreviewPlaceholder = placeholder;
+        CanOpenLarge = false;
         Sealed = null;
         ContentWasEnveloped = false;
         AnnotationsAvailable = false;

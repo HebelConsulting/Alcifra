@@ -37,6 +37,7 @@ public static class SearchFieldMapper
                     break;
 
                 case FieldDataType.Boolean:
+                case FieldDataType.Toggle:
                     if (bool.TryParse(value, out var boolean))
                     {
                         field["bool"] = boolean;

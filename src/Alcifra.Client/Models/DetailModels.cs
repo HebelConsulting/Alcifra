@@ -25,6 +25,10 @@ public record FieldGroup
     /// <summary>A Url field's values render as LINKS (ADR 0763) — the read row swaps the text for anchors.</summary>
     public bool IsUrl => DataType == "Url";
 
+    /// <summary>A Toggle field's row is its slider, locked; an unset field is disabled (ADR 1047).</summary>
+    public bool IsToggle => DataType == "Toggle";
+    public bool ToggleOn => Values.Contains("true");
+
     /// <summary>A DocumentReference field's values name other documents (ADR 0773) — the row renders the
     /// resolved <see cref="Targets"/> rather than the raw ids in <see cref="Values"/>.</summary>
     public bool IsDocumentReference => DataType == "DocumentReference";

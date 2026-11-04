@@ -33,6 +33,7 @@ public class FieldDataTypeWireValuesTests
     [InlineData(FieldDataType.EmailAddress, 7)]
     [InlineData(FieldDataType.Url, 8)]
     [InlineData(FieldDataType.DocumentReference, 9)]
+    [InlineData(FieldDataType.Toggle, 10)]
     public void The_wire_value_is_what_the_clients_branch_on(FieldDataType type, int wireValue) =>
         Assert.Equal(wireValue, (int)type);
 
@@ -41,5 +42,5 @@ public class FieldDataTypeWireValuesTests
     // right failure only if somebody decided it was.
     [Fact]
     public void A_new_type_has_to_be_taught_to_the_clients() =>
-        Assert.Equal(10, Enum.GetValues<FieldDataType>().Length);
+        Assert.Equal(11, Enum.GetValues<FieldDataType>().Length);
 }

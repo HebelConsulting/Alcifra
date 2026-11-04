@@ -194,6 +194,8 @@
                            IsVisible="{Binding SealedSubline, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
                 <Button x:Name="OpenSealedButton" Content="{loc:Tr PvOpenWithKey}" Command="{Binding OpenSealedCommand}"
                         IsVisible="{Binding CanOpenSealed}" HorizontalAlignment="Center" />
+                <Button x:Name="OpenLargeButton" Content="{loc:Tr PvLargeOpen}" Command="{Binding OpenLargeCommand}"
+                        IsVisible="{Binding CanOpenLarge}" HorizontalAlignment="Center" />
             </StackPanel>
             <!-- Sensitivity watermark (ADR "Document watermarking") — repeating diagonal label+viewer, click-through. -->
             <ItemsControl ItemsSource="{Binding WatermarkTiles}" IsVisible="{Binding HasWatermark}" IsHitTestVisible="False" ClipToBounds="True">

@@ -108,8 +108,9 @@ public sealed class ModuleMaskSeeder
         for (var i = 0; i < seed.Fields.Count; i++)
         {
             var field = seed.Fields[i];
-            if (existingFields.Any(f => string.Equals(f.Name, field.Name, StringComparison.Ordinal)))
+            if (existingFields.FirstOrDefault(f => string.Equals(f.Name, field.Name, StringComparison.Ordinal)) is { } existing)
             {
+                await RetypeToToggleAsync(moduleId, existing, field, tenantId, cancellationToken);
                 continue;
             }
 
@@ -129,6 +130,28 @@ public sealed class ModuleMaskSeeder
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// A Text field the seed now declares a Toggle becomes one, its stored values with it (ADR 1047): the one retyping a
+    /// seed may ask for, since every Text value has an answer. Whatever does not say yes is disabled, as it read before.
+    /// </summary>
+    private async Task RetypeToToggleAsync(string moduleId, FieldDefinition existing, ModuleFieldSeed field, Guid tenantId, CancellationToken cancellationToken)
+    {
+        if (existing.DataType != FieldDataType.Text || ParseDataType(field.DataType) != FieldDataType.Toggle)
+        {
+            return;
+        }
+
+        _logger.LogInformation("Module {ModuleId}: field {Field} becomes a toggle in tenant {TenantId}.", moduleId, field.Name, tenantId);
+        existing.DataType = FieldDataType.Toggle;
+        var values = await _dbContext.FieldValues.IgnoreQueryFilters(["TenantFilter"])
+            .Where(v => v.TenantId == tenantId && v.FieldDefinitionId == existing.Id)
+            .ToListAsync(cancellationToken);
+        foreach (var value in values)
+        {
+            value.Value = value.Value.Trim().ToLowerInvariant() is "yes" or "true" or "on" or "1" ? "true" : "false";
+        }
     }
 
     /// <summary>

@@ -470,7 +470,25 @@ public class RenditionService : IDocumentPreviewService
 
     // Content-type to force on the preview of a format served as-is (no rendition) so it renders inline.
     private static string? PreviewContentTypeOverride(string extension)
-        => TextExtensions.Contains(extension) ? "text/plain; charset=utf-8" : null;
+        => TextExtensions.Contains(extension) ? "text/plain; charset=utf-8" : MediaContentType(extension);
+
+    // The pane plays these with the browser's own player (#2160). A stored object is often octet-stream, which one browser
+    // plays anyway and another refuses, so the link says what it is.
+    private static string? MediaContentType(string extension) => extension.TrimStart('.').ToLowerInvariant() switch
+    {
+        "mp4" => "video/mp4",
+        "m4v" => "video/x-m4v",
+        "mov" => "video/quicktime",
+        "webm" => "video/webm",
+        "ogv" => "video/ogg",
+        "mp3" => "audio/mpeg",
+        "m4a" => "audio/mp4",
+        "aac" => "audio/aac",
+        "wav" => "audio/wav",
+        "ogg" or "oga" or "opus" => "audio/ogg",
+        "flac" => "audio/flac",
+        _ => null,
+    };
 
     // Re-indents JSON so even minified input reads well. Invalid JSON is passed through unchanged so it still
     // previews (as its raw text) rather than failing the whole preview.

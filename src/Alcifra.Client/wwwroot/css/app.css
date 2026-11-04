@@ -208,3 +208,6 @@ h1:focus {
 .wb-ug-photo { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .wb-ug-members { max-width: 360px; }
 .wb-ug-member { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+
+/* The Toggle field's word reads like the values beside it (ADR 1047). */
+.wb-field-toggle .mud-typography { font-size: .875rem; }

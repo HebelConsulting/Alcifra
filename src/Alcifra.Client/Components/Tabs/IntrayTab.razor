@@ -262,6 +262,10 @@
                                     {
                                         <MudCheckBox T="bool" @bind-Value="f.BoolValue" />
                                     }
+                                    else if (f.IsToggle)
+                                    {
+                                        <ToggleField @bind-Value="f.BoolValue" ReadOnly="@f.Locked" />
+                                    }
                                     else if (f.IsMultiLine)
                                     {
                                         <MudTextField @bind-Value="f.TextValue" Lines="3" Placeholder="@Strings.Get("OneValuePerLine")" Margin="Margin.Dense" Variant="Variant.Outlined" />
@@ -348,7 +352,7 @@
 
     // A preview requested before the pane existed. The pane sits inside "is an item selected?", so the FIRST
     // selection is what creates it — and rendering into a null ref would lose the preview silently (ADR 0558).
-    private (string? Url, string? Layout, bool Converted)? _pendingPreview;
+    private (string? Url, string? Layout, bool Converted, string? Extension)? _pendingPreview;
 
     protected override async Task OnInitializedAsync() => await LoadIntrayAsync();
 
@@ -371,21 +375,21 @@
         if (_pendingPreview is { } pending && _preview is not null)
         {
             _pendingPreview = null;
-            await ShowPreviewAsync(pending.Url, pending.Layout, pending.Converted);
+            await ShowPreviewAsync(pending.Url, pending.Layout, pending.Converted, pending.Extension);
             StateHasChanged();
         }
     }
 
     // Renders into the pane, or remembers the request until the pane exists (see _pendingPreview).
-    private async Task ShowPreviewAsync(string? url, string? layout, bool converted)
+    private async Task ShowPreviewAsync(string? url, string? layout, bool converted, string? extension)
     {
         if (_preview is null)
         {
-            _pendingPreview = (url, layout, converted);
+            _pendingPreview = (url, layout, converted, extension);
             return;
         }
 
-        await _preview.RenderAsync(url, layout, converted);
+        await _preview.RenderAsync(url, layout, converted, facts: new(null, extension));
     }
 
     public async ValueTask DisposeAsync()
@@ -653,7 +657,7 @@
                 var preview = await r.Content.ReadFromJsonAsync<IntrayPreviewResponse>();
 
                 var textLayoutUrl = Links.Href(preview?.Links, "text-layout");
-                await ShowPreviewAsync(preview?.PreviewUrl, textLayoutUrl, preview?.PreviewConverted ?? false);
+                await ShowPreviewAsync(preview?.PreviewUrl, textLayoutUrl, preview?.PreviewConverted ?? false, System.IO.Path.GetExtension(item.Name));
             }
         }
         catch (Exception)

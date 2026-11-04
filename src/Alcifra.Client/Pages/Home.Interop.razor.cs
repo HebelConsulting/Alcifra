@@ -129,9 +129,28 @@ public partial class Home
             if (_repoPreview is not null)
             {
                 _pendingPreview = null;
-                await ShowPreviewAsync(pending.Url, pending.Layout, pending.Converted, pending.HasVersion);
+                await ShowPreviewAsync(pending.Url, pending.Layout, pending.Converted, pending.HasVersion, pending.Facts);
                 StateHasChanged();
             }
         }
     }
+
+    private bool _repoPreviewHasVersion;
+
+    private async Task ShowPreviewAsync(string? url, string? layout, bool converted, bool hasVersion = false, Alcifra.Presentation.PreviewFacts? facts = null)
+    {
+        if (_repoPreview is null)
+        {
+            _pendingPreview = (url, layout, converted, hasVersion, facts);
+            return;
+        }
+
+        _repoPreviewHasVersion = hasVersion;
+        await _repoPreview.RenderAsync(url, layout, converted, facts: facts);
+        Annotations.Attach(_repoPreview);
+        await Annotations.ApplyAnnotatableAsync(hasVersion);
+    }
+
+    // A preview that waited for Open has pages only now, so the annotations get their turn now.
+    private Task OnRepoPreviewOpenedAsync() => Annotations.ApplyAnnotatableAsync(_repoPreviewHasVersion);
 }

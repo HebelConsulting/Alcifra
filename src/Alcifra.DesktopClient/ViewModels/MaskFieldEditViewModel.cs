@@ -87,6 +87,7 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
     public bool IsDate => DataType == "Date" && !Locked;
     public bool IsDateTime => DataType == "DateTime" && !Locked;
     public bool IsBoolean => DataType == "Boolean" && !Locked;
+    public bool IsToggle => Editor == IndexFieldEditor.Toggle;
     public bool IsMultiLine => Editor == IndexFieldEditor.Lines;
     public bool IsSingleLine => Editor is IndexFieldEditor.ReadOnly or IndexFieldEditor.Text;
     public string Label => IsRequired ? $"{Name} *" : Name;

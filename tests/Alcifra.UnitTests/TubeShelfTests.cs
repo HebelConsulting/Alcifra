@@ -82,7 +82,7 @@ public class TubeShelfTests
     {
         var body = TubeShelf.DetailBody(Baseline((OtherId, ["other"])), Fields, new TubeVideoChange(Published: true), Now);
 
-        Assert.Equal(["yes"], ValuesOf(body, PublishedId));
+        Assert.Equal(["true"], ValuesOf(body, PublishedId));
         Assert.Equal(["2026-11-04T10:00:00+00:00"], ValuesOf(body, AtId));
         Assert.Equal(["other"], ValuesOf(body, OtherId));
         Assert.Equal("Clip", body["name"]!.GetValue<string>());
@@ -93,23 +93,23 @@ public class TubeShelfTests
     [Fact]
     public void Publishing_again_keeps_the_date_it_first_had_and_unpublishing_keeps_it_too()
     {
-        var stamped = Baseline((PublishedId, ["no"]), (AtId, ["2026-01-01T09:00:00+00:00"]));
+        var stamped = Baseline((PublishedId, ["false"]), (AtId, ["2026-01-01T09:00:00+00:00"]));
         Assert.Equal(["2026-01-01T09:00:00+00:00"], ValuesOf(TubeShelf.DetailBody(stamped, Fields, new TubeVideoChange(Published: true), Now), AtId));
 
-        var off = TubeShelf.DetailBody(Baseline((PublishedId, ["yes"]), (AtId, ["2026-01-01T09:00:00+00:00"])), Fields, new TubeVideoChange(Published: false), Now);
-        Assert.Equal(["no"], ValuesOf(off, PublishedId));
+        var off = TubeShelf.DetailBody(Baseline((PublishedId, ["true"]), (AtId, ["2026-01-01T09:00:00+00:00"])), Fields, new TubeVideoChange(Published: false), Now);
+        Assert.Equal(["false"], ValuesOf(off, PublishedId));
         Assert.Equal(["2026-01-01T09:00:00+00:00"], ValuesOf(off, AtId));
     }
 
     [Fact]
     public void An_edit_changes_what_it_names_and_sends_nothing_only_the_server_writes()
     {
-        var body = TubeShelf.DetailBody(Baseline((PublishedId, ["yes"])), Fields, new TubeVideoChange(Name: "New", Description: "Text", Tags: ["a", "b"]), Now);
+        var body = TubeShelf.DetailBody(Baseline((PublishedId, ["true"])), Fields, new TubeVideoChange(Name: "New", Description: "Text", Tags: ["a", "b"]), Now);
 
         Assert.Equal("New", body["name"]!.GetValue<string>());
         Assert.Equal(["Text"], ValuesOf(body, DescriptionId));
         Assert.Equal(["a", "b"], ValuesOf(body, TagsId));
-        Assert.Equal(["yes"], ValuesOf(body, PublishedId));
+        Assert.Equal(["true"], ValuesOf(body, PublishedId));
         foreach (var serverOnly in new[] { "links", "etag", "maskName", "sensitivityLabelName", "isFolder" })
         {
             Assert.False(body.ContainsKey(serverOnly), serverOnly);

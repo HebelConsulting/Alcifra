@@ -544,7 +544,7 @@ public partial class Home
             // opened from elsewhere — a search hit, a notification — call SetTab(Repositories) and select in the
             // same synchronous run, with no render in between. Rendering straight into a null ref would lose the
             // preview silently on exactly those paths, so defer to OnAfterRenderAsync when it is not there yet.
-            await ShowPreviewAsync(loaded.PreviewUrl, loaded.TextLayoutUrl, loaded.Converted, loaded.HasVersion);
+            await ShowPreviewAsync(loaded.PreviewUrl, loaded.TextLayoutUrl, loaded.Converted, loaded.HasVersion, loaded.Facts);
         }
 
         await LoadCommentsAsync(item);

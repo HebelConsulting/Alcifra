@@ -73,7 +73,7 @@ public sealed class VersionsClient(ApiCore core)
         var confirmed = picked.Version;
         var converted = confirmed.TryGetProperty("previewConverted", out var pc) && pc.GetBoolean();
         var extension = confirmed.TryGetProperty("fileExtension", out var fe) ? fe.GetString() ?? "" : "";
-        return new Preview(ApiCore.FindLink(confirmed, "preview"), converted, ApiCore.FindLink(confirmed, "download"), ApiCore.FindLink(confirmed, "text-layout"), ApiCore.FindLink(confirmed, "preview-pages"), extension, ApiCore.FindLink(confirmed, "annotations"));
+        return new Preview(ApiCore.FindLink(confirmed, "preview"), converted, ApiCore.FindLink(confirmed, "download"), ApiCore.FindLink(confirmed, "text-layout"), ApiCore.FindLink(confirmed, "preview-pages"), extension, ApiCore.FindLink(confirmed, "annotations"), SizeBytes: confirmed.TryGetProperty("sizeBytes", out var sb) && sb.ValueKind == JsonValueKind.Number ? sb.GetInt64() : null);
     }
 
     // Ordered per-page image URLs for a multi-page TIFF (ADR "Multi-page TIFF preview pages"); null (204) for

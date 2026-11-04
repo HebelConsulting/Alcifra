@@ -80,4 +80,14 @@ public enum FieldDataType
     /// </para>
     /// </remarks>
     DocumentReference,
+
+    /// <summary>
+    /// Enabled or disabled, stored as <c>true</c>/<c>false</c> and drawn as a slider, off in the muted tone and on in the
+    /// accent, with the word beside it; an unset field is disabled (ADR 1047).
+    /// </summary>
+    /// <remarks>
+    /// <b>Appended last, and every future value must be too</b> — the ordinal is persisted in
+    /// <c>FieldDefinitions.DataType</c>. Distinct from <see cref="Boolean"/>, whose checkbox stays as it is.
+    /// </remarks>
+    Toggle,
 }

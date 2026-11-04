@@ -26,6 +26,21 @@
         <ResourceDictionary />
     </Application.Resources>
     <Application.Styles>
+        <!-- The Toggle field (ADR 1047): off in the muted tone, on in the accent, each following the theme. -->
+        <Style Selector="ToggleSwitch.field-toggle /template/ Border#OuterBorder">
+            <Setter Property="Background" Value="{DynamicResource WbMuted}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource WbMuted}" />
+        </Style>
+        <Style Selector="ToggleSwitch.field-toggle /template/ Border#SwitchKnobBounds">
+            <Setter Property="Background" Value="{DynamicResource WbAccent}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource WbAccent}" />
+        </Style>
+        <Style Selector="ToggleSwitch.field-toggle /template/ Ellipse#SwitchKnobOff">
+            <Setter Property="Fill" Value="{DynamicResource WbOnAccent}" />
+        </Style>
+        <Style Selector="ToggleSwitch.field-toggle /template/ Ellipse#SwitchKnobOn">
+            <Setter Property="Fill" Value="{DynamicResource WbOnAccent}" />
+        </Style>
         <!-- Every context menu shows a separator only between two visible groups (#2073): MenuSeparators. -->
         <Style Selector="ContextMenu">
             <Setter Property="v:MenuSeparators.Tidy" Value="True" />

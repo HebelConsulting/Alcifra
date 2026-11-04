@@ -132,6 +132,7 @@ public sealed class EditField
     public bool IsDateTime => DataType == "DateTime" && !Locked;
 
     public bool IsBoolean => DataType == "Boolean" && !Locked;
+    public bool IsToggle => Editor == Alcifra.Presentation.IndexFieldEditor.Toggle;
 
     /// <summary>Whether this field is edited as a LIST, a multi-line box with one value per line (#703).</summary>
     public bool IsMultiLine => Editor == Alcifra.Presentation.IndexFieldEditor.Lines;

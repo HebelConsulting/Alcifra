@@ -272,5 +272,5 @@ public sealed class OfflineArchiveException(string message) : Exception(message)
 public static class OfflineArchiveFieldTypes
 {
     public static readonly string[] Names =
-        ["Text", "Number", "Date", "DateTime", "Boolean", "SingleSelect", "MultiSelect", "EmailAddress", "Url", "DocumentReference"];
+        ["Text", "Number", "Date", "DateTime", "Boolean", "SingleSelect", "MultiSelect", "EmailAddress", "Url", "DocumentReference", "Toggle"];
 }

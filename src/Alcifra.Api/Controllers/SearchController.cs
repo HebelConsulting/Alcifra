@@ -449,7 +449,7 @@ public partial class SearchController : ControllerBase
     {
         FieldDataType.Number => FieldFilterKind.Number,
         FieldDataType.Date or FieldDataType.DateTime => FieldFilterKind.Date,
-        FieldDataType.Boolean => FieldFilterKind.Boolean,
+        FieldDataType.Boolean or FieldDataType.Toggle => FieldFilterKind.Boolean,
         FieldDataType.SingleSelect or FieldDataType.MultiSelect => FieldFilterKind.Select,
         _ => FieldFilterKind.Text,
     };

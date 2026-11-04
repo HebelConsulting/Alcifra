@@ -68,7 +68,7 @@ public class TubeTabSaveTests(E2EApiFactory factory)
         }
 
         var (published, tag2) = await ReadAsync(owner, href);
-        Assert.Equal(["yes"], Values(published, fields[TubeShelf.PublishedField]));
+        Assert.Equal(["true"], Values(published, fields[TubeShelf.PublishedField]));
         Assert.Single(Values(published, fields[TubeShelf.PublishedAtField]));
         Assert.Equal(["de"], Values(published, fields["Language"]));
         Assert.Equal(["kept"], published.GetProperty("tags").EnumerateArray().Select(t => t.GetString()!).ToArray());
@@ -83,7 +83,7 @@ public class TubeTabSaveTests(E2EApiFactory factory)
         Assert.Equal("Renamed clip", edited.GetProperty("name").GetString());
         Assert.Equal(["Line one"], Values(edited, fields[TubeShelf.DescriptionField]));
         Assert.Equal(["a", "b"], Values(edited, fields[TubeShelf.TagsField]));
-        Assert.Equal(["yes"], Values(edited, fields[TubeShelf.PublishedField]));
+        Assert.Equal(["true"], Values(edited, fields[TubeShelf.PublishedField]));
     }
 
     [Fact]

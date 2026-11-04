@@ -6999,4 +6999,19 @@
   <data name="TubeLoadFailed" xml:space="preserve">
     <value>Could not read the channels: {0}</value>
   </data>
+  <data name="PvLargeMessage" xml:space="preserve">
+    <value>File size more than 10 MB, please click 'Open' for preview</value>
+  </data>
+  <data name="PvLargeOpen" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="ToggleEnabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="ToggleDisabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="PvMediaUseApp" xml:space="preserve">
+    <value>Video or sound file: open it in an application to play it.</value>
+  </data>
 </root>

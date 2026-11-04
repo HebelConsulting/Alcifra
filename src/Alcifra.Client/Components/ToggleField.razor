@@ -1,0 +1,10 @@
+@* The Toggle field (ADR 1047): a slider, off in the muted tone and on in the accent, with the word beside it, because a
+   state must not rest on colour alone. ReadOnly keeps the colour, where a disabled switch would wash it out. *@
+<MudSwitch T="bool" Class="wb-field-toggle" Value="@Value" ValueChanged="@ValueChanged" ReadOnly="@ReadOnly" Color="Color.Primary" UncheckedColor="Color.Default"
+           Label="@Strings.Get(Value ? "ToggleEnabled" : "ToggleDisabled")" />
+
+@code {
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback<bool> ValueChanged { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
+}

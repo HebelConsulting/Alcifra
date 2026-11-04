@@ -550,6 +550,29 @@ public class DocumentMetadataController : ControllerBase
         return Ok(await BuildIndexDataResourceAsync(documentId, cancellationToken));
     }
 
+    // An unset Toggle is disabled, not absent (ADR 1047), so it has a row where the mask places it, with no values.
+    private async Task InsertUnsetTogglesAsync(Guid documentId, List<FieldValueGroup> fields, Dictionary<Guid, int> positions, CancellationToken cancellationToken)
+    {
+        var toggles = await _dbContext.Documents.IgnoreQueryFilters(["SoftDeleteFilter"])
+            .Where(d => d.Id == documentId)
+            .Join(_dbContext.FieldDefinitions, d => d.MaskVersionId, f => f.MaskVersionId, (d, f) => f)
+            .Where(f => f.DataType == Domain.Masks.FieldDataType.Toggle && !f.IsList)
+            .OrderBy(f => f.SortOrder)
+            .Select(f => new { f.Id, f.Name, f.SortOrder })
+            .ToListAsync(cancellationToken);
+        foreach (var toggle in toggles.Where(t => !positions.ContainsKey(t.Id)))
+        {
+            var after = fields.FindIndex(f => positions[f.FieldDefinitionId] > toggle.SortOrder);
+            fields.Insert(after < 0 ? fields.Count : after, new FieldValueGroup
+            {
+                FieldDefinitionId = toggle.Id,
+                FieldName = toggle.Name,
+                DataType = nameof(Domain.Masks.FieldDataType.Toggle),
+            });
+            positions[toggle.Id] = toggle.SortOrder;
+        }
+    }
+
     private async Task<IndexDataResource> BuildIndexDataResourceAsync(Guid documentId, CancellationToken cancellationToken)
     {
         // The token the caller sends back as If-Match (#1083). Emitted HERE because every read and every
@@ -581,6 +604,7 @@ public class DocumentMetadataController : ControllerBase
             })
             .ToList();
 
+        await InsertUnsetTogglesAsync(documentId, fields, rows.GroupBy(r => r.Id).ToDictionary(g => g.Key, g => g.First().SortOrder), cancellationToken);
         await ResolveDocumentReferencesAsync(fields, cancellationToken);
 
         return new IndexDataResource

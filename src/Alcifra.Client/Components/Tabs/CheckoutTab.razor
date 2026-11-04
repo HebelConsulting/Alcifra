@@ -317,7 +317,7 @@
     private bool _ocrBusy;
     private IReadOnlyList<OcrLanguageOption> _ocrCatalog = [];
     private PreviewPane? _preview;
-    private (string? Url, bool Converted)? _pendingPreview;
+    private (string? Url, bool Converted, string? Extension)? _pendingPreview;
 
     // What the selected row's WORKING COPY offers (ADR 0593): the pages resource's own answer, fetched by
     // following the row's `pages` rel — the listing only says "might have pages" (extension), the resource
@@ -412,7 +412,7 @@
         _ocrCodes = [];
         _ocrLanguagesHref = null;
         _pages = null;
-        await ShowPreviewAsync(null, false);
+        await ShowPreviewAsync(null, false, null);
         if (Links.Href(c.Links, "pages") is { } pagesHref)
         {
             try
@@ -477,7 +477,7 @@
             var preview = await response.Content.ReadFromJsonAsync<CheckoutPreviewResponse>();
             if (preview is not null)
             {
-                await ShowPreviewAsync(preview.PreviewUrl, preview.PreviewConverted);
+                await ShowPreviewAsync(preview.PreviewUrl, preview.PreviewConverted, c.FileExtension);
             }
         }
         catch (Exception)
@@ -488,15 +488,15 @@
 
     // The @ref is null until the pane has rendered, which it has not on the first selection — so remember the
     // request and replay it in OnAfterRenderAsync (the same shape the Intray tab uses, for the same reason).
-    private async Task ShowPreviewAsync(string? url, bool converted)
+    private async Task ShowPreviewAsync(string? url, bool converted, string? extension)
     {
         if (_preview is null)
         {
-            _pendingPreview = (url, converted);
+            _pendingPreview = (url, converted, extension);
             return;
         }
 
-        await _preview.RenderAsync(url, null, converted);
+        await _preview.RenderAsync(url, null, converted, facts: new(null, extension));
     }
 
     // The tab asks for its own list on activation, the way IntrayTab does. The component exists only while its
@@ -513,7 +513,7 @@
         if (_pendingPreview is { } pending && _preview is not null)
         {
             _pendingPreview = null;
-            await ShowPreviewAsync(pending.Url, pending.Converted);
+            await ShowPreviewAsync(pending.Url, pending.Converted, pending.Extension);
             StateHasChanged();
         }
     }

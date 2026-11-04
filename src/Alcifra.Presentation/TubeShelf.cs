@@ -136,7 +136,7 @@ public static class TubeShelf
 
         if (change.Published is { } published)
         {
-            Set(PublishedField, [published ? "yes" : "no"]);
+            Set(PublishedField, [published ? "true" : "false"]);
             if (published && (!fieldIds.TryGetValue(PublishedAtField, out var at) || !values.TryGetValue(at, out var stamp) || stamp.Count == 0))
             {
                 Set(PublishedAtField, [IndexInstant.Store(now)]);

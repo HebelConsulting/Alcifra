@@ -634,6 +634,39 @@ public static class WindowShots
             fileDialog.CaptureRenderedFrame()?.Save(args[fileShotIndex + 1]);
             return true;
         }
+        // The Toggle field in both positions, editable and locked (ADR 1047): `--toggle-screenshot <out.png>`.
+        var toggleShotIndex = Array.IndexOf(args, "--toggle-screenshot");
+        if (toggleShotIndex >= 0 && toggleShotIndex + 1 < args.Length)
+        {
+            AppBuilder.Configure<App>()
+                .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+                .UseSkia()
+                .WithBrandFont()
+                .SetupWithoutStarting();
+            if (args.Contains("--dark"))
+            {
+                Avalonia.Application.Current!.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+            }
+
+            Avalonia.Controls.ToggleSwitch Slider(bool on, bool enabled)
+            {
+                var slider = new Avalonia.Controls.ToggleSwitch { IsChecked = on, IsEnabled = enabled, OnContent = "Enabled", OffContent = "Disabled" };
+                slider.Classes.Add("field-toggle");
+                return slider;
+            }
+
+            var toggleWindow = new Avalonia.Controls.Window
+            {
+                Width = 300,
+                Height = 240,
+                Content = new Avalonia.Controls.StackPanel { Margin = new Avalonia.Thickness(16), Children = { Slider(true, true), Slider(false, true), Slider(true, false), Slider(false, false) } },
+            };
+            toggleWindow.Show();
+            Dispatcher.UIThread.RunJobs();
+            toggleWindow.CaptureRenderedFrame()?.Save(args[toggleShotIndex + 1]);
+            return true;
+        }
+
         var tubeShotIndex = Array.IndexOf(args, "--tube-screenshot");
         if (tubeShotIndex >= 0 && tubeShotIndex + 1 < args.Length)
         {

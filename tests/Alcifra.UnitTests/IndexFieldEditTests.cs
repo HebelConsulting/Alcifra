@@ -12,6 +12,8 @@ public class IndexFieldEditTests
     [InlineData("Date", false, false, IndexFieldEditor.Date)]
     [InlineData("DateTime", false, false, IndexFieldEditor.DateTime)]
     [InlineData("Boolean", false, false, IndexFieldEditor.Boolean)]
+    [InlineData("Toggle", false, false, IndexFieldEditor.Toggle)]
+    [InlineData("Toggle", false, true, IndexFieldEditor.Toggle)]
     [InlineData("Number", false, false, IndexFieldEditor.Text)]
     [InlineData("MultiSelect", false, false, IndexFieldEditor.Lines)]   // its type means a list
     [InlineData("Date", true, false, IndexFieldEditor.Lines)]           // a list of dates is a list first

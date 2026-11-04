@@ -30,7 +30,13 @@ public sealed partial class IndexFieldViewModel
     /// <summary>Whether the plain joined-text row is the right rendering — false for every type that draws
     /// its own. Stated once here rather than as a negation per type in the template, because a template that
     /// hides on <c>!IsUrl</c> alone silently prints raw GUIDs the day a second special type arrives.</summary>
-    public bool ShowPlainText => !IsUrl && !IsDocumentReference;
+    public bool ShowPlainText => !IsUrl && !IsDocumentReference && !IsToggle;
+
+    /// <summary>A Toggle field draws its slider here too, locked: reading is not editing (ADR 1047).</summary>
+    public bool IsToggle { get; init; }
+
+    /// <summary>The slider's position; an unset field is disabled.</summary>
+    public bool ToggleOn { get; init; }
 
     /// <summary>The resolved targets, for the reference template. Server-resolved, so a target the caller
     /// may not open arrives already stripped of its name and address.</summary>
@@ -76,6 +82,8 @@ public sealed partial class IndexFieldViewModel
         FieldName = field.FieldName,
         Values = string.Join(", ", field.Values.Select(v =>
             field.DataType == "DateTime" ? Alcifra.Presentation.IndexInstant.Display(v, SessionTimeZone.Current) : v)),
+        IsToggle = field.DataType == "Toggle",
+        ToggleOn = field.DataType == "Toggle" && field.Values.Contains("true"),
         IsUrl = field.DataType == "Url",
         UrlValues = field.DataType == "Url" ? field.Values : [],
         IsDocumentReference = field.DataType == "DocumentReference",

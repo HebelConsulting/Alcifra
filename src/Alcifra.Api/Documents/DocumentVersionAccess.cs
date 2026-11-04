@@ -43,7 +43,7 @@ public sealed class DocumentVersionAccess(
 
         var version = await dbContext.DocumentVersions
             .Where(v => v.Id == versionId && v.DocumentId == documentId)
-            .Select(v => new { v.Status, v.VersionNumber, v.ObjectKey, v.Sha256Hash, v.CreatedAt, v.DocumentDate, v.DocumentTime, v.CreatedByUserId, v.CreatedByServiceAccountId, v.OcrLanguages, v.Comment, v.OcrVerdict, v.IsSigned })
+            .Select(v => new { v.SizeBytes, v.Status, v.VersionNumber, v.ObjectKey, v.Sha256Hash, v.CreatedAt, v.DocumentDate, v.DocumentTime, v.CreatedByUserId, v.CreatedByServiceAccountId, v.OcrLanguages, v.Comment, v.OcrVerdict, v.IsSigned })
             .SingleOrDefaultAsync(cancellationToken);
 
         return version is null
@@ -51,7 +51,7 @@ public sealed class DocumentVersionAccess(
             : new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey,
                 version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime,
                 version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages,
-                version.Comment, version.OcrVerdict, version.IsSigned);
+                version.Comment, version.OcrVerdict, version.IsSigned, SizeBytes: version.SizeBytes);
     }
 
     /// <summary>

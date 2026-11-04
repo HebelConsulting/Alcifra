@@ -118,6 +118,15 @@ internal static class FieldValueValidation
 
                 break;
 
+            case FieldDataType.Toggle:
+                if (fieldValue.Value is not ("true" or "false"))
+                {
+                    throw new Domain.Masks.FieldValueRejectedException(
+                        $"Field value '{fieldValue.Value}' for '{fieldDefinition.Name}' is neither true nor false.");
+                }
+
+                break;
+
             case FieldDataType.Boolean:
             case FieldDataType.SingleSelect:
             case FieldDataType.MultiSelect:

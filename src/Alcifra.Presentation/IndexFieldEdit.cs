@@ -16,6 +16,9 @@ public enum IndexFieldEditor
 
     Boolean,
 
+    /// <summary>The slider: enabled or disabled, shown even where it cannot be changed (ADR 1047).</summary>
+    Toggle,
+
     /// <summary>Everything else on one line (Text, Number, SingleSelect, EmailAddress).</summary>
     Text,
 }
@@ -40,6 +43,7 @@ public static class IndexFieldEdit
     /// gets the list editor rather than a date picker that could only ever hold one of them.</summary>
     public static IndexFieldEditor EditorFor(string dataType, bool isList, bool locked) => (locked, isList || dataType == "MultiSelect", dataType) switch
     {
+        (_, false, "Toggle") => IndexFieldEditor.Toggle,
         (true, _, _) => IndexFieldEditor.ReadOnly,
         (_, true, _) => IndexFieldEditor.Lines,
         (_, _, "Date") => IndexFieldEditor.Date,
@@ -59,7 +63,7 @@ public static class IndexFieldEdit
             IndexFieldEditor.Lines => new(string.Join("\n", values)),
             IndexFieldEditor.Date => new(string.Empty, System.DateTime.TryParse(first, out var day) ? day.Date : null),
             IndexFieldEditor.DateTime => IndexInstant.Split(first, zone) is var (date, time) ? new(string.Empty, date, time) : new(string.Empty),
-            IndexFieldEditor.Boolean => new(string.Empty, Flag: string.Equals(first, "true", StringComparison.OrdinalIgnoreCase)),
+            IndexFieldEditor.Boolean or IndexFieldEditor.Toggle => new(string.Empty, Flag: string.Equals(first, "true", StringComparison.OrdinalIgnoreCase)),
             _ => new(first ?? string.Empty),
         };
     }
@@ -75,7 +79,7 @@ public static class IndexFieldEdit
         IndexFieldEditor.Lines => value.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
         IndexFieldEditor.Date => value.Date is { } day ? [day.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)] : [],
         IndexFieldEditor.DateTime => IndexInstant.Compose(value.Date?.Date, value.Time, zone) is { } instant ? [instant] : [],
-        IndexFieldEditor.Boolean => [value.Flag ? "true" : "false"],
+        IndexFieldEditor.Boolean or IndexFieldEditor.Toggle => [value.Flag ? "true" : "false"],
         _ => string.IsNullOrWhiteSpace(value.Text) ? [] : [value.Text.Trim()],
     };
 }

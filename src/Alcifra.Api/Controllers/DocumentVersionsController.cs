@@ -346,7 +346,7 @@ public class DocumentVersionsController : ControllerBase
         var fetched = await query
             .OrderBy(v => v.CreatedAt).ThenBy(v => v.Id)
             .Take(pageSize + 1)
-            .Select(v => new VersionRow(v.Id, v.DocumentId, v.Status, v.VersionNumber, v.ObjectKey, v.Sha256Hash, v.CreatedAt, v.DocumentDate, v.DocumentTime, v.CreatedByUserId, v.CreatedByServiceAccountId, v.OcrLanguages, v.Comment, v.OcrVerdict, v.IsSigned))
+            .Select(v => new VersionRow(v.Id, v.DocumentId, v.Status, v.VersionNumber, v.ObjectKey, v.Sha256Hash, v.CreatedAt, v.DocumentDate, v.DocumentTime, v.CreatedByUserId, v.CreatedByServiceAccountId, v.OcrLanguages, v.Comment, v.OcrVerdict, v.IsSigned, SizeBytes: v.SizeBytes))
             .ToListAsync(cancellationToken);
 
         var (page, hasMore) = Cursor.Split(fetched, pageSize);
@@ -760,7 +760,7 @@ public class DocumentVersionsController : ControllerBase
             await _finalizer.FileAsync(version, cancellationToken);
         }
 
-        var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned);
+        var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned, SizeBytes: version.SizeBytes);
 
         var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
 
@@ -843,7 +843,7 @@ public class DocumentVersionsController : ControllerBase
         }
 
         var name = await LoadDocumentNameAsync(documentId, cancellationToken);
-        var row = new VersionRow(source.Id, documentId, source.Status, source.VersionNumber, source.ObjectKey, source.Sha256Hash, source.CreatedAt, source.DocumentDate, source.DocumentTime, source.CreatedByUserId, source.CreatedByServiceAccountId, source.OcrLanguages, source.Comment, source.OcrVerdict, source.IsSigned);
+        var row = new VersionRow(source.Id, documentId, source.Status, source.VersionNumber, source.ObjectKey, source.Sha256Hash, source.CreatedAt, source.DocumentDate, source.DocumentTime, source.CreatedByUserId, source.CreatedByServiceAccountId, source.OcrLanguages, source.Comment, source.OcrVerdict, source.IsSigned, SizeBytes: source.SizeBytes);
         return Ok(await _versionResources.BuildAsync(row, name, cancellationToken));
     }
 
@@ -899,7 +899,7 @@ public class DocumentVersionsController : ControllerBase
             },
             cancellationToken: cancellationToken);
 
-        var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned);
+        var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned, SizeBytes: version.SizeBytes);
         var documentName = await LoadDocumentNameAsync(documentId, cancellationToken);
         var stamp = version.DocumentTime is { } t ? $"{date:yyyy-MM-dd} {t:HH:mm} UTC" : $"{date:yyyy-MM-dd}";
         await _audit.RecordAsync(AuditActions.DocumentDateChanged, "Document", documentId, documentName, $"Document date set to {stamp} (version {version.VersionNumber})", cancellationToken: cancellationToken);

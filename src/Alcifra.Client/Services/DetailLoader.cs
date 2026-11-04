@@ -140,6 +140,7 @@ public sealed class DetailLoader(
                     TextLayoutUrl = Links.Href(latest.Links, "text-layout"),
                     Converted = latest.PreviewConverted,
                     HasVersion = true,
+                    Facts = new(latest.SizeBytes, latest.FileExtension),
                 };
             }
 
@@ -222,7 +223,8 @@ public readonly record struct DetailLoadResult(
     string? DownloadUrl,
     bool Converted,
     bool HasVersion,
-    bool Failed = false)
+    bool Failed = false,
+    Alcifra.Presentation.PreviewFacts? Facts = null)
 {
     public static DetailLoadResult Nothing => new(false, null, null, null, false, false);
 
