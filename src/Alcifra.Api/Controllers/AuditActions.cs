@@ -92,6 +92,7 @@ public static class AuditActions
     // The password store (ADR 0964): a personal store created on first use, and every change to an entry's sealed
     // content — its NAME, never a field or a recipient's key. A deletion is the delete door's own Document.Deleted.
     public const string PasswordStoreCreated = "PasswordStore.Created";
+    public const string BookmarkFileCreated = "BookmarkFile.Created";
     public const string PasswordEntryCreated = "PasswordEntry.Created";
     public const string PasswordEntryChanged = "PasswordEntry.Changed";
     public const string PasswordEntryResealed = "PasswordEntry.Resealed";

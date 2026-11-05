@@ -1,6 +1,8 @@
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.BrowserHost;
 
+using Alcifra.ApiClient.Bookmarks;
+
 namespace Alcifra.Sapass.Infrastructure;
 
 /// <summary>
@@ -26,5 +28,7 @@ internal sealed class SapassAutofillStore : IAutofillStore
         PasswordStoreAutofill.SaveAsync(_session.Value.Passwords, save, cancellationToken);
 
     public string Generate(int length) => Passwords.Generate(length);
+
+    public IBookmarkRemote Bookmarks => new BookmarksClient(_session.Value.Core);
 
 }

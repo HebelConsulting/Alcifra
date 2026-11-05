@@ -46,6 +46,27 @@ public sealed class PasswordEntryVersions(
         var document = await dbContext.Documents.SingleAsync(d => d.Id == version.DocumentId, cancellationToken);
         var maskId = await dbContext.MaskVersions.Where(v => v.Id == document.MaskVersionId)
             .Select(v => (Guid?)v.MaskId).FirstOrDefaultAsync(cancellationToken);
+        // A bookmark file (ADR 1062) takes the same precondition and none of the rest: it is not sealed.
+        if (maskId == WellKnownMaskIds.Bookmarks && version.Status == DocumentVersionStatus.Pending)
+        {
+            var firstFile = !await dbContext.DocumentVersions.AnyAsync(
+                v => v.DocumentId == document.Id && v.Status == DocumentVersionStatus.Confirmed, cancellationToken);
+            if (!firstFile)
+            {
+                try
+                {
+                    ConcurrencyHeaders.RequireIfMatch(request);
+                }
+                catch (IfMatchRequiredException)
+                {
+                    await DiscardAsync(version, cancellationToken);
+                    throw;
+                }
+            }
+
+            return new SealedVersionFinalize(document, firstFile, Reseal: false);
+        }
+
         if (maskId is not { } sealedMask || !WellKnownMaskIds.SealedContentMasks.ContainsKey(sealedMask))
         {
             return commentKind is { } other && other != (int)VersionCommentKind.UserComment

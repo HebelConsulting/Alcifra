@@ -2,6 +2,8 @@ using Alcifra.ApiClient;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.BrowserHost;
 
+using Alcifra.ApiClient.Bookmarks;
+
 namespace Alcifra.DesktopClient.Services;
 
 /// <summary>
@@ -29,4 +31,6 @@ public sealed class DesktopAutofillStore(AlcifraApiClient api) : IAutofillStore
 
     public string Generate(int length) =>
         PasswordGenerator.Generate(new PasswordGeneratorOptions(Length: length, AvoidAmbiguous: true));
+
+    public IBookmarkRemote Bookmarks => new BookmarksClient(api.Core);
 }

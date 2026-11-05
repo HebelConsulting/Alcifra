@@ -1,3 +1,5 @@
+using Alcifra.ApiClient.Bookmarks;
+
 namespace Alcifra.BrowserHost;
 
 /// <summary>One entry an autofill sheet offers: its name and user name — never the secret, which is only read when
@@ -36,4 +38,7 @@ public interface IAutofillStore
 
     /// <summary>A fresh password, which is only stored once the browser saves it.</summary>
     string Generate(int length);
+
+    /// <summary>The bookmark files behind the sync (ADR 1062), or null where this store offers none.</summary>
+    IBookmarkRemote? Bookmarks => null;
 }

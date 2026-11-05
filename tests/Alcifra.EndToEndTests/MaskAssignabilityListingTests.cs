@@ -68,6 +68,9 @@ public class MaskAssignabilityListingTests
         // Today that is Basic Entry, Certificate and License: every other well-known mask either types a
         // folder or is claimed by an extension.
         //
+        // Bookmarks joined with ADR 1062: a team makes a shared file by dressing a document in a folder it shares, and
+        // the mask accepts only .html, so offering it cannot mis-file anything.
+        //
         // Certificate joined with ADR 0844 and is freely assignable for the same reason License is — both are
         // artefacts a person FILES. Enrolment is what normally creates one (it parses the PEM and resolves the
         // leaf), but a certificate filed by hand, a CA's own kept for reference, is a legitimate document; what
@@ -91,7 +94,7 @@ public class MaskAssignabilityListingTests
         // leave a plaintext confirmed version under a mask that declares the content sealed. It does not change the
         // set below because Password Entry was already excluded through its typed-folder rule; this makes the reason
         // true of the class rather than a property of one mask's placement.
-        Assert.Equal(["Basic Entry", "Certificate", "License", "Manual"], assignable);
+        Assert.Equal(["Basic Entry", "Bookmarks", "Certificate", "License", "Manual"], assignable);
 
         // And the ones that must never be offered, named individually so a regression says which.
         // Meeting room types a folder; the Booking mask is placement-constrained to rooms AND created by the

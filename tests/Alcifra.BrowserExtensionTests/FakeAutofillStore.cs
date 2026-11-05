@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using Alcifra.ApiClient.Bookmarks;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.BrowserHost;
 
@@ -72,6 +73,8 @@ public sealed class FakeAutofillStore(string stateFolder, string hostName) : IAu
         Record(new FakeCall(hostName, "save", save.Site, id, save.UserName, save.Password));
         return Task.FromResult(new AutofillSaved(id, save.Site, "My Passwords"));
     }
+
+    public IBookmarkRemote Bookmarks => new FakeBookmarkFiles(stateFolder);
 
     public string Generate(int length)
     {

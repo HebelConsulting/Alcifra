@@ -311,6 +311,13 @@ public static class WellKnownMaskIds
     public static readonly Guid SealedDocument = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E50");
 
     /// <summary>
+    /// A bookmark file (ADR 1062): one file per collection, in the browser's own bookmark format, found by this mask and
+    /// never by name. A change is one save carrying the tag it started from, like a password entry's; unlike one, it is
+    /// not sealed, so a background sync needs no key. Left out of search and renditions.
+    /// </summary>
+    public static readonly Guid Bookmarks = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E51");
+
+    /// <summary>
     /// The CORE's masks whose content is sealed to its readers (ADR 0964), mirroring a module's
     /// <c>ContentIsSealed</c> (ABI 1.20, ADR 0940): each maps to its content segment, which no other mask shares.
     /// </summary>
@@ -696,7 +703,7 @@ public static class WellKnownMaskIds
         new HashSet<Guid>
         {
             BasicEntry, EMail, Note, Contact, Appointment, Booking, License, Block, AvailabilityWindow,
-            Certificate, Manual, CertificatePolicy, PasswordEntry, SealedDocument,
+            Certificate, Manual, CertificatePolicy, PasswordEntry, SealedDocument, Bookmarks,
         };
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Alcifra.ApiClient.Bookmarks;
 using Microsoft.Extensions.Logging;
 
 namespace Alcifra.BrowserHost;
@@ -21,6 +22,7 @@ public sealed class AutofillHost(IAutofillStore store, ILogger logger, string ho
 {
     public async Task RunAsync(Stream input, Stream output, CancellationToken cancellationToken = default)
     {
+        var assembling = new NativeMessaging.Assembly();
         while (!cancellationToken.IsCancellationRequested)
         {
             JsonDocument? request;
@@ -42,8 +44,15 @@ public sealed class AutofillHost(IAutofillStore store, ILogger logger, string ho
 
             using (request)
             {
-                var answer = await AnswerAsync(request.RootElement, cancellationToken);
-                await NativeMessaging.WriteAsync(output, answer, cancellationToken);
+                using var whole = assembling.Add(request);
+                if (whole is null && NativeMessaging.IsChunk(request))
+                {
+                    continue;
+                }
+
+                var root = (whole ?? request).RootElement;
+                var answer = await AnswerAsync(root, cancellationToken);
+                await NativeMessaging.WriteChunkedAsync(output, root.TryGetProperty("id", out var id) && id.TryGetInt64(out var value) ? value : 0, answer, cancellationToken);
             }
         }
     }
@@ -97,6 +106,24 @@ public sealed class AutofillHost(IAutofillStore store, ILogger logger, string ho
                 case "generate":
                     return new { id, ok = true, password = store.Generate(Length(request)) };
 
+                case "bookmarks-list":
+                    var files = await BookmarkSync.FilesAsync(Bookmarks, cancellationToken);
+                    return new
+                    {
+                        id,
+                        ok = true,
+                        files = files.Select(f => new { id = f.Id, name = f.Name, folderName = f.FolderName, isPersonal = f.IsPersonal, canEdit = f.CanEdit }),
+                    };
+
+                case "bookmarks-sync":
+                    if (!Guid.TryParse(OptionalText(request, "fileId"), out var fileId))
+                    {
+                        return Error(id, "bookmarks-sync needs a fileId.");
+                    }
+
+                    var synced = await BookmarkSync.RunAsync(Bookmarks, fileId, Tree(request, "base"), Tree(request, "local"), cancellationToken);
+                    return new { id, ok = true, tree = synced.Tree, saved = synced.Saved, conflicts = synced.Conflicts };
+
                 default:
                     return Error(id, $"Unknown command '{command}'.");
             }
@@ -109,6 +136,14 @@ public sealed class AutofillHost(IAutofillStore store, ILogger logger, string ho
             return Error(id, e.Message);
         }
     }
+
+    private IBookmarkRemote Bookmarks => store.Bookmarks
+        ?? throw new InvalidOperationException($"{hostName} keeps no bookmarks.");
+
+    private static IReadOnlyList<BookmarkNode>? Tree(JsonElement request, string name) =>
+        request.TryGetProperty(name, out var element) && element.ValueKind == JsonValueKind.Array
+            ? element.Deserialize<List<BookmarkNode>>()
+            : null;
 
     private static object Error(long id, string message) => new { id, ok = false, error = message };
 

@@ -791,6 +791,21 @@ inzwischen kopiert haben, bleibt.
 Einrichtung. `--store` nennt einen gemeinsamen Speicher (Standard ist Meine Passwörter); `apass ls` und `apass find`
 listen, was es gibt.
 
+*Lesezeichen im Browser.*#idx("Lesezeichen") Die Browser-Erweiterung hält auch Ihre Lesezeichen aktuell. Beim ersten Abgleich
+legt sie in Ihren Eigenen Dokumenten eine Datei namens Bookmarks an, und diese Datei erscheint unter den Lesezeichen des Browsers
+als eigener Ordner. Fügen Sie in diesem Ordner Lesezeichen hinzu, benennen Sie sie um, verschieben oder löschen Sie sie, und die
+Änderung wird eine halbe Minute später gespeichert; eine Änderung aus einem anderen Browser kommt beim Start des Browsers an und
+jede Viertelstunde. Die Datei hat das übliche Lesezeichenformat, das jeder Browser importiert, Sie können sie also auch
+herunterladen und unverändert verwenden.
+
+Ein Team teilt Lesezeichen, indem es eine Bookmarks-Datei in einen gemeinsamen Ordner legt; die Rechte des Ordners entscheiden, wer
+sie erhält. Dürfen Sie den Ordner nur lesen, wird eine Änderung im Browser beim nächsten Abgleich rückgängig gemacht. Eine geteilte
+Datei enthält nur Webadressen; eine Skriptadresse (ein Bookmarklet) funktioniert nur in Ihrer eigenen Datei.
+
+Wurde dasselbe Lesezeichen gleichzeitig an zwei Orten geändert, gewinnt die Änderung im Browser, und die andere bleibt in einem
+Ordner namens Conflicts erhalten. Wenn Sie den Ordner im Browser löschen, sind Ihre Lesezeichen nicht weg: Er kommt beim nächsten
+Abgleich zurück.
+
 == Auf einem Telefon oder Tablet
 
 #feature(id: "phone-tablet", title: "Telefon und Tablet", figure: "web-phone-list")[Dieselbe Adresse im selben Browser liefert Ihnen ein Layout, das für den Bildschirm in Ihrer Hand gebaut ist. Es gibt keine

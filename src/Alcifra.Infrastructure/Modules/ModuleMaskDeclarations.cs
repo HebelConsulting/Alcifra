@@ -116,6 +116,11 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
             notRendered.Add(maskId);
         }
 
+        // A bookmark file holds one file type, and nobody searches or previews one (ADR 1062). Declared as a module's would be.
+        _acceptedContent[Domain.Masks.WellKnownMaskIds.Bookmarks] = AcceptedOf("core", "Bookmarks", ["html"]);
+        notSearched.Add(Domain.Masks.WellKnownMaskIds.Bookmarks);
+        notRendered.Add(Domain.Masks.WellKnownMaskIds.Bookmarks);
+
         // ...and the password store's masks are kept out of retention and legal hold (ADR 0964): a superseded secret
         // lives for its undo window and no longer, which a retention schedule or a hold would defeat.
         foreach (var maskId in Domain.Masks.WellKnownMaskIds.PasswordStoreMasks)

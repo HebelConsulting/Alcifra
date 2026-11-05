@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Playwright;
 using Alcifra.BrowserHost;
@@ -40,6 +42,7 @@ public sealed class ExtensionBrowser : IAsyncDisposable
 
     private readonly DirectoryInfo _root;
     private readonly IPlaywright _playwright;
+    private IPage? _extensionPage;
 
     private ExtensionBrowser(DirectoryInfo root, IPlaywright playwright, IBrowserContext context, string extensionId, string stateFolder)
     {
@@ -59,6 +62,47 @@ public sealed class ExtensionBrowser : IAsyncDisposable
 
     public IReadOnlyList<FakeCall> Calls => FakeAutofillStore.Calls(StateFolder);
 
+    /// <summary>The server's bookmark files the host syncs with.</summary>
+    public FakeBookmarkFiles Bookmarks => new(StateFolder);
+
+    /// <summary>Asks the extension's worker for a sync and waits for it, and any it joined, to finish.</summary>
+    public async Task SyncBookmarksAsync()
+    {
+        var answer = await (await ExtensionPageAsync()).EvaluateAsync<JsonElement>("() => chrome.runtime.sendMessage({ type: 'sync-bookmarks' })");
+        if (!answer.GetProperty("ok").GetBoolean())
+        {
+            throw new InvalidOperationException($"The sync failed: {answer.GetProperty("error").GetString()}");
+        }
+    }
+
+    /// <summary>Runs <paramref name="script"/> in one of the extension's own pages, where the browser's bookmark API is.</summary>
+    public async Task BookmarksApiAsync(string script) => await (await ExtensionPageAsync()).EvaluateAsync(script);
+
+    /// <summary>What the browser holds in a file's folder; empty when there is no such folder.</summary>
+    public async Task<IReadOnlyList<JsonElement>> BrowserFolderAsync(string title)
+    {
+        var children = await (await ExtensionPageAsync()).EvaluateAsync<JsonElement>(
+            """
+            async (title) => {
+              const [folder] = (await chrome.bookmarks.search({ title })).filter((node) => !node.url);
+              return folder ? (await chrome.bookmarks.getSubTree(folder.id))[0].children : [];
+            }
+            """,
+            title);
+        return [.. children.EnumerateArray()];
+    }
+
+    private async Task<IPage> ExtensionPageAsync()
+    {
+        if (_extensionPage is null)
+        {
+            _extensionPage = await Context.NewPageAsync();
+            await _extensionPage.GotoAsync($"chrome-extension://{ExtensionId}/manifest.json");
+        }
+
+        return _extensionPage;
+    }
+
     /// <summary>Starts a browser whose profile registers a fake host under each of <paramref name="clients"/>.</summary>
     public static Task<ExtensionBrowser> LaunchAsync(IEnumerable<FakeEntry> entries, params string[] clients) =>
         LaunchAsync(entries, keepAlive: null, clients);
@@ -67,7 +111,11 @@ public sealed class ExtensionBrowser : IAsyncDisposable
     /// As above, with the page's keep-alive interval shortened to <paramref name="keepAlive"/> in the test copy, so a
     /// test can watch several ticks in seconds rather than minutes. Only that one constant differs from what ships.
     /// </summary>
-    public static async Task<ExtensionBrowser> LaunchAsync(IEnumerable<FakeEntry> entries, TimeSpan? keepAlive, params string[] clients)
+    public static Task<ExtensionBrowser> LaunchAsync(IEnumerable<FakeEntry> entries, TimeSpan? keepAlive, params string[] clients) =>
+        LaunchAsync(entries, keepAlive, null, clients);
+
+    /// <summary>As above, with the wait after a bookmark change shortened to <paramref name="bookmarkSettle"/> in the test copy.</summary>
+    public static async Task<ExtensionBrowser> LaunchAsync(IEnumerable<FakeEntry> entries, TimeSpan? keepAlive, TimeSpan? bookmarkSettle, params string[] clients)
     {
         if (BrowserInstalled.Value != 0)
         {
@@ -78,7 +126,7 @@ public sealed class ExtensionBrowser : IAsyncDisposable
         var extension = Path.Combine(root.FullName, "extension");
         var profile = Path.Combine(root.FullName, "profile");
         var state = Path.Combine(root.FullName, "state");
-        var extensionId = CopyExtension(extension, keepAlive);
+        var extensionId = CopyExtension(extension, keepAlive, bookmarkSettle);
         FakeAutofillStore.Seed(state, entries);
 
         var hosts = Path.Combine(profile, "NativeMessagingHosts");
@@ -142,7 +190,7 @@ public sealed class ExtensionBrowser : IAsyncDisposable
     }
 
     /// <summary>Copies the extension as shipped, adding only a per-run <c>key</c>; returns the id it yields.</summary>
-    private static string CopyExtension(string target, TimeSpan? keepAlive)
+    private static string CopyExtension(string target, TimeSpan? keepAlive, TimeSpan? bookmarkSettle)
     {
         var source = Path.Combine(RepositoryRoot(), "browser-extension", "chrome");
         Directory.CreateDirectory(target);
@@ -162,6 +210,19 @@ public sealed class ExtensionBrowser : IAsyncDisposable
             }
 
             File.WriteAllText(content, script.Replace(Shipped, $"const KEEP_ALIVE_MS = {(int)interval.TotalMilliseconds};", StringComparison.Ordinal));
+        }
+
+        if (bookmarkSettle is { } settle)
+        {
+            const string Shipped = "const BOOKMARK_SETTLE_MINUTES = 0.5;";
+            var bookmarks = Path.Combine(target, "bookmarks.js");
+            var script = File.ReadAllText(bookmarks);
+            if (!script.Contains(Shipped, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"bookmarks.js no longer declares '{Shipped}'; update the test's patch.");
+            }
+
+            File.WriteAllText(bookmarks, script.Replace(Shipped, string.Create(CultureInfo.InvariantCulture, $"const BOOKMARK_SETTLE_MINUTES = {settle.TotalMinutes};"), StringComparison.Ordinal));
         }
 
         using var rsa = RSA.Create(2048);

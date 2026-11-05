@@ -1,11 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Alcifra autofill",
-  "version": "0.1.0",
-  "description": "Fills logins from your Alcifra password store, opened with your hardware key.",
+  "version": "0.2.0",
+  "description": "Fills logins from your Alcifra password store, opened with your hardware key, and keeps your bookmarks in step.",
   "permissions": [
+    "alarms",
+    "bookmarks",
     "nativeMessaging",
-    "storage"
+    "storage",
+    "unlimitedStorage"
   ],
   "background": {
     "service_worker": "background.js"

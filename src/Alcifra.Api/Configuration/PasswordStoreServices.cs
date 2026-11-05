@@ -18,6 +18,7 @@ public static class PasswordStoreServices
             .AddScoped<PasswordEntryCreation>()
             .AddScoped<PasswordEntryVersions>()
             .AddScoped<MyPasswordsProvisioner>()
+            .AddScoped<Alcifra.Api.Bookmarks.BookmarkFiles>()
             .AddScoped<PasswordEntryHistory>()
             .AddSingleton<PasswordHistorySweepWorker>()
             .AddHostedService(sp => sp.GetRequiredService<PasswordHistorySweepWorker>());

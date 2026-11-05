@@ -353,6 +353,9 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec(WellKnownMaskIds.SealedDocumentFields.NameHidden, FieldDataType.Boolean, IsRequired: false),
         ], cancellationToken);
 
+        // A bookmark file (ADR 1062): no fields, the file is everything.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.Bookmarks, "Bookmarks", [], cancellationToken);
+
         // After every mask exists, because containment is a relation BETWEEN masks: a Notebook's allowed parent
         // is the Mailbox, which is seeded eight lines below it, so doing this per-mask inside the loop above
         // would write a foreign key to a row that does not exist yet.

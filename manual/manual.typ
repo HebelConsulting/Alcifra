@@ -783,6 +783,19 @@ meantime stays.
 `apass show` labels each field as the form does and shows a verification code as the code valid now, never its setup.
 `--store` names a shared store (the default is My Passwords); `apass ls` and `apass find` list what there is.
 
+*Bookmarks in your browser.*#idx("bookmarks") The browser extension also keeps your bookmarks in step. The first time it
+syncs, it makes a file called Bookmarks in your My Documents, and that file appears as a folder of its own among the
+browser's bookmarks. Add, rename, move or delete bookmarks in that folder, and the change is saved half a minute later;
+a change made in another browser arrives when the browser starts, and every quarter of an hour. The file is the ordinary
+bookmark format every browser imports, so you can also download it and use it as it is.
+
+A team shares bookmarks by putting a Bookmarks file in a folder it shares, and the folder's rights decide who gets it.
+If you may only read that folder, a change you make in the browser is undone at the next sync. A shared file holds web
+addresses only; a script address (a bookmarklet) works only in your own file.
+
+When the same bookmark was changed in two places at once, the browser's change wins and the other is kept in a folder
+called Conflicts. Deleting the browser's folder does not delete your bookmarks: it comes back at the next sync.
+
 == On a phone or a tablet
 
 #feature(id: "phone-tablet", title: "Phone and tablet", figure: "web-phone-list")[The same address, in the same browser, gives you a layout built for the screen you are holding. There is no
