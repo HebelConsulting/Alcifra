@@ -646,6 +646,132 @@ public partial class CertificateEnrolmentTests
         return SelfSigned(subject, email, key);
     }
 
+    // ADR 1061: a member proves possession by opening what was sealed to the certificate, through the shared client.
+    [Fact]
+    public async Task A_member_enrols_their_own_under_possession_by_opening_the_challenge()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            await SetSanMustMatchAccountAsync(rig.Admin, false);   // possession
+
+            using var mine = RSA.Create(2048);
+            var pem = SelfSigned("member", $"card-{Guid.NewGuid():N}@issuer.example", mine);
+            var core = Alcifra.ApiClient.ApiCore.Over(rig.Member);
+            using var certificate = X509Certificate2.CreateFromPem(pem);
+            using var holding = certificate.CopyWithPrivateKey(mine);
+
+            // Bytes that are not what was sealed, whoever sends them: refused, and nothing enrolled.
+            var right = await Alcifra.ApiClient.CertificatePossession.ProveAsync(core, pem, new KeyOpener(holding));
+            using (var wrong = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = pem, label = "x", possession = new { right.Token, Nonce = Convert.ToBase64String(new byte[32]) } }))
+            {
+                Assert.Equal(HttpStatusCode.Forbidden, wrong.StatusCode);
+                Assert.Contains("CERTIFICATE_CHALLENGE_WRONG_ANSWER", await wrong.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+
+            // A proof for this key, offered with another certificate.
+            using var other = RSA.Create(2048);
+            using (var otherCertificate = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = SelfSigned("member", "other@issuer.example", other), label = "x", possession = right }))
+            {
+                Assert.Contains("CERTIFICATE_CHALLENGE_OTHER_CERTIFICATE", await otherCertificate.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+
+            // Somebody else's proof.
+            using (var foreign = await rig.Admin.PostAsJsonAsync("/api/certificates/challenge", new { certificatePem = pem }))
+            {
+                var theirs = await foreign.Content.ReadFromJsonAsync<JsonElement>();
+                using var used = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = pem, label = "x", possession = new { token = theirs.GetProperty("token").GetString(), nonce = right.Nonce } });
+                Assert.Contains("CERTIFICATE_CHALLENGE_FOREIGN", await used.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+
+            using (var damaged = await rig.Member.PostAsJsonAsync("/api/certificates", new { certificatePem = pem, label = "x", possession = new { token = "not-a-token", nonce = right.Nonce } }))
+            {
+                Assert.Contains("CERTIFICATE_CHALLENGE_FOREIGN", await damaged.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+            }
+
+            Assert.Empty((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray());
+
+            // The real path: the enrolment asks, the client proves, the enrolment goes again.
+            var profile = new Alcifra.ApiClient.ProfileClient(core);
+            var enrolment = new Alcifra.ApiClient.ProfileClient.SelfEnrolment("core", "Certificates", true, "/api/certificates", "certificatePem", "label");
+            using var enrolled = await profile.EnrolAsync(enrolment, pem, "My key", proof: new KeyOpener(holding));
+            Assert.True(enrolled.IsSuccessStatusCode, await enrolled.Content.ReadAsStringAsync());
+            Assert.Single((await TestJson.Get(rig.Member, "/api/certificates")).EnumerateArray().ToList());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+        }
+    }
+
+    // An elliptic-curve key, as a hardware key usually holds, answers the same way.
+    [Fact]
+    public async Task A_key_agreement_certificate_can_answer_the_challenge()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            await SetSanMustMatchAccountAsync(rig.Admin, false);   // possession
+
+            using var mine = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+            using var signer = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var request = new CertificateRequest("CN=member", signer, HashAlgorithmName.SHA256);
+            using var certificate = request.Create(new X500DistinguishedName("CN=member"), X509SignatureGenerator.CreateForECDsa(signer), DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(30), [1, 2, 3, 4]);
+            using var challenge = await rig.Member.PostAsJsonAsync("/api/certificates/challenge", new { certificatePem = certificate.ExportCertificatePem() });
+            Assert.Equal(HttpStatusCode.OK, challenge.StatusCode);
+            var answer = await challenge.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.False(string.IsNullOrEmpty(answer.GetProperty("envelope").GetString()));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+        }
+    }
+
+    [Fact]
+    public async Task A_strict_tenant_needs_no_challenge()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+
+            using var key = RSA.Create(2048);
+            using var challenge = await rig.Member.PostAsJsonAsync("/api/certificates/challenge", new { certificatePem = SelfSigned("member", rig.MemberEmail, key) });
+            Assert.Equal(HttpStatusCode.Conflict, challenge.StatusCode);
+            Assert.Contains("CERTIFICATE_CHALLENGE_NOT_NEEDED", await challenge.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+        }
+    }
+
+    // Opens a challenge with a key in memory, as the desktop's opener does with a card.
+    private sealed class KeyOpener(X509Certificate2 key) : Alcifra.ApiClient.IEnvelopeOpener
+    {
+        public Task<(byte[] Bytes, string ContentType)> OpenAsync(byte[] envelope, string contentType)
+        {
+            using var exportable = X509CertificateLoader.LoadPkcs12(key.Export(X509ContentType.Pkcs12), null, X509KeyStorageFlags.Exportable);
+            return Task.FromResult(Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpen(Alcifra.ApiClient.SmimeEnvelope.Unwrap(envelope), [exportable])
+                ?? throw new Alcifra.ApiClient.EnvelopeNotOpenedException("this key does not open it"));
+        }
+    }
+
     // A certificate over a GIVEN key: two of them are two certificates of one key.
     private static string SelfSigned(string subject, string email, RSA key)
     {

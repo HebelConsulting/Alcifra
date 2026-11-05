@@ -1,3 +1,4 @@
+using Alcifra.ApiClient;
 using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -42,6 +43,10 @@ public sealed class CertificateEnrolSettings : TenantSessionSettings
     [CommandOption("--slot <slot>")]
     [Description("The key slot the certificate is in, e.g. 9d; informational.")]
     public string? Slot { get; init; }
+
+    [CommandOption("--key-file <file>")]
+    [Description("Where this tenant binds by possession: the private key that proves the certificate is yours (a .p12, or a PEM holding certificate and key). Omitted, a hardware key in a reader is asked, with its PIN (ADR 1061).")]
+    public string? KeyFile { get; init; }
 }
 
 /// <summary>
@@ -112,10 +117,22 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
 
         try
         {
-            var enrolled = await api.PostAsync(
+            // Asked first with no proof: only a tenant binding by possession wants one, and only then is a key opened or a PIN
+            // asked for (ADR 1061).
+            Task<System.Text.Json.JsonElement> Enrol(CertificatePossession.Proof? possession) => api.PostAsync(
                 certificates,
-                new { certificatePem = pem, label = settings.Label ?? string.Empty, holder = settings.Holder, attestation },
+                new { certificatePem = pem, label = settings.Label ?? string.Empty, holder = settings.Holder, possession, attestation },
                 cancellationToken);
+
+            System.Text.Json.JsonElement enrolled;
+            try
+            {
+                enrolled = await Enrol(null);
+            }
+            catch (CliException refused) when (settings.Holder is null && refused.Message.Contains(CertificatePossession.AskedFor, StringComparison.Ordinal))
+            {
+                enrolled = await Enrol(await ProveAsync(http, pem, settings.KeyFile, cancellationToken));
+            }
 
             var label = enrolled.TryGetProperty("label", out var l) ? l.GetString() : null;
             var serial = enrolled.TryGetProperty("serial", out var s) ? s.GetString() : null;
@@ -139,6 +156,38 @@ public sealed class CertificateEnrolCommand(ILogger<CertificateEnrolCommand> log
             logger.LogInformation("Unchanged: {Reason}", exception.Message);
             return 0;
         }
+    }
+
+    private async Task<CertificatePossession.Proof> ProveAsync(HttpClient http, string pem, string? keyFile, CancellationToken cancellationToken)
+    {
+        using var certificate = System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(pem);
+        IEnvelopeOpener opener;
+        if (keyFile is { Length: > 0 })
+        {
+            opener = new KeyFileOpener(InspectSurface.LoadKey(keyFile, logger));
+        }
+        else
+        {
+            Alcifra.HardwareKeys.CardSession.PinPrompt = card =>
+                Task.FromResult(Alcifra.ConsoleLogging.SecretInput.ReadHidden($"PIN for {card.TokenLabel} ({card.ObjectLabel}):", logger));
+            opener = new Alcifra.HardwareKeys.CertificateProofOpener(certificate);
+        }
+
+        try
+        {
+            return await CertificatePossession.ProveAsync(ApiCore.Over(http), pem, opener, cancellationToken);
+        }
+        catch (Exception e) when (e is EnvelopeNotOpenedException or OperationCanceledException)
+        {
+            throw new CliException($"Could not prove this certificate is yours: {e.Message}");
+        }
+    }
+
+    private sealed class KeyFileOpener(System.Security.Cryptography.X509Certificates.X509Certificate2 key) : IEnvelopeOpener
+    {
+        public Task<(byte[] Bytes, string ContentType)> OpenAsync(byte[] envelope, string contentType) =>
+            Task.FromResult(SoftwareKeyEnvelope.TryOpen(SmimeEnvelope.Unwrap(envelope), [key])
+                ?? throw new EnvelopeNotOpenedException("the key file does not open what was sealed to this certificate"));
     }
 
     /// <summary>

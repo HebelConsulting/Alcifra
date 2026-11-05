@@ -248,6 +248,7 @@ public class RootController : ControllerBase
         if (tenantAccessor.TenantId is not null)
         {
             resource.Links.Add(new Link("certificates", "/api/certificates", "GET"));
+            resource.Links.Add(new Link("certificateChallenge", "/api/certificates/challenge", "POST"));
             resource.Links.Add(new Link("certificatePolicy", "/api/certificate-policy", "GET"));
             resource.Links.Add(new Link("certificateSettings", "/api/certificate-settings", "GET"));
             resource.Links.Add(new Link("certificateAttestationRoots", "/api/certificate-attestation-roots", "GET"));   // ADR 0963

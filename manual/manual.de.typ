@@ -1862,9 +1862,10 @@ Die Abhilfe ist ein Zertifikat, das auf die richtige Adresse oder auf einen der 
 ausgestellt ist. *Diese Bindung, strict, ist die Voreinstellung für jede Organisation, die nichts anderes
 festgelegt hat.* Eine Zertifizierungsstelle, deren Zertifikate überhaupt keine E-Mail-Adresse tragen, kann sie
 nicht erfüllen; für diesen Fall kann die Administration Schlüssel stattdessen über den *Besitz* binden. Dann braucht
-ein Zertifikat keine bestimmte Adresse, und die Administration hinterlegt es für seine Inhaberin oder seinen Inhaber
-und bürgt damit dafür, wessen Schlüssel es ist. Mitglieder können ihr eigenes erst hinterlegen, wenn sie den Besitz
-des Schlüssels nachweisen können. Unter beiden Bindungen gehört ein Schlüssel im Mandanten einer Person, auch unter
+ein Zertifikat keine bestimmte Adresse. Mitglieder hinterlegen ihr eigenes, indem sie den Besitz des Schlüssels
+nachweisen: Der Server versiegelt eine Aufgabe an das Zertifikat, und der Client öffnet sie mit dem Schlüssel und fragt
+wie bei jedem versiegelten Dokument nach der PIN. Die Administration kann ein Zertifikat auch für seine Inhaberin oder
+seinen Inhaber hinterlegen und bürgt damit dafür, wessen Schlüssel es ist. Unter beiden Bindungen gehört ein Schlüssel im Mandanten einer Person, auch unter
 einem zweiten Zertifikat.
 
 ```sh

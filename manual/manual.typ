@@ -1783,9 +1783,10 @@ This one says 'florian@example.test' and the account is 'crypt@example.test'. [C
 The remedy is a certificate issued to the right address, or to one of the account's identity aliases. *This
 binding, strict, is the default for every organisation that has not said otherwise.* An authority whose certificates
 carry no e-mail address at all cannot meet it, and for that case an administrator can bind keys by *possession*
-instead. Then a certificate needs no particular address, and an administrator enrols it for its holder, vouching for
-whose key it is. Members cannot enrol their own until they can prove they hold the key. Under either binding, a key
-belongs to one person in the tenant, even under a second certificate.
+instead. Then a certificate needs no particular address. A member enrols their own by proving they hold its key: the
+server seals a challenge to the certificate, and the client opens it with the key, asking for the PIN as for any sealed
+document. An administrator can also enrol a certificate for its holder, vouching for whose key it is. Under either
+binding, a key belongs to one person in the tenant, even under a second certificate.
 
 ```sh
 alcifra certificates policy show

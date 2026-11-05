@@ -78,6 +78,28 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
 
         /// <summary>The key's attestation; required unless the tenant allows hardware without attestation (ADR 0963).</summary>
         public AttestationRequest? Attestation { get; set; }
+
+        /// <summary>The answered challenge, where the tenant binds by possession and the caller is no administrator (ADR 1061).</summary>
+        public PossessionRequest? Possession { get; set; }
+    }
+
+    /// <summary>The token a challenge answered with, and the nonce the envelope held, base64.</summary>
+    public class PossessionRequest
+    {
+        public string Token { get; set; } = string.Empty;
+        public string Nonce { get; set; } = string.Empty;
+    }
+
+    public class ChallengeRequest
+    {
+        public string CertificatePem { get; set; } = string.Empty;
+    }
+
+    public class ChallengeResource
+    {
+        /// <summary>The nonce sealed to the certificate: a CMS envelope, base64.</summary>
+        public string Envelope { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
     }
 
     [HttpGet]
@@ -104,10 +126,20 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         var evidence = request.Attestation is { } a
             ? new Infrastructure.Certificates.Attestation.AttestationEvidence(a.Format, a.AttestationCertificatePem, a.IntermediateCertificatePem, a.Slot)
             : null;
-        var (enrolled, created) = await enrolment.EnrolAsync(request.CertificatePem, request.Label, request.Holder, evidence, cancellationToken);
+        var proof = request.Possession is { } p ? new PossessionProof(p.Token, p.Nonce) : null;
+        var (enrolled, created) = await enrolment.EnrolAsync(request.CertificatePem, request.Label, request.Holder, evidence, cancellationToken, proof);
 
         // An existing enrolment that gained its attestation is not a new resource: 200 with what it now is.
         return created ? Created($"/api/documents/{enrolled.DocumentId}", Resource(enrolled)) : Ok(Resource(enrolled));
+    }
+
+    /// <summary>Under Possession, a member proves they hold the key by opening what this seals to it (ADR 1061). Nothing is
+    /// stored, so this changes nothing to audit; the enrolment that follows is audited.</summary>
+    [HttpPost("challenge")]
+    public async Task<IActionResult> Challenge([FromBody] ChallengeRequest request, CancellationToken cancellationToken)
+    {
+        var (envelope, token) = await enrolment.ChallengeAsync(request.CertificatePem, cancellationToken);
+        return Ok(new ChallengeResource { Envelope = Convert.ToBase64String(envelope), Token = token });
     }
 
     private static EnrolledResource Resource(CertificateEnrolment.Listed row) => new()

@@ -466,7 +466,7 @@ public static class InspectSurface
     }
 
     // A PEM file holding the certificate and its private key, or a PKCS#12 file (its password asked, never logged).
-    private static X509Certificate2 LoadKey(string path, ILogger logger)
+    internal static X509Certificate2 LoadKey(string path, ILogger logger)
     {
         var bytes = System.IO.File.ReadAllBytes(path);
         var text = Encoding.ASCII.GetString(bytes);

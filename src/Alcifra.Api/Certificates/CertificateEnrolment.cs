@@ -36,6 +36,7 @@ public sealed class CertificateEnrolment(
     ICurrentTenantAccessor tenant,
     IReadOnlyList<ModuleLoader.LoadedModule> modules,
     EnrolmentAttestation attestation,
+    CertificatePossessionChallenge possession,
     ILogger<CertificateEnrolment> logger)
 {
     /// <summary>An enrolled certificate as the listing shows it.</summary>
@@ -188,11 +189,11 @@ public sealed class CertificateEnrolment(
     /// Every refusal is audited, by code and holder, never with the certificate.
     /// </summary>
     public async Task<(Listed Enrolled, bool Created)> EnrolAsync(
-        string certificatePem, string? label, string? holder, AttestationEvidence? evidence, CancellationToken cancellationToken)
+        string certificatePem, string? label, string? holder, AttestationEvidence? evidence, CancellationToken cancellationToken, PossessionProof? proof = null)
     {
         try
         {
-            return await EnrolCheckedAsync(certificatePem, label, holder, evidence, cancellationToken);
+            return await EnrolCheckedAsync(certificatePem, label, holder, evidence, proof, cancellationToken);
         }
         catch (CertificateException refusal) when (refusal is not CertificateAlreadyEnrolledException)
         {
@@ -202,8 +203,40 @@ public sealed class CertificateEnrolment(
         }
     }
 
+    /// <summary>
+    /// The challenge a member answers to enrol their own certificate under Possession (ADR 1061): the nonce sealed to it, and
+    /// the token to return. Under the rules enrolling itself goes by; nothing is stored.
+    /// </summary>
+    public async Task<(byte[] Envelope, string Token)> ChallengeAsync(string certificatePem, CancellationToken cancellationToken)
+    {
+        if (access.GetCallerIdentity().UserId is not { } userId)
+        {
+            throw new CertificateNotYoursToEnrolException();
+        }
+
+        if (!await CallerAdministersAsync(cancellationToken)
+            && !await dbContext.Tenants.Where(t => t.Id == TenantId).Select(t => t.CertificateSelfServiceEnabled).SingleAsync(cancellationToken))
+        {
+            throw new CertificateSelfServiceDisabledException();
+        }
+
+        if ((await CurrentPolicyAsync(cancellationToken)).EffectiveBinding != CertificateBinding.Possession)
+        {
+            throw new CertificateChallengeNotNeededException();
+        }
+
+        var checkedPem = EnrolmentPolicy.Check(certificatePem);
+        if (!checkedPem.Ok)
+        {
+            throw new CertificateRefusedException(checkedPem.Refusal!);
+        }
+
+        using var leaf = checkedPem.Leaf!;
+        return possession.Issue(TenantId, userId, leaf);
+    }
+
     private async Task<(Listed Enrolled, bool Created)> EnrolCheckedAsync(
-        string certificatePem, string? label, string? holder, AttestationEvidence? evidence, CancellationToken cancellationToken)
+        string certificatePem, string? label, string? holder, AttestationEvidence? evidence, PossessionProof? proof, CancellationToken cancellationToken)
     {
         var admin = await CallerAdministersAsync(cancellationToken);
         var forSomebodyElse = holder is { Length: > 0 };
@@ -217,9 +250,11 @@ public sealed class CertificateEnrolment(
             throw new CertificateSelfServiceDisabledException();
         }
 
-        // Possession (ADR 1017): without a proof that the caller holds the key, only an administrator says whose it is.
+        // Possession (ADRs 1017 and 1061): without a proof that the caller holds the key, only an administrator says whose
+        // it is. The proof itself is checked below, against the certificate actually being enrolled.
         var policy = await CurrentPolicyAsync(cancellationToken);
-        if (policy.EffectiveBinding == CertificateBinding.Possession && !admin)
+        var needsProof = policy.EffectiveBinding == CertificateBinding.Possession && !admin;
+        if (needsProof && proof is null)
         {
             throw new CertificatePossessionNeedsAdministratorException();
         }
@@ -232,6 +267,16 @@ public sealed class CertificateEnrolment(
 
         using var leaf = checkedPem.Leaf!;
         var userId = access.GetCallerIdentity().UserId;
+        if (needsProof)
+        {
+            if (userId is not { } provingUser)
+            {
+                throw new CertificateNotYoursToEnrolException();
+            }
+
+            possession.Verify(proof!, TenantId, provingUser, leaf);
+        }
+
         var holderAddress = forSomebodyElse
             ? holder!
             : await dbContext.Users.Where(u => u.Id == userId).Select(u => u.Email).SingleOrDefaultAsync(cancellationToken);

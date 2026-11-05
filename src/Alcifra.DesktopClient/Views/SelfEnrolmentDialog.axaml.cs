@@ -275,7 +275,22 @@ public partial class SelfEnrolmentDialog : Window
         EnrolButton.IsEnabled = false;
         StatusText.Text = Strings.Get("EnrolSending");
 
-        using var response = await _api.Profile.EnrolAsync(_enrolment, _pem, LabelBox.Text, attestation: _attestation);
+        using var certificate = System.Security.Cryptography.X509Certificates.X509Certificate2.CreateFromPem(_pem);
+        HttpResponseMessage response;
+        try
+        {
+            StatusText.Text = Strings.Get("EnrolSending");
+            response = await _api.Profile.EnrolAsync(_enrolment, _pem, LabelBox.Text, attestation: _attestation, proof: new HardwareKeys.CertificateProofOpener(certificate));
+        }
+        catch (Exception proofFailed) when (proofFailed is EnvelopeNotOpenedException or OperationCanceledException or HttpRequestException)
+        {
+            // The key could not answer the possession challenge (ADR 1061): nothing was enrolled, and the fix is the user's.
+            StatusText.Text = string.Format(System.Globalization.CultureInfo.CurrentCulture, Strings.Get("EnrolProofFailed"), proofFailed.Message);
+            EnrolButton.IsEnabled = true;
+            return;
+        }
+
+        using var answered = response;
         if (response.IsSuccessStatusCode)
         {
             StatusText.Text = Strings.Get("EnrolDone");

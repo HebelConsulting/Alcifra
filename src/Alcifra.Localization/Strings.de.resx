@@ -5154,6 +5154,9 @@
   <data name="EnrolSending" xml:space="preserve">
     <value>Wird hinterlegt…</value>
   </data>
+  <data name="EnrolProofFailed" xml:space="preserve">
+    <value>Der Schlüssel konnte nicht nachweisen, dass dieses Zertifikat Ihnen gehört. Es wurde nichts registriert: {0}</value>
+  </data>
   <data name="EnrolDone" xml:space="preserve">
     <value>Hinterlegt. Dokumente werden ab jetzt daran adressiert.</value>
   </data>

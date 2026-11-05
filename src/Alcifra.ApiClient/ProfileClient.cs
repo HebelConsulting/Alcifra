@@ -162,9 +162,12 @@ public sealed class ProfileClient(ApiCore core)
     /// <c>pem</c> instead of <c>certificatePem</c> must need no change on this side.
     /// </remarks>
     /// <param name="attestation">The key's attestation as read from the token (ADR 0963), sent as <c>attestation</c>.</param>
+    /// <param name="proof">What opens a possession challenge with this certificate's key (ADR 1061). A tenant binding by
+    /// possession answers the enrolment that way; the challenge then runs and the enrolment goes again, carrying the proof.
+    /// Only then is the key asked for.</param>
     public async Task<HttpResponseMessage> EnrolAsync(
         SelfEnrolment enrolment, string certificatePem, string? label, CancellationToken cancellationToken = default,
-        EnrolledCertificatesClient.KeyAttestation? attestation = null)
+        EnrolledCertificatesClient.KeyAttestation? attestation = null, IEnvelopeOpener? proof = null)
     {
         var body = new Dictionary<string, object?> { [enrolment.Field] = certificatePem };
         if (attestation is not null)
@@ -177,8 +180,20 @@ public sealed class ProfileClient(ApiCore core)
             body[enrolment.LabelField] = label;
         }
 
+        var response = await _core.Http.PostAsJsonAsync(enrolment.EnrolHref!, body, cancellationToken);
+        if (proof is null || !await AsksForProofAsync(response, cancellationToken))
+        {
+            return response;
+        }
+
+        response.Dispose();
+        body["possession"] = await CertificatePossession.ProveAsync(_core, certificatePem, proof, cancellationToken);
         return await _core.Http.PostAsJsonAsync(enrolment.EnrolHref!, body, cancellationToken);
     }
+
+    private static async Task<bool> AsksForProofAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
+        response.StatusCode == System.Net.HttpStatusCode.Forbidden
+        && (await response.Content.ReadAsStringAsync(cancellationToken)).Contains(CertificatePossession.AskedFor, StringComparison.Ordinal);
 
     public async Task<string> MeHrefAsync(string rel, CancellationToken cancellationToken = default)
     {
