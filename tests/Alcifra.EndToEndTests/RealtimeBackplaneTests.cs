@@ -42,6 +42,9 @@ public class RealtimeBackplaneTests
         // Replica B — a second in-process host sharing the same Postgres + Valkey backplane. Produce a notification
         // there by inserting a row through B's DbContext, whose post-commit push choke point (ADR 0427) fans out
         // over Valkey.
+        // A second host takes over Serilog's static logger, and the shared factory logs through it, so without this every later
+        // test's log capture stays empty (#2162). Declared first, so it restores after the replica is disposed.
+        using var restoresLogger = new RestoresStaticLogger();
         await using var replicaB = new WebApplicationFactory<Program>();
         using (var scope = replicaB.Services.CreateScope())
         {
@@ -66,4 +69,11 @@ public class RealtimeBackplaneTests
     }
 
     private sealed record PushDto(string Title, string Body);
+
+    private sealed class RestoresStaticLogger : IDisposable
+    {
+        private readonly Serilog.ILogger _saved = Serilog.Log.Logger;
+
+        public void Dispose() => Serilog.Log.Logger = _saved;
+    }
 }

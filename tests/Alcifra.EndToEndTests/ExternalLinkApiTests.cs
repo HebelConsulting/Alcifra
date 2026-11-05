@@ -265,7 +265,7 @@ public class ExternalLinkApiTests
         Assert.Contains(
             Alcifra.Theming.Brand.Shipped.Credit is { } credit ? System.Text.Encodings.Web.HtmlEncoder.Default.Encode(credit) : "https://www.alcifra.com",
             html, StringComparison.Ordinal);
-        Assert.Contains("Hebel Consulting GmbH", html, StringComparison.Ordinal);
+        Assert.Contains(System.Text.Encodings.Web.HtmlEncoder.Default.Encode(Alcifra.Theming.Brand.Shipped.Imprint.Lines[0]), html, StringComparison.Ordinal);
 
         // Asking for JSON explicitly still gets the resource, so an integration is not forced to scrape markup.
         var json = await GetJson(anonymous, path);
