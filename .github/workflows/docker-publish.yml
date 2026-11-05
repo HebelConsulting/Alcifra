@@ -7,6 +7,7 @@
 # mutation testing / native CodeQL upload, which are additionally visibility-gated. Uses the built-in GITHUB_TOKEN
 # (no registry secrets). Builds multi-arch (amd64 + arm64 via buildx + QEMU) and runs ONLY on a `v*` release tag —
 # not on every main push (which would rebuild the slow arm64 layer each time) — matching desktop-packages.yml.
+# A white-label edition builds amd64 only, on the owner's Mac (ADR 1056).
 name: Docker image (GHCR)
 
 on:
@@ -36,7 +37,8 @@ jobs:
     timeout-minutes: 60
     needs: gate
     if: ${{ needs.gate.outputs.publishes == 'true' }}
-    runs-on: ubuntu-latest
+    # A private repository's hosted runner could not finish the edition's image (ADR 1056); its builds run on the Mac.
+    runs-on: ${{ needs.gate.outputs.white_label == 'true' && fromJSON('["self-hosted", "simplarchive-mac"]') || 'ubuntu-latest' }}
     permissions:
       contents: read
       packages: write
@@ -57,7 +59,19 @@ jobs:
           - { suffix: "-postfix", context: ./postfix, file: ./postfix/Dockerfile }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The Mac's own Docker: the job's login must not replace the owner's, so it gets a configuration of its own, which
+      # then has to name Docker Desktop's plugins and engine, because it no longer inherits them.
+      - name: A Docker configuration for this job only
+        if: ${{ needs.gate.outputs.white_label == 'true' }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/docker-config"
+          echo '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}' > "$RUNNER_TEMP/docker-config/config.json"
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
+          echo "DOCKER_HOST=unix://$HOME/.docker/run/docker.sock" >> "$GITHUB_ENV"
+
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        if: ${{ needs.gate.outputs.white_label != 'true' }}
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -127,7 +141,8 @@ jobs:
           # Multi-arch so the image runs on amd64 (Hetzner/most clouds) and arm64 (Oracle Ampere A1 free tier,
           # Hetzner CAX). The API image's only native dep is NetVips (ships linux-musl-arm64); PDFium/Docnet is
           # DesktopClient-only. The OCR sidecar is python:slim + apt/pip — all arm64-available.
-          platforms: linux/amd64,linux/arm64
+          # A white-label edition builds amd64 only (ADR 1056).
+          platforms: ${{ needs.gate.outputs.white_label == 'true' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           tags: ${{ steps.meta.outputs.tags }}
           # Stamp the release version into the baked-in desktop-client download artifacts (ADR 0490). Ignored by
           # the ocr image's Dockerfile (no VERSION arg there).
@@ -150,7 +165,8 @@ jobs:
           #
           # NO MANIFEST-SHAPE RISK, which is the usual reason people leave these off: attestations make the
           # pushed manifest an OCI image index, and this build is ALREADY multi-arch, so it has been one all
-          # along. Nothing that can pull these images today stops being able to.
+          # along. Nothing that can pull these images today stops being able to. An amd64-only edition's image is
+          # an index too, because of the attestations.
           provenance: mode=max
           sbom: true
 

@@ -90,6 +90,16 @@ public partial class BrandDistributionTests
         Assert.Contains("gh release upload \"$GITHUB_REF_NAME\" \"$package\"", text);
     }
 
+    // Only a white-label edition builds on the owner's Mac, and amd64 only (ADR 1056): the public mirror cannot reach a
+    // private runner group, so it must keep its hosted runner and both architectures.
+    [Fact]
+    public void Only_a_white_label_edition_builds_its_image_on_the_mac()
+    {
+        var text = File.ReadAllText(Path.Combine(RepoPaths.Root(), ".github", "workflows", "docker-publish.yml"));
+        Assert.Contains("needs.gate.outputs.white_label == 'true' && fromJSON('[\"self-hosted\", \"simplarchive-mac\"]') || 'ubuntu-latest'", text);
+        Assert.Contains("needs.gate.outputs.white_label == 'true' && 'linux/amd64' || 'linux/amd64,linux/arm64'", text);
+    }
+
     // A white-label edition's CI (ADR 0998): its tests get a stand-in manual under its own name, and its pushes run
     // only the fast tier. Without the first, its manual tests fail on a missing file; without the second, every
     // upstream sync spends the heavy tier on code upstream has already run.
