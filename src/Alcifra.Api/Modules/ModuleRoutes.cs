@@ -25,8 +25,11 @@ public static class ModuleRoutes
     /// <c>fdroid</c>: the Licensing Module's Android app repository (core #1649). Its address is pasted into an app
     /// store client, which sends no authentication, so the credential rides in the path (ADR 0909).
     /// <c>apps</c>: where a release pipeline PUSHES an app to that repository, with a push key in a header (ADR 0910).
+    /// <c>v2</c>: the Licensing Module's image registry (ADR 1058). A container client asks for <c>/v2/</c> at the host's
+    /// root and cannot be given another path.
+    /// <c>downloads</c>: the page a person opens with that same credential (ADR 1058).
     /// </remarks>
-    public static readonly IReadOnlyList<string> AllowedRootPrefixes = ["nuget", "fdroid", "apps", "peertube"];
+    public static readonly IReadOnlyList<string> AllowedRootPrefixes = ["nuget", "fdroid", "apps", "peertube", "v2", "downloads"];
 
     /// <summary>The modules whose route claims and controller routes are admissible, in load order. A refused module
     /// is dropped before anything of it is registered; the first claimant of a prefix keeps it.</summary>

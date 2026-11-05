@@ -33,6 +33,13 @@ public class ModuleProtocolRouteTests
     public void A_module_may_claim_an_allowlisted_prefix_and_route_under_it() =>
         Assert.Null(ModuleRoutes.Refusal("m", ["nuget"], NoneClaimed, [typeof(FeedController)]));
 
+    // A container client asks for /v2/ at the host's root, so the registry has no other address (ADR 1058).
+    [Theory]
+    [InlineData("v2")]
+    [InlineData("downloads")]
+    public void The_registry_and_its_download_page_may_be_claimed(string prefix) =>
+        Assert.Null(ModuleRoutes.Refusal("licensing", [prefix], new Dictionary<string, string>(), []));
+
     [Fact]
     public void A_prefix_off_the_allowlist_is_refused_by_name()
     {
@@ -78,6 +85,9 @@ public class ModuleProtocolRouteTests
     [InlineData("nuget", "/nuget/v3/index.json", true)]
     [InlineData("nuget/v3", "/NuGet/v3/x", true)]
     [InlineData("nuget", "/nugetx/v3", false)]
+    [InlineData("v2", "/v2/", true)]
+    [InlineData("v2", "/v2/easyname-archiv/manifests/1.0", true)]
+    [InlineData("downloads", "/download/manual/x.pdf", false)]
     [InlineData("", "/nuget", false)]
     public void A_prefix_covers_whole_segments_only(string prefix, string path, bool covers) =>
         Assert.Equal(covers, ModuleCredentialMiddleware.Covers(prefix, path));
