@@ -4,10 +4,7 @@ namespace Alcifra.Api.Provisioning;
 
 /// <summary>A native app's public client: Authorization Code + PKCE, implicit consent, and what it may do. A client that
 /// never signs in interactively (the autofill extension's, ADR 0981) has no redirect URI.</summary>
-/// <param name="LegacyClientId">The id before the rename, registered alike while installed clients still send it
-/// (<see cref="Alcifra.Presentation.WireNames.Legacy"/>, retired at v0.58.0).</param>
-public sealed record PublicClientRegistration(
-    string ClientId, IReadOnlyList<string> Permissions, IReadOnlyList<string> RedirectUris, string? LegacyClientId = null);
+public sealed record PublicClientRegistration(string ClientId, IReadOnlyList<string> Permissions, IReadOnlyList<string> RedirectUris);
 
 /// <summary>
 /// Seeds and HEALS a native app's public client: the desktop's and the mobile app's (ADR 0916). One implementation
@@ -24,15 +21,6 @@ public sealed record PublicClientRegistration(
 public static class PublicClientSeeder
 {
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, PublicClientRegistration client, CancellationToken cancellationToken = default)
-    {
-        await SeedOneAsync(applications, client, cancellationToken);
-        if (client.LegacyClientId is { } legacy)
-        {
-            await SeedOneAsync(applications, client with { ClientId = legacy, LegacyClientId = null }, cancellationToken);
-        }
-    }
-
-    private static async Task SeedOneAsync(IOpenIddictApplicationManager applications, PublicClientRegistration client, CancellationToken cancellationToken)
     {
         var redirects = client.RedirectUris.Select(u => new Uri(u)).ToList();
         if (await applications.FindByClientIdAsync(client.ClientId, cancellationToken) is { } existing)

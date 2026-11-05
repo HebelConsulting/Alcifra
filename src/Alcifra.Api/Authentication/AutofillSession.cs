@@ -23,7 +23,6 @@ public static class AutofillSession
     public static readonly IReadOnlySet<string> SubjectClients = new HashSet<string>(StringComparer.Ordinal)
     {
         MobileClientSeeder.ClientId,
-        Alcifra.Presentation.WireNames.Legacy.MobileClientId,
     };
 
     /// <summary>Why a validated subject token may not be exchanged, or null when it may.</summary>

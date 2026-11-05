@@ -39,5 +39,5 @@ public static class DesktopClientSeeder
     ];
 
     public static Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default) =>
-        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [Alcifra.Api.Security.DesktopLoopback.RedirectUri], Alcifra.Presentation.WireNames.Legacy.DesktopClientId), cancellationToken);
+        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [Alcifra.Api.Security.DesktopLoopback.RedirectUri]), cancellationToken);
 }

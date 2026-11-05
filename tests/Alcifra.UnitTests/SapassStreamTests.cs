@@ -60,7 +60,7 @@ public class SapassStreamTests
         var stdout = new StringWriter();
         var stderr = new StringWriter();
         var (outBefore, errBefore) = (Console.Out, Console.Error);
-        var saved = new[] { "ALCIFRA_URL", "ALCIFRA_TOKEN", "SA_URL", "SA_TOKEN", "SACONSOLE_URL", "SACONSOLE_TOKEN" }
+        var saved = new[] { "ALCIFRA_URL", "ALCIFRA_TOKEN" }
             .ToDictionary(name => name, Environment.GetEnvironmentVariable);
 
         try

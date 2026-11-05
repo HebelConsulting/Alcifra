@@ -30,7 +30,7 @@ public class SaConsoleDeviceLoginTests
         var userId = await _factory.SeedUserAsync(tenantId, email, "cli-1234", "CLI Admin");
 
         using var transport = _factory.CreateClient();
-        var flow = new DeviceFlow(transport, "saconsole");
+        var flow = new DeviceFlow(transport, "alcifra-cli");
 
         // 1. The tool asks for a code, exactly as `alcifra login` does.
         var authorization = await flow.RequestAsync(CancellationToken.None);
@@ -71,7 +71,7 @@ public class SaConsoleDeviceLoginTests
         await _factory.SeedUserAsync(tenantId, email, "cli-1234", "Refusing CLI Admin");
 
         using var transport = _factory.CreateClient();
-        var flow = new DeviceFlow(transport, "saconsole");
+        var flow = new DeviceFlow(transport, "alcifra-cli");
         var authorization = await flow.RequestAsync(CancellationToken.None);
 
         var refusal = Task.Run(async () =>

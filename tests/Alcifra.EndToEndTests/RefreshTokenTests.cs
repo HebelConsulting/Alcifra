@@ -21,14 +21,14 @@ public class RefreshTokenTests
 
     public RefreshTokenTests(E2EApiFactory factory) => _factory = factory;
 
-    private const string DesktopClientId = "simplarchive-desktop";
+    private const string DesktopClientId = "alcifra-desktop";
     private const string DesktopRedirect = "http://127.0.0.1:8765/callback";
 
     /// <summary>The native apps' public clients (ADR 0916): each signs in with PKCE, renews, and revokes alike.</summary>
     public static TheoryData<string, string> NativeClients => new()
     {
         { DesktopClientId, DesktopRedirect },
-        { "simplarchive-mobile", "dev.simplarchive.mobile:/oauth2redirect" },
+        { "alcifra-mobile", "com.alcifra.mobile:/oauth2redirect" },
     };
 
     [Theory]

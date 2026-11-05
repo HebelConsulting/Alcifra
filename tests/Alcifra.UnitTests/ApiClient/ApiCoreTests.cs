@@ -81,7 +81,7 @@ public sealed class ApiCoreTests : ApiClientSettingsTest
     {
         using var server = new LoopbackServer((_, _, _) => (200, "{}"));
         ApiClientSettings.ApiRootUrl = server.BaseUrl;
-        ApiClientSettings.ClientId = "simplarchive-mobile";
+        ApiClientSettings.ClientId = "alcifra-mobile";
         var store = new InMemoryTokenSessionStore();
         ApiClientSettings.Sessions = store;
         store.Set(server.BaseUrl, new TokenSession("access-1", "refresh-1", DateTimeOffset.MaxValue));
@@ -92,7 +92,7 @@ public sealed class ApiCoreTests : ApiClientSettingsTest
         Assert.Equal(2, revokes.Count);
         Assert.Contains(revokes, r => r.Body.Contains("token=refresh-1", StringComparison.Ordinal) && r.Body.Contains("token_type_hint=refresh_token", StringComparison.Ordinal));
         Assert.Contains(revokes, r => r.Body.Contains("token=access-1", StringComparison.Ordinal) && r.Body.Contains("token_type_hint=access_token", StringComparison.Ordinal));
-        Assert.All(revokes, r => Assert.Contains("client_id=simplarchive-mobile", r.Body, StringComparison.Ordinal));
+        Assert.All(revokes, r => Assert.Contains("client_id=alcifra-mobile", r.Body, StringComparison.Ordinal));
         Assert.Null(store.For(server.BaseUrl));
     }
 

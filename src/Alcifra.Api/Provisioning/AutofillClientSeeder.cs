@@ -15,13 +15,6 @@ public static class AutofillClientSeeder
 {
     public const string ClientId = Alcifra.Presentation.WireNames.MobileAutofillClientId;
 
-    /// <summary>Both ids that open an autofill session, while the one before the rename is accepted (until v0.58.0).</summary>
-    public static readonly IReadOnlySet<string> ClientIds = new HashSet<string>(StringComparer.Ordinal)
-    {
-        ClientId,
-        Alcifra.Presentation.WireNames.Legacy.MobileAutofillClientId,
-    };
-
     internal static readonly string[] Permissions =
     [
         OpenIddictConstants.Permissions.Endpoints.Token,
@@ -33,5 +26,5 @@ public static class AutofillClientSeeder
     ];
 
     public static Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default) =>
-        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [], Alcifra.Presentation.WireNames.Legacy.MobileAutofillClientId), cancellationToken);
+        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, []), cancellationToken);
 }

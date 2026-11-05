@@ -5,7 +5,7 @@ namespace Alcifra.DesktopClient;
 
 // Configuration for the desktop fat client — see ADR "Cross-platform desktop fat client (Avalonia)". Points
 // at the running Api and authenticates via OAuth 2.0 Authorization Code + PKCE using a fixed loopback
-// redirect (RFC 8252 "OAuth for Native Apps"). The `simplarchive-desktop` public client and this redirect
+// redirect (RFC 8252 "OAuth for Native Apps"). The `alcifra-desktop` public client and this redirect
 // URI are seeded into OpenIddict by the Api on startup.
 public static class DesktopClientOptions
 {

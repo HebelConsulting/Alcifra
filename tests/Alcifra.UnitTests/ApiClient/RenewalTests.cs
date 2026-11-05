@@ -14,7 +14,7 @@ public sealed class RenewalTests : ApiClientSettingsTest
 
     public RenewalTests()
     {
-        ApiClientSettings.ClientId = "simplarchive-mobile";
+        ApiClientSettings.ClientId = "alcifra-mobile";
         ApiClientSettings.Sessions = _store;
     }
 
@@ -48,7 +48,7 @@ public sealed class RenewalTests : ApiClientSettingsTest
         Assert.Equal($"{Root}/connect/token", uri.ToString());
         Assert.Contains("grant_type=refresh_token", body, StringComparison.Ordinal);
         Assert.Contains("refresh_token=refresh-1", body, StringComparison.Ordinal);
-        Assert.Contains("client_id=simplarchive-mobile", body, StringComparison.Ordinal);
+        Assert.Contains("client_id=alcifra-mobile", body, StringComparison.Ordinal);
         Assert.Equal("Bearer access-2", handler.Requests[1].Authorization);
         Assert.Equal("refresh-2", _store.For(Root)?.RefreshToken);   // rotated, and persisted through the host's seam
     }

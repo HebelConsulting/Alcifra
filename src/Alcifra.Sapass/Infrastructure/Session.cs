@@ -46,10 +46,9 @@ internal sealed class Session : IDisposable
     /// <param name="opener">The key path, for a command that opens an entry; null for one that only lists names.</param>
     public static Session FromEnvironment(IEnvelopeOpener? opener = null)
     {
-        // The names before the rename are read after the current one until WireNames.Legacy retires (v0.58.0).
-        var url = First(UrlVariable, WireNames.Legacy.SessionUrlVariable, WireNames.Legacy.CliUrlVariable)
+        var url = Variable(UrlVariable)
             ?? throw new SapassException($"No installation. Run: eval \"$(apass login --url …)\" to set ${UrlVariable}.");
-        var token = First(TokenVariable, WireNames.Legacy.SessionTokenVariable, WireNames.Legacy.CliTokenVariable)
+        var token = Variable(TokenVariable)
             ?? throw new SapassException($"Not signed in. Run: eval \"$(apass login --url {url})\" to set ${TokenVariable}.");
 
         // The shared client resolves a RELATIVE content address (the sealed tier's /api/encrypted-content?t=…) against
@@ -75,6 +74,6 @@ internal sealed class Session : IDisposable
 
     public void Dispose() => Http.Dispose();
 
-    private static string? First(params string[] names) =>
-        names.Select(Environment.GetEnvironmentVariable).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
+    private static string? Variable(string name) =>
+        Environment.GetEnvironmentVariable(name) is { } value && !string.IsNullOrWhiteSpace(value) ? value : null;
 }

@@ -58,12 +58,12 @@ public class SealedArchiveTests
         Assert.DoesNotContain("the content", Encoding.UTF8.GetString(archive), StringComparison.Ordinal);
     }
 
-    // Rename phase 4b (#1117): an archive written before it names the format "simplarchive" and still opens until v0.58.0;
-    // a cover naming anything else is still refused by name. The cover is re-signed, so only the format differs.
+    // ADR 1064: a cover naming the format before the rename is refused like any other. The cover is re-signed, so only
+    // the format differs.
     [Theory]
-    [InlineData("simplarchive", true)]
-    [InlineData("somethingelse", false)]
-    public async Task A_cover_naming_the_format_before_the_rename_still_reads(string format, bool reads)
+    [InlineData("simplarchive")]
+    [InlineData("somethingelse")]
+    public async Task A_cover_naming_another_format_is_refused(string format)
     {
         var archive = await WriteAsync(Installation, Recipients);
         byte[]? cover = null;
@@ -85,14 +85,7 @@ public class SealedArchiveTests
             return signed.Encode();
         });
 
-        if (reads)
-        {
-            Assert.Equal(format, SealedArchiveReader.ReadCover(new MemoryStream(resigned), [PublicOnly(Installation)]).Format);
-        }
-        else
-        {
-            Assert.Throws<ArchiveFormatException>(() => SealedArchiveReader.ReadCover(new MemoryStream(resigned), [PublicOnly(Installation)]));
-        }
+        Assert.Throws<ArchiveFormatException>(() => SealedArchiveReader.ReadCover(new MemoryStream(resigned), [PublicOnly(Installation)]));
     }
 
     [Fact]

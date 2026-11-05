@@ -13,13 +13,6 @@ public static class SealedArchiveLayout
     /// <remarks>Wire, so fixed whatever the brand (ADR 0987); this leaf references nothing, so it is spelled here.</remarks>
     public const string Format = "alcifra";
 
-    /// <summary>The extension before the rename (#1117 phase 4b), still opened until v0.58.0.</summary>
-    /// <remarks>Retirement trigger (ADR 0885): removed with <c>WireNames.Legacy</c> in v0.58.0.</remarks>
-    public const string LegacyExtension = ".simplarchive";
-
-    /// <summary>The format name before the rename, still read until v0.58.0 (see <see cref="LegacyExtension"/>).</summary>
-    public const string LegacyFormat = "simplarchive";
-
     /// <summary>The container's version. A reader refuses a newer one by name rather than misreading it.</summary>
     public const int FormatVersion = 1;
 

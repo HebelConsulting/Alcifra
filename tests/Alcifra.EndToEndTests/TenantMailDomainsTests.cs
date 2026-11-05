@@ -90,19 +90,18 @@ public class TenantMailDomainsTests
         Assert.True(await ResolvesAsync(address));
     }
 
-    // Rename phase 4b (#1117): an administrator who published under the name before the rename is not sent back to
-    // their zone; until v0.58.0 the record there verifies the domain too, with the token the claim stored.
+    // ADR 1064: the challenge is looked up at the current name only, whatever is published at the one before the rename.
     [Fact]
-    public async Task A_challenge_published_under_the_name_before_the_rename_still_verifies()
+    public async Task A_challenge_published_under_the_name_before_the_rename_does_not_verify()
     {
         var (client, _, domain, _) = await RouterAsync();
         using var _c = client;
         var created = await TestJson.Post(client, "/api/tenant/mail-domains", new { domain });
 
         _factory.Dns.Publish($"_simplarchive-challenge.{domain}", created.GetProperty("challengeValue").GetString()!);
-        var verified = await TestJson.Post(client, $"/api/tenant/mail-domains/{created.GetProperty("id").GetGuid()}/verify", new { });
+        using var refused = await client.PostAsync($"/api/tenant/mail-domains/{created.GetProperty("id").GetGuid()}/verify", null);
 
-        Assert.True(verified.GetProperty("verified").GetBoolean());
+        Assert.False(refused.IsSuccessStatusCode);
     }
 
     [Fact]

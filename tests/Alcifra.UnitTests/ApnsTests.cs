@@ -82,7 +82,7 @@ public class ApnsTests
     {
         var request = new PushRegistrationsController.RegistrationRequest
         {
-            App = "dev.simplarchive.mobile",
+            App = "com.alcifra.mobile",
             DeviceLabel = "iPhone · Anna on demo",
             Transport = PushTransports.Apns,
             Endpoint = new string('a', 64),
@@ -99,7 +99,7 @@ public class ApnsTests
     {
         var request = new PushRegistrationsController.RegistrationRequest
         {
-            App = "dev.simplarchive.mobile",
+            App = "com.alcifra.mobile",
             DeviceLabel = "iPhone",
             Transport = PushTransports.Apns,
             Endpoint = token,
@@ -114,7 +114,7 @@ public class ApnsTests
     {
         var withKeys = new PushRegistrationsController.RegistrationRequest
         {
-            App = "dev.simplarchive.mobile",
+            App = "com.alcifra.mobile",
             DeviceLabel = "iPhone",
             Transport = PushTransports.Apns,
             Endpoint = new string('b', 64),

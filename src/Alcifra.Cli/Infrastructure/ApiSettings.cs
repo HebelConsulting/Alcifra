@@ -17,8 +17,7 @@ public class ApiSettings : CommandSettings
 {
     /// <summary>Environment variable carrying the installation URL (set by <c>alcifra login</c>, and by <c>apass login</c>).</summary>
     /// <remarks>
-    /// One session for both tools (owner, 2026-10-25): it belongs to the installation, not to one tool. The names
-    /// before the rename are read after it until <see cref="WireNames.Legacy"/> retires (v0.58.0).
+    /// One session for both tools (owner, 2026-10-25): it belongs to the installation, not to one tool.
     /// </remarks>
     public const string UrlVariable = WireNames.UrlVariable;
 
@@ -29,18 +28,17 @@ public class ApiSettings : CommandSettings
     [Description("Base URL of the installation, e.g. https://archive.example.com. Defaults to $ALCIFRA_URL.")]
     public string? Url { get; init; }
 
-    /// <summary>The installation to act on — the option if given, else the environment (current name first).</summary>
+    /// <summary>The installation to act on — the option if given, else the environment.</summary>
     public string ResolvedUrl => !string.IsNullOrWhiteSpace(Url)
         ? Url
-        : First(UrlVariable, WireNames.Legacy.SessionUrlVariable, WireNames.Legacy.CliUrlVariable);
+        : Variable(UrlVariable);
 
-    /// <summary>A client secret from the environment — current name first — or the empty string; never an option's value.</summary>
-    public static string ClientSecretFromEnvironment =>
-        First(WireNames.ClientSecretVariable, WireNames.Legacy.CliClientSecretVariable);
+    /// <summary>A client secret from the environment, or the empty string; never an option's value.</summary>
+    public static string ClientSecretFromEnvironment => Variable(WireNames.ClientSecretVariable);
 
-    /// <summary>The first of these environment variables that is set, or the empty string.</summary>
-    protected static string First(params string[] names) =>
-        names.Select(Environment.GetEnvironmentVariable).FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? string.Empty;
+    /// <summary>This environment variable, or the empty string when it is not set.</summary>
+    protected static string Variable(string name) =>
+        Environment.GetEnvironmentVariable(name) is { } value && !string.IsNullOrWhiteSpace(value) ? value : string.Empty;
 
     // Spectre builds settings by reflection and does not enforce `required` — validate explicitly.
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(ResolvedUrl)
@@ -62,7 +60,7 @@ public class ApiSettings : CommandSettings
 public class TenantSessionSettings : ApiSettings
 {
     /// <summary>The access token from the environment — never an option, so it cannot land in shell history.</summary>
-    public string ResolvedToken => First(TokenVariable, WireNames.Legacy.SessionTokenVariable, WireNames.Legacy.CliTokenVariable);
+    public string ResolvedToken => Variable(TokenVariable);
 
     public override ValidationResult Validate() => this switch
     {

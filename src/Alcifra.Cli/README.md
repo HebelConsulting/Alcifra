@@ -79,7 +79,7 @@ alcifra whoami
 ```
 
 For unattended use, sign in as a tenant **service account** with `alcifra login --client-id <id>`, with the secret
-in `ALCIFRA_CLIENT_SECRET` (from the environment, never as an argument; `SACONSOLE_CLIENT_SECRET` is still read until v0.58.0).
+in `ALCIFRA_CLIENT_SECRET` (from the environment, never as an argument).
 
 Requires the .NET 10 runtime. Source, documentation and issues: <https://github.com/HebelConsulting/Alcifra>
 

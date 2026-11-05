@@ -326,13 +326,7 @@ public class TenantMailDomainsController : ControllerBase
             return Ok(ToResource(entry, canManage: true)); // already proven; nothing to look up
         }
 
-        // Both names until v0.58.0: an administrator who published under the one before the rename is not sent back
-        // to their zone (WireNames.Legacy). The value is the STORED token at either.
-        var records = new List<string>();
-        foreach (var name in MailDomainChallenge.NamesFor(entry.Domain))
-        {
-            records.AddRange(await _dns.GetTxtRecordsAsync(name, cancellationToken));
-        }
+        var records = await _dns.GetTxtRecordsAsync(MailDomainChallenge.NameFor(entry.Domain), cancellationToken);
 
         entry.LastCheckedAt = _time.GetUtcNow();
 
@@ -342,7 +336,7 @@ public class TenantMailDomainsController : ControllerBase
         // is a secret: the token is published in public DNS by design.
         _logger.LogTrace(
             "Mail-domain challenge at {Name}: expected {Expected}, found {Found}",
-            MailDomainChallenge.NamesFor(entry.Domain), entry.VerificationToken, records);
+            MailDomainChallenge.NameFor(entry.Domain), entry.VerificationToken, records);
 
         // Compared against the STORED token, and ordinally: a DNS TXT value is bytes, and a case-insensitive
         // match on a random token would only widen what counts as proof.

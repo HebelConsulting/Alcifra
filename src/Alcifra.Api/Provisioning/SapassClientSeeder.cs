@@ -17,21 +17,14 @@ public static class SapassClientSeeder
     /// <summary>Idempotent: creates the client when it is absent, and asks nothing of an existing one.</summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.58.0).
-        await SeedAsync(applications, ClientId, cancellationToken);
-        await SeedAsync(applications, Alcifra.Presentation.WireNames.Legacy.PassClientId, cancellationToken);
-    }
-
-    private static async Task SeedAsync(IOpenIddictApplicationManager applications, string clientId, CancellationToken cancellationToken)
-    {
-        if (await applications.FindByClientIdAsync(clientId, cancellationToken) is not null)
+        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is not null)
         {
             return;
         }
 
         await applications.CreateAsync(new OpenIddictApplicationDescriptor
         {
-            ClientId = clientId,
+            ClientId = ClientId,
             ClientType = OpenIddictConstants.ClientTypes.Public,
 
             // A PUBLIC client with no redirect URI: the device grant never redirects, which is what lets the tool

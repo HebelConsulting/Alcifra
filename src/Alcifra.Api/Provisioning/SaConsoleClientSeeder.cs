@@ -30,14 +30,7 @@ public static class SaConsoleClientSeeder
     /// </summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        // The id before the rename too, while installed tools still send it (WireNames.Legacy, retired at v0.58.0).
-        await SeedAsync(applications, ClientId, cancellationToken);
-        await SeedAsync(applications, Alcifra.Presentation.WireNames.Legacy.CliClientId, cancellationToken);
-    }
-
-    private static async Task SeedAsync(IOpenIddictApplicationManager applications, string clientId, CancellationToken cancellationToken)
-    {
-        if (await applications.FindByClientIdAsync(clientId, cancellationToken) is { } existing)
+        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is { } existing)
         {
             var current = new OpenIddictApplicationDescriptor();
             await applications.PopulateAsync(current, existing, cancellationToken);
@@ -51,7 +44,7 @@ public static class SaConsoleClientSeeder
 
         await applications.CreateAsync(new OpenIddictApplicationDescriptor
         {
-            ClientId = clientId,
+            ClientId = ClientId,
             ClientType = OpenIddictConstants.ClientTypes.Public,
 
             // A PUBLIC client with no redirect URI at all: the device grant never redirects, which is the

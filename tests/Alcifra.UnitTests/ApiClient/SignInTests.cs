@@ -10,7 +10,7 @@ namespace Alcifra.UnitTests.ApiClient;
 [Collection(ApiClientSettingsCollection.Name)]
 public sealed class SignInTests : ApiClientSettingsTest
 {
-    private const string Redirect = "dev.simplarchive.mobile:/oauth2redirect";
+    private const string Redirect = "com.alcifra.mobile:/oauth2redirect";
 
     private static string Jwt(string payload) =>
         $"e30.{Convert.ToBase64String(Encoding.UTF8.GetBytes(payload)).TrimEnd('=').Replace('+', '-').Replace('/', '_')}.sig";
@@ -35,13 +35,13 @@ public sealed class SignInTests : ApiClientSettingsTest
     {
         using var server = IdentityServer();
 
-        var signIn = await PkceSignIn.StartAsync(server.BaseUrl, "simplarchive-mobile", Redirect, "openid offline_access",
+        var signIn = await PkceSignIn.StartAsync(server.BaseUrl, "alcifra-mobile", Redirect, "openid offline_access",
             forceLogin: true, loginHint: "anna@demo.test");
 
         var uri = new Uri(signIn.AuthorizeUrl);
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
         Assert.Equal("https://id.example.test/connect/authorize", uri.GetLeftPart(UriPartial.Path));
-        Assert.Equal("simplarchive-mobile", query["client_id"]);
+        Assert.Equal("alcifra-mobile", query["client_id"]);
         Assert.Equal(Redirect, query["redirect_uri"]);
         Assert.Equal("code", query["response_type"]);
         Assert.Equal("openid offline_access", query["scope"]);
@@ -80,7 +80,7 @@ public sealed class SignInTests : ApiClientSettingsTest
     public async Task The_code_is_exchanged_with_the_verifier_and_the_same_redirect_and_the_email_read_from_the_id_token()
     {
         using var server = IdentityServer();
-        var signIn = await PkceSignIn.StartAsync(server.BaseUrl, "simplarchive-mobile", Redirect, "openid offline_access");
+        var signIn = await PkceSignIn.StartAsync(server.BaseUrl, "alcifra-mobile", Redirect, "openid offline_access");
 
         var result = await signIn.CompleteAsync("code-1", StateOf(signIn));
 
@@ -93,7 +93,7 @@ public sealed class SignInTests : ApiClientSettingsTest
         Assert.Contains("grant_type=authorization_code", exchange, StringComparison.Ordinal);
         Assert.Contains("code=code-1", exchange, StringComparison.Ordinal);
         Assert.Contains($"redirect_uri={Uri.EscapeDataString(Redirect)}", exchange, StringComparison.Ordinal);
-        Assert.Contains("client_id=simplarchive-mobile", exchange, StringComparison.Ordinal);
+        Assert.Contains("client_id=alcifra-mobile", exchange, StringComparison.Ordinal);
         Assert.Contains("code_verifier=", exchange, StringComparison.Ordinal);
     }
 

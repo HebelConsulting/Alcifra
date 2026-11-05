@@ -59,7 +59,7 @@ internal static class Program
             Alcifra.Localization.Culture.Apply(args[langIndex + 1]);
         }
 
-        // An alcifra:// launch (#761; simplarchive:// until WireNames.Legacy retires): the OS hands the link as an argument. Parked on the view-model and
+        // An alcifra:// launch (#761): the OS hands the link as an argument. Parked on the view-model and
         // consumed once the user is signed in and the workbench is loaded — a deep link cannot skip login.
         if (args.FirstOrDefault(Alcifra.ApiClient.DeepLinks.IsSchemeLink) is { } schemeLink)
         {

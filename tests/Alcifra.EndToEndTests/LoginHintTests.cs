@@ -18,7 +18,7 @@ public class LoginHintTests
     {
         using var client = _factory.CreateClient();
 
-        var returnUrl = "/connect/authorize?client_id=simplarchive-desktop&login_hint=you%40example.com";
+        var returnUrl = "/connect/authorize?client_id=alcifra-desktop&login_hint=you%40example.com";
         var response = await client.GetAsync($"/Account/Login?ReturnUrl={Uri.EscapeDataString(returnUrl)}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

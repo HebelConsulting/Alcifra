@@ -41,24 +41,16 @@ public class AutofillSessionTests
         Assert.Equal(userId, await WhoAmIUserAsync(Access(renewedTokens)));
     }
 
-    // Until v0.58.0 an app installed before the rename keeps its ids and redirect, and its autofill extension too
-    // (WireNames.Legacy, #1117 phase 4).
+    // ADR 1064: the autofill client's id before the rename opens nothing any more.
     [Fact]
-    public async Task The_ids_before_the_rename_still_open_and_renew_an_autofill_session()
+    public async Task The_autofill_id_before_the_rename_opens_no_session()
     {
-        var (email, password, userId) = await SeedUserAsync();
-        var app = await _factory.SignInNativeAppAsync(
-            email, password, Alcifra.Presentation.WireNames.Legacy.MobileClientId, Alcifra.Presentation.WireNames.Legacy.MobileRedirectUri);
+        var (email, password, _) = await SeedUserAsync();
+        var app = await _factory.SignInNativeAppAsync(email, password, MobileClientId, MobileRedirect);
 
-        var legacyAutofill = Alcifra.Presentation.WireNames.Legacy.MobileAutofillClientId;
-        using var exchanged = await ExchangeAsync(Access(app), ("client_id", legacyAutofill));
-        Assert.Equal(HttpStatusCode.OK, exchanged.StatusCode);
-        var autofill = await ReadAsync(exchanged);
-        Assert.Equal(userId, await WhoAmIUserAsync(Access(autofill)));
+        using var exchanged = await ExchangeAsync(Access(app), ("client_id", "simplarchive-mobile-autofill"));
 
-        using var client = _factory.CreateClient();
-        using var renewed = await PostRefreshAsync(client, Refresh(autofill), legacyAutofill);
-        Assert.Equal(HttpStatusCode.OK, renewed.StatusCode);
+        Assert.NotEqual(HttpStatusCode.OK, exchanged.StatusCode);
     }
 
     [Fact]

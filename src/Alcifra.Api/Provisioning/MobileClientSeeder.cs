@@ -27,5 +27,5 @@ public static class MobileClientSeeder
     ];
 
     public static Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default) =>
-        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, Alcifra.Api.Security.MobileRedirect.RedirectUris, Alcifra.Presentation.WireNames.Legacy.MobileClientId), cancellationToken);
+        PublicClientSeeder.SeedAsync(applications, new PublicClientRegistration(ClientId, Permissions, [Alcifra.Api.Security.MobileRedirect.RedirectUri]), cancellationToken);
 }

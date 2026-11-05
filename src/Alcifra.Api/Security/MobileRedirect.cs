@@ -10,9 +10,6 @@ public static class MobileRedirect
     /// <summary>The registered redirect URI, which must match what the app requests exactly.</summary>
     public const string RedirectUri = Alcifra.Presentation.WireNames.MobileRedirectUri;
 
-    /// <summary>Every redirect the mobile client accepts: the app's before its identifier moves (Mobile #187) too.</summary>
-    public static readonly IReadOnlyList<string> RedirectUris = [RedirectUri, Alcifra.Presentation.WireNames.Legacy.MobileRedirectUri];
-
-    /// <summary>Their schemes as content-security-policy scheme sources, space-separated.</summary>
-    public static readonly string SchemeSources = string.Join(' ', RedirectUris.Select(u => u[..(u.IndexOf(':') + 1)]));
+    /// <summary>Its scheme as a content-security-policy scheme source.</summary>
+    public static readonly string SchemeSources = RedirectUri[..(RedirectUri.IndexOf(':') + 1)];
 }

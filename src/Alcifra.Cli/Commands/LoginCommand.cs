@@ -106,12 +106,9 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
         // console width — 80 when stdout is not a terminal, which is exactly the eval/script case — so the token
         // line broke, `eval` ran a bare `export`, and bash dumped the whole environment, a client secret included,
         // into the caller's log (the kiosk's first v0.37.0 reset). A shell export line must arrive as one line.
-        // Each variable is printed under its current name and under the name before the rename, until
-        // WireNames.Legacy retires (v0.58.0): a script that greps for `export SACONSOLE_TOKEN=` (the kiosk's
-        // saconsole-session.sh) keeps working while it moves. One line per export, as before.
         var url = settings.ResolvedUrl.TrimEnd('/');
-        Console.Out.WriteLine($"export {ApiSettings.TokenVariable}='{token}'\nexport {Alcifra.Presentation.WireNames.Legacy.CliTokenVariable}='{token}'");
-        Console.Out.WriteLine($"export {ApiSettings.UrlVariable}='{url}'\nexport {Alcifra.Presentation.WireNames.Legacy.CliUrlVariable}='{url}'");
+        Console.Out.WriteLine($"export {ApiSettings.TokenVariable}='{token}'");
+        Console.Out.WriteLine($"export {ApiSettings.UrlVariable}='{url}'");
         return 0;
     }
 

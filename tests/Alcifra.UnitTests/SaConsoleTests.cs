@@ -33,6 +33,26 @@ public sealed class SaConsoleTests
 
     private static readonly string[] SecretVariables = ["ALCIFRA_CLIENT_SECRET", "SACONSOLE_CLIENT_SECRET"];
 
+    // ADR 1064: the name before the rename supplies nothing any more.
+    [Fact]
+    public void The_secret_variable_before_the_rename_is_not_read()
+    {
+        var previous = SecretVariables.Select(Environment.GetEnvironmentVariable).ToArray();
+        Environment.SetEnvironmentVariable(SecretVariables[0], null);
+        Environment.SetEnvironmentVariable(SecretVariables[1], "from-the-environment");
+        try
+        {
+            Assert.False(Valid(secret: null).Validate().Successful);
+        }
+        finally
+        {
+            for (var i = 0; i < SecretVariables.Length; i++)
+            {
+                Environment.SetEnvironmentVariable(SecretVariables[i], previous[i]);
+            }
+        }
+    }
+
     [Fact] // the secret must be available, but the option is not the only way to supply it
     public void A_missing_secret_says_how_to_supply_it_without_shell_history()
     {
@@ -58,10 +78,8 @@ public sealed class SaConsoleTests
         }
     }
 
-    // The name before the rename is read too, until WireNames.Legacy retires (v0.58.0): a script still setting it works.
     [Theory]
     [InlineData("ALCIFRA_CLIENT_SECRET")]
-    [InlineData("SACONSOLE_CLIENT_SECRET")]
     public void The_environment_supplies_the_secret_when_the_option_does_not(string variable)
     {
         var previous = SecretVariables.Select(Environment.GetEnvironmentVariable).ToArray();

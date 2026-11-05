@@ -12,11 +12,8 @@ public class AutofillSessionTests
     [Fact]
     public void Only_the_mobile_apps_sign_in_client_may_open_an_autofill_session_today()
     {
-        // The mobile app's id, and its id before the rename until v0.58.0 (WireNames.Legacy).
-        Assert.Equal(
-            [MobileClientSeeder.ClientId, Alcifra.Presentation.WireNames.Legacy.MobileClientId],
-            AutofillSession.SubjectClients.Order());
-        Assert.All(AutofillClientSeeder.ClientIds, id => Assert.DoesNotContain(id, AutofillSession.SubjectClients));   // no chaining
+        Assert.Equal([MobileClientSeeder.ClientId], AutofillSession.SubjectClients);
+        Assert.DoesNotContain(AutofillClientSeeder.ClientId, AutofillSession.SubjectClients);   // no chaining
     }
 
     [Fact]
@@ -25,6 +22,7 @@ public class AutofillSessionTests
 
     [Theory]
     [InlineData(null)]
+    [InlineData("simplarchive-mobile")]
     [InlineData("simplarchive-desktop")]
     [InlineData("alcifra-desktop")]
     [InlineData("blazor-client")]

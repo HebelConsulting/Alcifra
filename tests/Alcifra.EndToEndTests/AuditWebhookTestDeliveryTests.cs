@@ -69,9 +69,7 @@ public class AuditWebhookTestDeliveryTests
         }
         var signature = context.Request.Headers["X-Alcifra-Signature"];
 
-        // Until v0.58.0 the header before the rename carries the same signature, so a receiver written against it keeps
-        // verifying while it moves (WireNames.Legacy).
-        Assert.Equal(signature, context.Request.Headers["X-SimplArchive-Signature"]);
+        Assert.Null(context.Request.Headers["X-SimplArchive-Signature"]);   // the header before the rename is gone
         context.Response.StatusCode = 200;
         context.Response.Close();
         return (body, signature);

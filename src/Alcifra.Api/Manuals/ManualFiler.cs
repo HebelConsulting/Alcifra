@@ -86,17 +86,6 @@ public sealed class ManualFiler(
     public const string CoreArticleNumber = "alcifra-core";
 
     /// <summary>
-    /// The Article numbers before the rename (#1117): a manual filed under one is found by it once more, and re-keyed to
-    /// the current number under the filing lock. Retire with <c>WireNames.Legacy</c> (v0.58.0), when every installation
-    /// has started once and so re-keyed its manuals.
-    /// </summary>
-    internal static readonly IReadOnlyDictionary<string, string> EarlierArticleNumbers = new Dictionary<string, string>
-    {
-        ["alcifra-core"] = "simplarchive-core",
-        ["alcifra-archive-signing-keys"] = "simplarchive-archive-signing-keys",
-    };
-
-    /// <summary>
     /// Where the served core manual lives under wwwroot — the same file the download link serves, named from the
     /// brand's file stem (ADR 0997).
     /// </summary>
@@ -324,26 +313,8 @@ public sealed class ManualFiler(
     }
 
     // A manual the core files itself (its own, a client's) is found again by its Article number, which needs no column.
-    // Called under the filing lock, so re-keying a manual filed under its earlier number races no sibling instance.
-    private async Task<Guid?> ManualDocumentIdAsync(string articleNumberValue, CancellationToken cancellationToken)
-    {
-        if (await ArticleNumberValues(articleNumberValue).Select(v => (Guid?)v.DocumentId).FirstOrDefaultAsync(cancellationToken) is { } id)
-        {
-            return id;
-        }
-
-        if (!EarlierArticleNumbers.TryGetValue(articleNumberValue, out var earlier)
-            || await ArticleNumberValues(earlier).FirstOrDefaultAsync(cancellationToken) is not { } filedEarlier)
-        {
-            return null;
-        }
-
-        filedEarlier.Value = articleNumberValue;
-        await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Manual {DocumentId}: Article number {Earlier} re-keyed to {Current}",
-            filedEarlier.DocumentId, earlier, articleNumberValue);
-        return filedEarlier.DocumentId;
-    }
+    private async Task<Guid?> ManualDocumentIdAsync(string articleNumberValue, CancellationToken cancellationToken) =>
+        await ArticleNumberValues(articleNumberValue).Select(v => (Guid?)v.DocumentId).FirstOrDefaultAsync(cancellationToken);
 
     private IQueryable<FieldValue> ArticleNumberValues(string articleNumberValue)
     {

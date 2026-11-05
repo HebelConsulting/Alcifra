@@ -180,7 +180,7 @@ public class DeviceAuthorizationFlowTests
     {
         using var response = await client.PostAsync("/connect/device", new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = "saconsole",
+            ["client_id"] = "alcifra-cli",
             ["scope"] = "openid",
         }));
 
@@ -196,7 +196,7 @@ public class DeviceAuthorizationFlowTests
         {
             ["grant_type"] = DeviceCodeGrant,
             ["device_code"] = deviceCode,
-            ["client_id"] = "saconsole",
+            ["client_id"] = "alcifra-cli",
         }));
 
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.Clone();

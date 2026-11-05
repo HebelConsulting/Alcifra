@@ -20,5 +20,6 @@ public static class PublicClientsSeed
         await AutofillClientSeeder.SeedAsync(applications, cancellationToken);
         await SaConsoleClientSeeder.SeedAsync(applications, cancellationToken);
         await SapassClientSeeder.SeedAsync(applications, cancellationToken);
+        await RetiredClients.RemoveAsync(applications, cancellationToken);
     }
 }

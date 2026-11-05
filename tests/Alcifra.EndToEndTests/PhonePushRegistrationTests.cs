@@ -28,7 +28,7 @@ public class PhonePushRegistrationTests
             .First(l => l.GetProperty("rel").GetString() == "pushRegistrations").GetProperty("href").GetString()!;
 
     private static object Device(string endpoint, string label = "Pixel · Anna on demo") =>
-        new { app = "dev.simplarchive.mobile", deviceLabel = label, endpoint, p256dh = DeviceKeys.P256dh, auth = DeviceKeys.Auth };
+        new { app = "com.alcifra.mobile", deviceLabel = label, endpoint, p256dh = DeviceKeys.P256dh, auth = DeviceKeys.Auth };
 
     private static string SelfOf(JsonElement row) =>
         row.GetProperty("links").EnumerateArray().First(l => l.GetProperty("rel").GetString() == "self").GetProperty("href").GetString()!;
@@ -109,7 +109,7 @@ public class PhonePushRegistrationTests
         var listed = await TestJson.Get(api, collection);
         using var apns = await api.PostAsJsonAsync(collection, new
         {
-            app = "dev.simplarchive.mobile",
+            app = "com.alcifra.mobile",
             deviceLabel = "iPhone · Anna on demo",
             transport = "apns",
             endpoint = new string('a', 64),
@@ -128,7 +128,7 @@ public class PhonePushRegistrationTests
 
         using var plain = await api.PostAsJsonAsync(collection, Device("http://push.example.test/up/1"));
         using var badKeys = await api.PostAsJsonAsync(collection,
-            new { app = "dev.simplarchive.mobile", deviceLabel = "x", endpoint = "https://push.example.test/up/2", p256dh = "BKey", auth = "auth" });
+            new { app = "com.alcifra.mobile", deviceLabel = "x", endpoint = "https://push.example.test/up/2", p256dh = "BKey", auth = "auth" });
 
         Assert.Equal((HttpStatusCode.BadRequest, HttpStatusCode.BadRequest), (plain.StatusCode, badKeys.StatusCode));
     }

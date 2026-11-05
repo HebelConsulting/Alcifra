@@ -21,13 +21,6 @@ public static class MailDomainChallenge
     /// </remarks>
     public static string NameFor(string domain) => $"{Alcifra.Presentation.WireNames.MailDomainChallengeLabel}.{domain.Trim().TrimEnd('.')}";
 
-    /// <summary>
-    /// Every name a challenge is looked up at: the current one, and the one before the rename for a domain whose
-    /// administrator published there (WireNames.Legacy, until v0.58.0). The value is the stored token either way.
-    /// </summary>
-    public static IReadOnlyList<string> NamesFor(string domain) =>
-        [NameFor(domain), $"{Alcifra.Presentation.WireNames.Legacy.MailDomainChallengeLabel}.{domain.Trim().TrimEnd('.')}"];
-
     /// <summary>A fresh challenge value: the prefix plus 160 bits of randomness, URL-safe.</summary>
     /// <remarks>
     /// <b>Cryptographically random, not a GUID.</b> The token is the whole proof — anyone who can guess one

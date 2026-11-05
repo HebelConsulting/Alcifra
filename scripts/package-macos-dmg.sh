@@ -163,13 +163,12 @@ build_one() {
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>LSApplicationCategoryType</key><string>public.app-category.business</string>
-  <!-- The alcifra:// deep-link scheme (#761), and simplarchive:// until WireNames.Legacy retires (v0.58.0, ADR 1001):
-       macOS registers handlers declaratively from the bundle. -->
+  <!-- The alcifra:// deep-link scheme (#761): macOS registers handlers declaratively from the bundle. -->
   <key>CFBundleURLTypes</key>
   <array>
     <dict>
       <key>CFBundleURLName</key><string>${BUNDLE_ID}.deeplink</string>
-      <key>CFBundleURLSchemes</key><array><string>alcifra</string><string>simplarchive</string></array>
+      <key>CFBundleURLSchemes</key><array><string>alcifra</string></array>
     </dict>
   </array>
 </dict>

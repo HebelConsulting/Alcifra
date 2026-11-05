@@ -18,7 +18,7 @@ public class DesktopDeepLinkTests
     [InlineData("https://demo.simplarchive.dev/go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]
     [InlineData("http://localhost:8080/go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]
     [InlineData("alcifra://go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]           // the scheme form
-    [InlineData("simplarchive://go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]      // the scheme before the rename (WireNames.Legacy)
+    [InlineData("simplarchive://go/39029ca2-4943-5a55-8674-a93aa8cc9033", false)]     // the scheme before the rename (ADR 1064)
     [InlineData("  https://demo.simplarchive.dev/go/39029ca2-4943-5a55-8674-a93aa8cc9033  ", true)] // pasted with whitespace
     [InlineData("https://demo.simplarchive.dev/go/not-a-guid", false)]
     [InlineData("https://demo.simplarchive.dev/documents/39029ca2-4943-5a55-8674-a93aa8cc9033", false)] // not the /go route
@@ -33,12 +33,13 @@ public class DesktopDeepLinkTests
     public void The_parsed_id_is_the_links_id()
         => Assert.Equal(Id, DeepLinks.ParseDocumentId($"alcifra://go/{Id}"));
 
-    // A launch argument is recognised on either scheme (Program.cs), so a link written before the rename still opens.
+    // A launch argument is recognised on the current scheme only (Program.cs; ADR 1064).
     [Theory]
     [InlineData("alcifra://go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]
-    [InlineData("SIMPLARCHIVE://go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]
+    [InlineData("ALCIFRA://go/39029ca2-4943-5a55-8674-a93aa8cc9033", true)]
+    [InlineData("SIMPLARCHIVE://go/39029ca2-4943-5a55-8674-a93aa8cc9033", false)]
     [InlineData("https://demo.simplarchive.dev/go/39029ca2-4943-5a55-8674-a93aa8cc9033", false)]
     [InlineData("--verbose", false)]
-    public void A_launch_link_is_recognised_on_either_scheme(string argument, bool recognised)
+    public void A_launch_link_is_recognised_on_the_current_scheme(string argument, bool recognised)
         => Assert.Equal(recognised, DeepLinks.IsSchemeLink(argument));
 }
