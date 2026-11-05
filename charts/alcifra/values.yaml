@@ -464,27 +464,27 @@ modules:
   pins:
     FLIGHT_SCHOOL:
       package: Alcifra.FlightSchool
-      version: 0.3.0
-      sha512: "av58HXHCHrFLDEo+fooFIM9wVXdzgWcLPD84nr3TCoEJcZwcTjbXEs74F6V9UnIrRsUetS47UkUPgBOnU3VRmw=="
+      version: 0.4.0
+      sha512: M/cgIO4+6TPwAwBJ8kXbkzfergbax+4asojmNqvW8C688GsRXrfke63p5/KGT0RtyNkhPUWkw9QXIvMSax6J0w==
     ENCRYPTION:
       package: Alcifra.Encryption
-      version: 0.7.0
-      sha512: "spwEblOfqS9hjtsQw4N6/ISkSvK796zI/m9F8Dz9oH+XY72h1o51YrELTlak43Gk29koPZoXqt6Qb5+YfmHXTQ=="
+      version: 0.8.0
+      sha512: nZGkED5s2pF847JgAyeDeWDF26FM0h4rH8TRD9wyPMPcmI7ilz8GGpSOL1hQjhv3PTfUKn7v3kLzXofVbsoXMQ==
     LICENSING:
-      package: SimplArchive.Licensing
-      version: 0.6.0
-      sha512: "eJp8588NETDiD+B5sw18GPg1i/aZhaij+nxGuklH1DlzEfgTK8Kiq3dVilmpFC7kFtyROfwLwoT2x42dOeIo9g=="
+      package: Alcifra.Licensing
+      version: 0.8.0
+      sha512: CCpy40yGlZT9SvBw0oVef7rfeXRfLe16Qq2i36/3FxDHov6lD1GXWN4hFudvHuxxpJAMjqYhqHo9Iq627F67WA==
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).
     MESSENGER:
       package: Alcifra.Messenger
-      version: 0.9.0
-      sha512: "3p1fcCFmPKqNoZZdxyyQT8uZusLYuQR3km9lgZw/LoG1YcZGxSHKkqMqZdPHY9qCj3SlERwYaiiiYcdLAM8Hbg=="
+      version: 0.10.0
+      sha512: yvy6vMm9IF5rcpIt8qPO8w4dDCSUFsEz4dPvX1fTaBXEvPMo1xWl4PoTQiNavk5V37Ra9QD6Yfa2Xj3v3+f88Q==
       source: nuget.org
     # The tube module, open source and free like the Messenger: from nuget.org (needs core v0.57.2, ABI 1.28).
     TUBE:
       package: Alcifra.Tube
-      version: 0.3.0
-      sha512: "VGbM87flqd+XxvO+IaOeQHc2DJxHIedC0DvUNC8g1kevAAQbtgFJZEMhoOcoPRao18LgW8JqePeAcYp/txGgyg=="
+      version: 0.4.0
+      sha512: IR/84HueEvUHVS7o+uxkK0uLLC5hjuSskx90Hgir++B3y1u/oGy7zh09wN1TCa9fXqJTuAHoHdzcFnf9h462Jg==
       source: nuget.org
 
   # Plain alpine: a .nupkg is a zip, so the installer needs no NuGet tooling and no SDK image.
