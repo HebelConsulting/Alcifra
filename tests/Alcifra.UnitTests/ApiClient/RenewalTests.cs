@@ -149,6 +149,49 @@ public sealed class RenewalTests : ApiClientSettingsTest
         Assert.Equal(1, handler.Requests.Count(r => r.Uri.AbsolutePath == "/connect/token"));
     }
 
+    // A phone signed out on a throttle's 429 or a proxy's 502 during a restart, with a refresh token that still worked.
+    [Theory]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.BadGateway)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    public async Task A_renewal_the_server_could_not_answer_keeps_the_session_and_works_once_it_can(HttpStatusCode trouble)
+    {
+        var slot = new InMemoryTokenSessionStore();
+        slot.Set(Root, new TokenSession("access-1", "refresh-1", DateTimeOffset.UtcNow.AddMinutes(-1)));
+        var recovered = false;
+        using var server = new FakeHandler(r => r.RequestUri!.AbsolutePath == "/connect/token"
+            ? recovered ? Tokens("access-2", "refresh-2") : new HttpResponseMessage(trouble)
+            : new HttpResponseMessage(HttpStatusCode.OK));
+        using var client = new HttpMessageInvoker(new RenewingAuthHandler(Root, TokenSession.Holder.Stored(slot, Root), server, slot, announce: false));
+
+        var failed = await Assert.ThrowsAsync<HttpRequestException>(() => client.SendAsync(Get(), default));
+        Assert.Equal(trouble, failed.StatusCode);
+        Assert.Equal("refresh-1", slot.For(Root)?.RefreshToken);
+
+        recovered = true;
+        using var answered = await client.SendAsync(Get(), default);
+
+        Assert.Equal(HttpStatusCode.OK, answered.StatusCode);
+        Assert.Equal("refresh-2", slot.For(Root)?.RefreshToken);
+    }
+
+    // The same when the renewal follows a 401: an answer that says nothing about the token ends nothing.
+    [Fact]
+    public async Task A_401_whose_renewal_the_server_could_not_answer_keeps_the_session()
+    {
+        var slot = new InMemoryTokenSessionStore();
+        slot.Set(Root, new TokenSession("access-1", "refresh-1", DateTimeOffset.MaxValue));
+        using var server = new FakeHandler(r => r.RequestUri!.AbsolutePath == "/connect/token"
+            ? new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+            : new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        using var client = new HttpMessageInvoker(new RenewingAuthHandler(Root, TokenSession.Holder.Stored(slot, Root), server, slot, announce: false));
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => client.SendAsync(Get(), default));
+
+        Assert.Equal("refresh-1", slot.For(Root)?.RefreshToken);
+    }
+
     [Fact]
     public async Task A_handler_with_its_own_store_renews_into_it_and_leaves_the_hosts_alone()
     {

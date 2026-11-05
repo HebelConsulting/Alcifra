@@ -242,13 +242,6 @@ public sealed class RenewingAuthHandler : DelegatingHandler
 
             return next;
         }
-        catch (HttpRequestException)
-        {
-            // The server is unreachable — a different thing from a refused token, and NOT a reason to throw the
-            // stored refresh token away. The connectivity path already owns this case; the session survives so
-            // that coming back online resumes rather than re-authenticates.
-            return null;
-        }
         finally
         {
             gate.Release();
@@ -256,7 +249,10 @@ public sealed class RenewingAuthHandler : DelegatingHandler
     }
 
     /// <summary>One refresh-token grant: the new session, or null when the server refused it (or answered no access
-    /// token). An unreachable server throws <see cref="HttpRequestException"/>, which is not a refusal.</summary>
+    /// token).</summary>
+    /// <exception cref="HttpRequestException">The server is unreachable or could not answer: a throttle's 429, a 5xx, a
+    /// proxy's 502 during a restart. None of those says anything about the token, so the session and its stored refresh
+    /// token survive, and the connectivity path owns the case. A refusal is what OAuth refuses with: 400, 401 or 403.</exception>
     private async Task<TokenSession?> RedeemAsync(string refreshToken, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiRootUrl.TrimEnd('/')}/connect/token")
@@ -272,9 +268,15 @@ public sealed class RenewingAuthHandler : DelegatingHandler
         // Sent through the INNER handler: this request carries its own credential and must not be given a
         // bearer, retried on 401, or recursed back into this method.
         using var response = await base.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            ApiClientSettings.Logger.LogWarning("Renewing the session on {ApiRootUrl} answered {Status}; the session is kept", _apiRootUrl, (int)response.StatusCode);
+            throw new HttpRequestException($"Renewing the session answered {(int)response.StatusCode}.", null, response.StatusCode);
         }
 
         var tokens = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
