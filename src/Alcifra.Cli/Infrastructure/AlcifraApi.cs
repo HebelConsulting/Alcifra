@@ -234,6 +234,22 @@ public sealed class AlcifraApi(HttpClient http)
         }
     }
 
+    /// <summary>A large file, read as it is sent, as one plain PUT: storage keeps no chunked encoding that a container
+    /// client would refuse (Licensing ADR 0021).</summary>
+    public static async Task UploadFileAsync(Uri presignedUrl, string path, CancellationToken cancellationToken)
+    {
+        using var anonymous = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+        await using var file = File.OpenRead(path);
+        using var content = new StreamContent(file);
+        using var response = await anonymous.PutAsync(presignedUrl, content, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new CliException(
+                $"Object storage refused the upload ({(int)response.StatusCode}). The presigned URL may have "
+                + "expired, or this host cannot reach the storage endpoint the installation advertises.");
+        }
+    }
+
     /// <summary>
     /// Sends raw bytes — a certificate is a FILE, not a JSON field.
     /// </summary>

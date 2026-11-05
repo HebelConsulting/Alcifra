@@ -208,6 +208,13 @@ public static class SaConsoleApp
                     .WithDescription("Upload a file to a module's upload rel with a module credential (e.g. an app to the app repository).");
             });
 
+            config.AddBranch("edition", edition =>
+            {
+                edition.SetDescription("A white-label edition: publish a release to the vendor (Licensing ADR 0022).");
+                edition.AddCommand<EditionPublishCommand>("publish")
+                    .WithDescription("Upload a release's images, desktop packages and manual with the edition's push key, then seal it.");
+            });
+
             config.AddBranch("messenger", messenger =>
             {
                 messenger.SetDescription("The Messenger: back up your conversations, restore them here (core #1813).");

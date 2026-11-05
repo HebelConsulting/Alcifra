@@ -42,10 +42,10 @@ public class LicensingSetupAccountTests(E2EApiFactory factory)
 
         var visible = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()
             .Select(r => r.GetProperty("name").GetString()).Order().ToList();
-        Assert.Equal(["Customers", "Licensing administration", "Packages"], visible);
+        Assert.Equal(["Customers", "Editions", "Licensing administration", "Packages"], visible);
 
         // Every right on BOTH repositories, not only on the first one the account helper grants.
-        foreach (var slug in new[] { LicensingDemoSetup.CustomersSlug, LicensingDemoSetup.PackagesSlug, LicensingDemoSetup.AdministrationSlug })
+        foreach (var slug in new[] { LicensingDemoSetup.CustomersSlug, LicensingDemoSetup.PackagesSlug, LicensingDemoSetup.EditionsSlug, LicensingDemoSetup.AdministrationSlug })
         {
             var repository = await TestJson.Get(api, $"/api/documents/{DemoId.For(tenantId, slug)}");
             Assert.True(repository.GetProperty("canManagePermissions").GetBoolean());

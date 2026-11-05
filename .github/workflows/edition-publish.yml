@@ -1,0 +1,60 @@
+# Publishes one release of a white-label edition to the vendor (Licensing ADR 0022, ADR 1059): a person starts it, because
+# a published version is immutable and a customer can pull it at once. It copies the tag's images from the registry they
+# were built to, signatures and attestations included, takes the desktop packages and manual from the release, and hands
+# them to `alcifra edition publish`, which is safe to run again until the release is sealed.
+name: Publish an edition to the vendor
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The release to publish, without the v (e.g. 0.57.6)"
+        required: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      white_label: ${{ steps.role.outputs.white_label }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: role
+        run: scripts/brand-release-role.sh
+
+  publish:
+    needs: gate
+    if: ${{ needs.gate.outputs.white_label == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v${{ inputs.version }}
+
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          global-json-file: global.json
+
+      - name: Copy the images, signatures and attestations
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/edition-copy-images.sh "$VERSION" "$RUNNER_TEMP/layouts"
+
+      - name: Take the desktop packages and manual from the release
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/downloads"
+
+      - name: Publish
+        env:
+          VERSION: ${{ inputs.version }}
+          SA_MODULE_KEY: ${{ secrets.VENDOR_EDITION_PUSH_KEY }}
+        run: dotnet run --project src/Alcifra.Cli -c Release -- edition publish "$VERSION" --url https://get.alcifra.com --layouts "$RUNNER_TEMP/layouts" --downloads "$RUNNER_TEMP/downloads"

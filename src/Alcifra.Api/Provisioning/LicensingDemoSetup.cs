@@ -13,6 +13,7 @@ public static class LicensingDemoSetup
     /// <summary>The slugs the demo seed derives the same UUIDv5 ids from (#781).</summary>
     public const string CustomersSlug = "repository/licensing-customers";
     public const string PackagesSlug = "repository/licensing-packages";
+    public const string EditionsSlug = "repository/licensing-editions";
 
     /// <summary>Where the module's own licence is filed: Customers and Packages admit only their own kinds.</summary>
     public const string AdministrationSlug = "repository/licensing-administration";
@@ -24,6 +25,7 @@ public static class LicensingDemoSetup
             [
                 new ModuleDemoSetup.Repository(CustomersSlug, "Customers"),
                 new ModuleDemoSetup.Repository(PackagesSlug, "Packages"),
+                new ModuleDemoSetup.Repository(EditionsSlug, "Editions"),
                 new ModuleDemoSetup.Repository(AdministrationSlug, "Licensing administration"),
             ],
             account => account.CanManageModules = true);
