@@ -85,19 +85,19 @@ public static class DependencyInjection
                 // and marks the presented one REDEEMED, so a leaked token is good for one use rather than for
                 // its whole lifetime.
                 //
-                // A redeemed token nevertheless stays usable for a REUSE LEEWAY, 5 minutes here (ADR 1065; OpenIddict's
-                // default is 30 seconds), and that is deliberate on OpenIddict's part, not an oversight: a client whose refresh response is
+                // A redeemed token nevertheless stays usable for a REUSE LEEWAY — 30 seconds by default — and
+                // that is deliberate on OpenIddict's part, not an oversight: a client whose refresh response is
                 // lost to a network blip retries with the token it still holds, and without the leeway that
                 // ordinary event would sign the user out. Measured, not assumed: a replay inside the window
                 // returns 200, which is what the test asserting instant invalidation discovered.
                 //
                 // Made EXPLICIT rather than inherited, so the window is a decision with a number attached, and
                 // so the test host can shorten it to prove that reuse past the window really is refused —
-                // otherwise the security property costs minutes per assertion and quietly goes untested.
+                // otherwise the security property costs 30 seconds per assertion and quietly goes untested.
                 options.AllowRefreshTokenFlow();
 
                 var leeway = configuration.GetValue<int?>("OpenIddict:RefreshTokenReuseLeewaySeconds");
-                options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(leeway ?? 300));
+                options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(leeway ?? 30));
 
                 // LIFETIMES, from ADR 0083 — which chose 15 minutes and 30 days and was then never
                 // implemented, so OpenIddict's own defaults (~1 h / 14 d) applied and the drift was
