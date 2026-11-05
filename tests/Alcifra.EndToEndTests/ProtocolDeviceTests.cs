@@ -90,6 +90,35 @@ public class ProtocolDeviceTests
         Assert.NotEqual(JsonValueKind.Null, (await TestJson.Get(api, self)).GetProperty("lastUsedAt").ValueKind);
     }
 
+    // A login writes the device's last use at most hourly, so that write is due on the first request of each hour. It must
+    // never cost the login: iOS shows a 401 on a calendar account as a wrong password, over whatever is on screen.
+    [Fact]
+    public async Task A_login_whose_hourly_last_use_write_is_due_still_succeeds()
+    {
+        var (api, email, devices) = await SignedInUserAsync();
+        using var _ = api;
+
+        var enrolled = await TestJson.Post(api, devices, new { name = "Calendar phone", mail = false, files = false, calendars = true, contacts = false });
+        var credentials = Basic(email, enrolled.GetProperty("password").GetString()!);
+        Assert.Equal(HttpStatusCode.MultiStatus, await PropfindAsync("/caldav/", credentials));
+
+        var id = enrolled.GetProperty("id").GetGuid();
+        var longAgo = DateTimeOffset.UtcNow.AddHours(-2);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+            await db.ProtocolDevices.IgnoreQueryFilters(["TenantFilter"]).Where(d => d.Id == id)
+                .ExecuteUpdateAsync(set => set.SetProperty(d => d.LastUsedAt, longAgo));
+        }
+
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => PropfindAsync("/caldav/", credentials)));
+
+        Assert.All(answers, answer => Assert.Equal(HttpStatusCode.MultiStatus, answer));
+        var self = enrolled.GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "self")
+            .GetProperty("href").GetString()!;
+        Assert.True((await TestJson.Get(api, self)).GetProperty("lastUsedAt").GetDateTimeOffset() > longAgo.AddHours(1));
+    }
+
     [Fact]
     public async Task Revoking_one_device_leaves_another_working()
     {
