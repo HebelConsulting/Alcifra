@@ -1,7 +1,7 @@
 name: CI
 
 # ADR 0378 "Continuous integration (GitHub Actions)". Two tiers, both on GitHub-hosted Ubuntu runners:
-#  - fast: build + unit + integration (SQLite in-memory, no Docker) — gates every PR.
+#  - fast: build and gates, then unit and integration (SQLite in-memory, no Docker) in parallel jobs on that one build — gates every PR.
 #  - heavy: container E2E (Testcontainers) + browser/desktop UI E2E (Playwright). GATED on ordinary PRs — see the
 #    `if:` on the job. It runs on every push to `main` and on any PR labelled `e2e`. The GitHub-hosted Ubuntu image
 #    ships Docker and Google Chrome pre-installed, which the Testcontainers fleet + Playwright ("chrome" channel)
@@ -24,10 +24,10 @@ concurrency:
 
 jobs:
   fast:
-    # 30, not 20: the job's normal 12–18 minutes and GitHub's ~2× runner variance met at 20 on 2026-10-06, when
-    # run #3398 was cancelled 0.3 s after every test had passed. Still short enough to stop a real hang.
-    timeout-minutes: 30
-    name: Build + unit + integration
+    # Setup, gates and build take about 11 minutes at their slowest, and hosted runners vary by about 2×. The tests
+    # moved to their own job (#2167, ADR 1055) after this one reached 28 of its 30 minutes.
+    timeout-minutes: 25
+    name: Build + gates
     runs-on: ubuntu-latest
     outputs:
       white_label: ${{ steps.role.outputs.white_label }}
@@ -185,30 +185,110 @@ jobs:
             -err -o Table
       - name: Build
         run: dotnet build --no-restore -c Debug
+      # One build for both test jobs (ADR 1055): building twice would cost the runner minutes this split must not.
+      # Only the test projects' output and the generated icons (ADR 0993) a test reads: the sources come from its own checkout.
+      - name: Pack the test build
+        run: |
+          tar --zstd -cf test-build.tar.zst \
+            artifacts/brand-icons \
+            tests/Alcifra.UnitTests/bin tests/Alcifra.UnitTests/obj \
+            tests/Alcifra.IntegrationTests/bin tests/Alcifra.IntegrationTests/obj \
+            tests/Alcifra.BrowserExtensionTests/bin tests/Alcifra.BrowserExtensionTests/obj
+      - name: Upload the test build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-build
+          path: test-build.tar.zst
+          compression-level: 0
+          retention-days: 1
+
+  # Unit and integration tests side by side on the fast job's build (#2167, ADR 1055). Written as a plain list, because
+  # scripts/merge-ready.sh counts the E2E legs by the `- { name:` lines of a matrix.
+  tests:
+    name: Tests (${{ matrix.suite }})
+    needs: fast
+    # The slower suite took 10.5 minutes on a slow runner, plus about 2 of setup, and hosted runners vary by about 2×.
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [UnitTests, IntegrationTests]
+    steps:
+      # fetch-tags for the same guard as in the fast job (#1382).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-tags: true
+      - name: Stand-in manual for a white-label edition's tests
+        if: ${{ needs.fast.outputs.white_label == 'true' }}
+        run: scripts/edition-manual.sh --stand-in
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Cache NuGet packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Restore
+        run: dotnet restore
+      - name: Download the test build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: test-build
+      - name: Unpack the test build
+        run: tar --zstd -xf test-build.tar.zst && rm test-build.tar.zst
       # The migration-data-preservation guard runs inside the integration suite (MigrationDataPreservationTests).
       # Coverage (ADR "Code-coverage reporting"): the fast-tier suites collect line/branch coverage via the
       # coverlet.collector already referenced in every test project (`--collect "XPlat Code Coverage"` → a
       # cobertura file per run under the results dir). Fast-tier only by design — the Api controllers are
       # exercised by the heavy E2E matrix (separate jobs/runners), so this number reflects the unit/integration
       # signal over Domain/Application/Infrastructure, not a full end-to-end figure.
-      - name: Unit tests
-        run: dotnet test tests/Alcifra.UnitTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/unit
-      - name: Integration tests
-        run: dotnet test tests/Alcifra.IntegrationTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/integration
+      - name: ${{ matrix.suite }}
+        run: dotnet test tests/Alcifra.${{ matrix.suite }} --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/${{ matrix.suite }}
       # The browser extension end to end (ADR 0980), in the test library's own Chromium: the installed branded
       # browser ignores --load-extension, so it cannot load an unpacked extension. The fixture would install the
       # browser itself; doing it as its own step names a download failure as one. No --with-deps: the image already
-      # carries a branded browser, whose libraries are the same set.
+      # carries a branded browser, whose libraries are the same set. Under a minute, so it shares a job.
       - name: Install the extension tests' browser
+        if: ${{ matrix.suite == 'IntegrationTests' }}
         run: pwsh tests/Alcifra.BrowserExtensionTests/bin/Debug/net10.0/playwright.ps1 install chromium --no-shell
       - name: Browser extension tests
+        if: ${{ matrix.suite == 'IntegrationTests' }}
         run: dotnet test tests/Alcifra.BrowserExtensionTests --no-build -c Debug --collect:"XPlat Code Coverage" --results-directory ./coverage/extension
-      # Merge the two cobertura files into one report (ReportGenerator, pinned in .config/dotnet-tools.json). The
+      - name: Upload coverage data
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-data-${{ matrix.suite }}
+          path: coverage/**/coverage.cobertura.xml
+          if-no-files-found: ignore
+          retention-days: 1
+
+  coverage:
+    timeout-minutes: 10
+    name: Coverage report
+    needs: [fast, tests]
+    if: always() && needs.fast.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore local tools
+        run: dotnet tool restore
+      - name: Download coverage data
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: coverage-data-*
+          path: coverage
+      # Merge the cobertura files into one report (ReportGenerator, pinned in .config/dotnet-tools.json). The
       # GitHub-flavoured markdown summary is appended to the job summary; the HTML report is uploaded as an
       # artifact below. Informational only — `continue-on-error` so a report hiccup never fails the build, and
       # generated EF migrations are filtered out of the number.
       - name: Coverage report
-        if: always()
         continue-on-error: true
         run: |
           dotnet tool run reportgenerator \
@@ -219,7 +299,6 @@ jobs:
             "-classfilters:-Alcifra.Infrastructure.Migrations.*"
           cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
-        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report
@@ -236,7 +315,7 @@ jobs:
   # SelfHostedAppFixture on its own runner (ADR 0378).
   heavy:
     name: E2E (${{ matrix.name }})
-    needs: fast # don't spend heavy-tier minutes if the build/unit/integration tier is already red
+    needs: [fast, tests] # don't spend heavy-tier minutes if the build/unit/integration tier is already red
     # GATED while the project has no paying customer: six Docker+Chrome jobs on every push is insurance worth
     # less than it costs when a defect costs embarrassment rather than money. It still runs unconditionally where
     # it earns its keep — every push to `main`, and any PR labelled `e2e` (add the label to demand a full run
@@ -349,8 +428,8 @@ jobs:
   verdict:
     timeout-minutes: 5
     name: E2E verdict
-    needs: [fast, heavy]
-    if: always() && needs.fast.result == 'success'
+    needs: [fast, tests, heavy]
+    if: always() && needs.tests.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Report whether the E2E tier ran

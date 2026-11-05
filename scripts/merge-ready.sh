@@ -147,7 +147,7 @@ if [ "$failing" -gt 0 ]; then
 fi
 
 # Only judged once NOTHING is pending. A superseded check's twin may not exist yet — "E2E verdict" is
-# `needs: [fast, heavy]`, so the live run does not create it until the legs finish, and until then the
+# `needs: [fast, tests, heavy]`, so the live run does not create it until the legs finish, and until then the
 # cancelled one looks twinless. While anything is still running the answer is "wait" regardless, so claiming
 # a blocking cancellation here would be both premature and wrong.
 if [ "$cancelled" -gt 0 ] && [ "$pending" -eq 0 ]; then
