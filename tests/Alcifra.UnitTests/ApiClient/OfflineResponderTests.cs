@@ -142,6 +142,14 @@ public sealed class OfflineResponderTests
                 f.GetProperty("fieldName").GetString(), f.GetProperty("dataType").GetString(),
                 string.Join('|', f.GetProperty("values").EnumerateArray().Select(v => v.GetString())))));
 
+        // The mask row (Mobile #262): by the rel, as online, and only where the document wears one.
+        static string? MaskHref(JsonElement resource) =>
+            resource.GetProperty("links").EnumerateArray().Where(l => l.GetProperty("rel").GetString() == "mask").Select(l => l.GetProperty("href").GetString()).FirstOrDefault();
+        var detail = await client.GetFromJsonAsync<JsonElement>($"offline/documents/{Document}");
+        var mask = await client.GetFromJsonAsync<JsonElement>(MaskHref(detail)!.TrimStart('/'));
+        Assert.Equal("Invoice", mask.GetProperty("name").GetString());
+        Assert.Null(MaskHref(await client.GetFromJsonAsync<JsonElement>($"offline/documents/{Root}")));
+
         var chat = await client.GetFromJsonAsync<JsonElement>($"offline/documents/{Document}/chat");
         var message = Assert.Single(chat.GetProperty("messages").EnumerateArray().ToList());
         Assert.Equal("Anna", message.GetProperty("authorName").GetString());

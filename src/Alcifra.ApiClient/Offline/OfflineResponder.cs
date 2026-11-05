@@ -91,6 +91,9 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
             ["offline", "documents", var id, "index-data"] => Guid.TryParse(id, out var x) && archive.Document(x) is not null
                 ? Json(new { fields = archive.Fields(x).Select(field => new { fieldName = field.Name, values = field.Values, dataType = field.DataType }) })
                 : NotFound(),
+            ["offline", "documents", var id, "mask"] => Guid.TryParse(id, out var m) && archive.Document(m) is { } worn && archive.MaskName(worn) is { Length: > 0 } maskName
+                ? Json(new { name = maskName, links = new[] { Link("self", $"/offline/documents/{m}/mask") } })
+                : NotFound(),
             ["offline", "documents", var id, "chat"] => Guid.TryParse(id, out var c) && archive.Document(c) is not null
                 ? Json(new
                 {
@@ -224,7 +227,7 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
         };
     }
 
-    private static object[] Links(OfflineArchive.ArchivedDocument d, bool folder)
+    private object[] Links(OfflineArchive.ArchivedDocument d, bool folder)
     {
         var self = $"/offline/documents/{d.Id}";
         var links = new List<object> { Link("self", self), Link("chat", $"{self}/chat") };
@@ -239,6 +242,11 @@ public sealed class OfflineResponder(OfflineArchive archive) : HttpMessageHandle
         }
 
         links.Add(Link("index-data", $"{self}/index-data"));
+        if (archive.MaskName(d).Length > 0)
+        {
+            links.Add(Link("mask", $"{self}/mask"));
+        }
+
         return [.. links];
     }
 
