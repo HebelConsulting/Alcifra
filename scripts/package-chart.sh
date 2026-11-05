@@ -6,7 +6,7 @@
 #
 # The source stays charts/alcifra; what changes per brand is what a cluster sees: the chart's name, which names
 # the release's resources, and the default image repositories of the application and its two sidecars
-# (<imageRegistry>/<imageName>, -ocr, -postfix). The second form publishes the chart under the names before the
+# (<deliveryRegistry>/<imageName>, -ocr, -postfix; a customer pulls from there, ADR 1060). The second form publishes the chart under the names before the
 # rename for one more release (ADR 1004), so an installation upgrading with it keeps its resources' names.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,7 +26,7 @@ cp -R charts/alcifra "$chart"
 # The chart's name: the one top-level `name:` line.
 sed -i.bak -E "s|^name: .*$|name: $chart_name|" "$chart/Chart.yaml"
 # The images: a prefix replace, so the two sidecars' suffixes carry over.
-sed -i.bak "s|$shipped_images|$BRAND_IMAGE_REGISTRY/$image_name|g" "$chart/values.yaml" "$chart/values-production.example.yaml"
+sed -i.bak "s|$shipped_images|$BRAND_DELIVERY_REGISTRY/$image_name|g" "$chart/values.yaml" "$chart/values-production.example.yaml"
 rm -f "$chart"/*.bak
 
 grep -q "^name: $chart_name$" "$chart/Chart.yaml" || { echo "error: the chart's name was not rewritten" >&2; exit 1; }

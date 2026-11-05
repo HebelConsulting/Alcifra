@@ -23,6 +23,7 @@ values = {
     "BRAND_PUBLISHER": brand["publisher"],
     "BRAND_BUNDLE_ID": distribution["bundleId"],
     "BRAND_IMAGE_REGISTRY": distribution["imageRegistry"],
+    "BRAND_DELIVERY_REGISTRY": distribution.get("deliveryRegistry") or distribution["imageRegistry"],
     "BRAND_IMAGE_NAME": distribution["imageName"],
     "BRAND_CHART_NAME": distribution["chartName"],
     "BRAND_RELEASE_REPOSITORY": distribution["releaseRepository"],

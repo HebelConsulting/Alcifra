@@ -58,6 +58,31 @@ public partial class BrandDistributionTests
         Assert.False(string.IsNullOrWhiteSpace(distribution.Domains.Demo));
     }
 
+    // A customer pulls from where the chart says (ADR 1060), which may not be where the images were pushed. A chart naming
+    // the place they were built would ask a customer's cluster for a registry it has no credential for.
+    [Fact]
+    public void The_chart_names_where_a_customer_pulls_and_that_defaults_to_where_images_are_pushed()
+    {
+        var root = RepoPaths.Root();
+        Assert.Contains("$BRAND_DELIVERY_REGISTRY/$image_name", File.ReadAllText(Path.Combine(root, "scripts", "package-chart.sh")), StringComparison.Ordinal);
+        Assert.Contains("distribution.get(\"deliveryRegistry\") or distribution[\"imageRegistry\"]", File.ReadAllText(Path.Combine(root, "scripts", "brand.sh")), StringComparison.Ordinal);
+        Assert.Contains("\"deliveryRegistry\"", File.ReadAllText(Path.Combine(root, "brand", "brand.schema.json")), StringComparison.Ordinal);
+    }
+
+    // Every template running one of our own images asks for it with the pull secret (ADR 1060). The MTA and the OCR sidecar
+    // did not, and a registry needing a credential would have left their pods unable to start.
+    [Fact]
+    public void Every_template_running_our_own_image_carries_the_pull_secrets()
+    {
+        var templates = Path.Combine(RepoPaths.Root(), "charts", "alcifra", "templates");
+        var ours = new[] { "include \"alcifra.image\"", ".Values.postfix.image.repository", ".Values.deps.ocr.image" };
+        var running = Directory.GetFiles(templates, "*.yaml", SearchOption.AllDirectories)
+            .Where(f => ours.Any(File.ReadAllText(f).Contains)).ToList();
+
+        Assert.True(running.Count >= 3, $"The scan found only: {string.Join(", ", running)}");
+        Assert.All(running, f => Assert.Contains(".Values.imagePullSecrets", File.ReadAllText(f), StringComparison.Ordinal));
+    }
+
     // Who publishes is the brand's to say (ADR 0996): a publishing workflow gated on a repository NAME would publish
     // only from ours, and a white-label edition could never release.
     [Theory]

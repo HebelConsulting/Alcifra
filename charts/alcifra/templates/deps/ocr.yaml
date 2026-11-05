@@ -20,6 +20,10 @@ spec:
         {{- include "alcifra.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: ocr
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: ocr
           image: "{{ .Values.deps.ocr.image }}:{{ default .Chart.AppVersion .Values.deps.ocr.tag }}"

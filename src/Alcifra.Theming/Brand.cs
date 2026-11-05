@@ -112,7 +112,8 @@ public sealed record BrandDistribution(
     [property: JsonPropertyName("imageName")] string ImageName,
     [property: JsonPropertyName("chartName")] string ChartName,
     [property: JsonPropertyName("releaseRepository")] string ReleaseRepository,
-    [property: JsonPropertyName("domains")] BrandDomains Domains);
+    [property: JsonPropertyName("domains")] BrandDomains Domains,
+    [property: JsonPropertyName("deliveryRegistry")] string? DeliveryRegistry = null);
 
 /// <summary>The public hosts a build points at (ADR 0994).</summary>
 public sealed record BrandDomains(

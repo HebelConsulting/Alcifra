@@ -32,6 +32,10 @@ spec:
         {{- include "alcifra.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: mta
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: postfix
           image: "{{ .Values.postfix.image.repository }}:{{ .Values.postfix.image.tag | default .Chart.AppVersion }}"
