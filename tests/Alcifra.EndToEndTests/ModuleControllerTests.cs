@@ -742,8 +742,9 @@ public class ModuleControllerTests
         {
             await ActivateAsync(rig, vendorKey);   // grants the module principal canSee on the repository
             var bytes = Encoding.UTF8.GetBytes($"presign me {Guid.NewGuid():N}");
+            var packageName = $"Package {Guid.NewGuid():N}.txt";
             var granted = (await TestJson.Post(rig.Owner, $"/api/documents/{rig.RepoId}/children",
-                new { name = $"Package {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+                new { name = packageName })).GetProperty("id").GetGuid();
             var version = await TestJson.Post(rig.Owner, $"/api/documents/{granted}/versions", new { fileExtension = ".txt" });
             using (var storage = new HttpClient())
             {
@@ -756,7 +757,10 @@ public class ModuleControllerTests
             var url = new Uri(issued.GetProperty("url").GetString()!);
             using (var anonymous = new HttpClient())
             {
-                Assert.Equal(bytes, await anonymous.GetByteArrayAsync(url));   // a plain client follows it to the bytes
+                using var followed = await anonymous.GetAsync(url);
+                Assert.Equal(bytes, await followed.Content.ReadAsByteArrayAsync());   // a plain client follows it to the bytes
+                // ...and a browser saves it under the document's name, not the storage key's "content.txt".
+                Assert.Equal(packageName, followed.Content.Headers.ContentDisposition?.FileNameStar);
             }
 
             var expires = System.Web.HttpUtility.ParseQueryString(url.Query)["X-Amz-Expires"];

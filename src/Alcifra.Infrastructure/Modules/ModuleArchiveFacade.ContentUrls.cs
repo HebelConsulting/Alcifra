@@ -18,7 +18,7 @@ public sealed partial class ModuleArchiveFacade
     /// A presigned URL for the current content (ABI 1.8, ADR 0899): the module-side form of "the Api never proxies
     /// stored bytes". Same consent gate as a content read; through <c>IObjectStorageClient</c>, so the at-rest
     /// decorator applies and the strict tier answers null; the ttl is clamped to <see cref="ContentUrlCeiling"/>.
-    /// The URL is logged never, the document id at Debug.
+    /// A download is saved under the document's name, not the storage key's. The URL is logged never, the document id at Debug.
     /// </summary>
     public Task<Uri?> GetDocumentContentUrlAsync(Guid documentId, TimeSpan ttl, CancellationToken cancellationToken = default) =>
         PresignContentAsync(documentId, ttl, contentType: null, inline: false, cancellationToken);
@@ -34,11 +34,11 @@ public sealed partial class ModuleArchiveFacade
             return null;
         }
 
-        var pointer = await _dbContext.Documents
+        var document = await _dbContext.Documents
             .Where(d => d.Id == documentId)
-            .Select(d => d.CurrentVersionId)
+            .Select(d => new { d.CurrentVersionId, d.Name })
             .SingleOrDefaultAsync(cancellationToken);
-        var version = await CurrentVersion.ResolveAsync(_dbContext.DocumentVersions, documentId, pointer, cancellationToken);
+        var version = await CurrentVersion.ResolveAsync(_dbContext.DocumentVersions, documentId, document?.CurrentVersionId, cancellationToken);
         if (version is null)
         {
             return null;
@@ -53,7 +53,7 @@ public sealed partial class ModuleArchiveFacade
         var lifetime = ttl <= TimeSpan.Zero || ttl > ContentUrlCeiling ? ContentUrlCeiling : ttl;
         var url = inline
             ? await _objectStorage.GetPresignedPreviewUrlAsync(version.ObjectKey, lifetime, contentType: contentType, cancellationToken: cancellationToken)
-            : await _objectStorage.GetPresignedDownloadUrlAsync(version.ObjectKey, lifetime, contentType: contentType, cancellationToken: cancellationToken);
+            : await _objectStorage.GetPresignedDownloadUrlAsync(version.ObjectKey, lifetime, document?.Name, contentType, cancellationToken: cancellationToken);
         _logger?.LogDebug(
             "Module {ModuleId} presigned the content of document {DocumentId} for {Lifetime}; issued: {Issued}",
             _identity?.ModuleId, documentId, lifetime, url is not null);
