@@ -20,6 +20,19 @@ public class ProductNameTests
     public void A_text_names_the_product_by_default_as_the_brand() =>
         Assert.Equal($"About {Brand.Shipped.Name}", Strings.Get("AboutHeading", CultureInfo.InvariantCulture));
 
+    // ADR 1057: an edition stays itself on another brand's server; a plain build follows the installation.
+    [Fact]
+    public void A_signed_in_client_takes_the_installations_name_unless_it_is_a_white_label_edition()
+    {
+        var plain = Brand.Shipped with { Name = "Plain", Credit = null };
+        var edition = Brand.Shipped with { Name = "Edition", Credit = "Powered by Plain" };
+
+        Assert.Equal("Their Archive", plain.NameOnServer("Their Archive"));
+        Assert.Equal("Plain", plain.NameOnServer(null));
+        Assert.Equal("Edition", edition.NameOnServer("Their Archive"));
+        Assert.Equal("Edition", edition.NameOnServer(null));
+    }
+
     [Fact]
     public void A_host_sets_the_name_once_and_every_text_says_it()
     {

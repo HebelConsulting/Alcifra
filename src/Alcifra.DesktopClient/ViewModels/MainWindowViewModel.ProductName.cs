@@ -7,7 +7,7 @@ namespace Alcifra.DesktopClient.ViewModels;
 /// <summary>
 /// The product's name the window shows (core #1117): the build's (the ProductName build property) until the installation
 /// names itself (Branding:ProductName, on its API root), and the build's again after sign-out, as the logon window shows
-/// it for any server. A partial of its own: MainWindowViewModel.cs is on the 1000-line debt list and may only shrink.
+/// it for any server. A white-label edition keeps its own throughout (ADR 1057). A partial of its own: MainWindowViewModel.cs is on the 1000-line debt list and may only shrink.
 /// </summary>
 public partial class MainWindowViewModel
 {
@@ -16,13 +16,13 @@ public partial class MainWindowViewModel
     /// <summary>The title bar shows the brand's wordmark while the product carries the brand's name (ADR 0992).</summary>
     public bool ShowsWordmark => Brand.ShowsWordmark(ProductName);
 
-    // Signed in: the installation's name; every text that names the product says it from now on.
+    // Signed in: the installation's name where the brand takes it; every text that names the product says it from now on.
     private async Task ApplyProductNameAsync()
     {
         if (_api is not null && await _api.Core.GetProductNameAsync() is { } name)
         {
-            Strings.ProductName = name;
-            ProductName = name;
+            Strings.ProductName = Brand.Shipped.NameOnServer(name);
+            ProductName = Strings.ProductName;
         }
     }
 

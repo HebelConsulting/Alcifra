@@ -1,4 +1,6 @@
+using Alcifra.Localization;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
@@ -9,13 +11,35 @@ namespace Alcifra.DesktopClient;
 
 public partial class App : Application
 {
+    // What macOS's menu bar calls the application; without it, the toolkit's own name (#2190). In the constructor, because
+    // the toolkit hands the name to macOS during platform setup, before Initialize runs.
+    public App() => Name = Strings.DefaultProductName;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
 
+        // macOS's application menu: without one of its own, the toolkit adds "About Avalonia" with its own dialog (#2190).
+        var about = new NativeMenuItem(Strings.Get("AboutHeading"));
+        about.Click += (_, _) => Services.Safe.Fire(ShowAboutAsync);
+        NativeMenu.SetMenu(this, new NativeMenu { about });
+
         // The shipped design, built from the brand file rather than a generated dictionary (ADR 0990). Here and
         // not in OnFrameworkInitializationCompleted, so the headless verification hooks get it too.
         Services.ThemeApplier.InstallShipped(this);
+    }
+
+    private async Task ShowAboutAsync()
+    {
+        var dialog = new Views.AboutDialog();
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { IsVisible: true } owner })
+        {
+            await dialog.ShowDialog(owner);
+        }
+        else
+        {
+            dialog.Show();
+        }
     }
 
     public override void OnFrameworkInitializationCompleted()

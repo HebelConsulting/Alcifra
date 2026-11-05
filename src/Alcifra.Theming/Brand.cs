@@ -32,6 +32,12 @@ public sealed record Brand(
     public static bool ShowsWordmark(string productName) => string.Equals(productName, Shipped.Name, StringComparison.Ordinal);
 
     /// <summary>
+    /// The name a signed-in client shows (ADR 1057): a white-label edition, the one build with a credit, keeps its own on
+    /// any server, because its logo, its imprint and its install all say so. Any other build takes the installation's.
+    /// </summary>
+    public string NameOnServer(string? installationName) => Credit is null && installationName is not null ? installationName : Name;
+
+    /// <summary>
     /// The served manual's file name (ADR 0997): the brand's file stem, so a downloaded manual says whose it is.
     /// </summary>
     [JsonIgnore]

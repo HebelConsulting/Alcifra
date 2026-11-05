@@ -27,7 +27,7 @@ if [[ "${1:-}" == "--white-label" ]]; then
   [ -n "$run" ] || { echo "::error::No successful manual build on main to take this edition's manual from." >&2; exit 1; }
   fetched="$(mktemp -d)"
   gh run download "$run" --repo "$GITHUB_REPOSITORY" --name manual --dir "$fetched" >&2
-  find "$dir" -maxdepth 1 -name '*-Manual.pdf' -delete
+  find "$dir" -maxdepth 1 \( -name '*-Manual.pdf' -o -name '*-Manual-de.pdf' \) -delete
   cp "$fetched"/*.pdf "$manual"
 elif [[ "${1:-}" == "--stand-in" && ! -f "$manual" ]]; then
   committed=$(find "$dir" -maxdepth 1 -name '*-Manual.pdf' | head -1)

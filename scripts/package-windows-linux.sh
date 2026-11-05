@@ -73,7 +73,7 @@ build_one() {
   cp -R "$publish_dir/." "$stage/"
 
   cat > "$stage/README.txt" <<README
-Alcifra desktop client ${VERSION} (${rid})
+$BRAND_NAME desktop client ${VERSION} (${rid})
 
 Self-contained — no .NET installation required.
 
@@ -86,7 +86,7 @@ Linux:    run  ./${EXE_NAME}
           (installs a .desktop entry + icons under ~/.local/share; ./uninstall.sh removes them.
            The binary stays where you unpacked it, so do not move it afterwards.)
 
-The client connects to a Alcifra API; pick/enter the server on the logon window.
+The client connects to a $BRAND_NAME server; pick/enter the server on the logon window.
 Unsigned — a code-signing certificate is a paid, annual thing (ADR 0714).
 README
 
@@ -111,9 +111,9 @@ README
     cat > "$stage/share/applications/alcifra.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
-Name=Alcifra
+Name=$BRAND_NAME
 GenericName=Document Management
-Comment=Browse, file and search documents in an Alcifra archive
+Comment=Browse, file and search documents in an archive
 Exec=__EXEC__ %u
 MimeType=x-scheme-handler/alcifra;x-scheme-handler/simplarchive;
 Icon=alcifra
