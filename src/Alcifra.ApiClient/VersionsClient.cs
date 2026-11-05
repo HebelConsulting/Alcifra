@@ -149,7 +149,7 @@ public sealed class VersionsClient(ApiCore core)
 
     public sealed record VersionInfo(Guid Id, int? VersionNumber, string Status, string FileExtension, string? DownloadUrl,
         string DocumentDate = "", DateTimeOffset CreatedAt = default, string CreatedByName = "", bool IsCurrent = false,
-        string? Comment = null, LinkMap? Links = null, string? WorkflowStatus = null, string? DocumentTime = null)
+        string? Comment = null, LinkMap? Links = null, string? WorkflowStatus = null, string? DocumentTime = null, long? SizeBytes = null)
     {
         public string? Href(string rel) => Links?.Href(rel);
 
@@ -217,7 +217,8 @@ public sealed class VersionsClient(ApiCore core)
                     v.TryGetProperty("createdByName", out var cb) ? cb.GetString() ?? "" : "",
                     Comment: v.TryGetProperty("comment", out var cm) && cm.ValueKind == JsonValueKind.String ? cm.GetString() : null,
                     Links: ApiCore.ParseLinks(v), WorkflowStatus: ApiWire.StrOrNull(v, "workflowStatus"),
-                    DocumentTime: ApiWire.StrOrNull(v, "documentTime")));
+                    DocumentTime: ApiWire.StrOrNull(v, "documentTime"),
+                    SizeBytes: v.TryGetProperty("sizeBytes", out var size) && size.ValueKind == JsonValueKind.Number ? size.GetInt64() : null));
             }
         }
 

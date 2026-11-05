@@ -33,6 +33,7 @@ public class DesktopVersionRestoreTests
         Assert.Equal(2, versions.Count);
         Assert.True(versions.Single(v => v.VersionNumber == 2).IsCurrent); // v2 is current before the roll-back
         var v1 = versions.Single(v => v.VersionNumber == 1);
+        Assert.Equal(Encoding.UTF8.GetByteCount(contentA), v1.SizeBytes); // what a client decides a large preview by (ADR 1048)
 
         // Make v1 current → still exactly two versions, and v1 is now flagged current (no copy).
         await api.Versions.RestoreVersionAsync(v1);
