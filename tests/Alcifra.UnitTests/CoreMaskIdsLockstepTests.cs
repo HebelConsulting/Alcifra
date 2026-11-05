@@ -1,5 +1,5 @@
 using Alcifra.Domain.Masks;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 

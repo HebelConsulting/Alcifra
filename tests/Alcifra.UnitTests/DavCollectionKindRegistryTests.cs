@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Alcifra.Domain.CalDav;
 using Alcifra.Domain.Masks;
 using Alcifra.Infrastructure.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 

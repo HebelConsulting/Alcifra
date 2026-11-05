@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 
@@ -38,16 +38,16 @@ public sealed class MobileLicenseTests
         Assert.StartsWith($"{MobileLicense.Kind}\n", Licence().SignedPayload(), StringComparison.Ordinal);
     }
 
-    // Rename phase 4b (#1117): a licence issued before it says "simplarchive-mobile" in its signed payload and still
-    // unlocks the app until v0.58.0; a payload of any OTHER kind still does not.
+    // ADR 1063: a licence signed under the kind before the rename no longer verifies from ABI 2.0, and is issued again.
     [Fact]
-    public void A_licence_signed_under_the_kind_before_the_rename_still_verifies()
+    public void A_licence_signed_under_the_kind_before_the_rename_no_longer_verifies()
     {
         var licence = Licence();
-        var before = $"{MobileLicense.LegacyKind}{licence.SignedPayload()[MobileLicense.Kind.Length..]}";
+        var before = $"simplarchive-mobile{licence.SignedPayload()[MobileLicense.Kind.Length..]}";
         var other = $"tenant{licence.SignedPayload()[MobileLicense.Kind.Length..]}";
 
-        Assert.True((licence with { Signature = Sign(before) }).VerifiedBy(Vendor));
+        Assert.True((licence with { Signature = Sign(licence.SignedPayload()) }).VerifiedBy(Vendor));
+        Assert.False((licence with { Signature = Sign(before) }).VerifiedBy(Vendor));
         Assert.False((licence with { Signature = Sign(other) }).VerifiedBy(Vendor));
         Assert.Equal("alcifra-mobile", MobileLicense.Kind);
     }

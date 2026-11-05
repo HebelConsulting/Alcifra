@@ -110,7 +110,7 @@ public class ModuleLiveEventTests(E2EApiFactory factory)
             {
                 recipientUserIds = new[] { aId },
                 name = "typing",
-                payload = new string('x', SimplArchive.ModuleAbi.ModuleLiveEvent.MaxPayloadBytes + 1),
+                payload = new string('x', Alcifra.ModuleAbi.ModuleLiveEvent.MaxPayloadBytes + 1),
             });
             Assert.Equal(HttpStatusCode.RequestEntityTooLarge, refused.StatusCode);
             Assert.Equal("MODULE_LIVE_EVENT_TOO_LARGE", await ErrorCodeAsync(refused));
@@ -127,7 +127,7 @@ public class ModuleLiveEventTests(E2EApiFactory factory)
 
             // Fixed windows: 41 sends span at most one window boundary, so one window holds at least 21 > 20.
             var statuses = new List<HttpStatusCode>();
-            for (var i = 0; i < (2 * SimplArchive.ModuleAbi.ModuleLiveEvent.MaxEventsPerSender) + 1; i++)
+            for (var i = 0; i < (2 * Alcifra.ModuleAbi.ModuleLiveEvent.MaxEventsPerSender) + 1; i++)
             {
                 using var response = await rig.Admin.PostAsJsonAsync(Send, new { recipientUserIds = new[] { aId }, name = "typing", payload = "{}" });
                 statuses.Add(response.StatusCode);
@@ -140,7 +140,7 @@ public class ModuleLiveEventTests(E2EApiFactory factory)
 
             Assert.Contains(HttpStatusCode.TooManyRequests, statuses);
             // Every window first grants its full budget, so at least that many went through before the refusal.
-            Assert.True(statuses.Count(s => s == HttpStatusCode.OK) >= SimplArchive.ModuleAbi.ModuleLiveEvent.MaxEventsPerSender);
+            Assert.True(statuses.Count(s => s == HttpStatusCode.OK) >= Alcifra.ModuleAbi.ModuleLiveEvent.MaxEventsPerSender);
         });
 
     [Fact]

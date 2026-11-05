@@ -1,0 +1,382 @@
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Alcifra.ModuleAbi;
+
+/// <summary>
+/// The contract an industry module implements to plug into the core (issue #836; ADR 0741). One
+/// implementation per module assembly; the host discovers it at startup from the <c>Modules/</c>
+/// directory, loads the assembly into its own isolated context, and calls the members below.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The ABI is the ONLY surface a module sees — no Domain, no Application, no Infrastructure. Everything a
+/// module contributes flows through what this interface returns and registers, and everything it may do at
+/// runtime flows through the contracts its registered services receive (the facade, the fact-provider and
+/// transition seams). That narrowness is deliberate: it is what lets the core refactor freely and what
+/// makes a module's capabilities enumerable to a tenant administrator.
+/// </para>
+/// <para>
+/// Lifecycle (ADRs 0740/0741): loading makes a module AVAILABLE; a per-tenant activation switches its
+/// behaviour on there. Deactivation removes behaviour only — the masks a module seeded, and every document
+/// filed under them, are the tenant's data and remain fully usable. A module must therefore expect its
+/// subjects to have lived through a deactivation window (documents filed and edited by hand, no gates) and
+/// re-derive rather than assume continuity.
+/// </para>
+/// </remarks>
+public interface IIndustryModule
+{
+    /// <summary>Stable machine identity (e.g. <c>flight-school</c>) — activation records and licenses
+    /// (ADR 0740) bind to this, so it must never change across versions.</summary>
+    string ModuleId { get; }
+
+    /// <summary>The human name an administrator sees in the module list.</summary>
+    string DisplayName { get; }
+
+    /// <summary>
+    /// The ABI major version this module was built against. The host refuses to load a module whose major
+    /// differs from its own — cleanly, with an admin-facing message, the module staying inactive and the
+    /// tenant's data untouched (ADR 0741: major locks, minor floats).
+    /// </summary>
+    int AbiMajorVersion { get; }
+
+    /// <summary>
+    /// The ABI MINOR this module was built against (#1147). Defaulted, so an existing module compiles
+    /// unchanged and simply declares 0 — the oldest possible answer, which is the safe one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The host refuses a module whose minor is NEWER than its own: that module may call members this host
+    /// does not have, and the failure would otherwise arrive as a <c>MissingMethodException</c> from
+    /// somewhere unrelated. An older minor is fine and is the point of "minor floats" — additions to this
+    /// assembly are made in a binary-compatible way (init-only properties, never new primary-constructor
+    /// parameters) precisely so that stays true.
+    /// </para>
+    /// <para>
+    /// Declaring it is a one-line change and worth making: a module that leaves it at 0 is never refused for
+    /// being too new, so it forfeits the check rather than gaining anything.
+    /// </para>
+    /// </remarks>
+    int AbiMinorVersion => 0;
+
+    /// <summary>
+    /// The vendor's license verify key as a PEM <c>SubjectPublicKeyInfo</c> (ECDsa P-256). Ships inside
+    /// the module — no phone-home, air-gap-friendly (ADR 0743); the core verifies a tenant's
+    /// <see cref="TenantLicense"/> against this at activation.
+    /// </summary>
+    string LicenseVerifyKeyPem { get; }
+
+    /// <summary>
+    /// EVERY key a license may be signed under, so a vendor can rotate with an OVERLAP (ABI 0.25, ADR 0793).
+    /// Defaults to just <see cref="LicenseVerifyKeyPem"/>, so a module that has never thought about rotation
+    /// is unchanged and this costs it nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A single key makes rotation a HARD CUTOVER: the release that swaps it instantly invalidates every
+    /// not-yet-activated license signed with the old one, forcing re-issue at the vendor's release moment
+    /// rather than at each customer's renewal. That is the wrong shape for a compromised-key response, where
+    /// new licenses must be issued on the new key WHILE old, uncompromised-window licenses still activate
+    /// through a stated overlap.
+    /// </para>
+    /// <para>
+    /// So the list IS the overlap window, and its length is the vendor's policy: retiring a key means shipping
+    /// a release without it. A license verifies if ANY listed key accepts its signature, and the activation
+    /// records WHICH one did — so after a compromise the affected activations are a query, not an audit trawl.
+    /// </para>
+    /// <para>
+    /// Order it newest-first: verification tries the keys in order, so the key most licenses are signed under
+    /// should be first. Correctness does not depend on the order — only the work done before a match.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<string> LicenseVerifyKeysPem => [LicenseVerifyKeyPem];
+
+    /// <summary>
+    /// Whether a tenant needs a vendor-signed licence to activate this module (ABI 1.23, core ADR 0944). True — the
+    /// default — keeps the licensing act and its support-contract ladder. A module that answers false is activated by
+    /// a tenant administrator WITHOUT a licence file, and nothing lapses: the open-source Messenger, which anyone may run
+    /// on the open-source core.
+    /// </summary>
+    /// <remarks>
+    /// Everything else stays as for a licensed module: the per-tenant principal, the administrator's consent, the
+    /// activation gate. Such a module may leave <see cref="LicenseVerifyKeyPem"/> empty. A default member, so a 1.22
+    /// module is unaffected.
+    /// </remarks>
+    bool RequiresLicence => true;
+
+    /// <summary>
+    /// The masks this module contributes. Seeded into a tenant at activation, idempotently, and healed on
+    /// upgrade the way the core's own well-known masks are. Permanent tenant data once seeded (ADR 0740).
+    /// </summary>
+    IReadOnlyList<ModuleMaskSeed> Masks { get; }
+
+    /// <summary>
+    /// Registers the module's own services — fact providers, transition handlers, controllers' collaborators.
+    /// Called once at load, into the host's container; scoped/transient lifetimes behave as they do for core
+    /// services. What a module registers here is its private business; what the CORE calls is only what the
+    /// seam interfaces name.
+    /// </summary>
+    void ConfigureServices(IServiceCollection services);
+
+    /// <summary>
+    /// Declares the module's state machines (ADR 0742): derived statuses and guarded transitions over its
+    /// mask-worn subjects, in the enumerable grammar the core can evaluate AND explain. Called once at
+    /// load, after <see cref="ConfigureServices"/>. Default: no machines — a module of pure masks is legal.
+    /// </summary>
+    void DefineStateMachines(IStateMachineDefinitions machines)
+    {
+    }
+
+    /// <summary>
+    /// The read-model contexts this module owns (ADR 0738) — wired, migrated and transaction-enlisted by
+    /// the host. Default: none; a module of documents alone needs no projections.
+    /// </summary>
+    IReadOnlyList<ModuleReadModelSet> ReadModels => [];
+
+    /// <summary>
+    /// The rels this module contributes to the API root — its entry into the hypermedia graph
+    /// (ADR 0737). Emitted only for tenants where the module is ACTIVE; for everyone else the module's
+    /// surface simply does not exist (ADR 0543's absence semantics, which the host also enforces at the
+    /// route: an inactive tenant's request to a module controller answers 404 <c>MODULE_NOT_ACTIVE</c>).
+    /// Default: none — a module may be reachable purely through its transitions and masks. A link marked
+    /// <see cref="ModuleRootLink.InstallationWide"/> is the exception: every caller sees it while the module is
+    /// loaded (ABI 1.14).
+    /// </summary>
+    IReadOnlyList<ModuleRootLink> RootLinks => [];
+
+    /// <summary>
+    /// Whether a PERSON may enrol their own credential through this module, and where (ABI 1.3, core #1502).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null — the default — means the module offers no such surface, which is every module today. A module
+    /// that declares one gets a dialog in BOTH clients, rendered by the core: the module cannot contribute UI
+    /// (ADR 0737), so without this its endpoint is reachable only by a hand-written request, and a tenant
+    /// switching the gating setting ON enables something no client can find.
+    /// </para>
+    /// <para>
+    /// A DEFAULT-IMPLEMENTED property, so every module built against an earlier ABI compiles and runs
+    /// unchanged — which is what makes this a minor rather than a major (see <see cref="ModuleAbiVersion"/>).
+    /// </para>
+    /// </remarks>
+    PerUserEnrolment? PerUserCertificateEnrolment => null;
+
+    /// <summary>
+    /// The manual this module ships in its package, which the core files into the archive (ABI 1.5, core ADR 0891).
+    /// </summary>
+    /// <remarks>
+    /// Null — the default — means the module ships none and nothing changes. A module that declares one gets a
+    /// core-owned setting on its form, <i>where the manual is filed</i>; once an administrator sets it, the core
+    /// files the manual there and adds a new version whenever the package carries different bytes. A
+    /// DEFAULT-IMPLEMENTED property, so a module built against 1.4 or earlier compiles and runs unchanged.
+    /// </remarks>
+    ModuleManual? Manual => null;
+
+    /// <summary>
+    /// Root-level route prefixes this module claims for its PROTOCOL endpoints (ABI 1.7, core ADR 0898): a NuGet
+    /// feed at <c>/nuget/v3/index.json</c> rather than under <c>/api</c>, because its address is pasted into every
+    /// client's configuration. Only a prefix on the core's ALLOWLIST may be claimed (today: <c>nuget</c>); a module
+    /// claiming any other, or one another module already claimed, is refused at load. A controller of this module
+    /// may route under a claimed prefix; every other module route stays under <c>api/</c>.
+    /// </summary>
+    /// <remarks>Default none. A claimed route is authenticated by the module's
+    /// <see cref="IModuleCredentialAuthenticator"/>, never by the core's own login, and runs behind the same
+    /// activation gate as every module route.</remarks>
+    IReadOnlyList<string> RootRoutePrefixes => [];
+
+    /// <summary>
+    /// Root route prefixes served without a credential (ABI 1.28, core ADR 1038): the tenant comes from the request's
+    /// Host through the named module setting. Default: none. On the core's allowlist like <see cref="RootRoutePrefixes"/>.
+    /// </summary>
+    IReadOnlyList<AnonymousRootPrefix> AnonymousRootPrefixes => [];
+
+    /// <summary>
+    /// Whether this module sends notices to addresses that are NOT users of the tenant through <see cref="IModuleNotices"/>
+    /// (ABI 1.10, core ADR 0902): a renewal confirmation to a customer. Default false: the module cannot become a mail
+    /// relay by accident, and an external address is refused with a Warning.
+    /// </summary>
+    bool SendsExternalNotices => false;
+
+    /// <summary>
+    /// The external hosts this module's <see cref="IModuleHttpClient"/> may reach (ABI 0.6) — the allowlist
+    /// the core's SSRF policy (ADR 0717) enforces on every request the module makes. A host not named here
+    /// is refused before any request leaves the process, so a module's network egress is declared up front
+    /// and auditable, exactly as its archive reach is enumerable through the facade. Bare host names
+    /// (<c>aviationweather.gov</c>, <c>www.skybriefing.com</c>), no scheme or path. Default: none — a module
+    /// that fetches nothing declares nothing, and its injected client refuses every host.
+    /// </summary>
+    IReadOnlyList<string> OutboundHosts => [];
+
+    /// <summary>The per-tenant configuration this module needs (ABI 0.12, core ADR 0772): the customer's own
+    /// account with an external service, an endpoint, a scheme identifier. Declared rather than free-form, so
+    /// the core renders and validates the admin form and owns the secret path; read a value back through
+    /// <see cref="IModuleArchiveFacade.GetSettingAsync"/>. Default: none — a module that needs no
+    /// configuration declares none, and no form appears for it.</summary>
+    IReadOnlyList<ModuleSetting> Settings => [];
+
+    /// <summary>The module's localized refusal and status-diagnosis texts (ABI 0.10, core ADR 0767):
+    /// culture → code → template. Refusal templates use {0}-style slots for the exception's Args; status
+    /// templates use {value} for the condition's evaluated value. The host resolves the request culture
+    /// (falling back culture → "en" → the composed invariant message) and, for refusals, tries
+    /// "CODE.arg0" before "CODE" — the role-dependent-sentence trick. Default empty: an older module
+    /// keeps today's behaviour exactly.</summary>
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> LocalizedTexts =>
+        System.Collections.Immutable.ImmutableDictionary<string, IReadOnlyDictionary<string, string>>.Empty;
+
+    /// <summary>
+    /// Vets a booking before the core commits it (ABI 0.15, core ADR 0781) — the seam where a rule the CORE
+    /// cannot express lives: an instructor's published availability standing as consent, so a student may book
+    /// them, while the instructor booking a student needs none. Core ADR 0780 stores offered time and
+    /// deliberately does not decide what it authorises, because deciding needs to tell a student from an
+    /// instructor, and only the module knows which is which.
+    /// <para>
+    /// <b>Return to admit; throw <see cref="ModuleApiException"/> to refuse</b>, with your own code, status
+    /// and localized args — the refusal reaches the pilot as the same RFC 7807 problem a core refusal does,
+    /// in their own language (ABI 0.10). Name what is missing: "no published availability covering 14:00" and
+    /// "someone else has it" prompt different actions, and a generic conflict collapses the two.
+    /// </para>
+    /// <para>
+    /// <b>Any OTHER exception is a vetting FAILURE, and the booking is refused naming this module</b> (owner
+    /// decision). The alternative — admitting what could not be vetted — fails silently and in the
+    /// safe-looking direction: nothing errors, no screen changes, and the consent rule has quietly stopped
+    /// applying until someone reads a log. A refusal is loud and reported within minutes. The cost is real
+    /// and is the point: a handler that throws stops bookings of every resource in tenants where this module
+    /// is active, including ones the rule never applied to.
+    /// </para>
+    /// <para>
+    /// Called inside the core's booking transaction, before the save, on EVERY path that writes the
+    /// <c>.ics</c> (ADR 0744) — the app, CalDAV, and a module's own write through the facade alike. So keep it
+    /// short, and expect to be re-entered: replacing a booking's content to substitute a claimant is itself a
+    /// booking write, and is vetted again.
+    /// </para>
+    /// Default null — a module that vets nothing declares nothing, and every booking is admitted as before.
+    /// </summary>
+    Func<BookingAdmissionContext, Task>? ReviewBooking => null;
+
+    /// <summary>
+    /// The module's part in a device's setup profile, and its word on a revoked device (ABI 1.27, core ADR 1036). Null —
+    /// the default — means the module adds nothing and is told nothing. A DEFAULT-IMPLEMENTED property, so a module
+    /// built against 1.26 or earlier compiles and runs unchanged.
+    /// </summary>
+    IModuleDeviceProfiles? DeviceProfiles => null;
+
+    /// <summary>
+    /// Answers which certificates a reader is addressed by, for a tenant whose content is delivered as
+    /// envelopes (core ADR 0842, ABI 0.31). Default null — a module that enrols no certificates declares
+    /// nothing, and the core resolves them as it did before.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Where this answers, it is the ONLY source.</b> The core does not consult
+    /// <c>User.SmimeCertificatePem</c> or the encryption service's registry as well. Not a fallback chain and
+    /// not a union: a union means a certificate REVOKED here still opens documents while a copy lingers
+    /// elsewhere, which is a revocation that does not revoke.
+    /// </para>
+    /// <para>
+    /// <b>Answer with the whole set; there is no precedence to apply.</b> A CMS <c>EnvelopedData</c> addresses
+    /// as many recipients as you like — each gets the content-encryption key wrapped to their own public key
+    /// over ONE copy of the ciphertext — so the core addresses all of them and the reader opens it with
+    /// whichever key is to hand. That is what lets the same document open on the desk with a card and on a
+    /// laptop with a software certificate, with nothing guessing which one they are at.
+    /// </para>
+    /// <para>
+    /// <b>Filter here.</b> Expired, revoked, wrong key usage, wrong issuer — all of it is certificate policy,
+    /// which is the module's product and its per-tenant setting. The core envelopes what it is handed and
+    /// forms no opinion, so the two cannot disagree. An empty list is a real answer meaning "this reader has
+    /// no usable certificate", and the core refuses the read rather than serving plaintext.
+    /// </para>
+    /// <para>
+    /// Called on the CONTENT PATH, once per request rather than per door (core ADR 0557's rule applied to
+    /// reads), and — like every other module hook — only while the module is ACTIVE for the tenant. A lapsed
+    /// licence therefore stops the answer, which is how the tier refuses rather than quietly degrading.
+    /// </para>
+    /// </remarks>
+    Func<ReaderCertificateContext, Task<IReadOnlyList<ReaderCertificate>>>? ReaderCertificates => null;
+
+    /// <summary>
+    /// Whether this module LICENSES certificate enrolment (ABI 1.17, core ADR 0935, #1790): while it is active for a
+    /// tenant, the core answers which certificates a reader is addressed by from its own registry, the certificates
+    /// enrolled as documents of the core <c>Certificate</c> mask, revoked and expired ones left out. The Encryption
+    /// Module and the Messenger both declare it, so a user enrols once and either licence switches the answer on.
+    /// A module that declares it needs no <see cref="ReaderCertificates"/> of its own; one that has both is answered
+    /// by the core.
+    /// </summary>
+    bool LicensesCertificateEnrolment => false;
+
+    /// <summary>
+    /// Whether the phone's offline export may run on a tenant that refuses plaintext doors, and whether its index data
+    /// and chat travel sealed too (ABI 1.15, core ADR 0928). Null (the default): no module speaks, and such a tenant
+    /// refuses the offline export, as it refuses every plaintext door.
+    /// </summary>
+    /// <remarks>
+    /// Asked once per offline export, only while the module is ACTIVE for the tenant, and run as the module, like
+    /// <see cref="ReaderCertificates"/>: a lapsed licence stops the answer and the export is refused.
+    /// </remarks>
+    Func<OfflineExportPolicyContext, Task<OfflineExportPolicy>>? OfflineExportPolicy => null;
+
+    /// <summary>
+    /// The masks whose documents this module PROJECTS into a read model (ABI 1.1, ADR 0848) — declared so the
+    /// host can tell it when one changes by a route the module cannot see.
+    /// </summary>
+    /// <remarks>
+    /// Empty for a module whose projections are written only by its own transition handlers, which is every
+    /// module before 1.1: it is exclusively the writer, so there is nothing it can miss. Declare a mask only
+    /// when something OTHER than this module can change the documents — a core well-known mask above all,
+    /// since a tenant administrator reaches those with the pencil in the workbench.
+    ///
+    /// <para><b>Declaring a mask is a commitment to be correct about it.</b> A throw from
+    /// <see cref="DocumentProjected"/> fails the write that triggered it (ADR 0848), so a module that wants
+    /// best-effort projection should declare nothing here and rebuild on a schedule instead.</para>
+    /// </remarks>
+    IReadOnlyList<Guid> ProjectedMasks => [];
+
+    /// <summary>
+    /// A document wearing one of <see cref="ProjectedMasks"/> has changed; re-derive its row (ABI 1.1, ADR 0848).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Called ONCE per document per save, however many rows changed — a save can touch the document, several
+    /// of its index-field values and a version, and that is one fact, not five. It fires for an index-field
+    /// edit and for a new CONFIRMED version as well as for a write to the document row itself, because
+    /// neither of the first two touches that row and both are how a certificate is really revoked or
+    /// replaced.
+    /// </para>
+    /// <para>
+    /// <b>It runs INSIDE the core's save and inside its transaction</b>, so the projection commits with the
+    /// document or not at all. Two obligations follow, and they are the price of that guarantee. Do not WRITE
+    /// through <see cref="ProjectedDocumentContext.Archive"/> — that re-enters <c>SaveChanges</c>; read the
+    /// committed document and project into the module's own context. And do not be SLOW: the core's
+    /// transaction is open and its locks are held for every other writer while this runs, so no outbound
+    /// call, no retry loop, no waiting on anything.
+    /// </para>
+    /// <para>
+    /// <b>A throw fails the write</b>, deliberately unlike every other module hook, which the core tolerates
+    /// (see <see cref="ReaderCertificates"/>, whose failure merely refuses a read). The asymmetry is the
+    /// DIRECTION of the failure: a refused read is safe and visible, whereas a projection that silently did
+    /// not happen leaves a revoked certificate addressed for as long as nobody rebuilds.
+    /// </para>
+    /// </remarks>
+    Func<ProjectedDocumentContext, Task>? DocumentProjected => null;
+
+    /// <summary>
+    /// The masks whose documents this module may offer actions on (ABI 0.20, core ADR 0786). The core asks
+    /// <see cref="DocumentActions"/> only for these, so a module is not consulted on every document read in
+    /// the tenant. Default: none.
+    /// </summary>
+    /// <remarks>
+    /// A mask this module does NOT own is legal here, and is the point: a flight is a booking, which wears a
+    /// core mask. What stops that becoming "this module speaks for every booking in the product" is that the
+    /// handler decides PER DOCUMENT — asked about a meeting-room booking it simply offers nothing.
+    /// </remarks>
+    IReadOnlyList<Guid> ActionSubjectMasks => [];
+
+    /// <summary>
+    /// The actions this module offers on one document — a pick-then-act surface both clients render from
+    /// hypermedia alone (ABI 0.20, core ADR 0786). Return empty to offer nothing, which is the answer for
+    /// every document the module has no business with.
+    /// </summary>
+    /// <remarks>
+    /// Emitted only where following it would WORK (ADR 0543's absence semantics): a module that cannot
+    /// currently serve the action should return nothing rather than an affordance that then refuses.
+    /// </remarks>
+    Func<ModuleDocumentActionContext, Task<IReadOnlyList<ModuleDocumentAction>>>? DocumentActions => null;
+}

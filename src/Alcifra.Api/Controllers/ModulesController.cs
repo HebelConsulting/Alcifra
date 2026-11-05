@@ -203,7 +203,7 @@ public class ModulesController : ControllerBase
     [HttpPost("{moduleId}/rebuild/{projectionName}")]
     public async Task<IActionResult> RebuildProjection(
         string moduleId, string projectionName,
-        [FromServices] IEnumerable<SimplArchive.ModuleAbi.IModuleProjectionRebuilder> rebuilders,
+        [FromServices] IEnumerable<Alcifra.ModuleAbi.IModuleProjectionRebuilder> rebuilders,
         CancellationToken cancellationToken)
     {
         if (!await CanAdministerModulesAsync(cancellationToken))
@@ -426,7 +426,7 @@ public class ModulesController : ControllerBase
             // A Boolean means one of two things or it means nothing. Refusing anything else here is what keeps
             // the read side a straight equality test: a stored "yes" or "1" would read as FALSE at the moment
             // it matters, and silently — the tenant would see the toggle on and the behaviour off.
-            if (setting.Kind == SimplArchive.ModuleAbi.ModuleSettingKind.Boolean && !string.IsNullOrEmpty(value)
+            if (setting.Kind == Alcifra.ModuleAbi.ModuleSettingKind.Boolean && !string.IsNullOrEmpty(value)
                 && !string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase))
             {
@@ -437,7 +437,7 @@ public class ModulesController : ControllerBase
             // Boolean above, generalised (ABI 0.29). Compared VERBATIM, because the values are the setting's
             // vocabulary rather than display text: a case-insensitive match would let two spellings of one
             // choice both be stored, and the module reading them back would have to know that.
-            if (setting.Kind == SimplArchive.ModuleAbi.ModuleSettingKind.Choice && !string.IsNullOrEmpty(value)
+            if (setting.Kind == Alcifra.ModuleAbi.ModuleSettingKind.Choice && !string.IsNullOrEmpty(value)
                 && !setting.Choices.Contains(value, StringComparer.Ordinal))
             {
                 throw new ModuleSettingValueInvalidException(moduleId, key);
@@ -531,7 +531,7 @@ public class ModulesController : ControllerBase
     [HttpGet("{moduleId}/projections")]
     public async Task<IActionResult> GetProjections(
         string moduleId,
-        [FromServices] IEnumerable<SimplArchive.ModuleAbi.IModuleProjectionRebuilder> rebuilders,
+        [FromServices] IEnumerable<Alcifra.ModuleAbi.IModuleProjectionRebuilder> rebuilders,
         CancellationToken cancellationToken)
     {
         if (!await CanAdministerModulesAsync(cancellationToken))
@@ -567,10 +567,10 @@ public class ModulesController : ControllerBase
     [HttpHead("{moduleId}/projections")]
     public IActionResult HeadProjections(string moduleId) => NoContent();
 
-    private SimplArchive.ModuleAbi.IModuleProjectionRebuilder? RebuilderFor(
+    private Alcifra.ModuleAbi.IModuleProjectionRebuilder? RebuilderFor(
         string moduleId,
         string projectionName,
-        IEnumerable<SimplArchive.ModuleAbi.IModuleProjectionRebuilder> rebuilders) =>
+        IEnumerable<Alcifra.ModuleAbi.IModuleProjectionRebuilder> rebuilders) =>
         OwnRebuilders(moduleId, rebuilders)
             .FirstOrDefault(r => r.ProjectionNames.Contains(projectionName, StringComparer.Ordinal));
 
@@ -587,8 +587,8 @@ public class ModulesController : ControllerBase
     /// direction, since the alternative is running somebody else's rebuilder under this module's identity.
     /// </para>
     /// </remarks>
-    private IEnumerable<SimplArchive.ModuleAbi.IModuleProjectionRebuilder> OwnRebuilders(
-        string moduleId, IEnumerable<SimplArchive.ModuleAbi.IModuleProjectionRebuilder> rebuilders)
+    private IEnumerable<Alcifra.ModuleAbi.IModuleProjectionRebuilder> OwnRebuilders(
+        string moduleId, IEnumerable<Alcifra.ModuleAbi.IModuleProjectionRebuilder> rebuilders)
     {
         var assembly = _modules
             .FirstOrDefault(m => string.Equals(m.Module.ModuleId, moduleId, StringComparison.Ordinal))
@@ -599,23 +599,23 @@ public class ModulesController : ControllerBase
             : rebuilders.Where(r => r.GetType().Assembly == assembly);
     }
 
-    private IReadOnlyList<SimplArchive.ModuleAbi.ModuleSetting> DeclaredSettings(string moduleId)
+    private IReadOnlyList<Alcifra.ModuleAbi.ModuleSetting> DeclaredSettings(string moduleId)
     {
         var module = _modules.FirstOrDefault(m => string.Equals(m.Module.ModuleId, moduleId, StringComparison.Ordinal))?.Module
             ?? throw new ModuleNotInstalledException(moduleId);
 
         var declaresProtocolRead = _machines.Machines.Values.Any(machine =>
             string.Equals(machine.ModuleId, moduleId, StringComparison.Ordinal)
-            && machine.Transitions.Values.Any(t => t is { AutoRefreshOnOpen: true, ProtocolRead: SimplArchive.ModuleAbi.ProtocolReadRefresh.WhenTenantEnables }));
+            && machine.Transitions.Values.Any(t => t is { AutoRefreshOnOpen: true, ProtocolRead: Alcifra.ModuleAbi.ProtocolReadRefresh.WhenTenantEnables }));
 
         return declaresProtocolRead
-            ? [.. module.Settings, new SimplArchive.ModuleAbi.ModuleSetting(
-                SimplArchive.ModuleAbi.ProtocolReadRefreshSetting.Key,
+            ? [.. module.Settings, new Alcifra.ModuleAbi.ModuleSetting(
+                Alcifra.ModuleAbi.ProtocolReadRefreshSetting.Key,
                 "Refresh content when a drive or mail client opens the folder",
                 Description: "This module fetches its content on demand when the folder is opened. The desktop and web "
                     + "clients always do so; enable this to let a mounted drive or a mail client do it too, otherwise "
                     + "those surfaces show only what is already filed.")
-                { Kind = SimplArchive.ModuleAbi.ModuleSettingKind.Boolean }]
+                { Kind = Alcifra.ModuleAbi.ModuleSettingKind.Boolean }]
             : module.Settings;
     }
 
@@ -688,7 +688,7 @@ public class ModulesController : ControllerBase
 
         /// <summary>What the value holds, so the form draws a checkbox rather than a text box (ABI 0.27).
         /// Serialized as the enum's NAME, which is what a client matches on.</summary>
-        public string Kind { get; set; } = nameof(SimplArchive.ModuleAbi.ModuleSettingKind.Text);
+        public string Kind { get; set; } = nameof(Alcifra.ModuleAbi.ModuleSettingKind.Text);
 
         /// <summary>
         /// The permitted values for a <c>Choice</c>; empty for every other kind (ABI 0.29).

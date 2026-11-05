@@ -9,7 +9,7 @@ using Alcifra.Api.Errors.Exceptions.Audience;
 using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Documents;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Api.Controllers;
 

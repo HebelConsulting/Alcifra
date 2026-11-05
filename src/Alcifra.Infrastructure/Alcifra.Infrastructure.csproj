@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Alcifra.Application\Alcifra.Application.csproj" />
-    <ProjectReference Include="..\SimplArchive.ModuleAbi\SimplArchive.ModuleAbi.csproj" />
+    <ProjectReference Include="..\Alcifra.ModuleAbi\Alcifra.ModuleAbi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

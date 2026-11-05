@@ -8,7 +8,7 @@ using Alcifra.Domain.Users;
 using Alcifra.Infrastructure.Acl;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.IntegrationTests;
 

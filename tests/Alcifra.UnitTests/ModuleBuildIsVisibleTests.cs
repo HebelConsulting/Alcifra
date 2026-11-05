@@ -52,13 +52,13 @@ public class ModuleBuildIsVisibleTests
     }
 
     // The interface's required members only; everything else has a default implementation.
-    private sealed class StubModule : SimplArchive.ModuleAbi.IIndustryModule
+    private sealed class StubModule : Alcifra.ModuleAbi.IIndustryModule
     {
         public string ModuleId => "stub";
         public string DisplayName => "Stub";
-        public int AbiMajorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Major;
+        public int AbiMajorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Major;
         public string LicenseVerifyKeyPem => string.Empty;
-        public IReadOnlyList<SimplArchive.ModuleAbi.ModuleMaskSeed> Masks => [];
+        public IReadOnlyList<Alcifra.ModuleAbi.ModuleMaskSeed> Masks => [];
 
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {

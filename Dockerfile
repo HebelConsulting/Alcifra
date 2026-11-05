@@ -39,7 +39,7 @@ ARG VERSION=0.0.0-dev
 # Copy all project files first (preserving relative paths, needed since Api's project references must resolve
 # during restore) so the restore layer is cached independently of source-code changes.
 COPY ["src/Alcifra.Localization/Alcifra.Localization.csproj", "src/Alcifra.Localization/"]
-COPY ["src/SimplArchive.ModuleAbi/SimplArchive.ModuleAbi.csproj", "src/SimplArchive.ModuleAbi/"]
+COPY ["src/Alcifra.ModuleAbi/Alcifra.ModuleAbi.csproj", "src/Alcifra.ModuleAbi/"]
 COPY ["src/Alcifra.Presentation/Alcifra.Presentation.csproj", "src/Alcifra.Presentation/"]
 COPY ["src/Alcifra.TextLayout/Alcifra.TextLayout.csproj", "src/Alcifra.TextLayout/"]
 COPY ["src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj", "src/Alcifra.HardwareKeys/"]

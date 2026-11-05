@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using Alcifra.Application.Abstractions;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 

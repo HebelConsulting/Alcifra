@@ -133,8 +133,8 @@ public sealed class ModuleAppFixture : SelfHostedAppFixture
 
     /// <summary>A licence for the TestModule in <paramref name="tenantId"/>, signed with the key the staged module trusts.</summary>
     public string SignTestModuleLicence(Guid tenantId) => System.Text.Json.JsonSerializer.Serialize(
-        new SimplArchive.ModuleAbi.TenantLicense(["test-module"], tenantId, DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-            SimplArchive.ModuleAbi.ModuleAbiVersion.Major, string.Empty).Sign(VendorKey),
+        new Alcifra.ModuleAbi.TenantLicense(["test-module"], tenantId, DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            Alcifra.ModuleAbi.ModuleAbiVersion.Major, string.Empty).Sign(VendorKey),
         new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 }
 

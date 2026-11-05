@@ -176,15 +176,15 @@ public sealed partial class PasswordStoreTests
                 : null;
     }
 
-    private sealed class LicensingModule : SimplArchive.ModuleAbi.IIndustryModule
+    private sealed class LicensingModule : Alcifra.ModuleAbi.IIndustryModule
     {
         public bool LicensesCertificateEnrolment => true;
         public string ModuleId => "msg";
         public string DisplayName => "Messenger";
-        public int AbiMajorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Major;
-        public int AbiMinorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Minor;
+        public int AbiMajorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Major;
+        public int AbiMinorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Minor;
         public string LicenseVerifyKeyPem => string.Empty;
-        public IReadOnlyList<SimplArchive.ModuleAbi.ModuleMaskSeed> Masks => [];
+        public IReadOnlyList<Alcifra.ModuleAbi.ModuleMaskSeed> Masks => [];
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
 

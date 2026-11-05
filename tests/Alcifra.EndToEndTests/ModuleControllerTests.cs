@@ -5,7 +5,7 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.EndToEndTests;
 
@@ -873,7 +873,7 @@ public class ModuleControllerTests
             }
 
             var refused = await rig.Owner.PostAsJsonAsync($"/api/documents/{binder}/children",
-                new { name = "Sub", maskId = SimplArchive.ModuleAbi.CoreMaskIds.Folder });
+                new { name = "Sub", maskId = Alcifra.ModuleAbi.CoreMaskIds.Folder });
             Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
         }
         finally

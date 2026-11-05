@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Alcifra.Domain.Tenants;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Api.Manuals;
 

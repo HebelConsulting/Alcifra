@@ -5,7 +5,7 @@ using Alcifra.Api.Security;
 using Alcifra.Application.Abstractions;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using WireEvent = Alcifra.Presentation.ModuleLiveEvent;
 
 namespace Alcifra.Api.Realtime;

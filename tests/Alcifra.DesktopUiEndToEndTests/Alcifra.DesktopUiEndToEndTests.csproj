@@ -56,7 +56,7 @@
     <ProjectReference Include="..\..\src\Alcifra.Domain\Alcifra.Domain.csproj" />
     <!-- The module contract, to SIGN the TestModule's licence for the Strict tenant (ADR 0890) — the same
          TenantLicense type a vendor signs with. A dependency-free contract assembly, so nothing else comes along. -->
-    <ProjectReference Include="..\..\src\SimplArchive.ModuleAbi\SimplArchive.ModuleAbi.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.ModuleAbi\Alcifra.ModuleAbi.csproj" />
     <!-- The shared self-host boot engine (ADR 0502) — one source of truth for standing up the real app. -->
     <ProjectReference Include="..\Alcifra.SelfHosting\Alcifra.SelfHosting.csproj" />
   </ItemGroup>

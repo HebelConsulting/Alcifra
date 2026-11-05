@@ -5,7 +5,7 @@ using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Notifications;
 using Alcifra.Infrastructure.Notifications;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 

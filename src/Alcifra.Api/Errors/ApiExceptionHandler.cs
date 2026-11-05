@@ -51,7 +51,7 @@ public class ApiExceptionHandler : IExceptionHandler
             ApiException apiException => (apiException.ErrorCode, apiException.StatusCode, apiException.Message),
             // A module's refusal (ADR 0737): same wire shape as a core one — a module error must be
             // indistinguishable from a native error, which is the whole point of real controllers.
-            SimplArchive.ModuleAbi.ModuleApiException moduleException =>
+            Alcifra.ModuleAbi.ModuleApiException moduleException =>
                 (moduleException.ErrorCode, moduleException.StatusCode, moduleException.Message),
             // The strict tier refusing a door that cannot carry an envelope (#1394, ADR 0829). Thrown from
             // the storage seam, which cannot reference this project's exception types — the same reason the
@@ -94,7 +94,7 @@ public class ApiExceptionHandler : IExceptionHandler
         // (their no-server-detail rule guards against unlocalizable English, which this is not). The acting
         // module comes from the request's module scope when set; otherwise the code finds its module, since
         // module codes are prefixed by convention. Falls back to the composed invariant message untouched.
-        if (exception is SimplArchive.ModuleAbi.ModuleApiException m)
+        if (exception is Alcifra.ModuleAbi.ModuleApiException m)
         {
             var modules = httpContext.RequestServices.GetService<IReadOnlyList<Infrastructure.Modules.ModuleLoader.LoadedModule>>() ?? [];
             var actingModule = httpContext.RequestServices.GetService<Infrastructure.Modules.ModuleIdentityAccessor>()?.ModuleId;

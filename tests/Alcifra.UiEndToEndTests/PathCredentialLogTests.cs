@@ -1,5 +1,5 @@
 using System.Net;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UiEndToEndTests;
 

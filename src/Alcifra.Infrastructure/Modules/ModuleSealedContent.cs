@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Alcifra.Application.Abstractions;
 using Alcifra.Infrastructure.Encryption;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 using Alcifra.Application.Abstractions;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 

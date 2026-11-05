@@ -10,7 +10,7 @@ using Alcifra.Domain.Documents;
 using Alcifra.Domain.Masks;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Api.Manuals;
 

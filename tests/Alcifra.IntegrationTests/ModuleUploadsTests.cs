@@ -3,7 +3,7 @@ using System.Text;
 using Alcifra.Application.Abstractions;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.IntegrationTests;
 

@@ -148,11 +148,11 @@ public static class DependencyInjection
         services.AddScoped<IClearanceResolver, ClearanceResolver>();
 
         // The module seam's host side (ADR 0741): what a module's registered services may reach.
-        services.AddScoped<SimplArchive.ModuleAbi.IModuleArchiveFacade, Modules.ModuleArchiveFacade>();
-        services.AddScoped<SimplArchive.ModuleAbi.IModuleAudit, Modules.ModuleAuditRecorder>();
+        services.AddScoped<Alcifra.ModuleAbi.IModuleArchiveFacade, Modules.ModuleArchiveFacade>();
+        services.AddScoped<Alcifra.ModuleAbi.IModuleAudit, Modules.ModuleAuditRecorder>();
         // A module's notices (ABI 1.10, ADR 0902): one delivery rule for the escalation sweep and for actions.
         services.AddScoped<Modules.ModuleNoticeDelivery>();
-        services.AddScoped<SimplArchive.ModuleAbi.IModuleNotices, Modules.ModuleNotices>();
+        services.AddScoped<Alcifra.ModuleAbi.IModuleNotices, Modules.ModuleNotices>();
         // WHICH module's code runs in this scope (ADR 0736) — set at the module boundaries, read by the
         // facade's consent gate.
         services.AddScoped<Modules.ModuleIdentityAccessor>();
@@ -250,7 +250,7 @@ public static class DependencyInjection
         // The guarded per-module outbound client (ABI 0.6): same SSRF-guarded primary handler as the webhook
         // sender, plus a per-acting-module host allowlist the client itself enforces (ModuleHttpClient). One
         // registration serves every module; a module reaches only the hosts it declared in OutboundHosts.
-        services.AddHttpClient<SimplArchive.ModuleAbi.IModuleHttpClient, Modules.ModuleHttpClient>()
+        services.AddHttpClient<Alcifra.ModuleAbi.IModuleHttpClient, Modules.ModuleHttpClient>()
             .ConfigurePrimaryHttpMessageHandler(provider =>
                 Http.GuardedOutboundHandler.Create(provider.GetRequiredService<IOutboundAddressPolicy>()));
         services.AddScoped<ISensitivityLabelSeeder, Documents.SensitivityLabelSeeder>();

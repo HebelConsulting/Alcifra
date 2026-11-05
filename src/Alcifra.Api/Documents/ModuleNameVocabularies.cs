@@ -9,7 +9,7 @@ namespace Alcifra.Api.Documents;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A module declares <see cref="SimplArchive.ModuleAbi.ModuleMaskSeed.NameVocabularyRel"/> on a mask whose NAME is an
+/// A module declares <see cref="Alcifra.ModuleAbi.ModuleMaskSeed.NameVocabularyRel"/> on a mask whose NAME is an
 /// identifier rather than a label — a weather folder called <c>LSZH</c>. This resolves that rel to the
 /// address the module actually serves it at, so the create dialog can complete as the user types instead of
 /// asking them to remember four letters.

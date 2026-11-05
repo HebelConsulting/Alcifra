@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Booking;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 

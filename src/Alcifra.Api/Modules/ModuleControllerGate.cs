@@ -79,7 +79,7 @@ internal sealed class RevealOnceNoStoreFilter : IAsyncResultFilter
 {
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
-        if (context.Result is ObjectResult { Value: SimplArchive.ModuleAbi.ModuleActionResult { RevealOnce: not null } result } answer)
+        if (context.Result is ObjectResult { Value: Alcifra.ModuleAbi.ModuleActionResult { RevealOnce: not null } result } answer)
         {
             answer.Value = ModuleActionResponse.From(result);
             answer.DeclaredType = typeof(ModuleActionResponse);

@@ -380,37 +380,37 @@ public class EncryptionModesTests
     }
 
     /// <summary>A module that either answers the reader-certificate capability or does not.</summary>
-    private static SimplArchive.ModuleAbi.IIndustryModule Module(bool answers) => new CapabilityModule(answers);
+    private static Alcifra.ModuleAbi.IIndustryModule Module(bool answers) => new CapabilityModule(answers);
 
     // The ABI 1.17 form: no certificates of its own, the core's enrolment licensed instead (Encryption Module 0.6.0).
-    private sealed class LicensingModule : SimplArchive.ModuleAbi.IIndustryModule
+    private sealed class LicensingModule : Alcifra.ModuleAbi.IIndustryModule
     {
         public bool LicensesCertificateEnrolment => true;
         public string ModuleId => "licenses";
         public string DisplayName => ModuleId;
-        public int AbiMajorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Major;
-        public int AbiMinorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Minor;
+        public int AbiMajorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Major;
+        public int AbiMinorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Minor;
         public string LicenseVerifyKeyPem => string.Empty;
-        public IReadOnlyList<SimplArchive.ModuleAbi.ModuleMaskSeed> Masks => [];
+        public IReadOnlyList<Alcifra.ModuleAbi.ModuleMaskSeed> Masks => [];
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
 
-    private sealed class CapabilityModule(bool answers) : SimplArchive.ModuleAbi.IIndustryModule
+    private sealed class CapabilityModule(bool answers) : Alcifra.ModuleAbi.IIndustryModule
     {
         // The capability under test. Returning an EMPTY list when it answers is deliberate: this gate asks
         // whether the capability EXISTS, never what it would return — a module that answers "no certificates
         // for this reader" is still a module that performs the tier, and the read refuses at that point
         // rather than at startup.
-        public Func<SimplArchive.ModuleAbi.ReaderCertificateContext,
-            Task<IReadOnlyList<SimplArchive.ModuleAbi.ReaderCertificate>>>? ReaderCertificates =>
-            answers ? (_ => Task.FromResult<IReadOnlyList<SimplArchive.ModuleAbi.ReaderCertificate>>([])) : null;
+        public Func<Alcifra.ModuleAbi.ReaderCertificateContext,
+            Task<IReadOnlyList<Alcifra.ModuleAbi.ReaderCertificate>>>? ReaderCertificates =>
+            answers ? (_ => Task.FromResult<IReadOnlyList<Alcifra.ModuleAbi.ReaderCertificate>>([])) : null;
 
         public string ModuleId => answers ? "answers" : "silent";
         public string DisplayName => ModuleId;
-        public int AbiMajorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Major;
-        public int AbiMinorVersion => SimplArchive.ModuleAbi.ModuleAbiVersion.Minor;
+        public int AbiMajorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Major;
+        public int AbiMinorVersion => Alcifra.ModuleAbi.ModuleAbiVersion.Minor;
         public string LicenseVerifyKeyPem => string.Empty;
-        public IReadOnlyList<SimplArchive.ModuleAbi.ModuleMaskSeed> Masks => [];
+        public IReadOnlyList<Alcifra.ModuleAbi.ModuleMaskSeed> Masks => [];
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
 

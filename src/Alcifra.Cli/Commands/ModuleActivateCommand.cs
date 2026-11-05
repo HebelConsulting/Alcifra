@@ -194,7 +194,7 @@ public sealed class ModuleDeactivateCommand(ILogger<ModuleDeactivateCommand> log
 /// The claims this tool needs from a licence file, read WITHOUT the module ABI.
 /// </summary>
 /// <remarks>
-/// Deliberately a local shape rather than <c>SimplArchive.ModuleAbi.TenantLicense</c>: this is the customer's
+/// Deliberately a local shape rather than <c>Alcifra.ModuleAbi.TenantLicense</c>: this is the customer's
 /// CLI, and referencing the module ABI would couple the administrative tool to the module contract for three
 /// fields it only echoes. The server verifies the signature and every claim, so nothing here is a check —
 /// reading the file locally exists ONLY so the tool knows which modules to activate, and so a file that is

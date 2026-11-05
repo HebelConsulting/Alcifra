@@ -6,7 +6,7 @@ using Serilog.Events;
 using Alcifra.Api.Logging;
 using Alcifra.Api.Modules;
 using Alcifra.Infrastructure.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 

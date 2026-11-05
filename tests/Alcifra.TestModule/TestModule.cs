@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.TestModule;
 
@@ -571,7 +571,7 @@ public sealed class TestModule : IIndustryModule
             // a handler reaches ApiExceptionHandler where the ambient culture has already unwound — the
             // catalog must still resolve for the REQUEST culture (the bug found live 2026-09-08).
             .Transition("refuse", "Refuse", [],
-                _ => throw new SimplArchive.ModuleAbi.ModuleApiException(
+                _ => throw new Alcifra.ModuleAbi.ModuleApiException(
                     "TEST_HANDLER_REFUSED", 409, "The test step was refused."))
             // The rollback fixture (ADR 0737): a handler that WRITES and then throws — what it wrote must
             // never be seen, because the engine owns the transaction and a throw rolls the act back.

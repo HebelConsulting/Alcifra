@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Alcifra.Infrastructure.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 

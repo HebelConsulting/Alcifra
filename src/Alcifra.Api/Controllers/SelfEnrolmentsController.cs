@@ -67,7 +67,7 @@ public class SelfEnrolmentsController(
         public string Title { get; set; } = string.Empty;
 
         /// <summary>Which control to offer — the closed set of ABI 1.3, as its name.</summary>
-        public string Input { get; set; } = nameof(SimplArchive.ModuleAbi.PerUserEnrolmentInput.Certificate);
+        public string Input { get; set; } = nameof(Alcifra.ModuleAbi.PerUserEnrolmentInput.Certificate);
 
         /// <summary>Whether the tenant has the surface switched on.</summary>
         /// <remarks>
@@ -142,7 +142,7 @@ public class SelfEnrolmentsController(
             {
                 ModuleId = CoreEnrolmentId,
                 Title = Alcifra.Localization.Strings.Get("CertReaderCertificate", culture),
-                Input = nameof(SimplArchive.ModuleAbi.PerUserEnrolmentInput.Certificate),
+                Input = nameof(Alcifra.ModuleAbi.PerUserEnrolmentInput.Certificate),
                 Enabled = enabled,
                 Field = "certificatePem",
                 LabelField = "label",

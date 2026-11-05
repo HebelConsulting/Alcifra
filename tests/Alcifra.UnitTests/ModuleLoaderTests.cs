@@ -1,7 +1,10 @@
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.Loader;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Alcifra.Infrastructure.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 
@@ -129,6 +132,52 @@ public class ModuleLoaderTests
             {
                 Warnings.Add(formatter(state, exception));
             }
+        }
+    }
+
+    // ADR 1063: a real assembly built against the ABI's earlier name, with that ABI's own copy beside it, as a module of
+    // that age ships. It is refused by that name rather than failing to bind or quietly holding no module.
+    [Fact]
+    public void A_module_built_against_the_earlier_abi_name_is_refused_by_that_name()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"simplarchive-modules-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var core = typeof(object).Assembly;
+            var abi = new PersistedAssemblyBuilder(new AssemblyName("SimplArchive.ModuleAbi"), core);
+            var contract = abi.DefineDynamicModule("SimplArchive.ModuleAbi").DefineType(
+                "SimplArchive.ModuleAbi.IIndustryModule", TypeAttributes.Public | TypeAttributes.Interface | TypeAttributes.Abstract);
+            contract.CreateType();
+            var abiPath = Path.Combine(dir, "SimplArchive.ModuleAbi.dll");
+            abi.Save(abiPath);
+
+            var earlier = new AssemblyLoadContext("earlier-abi", isCollectible: true);
+            try
+            {
+                var contractType = earlier.LoadFromAssemblyPath(abiPath).GetType("SimplArchive.ModuleAbi.IIndustryModule")!;
+                var old = new PersistedAssemblyBuilder(new AssemblyName("Old.Module"), core);
+                var moduleType = old.DefineDynamicModule("Old.Module").DefineType("Old.Module.OldModule", TypeAttributes.Public, typeof(object));
+                moduleType.AddInterfaceImplementation(contractType);
+                moduleType.DefineDefaultConstructor(MethodAttributes.Public);
+                moduleType.CreateType();
+                old.Save(Path.Combine(dir, "Old.Module.dll"));
+            }
+            finally
+            {
+                earlier.Unload();
+            }
+
+            var logger = new CapturingLogger();
+
+            Assert.Empty(ModuleLoader.LoadAll(dir, logger));
+
+            var refusal = Assert.Single(logger.Warnings, m => m.Contains("SimplArchive.ModuleAbi", StringComparison.Ordinal) && m.Contains("Old.Module.dll", StringComparison.Ordinal));
+            Assert.Contains($"ABI {ModuleAbiVersion.Major}", refusal, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
         }
     }
 

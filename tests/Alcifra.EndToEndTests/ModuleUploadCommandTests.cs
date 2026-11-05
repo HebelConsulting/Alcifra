@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Alcifra.Cli.Commands;
 using Alcifra.Cli.Infrastructure;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using Alcifra.TestModule;
 
 namespace Alcifra.EndToEndTests;

@@ -44,8 +44,8 @@ public sealed class SelfHostedAppFixture : IAsyncLifetime
 
     /// <summary>A licence for the TestModule, signed for <paramref name="tenantId"/> — what the tenant files to activate it.</summary>
     public string SignTestModuleLicence(Guid tenantId) => System.Text.Json.JsonSerializer.Serialize(
-        new SimplArchive.ModuleAbi.TenantLicense(["test-module"], tenantId, DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
-            SimplArchive.ModuleAbi.ModuleAbiVersion.Major, string.Empty).Sign(_testModuleVendorKey),
+        new Alcifra.ModuleAbi.TenantLicense(["test-module"], tenantId, DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            Alcifra.ModuleAbi.ModuleAbiVersion.Major, string.Empty).Sign(_testModuleVendorKey),
         new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
 
     /// <summary>The stub encryption service, so a test can provision a reader's certificate as the real one would.</summary>

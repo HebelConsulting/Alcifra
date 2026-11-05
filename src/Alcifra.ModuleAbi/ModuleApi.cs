@@ -1,0 +1,207 @@
+namespace Alcifra.ModuleAbi;
+
+/// <summary>
+/// The error a module controller throws (ADR 0737): a stable machine code, an HTTP status, a message. The
+/// host's global handler translates it into the same RFC 7807 problem response a core refusal gets, so a
+/// module's errors are indistinguishable on the wire from native ones. Modules derive intent-named
+/// subclasses per condition — the core's specific-exception rule applies to module code unchanged.
+/// </summary>
+public class ModuleApiException : Exception
+{
+    /// <summary>Creates the error with its wire facts.</summary>
+    public ModuleApiException(string errorCode, int statusCode, string message)
+        : base(message)
+    {
+        ErrorCode = errorCode;
+        StatusCode = statusCode;
+    }
+
+    /// <summary>Creates the error with the dynamic parts as ARGS (ABI 0.10, core ADR 0767): the host
+    /// formats the module's per-culture template (<see cref="IIndustryModule.LocalizedTexts"/>) with them,
+    /// {0}-style; <paramref name="message"/> stays the composed invariant fallback, so a catalog gap
+    /// degrades to today's English, never to silence.</summary>
+    public ModuleApiException(string errorCode, int statusCode, string message, IReadOnlyList<string> args)
+        : this(errorCode, statusCode, message)
+    {
+        Args = args;
+    }
+
+    /// <summary>The dynamic parts of the message, in template order — empty when the text is static.</summary>
+    public IReadOnlyList<string> Args { get; } = [];
+
+    /// <summary>The stable machine-readable code (`FLIGHT_AIRCRAFT_GROUNDED`) a client branches on.</summary>
+    public string ErrorCode { get; }
+
+    /// <summary>The HTTP status the response carries.</summary>
+    public int StatusCode { get; }
+}
+
+/// <summary>
+/// Who is calling a module endpoint (ADR 0737) — the same answer the core's principal accessors give its
+/// own controllers, resolved per request by the host. Exactly one of the two principal ids is set.
+/// </summary>
+public interface IModuleCallerContext
+{
+    /// <summary>The tenant the request runs in — every module read and write is scoped to it.</summary>
+    Guid TenantId { get; }
+
+    /// <summary>The interactive user, when one is calling.</summary>
+    Guid? UserId { get; }
+
+    /// <summary>The service account, when a machine principal is calling.</summary>
+    Guid? ServiceAccountId { get; }
+
+    /// <summary>Whether the caller holds the tenant-admin bypass — the same answer core gates read
+    /// (a user's own flag ∪ their groups', resolved by the core; a service account never has it).</summary>
+    Task<bool> IsTenantAdminAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether the caller may administer modules (ABI 1.4, core ADR 0870) — the bar the core's own module
+    /// administration uses (activate, renew, configure). A user: the tenant-admin bypass, exactly
+    /// <see cref="IsTenantAdminAsync"/>. A service account: the <c>CanManageModules</c> right a tenant
+    /// administrator granted it, so an unattended setup can do what a module reserves for its administrators
+    /// (enrolling another user's certificate) without a scripted human login.
+    /// </summary>
+    /// <remarks>Gate a module's ADMINISTRATIVE acts on this rather than on <see cref="IsTenantAdminAsync"/>;
+    /// that one stays the literal question "is this a tenant administrator". DEFAULT-IMPLEMENTED so a host
+    /// or test double built against 1.3 still compiles — the default answers as 1.3 would have.</remarks>
+    Task<bool> CanAdministerModulesAsync(CancellationToken cancellationToken = default) =>
+        IsTenantAdminAsync(cancellationToken);
+
+    /// <summary>
+    /// The caller's human-readable identity (ABI 0.2, #1014): a user's display name and e-mail, a service
+    /// account's name with no e-mail. What lets a handler prefill "who is acting" into a field a person
+    /// will read — the GUIDs above are for machines. Null when no principal is resolved (which a module
+    /// endpoint should never see; the activation gate refused the anonymous case already).
+    /// </summary>
+    Task<ModuleCallerIdentity?> GetIdentityAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Whether the caller's tenant wraps stored content at rest (ABI 1.28, core ADR 1038): a module that hands out
+    /// presigned links refuses by name there, rather than pointing a player at the core's decrypting door, which would
+    /// carry the bytes through the server. DEFAULT-IMPLEMENTED (false), so a host or test double built against 1.27 compiles.
+    /// </summary>
+    Task<bool> TenantEncryptsAtRestAsync(CancellationToken cancellationToken = default) => Task.FromResult(false);
+}
+
+/// <summary>The caller as a person would name them (ABI 0.2): display name, and e-mail when the principal
+/// kind has one (a user does; a service account does not).</summary>
+public sealed record ModuleCallerIdentity(string DisplayName, string? Email);
+
+/// <summary>
+/// A module controller's ask for a caller's effective rights on a document (ADR 0737) — the core
+/// calculator's answer (inherit-with-override walk, group expansion, admin bypass), never a module's own
+/// reimplementation of it.
+/// </summary>
+public interface IModuleDocumentRights
+{
+    /// <summary>The caller's effective rights on one document; all-false when it does not exist.</summary>
+    Task<ModuleDocumentRightsAnswer> GetAsync(Guid documentId, CancellationToken cancellationToken = default);
+}
+
+/// <summary>The rights a module gate can ask about — the core right set, complete, by its own names.</summary>
+public sealed record ModuleDocumentRightsAnswer(
+    bool CanSee,
+    bool CanReadContent,
+    bool CanEditContent,
+    bool CanEditIndexData,
+    bool CanCreateSubItems,
+    bool CanDelete,
+    bool CanManagePermissions,
+    bool CanMove,
+    bool CanAnnotate);
+
+/// <summary>
+/// A rel a module contributes to the API ROOT for tenants where it is ACTIVE (ADR 0737) — the module's
+/// entry into the hypermedia graph. Everything else the module serves links onward from here; paths stay
+/// module-private (rel names, not routes, are the compatibility surface).
+/// </summary>
+/// <param name="Rel">The relation name a client navigates by — prefix it with the module id
+/// (<c>test-module:status</c>) so two modules cannot collide.</param>
+/// <param name="Path">The absolute path the rel reaches (<c>/api/test-module/status</c>).</param>
+/// <param name="Method">The HTTP method.</param>
+/// <param name="InstallationWide">
+/// Advertised to EVERY caller of the root, anonymous included, for as long as the module is loaded, instead of
+/// to the members of a tenant where it is active (ABI 1.14, core ADR 0918). For a protocol endpoint whose
+/// client holds a module credential rather than a login — a release pipeline's push key, say — and so cannot
+/// see a tenant's rels. The endpoint still authenticates its caller; the link only says where it is, and an
+/// anonymous caller learns that the module is installed.
+/// </param>
+public sealed record ModuleRootLink(string Rel, string Path, string Method, bool InstallationWide)
+{
+    /// <summary>
+    /// The 1.13 shape, kept as its own constructor: a module compiled against 1.13 calls exactly this signature, and
+    /// an OPTIONAL parameter does not provide it (optional values are filled in where the CALLER is compiled). Without
+    /// it, v0.41.0 refused every module built before ABI 1.14 that declares a root link, with MissingMethodException
+    /// (the Encryption Module and the flight school on the kiosk, 2026-10-11).
+    /// </summary>
+    public ModuleRootLink(string Rel, string Path, string Method)
+        : this(Rel, Path, Method, InstallationWide: false)
+    {
+    }
+
+    /// <summary>The 1.13 deconstruction, kept for the same reason as the 1.13 constructor.</summary>
+    public void Deconstruct(out string Rel, out string Path, out string Method) =>
+        (Rel, Path, Method) = (this.Rel, this.Path, this.Method);
+}
+
+/// <summary>
+/// The shape of a module's upload offer, which <c>alcifra module upload</c> follows (ABI 1.14, core ADR 0918):
+/// a module that takes a file by presigned upload (<see cref="IModuleArchiveFacade.BeginUploadAsync"/>) answers
+/// its begin request with the upload address in <see cref="UrlField"/> and the request that files the upload as
+/// a link with <see cref="CommitRel"/> (<c>"links": [{ "rel": "commit", "href": …, "method": "POST" }]</c>), so a
+/// client follows it instead of composing an address from an upload id.
+/// </summary>
+public static class ModuleUploadProtocol
+{
+    /// <summary>The field holding the presigned address the client PUTs the file to.</summary>
+    public const string UrlField = "url";
+
+    /// <summary>The rel of the request that verifies and files the upload once the file is stored.</summary>
+    public const string CommitRel = "commit";
+}
+
+/// <summary>
+/// One offered value for a NAME a user is about to type (ABI 0.21) — what a module's name-vocabulary
+/// endpoint returns, and what both clients render in the create dialog's type-ahead.
+/// </summary>
+/// <remarks>
+/// Deliberately the same three-part shape as <see cref="ProposalItem"/>, and deliberately not the same type.
+/// They answer different questions at different moments — a proposal fills a FIELD on a document that
+/// already exists, through a state machine that needs a subject; this fills the NAME of a document that does
+/// not exist yet, so there is no subject to run a machine against. Sharing the type would have forced one of
+/// them to carry a subject it has no use for.
+/// </remarks>
+/// <param name="Value">What the document will be NAMED if the user picks this — an ICAO code.</param>
+/// <param name="Label">What to show as the entry's headline; usually the value itself.</param>
+/// <param name="Description">
+/// The identifying line beside it ("Kägiswil Airfield, Sarnen (CH)"), or null.
+/// <para>
+/// Named Description rather than Detail, which would have been the obvious mirror of
+/// <see cref="ProposalItem"/>. In this codebase "detail" is a term of art — RFC 7807's Problem Details
+/// field, which carries English error text a client must never render (issue #424) — and a guard scans the
+/// clients for exactly that word. A guard that is wrong is one people learn to suppress rather than read,
+/// so the collision is removed here instead of taught around there.
+/// </para></param>
+public sealed record ModuleVocabularyItem(string Value, string Label, string? Description = null);
+
+/// <summary>
+/// The response a module's name-vocabulary endpoint returns (ABI 0.21): the matches for the caller's
+/// <c>?q=</c>. The core's clients follow the advertised href and append that query — appending a QUERY to an
+/// advertised address is following, where appending a path segment would be composing (core ADR 0557).
+/// </summary>
+/// <remarks>
+/// A plain mutable class with a parameterless constructor, matching every other resource the core serves:
+/// responses negotiate to XML as well as JSON, and <c>XmlSerializer</c> requires that shape.
+/// </remarks>
+public class ModuleVocabularyResource : HypermediaResource
+{
+    /// <summary>The query these matches answer, echoed.</summary>
+    public string Query { get; set; } = string.Empty;
+
+    /// <summary>How many matches are returned — already capped by the endpoint's own limit.</summary>
+    public int Count { get; set; }
+
+    /// <summary>The matches, best first. An empty list is an ordinary answer, not an error.</summary>
+    public List<ModuleVocabularyItem> Items { get; set; } = [];
+}

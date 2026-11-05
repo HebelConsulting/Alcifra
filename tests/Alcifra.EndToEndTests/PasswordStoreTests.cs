@@ -13,7 +13,7 @@ using Alcifra.ApiClient.PasswordStore;
 using Alcifra.Domain.Documents;
 using Alcifra.Domain.Masks;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using Alcifra.SealedArchive;
 
 namespace Alcifra.EndToEndTests;

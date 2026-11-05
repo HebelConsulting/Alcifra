@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Alcifra.Cli.Commands;
 using Alcifra.Cli.Infrastructure;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.EndToEndTests;
 

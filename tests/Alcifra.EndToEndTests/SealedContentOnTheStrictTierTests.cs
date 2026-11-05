@@ -11,7 +11,7 @@ using Alcifra.Domain.Tenants;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
 using Alcifra.Infrastructure.Storage;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.EndToEndTests;
 

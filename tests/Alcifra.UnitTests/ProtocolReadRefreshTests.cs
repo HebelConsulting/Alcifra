@@ -1,5 +1,5 @@
 using System.Reflection;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 

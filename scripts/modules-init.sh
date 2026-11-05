@@ -119,7 +119,7 @@ for key in $SA_MODULES; do
     dest="$TARGET/$lower"
     rm -rf "$dest.new" && mkdir -p "$dest.new"
     # Only the assemblies, flattened. This is deliberately the same shape the hand-copied DLL had: the host
-    # already provides SimplArchive.ModuleAbi, so shipping the package's copy of it alongside would invite the
+    # already provides Alcifra.ModuleAbi, so shipping the package's copy of it alongside would invite the
     # same type loaded twice from two contexts.
     find "$staging/lib" -name '*.dll' -exec cp {} "$dest.new/" \; 2>/dev/null || true
     [ -n "$(ls -A "$dest.new")" ] || die "$package $version unpacked no assemblies."

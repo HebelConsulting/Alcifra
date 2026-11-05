@@ -177,7 +177,7 @@ public class MachineTransitionsController : ControllerBase
         // the addition rather than the reporting — the caller learns, the tenant's administrators did not.
         var healthTenant = autoRefresh && machine.ModuleId is not null ? _currentTenantAccessor.TenantId : null;
 
-        SimplArchive.ModuleAbi.StatusResult verdict;
+        Alcifra.ModuleAbi.StatusResult verdict;
         try
         {
             verdict = await _engine.ExecuteTransitionAsync(machineId, transitionName, documentId, DateTimeOffset.UtcNow, cancellationToken);

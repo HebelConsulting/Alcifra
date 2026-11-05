@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Api.Errors.Exceptions.Modules;
 

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Alcifra.Domain.Modules;
 using Alcifra.Infrastructure.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using Alcifra.TestModule;
 
 namespace Alcifra.UnitTests;

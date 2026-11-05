@@ -177,7 +177,7 @@ internal static class DavWrites
         //
         // Measured rather than reasoned: a refused CalDAV booking left document aff22ca5 behind on the demo
         // stack, with one version and no claim.
-        catch (Exception e) when (e is Errors.Exceptions.Booking.BookingException or SimplArchive.ModuleAbi.ModuleApiException)
+        catch (Exception e) when (e is Errors.Exceptions.Booking.BookingException or Alcifra.ModuleAbi.ModuleApiException)
         {
             var refusal = e;
             // A refused booking write must not strand its husk: a DAV client retries AT THE SAME resource
@@ -210,7 +210,7 @@ internal static class DavWrites
             //
             // The core's own BookingException keeps answering as a bare status, which is what DAV clients
             // have always had from this path.
-            if (refusal is SimplArchive.ModuleAbi.ModuleApiException)
+            if (refusal is Alcifra.ModuleAbi.ModuleApiException)
             {
                 throw;
             }

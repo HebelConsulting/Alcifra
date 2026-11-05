@@ -14,7 +14,7 @@
     <Project Path="src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj" />
     <Project Path="src/Alcifra.Infrastructure/Alcifra.Infrastructure.csproj" />
     <Project Path="src/Alcifra.Localization/Alcifra.Localization.csproj" />
-    <Project Path="src/SimplArchive.ModuleAbi/SimplArchive.ModuleAbi.csproj" />
+    <Project Path="src/Alcifra.ModuleAbi/Alcifra.ModuleAbi.csproj" />
     <Project Path="src/Alcifra.Presentation/Alcifra.Presentation.csproj" />
     <Project Path="src/Alcifra.Sapass/Alcifra.Sapass.csproj" />
     <Project Path="src/Alcifra.SealedArchive/Alcifra.SealedArchive.csproj" />

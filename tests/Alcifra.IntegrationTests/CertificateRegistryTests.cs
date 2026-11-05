@@ -13,7 +13,7 @@ using Alcifra.Infrastructure.Certificates;
 using Alcifra.Infrastructure.Masks;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.IntegrationTests;
 

@@ -255,7 +255,7 @@ public sealed class EncryptionModes(IConfiguration configuration)
     /// <b>The delivery-tier rule used to be here and is not any more</b>, and the reason is worth stating
     /// because this comment previously claimed one call site was deliberate. That rule now needs a fact
     /// configuration cannot supply — whether a LOADED module answers
-    /// <see cref="SimplArchive.ModuleAbi.IIndustryModule.ReaderCertificates"/> — and modules are loaded long after this
+    /// <see cref="Alcifra.ModuleAbi.IIndustryModule.ReaderCertificates"/> — and modules are loaded long after this
     /// runs (`Program.cs` line ~66 versus ~400). Keeping it here meant it could only ever refuse, which is
     /// what it did: it said the module "is not available yet" after the module existed. So
     /// <see cref="ThrowIfEnvelopingModeHasNoModule"/> is called separately, once the answer exists.
@@ -377,7 +377,7 @@ public sealed class EncryptionModes(IConfiguration configuration)
     /// </para>
     /// </remarks>
     public static void ThrowIfEnvelopingModeHasNoModule(
-        IConfiguration configuration, IEnumerable<SimplArchive.ModuleAbi.IIndustryModule> modules)
+        IConfiguration configuration, IEnumerable<Alcifra.ModuleAbi.IIndustryModule> modules)
     {
         // The question is about a LOADED module, which is why this no longer rides in
         // ThrowIfMisconfigured: whether an installation is licensed for these tiers is answered by what it

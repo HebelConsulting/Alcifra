@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 
 // The ABI version exists in TWO places that must agree (#1306).
 //
-// `SimplArchive.ModuleAbi.csproj`'s `<Version>` is what the PACKAGE says it is — what a module author sees and
+// `Alcifra.ModuleAbi.csproj`'s `<Version>` is what the PACKAGE says it is — what a module author sees and
 // builds against. `ModuleAbiVersion.Minor` is what the HOST enforces:
 //
 //     public static bool MinorCompatible(int moduleAbiMinor) => moduleAbiMinor <= ModuleAbiVersion.Minor;
@@ -30,9 +30,9 @@ public partial class AbiVersionLockstepTests
     [Fact]
     public void The_host_enforces_the_version_the_package_advertises()
     {
-        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", "SimplArchive.ModuleAbi", "SimplArchive.ModuleAbi.csproj"));
+        var csproj = File.ReadAllText(Path.Combine(RepoRoot(), "src", "Alcifra.ModuleAbi", "Alcifra.ModuleAbi.csproj"));
         var match = PackageVersion().Match(csproj);
-        Assert.True(match.Success, "SimplArchive.ModuleAbi.csproj has no <Version> — this guard has nothing to compare.");
+        Assert.True(match.Success, "Alcifra.ModuleAbi.csproj has no <Version> — this guard has nothing to compare.");
 
         var packageMajor = int.Parse(match.Groups[1].Value);
         var packageMinor = int.Parse(match.Groups[2].Value);
@@ -44,7 +44,7 @@ public partial class AbiVersionLockstepTests
             + "when the PACKAGE is ahead, a module built against it and honestly declaring its minor is refused "
             + "by MinorCompatible — silently dropped, with its routes answering 404 MODULE_NOT_ACTIVE as though "
             + "the feature had never been written.\n\n"
-            + "Bump ModuleAbiVersion (src/SimplArchive.ModuleAbi/ModuleAbiVersion.cs) and the csproj <Version> "
+            + "Bump ModuleAbiVersion (src/Alcifra.ModuleAbi/ModuleAbiVersion.cs) and the csproj <Version> "
             + "together. An ABI ADR that changes the surface must move both.");
     }
 

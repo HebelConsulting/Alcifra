@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Alcifra.Domain.Modules;
 using Alcifra.Infrastructure.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.UnitTests;
 

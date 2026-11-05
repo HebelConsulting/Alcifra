@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 
@@ -14,6 +14,10 @@ namespace Alcifra.Infrastructure.Modules;
 /// </summary>
 public static class ModuleLoader
 {
+    // The ABI's name before 2.0 (ADR 1063). An assembly built against it cannot bind here, and its own copy of it would
+    // load beside the host's and make no type in it a module, so it is named and refused before either can happen.
+    private const string RetiredAbiAssembly = "SimplArchive.ModuleAbi";
+
     /// <summary>A module the host accepted: its contract, where it came from, and WHICH BUILD it is.</summary>
     /// <param name="Build">
     /// The assembly's informational version — in practice <c>1.0.0+&lt;git sha&gt;</c>, because SourceLink
@@ -57,6 +61,15 @@ public static class ModuleLoader
             {
                 var context = new ModuleLoadContext(candidate);
                 var assembly = context.LoadFromAssemblyName(AssemblyName.GetAssemblyName(candidate));
+                if (assembly.GetReferencedAssemblies().Any(r => r.Name == RetiredAbiAssembly))
+                {
+                    logger.LogWarning(
+                        "Module assembly {Path} was built against {RetiredAbi}, the ABI's name before 2.0. It is NOT loaded, "
+                        + "and the tenant's data is untouched. Install a build made for ABI {HostMajor}.",
+                        candidate, RetiredAbiAssembly, ModuleAbiVersion.Major);
+                    continue;
+                }
+
                 foreach (var type in assembly.GetTypes().Where(t => !t.IsAbstract && typeof(IIndustryModule).IsAssignableFrom(t)))
                 {
                     if (Activator.CreateInstance(type) is not IIndustryModule module)
@@ -238,7 +251,7 @@ public static class ModuleLoader
 
         protected override Assembly? Load(AssemblyName assemblyName)
         {
-            if (string.Equals(assemblyName.Name, "SimplArchive.ModuleAbi", StringComparison.Ordinal))
+            if (string.Equals(assemblyName.Name, "Alcifra.ModuleAbi", StringComparison.Ordinal))
             {
                 return null; // the shared contract — default context, one type identity.
             }

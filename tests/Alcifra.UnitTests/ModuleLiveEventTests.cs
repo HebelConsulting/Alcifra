@@ -1,7 +1,7 @@
 using Alcifra.Api.Realtime;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using Alcifra.Presentation;
-using AbiEvent = SimplArchive.ModuleAbi.ModuleLiveEvent;
+using AbiEvent = Alcifra.ModuleAbi.ModuleLiveEvent;
 using WireEvent = Alcifra.Presentation.ModuleLiveEvent;
 
 namespace Alcifra.UnitTests;

@@ -101,8 +101,8 @@ public static class ModuleStartup
                 + "machines and endpoints are absent, and the rest of the application is unaffected. A "
                 + "MissingMethodException here almost always means the module was built against a different "
                 + "ABI version than this host provides ({AbiMajor}.x): rebuild it against this host's "
-                + "SimplArchive.ModuleAbi, or remove it from the Modules directory.",
-                loaded.Module.ModuleId, loaded.AssemblyPath, seamName, SimplArchive.ModuleAbi.ModuleAbiVersion.Major);
+                + "Alcifra.ModuleAbi, or remove it from the Modules directory.",
+                loaded.Module.ModuleId, loaded.AssemblyPath, seamName, Alcifra.ModuleAbi.ModuleAbiVersion.Major);
             return false;
         }
     }

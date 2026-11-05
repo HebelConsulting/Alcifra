@@ -1,0 +1,338 @@
+namespace Alcifra.ModuleAbi;
+
+/// <summary>
+/// A mask an industry module contributes (ADR 0741) — the declarative half of activation: seeded into the
+/// tenant idempotently, healed on upgrade, and permanent tenant data thereafter (ADR 0740: deactivation
+/// removes behaviour, never masks — the documents filed under them are the tenant's).
+/// </summary>
+/// <param name="MaskId">The fixed cross-tenant mask id, the module's analogue of the core's well-known ids.
+/// The module owns this GUID forever; activation and healing key on it.</param>
+/// <param name="Name">The display name ("Medical", "Charter").</param>
+/// <param name="IsFolderMask">Whether documents wearing it are folders (a pilot dossier) or items (a
+/// certificate).</param>
+/// <param name="IsBookable">Whether documents wearing it are bookable resources (ADR 0735) — an aircraft
+/// mask says yes and inherits the core booking primitive whole.</param>
+/// <param name="Fields">The mask's field definitions, in display order.</param>
+/// <param name="AdmitsOnlyDeclaredChildren">Whether this FOLDER mask is exclusive (ABI 0.8, ADR 0762): its
+/// "New" menu and the placement invariant admit only <paramref name="AdmittedChildren"/>. A document whose
+/// type is not yet determined (a fresh upload) still lands and is classified afterwards — declare the core
+/// Basic Entry (<see cref="CoreMaskIds.BasicEntry"/>) among the children if plain uploads should stay once
+/// classified. False (the default) keeps today's open-by-default behaviour.</param>
+/// <param name="AdmittedChildren">The masks an exclusive folder admits — module ids and/or the core ids
+/// <see cref="CoreMaskIds"/> promises. Ignored unless <paramref name="AdmitsOnlyDeclaredChildren"/>; a
+/// BOOKABLE mask admits its Schedule implicitly (derived from <paramref name="IsBookable"/>), so it need
+/// not be declared.</param>
+/// <param name="AllowedParents">Where documents wearing THIS mask may live — empty (the default) means
+/// anywhere. Note a declared list refuses a mask-less parent too (an unclassified folder), so declare it
+/// only for masks with a genuinely fixed home (a logbook lives in an aircraft or a dossier).</param>
+/// <param name="RepresentsPrincipalField">The name of THIS mask's own field that identifies the PERSON a
+/// document wearing it stands for (ABI 0.13, core ADR 0775) — a pilot dossier's e-mail address. The core
+/// maintains the resource-principal mapping from it, so a claim on this document becomes that person's.
+/// <para>
+/// Declarative rather than a facade call the module makes, deliberately. The mapping's whole purpose is that
+/// a booking of this document counts as that person's commitment; a call that can be forgotten fails
+/// SILENTLY and in the safe-looking direction — the person simply is not a claimant, their calendar is empty,
+/// and nothing errors. Declaring the field instead means the mapping follows the value the module already
+/// treats as the link, including when somebody edits it.
+/// </para>
+/// <para>
+/// The field must be one of this mask's <paramref name="Fields"/> and should hold an e-mail address that
+/// resolves to a user in the tenant. A value resolving to nobody leaves the document representing nobody —
+/// which is the honest answer for a dossier filed before its pilot has an account — and says so at Warning
+/// rather than failing the write.
+/// </para></param>
+
+public sealed record ModuleMaskSeed(
+    Guid MaskId,
+    string Name,
+    bool IsFolderMask,
+    bool IsBookable,
+    IReadOnlyList<ModuleFieldSeed> Fields,
+    bool AdmitsOnlyDeclaredChildren = false,
+    IReadOnlyList<Guid>? AdmittedChildren = null,
+    IReadOnlyList<Guid>? AllowedParents = null,
+    string? RepresentsPrincipalField = null)
+{
+    /// <inheritdoc cref="NameVocabularyRelDocumentation"/>
+    public string? NameVocabularyRel { get; init; }
+
+    /// <summary>
+    /// Whether this mask's NAME may carry SEVERAL values from its vocabulary, separated by spaces (ABI 0.23).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// For a name that is a LIST of identifiers rather than one. A NOTAM briefing folder named
+    /// <c>"LSZH LSAS EDGG"</c> briefs a whole route in one digest, because the provider's query takes an
+    /// array and answers the union — so the type-ahead must complete the code being typed while leaving the
+    /// ones already there alone.
+    /// </para>
+    /// <para>
+    /// Declared per mask rather than assumed from the vocabulary, because it is a property of THE MASK, not
+    /// of the list: METAR/TAF and Aerodrome complete from the same aerodrome vocabulary and accept exactly
+    /// one code each — their handlers read the whole folder name as the identifier. A client that always
+    /// completed the last word would silently invite a second code those masks then ignore.
+    /// </para>
+    /// <para>
+    /// An INIT-ONLY PROPERTY, which is now the rule for every ABI addition (ADR 0789): adding a parameter to
+    /// this record's primary constructor changes its signature, and a module built against the previous minor
+    /// then throws <c>MissingMethodException</c> from a static initializer and takes the host down. This is
+    /// that rule's first use.
+    /// </para>
+    /// </remarks>
+    public bool NameVocabularyIsMultiple { get; init; }
+
+    /// <summary>
+    /// Declares that documents wearing this FOLDER mask are a DAV collection — a CalDAV calendar (<c>.ics</c>)
+    /// or CardDAV addressbook (<c>.vcf</c>) — so they subscribe on phones and mail clients exactly as the
+    /// core's own calendars do (ABI 0.24, ADR 0791). Null (the default) leaves the folder a plain folder.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The reason this exists: a folder is a DAV collection only if the core recognises its mask, and the core
+    /// recognises a FIXED list of its own masks. A module's calendar-shaped folder — a flight-log Logbook
+    /// holding <c>.ics</c> entries — was invisible to every CalDAV client with no way to say otherwise. This is
+    /// that way: the core merges each active module's declaration into the one kind registry the whole DAV
+    /// layer reads.
+    /// </para>
+    /// <para>
+    /// INIT-ONLY, per the binary-additive rule (ADR 0789): a module built against 0.23 keeps loading.
+    /// </para>
+    /// </remarks>
+    public ModuleDavCollection? DavCollection { get; init; }
+
+    /// <summary>
+    /// Where the content of documents wearing this mask is stored (ABI 1.18, ADR 0937): a path segment of its own,
+    /// <c>tenants/{tenant}/{segment}/…</c>, rather than the archive's year folders. For readability, deleting by
+    /// prefix and a separate backup or lifecycle. Lowercase letters, digits and hyphens; null keeps the archive layout.
+    /// </summary>
+    public string? ContentSegment { get; init; }
+
+    /// <summary>
+    /// What the core leaves documents wearing this mask out of (ABI 1.18, ADR 0937). Content sealed to its readers
+    /// cannot be searched, previewed or recognised by the core, and content whose lifetime the module owns is not the
+    /// archive's to retain or hold.
+    /// </summary>
+    public ModuleMaskExemptions Exemptions { get; init; }
+
+    /// <summary>
+    /// For a folder mask: the name of the folder the core provisions under it in EACH user's personal space while the
+    /// module is active (ABI 1.18, ADR 0937), "My Messages" for the Messenger's "Messages" mask. The module's principal is
+    /// granted rights on that folder only, never on the rest of the personal space. Null provisions nothing.
+    /// </summary>
+    public string? PersonalSpaceFolderName { get; init; }
+
+    /// <summary>
+    /// Whether the content of documents wearing this mask is already SEALED to its readers — a CMS enveloped message the
+    /// core cannot open (ABI 1.20, ADR 0940). The core then checks, at filing, that the bytes are shaped as one and refuses
+    /// anything else with <see cref="ModuleContentNotSealedException"/>; and because sealed bytes are no plaintext, a tenant
+    /// that refuses plaintext doors (the strict tier) still hands them out — after checking the stored bytes once more.
+    /// Requires a <see cref="ContentSegment"/> of its own, which no unsealed mask may share: the storage door knows an
+    /// object only by its key.
+    /// </summary>
+    public bool ContentIsSealed { get; init; }
+
+    /// <summary>
+    /// The file extensions a document wearing this mask may hold, without the dot and in any case (ABI 1.29, core ADR 1046):
+    /// the core refuses anything else wherever content is filed or the mask is assigned, with a named error, so no client
+    /// and no protocol door gets around it. Null accepts anything; an empty list is refused when the module loads.
+    /// </summary>
+    public IReadOnlyList<string>? AcceptedExtensions { get; init; }
+
+    /// <summary>
+    /// For a folder mask that admits only declared children: a reference placed in it obeys that admission too (ABI 1.29,
+    /// core ADR 1046), refused with the containment error otherwise. Off by default, because a folder may hold references
+    /// to what could never be its child.
+    /// </summary>
+    public bool ReferencesObeyAdmission { get; init; }
+}
+
+/// <summary>What the core leaves a module's documents out of (ABI 1.18, ADR 0937).</summary>
+[Flags]
+public enum ModuleMaskExemptions
+{
+    /// <summary>Treated like every other document.</summary>
+    None = 0,
+
+    /// <summary>Not in full-text search; its name and dates are not indexed either.</summary>
+    Search = 1,
+
+    /// <summary>No preview renditions and no text recognition.</summary>
+    Renditions = 2,
+
+    /// <summary>Outside retention schedules and disposition review.</summary>
+    Retention = 4,
+
+    /// <summary>Cannot be placed under legal hold, and a hold on a folder above it does not freeze it.</summary>
+    LegalHold = 8,
+
+    /// <summary>All of the above: content sealed to its readers, whose lifetime the module owns.</summary>
+    All = Search | Renditions | Retention | LegalHold,
+}
+
+/// <summary>
+/// A module folder mask's DAV-collection declaration (ABI 0.24, ADR 0791): its items' file extension
+/// (<c>.ics</c>/<c>.vcf</c>), the mask those items wear, the item field the resource name derives from, and
+/// whether the collection is read-only (append-only history a client may only read, like a logbook).
+/// </summary>
+public sealed record ModuleDavCollection(string Extension, Guid ItemMaskId, string UidFieldName, bool ReadOnly)
+{
+    /// <summary>
+    /// The item field carrying an entry's START, when it is not called "Start" (ABI 0.13).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The appointments listing reads an entry's times from index fields named <c>Start</c> and <c>End</c> —
+    /// the core Appointment mask's own names. A module's item mask names its times for its DOMAIN: a
+    /// flight-log entry has <c>Block off</c>, <c>Takeoff</c>, <c>Landing</c> and <c>Block on</c>, and which
+    /// pair spans the entry is a question only the module can answer. Left unanswered, every row came back
+    /// with a null start and the Calendar tab had nothing to place on a day — the collection listed, and was
+    /// empty.
+    /// </para>
+    /// <para>
+    /// Declared here beside <see cref="UidFieldName"/>, which exists for exactly the same reason one field
+    /// earlier: the core cannot guess what a module calls things.
+    /// </para>
+    /// <para>
+    /// <b>An init-only PROPERTY, not a constructor parameter, and that is deliberate.</b> This record's
+    /// primary constructor is part of the binary contract: adding a parameter changes its signature, and a
+    /// module compiled against the previous ABI then fails to load at runtime rather than at build — a
+    /// crash-loop for what reads on paper like an additive minor. Properties with defaults are additive in
+    /// both directions.
+    /// </para>
+    /// </remarks>
+    public string? StartFieldName { get; init; }
+
+    /// <summary>The item field carrying an entry's END, when it is not called "End" (ABI 0.13).</summary>
+    /// <remarks>See <see cref="StartFieldName"/> — same reasoning, same binary-compatibility constraint.</remarks>
+    public string? EndFieldName { get; init; }
+}
+
+/// <summary>
+/// The handful of CORE mask ids the ABI promises to a module's containment declarations (ABI 0.8) — an
+/// aircraft admitting a plain Folder, a dossier admitting uploads. Kept in lockstep with the core's
+/// well-known table by a core test; a module references these, never a copied GUID literal.
+/// </summary>
+public static class CoreMaskIds
+{
+    /// <summary>The plain Folder — what "New Folder" creates.</summary>
+    public static readonly Guid Folder = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E31");
+
+    /// <summary>Basic Entry — what an unclassified upload becomes.</summary>
+    public static readonly Guid BasicEntry = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E30");
+
+    /// <summary>The Schedule a bookable resource holds (core ADR 0744). Admitted implicitly by
+    /// <see cref="ModuleMaskSeed.IsBookable"/>; named here for AllowedParents declarations.</summary>
+    public static readonly Guid Schedule = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E45");
+
+    /// <summary>The Blockers collection a bookable resource holds (core ADR 0778) — when it is
+    /// UNAVAILABLE, as against when it is spoken for. Admitted implicitly by
+    /// <see cref="ModuleMaskSeed.IsBookable"/> exactly as the Schedule is, so a module's bookable mask gets
+    /// both without declaring either.</summary>
+    public static readonly Guid Blockers = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E46");
+
+    /// <summary>The former name of <see cref="Blockers"/> — the same mask, the same Guid (#1339).</summary>
+    /// <remarks>
+    /// <para>
+    /// Kept because renaming a public static field is <b>source- and binary-breaking</b>, and this assembly is a
+    /// published contract that out-of-repo modules compile against. A module built against ABI 0.29 or earlier
+    /// resolves this member; removing it would refuse to load it for a word change (ADR 0741 puts the gate on
+    /// the major, so the alternative was a major bump that stops every existing module until rebuilt).
+    /// </para>
+    /// <para>
+    /// <b>The trigger that retires it</b> (the workaround-dependency rule): delete it once no supported module
+    /// references it — which for the in-house flight-school module means one release after it moves to
+    /// <see cref="Blockers"/>. Until then both names are the same Guid, so a module using either is correct.
+    /// </para>
+    /// <para>
+    /// The rename itself: the collection says what the entry DOES (it blocks a resource's availability) rather
+    /// than presuming why — maintenance is one reason among several, beside reserved, damaged and seasonal.
+    /// </para>
+    /// </remarks>
+    [Obsolete("Renamed to Blockers (#1339) — the same mask and the same Guid. Kept so a module built against " +
+              "ABI 0.29 or earlier still resolves it; it will be removed once no supported module uses it.")]
+    public static readonly Guid Maintenance = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E46");
+
+    /// <summary>The Availability collection a bookable resource holds (core ADR 0780) — its OFFERED time,
+    /// as against when it is spoken for (Schedule) or withdrawn (Blockers). Admitted implicitly by
+    /// <see cref="ModuleMaskSeed.IsBookable"/> like the other two.</summary>
+    public static readonly Guid Availability = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E48");
+
+    /// <summary>A booking itself — the <c>.ics</c> in a resource's Schedule that IS the claim (core ADR
+    /// 0744). Published so a module can name it in an <c>ActionSubjectMasks</c> declaration (ABI 0.20): a
+    /// vertical offers actions on bookings it recognises, while deciding per document so it does not speak
+    /// for every booking in the product.</summary>
+    public static readonly Guid Booking = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E43");
+
+    /// <summary>
+    /// The core's generic <c>Certificate</c> mask (core ADR 0844) — a certificate filed as a document, with
+    /// only the fields any X.509 certificate has. A module that enrols certificates wears THIS rather than
+    /// declaring its own, so a tenant does not end up holding one "Certificate" mask per vendor.
+    /// </summary>
+    public static readonly Guid Certificate = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E4A");
+}
+
+/// <summary>One field of a module mask. The type vocabulary mirrors the core's field catalog.</summary>
+/// <param name="Name">The field name, unique within the mask.</param>
+/// <param name="DataType">One of the core's field data types by NAME ("Text", "Number", "Date", "DateTime",
+/// "Boolean", "SingleSelect", "MultiSelect", "EmailAddress", "Url", "DocumentReference", "Toggle") — a string rather
+/// than a shared enum so the ABI does not pin the core's enum ordinals into every compiled module (appending
+/// a core type must never re-type a module's stored fields). "Url" (ABI 0.6) renders as a clickable link in
+/// both clients' detail panes — the DABS folder's link to its source portal. "DocumentReference" (core ADR
+/// 0773) holds the id of ANOTHER DOCUMENT — the typed relationship a mask names, such as the flight a lesson
+/// record was flown on — validated against an existing document and rendered as one to open. WHICH documents
+/// may be chosen is not part of the field: declare a <c>Proposal</c> on the mask's machine (ADR 0769) and its
+/// query is the restriction, which is strictly more expressive than a mask-or-folder rule.
+/// "Toggle" (core ADR 1047) is enabled or disabled, drawn as a slider; a Text field of an existing mask may become
+/// one, and its values move with it.
+/// Because the vocabulary is a string, naming this on an older core is refused by name at activation —
+/// no version bump, and no way for a stored field to be silently re-typed.</param>
+/// <param name="IsRequired">Refused at activation when true and the mask is already worn — the same
+/// protection the core's well-known heal has (a required field arriving later would invalidate documents).</param>
+/// <param name="IsList">A repeatable field (the counters list on an Aircraft, ADR module-0004).</param>
+public sealed record ModuleFieldSeed(
+    string Name,
+    string DataType,
+    bool IsRequired = false,
+    bool IsList = false);
+
+/// <summary>
+/// Marker for the shared documentation of <see cref="ModuleMaskSeed.NameVocabularyRel"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// AN INIT-ONLY PROPERTY, NOT A PRIMARY-CONSTRUCTOR PARAMETER, and that is a rule rather than a preference
+/// (#1147). Adding a parameter to a positional record CHANGES ITS CONSTRUCTOR SIGNATURE, so every module
+/// compiled against the previous ABI minor calls a constructor that no longer exists — it loads cleanly and
+/// then throws MissingMethodException from a static initializer. That took the public kiosk down for 94
+/// minutes, and it is what a customer would meet on upgrading the core with an older module build.
+/// </para>
+/// <para>
+/// An init-only property is additive: old modules never mention it and keep compiling and RUNNING; new ones
+/// set it with an object initialiser. Every future optional member of this ABI goes in the same way.
+/// </para>
+/// One of this module's own <see cref="IIndustryModule.RootLinks"/> rels, whose endpoint answers
+/// <c>?q=&lt;what has been typed&gt;</c> with a <see cref="ModuleVocabularyResource"/> (ABI 0.21). Documents
+/// wearing this mask are then NAMED with a type-ahead over that vocabulary instead of from memory.
+/// <para>
+/// For the case where the name IS the identifier. A weather folder is called <c>LSZH</c> and a wrong code
+/// fetches nothing; the module has always held the 3,706-entry aerodrome list and served a search over it,
+/// but the create dialog is a bare text box, so the two never met and a user typed four letters from memory.
+/// Reported exactly that way: "there's no completion".
+/// </para>
+/// <para>
+/// It names a REL rather than a path, for the reason ADR 0543 gives — routes stay module-private and a rel
+/// is the compatibility surface — and the core resolves it per tenant, emitting nothing when the module is
+/// inactive. A rel naming no root link is ignored with a Warning: a silently absent type-ahead is
+/// indistinguishable from one that was never declared, and that is the failure mode this whole feature
+/// exists to remove.
+/// </para>
+/// <para>
+/// Completion only, never validation. The user may type anything; whether a name is real stays the
+/// module's own business at the moment it acts on it — the weather fetch already validates the ICAO on open
+/// and stages a note for an unknown one. A type-ahead that refused unknown values would be a gate wearing a
+/// convenience's clothes.
+/// </para>
+/// </remarks>
+internal static class NameVocabularyRelDocumentation
+{
+}

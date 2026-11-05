@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Alcifra.Infrastructure.Persistence;
 using Alcifra.Presentation;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 

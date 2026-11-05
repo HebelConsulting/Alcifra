@@ -10,7 +10,7 @@ using Alcifra.Domain.Tenants;
 using Alcifra.Domain.Users;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using Alcifra.TestModule;
 
 namespace Alcifra.IntegrationTests;

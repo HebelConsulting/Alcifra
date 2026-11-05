@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker
+       restore layer copies only the .csproj files, not Directory.Build.props — every project does the same. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Alcifra.ModuleAbi</PackageId>
+    <Version>2.0.0</Version>
+    <!-- The BINDING identity is pinned, permanently (ADR 0749): the Docker build stamps -p:Version over
+         every project (0.0.0-dev locally), so without this pin the host's ModuleAbi.dll assembly version
+         depends on the HOST's stamp and a package-built module fails to bind on any dev host (found by
+         the flight-school loader smoke, 2026-09-05). Binding never carries the compatibility contract -
+         the loader's AbiMajorVersion gate does (ADR 0741), with a clean admin-facing refusal. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <Description>The contract industry modules build against: registration, mask seeding, facts, transitions, and the archive facade (ADR 0741).</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Package metadata for the real feed (ADR 0751): published to GitHub Packages under the org, so a
+         module author references it as a package rather than vendoring a .nupkg. Apache-2.0, like the project. -->
+    <Authors>Hebel Consulting</Authors>
+    <Company>Hebel Consulting</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/HebelConsulting/Alcifra</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>alcifra;dms;industry-module;abi</PackageTags>
+    <PackageProjectUrl>https://github.com/HebelConsulting/Alcifra</PackageProjectUrl>
+    <!-- The package page's README: what the product IS, before what this contract does. nuget.org flagged 1.25.0
+         for lacking one, and a published version cannot be changed, so 1.25.1 is the first to carry it. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <!-- The industry-module ABI (ADR 0741): the ONLY assembly a module may reference from the core. A leaf
+       with no project references, deliberately — every capability a module needs is consciously exported
+       here one by one, which is what keeps the rest of the core refactorable forever. The single package
+       dependency is the DI abstraction a module registers its services through.
+
+       Versioned 0.x while the mechanism is proven (semver's own convention: everything may change);
+       1.0 is cut when the first module ships commercially. Major locks, minor floats (ADR 0741). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+    <!-- Module-owned read models (ADR 0738): a module's projections live in its OWN DbContext, so the
+         base class and the model surface are ABI exports. EF Core itself, deliberately not a provider —
+         the HOST wires the provider and the connection; a module never sees either. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
+  </ItemGroup>
+
+</Project>

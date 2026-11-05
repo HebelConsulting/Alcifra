@@ -2,7 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Alcifra.Domain.Masks;
 using Alcifra.Domain.Modules;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 using Alcifra.Infrastructure.Persistence;
 
 namespace Alcifra.Infrastructure.Modules;

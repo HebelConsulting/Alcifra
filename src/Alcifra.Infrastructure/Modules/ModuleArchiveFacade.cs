@@ -6,7 +6,7 @@ using Alcifra.Domain.Documents;
 using Alcifra.Domain.Masks;
 using Alcifra.Infrastructure.Encryption;
 using Alcifra.Infrastructure.Persistence;
-using SimplArchive.ModuleAbi;
+using Alcifra.ModuleAbi;
 
 namespace Alcifra.Infrastructure.Modules;
 
