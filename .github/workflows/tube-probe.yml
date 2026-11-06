@@ -1,0 +1,47 @@
+# The weekly probe of the deployed video host (core #2142): the half of the client check that the module's public
+# repository cannot run, because the demo's address stays out of it. Four requests against the live host; a finding
+# opens (or comments on) one issue, like the daily scans. Private repository only.
+#
+# It also keeps the public check alive: GitHub disables a scheduled workflow after 60 days without activity in a public
+# repository, silently, and nothing there would say so. Re-enabling is idempotent and needs a token that may act on the
+# public repository; the mirror publish's token is one. A refusal here fails the job and so opens the issue.
+name: Tube probe
+
+on:
+  schedule:
+    - cron: "41 6 * * 1"   # Mondays, after the demo's 04:00 UTC reset window
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    if: ${{ vars.REPO_ROLE == 'private' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Probe the deployed video host
+        id: probe
+        run: scripts/probe-tube-demo.sh
+      - name: Keep the public client check enabled
+        id: keepalive
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISH_PAT }}
+        run: gh api -X PUT repos/HebelConsulting/AlcifraTube/actions/workflows/client-check.yml/enable
+      - name: Report as an issue
+        if: ${{ always() && (steps.probe.outcome == 'failure' || steps.keepalive.outcome == 'failure') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="The deployed video host failed its weekly probe"
+          findings=$(cat tube-probe-findings.txt 2>/dev/null || true)
+          [ "${{ steps.keepalive.outcome }}" = failure ] && findings="$findings
+          The public client check could not be re-enabled (the keep-alive step): check the token's access to the module's repository."
+          body=$(printf 'The weekly probe (%s) found:\n\n```\n%s\n```\n\nThe module'"'"'s own client check runs in its public repository; this probe covers the edge, the certificate and the deployed version.' \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "$findings")
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then gh issue comment "$existing" --body "$body"; else gh issue create --title "$title" --body "$body"; fi
