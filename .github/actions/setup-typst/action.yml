@@ -33,7 +33,13 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p ~/.local/bin
-        url="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz"
+        # The release job stamps the attached manual on a Mac runner (#2166); every other caller is Linux.
+        case "$(uname -s)-$(uname -m)" in
+          Darwin-arm64) target=aarch64-apple-darwin ;;
+          Darwin-*)     target=x86_64-apple-darwin ;;
+          *)            target=x86_64-unknown-linux-musl ;;
+        esac
+        url="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-${target}.tar.xz"
         # Retry: a transient 429/503 should cost seconds, not a whole run.
         curl --fail --location --retry 5 --retry-delay 10 --retry-all-errors --silent --show-error "$url" \
           | tar -xJ --strip-components=1 -C ~/.local/bin --wildcards '*/typst'

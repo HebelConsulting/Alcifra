@@ -69,6 +69,7 @@ jobs:
       NOTARIZATION_POSTPONED: ${{ vars.MACOS_NOTARIZATION_POSTPONED == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-typst   # the attached manual is stamped with the tag (#2166)
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
@@ -159,10 +160,12 @@ jobs:
             [ -f "$asset" ] || { echo "::error::$asset was not built."; exit 1; }
           done
           # The edition's manual travels with its release too (ADR 0997): a stable public link to the PDF this
-          # version serves, without a running server.
+          # version serves, without a running server. Upstream's is recompiled with this tag first (#2166, ADR 1016):
+          # the committed one says only its date, and a release attachment names its release.
           if [ "${{ needs.gate.outputs.white_label }}" = "true" ]; then
             assets+=("$(scripts/edition-manual.sh --white-label)")
           else
+            scripts/compile-manual.sh --release "$GITHUB_REF_NAME"
             assets+=("$(scripts/edition-manual.sh)")
           fi
           # The website's input for this version (ADR 1010): the site bundle from the manual build on main.
