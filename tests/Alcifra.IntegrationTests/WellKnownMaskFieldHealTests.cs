@@ -142,8 +142,8 @@ public class WellKnownMaskFieldHealTests
             // 29 → 32 with Password Store, Password Folder and Password Entry (ADR 0964).
             // 32 → 33 with Sealed document (owner decision 2026-10-24) — content sealed to an audience, the name
             // hidden at the author's choice.
-            // 33 → 34 with Bookmarks (ADR 1062).
-            Assert.Equal(34, maskCount); // + Alcifra Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
+            // 33 → 34 with Bookmarks (ADR 1062); 34 → 36 with Administration and Users (ADR 1066).
+            Assert.Equal(36, maskCount); // + Alcifra Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
             Assert.Equal(maskCount, await db.MaskVersions.IgnoreQueryFilters().CountAsync(v => v.TenantId == _tenantId));
         }
     }

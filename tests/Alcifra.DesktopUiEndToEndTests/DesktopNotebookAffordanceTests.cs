@@ -36,7 +36,7 @@ public class DesktopNotebookAffordanceTests
         var personal = vm.Tree.First(n => n.IsPersonal);
         await personal.ReloadChildrenAsync();
         return personal.Children
-            .Where(c => !c.IsSynthetic && !c.IsLauncher)
+            .Where(c => !c.IsLauncher)
             .ToDictionary(c => c.Name, c => c, StringComparer.Ordinal);
     }
 

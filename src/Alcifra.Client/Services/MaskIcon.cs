@@ -35,6 +35,9 @@ public static class MaskIcon
         // a personal space and a person in an addressbook are not the same thing.
         ["person"] = (Icons.Material.Filled.Person, Icons.Material.Outlined.Person),
         ["mailbox"] = (Icons.Material.Filled.MarkunreadMailbox, Icons.Material.Outlined.MarkunreadMailbox),
+        // The administrator's two folders (ADR 1066), wearing what the synthetic branch wore before they were real.
+        ["administration"] = (Icons.Material.Filled.AdminPanelSettings, Icons.Material.Outlined.AdminPanelSettings),
+        ["users"] = (Icons.Material.Filled.People, Icons.Material.Outlined.People),
         // The INBOX and its future siblings. A tray rather than a folder-with-envelope, which Material has no
         // glyph for; the token is "mail-folder" because SENT/DRAFTS/JUNK will wear the same mask.
         ["mail-folder"] = (Icons.Material.Filled.Inbox, Icons.Material.Outlined.Inbox),

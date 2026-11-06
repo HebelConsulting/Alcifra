@@ -147,6 +147,8 @@ internal static class WebDavPathResolver
         // is ordered first so /Alcifra/Personal resolves to it even if a shared repository shares the name.
         var roots = await db.Documents
             .Where(d => d.ParentId == null && (d.PersonalOfUserId == null || d.PersonalOfUserId == user.Id))
+            // Not the Administration root (ADR 1066): the mount mirrors the tree with that one named exception.
+            .ExceptProtectedCoreFolders(db)
             .ToListAsync();
         return roots.OrderByDescending(d => d.PersonalOfUserId == user.Id).ToList();
     }

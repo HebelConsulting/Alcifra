@@ -60,7 +60,9 @@ public class PersonalRepositoryController : ControllerBase
         // browsing"): hasChildren drives the contents drill-in, hasSubfolders the folders-only tree's expand caret.
         var hasChildren = await _dbContext.Documents.AnyAsync(c => c.ParentId == id, cancellationToken);
         var hasSubfolders = await _dbContext.Documents.AnyAsync(
-            c => c.ParentId == id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id), cancellationToken);
+            c => c.ParentId == id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id), cancellationToken)
+            || await _dbContext.DocumentReferences.AnyAsync(
+            x => x.ParentFolderId == id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == x.TargetDocumentId), cancellationToken);
 
         return new PersonalRepositoryResource
         {

@@ -41,7 +41,7 @@ public class DesktopDestructiveGatingTests
         var personal = vm.Tree.First(n => n.IsPersonal);
         await personal.ReloadChildrenAsync();
 
-        var folder = personal.Children.FirstOrDefault(c => !c.IsSynthetic && !c.IsLauncher);
+        var folder = personal.Children.FirstOrDefault(c => !c.IsLauncher);
         Assert.NotNull(folder);
 
         Assert.True(folder!.CanEditIndexData, "the owner may rename and reorder their own folder — the Rename and Sort order gate.");
@@ -50,17 +50,25 @@ public class DesktopDestructiveGatingTests
     }
 
     [Fact]
-    public async Task A_synthetic_node_offers_nothing_destructive()
+    public async Task A_launcher_and_a_folder_the_core_holds_offer_nothing_destructive()
     {
-        // The Administration branch and the Personal launchers are not documents. They must never carry the
-        // capabilities, or the menu would offer Delete on a node with nothing behind it to delete.
+        // The Personal launchers are not documents, so they never carry the capabilities. The Administration folder
+        // and Users beneath it ARE documents, and an administrator's rights would allow everything — but the core
+        // never lets them be deleted, renamed or moved (ADR 1066), so the row says so rather than offering a Delete
+        // that ends in a 409.
         var vm = await OpenAsync();
 
-        foreach (var node in vm.Tree.Where(n => n.IsSynthetic))
+        var personal = vm.Tree.First(n => n.IsPersonal);
+        await personal.ReloadChildrenAsync();
+        var administration = vm.Tree.Single(n => n.Name == "Administration");
+        await administration.EnsureExpandedAsync();
+        var users = administration.Children.Single(n => n.Name == "Users");
+
+        foreach (var node in personal.Children.Where(n => n.IsLauncher).Concat(new[] { administration, users }))
         {
-            Assert.False(node.CanDelete);
-            Assert.False(node.CanEditIndexData);
-            Assert.False(node.CanMove);
+            Assert.False(node.CanDelete, $"{node.Name} offers Delete");
+            Assert.False(node.CanEditIndexData, $"{node.Name} offers Rename");
+            Assert.False(node.CanMove, $"{node.Name} offers Move to");
         }
     }
 
@@ -73,7 +81,7 @@ public class DesktopDestructiveGatingTests
 
         var personal = vm.Tree.First(n => n.IsPersonal);
         await personal.ReloadChildrenAsync();
-        var folder = personal.Children.First(c => !c.IsSynthetic && !c.IsLauncher);
+        var folder = personal.Children.First(c => !c.IsLauncher);
 
         vm.SelectedTreeNode = folder;
         await vm.OpenFolderAsync(folder.Href("children"));

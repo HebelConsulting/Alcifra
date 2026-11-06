@@ -36,9 +36,6 @@ public record BrowseNode(Guid Id, string Name, bool HasChildren, bool HasVersion
     bool HasReferences = false, bool IsReference = false, Guid ReferenceId = default, Guid? RealParentId = null,
     Guid RepositoryId = default, string FileExtension = "", bool OnLegalHold = false,
     bool CheckedOut = false, bool CheckedOutByMe = false, string CheckedOutByName = "",
-    // Synthetic tenant-admin tree nodes (ADR "Tenant-admin Administration → Users view"): "admin-root" and
-    // "admin-users" load their children from the admin endpoint, not GET /documents/{id}/children.
-    string AdminKind = "",
     // Synthetic Personal-space tree nodes (ADR "GUI-tree Personal space grouping"): "personal-root" (the
     // Personal repository, which also injects Intray/Check-out children) and the leaf launchers "intray" /
     // "checkout" (clicking them switches to the corresponding bottom tab, mirroring /Alcifra/Personal).
@@ -61,10 +58,10 @@ public record BrowseNode(Guid Id, string Name, bool HasChildren, bool HasVersion
     //
     // The cost of that default is that FORGETTING to populate a construction site silently hides the actions
     // rather than wrongly offering them — which is the failure mode of #416's tree roots, in the other
-    // direction. All four sites that build a node from a real server listing populate them: the children
-    // listing, the repositories listing, the admin personal-repositories listing, and the single-document read
-    // behind Go to / a search hit. The synthetic nodes (Administration, the Personal groupings) keep false
-    // because they are not documents and have nothing to delete.
+    // direction. Every site that builds a node from a real server listing populates them: the children
+    // listing, the repositories listing, the references listing and the single-document read behind Go to /
+    // a search hit. The synthetic Personal groupings keep false because they are not documents and have
+    // nothing to delete.
     bool CanDelete = false, bool CanEditIndexData = false, bool CanMove = false, bool CanManagePermissions = false,
     // Whether a plain child may be created IN this node — the successor to the `create-child` rel (#854).
     // Same default-false reasoning as the four above: forgetting a construction site hides Upload and New
@@ -105,16 +102,15 @@ public record BrowseNode(Guid Id, string Name, bool HasChildren, bool HasVersion
     // tints its glyph so you can see at a glance which folders hold nothing, without expanding them.
     // HasChildren (any child) is the right flag, not HasSubfolders (which only drives the expander caret): a
     // folder holding only documents is a tree leaf but is NOT empty. The pseudo-nodes are excluded — the
-    // Administration branch and the Intray / Check-out launchers aren't folders, and the Personal root always
-    // holds those launchers.
-    public bool IsEmptyFolder => IsFolder && !HasChildren && AdminKind == "" && PersonalKind == string.Empty;
+    // Intray / Check-out launchers aren't folders, and the Personal root always holds those launchers.
+    public bool IsEmptyFolder => IsFolder && !HasChildren && PersonalKind == string.Empty;
 
     // Which glyph colour this node takes in the tree (ADR "Folder icon scheme"), as the CSS class that
-    // carries it. Gold is for containers only, so the Intray / Check-out launchers and the Administration
-    // branch go muted — the Personal ROOT is a container and stays gold.
+    // carries it. Gold is for containers only, so the Intray / Check-out launchers go muted — the Personal
+    // ROOT is a container and stays gold.
     public string TreeGlyphClass =>
         IsEmptyFolder ? "wb-tree-empty"
-        : AdminKind != "" || PersonalKind is "intray" or "checkout" ? "wb-tree-muted"
+        : PersonalKind is "intray" or "checkout" ? "wb-tree-muted"
         : "wb-tree-folder";
 
     // A checked-out document is shown as "[holder] name" (ADR "Check-out working-copy stash").

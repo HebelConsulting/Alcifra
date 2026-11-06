@@ -28,8 +28,11 @@ public partial class WebDavTreeParityTests
         var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
         using var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
 
-        await TestJson.Post(owner, "/api/repositories", new { name = $"Alpha{Guid.NewGuid():N}"[..12] });
+        var alphaId = (await TestJson.Post(owner, "/api/repositories", new { name = $"Alpha{Guid.NewGuid():N}"[..12] })).GetProperty("id").GetGuid();
         await TestJson.Post(owner, "/api/repositories", new { name = $"Beta{Guid.NewGuid():N}"[..12] });
+
+        // The Administration folder (ADR 1066), so the one named exception below is exercised rather than absent.
+        await _factory.EnsureAdministrationFoldersAsync(tenantId, alphaId);
 
         var email = $"dav-{Guid.NewGuid():N}@e2e.local";
         const string password = "dav-1234";
@@ -48,9 +51,14 @@ public partial class WebDavTreeParityTests
         Assert.StartsWith($"/{(global::Alcifra.Presentation.WireNames.WebDavSegment)}/{Id(tenantId)}/{Id(userId)}/", advertised.AbsolutePath);
         Assert.StartsWith("Dav User (", Uri.UnescapeDataString(advertised.AbsolutePath.Split('/')[^1]));
 
-        // The Repositories tree-pane's top level = the "Personal" node + the repositories the user can see.
-        var repos = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()
-            .Select(r => r.GetProperty("name").GetString()!).ToHashSet();
+        // The Repositories tree-pane's top level = the "Personal" node + the repositories the user can see — minus
+        // the Administration folder, which an administrator's tree shows and the mount deliberately does not (ADR
+        // 1066's named exception to ADR 0509): a folder of references to other people's spaces is nothing a file
+        // browser can do anything useful with. Asserted present in the tree first, so the exception is really tested.
+        var repositories = (await TestJson.Get(api, "/api/repositories")).GetProperty("repositories").EnumerateArray()
+            .Select(r => r.GetProperty("name").GetString()!).ToList();
+        Assert.Contains("Administration", repositories);
+        var repos = repositories.Where(name => name != "Administration").ToHashSet();
         var expectedTopLevel = new HashSet<string>(repos) { Personal };
 
         // PROPFIND the single /webdav resource: root named "webdav", children == the tree top level.
@@ -61,6 +69,7 @@ public partial class WebDavTreeParityTests
         Assert.Equal(expectedTopLevel, names
             .Where(n => n != global::Alcifra.Presentation.WireNames.WebDavSegment && n != global::Alcifra.Presentation.WireNames.WebDavAccountFile)
             .ToHashSet());
+        Assert.DoesNotContain("Administration", names);
 
         // The account's address serves the same tree (the label decides nothing), and another account's ids are refused.
         var own = await PropFindNamesAsync(dav, basic, advertised.AbsolutePath);

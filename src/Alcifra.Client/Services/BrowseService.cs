@@ -297,9 +297,9 @@ public sealed class BrowseService(HttpClient http, ApiRoot apiRoot)
         };
 
         // A real document/folder is also an internal drag source — dragging it onto a folder moves or references
-        // it (mirrors the desktop client, ADR "Desktop drag-and-drop move and reference"). Synthetic admin /
+        // it (mirrors the desktop client, ADR "Desktop drag-and-drop move and reference"). The synthetic
         // personal-space / launcher nodes aren't movable, so they're not drag sources.
-        if (node is { AdminKind: "", PersonalKind: "" })
+        if (node is { PersonalKind: "" })
         {
             attrs["draggable"] = "true";
             attrs["data-node-id"] = node.Id.ToString();

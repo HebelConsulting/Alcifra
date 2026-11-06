@@ -1119,9 +1119,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load whoami first, so the tree reflects tenant-admin state (the Administration → Users branch, ADR
-        // "Tenant-admin Administration → Users view") on the first render rather than only after a refresh.
-        // Tenant admins also get the searchable-PDF backfill ribbon button (ADR 0274); CanManageUsers holders get
+        // Load whoami first, so the first render already reflects the admin-gated UI rather than only after a
+        // refresh. Tenant admins get the searchable-PDF backfill ribbon button (ADR 0274); CanManageUsers holders get
         // the Users & groups tab (ADR "Users & groups administration tab").
         try
         {

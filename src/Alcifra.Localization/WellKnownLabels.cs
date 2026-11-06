@@ -22,6 +22,9 @@ public static class WellKnownLabels
     private static readonly IReadOnlyDictionary<string, string> Keys = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Manual"] = "WkMaskManual",
+        // The administrators' branch (ADR 1066).
+        ["Administration"] = "WkMaskAdministration",
+        ["Users"] = "WkMaskUsers",
         ["Brand"] = "WkFieldBrand",
         ["Product name"] = "WkFieldProductName",
         ["Article number"] = "WkFieldArticleNumber",

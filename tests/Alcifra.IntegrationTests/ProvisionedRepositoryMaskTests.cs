@@ -46,18 +46,20 @@ public class ProvisionedRepositoryMaskTests
         Assert.Equal(WellKnownMaskIds.Repository, maskId);
 
         // ...and the same call must not have turned every folder into a repository: the personal space the
-        // administrator gets alongside it keeps User Folder (ADR 0590). Without this, handing the Repository
-        // mask to a broader helper would satisfy the assertion above and quietly break the tree.
-        var personalMaskIds = await db.Documents.IgnoreQueryFilters(["TenantFilter"])
+        // administrator gets alongside it keeps User Folder (ADR 0590), and the Administration root the core
+        // holds (ADR 1066) wears its own mask. Without this, handing the Repository mask to a broader helper
+        // would satisfy the assertion above and quietly break the tree.
+        var otherRootMasks = new List<Guid?>();
+        foreach (var id in await db.Documents.IgnoreQueryFilters(["TenantFilter"])
             .Where(d => d.TenantId == provisioned.TenantId && d.ParentId == null && d.Id != provisioned.RepositoryId)
             .Select(d => d.Id)
-            .ToListAsync();
-
-        Assert.NotEmpty(personalMaskIds); // anti-vacuous: provisioning really does create a personal space too
-        foreach (var id in personalMaskIds)
+            .ToListAsync())
         {
-            Assert.Equal(WellKnownMaskIds.UserFolder, await MaskIdOfAsync(db, id));
+            otherRootMasks.Add(await MaskIdOfAsync(db, id));
         }
+
+        // Anti-vacuous: provisioning really does create the personal space and the Administration root too.
+        Assert.Equal(new HashSet<Guid?> { WellKnownMaskIds.Administration, WellKnownMaskIds.UserFolder }, otherRootMasks.ToHashSet());
     }
 
     private static async Task<Guid?> MaskIdOfAsync(AlcifraDbContext db, Guid documentId)
@@ -83,7 +85,8 @@ public class ProvisionedRepositoryMaskTests
             new WellKnownMaskSeeder(db, NullLogger<WellKnownMaskSeeder>.Instance),
             new SensitivityLabelSeeder(db),
             new InMemoryObjectStorage(),
-            new Alcifra.Api.Documents.PersonalRepositoryProvisioner(db, new NoOpAuditRecorder()));
+            new Alcifra.Api.Documents.PersonalRepositoryProvisioner(db, new NoOpAuditRecorder()),
+            NullLogger<TenantProvisioningService>.Instance);
 
     // No current tenant: provisioning runs before one is known, which is why every lookup inside it ignores the
     // tenant filter (see FolderMaskTenantScopeTests for the same constraint from the other side).

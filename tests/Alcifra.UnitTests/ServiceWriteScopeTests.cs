@@ -86,6 +86,7 @@ public partial class ServiceWriteScopeTests
         ["CertificateEnrolment.cs"] = CalleeOfAContract,
         ["ReaderCertificateFolder.cs"] = CalleeOfAContract,
         ["ManualsFolder.cs"] = Provisioning,
+        ["AdministrationFolders.cs"] = Provisioning,
 
         ["EphemeralMailSweepWorker.cs"] = Background,
         ["EphemeralContentSweepWorker.cs"] = Background,

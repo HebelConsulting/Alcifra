@@ -223,7 +223,7 @@ internal sealed class WorkbenchDragDrop
     private void OnTreePointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.GetCurrentPoint(_folderTree).Properties.IsLeftButtonPressed
-            && MainWindow.FindDataContext<TreeNodeViewModel>(e.Source) is { IsSynthetic: false, IsLauncher: false, IsPersonal: false } node)
+            && MainWindow.FindDataContext<TreeNodeViewModel>(e.Source) is { IsLauncher: false, IsPersonal: false } node)
         {
             _treeDragCandidate = node;
             _treeDragStart = e.GetPosition(_folderTree);

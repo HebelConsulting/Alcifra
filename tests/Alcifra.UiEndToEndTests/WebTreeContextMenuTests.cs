@@ -76,16 +76,26 @@ public class WebTreeContextMenuTests
         await Expect(page.Locator(".mud-dialog").First).ToBeVisibleAsync();
     }
 
-    // The pseudo-nodes get no menu and therefore no button — Administration isn't a folder.
+    // The pseudo-nodes get no menu and therefore no button — the Intray launcher under the personal space isn't a
+    // folder. (The Administration folder used to be the example; it is a real folder now, ADR 1066, and gets one.)
     [Fact]
     public async Task Pseudo_nodes_get_no_row_menu_button()
     {
         var page = await Ui.LoginAsync(_app, configureContext: o => o.HasTouch = true);
         var tree = page.Locator("[data-pane='tree']");
-        var admin = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Administration" }).First;
-        await Expect(admin).ToBeVisibleAsync();
 
-        await Expect(admin.Locator(".wb-tree-menu-btn")).ToHaveCountAsync(0);
+        // The personal space is the first root; its launchers appear once it is expanded.
+        var personal = tree.Locator(".mud-treeview-item-content").First;
+        await Expect(personal).ToBeVisibleAsync();
+        await personal.Locator(".mud-treeview-item-arrow").ClickAsync();
+
+        var intray = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Intray" }).First;
+        await Expect(intray).ToBeVisibleAsync();
+        await Expect(intray.Locator(".wb-tree-menu-btn")).ToHaveCountAsync(0);
+
+        // And the Administration folder, a real folder, has one — so "no button" above is a decision, not a gap.
+        var administration = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Administration" }).First;
+        await Expect(administration.Locator(".wb-tree-menu-btn")).ToBeVisibleAsync();
     }
 
     [Fact]

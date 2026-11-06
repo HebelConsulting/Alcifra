@@ -226,6 +226,8 @@ internal static class ImapMailboxes
         // tenant; other users' personal spaces are excluded here and by ACL).
         var roots = await db.Documents
             .Where(d => d.ParentId == null && (d.PersonalOfUserId == null || d.PersonalOfUserId == userId))
+            // Not the Administration root (ADR 1066): the mailboxes mirror the tree with that one named exception.
+            .ExceptProtectedCoreFolders(db)
             .OrderByDescending(d => d.PersonalOfUserId == userId).ThenBy(d => d.Name)
             .ToListAsync();
 

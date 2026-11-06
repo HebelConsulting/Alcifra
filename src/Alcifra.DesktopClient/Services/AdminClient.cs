@@ -906,16 +906,6 @@ public sealed class AdminClient(ApiCore core)
             j.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.String ? e.GetString() : null);
     }
 
-    // Links carries the repository's advertised addresses (`document`, `children`) — see #443.
-    public sealed record AdminPersonalRepoInfo(Guid UserId, string DisplayName, string Email, bool UserIsActive, Guid RepositoryId, bool HasChildren, bool HasSubfolders,
-        LinkMap? Links = null,
-        // The capability answers for the tree node this row becomes (#858) — a tree node gets the Rename /
-        // Move to / Delete menu, so this listing has to carry them like the others do.
-        bool CanDelete = false, bool CanEditIndexData = false, bool CanMove = false, bool CanManagePermissions = false, bool CanCreateChildren = false)
-    {
-        public string? Href(string rel) => Links?.Href(rel);
-    }
-
     /// <summary>Follows a row's advertised <c>take-over</c> address (ADR 0672).</summary>
     /// <remarks>
     /// Takes the HREF, not a user id: the caller holds the row that advertised it, so there is nothing to
@@ -925,36 +915,5 @@ public sealed class AdminClient(ApiCore core)
     {
         var response = await _core.Http.PostAsync(takeOverHref, JsonContent.Create(new { }), cancellationToken);
         response.EnsureSuccessStatusCode();
-    }
-
-    // Lists every user's personal repository (ADR "Tenant-admin Administration → Users view") — tenant-admin only.
-    public async Task<List<AdminPersonalRepoInfo>> GetAdminPersonalRepositoriesAsync(CancellationToken cancellationToken = default)
-    {
-        // The root's `admin` rel leads to the administration index, which advertises this list — two hops, but
-        // both of them followed rather than assembled, and paid once per admin screen (ADR 0543).
-        var admin = await _core.Http.GetFromJsonAsync<JsonElement>(await _core.RootHrefAsync("admin", cancellationToken), cancellationToken);
-        var json = await _core.Http.GetFromJsonAsync<JsonElement>(ApiCore.RequireRel(admin, "personal-repositories", "The administration index"), cancellationToken);
-        var list = new List<AdminPersonalRepoInfo>();
-        if (json.TryGetProperty("repositories", out var array))
-        {
-            foreach (var r in array.EnumerateArray())
-            {
-                list.Add(new AdminPersonalRepoInfo(
-                    r.GetProperty("userId").GetGuid(),
-                    r.GetProperty("displayName").GetString() ?? "",
-                    r.TryGetProperty("email", out var e) ? e.GetString() ?? "" : "",
-                    r.TryGetProperty("userIsActive", out var a) && a.GetBoolean(),
-                    r.GetProperty("repositoryId").GetGuid(),
-                    r.TryGetProperty("hasChildren", out var hc) && hc.GetBoolean(),
-                    r.TryGetProperty("hasSubfolders", out var hs) && hs.GetBoolean(),
-                    ApiCore.ParseLinks(r),
-                    r.TryGetProperty("canDelete", out var cd) && cd.ValueKind == System.Text.Json.JsonValueKind.True,
-                    r.TryGetProperty("canEditIndexData", out var ce) && ce.ValueKind == System.Text.Json.JsonValueKind.True,
-                    r.TryGetProperty("canMove", out var cm) && cm.ValueKind == System.Text.Json.JsonValueKind.True,
-                    r.TryGetProperty("canManagePermissions", out var cmp) && cmp.ValueKind == System.Text.Json.JsonValueKind.True,
-                    r.TryGetProperty("canCreateChildren", out var ccc) && ccc.ValueKind == System.Text.Json.JsonValueKind.True));
-            }
-        }
-        return list;
     }
 }

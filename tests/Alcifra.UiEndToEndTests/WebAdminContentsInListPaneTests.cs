@@ -3,12 +3,9 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Alcifra.UiEndToEndTests;
 
-// Selecting a synthetic Administration node LISTS its contents, so the column filter can find a user (#1160).
-//
-// WHAT WAS WRONG. Administration and Administration/Users are synthetic tree nodes — no document id, no
-// `children` rel — so the selection path early-returned on them: clicking expanded the TREE and left the list
-// pane showing whichever folder was there before. With many users the only way to reach one was to scroll the
-// tree, while a perfectly good column filter sat unused one pane to the right.
+// Selecting the Administration folder or Users beneath it LISTS their contents, so the column filter can find a
+// user (#1160). Both are real folders now (ADR 1066): Administration holds Users, and Users holds one reference
+// per personal space, which the list pane shows as rows like any folder's shortcuts.
 //
 // The assertion that matters is the FILTER one: rows merely arriving is not the feature. Typing a name and
 // having the list narrow to it is.
@@ -35,8 +32,9 @@ public class WebAdminContentsInListPaneTests
         // CLICK THE LABEL, not the arrow: expanding is not selecting, and it is selection that fills the list.
         await administration.ClickAsync();
 
-        // Administration holds exactly one entry.
-        await Expect(list.GetByText("Users", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 15000 });
+        // Administration holds exactly one entry. `.First`: the row shows "Users" twice — its name and its type,
+        // since the folder wears the Users mask.
+        await Expect(list.GetByText("Users", new() { Exact = true }).First).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         // Now Users itself — expand Administration to reach the node, then select it.
         await administration.Locator(".mud-treeview-item-arrow").ClickAsync();

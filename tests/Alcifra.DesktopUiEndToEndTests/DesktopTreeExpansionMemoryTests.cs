@@ -50,9 +50,9 @@ public class DesktopTreeExpansionMemoryTests : IDisposable
     public async Task A_branch_left_open_is_open_again_next_session()
     {
         var first = await SessionAsync();
-        var repo = first.Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        var repo = first.Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
         await repo.EnsureExpandedAsync();
-        var child = repo.Children.First(c => !c.IsSynthetic && !c.IsLauncher);
+        var child = repo.Children.First(c => !c.IsLauncher);
         await child.EnsureExpandedAsync();
 
         // A relaunch: a new view-model reading the same file.
@@ -68,7 +68,7 @@ public class DesktopTreeExpansionMemoryTests : IDisposable
     public async Task A_branch_that_was_closed_stays_closed()
     {
         var first = await SessionAsync();
-        var repo = first.Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        var repo = first.Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
         await repo.EnsureExpandedAsync();
         repo.IsExpanded = false;
 
@@ -83,9 +83,9 @@ public class DesktopTreeExpansionMemoryTests : IDisposable
     public async Task Collapsing_a_parent_keeps_what_was_open_inside_it()
     {
         var first = await SessionAsync();
-        var repo = first.Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        var repo = first.Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
         await repo.EnsureExpandedAsync();
-        var child = repo.Children.First(c => !c.IsSynthetic && !c.IsLauncher);
+        var child = repo.Children.First(c => !c.IsLauncher);
         await child.EnsureExpandedAsync();
         repo.IsExpanded = false; // shut the branch; the child's state must survive
 

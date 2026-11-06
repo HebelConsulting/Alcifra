@@ -318,6 +318,19 @@ public static class WellKnownMaskIds
     public static readonly Guid Bookmarks = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E51");
 
     /// <summary>
+    /// The tenant's <c>Administration</c> root (ADR 1066, #2180): a real folder in place of the branch the clients drew for
+    /// administrators, core-owned like <see cref="Documentation"/>, one per tenant, holding only <see cref="Users"/>. Not
+    /// deleted, renamed or moved; only tenant administrators see it, since it carries no grant.
+    /// </summary>
+    public static readonly Guid Administration = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E52");
+
+    /// <summary>
+    /// The <c>Users</c> folder beneath <see cref="Administration"/> (ADR 1066): one reference per user's personal space,
+    /// placed and removed by the core alone. Admits no children and lives nowhere else.
+    /// </summary>
+    public static readonly Guid Users = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E53");
+
+    /// <summary>
     /// The CORE's masks whose content is sealed to its readers (ADR 0964), mirroring a module's
     /// <c>ContentIsSealed</c> (ABI 1.20, ADR 0940): each maps to its content segment, which no other mask shares.
     /// </summary>
@@ -396,7 +409,14 @@ public static class WellKnownMaskIds
     /// The masks only the CORE assigns (ADR 0891): not offered by any picker, refused by SaveChanges when a document
     /// gains one outside the core's own filing path, refused when one is changed or removed, at most one live per tenant.
     /// </summary>
-    public static readonly IReadOnlySet<Guid> CoreOwnedMasks = new HashSet<Guid> { Documentation };
+    public static readonly IReadOnlySet<Guid> CoreOwnedMasks = new HashSet<Guid> { Documentation, Administration, Users };
+
+    /// <summary>
+    /// The core-owned folders that are the archive's to keep whole (ADR 1066): not deleted, renamed or moved, and a
+    /// reference in them placed or removed only by the core. The manuals folder is deliberately not here: a person may
+    /// rename or move it.
+    /// </summary>
+    public static readonly IReadOnlySet<Guid> ProtectedCoreFolders = new HashSet<Guid> { Administration, Users };
 
     /// <summary>A section INSIDE a notebook: a folder that holds notes and further sections (#564).</summary>
     /// <remarks>
@@ -449,6 +469,10 @@ public static class WellKnownMaskIds
         // nobody sealed.
         new(PasswordStore, "Password Store", [(PasswordFolder, "Password Folder"), (PasswordEntry, "Password Entry")]),
         new(PasswordFolder, "Password Folder", [(PasswordFolder, "Password Folder"), (PasswordEntry, "Password Entry")]),
+        // The administrators' branch (ADR 1066), two-directionally: the root holds only its Users folder, and a Users
+        // folder lives nowhere else. Users itself declares nothing — its contents are references the core places.
+        new(Administration, "Administration", [(Users, "Users")]),
+        new(Users, "Users", []),
     ];
 
     /// <summary>How MANY children wearing a given mask a folder admits — a capacity rule, not an admission one.</summary>
@@ -516,7 +540,7 @@ public static class WellKnownMaskIds
     /// </para>
     /// </remarks>
     public static readonly IReadOnlySet<Guid> FolderMasks =
-        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder };
+        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder, Administration, Users };
 
     /// <summary>
     /// The file extensions that make a well-known mask the automatic choice for an upload (#671).
@@ -570,6 +594,9 @@ public static class WellKnownMaskIds
             [Repository] = "repository",
             [UserFolder] = "person",
             [Mailbox] = "mailbox",
+            // The administrator's two folders (ADR 1066): a shield for the root, a group for the people beneath it.
+            [Administration] = "administration",
+            [Users] = "users",
             // The INBOX and its future siblings. "mail-folder" rather than "inbox" because SENT/DRAFTS/JUNK
             // wear the same mask and are not inboxes — naming the token for today's only instance would be
             // wrong the moment the second one arrives.
@@ -639,7 +666,7 @@ public static class WellKnownMaskIds
         // certificate filed by hand — a CA's own certificate, kept for reference — is a legitimate document.
         // What the module projects is what the module ENROLLED, so a hand-filed one is simply not addressed to
         // anybody, rather than being a hole.
-        new HashSet<Guid> { Repository, UserFolder, MyDocuments, ImapSpecial, Notebook, Booking, Schedule, Blockers, Block, Availability, AvailabilityWindow, Documentation, ReaderCertificates, CertificatePolicy };
+        new HashSet<Guid> { Repository, UserFolder, MyDocuments, ImapSpecial, Notebook, Booking, Schedule, Blockers, Block, Availability, AvailabilityWindow, Documentation, ReaderCertificates, CertificatePolicy, Administration, Users };
 
     /// <summary>
     /// Masks whose documents take exactly ONE version, for their whole life (ADR 0848).
@@ -957,25 +984,4 @@ public static class WellKnownMaskIds
             .Where(f => f.FieldType == typeof(Guid))
             .Select(f => (Guid)f.GetValue(null)!)
             .ToHashSet();
-}
-
-/// <summary>A cap on how many children wearing one mask a folder may hold (#596).</summary>
-/// <param name="FolderMaskId">The mask the folder wears.</param>
-/// <param name="FolderName">The folder mask's display name, for the invariant's message.</param>
-/// <param name="ChildMaskId">The mask being counted.</param>
-/// <param name="ChildName">The counted mask's display name, for the invariant's message.</param>
-/// <param name="Max">The most a folder may hold. Soft-deleted children do not count — consistent with sibling
-/// name uniqueness, and the reason the check belongs in <c>SaveChanges</c>: a RESTORE is a save too, so
-/// restoring a mailbox alongside a replacement is refused at the same point rather than needing its own rule.</param>
-public sealed record ChildCardinalityRule(
-    Guid FolderMaskId, string FolderName, Guid ChildMaskId, string ChildName, int Max);
-
-/// <summary>A typed folder and the masks it admits (#562 slice 5, set-valued for #564's notebook sections).</summary>
-/// <param name="FolderMaskId">The mask the folder wears.</param>
-/// <param name="FolderName">The folder mask's display name, for the invariant's message.</param>
-/// <param name="Admits">Each mask a child may wear, with its display name for the message.</param>
-public sealed record TypedFolderRule(Guid FolderMaskId, string FolderName, IReadOnlyList<(Guid MaskId, string Name)> Admits)
-{
-    /// <summary>The admitted masks, listed for a human — "Section or Note".</summary>
-    public string AdmittedNames => string.Join(" or ", Admits.Select(a => a.Name));
 }

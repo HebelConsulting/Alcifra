@@ -3,9 +3,9 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Alcifra.UiEndToEndTests;
 
-// The tenant-admin Administration → Users view (ADR "Tenant-admin Administration → Users view"): a synthetic
-// "Administration → Users" branch is pinned in the demo admin's repository tree, and expanding it reveals the
-// users' personal repositories (the admin's own "Demo Admin" personal space at least).
+// The administrator's Administration → Users folders (ADR 1066): the Administration root is in the demo admin's
+// repository tree like any repository, and expanding it and Users reveals the users' personal spaces as the
+// references the core placed (the admin's own "Demo Admin" space at least).
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-3")]
 public class WebAdminUsersTests
@@ -20,7 +20,7 @@ public class WebAdminUsersTests
         var page = await Ui.LoginAsync(_app);
         var tree = page.Locator("[data-pane='tree']");
 
-        // The admin-only Administration node is pinned in the tree; expand it → Users → the users' personal repos.
+        // The Administration folder is in the tree (only an administrator can see it); expand it → Users → the spaces.
         // Target the content row (.mud-treeview-item-content) so filtering by text hits the node's own label, not
         // an ancestor whose expanded subtree also contains the text.
         var admin = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Administration" }).First;
@@ -31,7 +31,7 @@ public class WebAdminUsersTests
         await Expect(users).ToBeVisibleAsync();
         await users.Locator(".mud-treeview-item-arrow").ClickAsync();
 
-        // The demo admin's own personal space appears under Users (loaded from the admin endpoint).
+        // The demo admin's own personal space appears under Users, as the reference the core placed there.
         //
         // Scoped to the Users SUBTREE, and that is the whole assertion. Unscoped, this matched two nodes once
         // personal spaces began carrying their owner's name (ADR 0671): the admin's own space at the tree's top

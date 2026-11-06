@@ -36,7 +36,7 @@ public partial class MainWindow
         // A single click opens (expands) the folder to reveal its sub-folders — unless the click was on the
         // expand/collapse chevron, which toggles it itself so collapsing still works.
         var onChevron = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<Avalonia.Controls.Primitives.ToggleButton>().Any() ?? false;
-        if (!onChevron && !node.IsSynthetic && !node.IsLauncher)
+        if (!onChevron && !node.IsLauncher)
         {
             node.IsExpanded = true;
         }
@@ -45,13 +45,13 @@ public partial class MainWindow
     }
 
     // Right-clicking a tree folder targets it for the context-menu actions (and selects it so the New-subfolder
-    // action files into it). Suppress the menu over empty space / synthetic nodes.
+    // action files into it). Suppress the menu over empty space / launcher nodes.
     private TreeNodeViewModel? _treeContextNode;
 
     internal void OnTreeContextRequested(object? sender, ContextRequestedEventArgs e)
     {
         _treeContextNode = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault()?.DataContext as TreeNodeViewModel;
-        if (_treeContextNode is null or { IsSynthetic: true } or { IsLauncher: true } && DataContext is MainWindowViewModel)
+        if (_treeContextNode is null or { IsLauncher: true } && DataContext is MainWindowViewModel)
         {
             e.Handled = true; // no folder / a launcher node under the cursor — don't show the folder menu
             return;
@@ -305,7 +305,7 @@ public partial class MainWindow
 
     internal void OnTreeToggleFollow(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
-        if (DataContext is MainWindowViewModel vm && _treeContextNode is { IsSynthetic: false } node)
+        if (DataContext is MainWindowViewModel vm && _treeContextNode is { } node)
         {
             await vm.ToggleFolderSubscriptionAsync(node.DocumentSelfHref);
         }

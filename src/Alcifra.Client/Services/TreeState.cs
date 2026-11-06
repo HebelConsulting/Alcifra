@@ -43,17 +43,13 @@ public enum RevealOutcome
 /// </remarks>
 public sealed class TreeState(HttpClient http, ApiRoot apiRoot, BrowseService browse)
 {
-    /// <summary>The tree's top level: the personal repository, the shared ones, then the admin branch.</summary>
+    /// <summary>The tree's top level: the personal repository, then the shared ones.</summary>
     public IReadOnlyCollection<TreeItemData<BrowseNode>> Roots { get; private set; } = [];
 
     /// <summary>True until the first <see cref="ReloadAsync"/> completes, so the pane can show a spinner.</summary>
     public bool Loading { get; private set; } = true;
 
-    /// <param name="isTenantAdmin">
-    /// Whether to append the synthetic Administration branch — a fact about the SIGNED-IN USER, which the shell
-    /// resolves once from <c>/diagnostics/whoami</c>, so it is passed in rather than re-fetched here.
-    /// </param>
-    public async Task ReloadAsync(bool isTenantAdmin)
+    public async Task ReloadAsync()
     {
         var reopen = ExpandedIds(Roots).ToList();
         try
@@ -85,19 +81,6 @@ public sealed class TreeState(HttpClient http, ApiRoot apiRoot, BrowseService br
             nodes.AddRange(Alcifra.Presentation.FilingRoots
                 .Compose(personal is null ? null : PersonalTreeItem(personal), shared, n => n.Value!.DisplayName)
                 .Select(root => root.Node));
-
-            // Tenant admins get a synthetic "Administration → Users" branch (ADR "Tenant-admin Administration →
-            // Users view") to browse every user's personal space; its children load from the admin endpoint.
-            if (isTenantAdmin)
-            {
-                nodes.Add(new TreeItemData<BrowseNode>
-                {
-                    Value = new BrowseNode(Guid.Empty, "Administration", true, false, true, AdminKind: "admin-root"),
-                    Expandable = true,
-                    Text = "Administration",
-                    Icon = Icons.Material.Filled.AdminPanelSettings,
-                });
-            }
 
             Roots = nodes;
 
@@ -252,7 +235,7 @@ public sealed class TreeState(HttpClient http, ApiRoot apiRoot, BrowseService br
             var next = new List<ITreeItemData<BrowseNode>>();
             foreach (var item in level.Where(i => i.Expanded))
             {
-                if (item.Value is { AdminKind: "" } value && value.Id != Guid.Empty)
+                if (item.Value is { } value && value.Id != Guid.Empty)
                 {
                     yield return value.Id;
                 }
@@ -288,12 +271,6 @@ public sealed class TreeState(HttpClient http, ApiRoot apiRoot, BrowseService br
 
     public async Task<IReadOnlyCollection<TreeItemData<BrowseNode>>> LoadChildrenAsync(BrowseNode node)
     {
-        if (node.AdminKind is not "")
-        {
-            return await LoadAdminChildrenAsync(node);
-        }
-
-
         // Folders are always sorted alphabetically in the tree (issue #339); the contents load orders for its list
         // default, so re-sort the folder nodes by name here.
         var children = (await browse.LoadContentsAsync(node.Id, node.RepositoryId, BrowseService.ChildrenHrefOf(node), BrowseService.ReferencesHrefOf(node))).Nodes
@@ -310,100 +287,6 @@ public sealed class TreeState(HttpClient http, ApiRoot apiRoot, BrowseService br
         }
 
         return children;
-    }
-
-    // Loads the synthetic Administration branch's children (ADR "Tenant-admin Administration → Users view").
-    /// <summary>
-    /// The children of a synthetic Administration node, as plain nodes — the ONE source the tree and the
-    /// list-pane both render (#1160).
-    /// </summary>
-    /// <remarks>
-    /// Separated from the tree's own <see cref="LoadAdminChildrenAsync"/> so the two surfaces cannot come to
-    /// disagree about what Administration contains. The tree wraps these into <c>TreeItemData</c>; the
-    /// list-pane renders them as rows, which is what lets the column filter find a user by name or e-mail
-    /// instead of scrolling the tree.
-    /// </remarks>
-    public async Task<IReadOnlyList<BrowseNode>> AdminChildNodesAsync(BrowseNode node)
-    {
-        if (node.AdminKind == "admin-root")
-        {
-            return [new BrowseNode(Guid.Empty, "Users", true, false, true, AdminKind: "admin-users")];
-        }
-
-        // admin-users → one node per user's personal repository (browsable via the admin's ACL bypass). Reached
-        // by following root → `admin` → `personal-repositories`.
-        //
-        // The row carries the user's real RepositoryId and its own links, so opening one browses exactly as
-        // clicking the tree node does — one subject, two ways in.
-        //
-        // E-mail lands in CreatedBy, which the list-pane renders under its OWNER column — and for a personal
-        // repository the owner IS that user, so this is the most precise value that column can hold rather than
-        // a field borrowed to smuggle a string through. Active state rides in the NAME, exactly as the tree
-        // spells it ("Anna Meyer (inactive)"), so the two surfaces read identically and the column filter
-        // matches what the eye sees. Both already arrive from the endpoint; neither needed a server change.
-        AdminPersonalReposResponse? users;
-        try
-        {
-            var index = await http.GetFromJsonAsync<AdminIndexResponse>(await apiRoot.RequireAsync("admin"));
-            users = Links.Href(index?.Links, "personal-repositories") is { } address
-                ? await http.GetFromJsonAsync<AdminPersonalReposResponse>(address)
-                : null;
-        }
-        catch (Exception)
-        {
-            // An empty branch rather than a broken tree — the same choice the tree load has always made.
-            users = null;
-        }
-
-        return (users?.Repositories ?? []).Select(r => new BrowseNode(
-            r.RepositoryId,
-            r.UserIsActive ? r.DisplayName : $"{r.DisplayName} (inactive)",
-            r.HasChildren, false, r.HasSubfolders,
-            RepositoryId: r.RepositoryId,
-            CreatedBy: r.Email,
-            CanDelete: r.CanDelete, CanEditIndexData: r.CanEditIndexData, CanMove: r.CanMove,
-            CanManagePermissions: r.CanManagePermissions, CanCreateChildren: r.CanCreateChildren,
-            Links: r.Links.ToDictionary(l => l.Rel, l => l.Href))).ToList();
-    }
-
-    private async Task<IReadOnlyCollection<TreeItemData<BrowseNode>>> LoadAdminChildrenAsync(BrowseNode node)
-    {
-        if (node.AdminKind == "admin-root")
-        {
-            return
-            [
-                new TreeItemData<BrowseNode>
-                {
-                    Value = new BrowseNode(Guid.Empty, "Users", true, false, true, AdminKind: "admin-users"),
-                    Expandable = true,
-                    Text = "Users",
-                    Icon = Icons.Material.Filled.People,
-                },
-            ];
-        }
-
-        // admin-users → one node per user's personal repository (browsable via the admin's ACL bypass). Reached
-        // by following root → `admin` → `personal-repositories` — the admin index exists precisely so this
-        // listing has a rel to follow (#416); the ledger's old claim that it needed a server change was stale.
-        // A fetch error returns an empty branch rather than breaking the tree.
-        AdminPersonalReposResponse? page;
-        try
-        {
-            var admin = await http.GetFromJsonAsync<AdminIndexResponse>(await apiRoot.RequireAsync("admin"));
-            page = Links.Href(admin?.Links, "personal-repositories") is { } href
-                ? await http.GetFromJsonAsync<AdminPersonalReposResponse>(href)
-                : null;
-        }
-        catch (Exception) { page = null; }
-        return (page?.Repositories ?? []).Select(r => new TreeItemData<BrowseNode>
-        {
-            Value = new BrowseNode(r.RepositoryId, r.DisplayName, r.HasChildren, false, r.HasSubfolders, RepositoryId: r.RepositoryId,
-                CanDelete: r.CanDelete, CanEditIndexData: r.CanEditIndexData, CanMove: r.CanMove, CanManagePermissions: r.CanManagePermissions, CanCreateChildren: r.CanCreateChildren,
-                Links: r.Links.ToDictionary(l => l.Rel, l => l.Href)),
-            Expandable = r.HasSubfolders,
-            Text = r.UserIsActive ? r.DisplayName : $"{r.DisplayName} (inactive)",
-            Icon = MaskIcon.Filled("person")!,
-        }).ToList();
     }
 
     // The personal repository's tree node carries a distinct person icon; it browses like any repository (its own
@@ -426,40 +309,4 @@ public sealed class TreeState(HttpClient http, ApiRoot apiRoot, BrowseService br
         Icon = icon,
     };
 
-
-    private record AdminPersonalReposResponse { public List<AdminPersonalRepo> Repositories { get; set; } = []; }
-
-    /// <summary>The admin index — an entry-point resource whose rels are what it exists to advertise.</summary>
-    private record AdminIndexResponse { public List<LinkResponse> Links { get; set; } = []; }
-
-    private record AdminPersonalRepo
-    {
-        // The three answers this row carries so the tree's context menu can gate on them (#858). A tree node
-        // gets Rename / Move to / Delete, so an admin listing that omitted them would hide those on every
-        // personal space while the other listings offered them correctly — the "present on three of six
-        // surfaces" defect #638 exists to prevent.
-        public bool CanDelete { get; set; }
-
-        public bool CanEditIndexData { get; set; }
-
-        public bool CanMove { get; set; }
-
-        // The admin personal-repositories listing stamps this like any other row (#854); a personal space's
-        // ROOT never admits a plain child, so it arrives false — which is the answer, not an omission.
-        public bool CanCreateChildren { get; set; }
-
-        public bool CanManagePermissions { get; set; }
-
-        public Guid UserId { get; set; }
-        public string DisplayName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public bool UserIsActive { get; set; }
-        public Guid RepositoryId { get; set; }
-        public bool HasChildren { get; set; }
-        public bool HasSubfolders { get; set; }
-
-        // The row's own addresses, including `take-over` when this caller may perform it (ADR 0672). A missing
-        // rel is the server saying "not available to you, here, now", so the menu item simply is not drawn.
-        public List<LinkResponse> Links { get; set; } = [];
-    }
 }

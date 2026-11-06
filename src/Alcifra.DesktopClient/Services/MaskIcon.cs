@@ -34,6 +34,9 @@ public static class MaskIcon
         // addressbook are not the same thing.
         ["person"] = "mdi-account",
         ["mailbox"] = "mdi-mailbox",
+        // The administrator's two folders (ADR 1066), wearing what the synthetic branch wore before they were real.
+        ["administration"] = "mdi-shield-account",
+        ["users"] = "mdi-account-group",
         // The INBOX and its future siblings — "mail-folder", not "inbox", because SENT/DRAFTS/JUNK wear the
         // same mask and naming the token for today's only instance would be wrong when the second arrives.
         ["mail-folder"] = "mdi-inbox",

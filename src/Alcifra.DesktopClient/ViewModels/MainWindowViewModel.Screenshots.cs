@@ -36,12 +36,12 @@ public partial class MainWindowViewModel
         Breadcrumbs.Add(new BreadcrumbViewModel { Name = "Repositories", FolderId = null, ShowSeparator = false });
         Breadcrumbs.Add(new BreadcrumbViewModel { Name = "Demo Repository", FolderId = Guid.NewGuid(), ShowSeparator = true });
         // Mirror the real tree's top-level nodes: a Personal repository (ADR 0370) and, for a tenant admin, the
-        // synthetic Administration branch (ADR 0377), around the shared repositories.
+        // Administration folder the core holds (ADR 1066), around the shared repositories.
         Tree.Add(new TreeNodeViewModel(Guid.Empty, "Demo Admin", true, null, isPersonal: true)); // named after its owner (ADR 0671)
         Tree.Add(new TreeNodeViewModel(Guid.Empty, "Demo Repository", true, null));
         Tree.Add(new TreeNodeViewModel(Guid.Empty, "Invoices", false, null, hasChildren: false)); // an EMPTY folder — shows the pastel glyph (ADR "Empty-folder tree icon")
         Tree.Add(new TreeNodeViewModel(Guid.Empty, "Shared (ref)", false, null, isReference: true));
-        Tree.Add(new TreeNodeViewModel(Guid.Empty, "Administration", true, null, syntheticIcon: "mdi-shield-account"));
+        Tree.Add(new TreeNodeViewModel(Guid.Empty, "Administration", true, null, icon: "administration"));
         // The DOCUMENT names below are not free to choose: they must be documents the demo seed actually
         // creates (Kristall Holding AG's, filed by KristallSamples since #1788), because the manual's desktop
         // screenshots sit beside web screenshots taken against the real seeded app, and two halves of one manual
@@ -429,7 +429,7 @@ public partial class MainWindowViewModel
         await repo.EnsureExpandedAsync();
         var parentNode = repo.Children.First(n => n.Id == parent.Id);
         await parentNode.EnsureExpandedAsync();
-        var treeOk = parentNode.Children.Where(n => !n.IsLauncher && !n.IsSynthetic)
+        var treeOk = parentNode.Children.Where(n => !n.IsLauncher)
             .Select(n => n.Name).SequenceEqual(["Apple", "Mango", "Zebra"]);
 
         return (listOk, treeOk);
@@ -478,7 +478,8 @@ public partial class MainWindowViewModel
     {
         UseApi(new AlcifraApiClient(accessToken));
         await LoadRootAsync();
-        var root = Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        // A root a person may file into — not the Administration folder the core holds (ADR 1066), which sorts first.
+        var root = Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var name = "treeacl-" + suffix;
@@ -505,7 +506,8 @@ public partial class MainWindowViewModel
     {
         UseApi(new AlcifraApiClient(accessToken));
         await LoadRootAsync();
-        var root = Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        // A root a person may file into — not the Administration folder the core holds (ADR 1066), which sorts first.
+        var root = Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
 
         var suffix = Guid.NewGuid().ToString("N")[..8];
         var subjectName = $"treemove-{suffix}";
@@ -534,7 +536,8 @@ public partial class MainWindowViewModel
     {
         UseApi(new AlcifraApiClient(accessToken));
         await LoadRootAsync();
-        var root = Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        // A root a person may file into — not the Administration folder the core holds (ADR 1066), which sorts first.
+        var root = Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
 
         var name = "treeempty-" + Guid.NewGuid().ToString("N")[..8];
         await CreateSubfolderAsync(root.Id, root.Href("children"), name);

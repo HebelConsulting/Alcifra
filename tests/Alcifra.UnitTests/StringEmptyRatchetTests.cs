@@ -28,7 +28,7 @@ public class StringEmptyRatchetTests
     // The `= ""` occurrences the compiler REQUIRES, per file. Every one is a default parameter value.
     private static readonly Dictionary<string, int> MandatedEmptyLiterals = new()
     {
-        ["src/Alcifra.Client/Models/BrowseNode.cs"] = 6,
+        ["src/Alcifra.Client/Models/BrowseNode.cs"] = 5,
         // DocumentFinalizer's `[CallerFilePath] string callerFile = ""` (#1171): the compiler fills it so the
         // out-of-transaction warning can name which of the twenty filing paths ran unwrapped. A caller-info
         // parameter's default must be a constant expression — the same CS1736 case as every other entry here.

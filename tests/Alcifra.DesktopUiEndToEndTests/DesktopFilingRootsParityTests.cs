@@ -31,9 +31,10 @@ public class DesktopFilingRootsParityTests
         var vm = new MainWindowViewModel();
         await vm.InitializeSessionAsync(api, SelfHostedAppFixture.AdminEmail);
 
-        // The tree's own roots, minus the synthetic Administration branch: that is a place to LOOK (a tenant
-        // admin browsing other people's spaces), not a place to put something, so no picker offers it.
-        var treeRoots = vm.Tree.Where(n => !n.IsSynthetic).Select(n => n.Name).ToList();
+        // The tree's own roots — the Administration folder among them for an administrator (ADR 1066). Shown in
+        // the picker as it is in the tree, choosable in neither: what is shown and what is choosable are separate
+        // questions (ADR 0689), and the second is asserted below.
+        var treeRoots = vm.Tree.Select(n => n.Name).ToList();
 
         var picker = vm.CreateMoveTargetPickerViewModel();
         await picker.LoadAsync();
@@ -71,8 +72,14 @@ public class DesktopFilingRootsParityTests
 
         // And an ordinary repository still is, so the refusal is specific rather than a picker that refuses
         // everything.
-        picker.SelectedNode = picker.Roots.First(n => !n.IsPersonal);
+        picker.SelectedNode = picker.Roots.First(n => !n.IsPersonal && n.CanCreateChildren);
         Assert.True(picker.CanCommit);
+
+        // The Administration folder is shown as the tree shows it, and like the personal root it is not a target:
+        // the core places what lives there (ADR 1066), so its row answers CanCreateChildren = false and the button
+        // follows the same answer.
+        picker.SelectedNode = picker.Roots.Single(n => n.Name == "Administration");
+        Assert.False(picker.CanCommit);
     }
 
     // EnsureExpandedAsync, not the IsExpanded setter: the setter's handler is fire-and-forget, so a test that

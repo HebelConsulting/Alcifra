@@ -3,18 +3,14 @@ using static Microsoft.Playwright.Assertions;
 
 namespace Alcifra.UiEndToEndTests;
 
-// Returning to the Repositories tab with an Administration node selected keeps listing it — it does not claim
+// Returning to the Repositories tab with the Administration folder selected keeps listing it — it does not claim
 // the user cannot see it.
 //
-// WHAT WAS WRONG. A synthetic Administration node has contents but no `children` rel, so the refresh path
-// asked the API for children it does not have, failed, and showed **"You do not have access to this folder."**
-// — a refusal the server never made, about a node the user was looking at and plainly could see.
-//
-// WHY #1160'S OWN TESTS MISSED IT. `SelectFolderAsync` already had the synthetic-node branch, so SELECTING an
-// admin node worked; only REFRESHING one did not, and the refresh runs on returning to the tab, on filing a
-// version, and on saving index data. Every test drove selection. The gap was a whole second entry point that
-// nothing exercised — which is why this test leaves the tab and comes back rather than asserting on the
-// selection alone.
+// WHAT WAS WRONG, when the branch was synthetic: the node had contents but no `children` rel, so the refresh
+// path asked the API for children it did not have, failed, and showed **"You do not have access to this
+// folder."** — a refusal the server never made. The folder is real now (ADR 1066) and the refresh is the
+// ordinary one, but the entry point this test drives — leave the tab and come back — is the one every other
+// test skips, so it stays.
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-3")]
 public class WebAdminTabReturnTests
@@ -35,7 +31,8 @@ public class WebAdminTabReturnTests
         var administration = tree.Locator(".mud-treeview-item-content").Filter(new() { HasText = "Administration" }).First;
         await Expect(administration).ToBeVisibleAsync();
         await administration.ClickAsync();
-        await Expect(list.GetByText("Users", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 15000 });
+        // `.First`: the row shows "Users" twice — its name and its type, since the folder wears the Users mask.
+        await Expect(list.GetByText("Users", new() { Exact = true }).First).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         // Leave, then come back by clicking the Repositories tab icon — the reported reproduction exactly.
         // Tabs are icon-only on a hover-capable device (#298), so the label lives in `aria-label` and not in
@@ -45,7 +42,7 @@ public class WebAdminTabReturnTests
         await page.Locator(".wb-tab[aria-label='Repositories']").First.ClickAsync();
 
         // BOTH halves, and the second is the one that regresses quietly. The contents must come back...
-        await Expect(list.GetByText("Users", new() { Exact = true })).ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Expect(list.GetByText("Users", new() { Exact = true }).First).ToBeVisibleAsync(new() { Timeout = 15000 });
 
         // ...AND no refusal may be shown. Asserting only on the rows would pass against a build that lists the
         // node and shows the snackbar anyway — which is a worse experience than either, because the user is

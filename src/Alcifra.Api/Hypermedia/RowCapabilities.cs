@@ -1,4 +1,6 @@
 using Alcifra.Api.Documents;
+using Alcifra.Application.Abstractions;
+using Alcifra.Domain.Masks;
 
 namespace Alcifra.Api.Hypermedia;
 
@@ -96,7 +98,8 @@ public static class RowCapabilities
         Func<TRow, Guid> documentIdOf,
         Func<TRow, bool> admitsPlainChild,
         DocumentAccessService access,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<TRow, Guid?>? maskIdOf = null)
         where TRow : ICarriesRowCapabilities
     {
         if (rows.Count == 0)
@@ -105,26 +108,30 @@ public static class RowCapabilities
         }
 
         var rights = await access.GetCallerRightsForManyAsync([.. rows.Select(documentIdOf)], cancellationToken);
-        Stamp(rows, documentIdOf, admitsPlainChild, rights);
+        Stamp(rows, documentIdOf, admitsPlainChild, rights, maskIdOf);
     }
 
     /// <summary>The synchronous half, for a caller that already holds the page's rights — the visibility
     /// filter (ADR 0765) resolves them to decide what to list, and re-resolving to stamp what it kept would
     /// repeat the page's whole rights walk.</summary>
+    /// <param name="maskIdOf">The row's mask, where the listing has it in hand, so <see cref="OfferedOn"/> can withhold
+    /// what a folder the core holds never offers; a listing that cannot answer it stamps the rights as they are.</param>
     public static void Stamp<TRow>(
         IReadOnlyCollection<TRow> rows,
         Func<TRow, Guid> documentIdOf,
         Func<TRow, bool> admitsPlainChild,
-        IReadOnlyDictionary<Guid, Application.Abstractions.EffectiveRights> rights)
+        IReadOnlyDictionary<Guid, EffectiveRights> rights,
+        Func<TRow, Guid?>? maskIdOf = null)
         where TRow : ICarriesRowCapabilities
     {
         foreach (var row in rows)
         {
-            if (!rights.TryGetValue(documentIdOf(row), out var r))
+            if (!rights.TryGetValue(documentIdOf(row), out var held))
             {
                 continue;
             }
 
+            var r = maskIdOf is null ? held : OfferedOn(maskIdOf(row), held);
             row.CanDelete = r.CanDelete;
             row.CanEditIndexData = r.CanEditIndexData;
             row.CanMove = r.CanMove;
@@ -132,4 +139,16 @@ public static class RowCapabilities
             row.CanCreateChildren = admitsPlainChild(row) && r.CanCreateSubItems;
         }
     }
+
+    /// <summary>
+    /// The rights as a row may OFFER them. A folder the core holds (ADR 1066's <c>Administration</c> and <c>Users</c>) is
+    /// never deleted, renamed or moved, whatever the caller's rights say — <c>SaveChanges</c> refuses all three — so a row
+    /// that answered from the rights alone would offer actions that end in a 409. The flag means what the client needs
+    /// it to mean, "would this succeed?", exactly as <see cref="ICarriesRowCapabilities.CanCreateChildren"/> does. The
+    /// rights themselves are untouched: the server's refusal stays the honest one, named at the save.
+    /// </summary>
+    public static EffectiveRights OfferedOn(Guid? maskId, EffectiveRights rights) =>
+        maskId is { } mask && WellKnownMaskIds.ProtectedCoreFolders.Contains(mask)
+            ? rights with { CanDelete = false, CanEditIndexData = false, CanMove = false }
+            : rights;
 }

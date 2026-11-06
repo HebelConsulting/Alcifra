@@ -30,9 +30,10 @@ public sealed record FilingRoot<T>(T Node, bool Selectable);
 /// of them gets maintained. Composed here, once, so a fourth picker cannot repeat it.
 /// </para>
 /// <para>
-/// What it does NOT cover is anything that is not a filing target: the tenant admin's synthetic Administration
-/// branch, and the personal space's Intray / Check-out launchers. Those are places to LOOK, not places to put
-/// something, and each tree adds its own.
+/// What it does NOT cover is anything that is not a root: the personal space's Intray / Check-out launchers are
+/// places to LOOK, not places to put something, and each tree adds its own. The Administration folder an
+/// administrator sees (ADR 1066) IS a root and comes through here like any other; that it is not a filing target
+/// is the choosable half, which its row answers (CanCreateChildren = false).
 /// </para>
 /// </remarks>
 public static class FilingRoots

@@ -211,21 +211,7 @@ public partial class MainWindowViewModel
             return;
         }
 
-        // The synthetic Administration/Users nodes (ADR "Tenant-admin Administration → Users view") aren't real
-        // folders, so there is no children address to follow — but they DO have contents, and the list pane
-        // shows them (#1160). Selecting Administration lists its single Users entry; selecting Users lists one
-        // row per user, which is what lets the column filter find somebody by name or e-mail rather than
-        // scrolling a tree of hundreds.
-        //
-        // The detail pane stays empty: an admin node is not a document, so there is no subject to describe
-        // (ADR 0559 — a pane with nothing to show shows nothing, never the previous subject's values).
-        if (value is { IsSynthetic: true, IsLauncher: false })
-        {
-            await ShowAdminContentsAsync(value);
-            return;
-        }
-
-        if (value is { IsSynthetic: false })
+        if (value is not null)
         {
             SetBreadcrumbFromTreeNode(value);
             // The selected node's own address — no re-fetch to rediscover where its children live.
@@ -245,7 +231,7 @@ public partial class MainWindowViewModel
     /// </summary>
     public async Task ReselectTreeFolderAsync(TreeNodeViewModel node)
     {
-        if (node.IsSynthetic || node.IsLauncher || !ReferenceEquals(node, SelectedTreeNode) || _currentFolderId == node.Id)
+        if (node.IsLauncher || !ReferenceEquals(node, SelectedTreeNode) || _currentFolderId == node.Id)
         {
             return;
         }
@@ -355,81 +341,4 @@ public partial class MainWindowViewModel
     /// and a view-model that reached for one would be doing layout.
     /// </remarks>
     public event Action<TreeNodeViewModel>? MarkedNodeChanged;
-
-    /// <summary>
-    /// Lists a synthetic Administration node's contents in the list pane (#1160) — the same children the tree
-    /// would expand to, from the same source.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Administration holds exactly one entry (Users); Users holds one row per user's personal repository.
-    /// Those rows carry the user's REAL repository id and links, so opening one browses exactly as clicking the
-    /// tree node does — one subject, two ways in.
-    /// </para>
-    /// <para>
-    /// E-mail lands in <c>CreatedBy</c>, which the list renders under its OWNER column — and for a personal
-    /// repository the owner IS that user, so it is the most precise value that column can hold rather than a
-    /// field borrowed to smuggle a string through. Active state rides in the NAME, exactly as the tree spells
-    /// it, so both surfaces read identically and the filter matches what the eye sees.
-    /// </para>
-    /// </remarks>
-    private async Task ShowAdminContentsAsync(TreeNodeViewModel node)
-    {
-        SetBreadcrumbFromTreeNode(node);
-        ClearDetail();
-        ClearContentsFilter(); // a synthetic node is a different list; the filter described the last one (#1275)
-        Items.Clear();
-
-        // THERE IS NO OPEN FOLDER HERE, and saying so is what keeps the detail pane honest.
-        //
-        // Unselecting a row falls back to "describe the folder you are standing in" (ADR 0703). Left as they
-        // were, these still named the last REAL folder — so unselecting a user under Administration described
-        // that folder's document while wearing this node's NAME: the previous subject's mask under the title
-        // "Users". A pane with nothing to show must show nothing, never a previous subject's values (ADR 0559).
-        //
-        // Nulled rather than pointed at the synthetic node, because Guid.Empty has no document either — the
-        // fallback then finds nothing and the pane stays as ClearDetail left it.
-        _currentFolderId = null;
-        _currentFolderLinks = null;
-
-        if (_api is null)
-        {
-            return;
-        }
-
-        // The "Users" node itself, when Administration is what is selected. Synthetic in the list exactly as it
-        // is in the tree: no id, no links, nothing to open — it is a signpost, and selecting it in the TREE is
-        // what lists the users.
-        if (node.Name == "Administration")
-        {
-            Items.Add(new NodeViewModel { Id = Guid.Empty, Name = "Users", HasChildren = true, HasVersions = false });
-            return;
-        }
-
-        try
-        {
-            foreach (var repo in await _api.Admin.GetAdminPersonalRepositoriesAsync())
-            {
-                Items.Add(new NodeViewModel
-                {
-                    Id = repo.RepositoryId,
-                    Name = repo.UserIsActive ? repo.DisplayName : $"{repo.DisplayName} (inactive)",
-                    HasChildren = repo.HasChildren,
-                    HasVersions = false,   // a personal-repository ROOT is a folder; it never carries content
-                    CreatedBy = repo.Email,
-                    Links = repo.Links,
-                    CanDelete = repo.CanDelete,
-                    CanEditIndexData = repo.CanEditIndexData,
-                    CanMove = repo.CanMove,
-                    CanManagePermissions = repo.CanManagePermissions,
-                    CanCreateChildren = repo.CanCreateChildren,
-                });
-            }
-        }
-        catch (Exception)
-        {
-            // An empty list rather than a broken pane — the same choice the tree load has always made for this
-            // branch. The tree beside it still shows the users, so the admin is not stranded.
-        }
-    }
 }

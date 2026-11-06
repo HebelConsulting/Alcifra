@@ -40,7 +40,7 @@ public class DesktopAdmitsMenuTests
         var personal = vm.Tree.First(n => n.IsPersonal);
         await personal.ReloadChildrenAsync();
         return personal.Children
-            .Where(c => !c.IsSynthetic && !c.IsLauncher)
+            .Where(c => !c.IsLauncher)
             .ToDictionary(c => c.Name, c => c, StringComparer.Ordinal);
     }
 
@@ -193,7 +193,12 @@ public class DesktopAdmitsMenuTests
 
         var roots = await api.Documents.GetRepositoriesAsync();
         Assert.NotEmpty(roots);
-        Assert.All(roots, r => Assert.Contains(r.Admits ?? [], a => a.Name == "Folder"));
+
+        // Every root but the one the core holds: the Administration folder admits nothing a person creates (ADR
+        // 1066), and an empty list is its answer, not a lost payload — asserted as such so the exception cannot
+        // quietly widen.
+        Assert.All(roots.Where(r => r.Name != "Administration"), r => Assert.Contains(r.Admits ?? [], a => a.Name == "Folder"));
+        Assert.Empty(roots.Single(r => r.Name == "Administration").Admits ?? []);
     }
 
     // The list is PER ROW, not a constant published on every one — which is the half a happy-path test cannot

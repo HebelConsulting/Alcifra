@@ -53,7 +53,10 @@ internal static class DocumentSummaryQueries
                 db.Documents.Any(c => c.ParentId == d.Id)
                     || db.DocumentReferences.Any(x => x.ParentFolderId == d.Id),
                 db.DocumentVersions.Any(v => v.DocumentId == d.Id),
-                db.Documents.Any(c => c.ParentId == d.Id && !db.DocumentVersions.Any(v => v.DocumentId == c.Id)),
+                // A child folder OR a shortcut to one: the tree shows folder shortcuts as nodes, so a folder holding
+                // only those (ADR 1066's Users) still expands. Folder-ness by "no version", as the sibling flags do.
+                db.Documents.Any(c => c.ParentId == d.Id && !db.DocumentVersions.Any(v => v.DocumentId == c.Id))
+                    || db.DocumentReferences.Any(x => x.ParentFolderId == d.Id && !db.DocumentVersions.Any(v => v.DocumentId == x.TargetDocumentId)),
                 db.DocumentReferences.Any(r => r.TargetDocumentId == d.Id),
                 db.LegalHoldItems.Any(i => i.DocumentId == d.Id && db.LegalHolds.Any(h => h.Id == i.LegalHoldId && h.ReleasedAt == null)),
                 d.CheckedOutByUserId,

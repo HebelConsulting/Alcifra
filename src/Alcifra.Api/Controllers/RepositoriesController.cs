@@ -198,7 +198,8 @@ public class RepositoriesController : ControllerBase
                 _dbContext.Documents.Any(c => c.ParentId == d.Id)
                     || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == d.Id),
                 _dbContext.DocumentVersions.Any(v => v.DocumentId == d.Id),
-                _dbContext.Documents.Any(c => c.ParentId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id)),
+                _dbContext.Documents.Any(c => c.ParentId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id))
+                    || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == x.TargetDocumentId)),
                 // The mask, for the `folders` rel below — asked per row rather than assumed, so this listing
                 // answers the question with the same predicate every other surface does.
                 _dbContext.MaskVersions.Where(mv => mv.Id == d.MaskVersionId).Select(mv => (Guid?)mv.MaskId).FirstOrDefault()))
@@ -278,7 +279,8 @@ public class RepositoriesController : ControllerBase
                         new Link("mask", $"/api/documents/{candidate.Id}/mask", "GET"),
                 };
 
-                var rights = candidateRights[candidate.Id];
+                // As a row may offer them: a folder the core holds is never deleted, renamed or moved (ADR 1066).
+                var rights = Hypermedia.RowCapabilities.OfferedOn(candidate.MaskId, candidateRights[candidate.Id]);
 
                 visible.Add(new RepositoryResource
                 {
@@ -467,7 +469,8 @@ public class RepositoriesController : ControllerBase
                 HasChildren = _dbContext.Documents.Any(c => c.ParentId == d.Id)
                     || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == d.Id),
                 HasVersions = _dbContext.DocumentVersions.Any(v => v.DocumentId == d.Id),
-                HasSubfolders = _dbContext.Documents.Any(c => c.ParentId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id)),
+                HasSubfolders = _dbContext.Documents.Any(c => c.ParentId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id))
+                    || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == x.TargetDocumentId)),
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -649,12 +652,10 @@ public class RepositoriesController : ControllerBase
         // that did would have been told it may do nothing at all with rows it owns, which is precisely the
         // promise ADR 0543 exists to keep. The interface makes DECLARING the flags a compile error; it cannot
         // make POPULATING them one, and this was the first place that difference bit.
-        var admitsPlainChild = page.ToDictionary(
-            d => d.Id,
-            d => ChildCreationPolicy.AdmitsPlainChild(d.MaskId, parentIsPersonalRoot: false));
+        var maskOf = page.ToDictionary(d => d.Id, d => d.MaskId);
 
-        await Hypermedia.RowCapabilities.StampAsync(
-            documents, r => r.Id, r => admitsPlainChild[r.Id], _access, cancellationToken);
+        await Hypermedia.RowCapabilities.StampAsync(documents, r => r.Id,
+            r => ChildCreationPolicy.AdmitsPlainChild(maskOf[r.Id], parentIsPersonalRoot: false), _access, cancellationToken, r => maskOf[r.Id]);
 
         return Ok(new DocumentListResource
         {

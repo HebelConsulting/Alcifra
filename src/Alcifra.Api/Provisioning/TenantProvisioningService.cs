@@ -56,10 +56,12 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     private readonly PasswordHasher<User> _passwordHasher = new();
 
     private readonly Documents.PersonalRepositoryProvisioner _personalSpaces;
+    private readonly ILogger<TenantProvisioningService> _logger;
 
-    public TenantProvisioningService(AlcifraDbContext dbContext, IWellKnownMaskSeeder wellKnownMaskSeeder, ISensitivityLabelSeeder sensitivityLabelSeeder, IObjectStorageClient objectStorage, Documents.PersonalRepositoryProvisioner personalSpaces)
+    public TenantProvisioningService(AlcifraDbContext dbContext, IWellKnownMaskSeeder wellKnownMaskSeeder, ISensitivityLabelSeeder sensitivityLabelSeeder, IObjectStorageClient objectStorage, Documents.PersonalRepositoryProvisioner personalSpaces, ILogger<TenantProvisioningService> logger)
     {
         _personalSpaces = personalSpaces;
+        _logger = logger;
         _dbContext = dbContext;
         _wellKnownMaskSeeder = wellKnownMaskSeeder;
         _sensitivityLabelSeeder = sensitivityLabelSeeder;
@@ -237,6 +239,10 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         // No app-level pre-check needed for the repository's own name: it's a brand-new tenant, so no
         // sibling can exist yet to conflict with.
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // The folders the core holds for the tenant's administrators (ADR 1066), the moment the standard repository
+        // exists whose author creates them; a tenant made while the service runs no longer waits for the next start.
+        await AdministrationFolders.EnsureAsync(_dbContext, tenant.Id, _logger, cancellationToken);
 
         if (transaction is not null)
         {

@@ -41,7 +41,9 @@ public sealed class TypedFolderContainmentException : InvalidOperationException
     /// </remarks>
     public static TypedFolderContainmentException FolderAdmitsOnly(
         string documentName, string folderName, IReadOnlyList<string> admittedNames) =>
-        new($"'{documentName}' cannot live in a {folderName} — only {Listed(admittedNames)} can "
+        new(admittedNames.Count == 0
+            ? $"'{documentName}' cannot live in a {folderName} — the archive places its contents itself (ADR 1066)."
+            : $"'{documentName}' cannot live in a {folderName} — only {Listed(admittedNames)} can "
             + "(typed-folder containment, #562/#564).");
 
     /// <summary>The folder is full: it admits this mask, but not another one of them (#596).</summary>

@@ -435,6 +435,24 @@ public sealed partial class E2EApiFactory
         await db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Gives a tenant seeded straight into the database its Administration root and Users folder (ADR 1066), which
+    /// provisioning creates for a real tenant. The folders are created by the standard repository's author, so a tenant
+    /// without one is given <paramref name="standardRepositoryId"/>. Returns the Users folder's id.
+    /// </summary>
+    public async Task<Guid> EnsureAdministrationFoldersAsync(Guid tenantId, Guid standardRepositoryId)
+    {
+        using var scope = Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<CurrentTenantAccessor>().TenantId = tenantId;
+        var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+        var tenant = await db.Tenants.SingleAsync(t => t.Id == tenantId);
+        tenant.StandardRepositoryId ??= standardRepositoryId;
+        await db.SaveChangesAsync();
+
+        await AdministrationFolders.EnsureAsync(db, tenantId, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, CancellationToken.None);
+        return (await AdministrationFolders.FindAsync(db, tenantId, Alcifra.Domain.Masks.WellKnownMaskIds.Users, CancellationToken.None))!.Id;
+    }
+
     public async Task GrantTenantAdminAsync(string email)
     {
         using var scope = Services.CreateScope();

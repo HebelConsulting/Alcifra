@@ -34,6 +34,10 @@ public class ImmutableStructuralMaskTests
             // that decides who they are sealed to, and could then sit in an ordinary folder as unreadable blobs.
             WellKnownMaskIds.PasswordStore,
             WellKnownMaskIds.PasswordFolder,
+            // ADR 1066: the Users folder lives only under the Administration root — re-type it and the references the
+            // core keeps there, one per personal space, sit in a folder nothing reconciles any more. (The root itself is
+            // protected by the core-owned rule, not by this derivation: nothing constrains where a root lives.)
+            WellKnownMaskIds.Users,
         ];
 
         Assert.Equal(

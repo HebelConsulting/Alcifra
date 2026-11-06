@@ -107,7 +107,8 @@ public class ProvisionedAdminHoldsEverySystemRightTests
             new WellKnownMaskSeeder(db, NullLogger<WellKnownMaskSeeder>.Instance),
             new SensitivityLabelSeeder(db),
             new InMemoryObjectStorage(),
-            new Alcifra.Api.Documents.PersonalRepositoryProvisioner(db, new NoOpAuditRecorder()));
+            new Alcifra.Api.Documents.PersonalRepositoryProvisioner(db, new NoOpAuditRecorder()),
+            NullLogger<TenantProvisioningService>.Instance);
 
     private static AlcifraDbContext Ctx(SqliteConnection connection) =>
         new(new DbContextOptionsBuilder<AlcifraDbContext>().UseSqlite(connection).Options,

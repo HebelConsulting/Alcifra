@@ -142,7 +142,7 @@ public class DesktopTreeMarkTests
         var vm = new MainWindowViewModel();
         await vm.InitializeSessionAsync(new AlcifraApiClient(await Ui.GetUserTokenAsync(_app.BaseUrl)), SelfHostedAppFixture.AdminEmail);
 
-        var repo = vm.Tree.First(n => n is { IsSynthetic: false, IsLauncher: false, IsPersonal: false });
+        var repo = vm.Tree.First(n => n is { IsLauncher: false, IsPersonal: false, CanCreateChildren: true });
         vm.SelectedTreeNode = repo;
         await WaitForAsync(() => vm.Items.Count > 0);
         await WaitForAsync(() => vm.DetailTitle == repo.Name);

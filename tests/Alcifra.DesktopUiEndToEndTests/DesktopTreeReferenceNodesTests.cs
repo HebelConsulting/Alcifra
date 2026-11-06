@@ -28,8 +28,8 @@ public class DesktopTreeReferenceNodesTests(SelfHostedAppFixture app)
     [Fact]
     public async Task A_node_with_no_links_at_all_is_the_same_answer()
     {
-        // The synthetic rows — Administration, the personal groupings — carry no links whatsoever.
-        var node = new TreeNodeViewModel(Guid.Empty, "Administration", hasSubfolders: true, loadChildren: null);
+        // The synthetic rows — the personal launchers, a screenshot stub — carry no links whatsoever.
+        var node = new TreeNodeViewModel(Guid.Empty, "Intray", hasSubfolders: false, loadChildren: null, personalKind: "intray");
 
         Assert.Empty(await TreeReferenceNodes.ForAsync(node, references: null!, expand: _ => throw new Xunit.Sdk.XunitException("must not expand")));
     }

@@ -87,7 +87,7 @@ public sealed class TreeExpansionMemory
         var stale = new List<ExpandedNode>();
         try
         {
-            var level = roots.Where(n => !n.IsSynthetic && !n.IsLauncher).ToList();
+            var level = roots.Where(n => !n.IsLauncher).ToList();
             while (level.Count > 0)
             {
                 var next = new List<TreeNodeViewModel>();
@@ -99,7 +99,7 @@ public sealed class TreeExpansionMemory
                     // absent means the folder is gone.
                     var childIds = node.Children.Select(c => c.Id).ToHashSet();
                     stale.AddRange(_expanded.Where(e => e.ParentId == node.Id && !childIds.Contains(e.Id)));
-                    next.AddRange(node.Children.Where(c => !c.IsSynthetic && !c.IsLauncher));
+                    next.AddRange(node.Children.Where(c => !c.IsLauncher));
                 }
 
                 level = next;

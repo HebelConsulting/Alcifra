@@ -74,13 +74,6 @@ public sealed partial class MainWindowViewModel
                 : new TreeNodeViewModel(repository.Id, repository.Name, hasSubfolders: true, LoadPersonalChildrenAsync, links: repository.Links, isPersonal: true));
         }
 
-        // Tenant admins get a synthetic "Administration → Users" branch (ADR "Tenant-admin Administration → Users
-        // view") to browse every user's personal space; its children load from the admin endpoint.
-        if (IsTenantAdmin)
-        {
-            Tree.Add(new TreeNodeViewModel(Guid.Empty, "Administration", true, LoadAdminRootAsync, syntheticIcon: "mdi-shield-account"));
-        }
-
         // The roots are the only nodes anyone constructs directly; every descendant inherits the callback as it
         // loads, so a new place that creates child nodes cannot forget to wire it.
         // Remembering the tree's shape is its own responsibility and lives in its own class (#687-adjacent
@@ -114,7 +107,7 @@ public sealed partial class MainWindowViewModel
     {
         foreach (var n in nodes)
         {
-            if (n.Id == id && !n.IsSynthetic && !n.IsLauncher)
+            if (n.Id == id && !n.IsLauncher)
             {
                 return n;
             }
@@ -124,27 +117,6 @@ public sealed partial class MainWindowViewModel
             }
         }
         return null;
-    }
-
-    private Task<IEnumerable<TreeNodeViewModel>> LoadAdminRootAsync(TreeNodeViewModel _) =>
-        Task.FromResult<IEnumerable<TreeNodeViewModel>>(
-            [new TreeNodeViewModel(Guid.Empty, "Users", true, LoadAdminUsersAsync, syntheticIcon: "mdi-account-group")]);
-
-    private async Task<IEnumerable<TreeNodeViewModel>> LoadAdminUsersAsync(TreeNodeViewModel _)
-    {
-        var repos = await _api!.Admin.GetAdminPersonalRepositoriesAsync();
-        // Each user's personal repo is a normal browsable node (Id = the repo; the admin's ACL bypass grants it).
-        return repos.Select(r => new TreeNodeViewModel(
-            r.RepositoryId,
-            r.UserIsActive ? r.DisplayName : $"{r.DisplayName} (inactive)",
-            r.HasSubfolders,
-            LoadTreeChildrenAsync,
-            isPersonal: true,
-            hasChildren: r.HasChildren,
-            // Carries `take-over` when this caller may perform it (ADR 0672) — absent otherwise, so the menu
-            // item is simply not drawn rather than offering a button that answers 403.
-            links: r.Links,
-            canDelete: r.CanDelete, canEditIndexData: r.CanEditIndexData, canMove: r.CanMove, canManagePermissions: r.CanManagePermissions, canCreateChildren: r.CanCreateChildren));
     }
 
     // The Personal repository nests the Intray + Check-out launcher nodes above its real subfolders, mirroring

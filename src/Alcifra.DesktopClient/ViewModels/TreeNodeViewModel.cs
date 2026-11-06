@@ -15,7 +15,7 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     private readonly Func<TreeNodeViewModel, Task<IEnumerable<TreeNodeViewModel>>>? _loadChildren;
     private bool _loaded;
 
-    public TreeNodeViewModel(Guid id, string name, bool hasSubfolders, Func<TreeNodeViewModel, Task<IEnumerable<TreeNodeViewModel>>>? loadChildren, bool isReference = false, bool isPersonal = false, string? syntheticIcon = null, string? personalKind = null, bool hasReferences = false, bool hasChildren = true, LinkMap? links = null, IReadOnlyList<Alcifra.ApiClient.CreatableChild>? admits = null, string? icon = null,
+    public TreeNodeViewModel(Guid id, string name, bool hasSubfolders, Func<TreeNodeViewModel, Task<IEnumerable<TreeNodeViewModel>>>? loadChildren, bool isReference = false, bool isPersonal = false, string? personalKind = null, bool hasReferences = false, bool hasChildren = true, LinkMap? links = null, IReadOnlyList<Alcifra.ApiClient.CreatableChild>? admits = null, string? icon = null,
         bool canDelete = false, bool canEditIndexData = false, bool canMove = false, bool canManagePermissions = false, bool canCreateChildren = false,
         Alcifra.ApiClient.EncryptedFor encryptedFor = Alcifra.ApiClient.EncryptedFor.NotEncryptedContent)
     {
@@ -25,7 +25,6 @@ public sealed partial class TreeNodeViewModel : ObservableObject
         _loadChildren = loadChildren;
         IsReference = isReference;
         IsPersonal = isPersonal;
-        SyntheticIcon = syntheticIcon;
         PersonalKind = personalKind;
         HasReferences = hasReferences;
         HasChildren = hasChildren;
@@ -121,12 +120,6 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     // The user's personal repository, pinned at the top of the tree (ADR "Per-user personal repository").
     public bool IsPersonal { get; }
 
-    // Non-null for a synthetic tenant-admin node (ADR "Tenant-admin Administration → Users view") — it isn't a
-    // real folder, so selecting it does nothing (it only expands).
-    public string? SyntheticIcon { get; }
-
-    public bool IsSynthetic => SyntheticIcon is not null;
-
     // Non-null ("intray" / "checkout") for the launcher nodes nested under Personal (ADR "GUI-tree Personal space
     // grouping") — selecting one switches to the matching bottom tab instead of loading folder contents.
     public string? PersonalKind { get; }
@@ -141,8 +134,8 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     public int LauncherTab => PersonalKind switch { "intray" => 1, "checkout" => 2, _ => 0 };
 
     // Whether this folder holds ANYTHING — a document, a subfolder, or a reference filed into it (issue #376).
-    // Defaults to true so the pseudo-nodes (Administration, the Intray / Check-out launchers, the demo/screenshot
-    // stubs) never render as "empty".
+    // Defaults to true so the pseudo-nodes (the Intray / Check-out launchers, the demo/screenshot stubs) never
+    // render as "empty".
     public bool HasChildren { get; }
 
     // An EMPTY folder — nothing at all inside (ADR "Empty-folder tree icon", issue #352). Note this is NOT the
@@ -150,10 +143,10 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     // empty. The caller's OWN Personal root is never empty (it always holds the Intray / Check-out launchers) so
     // it's constructed with the default hasChildren: true; an admin-browsed other user's personal repo has no
     // launchers and passes its real flag.
-    public bool IsEmptyFolder => !HasChildren && !IsSynthetic && !IsLauncher;
+    public bool IsEmptyFolder => !HasChildren && !IsLauncher;
 
-    // Material Design Icons glyph — a launcher's own glyph, a synthetic admin node's own icon, a person icon for
-    // the personal repository, a shortcut variant for a referenced folder, else a plain folder.
+    // Material Design Icons glyph — a launcher's own glyph, a person icon for the personal repository, a shortcut
+    // variant for a referenced folder, the mask's glyph where it has one, else a plain folder.
     //
     // An empty one takes the OUTLINE variant of whatever it is, so "nothing here" is carried by the glyph's shape
     // and not by colour alone — it stays readable to someone who can't distinguish the two golds, and at any
@@ -166,16 +159,15 @@ public sealed partial class TreeNodeViewModel : ObservableObject
         "intray" => "mdi-inbox-arrow-down",
         "checkout" => "mdi-lock-open-variant-outline",
         // A REFERENCE wins over the mask: that this row is a shortcut is the more important thing to say, and
-        // the target's own row shows the mask glyph anyway. A synthetic node has no mask at all.
-        _ => SyntheticIcon
-            ?? (IsReference ? "mdi-folder-arrow-right"
-                : Services.MaskIcon.For(MaskIconToken) ?? (IsPersonal ? "mdi-account" : "mdi-folder")),
+        // the target's own row shows the mask glyph anyway.
+        _ => IsReference ? "mdi-folder-arrow-right"
+            : Services.MaskIcon.For(MaskIconToken) ?? (IsPersonal ? "mdi-account" : "mdi-folder"),
     };
 
     // Which of App.axaml's theme brushes paints this glyph (ADR "Folder icon scheme"). Gold marks a place
-    // documents live — a folder, the personal root, a referenced folder. The Intray / Check-out launchers and the
-    // synthetic admin nodes are not containers and take the muted text colour, so the gold means something
-    // rather than merely decorating every row.
+    // documents live — a folder, the personal root, a referenced folder. The Intray / Check-out launchers are not
+    // containers and take the muted text colour, so the gold means something rather than merely decorating
+    // every row.
     //
     // An empty folder is the SAME gold at reduced alpha, which is what lets it recede in BOTH themes; the old
     // fixed pale yellow could only do that on light, and on dark actually out-shouted the gold.
@@ -184,7 +176,7 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     // a value the view model resolves once would keep the startup theme after the OS switched. The view binds
     // this to style classes, so the DynamicResource lookup happens where it can follow the theme.
     public string IconBrushKey => IsEmptyFolder ? "WbFolderEmpty"
-        : IsLauncher || IsSynthetic ? "WbMuted"
+        : IsLauncher ? "WbMuted"
         : "WbFolder";
 
     // The three are mutually exclusive — one style class each, since Avalonia can't bind a resource KEY.
@@ -229,7 +221,7 @@ public sealed partial class TreeNodeViewModel : ObservableObject
     {
         // Reported for CLOSING as well as opening — a collapse is a change to the remembered shape, and the
         // early return below only concerns loading children.
-        if (!IsSynthetic && !IsLauncher)
+        if (!IsLauncher)
         {
             ExpansionChanged?.Invoke(this, value);
         }

@@ -202,8 +202,8 @@ public static class AuditActions
     public const string TenantSettingsExternalLinksUpdated = "Tenant.SettingsExternalLinksUpdated";
     public const string TenantSettingsAuditStreamingUpdated = "Tenant.SettingsAuditStreamingUpdated";
 
-    // A tenant admin listed the tenant's users' personal spaces (ADR "Tenant-admin Administration → Users view")
-    // — admin access to private spaces is recorded, not silent.
+    // A tenant admin listed the tenant's users' personal spaces (ADR 0377; since ADR 1066 that is the listing of the
+    // Users folder's references) — admin access to private spaces is recorded, not silent.
     public const string AdminViewedPersonalSpaces = "Admin.ViewedPersonalSpaces";
 
     // An administrator granted themselves full rights on a user's personal space (ADR 0672). Actor = the

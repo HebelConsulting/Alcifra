@@ -186,6 +186,9 @@ public sealed class PersonalRepositoryProvisioner
             Alcifra.Domain.Audit.AuditActorType.User, userId, ownerName, tenantId,
             AuditActions.RepositoryCreated, "Document", document.Id, document.Name,
             "Personal repository created", cancellationToken);
+        // The administrators' Users folder references every personal space (ADR 1066): placed here when the space is made,
+        // so an administrator sees a new person at once rather than after the next start's reconciliation.
+        await Alcifra.Infrastructure.Persistence.AdministrationFolders.AddUserReferenceAsync(_dbContext, tenantId, document.Id, cancellationToken);
         return document;
     }
 

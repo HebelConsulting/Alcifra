@@ -311,6 +311,9 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
         // person may also use for a third-party product's manual, so every field is optional; for Alcifra's
         // own manuals the core fills the first four.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.Documentation, Alcifra.Localization.CoreOwnedNames.DocumentationMask, [], cancellationToken);
+        // The administrators' branch as real folders (ADR 1066); English identities, translated where a person reads them.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.Administration, "Administration", [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.Users, "Users", [], cancellationToken);
         // Certificate enrolment's folder and policy (ADR 0936), under the ids the Encryption Module seeded them with.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.ReaderCertificates, "Reader certificates", [], cancellationToken);
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.CertificatePolicy, "Certificate policy", [], cancellationToken);

@@ -45,7 +45,7 @@ public sealed partial class MainWindowViewModel
     // Expands the tree along an ordered ancestor id chain (repository-root first), returning the last node — or null
     // if a link in the chain isn't in the visible tree (e.g. a reference-only path the tree doesn't mirror). The
     // repository roots are top-level Tree nodes carrying their real ids, and real subfolders nest by real id, so the
-    // synthetic grouping nodes (Personal launchers / Administration, all Guid.Empty) never match a real ancestor.
+    // launcher nodes (Intray / Check-out, Guid.Empty) never match a real ancestor.
     private async Task<TreeNodeViewModel?> ExpandTreePathAsync(IReadOnlyList<Guid> chain)
     {
         IReadOnlyList<TreeNodeViewModel> level = Tree;

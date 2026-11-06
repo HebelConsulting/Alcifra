@@ -12,13 +12,11 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.Controllers;
 
 /// <summary>
-/// Tenant-admin administration surface (ADR "Tenant-admin Administration → Users view"). Backs a synthetic
-/// "Administration → Users" branch in the clients' repository tree: it lists every user's personal repository so
-/// an administrator can browse into all personal spaces; it gives that access a navigable home. Gated on the
-/// caller's effective CanAccessWithoutGrant (own ∪ groups) since ADR 0670 — NOT on IsTenantAdmin, because the
-/// bypass no longer reaches inside a personal space and the right is what does. An admin who revokes their own
-/// x-ray therefore stops seeing this, which is the honest answer rather than a listing they cannot open.
-/// Listing is recorded to the audit log — access to private spaces isn't silent.
+/// The tenant-admin administration surface: its index, which the API root's <c>admin</c> rel reaches, and the take-over
+/// of a personal space (ADR 0672). The listing of every user's personal space that backed the clients' synthetic
+/// "Administration → Users" branch (ADR 0377) retired with ADR 1066: the spaces are referenced from the real
+/// <c>Users</c> folder, read through the ordinary tree, and that listing records the access and carries
+/// <c>take-over</c> on each row.
 /// </summary>
 [ApiController]
 [ApiVersion("1.0")]
@@ -32,7 +30,6 @@ public class AdminController : ControllerBase
     private readonly IUserSystemRightsResolver _userSystemRights;
     private readonly IAuditRecorder _auditRecorder;
     private readonly INotificationService _notifications;
-    private readonly Documents.DocumentAccessService _access;
 
     public AdminController(
         AlcifraDbContext dbContext,
@@ -40,7 +37,6 @@ public class AdminController : ControllerBase
         IUserSystemRightsResolver userSystemRights,
         IAuditRecorder auditRecorder,
         INotificationService notifications,
-        Documents.DocumentAccessService access,
         Concurrency.AclEntryVerbs aclEntries)
     {
         _dbContext = dbContext;
@@ -49,45 +45,6 @@ public class AdminController : ControllerBase
         _userSystemRights = userSystemRights;
         _auditRecorder = auditRecorder;
         _notifications = notifications;
-        _access = access;
-    }
-
-    public class PersonalRepositoryItem : Hypermedia.ICarriesRowCapabilities
-    {
-        // The same three answers the other listings carry (#858). This listing builds TREE nodes, and a tree
-        // node gets the destructive context menu — so omitting them here would have been the "a rel present on
-        // three of six surfaces" defect #638 exists to prevent, hiding Rename/Move/Delete on every personal
-        // space in the administration branch while the other listings offered them correctly.
-        public bool CanDelete { get; set; }
-
-        public bool CanEditIndexData { get; set; }
-
-        public bool CanMove { get; set; }
-
-        /// <summary>May the caller manage this row's permissions? (#858)</summary>
-        public bool CanManagePermissions { get; set; }
-
-        /// <summary>May the caller create a plain child inside this row? (#854)</summary>
-        /// <remarks>Policy AND right — see <c>ICarriesRowCapabilities.CanCreateChildren</c>.</remarks>
-        public bool CanCreateChildren { get; set; }
-
-
-        public Guid UserId { get; set; }
-        public string DisplayName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public bool UserIsActive { get; set; }
-        // The user's personal repository, with its advertised addresses (#443): `document` (the repository seen
-        // as a document) and `children` (browse it, via the admin's ACL bypass) — a row naming a repository
-        // without its address leaves the client an id it can only compose from.
-        public Guid RepositoryId { get; set; }
-        public bool HasChildren { get; set; }
-        public bool HasSubfolders { get; set; }
-        public List<Link>? Links { get; set; }
-    }
-
-    public class PersonalRepositoriesResource : HypermediaResource
-    {
-        public List<PersonalRepositoryItem> Repositories { get; set; } = [];
     }
 
     // The lifecycle right, not the browsing one (ADR 0672): taking over a departed person's space is the same
@@ -96,132 +53,18 @@ public class AdminController : ControllerBase
         _currentUserAccessor.UserId is { } userId
         && (await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken)).CanManageUsers;
 
-    private async Task<bool> CanAccessWithoutGrantAsync(CancellationToken cancellationToken) =>
-        _currentUserAccessor.UserId is { } userId
-        && (await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken)).CanAccessWithoutGrant;
-
-    // The administration index. The API root has always advertised an `admin` rel pointing here, and until now
-    // nothing answered it — a dangling rel, which under ADR 0543 is worse than no rel at all: a client is
-    // supposed to be able to follow what it is offered, so the only way to reach personal-repositories was to
-    // compose its path (issue #416). Listing the sub-resources here is what makes that unnecessary.
-    //
-    // The index itself is open — it says what exists — but the personal-repositories REL is gated (ADR 0670):
-    // a missing rel means "not available to you, here, now" (ADR 0543), and for an administrator who revoked
-    // their own CanAccessWithoutGrant that is exactly true. Advertising it anyway would offer a door that
-    // answers 403, which is the affordance this project treats as worse than none.
+    // The administration index. The API root advertises an `admin` rel pointing here, and a client follows what it
+    // is offered (ADR 0543), so the index answers rather than dangling (#416). What it used to advertise — the
+    // listing of every personal space — retired with ADR 1066: the spaces are reached through the Administration
+    // folder in the ordinary tree, whose Users listing carries `take-over` on each row.
     [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
-    {
-        var links = new List<Link> { new("self", "/api/admin", "GET") };
-        if (await CanAccessWithoutGrantAsync(cancellationToken))
-        {
-            links.Add(new Link("personal-repositories", "/api/admin/personal-repositories", "GET"));
-        }
-
-        return Ok(new AdminIndexResource { Links = links });
-    }
+    public IActionResult Index() =>
+        Ok(new AdminIndexResource { Links = [new Link("self", "/api/admin", "GET")] });
 
     [HttpHead]
     public IActionResult IndexHead() => NoContent();
 
     public class AdminIndexResource : HypermediaResource;
-
-    [HttpGet("personal-repositories")]
-    public async Task<IActionResult> ListPersonalRepositories(CancellationToken cancellationToken)
-    {
-        if (!await CanAccessWithoutGrantAsync(cancellationToken))
-        {
-            return Forbid();
-        }
-
-        // Every personal repository in the tenant (a root Document flagged PersonalOfUserId) + its owner. The
-        // tenant + soft-delete query filters scope it to the caller's tenant automatically.
-        var items = await _dbContext.Documents
-            .Where(d => d.PersonalOfUserId != null)
-            .Join(_dbContext.Users, d => d.PersonalOfUserId, u => u.Id, (d, u) => new PersonalRepositoryItem
-            {
-                UserId = u.Id,
-                DisplayName = u.DisplayName,
-                Email = u.Email,
-                UserIsActive = u.IsActive,
-                RepositoryId = d.Id,
-                // Child document/subfolder OR a reference filed into it (issue #376).
-                HasChildren = _dbContext.Documents.Any(c => c.ParentId == d.Id)
-                    || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == d.Id),
-                HasSubfolders = _dbContext.Documents.Any(c => c.ParentId == d.Id && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id)),
-            })
-            .OrderBy(x => x.DisplayName)
-            .ThenBy(x => x.Email)
-            .ToListAsync(cancellationToken);
-
-        // One batch for the page, not a lookup per row (#858).
-        //
-        // Every row here is a personal space's ROOT, whose first level holds only what it was provisioned with
-        // (#634) — so CanCreateChildren is false for all of them. Asked of the policy rather than written as a
-        // literal `false`, so this cannot quietly disagree if that rule ever changes (#854). The mask argument
-        // is unread on this branch, which is why null is honest here rather than a placeholder.
-        await Hypermedia.RowCapabilities.StampAsync(
-            items,
-            r => r.RepositoryId,
-            _ => ChildCreationPolicy.AdmitsPlainChild(parentMaskId: null, parentIsPersonalRoot: true),
-            _access,
-            cancellationToken);
-
-        var canTakeOver = await CanManageUsersAsync(cancellationToken);
-
-        foreach (var item in items)
-        {
-            item.Links =
-            [
-                new Link("document", $"/api/documents/{item.RepositoryId}", "GET"),
-                new Link("children", $"/api/documents/{item.RepositoryId}/children", "GET"),
-
-                // Opening a personal space lists its children AND the shortcuts filed in it, exactly as opening
-                // any other folder does — the same pair, for the same reason, the repositories listing carries
-                // (#735). Without it the desktop tree CRASHED on expanding a user here: its loader follows both
-                // rels, and the one that was never advertised threw on a path with no handler above it.
-                new Link("references", $"/api/documents/{item.RepositoryId}/references", "GET"),
-
-                // WHAT THE DETAIL PANE FOLLOWS. A personal space's root is a Document with a mask and index
-                // data like any other, and selecting it must describe it — reported from use: selecting a User
-                // under Administration showed NO MASK on the desktop while the web showed "User Folder".
-                //
-                // The web escaped it by re-reading the resource by id; the desktop takes the row's links as
-                // they come, and this set happened to pass its completeness test — it looks for `children` AND
-                // `references`, which were exactly the two present. A partial set that satisfies the check for
-                // completeness is worse than an obviously empty one, because nothing reports it.
-                //
-                // THIS IS THE THIRD TIME THIS LISTING HAS BEEN SHORT OF A REL its consumers follow (`references`
-                // above is the second, and its comment records the first). The rows here are repositories, so
-                // what they advertise is compared against the repositories listing by
-                // AdminPersonalRepositoryRelParityTests rather than left to the next reader to notice.
-                new Link("self", $"/api/documents/{item.RepositoryId}", "GET"),
-                new Link("index-data", $"/api/documents/{item.RepositoryId}/index-data", "GET"),
-                new Link("mask", $"/api/documents/{item.RepositoryId}/mask", "GET"),
-            ];
-
-            // Offered only to a caller who may actually do it (ADR 0543): a missing rel means "not available
-            // to you, here, now", so a client without CanManageUsers simply has no button rather than one that
-            // answers 403. Taking over your OWN space is meaningless — you already hold every right on it.
-            if (canTakeOver && item.UserId != _currentUserAccessor.UserId)
-            {
-                item.Links.Add(new Link(
-                    "take-over", $"/api/admin/personal-repositories/{item.UserId}/take-over", "POST"));
-            }
-        }
-
-        // Record the admin's access to personal spaces (not silent) — after the read succeeds.
-        await _auditRecorder.RecordAsync(
-            AuditActions.AdminViewedPersonalSpaces,
-            details: $"Listed {items.Count} personal {(items.Count == 1 ? "space" : "spaces")}.",
-            cancellationToken: cancellationToken);
-
-        return Ok(new PersonalRepositoriesResource
-        {
-            Repositories = items,
-            Links = [new Link("self", "/api/admin/personal-repositories", "GET")],
-        });
-    }
 
     /// <summary>
     /// Grants the calling administrator full rights on one user's personal space (ADR 0672).
@@ -346,8 +189,4 @@ public class AdminController : ControllerBase
     {
         public Guid RepositoryId { get; set; }
     }
-
-    [HttpHead("personal-repositories")]
-    public async Task<IActionResult> ListPersonalRepositoriesHead(CancellationToken cancellationToken) =>
-        await CanAccessWithoutGrantAsync(cancellationToken) ? NoContent() : Forbid();
 }

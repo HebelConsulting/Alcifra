@@ -39,17 +39,23 @@ public class DocumentReferencesController : ControllerBase
         ICurrentTenantAccessor currentTenantAccessor,
         IMaskContainmentProvider containment,
         IAuditRecorder audit,
-        Documents.DocumentAccessService access)
+        Documents.DocumentAccessService access,
+        ICurrentUserAccessor currentUser,
+        IUserSystemRightsResolver userSystemRights)
     {
         _dbContext = dbContext;
         _currentTenantAccessor = currentTenantAccessor;
         _containment = containment;
         _audit = audit;
         _access = access;
+        _currentUser = currentUser;
+        _userSystemRights = userSystemRights;
     }
 
     private readonly Documents.DocumentAccessService _access;
     private readonly IAuditRecorder _audit;
+    private readonly ICurrentUserAccessor _currentUser;
+    private readonly IUserSystemRightsResolver _userSystemRights;
 
     // Plain mutable classes, not records — XmlSerializer (ADR "JSON/XML content negotiation") needs a
     // parameterless constructor and settable properties.
@@ -178,7 +184,8 @@ public class DocumentReferencesController : ControllerBase
                     _dbContext.Documents.Any(c => c.ParentId == r.TargetDocumentId)
                         || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == r.TargetDocumentId),
                     _dbContext.DocumentVersions.Any(v => v.DocumentId == r.TargetDocumentId),
-                    _dbContext.Documents.Any(c => c.ParentId == r.TargetDocumentId && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id)),
+                    _dbContext.Documents.Any(c => c.ParentId == r.TargetDocumentId && !_dbContext.DocumentVersions.Any(v => v.DocumentId == c.Id))
+                        || _dbContext.DocumentReferences.Any(x => x.ParentFolderId == r.TargetDocumentId && !_dbContext.DocumentVersions.Any(v => v.DocumentId == x.TargetDocumentId)),
                     _dbContext.DocumentReferences.Any(other => other.TargetDocumentId == r.TargetDocumentId),
                     _dbContext.Documents.Where(d => d.Id == r.TargetDocumentId).Select(d => d.ParentId).FirstOrDefault()))
                 .ToListAsync(cancellationToken);
@@ -234,11 +241,21 @@ public class DocumentReferencesController : ControllerBase
         var tagsByDoc = await DocumentSummaryQueries.TagsForAsync(_dbContext, targetIds, cancellationToken);
         var rules = await _containment.ForAsync(_dbContext, _currentTenantAccessor.TenantId!.Value, cancellationToken);
 
-        return Ok(new ReferenceListResource
+        var references = page.Select(row => BuildResource(folderId, row, columns.GetValueOrDefault(row.TargetId), tagsByDoc, rules)).ToList();
+
+        // The Users folder (ADR 1066) is where an administrator reaches other people's spaces: its rows are where
+        // `take-over` lives, and listing it is the audited act the retired admin listing used to be — access to
+        // private spaces is not silent (ADR 0377), wherever the list is read from.
+        if (await UsersFolderListing.IsUsersFolderAsync(_dbContext, folderId, cancellationToken))
         {
-            References = page.Select(row => BuildResource(folderId, row, columns.GetValueOrDefault(row.TargetId), tagsByDoc, rules)).ToList(),
-            Links = links,
-        });
+            await UsersFolderListing.AdvertiseTakeOverAsync(references, _dbContext, _currentUser, _userSystemRights, cancellationToken);
+            await _audit.RecordAsync(
+                AuditActions.AdminViewedPersonalSpaces,
+                details: $"Listed {references.Count} personal {(references.Count == 1 ? "space" : "spaces")}.",
+                cancellationToken: cancellationToken);
+        }
+
+        return Ok(new ReferenceListResource { References = references, Links = links });
     }
 
     // Standing convention: every GET action gets a companion HEAD action.

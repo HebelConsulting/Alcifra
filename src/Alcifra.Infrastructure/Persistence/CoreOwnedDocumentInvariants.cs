@@ -95,6 +95,64 @@ public static class CoreOwnedDocumentInvariants
         }
     }
 
+    /// <summary>
+    /// The Administration root and its Users folder are the archive's own (ADR 1066): neither is deleted, renamed or moved,
+    /// and a reference in Users is placed or removed only by the core, to a personal space. Children are the containment
+    /// rules' business: the root admits only Users, Users admits nothing, and both masks need the core-owned grant.
+    /// </summary>
+    public static async Task EnforceProtectedFoldersAsync(AlcifraDbContext dbContext, CancellationToken cancellationToken)
+    {
+        foreach (var entry in dbContext.ChangeTracker.Entries<Document>()
+                     .Where(e => e.State is EntityState.Deleted or EntityState.Modified).ToList())
+        {
+            var what = entry.State == EntityState.Deleted ? "deleted"
+                : entry.Property(d => d.DeletedAt).IsModified && entry.Entity.DeletedAt is not null ? "deleted"
+                : entry.Property(d => d.Name).IsModified ? "renamed"
+                : entry.Property(d => d.ParentId).IsModified ? "moved"
+                : null;
+            if (what is null)
+            {
+                continue;
+            }
+
+            // The mask it WORE: a change of mask is refused above, so the original is the one that matters here.
+            var worn = entry.Property(d => d.MaskVersionId).OriginalValue;
+            if (worn != Guid.Empty
+                && await MaskIdOfAsync(dbContext, worn, cancellationToken) is { } maskId
+                && WellKnownMaskIds.ProtectedCoreFolders.Contains(maskId))
+            {
+                throw CoreOwnedFolderProtectedException.CannotChange(entry.Entity.Name, what);
+            }
+        }
+
+        foreach (var entry in dbContext.ChangeTracker.Entries<DocumentReference>()
+                     .Where(e => e.State is EntityState.Added or EntityState.Deleted).ToList())
+        {
+            var folder = await MaskOfDocumentAsync(dbContext, entry.Entity.ParentFolderId, cancellationToken);
+            if (folder is not { } folderMaskId || !WellKnownMaskIds.ProtectedCoreFolders.Contains(folderMaskId))
+            {
+                continue;
+            }
+
+            var permitted = folderMaskId == WellKnownMaskIds.Users
+                && dbContext.TakeCoreOwnedReferenceGrant(entry.Entity.Id)
+                && (entry.State == EntityState.Deleted
+                    || await MaskOfDocumentAsync(dbContext, entry.Entity.TargetDocumentId, cancellationToken) == WellKnownMaskIds.UserFolder);
+            if (!permitted)
+            {
+                var name = await dbContext.Documents.IgnoreQueryFilters(["TenantFilter", "SoftDeleteFilter"])
+                    .Where(d => d.Id == entry.Entity.ParentFolderId).Select(d => d.Name).FirstOrDefaultAsync(cancellationToken);
+                throw CoreOwnedFolderProtectedException.ReferencesAreTheArchives(name ?? "Users");
+            }
+        }
+    }
+
+    private static Task<Guid?> MaskOfDocumentAsync(AlcifraDbContext dbContext, Guid documentId, CancellationToken cancellationToken) =>
+        dbContext.Documents.IgnoreQueryFilters(["TenantFilter", "SoftDeleteFilter"])
+            .Where(d => d.Id == documentId)
+            .Join(dbContext.MaskVersions.IgnoreQueryFilters(), d => d.MaskVersionId, v => v.Id, (_, v) => (Guid?)v.MaskId)
+            .FirstOrDefaultAsync(cancellationToken);
+
     private static Task<Guid?> MaskIdOfAsync(AlcifraDbContext dbContext, Guid maskVersionId, CancellationToken cancellationToken) =>
         dbContext.MaskVersions.IgnoreQueryFilters()
             .Where(v => v.Id == maskVersionId)

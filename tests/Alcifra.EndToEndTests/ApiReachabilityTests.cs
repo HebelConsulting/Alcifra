@@ -331,7 +331,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
 
         var admin = factory.CreateAuthedClient(await factory.GetUserTokenAsync(adminEmail, password));
         var user = factory.CreateAuthedClient(await factory.GetUserTokenAsync(userEmail, password));
-        await SeedArchiveAsync(owner, admin, user, userId);
+        await SeedArchiveAsync(owner, admin, user, userId, tenantId);
 
         return [owner, admin, user, factory.CreateAuthedClient(await factory.GetTokenAsync(platformId, platformSecret))];
     }
@@ -361,9 +361,12 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         await db.SaveChangesAsync();
     }
 
-    private async Task SeedArchiveAsync(HttpClient owner, HttpClient admin, HttpClient user, Guid userId)
+    private async Task SeedArchiveAsync(HttpClient owner, HttpClient admin, HttpClient user, Guid userId, Guid tenantId)
     {
         var repo = (await TestJson.Post(owner, "/api/repositories", new { name = $"Reach {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
+        // The Administration folder (ADR 1066), so the crawl reaches `take-over` where it lives now: on the Users
+        // folder's reference rows, which the user's personal space below is referenced from the moment it is made.
+        await factory.EnsureAdministrationFoldersAsync(tenantId, repo);
         var folder = (await TestJson.Post(owner, $"/api/documents/{repo}/children", new { name = "Folder" })).GetProperty("id").GetGuid();
         var doc = await VersionedDocumentAsync(owner, folder, "Document");
         var reviewed = await VersionedDocumentAsync(owner, folder, "Reviewed");

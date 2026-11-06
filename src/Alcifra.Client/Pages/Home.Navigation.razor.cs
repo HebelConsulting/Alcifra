@@ -36,7 +36,7 @@ public partial class Home
     // service, then tell the component — a change in a service is invisible to a component until it is.
     private async Task ReloadTreeAsync()
     {
-        await Tree.ReloadAsync(_isTenantAdmin);
+        await Tree.ReloadAsync();
         _treePane?.Refresh();
     }
 
@@ -45,22 +45,6 @@ public partial class Home
     // order"). A tree-child load wants the rows only, and calls the service directly.
     private async Task<List<BrowseNode>> OpenFolderContentsAsync(BrowseNode folder)
     {
-        // A synthetic Administration node HAS contents but no `children` rel (#1160) — it is not a document, so
-        // there is nothing to follow. Asking the API for them fails, and the catch below reports that as
-        // "you do not have access to this folder": a refusal the server never made, about a node the user is
-        // looking at and plainly does have access to.
-        //
-        // The branch belongs HERE rather than at the call sites. SelectFolderAsync already had one, so
-        // SELECTING an admin node worked and only REFRESHING it failed — which is why returning to the
-        // Repositories tab was the way to see it, and why it survived #1160's own tests. Six call sites reload
-        // through this method (tab return, a filed version, an index-data save); a per-site fix would have left
-        // five of them still reporting a refusal nobody issued.
-        if (folder is { AdminKind: not "" })
-        {
-            _listPane?.ResetHeaderSort();
-            return [.. await Tree.AdminChildNodesAsync(folder)];
-        }
-
         try
         {
             var contents = await Browse.LoadContentsAsync(folder.Id, folder.RepositoryId, BrowseService.ChildrenHrefOf(folder), BrowseService.ReferencesHrefOf(folder));
@@ -80,29 +64,6 @@ public partial class Home
     private async Task SelectFolderAsync(BrowseNode? folder)
     {
         _treeDrawerOpen = false; // phone: navigating a folder closes the tree drawer (no-op on desktop)
-        // The synthetic Administration/Users nodes (ADR "Tenant-admin Administration → Users view") aren't real
-        // folders, so there is no `children` rel to follow — but they DO have contents, and the list-pane shows
-        // them (#1160). Selecting Administration lists its single Users entry; selecting Users lists one row per
-        // user, which is what makes the column filter able to find somebody by name or e-mail instead of
-        // scrolling a tree of hundreds.
-        //
-        // From the SAME source the tree reads, not a second fetch shaped like it: two surfaces describing one
-        // thing must not be able to disagree about what it contains.
-        //
-        // The detail pane stays empty here on purpose: an admin node is not a document, so there is no subject
-        // to describe (ADR 0559 — a pane that has nothing to show shows nothing, never the previous subject's).
-        if (folder is { AdminKind: not "" })
-        {
-            _archiveDocument = null;
-            _selectedFolder = folder;
-            _currentRepositoryId = Guid.Empty;
-            ClearDetail();
-            _listPane?.ResetHeaderSort();
-            _folderContents = [.. await Tree.AdminChildNodesAsync(folder)];
-            StateHasChanged();
-            return;
-        }
-
         // The Intray / Check-out launcher nodes under Personal switch to their bottom tab (ADR "GUI-tree Personal
         // space grouping"); the personal-root node itself browses like any repository (falls through).
         if (folder is { PersonalKind: "intray" })
@@ -275,18 +236,15 @@ public partial class Home
     /// <remarks>Shared with the deselect path: "no selection" and "just opened" are one situation (ADR 0703).</remarks>
     private async Task ShowFolderDetailAsync(BrowseNode folder)
     {
-        // A SYNTHETIC node stands for no document: the Administration branch and the Personal launchers all
-        // carry Guid.Empty. Describing one means fetching `/api/documents/00000000-...`, which 404s — and the
+        // A SYNTHETIC node stands for no document: the Personal launchers carry Guid.Empty. Describing one
+        // means fetching `/api/documents/00000000-...`, which 404s — and the
         // 404 escaped this async event handler into the framework's error banner, taking the WHOLE WORKBENCH
         // down for a node that simply has nothing to describe.
         //
         // Guarded HERE rather than at the callers, because this is the one function that describes a folder —
         // a guard at one caller leaves the next one to rediscover the crash. Keyed on Guid.Empty rather than on
-        // AdminKind: every synthetic node carries it, including kinds nobody has added yet.
-        //
-        // Reachable since #1160 gave the Administration nodes a real selection (before, selecting one
-        // early-returned and `_selectedFolder` kept pointing at the last REAL folder, so this never fired).
-        // The trigger is Esc or a click on the list's empty area while an admin node is selected.
+        // the launcher kind: every synthetic node carries it, including kinds nobody has added yet. The trigger
+        // is Esc or a click on the list's empty area while a launcher is selected.
         if (folder.Id == Guid.Empty)
         {
             ClearDetail();

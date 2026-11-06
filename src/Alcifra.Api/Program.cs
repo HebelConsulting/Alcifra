@@ -762,6 +762,9 @@ using (var scope = app.Services.CreateScope())
     await Alcifra.Infrastructure.Certificates.CertificateRegistryRebuild.RebuildEverywhereAsync(app.Services);
 
     await Alcifra.Api.Manuals.ManualStartupFiling.FileEverywhereAsync(app.Services);
+
+    // The administrators' branch as real folders, one per tenant, with Users in step with the personal spaces (ADR 1066).
+    await Alcifra.Api.Provisioning.AdministrationStartup.EnsureEverywhereAsync(app.Services);
 }
 
 // Configure the HTTP request pipeline.

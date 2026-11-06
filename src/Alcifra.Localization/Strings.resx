@@ -6180,6 +6180,12 @@
   <data name="WkMaskPasswordStore" xml:space="preserve">
     <value>Password Store</value>
   </data>
+  <data name="WkMaskAdministration" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="WkMaskUsers" xml:space="preserve">
+    <value>Users</value>
+  </data>
   <data name="WkMaskPasswordFolder" xml:space="preserve">
     <value>Password Folder</value>
   </data>

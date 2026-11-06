@@ -77,6 +77,8 @@ public static class TypedFolderSave
             new Errors.Exceptions.Documents.CoreOwnedMaskException(x.Message),
         Domain.Documents.StandardRepositoryProtectedException x =>
             new Errors.Exceptions.Documents.StandardRepositoryProtectedException(x.Message),
+        Domain.Documents.CoreOwnedFolderProtectedException x =>
+            new Errors.Exceptions.Documents.CoreOwnedFolderProtectedException(x.Message),
 
         // #1634: the field rules and the cycle rule had no type of their own, so every endpoint GUESSED between
         // "fill in the required field" and "this value is invalid" by what the request changed, and the create

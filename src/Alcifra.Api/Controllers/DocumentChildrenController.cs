@@ -142,8 +142,8 @@ public class DocumentChildrenController : ControllerBase
         // HasVersions picks the icon (folder when false, downloadable document when true — a folder is a
         // Document with zero versions); HasChildren = anything filed here at all — a child document, a subfolder,
         // OR a reference filed into it (issue #376; it counted only child Documents before, so a folder holding
-        // only shortcuts reported false); HasSubfolders = a child that is itself a folder, which is what governs
-        // the folder tree's expand caret (the tree shows only folders).
+        // only shortcuts reported false); HasSubfolders = a child that is itself a folder, or a shortcut to one,
+        // which is what governs the folder tree's expand caret (the tree shows folders and folder shortcuts).
         // Computed, never stored.
         public bool HasChildren { get; set; }
 
@@ -456,13 +456,13 @@ public class DocumentChildrenController : ControllerBase
         // not carry it, and adding it purely to answer this would put a column on the wire for the client to
         // re-derive a rule the server already knows (#854). parentIsPersonalRoot is false by construction: a
         // personal space is a ROOT document, so it is never itself a listed child.
-        var admitsPlainChild = page.ToDictionary(
-            d => d.Id,
-            d => ChildCreationPolicy.AdmitsPlainChild(d.MaskId, parentIsPersonalRoot: false));
+        var maskOf = page.ToDictionary(d => d.Id, d => d.MaskId);
 
         // Stamped from the SAME rights batch the visibility filter read (ADR 0765) — a second resolution
-        // would repeat the page's whole rights walk for an answer already in hand.
-        Hypermedia.RowCapabilities.Stamp(children, r => r.Id, r => admitsPlainChild[r.Id], rightsByRow);
+        // would repeat the page's whole rights walk for an answer already in hand. The mask also says what a
+        // folder the core holds may offer at all (ADR 1066).
+        Hypermedia.RowCapabilities.Stamp(children, r => r.Id,
+            r => ChildCreationPolicy.AdmitsPlainChild(maskOf[r.Id], parentIsPersonalRoot: false), rightsByRow, r => maskOf[r.Id]);
         var encryptedFor = await _encryptedFor.ForRowsAsync(page.Select(d => (d.Id, d.MaskId)), cancellationToken);
         children.ForEach(c => c.EncryptedForCaller = encryptedFor.GetValueOrDefault(c.Id));
 

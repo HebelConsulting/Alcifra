@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 
 namespace Alcifra.EndToEndTests;
@@ -11,6 +10,9 @@ namespace Alcifra.EndToEndTests;
 // reach. So the way in is explicit, audited, announced to the owner, and leaves an ordinary ACL entry that is
 // revoked like any other. Each of those four is asserted, because any one of them missing turns a deliberate
 // exception into exactly the quiet back door the privacy rule exists to remove.
+//
+// The affordance lives on the Users folder's reference rows (ADR 1066) — the one place an administrator reaches
+// other people's spaces — where the retired admin listing used to carry it.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-1")]
 public class PersonalSpaceTakeOverTests
@@ -22,7 +24,7 @@ public class PersonalSpaceTakeOverTests
     [Fact]
     public async Task An_admin_takes_over_a_space_it_is_audited_announced_and_revocable()
     {
-        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
+        var (tenantId, usersId) = await TenantWithAdministrationAsync();
 
         var adminEmail = $"takeover-admin-{Guid.NewGuid():N}@e2e.local";
         await _factory.SeedUserAsync(tenantId, adminEmail, "adm-1234", "Admin", canManageUsers: true, canViewAuditLog: true);
@@ -30,15 +32,13 @@ public class PersonalSpaceTakeOverTests
         using var admin = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(adminEmail, "adm-1234"));
 
         var ownerEmail = $"owner-{Guid.NewGuid():N}@e2e.local";
-        var ownerId = await _factory.SeedUserAsync(tenantId, ownerEmail, "u-1234", "Owner");
+        await _factory.SeedUserAsync(tenantId, ownerEmail, "u-1234", "Owner");
         using var owner = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(ownerEmail, "u-1234"));
         var ownerRepo = (await TestJson.Post(owner, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
 
-        // The affordance is FOLLOWED, not composed: the listing row advertises it, which is also the assertion
-        // that a client can reach this endpoint at all (ADR 0543).
-        var row = (await TestJson.Get(admin, "/api/admin/personal-repositories"))
-            .GetProperty("repositories").EnumerateArray()
-            .Single(r => r.GetProperty("userId").GetGuid() == ownerId);
+        // The affordance is FOLLOWED, not composed: the Users row advertises it, which is also the assertion that a
+        // client can reach this endpoint at all (ADR 0543).
+        var row = await UsersRowAsync(admin, usersId, ownerRepo);
         var takeOverHref = row.GetProperty("links").EnumerateArray()
             .Single(l => l.GetProperty("rel").GetString() == "take-over")
             .GetProperty("href").GetString()!;
@@ -114,7 +114,7 @@ public class PersonalSpaceTakeOverTests
     [Fact]
     public async Task Without_CanManageUsers_there_is_neither_a_rel_nor_an_endpoint()
     {
-        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
+        var (tenantId, usersId) = await TenantWithAdministrationAsync();
 
         // A tenant admin who may browse personal spaces but is NOT a user manager. The two rights are separate
         // on purpose: reading somebody's space and taking it over are different acts.
@@ -126,11 +126,9 @@ public class PersonalSpaceTakeOverTests
         var ownerEmail = $"nogate-owner-{Guid.NewGuid():N}@e2e.local";
         var ownerId = await _factory.SeedUserAsync(tenantId, ownerEmail, "u-1234", "Owner");
         using var owner = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(ownerEmail, "u-1234"));
-        await TestJson.Post(owner, "/api/me/personal-repository", new { });
+        var ownerRepo = (await TestJson.Post(owner, "/api/me/personal-repository", new { })).GetProperty("id").GetGuid();
 
-        var row = (await TestJson.Get(browser, "/api/admin/personal-repositories"))
-            .GetProperty("repositories").EnumerateArray()
-            .Single(r => r.GetProperty("userId").GetGuid() == ownerId);
+        var row = await UsersRowAsync(browser, usersId, ownerRepo);
 
         // The rel is absent — a client disables the affordance rather than offering a button that 403s.
         Assert.DoesNotContain(row.GetProperty("links").EnumerateArray(),
@@ -141,4 +139,19 @@ public class PersonalSpaceTakeOverTests
             HttpStatusCode.Forbidden,
             (await browser.PostAsJsonAsync($"/api/admin/personal-repositories/{ownerId}/take-over", new { })).StatusCode);
     }
+
+    // A tenant with its Administration folder, as provisioning makes one: the service account's repository stands in
+    // for the standard repository whose author creates the folders.
+    private async Task<(Guid TenantId, Guid UsersId)> TenantWithAdministrationAsync()
+    {
+        var (clientId, secret, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: true);
+        using var owner = _factory.CreateAuthedClient(await _factory.GetTokenAsync(clientId, secret));
+        var repoId = (await TestJson.Post(owner, "/api/repositories", new { name = $"Std{Guid.NewGuid():N}"[..12] })).GetProperty("id").GetGuid();
+        return (tenantId, await _factory.EnsureAdministrationFoldersAsync(tenantId, repoId));
+    }
+
+    // The row an administrator finds a space by: the Users folder's reference to it (ADR 1066).
+    private static async Task<JsonElement> UsersRowAsync(HttpClient admin, Guid usersId, Guid repositoryId) =>
+        (await TestJson.Get(admin, $"/api/documents/{usersId}/references")).GetProperty("references").EnumerateArray()
+            .Single(r => r.GetProperty("id").GetGuid() == repositoryId);
 }
