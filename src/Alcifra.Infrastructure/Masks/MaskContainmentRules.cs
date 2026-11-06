@@ -34,6 +34,7 @@ public sealed class MaskContainmentRules
     private readonly IReadOnlyDictionary<Guid, string> _names;
     private readonly IReadOnlyDictionary<Guid, string> _icons;
     private readonly IReadOnlySet<Guid> _userCreatable;
+    private readonly IReadOnlyDictionary<Guid, IReadOnlyList<string>> _requiredFields;
 
     private MaskContainmentRules(
         IReadOnlySet<Guid> exclusiveFolders,
@@ -43,7 +44,8 @@ public sealed class MaskContainmentRules
         IReadOnlySet<Guid> folderMasks,
         IReadOnlyDictionary<Guid, string> names,
         IReadOnlyDictionary<Guid, string> icons,
-        IReadOnlySet<Guid> userCreatable)
+        IReadOnlySet<Guid> userCreatable,
+        IReadOnlyDictionary<Guid, IReadOnlyList<string>> requiredFields)
     {
         _exclusiveFolders = exclusiveFolders;
         _admittedChildren = admittedChildren;
@@ -53,6 +55,7 @@ public sealed class MaskContainmentRules
         _names = names;
         _icons = icons;
         _userCreatable = userCreatable;
+        _requiredFields = requiredFields;
     }
 
     /// <summary>Reads a tenant's containment: four queries, and the caller is expected to cache the result.</summary>
@@ -78,6 +81,16 @@ public sealed class MaskContainmentRules
             .Select(v => new { v.MaskId, v.Name })
             .ToListAsync(cancellationToken))
             .ToDictionary(v => v.MaskId, v => v.Name);
+
+        // The fields a mask REQUIRES at creation (#2216): what an admits entry tells a client before it offers a
+        // name-only create, in the definition's order (the mask endpoint's: sort order, then creation, then id).
+        var requiredFields = (await db.MaskVersions.IgnoreQueryFilters(["TenantFilter"])
+            .Where(v => v.TenantId == tenantId && v.IsCurrent)
+            .Join(db.FieldDefinitions.IgnoreQueryFilters(["TenantFilter"]).Where(f => f.IsRequired),
+                v => v.Id, f => f.MaskVersionId, (v, f) => new { v.MaskId, f.Name, f.SortOrder, f.CreatedAt, f.Id })
+            .ToListAsync(cancellationToken))
+            .GroupBy(f => f.MaskId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)[.. g.OrderBy(f => f.SortOrder).ThenBy(f => f.CreatedAt).ThenBy(f => f.Id).Select(f => f.Name)]);
 
         var parents = (await db.MaskAllowedParents.IgnoreQueryFilters(["TenantFilter"])
             .Where(p => p.TenantId == tenantId)
@@ -132,8 +145,13 @@ public sealed class MaskContainmentRules
             masks.Where(m => m.IsFolderMask).Select(m => m.Id).ToHashSet(),
             names,
             masks.Where(m => m.Icon != null).ToDictionary(m => m.Id, m => m.Icon!),
-            masks.Where(m => m.UserCreatable).Select(m => m.Id).ToHashSet());
+            masks.Where(m => m.UserCreatable).Select(m => m.Id).ToHashSet(),
+            requiredFields);
     }
+
+    /// <summary>The names of the fields a mask requires at creation (#2216), in the definition's order; empty for none.</summary>
+    public IReadOnlyList<string> RequiredFieldsOf(Guid maskId) =>
+        _requiredFields.TryGetValue(maskId, out var fields) ? fields : [];
 
     /// <summary>
     /// Refuses a placement that containment forbids. Three independent questions, never an if/else chain.
