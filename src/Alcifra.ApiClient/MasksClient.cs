@@ -100,11 +100,18 @@ public sealed class MasksClient
     }
 
     /// <summary>A mask's field definitions (+ types), for building the type-aware editors.</summary>
-    public async Task<IReadOnlyList<MaskFieldInfo>> GetMaskFieldsAsync(MaskOptionInfo mask, CancellationToken cancellationToken = default)
-    {
-        var json = await _core.Http.GetFromJsonAsync<JsonElement>(
+    public Task<IReadOnlyList<MaskFieldInfo>> GetMaskFieldsAsync(MaskOptionInfo mask, CancellationToken cancellationToken = default) =>
+        GetMaskFieldsAsync(
             mask.SelfHref ?? throw new InvalidOperationException($"The mask '{mask.Name}' advertised no 'self' rel (ADR 0543/0555)."),
             cancellationToken);
+
+    /// <summary>
+    /// The same, from an advertised address: the <c>maskHref</c> an <c>admits</c> entry carries (#2217), which is how the
+    /// New dialog learns which fields the mask requires before anything is created.
+    /// </summary>
+    public async Task<IReadOnlyList<MaskFieldInfo>> GetMaskFieldsAsync(string maskHref, CancellationToken cancellationToken = default)
+    {
+        var json = await _core.Http.GetFromJsonAsync<JsonElement>(maskHref, cancellationToken);
 
         var list = new List<MaskFieldInfo>();
         if (json.TryGetProperty("fields", out var fields))

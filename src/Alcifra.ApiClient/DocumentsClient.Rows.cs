@@ -77,6 +77,7 @@ public sealed partial class DocumentsClient
                 // Where the name completes from, and whether it holds several values (#1710): advertised by the server
                 // for a module's name vocabulary, and never read here until now, so the clients never offered it.
                 e.TryGetProperty("nameValuesHref", out var nv) && nv.ValueKind == JsonValueKind.String ? nv.GetString() : null,
-                ApiWire.TrueOrFalse(e, "nameValuesAreMultiple")))]
+                ApiWire.TrueOrFalse(e, "nameValuesAreMultiple"),
+                e.TryGetProperty("maskHref", out var mh) && mh.ValueKind == JsonValueKind.String ? mh.GetString() : null))]
             : [];
 }

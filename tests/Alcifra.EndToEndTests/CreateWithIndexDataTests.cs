@@ -71,6 +71,49 @@ public class CreateWithIndexDataTests(E2EApiFactory factory)
         }
     }
 
+    [Fact]
+    public async Task The_admits_entry_names_where_the_masks_definition_is_and_a_refusal_names_the_field()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_VERIFY_KEY", vendorKey.ExportSubjectPublicKeyInfoPem());
+        var rig = await TestModuleRig.CreateAsync(factory);
+        try
+        {
+            await TestModuleRig.ActivateAsync(rig, vendorKey);
+            var register = await TestJson.Post(rig.Owner, $"/api/documents/{rig.RepoId}/children",
+                new { name = $"Register {Guid.NewGuid():N}", maskId = TestModule.TestModule.RegisterMaskId });
+            var registerId = register.GetProperty("id").GetGuid();
+
+            // The New dialog reads the definition from the address the entry advertises (#2217, ADR 1067): the case's
+            // entry says where, and the definition there marks the case number as required.
+            var registerRow = (await TestJson.Get(rig.Owner, $"/api/documents/{rig.RepoId}/children")).GetProperty("children").EnumerateArray()
+                .Single(c => c.GetProperty("id").GetGuid() == registerId);
+            var entry = registerRow.GetProperty("admits").EnumerateArray()
+                .Single(a => a.GetProperty("maskId").GetGuid() == TestModule.TestModule.CaseMaskId);
+            Assert.Equal("name", entry.GetProperty("prompt").GetString());
+            var maskHref = entry.GetProperty("maskHref").GetString();
+            Assert.False(string.IsNullOrEmpty(maskHref), "the entry advertises no maskHref");
+
+            var definition = await TestJson.Get(rig.Owner, maskHref!);
+            var caseNumber = definition.GetProperty("fields").EnumerateArray().Single(f => f.GetProperty("name").GetString() == "Case number");
+            Assert.True(caseNumber.GetProperty("isRequired").GetBoolean());
+
+            // A create without it names the field as DATA, so a client says "Case number is required" in its own words.
+            var refused = await rig.Owner.PostAsJsonAsync($"/api/documents/{registerId}/children",
+                new { name = "Case 2", maskId = TestModule.TestModule.CaseMaskId });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            var problem = await refused.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal("REQUIRED_FIELD_MISSING", problem.GetProperty("errorCode").GetString());
+            Assert.Equal("Case number", problem.GetProperty("field").GetString());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("SIMPLARCHIVE_TESTMODULE_VERIFY_KEY", null);
+            rig.Admin.Dispose();
+            rig.Owner.Dispose();
+        }
+    }
+
     private async Task<Guid> FieldAsync(Guid tenantId, Guid maskId, string name)
     {
         using var scope = factory.Services.CreateScope();

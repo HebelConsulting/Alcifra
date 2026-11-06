@@ -1,0 +1,74 @@
+@* New ▸ a kind with REQUIRED fields (#2217, ADR 1067): the name and the mask's whole form, required fields marked, in one
+   dialog — so the create carries the values the server would otherwise refuse it for, and the user is not told which
+   fields a kind needs by the refusal. The rows are the index-data pane's own editors (FieldEditorRow), so a field edits
+   here exactly as it edits afterwards. Returns the name and the filled fields, or cancels; nothing is created here.
+
+   The desktop's NewItemDialog is the reference (ADR 0511); a kind without required fields keeps the plain name prompt. *@
+<MudDialog>
+    <DialogContent>
+        @* A field's value lives in its EditField, set by the row's own editor; this dialog re-renders on the events that
+           reach it so Create follows every keystroke and every blur, as the desktop's form does. *@
+        <div @onkeyup="@(() => { })" @onfocusout="@(() => { })" @onclick="@(() => { })">
+        <div class="wb-mask-row">
+            <span class="wb-mask-label">@Strings.Get("Name")</span>
+            @if (SuggestionSource is null)
+            {
+                <MudTextField @bind-Value="_name" Variant="Variant.Outlined" Immediate="true" AutoFocus="true"
+                              Margin="Margin.Dense" Style="min-width: 320px;" />
+            }
+            else
+            {
+                <MudAutocomplete T="string" @bind-Value="_name" Variant="Variant.Outlined" SearchFunc="@SearchAsync"
+                                 CoerceValue="true" CoerceText="false" ResetValueOnEmptyText="false" AutoFocus="true"
+                                 MaxItems="20" Immediate="true" Clearable="true" Margin="Margin.Dense" Style="min-width: 320px;" />
+            }
+        </div>
+        @foreach (var field in Fields)
+        {
+            <FieldEditorRow Field="field" Suggest="Suggest" />
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">@Strings.Get("NewItemRequiredHint")</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Strings.Get("Cancel")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!CanCreate)" OnClick="Save" data-new-item-create>@Strings.Get("Create")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    /// <summary>What the dialog hands back: the name and the fields as filled, so the caller posts once.</summary>
+    public sealed record NewItem(string Name, IReadOnlyList<EditField> Fields);
+
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    /// <summary>The mask's fields, in the definition's order, as editors with no value yet.</summary>
+    [Parameter, EditorRequired] public List<EditField> Fields { get; set; } = [];
+
+    /// <summary>Name suggestions for what has been typed so far (ABI 0.21), or null for a plain text box.</summary>
+    [Parameter] public Func<string?, CancellationToken, Task<IReadOnlyList<NameSuggestion>>>? SuggestionSource { get; set; }
+
+    /// <summary>Reads the values filed under a field for what was typed (#1127); null means no completion.</summary>
+    [Parameter] public Func<string, string?, CancellationToken, Task<IEnumerable<string>>>? Suggest { get; set; }
+
+    private string _name = string.Empty;
+
+    /// <summary>A name, and a value in every required field — the same rule the desktop's form applies.</summary>
+    private bool CanCreate =>
+        !string.IsNullOrWhiteSpace(_name)
+        && Fields.Where(f => f.Required).All(f => f.ToValues().Any(v => !string.IsNullOrWhiteSpace(v)));
+
+    private async Task<IEnumerable<string>> SearchAsync(string? typed, CancellationToken cancellationToken) =>
+        SuggestionSource is null ? [] : (await SuggestionSource(typed, cancellationToken)).Select(s => s.Value);
+
+    private void Save()
+    {
+        if (CanCreate)
+        {
+            Dialog.Close(DialogResult.Ok(new NewItem(_name.Trim(), Fields)));
+        }
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

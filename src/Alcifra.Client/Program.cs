@@ -69,6 +69,8 @@ builder.Services.AddScoped<Alcifra.Client.Services.OcrLanguageCatalog>();
 
 // The actions a document row offers, shared by the tree pane and the contents list — see DocumentActions.
 builder.Services.AddScoped<Alcifra.Client.Services.DocumentActions>();
+// New ▸ a kind with required fields: the form DocumentActions asks for (#2217, ADR 1067).
+builder.Services.AddScoped<Alcifra.Client.Services.NewItemCreation>();
 
 // The actions that operate on the multi-selection, plus the runner the drag-drop handler posts through — the
 // bulk-bar sibling of DocumentActions (see BulkActions).

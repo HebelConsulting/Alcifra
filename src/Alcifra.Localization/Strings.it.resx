@@ -69,6 +69,15 @@
   <data name="NewFolder" xml:space="preserve">
     <value>Nuova cartella</value>
   </data>
+  <data name="ApiErrRequiredFieldMissing" xml:space="preserve">
+    <value>{0} è obbligatorio.</value>
+  </data>
+  <data name="ApiErrRequiredFieldMissingUnnamed" xml:space="preserve">
+    <value>Un campo obbligatorio è vuoto.</value>
+  </data>
+  <data name="NewItemRequiredHint" xml:space="preserve">
+    <value>I campi contrassegnati con * sono obbligatori.</value>
+  </data>
   <data name="NewFolderName" xml:space="preserve">
     <value>Nome cartella</value>
   </data>

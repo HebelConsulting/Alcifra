@@ -374,6 +374,18 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
     public Task CreateFolderAsync(string childrenHref, string name, Guid? maskId = null, CancellationToken cancellationToken = default) =>
         PostCreateAsync(childrenHref, maskId is { } id ? new { name, maskId = id } : (object)new { name }, name, "folder", cancellationToken);
 
+    /// <summary>
+    /// Creates a child WITH its index data in the one request (#1634, #2217): what the New dialog sends for a mask with
+    /// required fields, since such a child can only be created with its values. The shape is the index-data PUT's.
+    /// </summary>
+    public Task CreateFolderAsync(
+        string childrenHref, string name, Guid maskId, IEnumerable<(Guid FieldDefinitionId, IReadOnlyList<string> Values)> fields,
+        CancellationToken cancellationToken = default) =>
+        PostCreateAsync(
+            childrenHref,
+            new { name, maskId, fields = fields.Select(f => new { fieldDefinitionId = f.FieldDefinitionId, values = f.Values }).ToList() },
+            name, "folder", cancellationToken);
+
     // A section, and a note, inside a notebook (#564). Each is its own sub-resource rather than a folderMask on
     // POST children, and the caller reaches it by following a rel the server advertised — so which folders can
     // hold which stays a server rule, never a mask name the client had to know.
@@ -398,7 +410,8 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
             throw new ApiActionException($"You don't have permission to create a {what} here.");
         }
 
-        response.EnsureSuccessStatusCode();
+        // Any other refusal by its code, in the reader's words (a required field left empty names the field, #2217).
+        await ApiCore.ThrowIfProblemAsync(response, $"Could not create the {what}.", cancellationToken);
     }
 
     public async Task CreateRepositoryAsync(string name, CancellationToken cancellationToken = default)

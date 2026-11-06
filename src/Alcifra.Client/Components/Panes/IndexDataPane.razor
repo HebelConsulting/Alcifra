@@ -223,80 +223,11 @@
                         }
                     </MudSelect>
                 </div>
+                @* One row per field, the editor by its data type (FieldEditorRow): the same component the New dialog
+                   shows for a kind with required fields (#2217), so a field edits here as it edits there. *@
                 @foreach (var f in Detail.EditFields)
                 {
-                    <div class="wb-mask-row">
-                        <span class="wb-mask-label">@f.DisplayLabel</span>
-                        @if (f.Locked)
-                        {
-                            @* Visible but not editable (#703): a Mailbox's address list for a caller without
-                               the routing right. The server would 403 the change — a control that cannot
-                               succeed is not offered (ADR 0543's spirit at field granularity). *@
-                            <MudTextField T="string" Value="@f.TextValue" ReadOnly="true" Lines="@(f.IsMultiLine ? 3 : 1)" Margin="Margin.Dense" Variant="Variant.Outlined" />
-                        }
-                        else if (f.IsDate)
-                        {
-                            <MudDatePicker Editable="true" @bind-Date="f.DateValue" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
-                        }
-                        else if (f.IsDateTime)
-                        {
-                            @* A moment, not a day (#660): a date picker alone was the pane bug — the time
-                               was in the value and nowhere on the screen. Same pair the desktop shows. *@
-                            <div style="display:flex; gap:6px;">
-                                <MudDatePicker Editable="true" @bind-Date="f.DateValue" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
-                                <MudTimePicker Editable="true" @bind-Time="f.TimeValue" Margin="Margin.Dense" Variant="Variant.Outlined" />
-                            </div>
-                        }
-                        else if (f.IsBoolean)
-                        {
-                            <MudCheckBox T="bool" @bind-Value="f.BoolValue" />
-                        }
-                        else if (f.IsToggle)
-                        {
-                            <ToggleField @bind-Value="f.BoolValue" ReadOnly="@f.Locked" />
-                        }
-                        else if (f.IsMultiLine)
-                        {
-                            <MudTextField @bind-Value="f.TextValue" Lines="3" Placeholder="@Strings.Get("OneValuePerLine")" Margin="Margin.Dense" Variant="Variant.Outlined" />
-                        }
-                        else if (Detail.Proposals.TryGetValue(f.Label, out var offer))
-                        {
-                            @* A machine proposal fills this field (ABI 0.11, ADR 0769): the picker writes a
-                               candidate's value into the editor; typing stays primary (the typed-not-picked
-                               rule) — the menu is the discovery aid beside it. *@
-                            <div style="display:flex; gap:4px; align-items:center; flex:1;">
-                                <MudTextField @bind-Value="f.TextValue" Margin="Margin.Dense" Variant="Variant.Outlined" Style="flex:1;" />
-                                <MudMenu Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Small" Dense="true"
-                                         AriaLabel="@offer.Label" title="@offer.Label">
-                                    @if (offer.Items.Count == 0)
-                                    {
-                                        <MudMenuItem Disabled="true">@Strings.Get("ProposalNone")</MudMenuItem>
-                                    }
-                                    @foreach (var item in offer.Items)
-                                    {
-                                        <MudMenuItem OnClick="@(() => f.TextValue = item.Value)">
-                                            @item.Label@(item.Detail is { Length: > 0 } ? $" — {item.Detail}" : string.Empty)
-                                        </MudMenuItem>
-                                    }
-                                </MudMenu>
-                            </div>
-                        }
-                        else if (f.ValuesHref is { } valuesHref)
-                        {
-                            @* A field the server offers values for completes as you type (#1127): an aerodrome,
-                               a cost centre, a project code — a vocabulary the tenant already uses and nobody
-                               should have to retype from memory. CoerceValue so an unlisted value is simply a
-                               new one: typing stays primary, the list is the discovery aid beside it. *@
-                            <MudAutocomplete T="string" Value="@f.TextValue" ValueChanged="@(v => f.TextValue = v ?? string.Empty)"
-                                             SearchFunc="@((string? typed, CancellationToken token) => Suggest(valuesHref, typed, token))"
-                                             CoerceValue="true" ResetValueOnEmptyText="false" MaxItems="20"
-                                             Margin="Margin.Dense" Variant="Variant.Outlined" />
-                        }
-                        else
-                        {
-                            <MudTextField @bind-Value="f.TextValue" Margin="Margin.Dense" Variant="Variant.Outlined" />
-                        }
-                    </div>
+                    <FieldEditorRow Field="f" Proposal="@ProposalFor(f)" Suggest="Suggest" />
                 }
                 @* Free-form tags (ADR "Document tags") — chips + an autocomplete add box over the tenant catalog. *@
                 <div class="wb-mask-row">
@@ -441,6 +372,10 @@
     /// advertised href, which is following rather than composing (ADR 0557). Best-effort — a suggestion list
     /// that cannot be read costs the completion, never the edit.
     /// </remarks>
+    // The machine proposal for a field, keyed on its stored name (ADR 0769); null where the pane has none for it.
+    private DetailState.ProposalOffer? ProposalFor(EditField field) =>
+        Detail.Proposals.TryGetValue(field.Label, out var offer) ? offer : null;
+
     private async Task<IEnumerable<string>> Suggest(string valuesHref, string? typed, CancellationToken token)
     {
         var href = typed is { Length: > 0 }

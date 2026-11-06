@@ -1,0 +1,87 @@
+@* One index field's editor, by its data type: the label and the control the index-data pane edits a field with. Its
+   own component (#2217) so the New dialog edits a field exactly as the pane does afterwards — one editor per type
+   rather than two that come to disagree about a date or a toggle. The desktop's MaskFieldEditorRow is its twin. *@
+<div class="wb-mask-row">
+    <span class="wb-mask-label">@Field.DisplayLabel</span>
+    @if (Field.Locked)
+    {
+        @* Visible but not editable (#703): a Mailbox's address list for a caller without
+           the routing right. The server would 403 the change — a control that cannot
+           succeed is not offered (ADR 0543's spirit at field granularity). *@
+        <MudTextField T="string" Value="@Field.TextValue" ReadOnly="true" Lines="@(Field.IsMultiLine ? 3 : 1)" Margin="Margin.Dense" Variant="Variant.Outlined" />
+    }
+    else if (Field.IsDate)
+    {
+        <MudDatePicker Editable="true" @bind-Date="Field.DateValue" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
+    }
+    else if (Field.IsDateTime)
+    {
+        @* A moment, not a day (#660): a date picker alone was the pane bug — the time
+           was in the value and nowhere on the screen. Same pair the desktop shows. *@
+        <div style="display:flex; gap:6px;">
+            <MudDatePicker Editable="true" @bind-Date="Field.DateValue" DateFormat="yyyy-MM-dd" Margin="Margin.Dense" Variant="Variant.Outlined" />
+            <MudTimePicker Editable="true" @bind-Time="Field.TimeValue" Margin="Margin.Dense" Variant="Variant.Outlined" />
+        </div>
+    }
+    else if (Field.IsBoolean)
+    {
+        <MudCheckBox T="bool" @bind-Value="Field.BoolValue" />
+    }
+    else if (Field.IsToggle)
+    {
+        <ToggleField @bind-Value="Field.BoolValue" ReadOnly="@Field.Locked" />
+    }
+    else if (Field.IsMultiLine)
+    {
+        <MudTextField @bind-Value="Field.TextValue" Lines="3" Placeholder="@Strings.Get("OneValuePerLine")" Margin="Margin.Dense" Variant="Variant.Outlined" />
+    }
+    else if (Proposal is { } offer)
+    {
+        @* A machine proposal fills this field (ABI 0.11, ADR 0769): the picker writes a
+           candidate's value into the editor; typing stays primary (the typed-not-picked
+           rule) — the menu is the discovery aid beside it. *@
+        <div style="display:flex; gap:4px; align-items:center; flex:1;">
+            <MudTextField @bind-Value="Field.TextValue" Margin="Margin.Dense" Variant="Variant.Outlined" Style="flex:1;" />
+            <MudMenu Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Small" Dense="true"
+                     AriaLabel="@offer.Label" title="@offer.Label">
+                @if (offer.Items.Count == 0)
+                {
+                    <MudMenuItem Disabled="true">@Strings.Get("ProposalNone")</MudMenuItem>
+                }
+                @foreach (var item in offer.Items)
+                {
+                    <MudMenuItem OnClick="@(() => Field.TextValue = item.Value)">
+                        @item.Label@(item.Detail is { Length: > 0 } ? $" — {item.Detail}" : string.Empty)
+                    </MudMenuItem>
+                }
+            </MudMenu>
+        </div>
+    }
+    else if (Field.ValuesHref is { } valuesHref && Suggest is { } suggest)
+    {
+        @* A field the server offers values for completes as you type (#1127): an aerodrome,
+           a cost centre, a project code — a vocabulary the tenant already uses and nobody
+           should have to retype from memory. CoerceValue so an unlisted value is simply a
+           new one: typing stays primary, the list is the discovery aid beside it. *@
+        <MudAutocomplete T="string" Value="@Field.TextValue" ValueChanged="@(v => Field.TextValue = v ?? string.Empty)"
+                         SearchFunc="@((string? typed, CancellationToken token) => suggest(valuesHref, typed, token))"
+                         CoerceValue="true" ResetValueOnEmptyText="false" MaxItems="20"
+                         Margin="Margin.Dense" Variant="Variant.Outlined" />
+    }
+    else
+    {
+        @* Immediate: the New dialog offers Create as soon as a required value is typed, not only after the field is left. *@
+        <MudTextField @bind-Value="Field.TextValue" Immediate="true" Margin="Margin.Dense" Variant="Variant.Outlined" />
+    }
+</div>
+
+@code {
+    /// <summary>The field being edited: its definition and its value.</summary>
+    [Parameter, EditorRequired] public EditField Field { get; set; } = null!;
+
+    /// <summary>A machine proposal for this field, where the pane has one (ADR 0769); null elsewhere.</summary>
+    [Parameter] public DetailState.ProposalOffer? Proposal { get; set; }
+
+    /// <summary>Reads the values filed under the field's <c>values</c> rel for what was typed (#1127); null means no completion.</summary>
+    [Parameter] public Func<string, string?, CancellationToken, Task<IEnumerable<string>>>? Suggest { get; set; }
+}

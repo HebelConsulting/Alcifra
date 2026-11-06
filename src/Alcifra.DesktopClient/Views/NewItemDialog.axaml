@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:v="using:Alcifra.DesktopClient.Views"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        x:Class="Alcifra.DesktopClient.Views.NewItemDialog"
+        x:DataType="vm:NewItemViewModel"
+        Title="{Binding Title}" Width="520" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <!-- New ▸ a kind with REQUIRED fields (#2217, ADR 1067): the name and the mask's whole form, required fields marked, in
+         one dialog, so the create carries the values the server would otherwise refuse it for. The rows are the detail
+         pane's own editors (MaskFieldEditorRow): a field edits here exactly as it edits afterwards. -->
+    <StackPanel Margin="18" Spacing="10">
+        <Grid ColumnDefinitions="180,*" Margin="0,3">
+            <TextBlock Grid.Column="0" Text="{loc:Tr Name}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+            <!-- An AutoCompleteBox rather than a TextBox, as the name prompt has it: with no populator it is a plain text
+                 field, and a mask with a name vocabulary completes as you type (ABI 0.21). -->
+            <AutoCompleteBox Grid.Column="1" x:Name="NameBox" Text="{Binding Name}" Watermark="{loc:Tr Name}"
+                             FilterMode="None" MinimumPrefixLength="0" MinimumPopulateDelay="0:0:0.2" Height="28" Padding="4,2">
+                <AutoCompleteBox.ItemTemplate>
+                    <DataTemplate x:DataType="v:NameSuggestion">
+                        <StackPanel Spacing="1">
+                            <TextBlock Text="{Binding Label}" />
+                            <TextBlock Text="{Binding Description}" FontSize="11"
+                                       Foreground="{DynamicResource WbMuted}"
+                                       IsVisible="{Binding HasDescription}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+        </Grid>
+        <ItemsControl ItemsSource="{Binding Fields}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MaskFieldEditViewModel">
+                    <v:MaskFieldEditorRow />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="{loc:Tr NewItemRequiredHint}" FontSize="12" Foreground="{DynamicResource WbFaint}" />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button Content="{loc:Tr Cancel}" Click="OnCancel" IsCancel="True" />
+            <Button x:Name="CreateButton" Content="{loc:Tr Create}" Click="OnCreate" IsDefault="True" IsEnabled="{Binding CanCreate}" />
+        </StackPanel>
+    </StackPanel>
+</Window>

@@ -10,4 +10,10 @@ public abstract class DocumentException : ApiException
         : base(errorCode, statusCode, message)
     {
     }
+
+    /// <summary>With the facts a client composes its own sentence from (<see cref="ApiException.Extensions"/>).</summary>
+    protected DocumentException(string errorCode, int statusCode, string message, IReadOnlyDictionary<string, object?>? extensions)
+        : base(errorCode, statusCode, message, extensions)
+    {
+    }
 }

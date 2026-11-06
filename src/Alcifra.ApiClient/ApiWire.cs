@@ -25,6 +25,7 @@ public static class ApiWire
         }
 
         string? errorCode = null;
+        string? field = null;
         var offered = new List<(DateTimeOffset StartsAt, DateTimeOffset EndsAt)>();
         try
         {
@@ -33,6 +34,10 @@ public static class ApiWire
             {
                 errorCode = code;
             }
+
+            // The field a required-field refusal names (#2217): data, so the sentence is composed here in the reader's
+            // language rather than quoted from the server's.
+            field = StrOrNull(json, "field");
 
             // The FACTS a refusal computed, never its prose (#1135 / issue #424): a booking outside the
             // offered hours sends the hours as data, and the sentence is composed HERE in the reader's own
@@ -51,7 +56,7 @@ public static class ApiWire
             throw new ApiActionException(fallback);
         }
 
-        var sentence = errorCode is null ? fallback : ApiErrorText.For(errorCode);
+        var sentence = errorCode is null ? fallback : ApiErrorText.For(errorCode, field: field);
         throw new ApiActionException(offered.Count > 0
             ? sentence + " " + string.Format(
                 Strings.Get("ApiErrSlotNotOfferedHours"),

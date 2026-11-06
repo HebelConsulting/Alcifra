@@ -69,6 +69,15 @@
   <data name="NewFolder" xml:space="preserve">
     <value>New folder</value>
   </data>
+  <data name="ApiErrRequiredFieldMissing" xml:space="preserve">
+    <value>{0} is required.</value>
+  </data>
+  <data name="ApiErrRequiredFieldMissingUnnamed" xml:space="preserve">
+    <value>A required field is empty.</value>
+  </data>
+  <data name="NewItemRequiredHint" xml:space="preserve">
+    <value>Fields marked with * are required.</value>
+  </data>
   <data name="NewFolderName" xml:space="preserve">
     <value>Folder name</value>
   </data>

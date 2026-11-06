@@ -39,8 +39,20 @@ public static class ApiErrorText
     public static string For(string? errorCode, string? module, string? detail) =>
         module is not null && !string.IsNullOrWhiteSpace(detail) ? detail! : For(errorCode);
 
+    /// <summary>
+    /// The sentence for a refusal that names a FIELD as data (<c>field</c> in the problem details, #2217): a required
+    /// field left empty says which one, translated by its well-known label where it has one. Without the field, the
+    /// code's general sentence.
+    /// </summary>
+    public static string For(string? errorCode, string? field) =>
+        errorCode == "REQUIRED_FIELD_MISSING" && !string.IsNullOrWhiteSpace(field)
+            ? string.Format(Strings.Get("ApiErrRequiredFieldMissing"), WellKnownLabels.For(field!))
+            : For(errorCode);
+
     public static string For(string? errorCode) => errorCode switch
     {
+        // A mask's required field left empty (ADR 0176, #2217): with the field named, the overload above says which.
+        "REQUIRED_FIELD_MISSING" => Strings.Get("ApiErrRequiredFieldMissingUnnamed"),
         // Mail-domain registration (#667). The not-verified one is the interesting case: it is the EXPECTED
         // answer between publishing a record and DNS carrying it, so the sentence says what to do next rather
         // than reporting a fault.

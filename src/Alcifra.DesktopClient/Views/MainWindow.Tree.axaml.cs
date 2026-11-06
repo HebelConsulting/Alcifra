@@ -111,6 +111,27 @@ public partial class MainWindow
             return;
         }
 
+        // A kind with REQUIRED fields gets its whole form (#2217, ADR 1067, the decisions of Mobile #271): a name alone
+        // would be refused for values it had no way to send, and the user would learn which fields a kind needs from the
+        // refusal. The form is read from the definition the entry advertised; a kind without required fields keeps the
+        // name prompt below.
+        if (await vm.NewItemFormAsync(admitted) is { } form)
+        {
+            var formDialog = new NewItemDialog(form);
+            if (admitted.NameValuesHref is { Length: > 0 } names)
+            {
+                formDialog.CompleteFrom((typed, cancellationToken) =>
+                    vm.NameSuggestionsAsync(names, admitted.NameValuesAreMultiple, typed, cancellationToken));
+            }
+
+            if (await formDialog.ShowDialog<NewItemViewModel?>(this) is { } filled)
+            {
+                await vm.CreateSubfolderAsync(node.Id, admitted.Href, filled.Name.Trim(), admitted.MaskId, filled.FieldValues());
+            }
+
+            return;
+        }
+
         // Titled with the mask's own name, so the user is told which of the kinds on the menu they picked —
         // and so a tenant-authored folder mask reads correctly without a string of its own.
         var dialog = new NewFolderDialog(admitted.Name, admitted.Name);

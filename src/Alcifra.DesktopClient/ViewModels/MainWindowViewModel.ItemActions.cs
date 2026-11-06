@@ -26,6 +26,21 @@ public sealed partial class MainWindowViewModel
     public Task CreateSubfolderAsync(Guid parentId, string childrenHref, string name, Guid? maskId = null) =>
         CreateChildAsync(parentId, api => api.Documents.CreateFolderAsync(childrenHref, name, maskId), "StCreatedFolder", "StErrCreateFolder", name);
 
+    /// <summary>
+    /// The same create WITH the mask's index data (#2217): what the New dialog sends for a kind with required fields, in
+    /// the one request (ADR 0794), so the server never refuses it for values it had no way to send.
+    /// </summary>
+    public Task CreateSubfolderAsync(
+        Guid parentId, string childrenHref, string name, Guid maskId, IReadOnlyList<(Guid FieldDefinitionId, IReadOnlyList<string> Values)> fields) =>
+        CreateChildAsync(parentId, api => api.Documents.CreateFolderAsync(childrenHref, name, maskId, fields), "StCreatedFolder", "StErrCreateFolder", name);
+
+    /// <summary>
+    /// The New dialog's form for an admitted kind, or null where its mask has no required field and the plain name
+    /// prompt stays (#2217, ADR 1067). Read from the definition the entry advertised.
+    /// </summary>
+    public Task<NewItemViewModel?> NewItemFormAsync(Alcifra.ApiClient.CreatableChild admitted) =>
+        _api is null ? Task.FromResult<NewItemViewModel?>(null) : NewItemViewModel.ForAsync(_api, admitted);
+
     // A section, and a note, inside a notebook (#564). Both reach the server through an href the row itself
     // advertised — the caller never names a mask, so the rule about what may live where stays on the server.
     public Task CreateSectionAsync(Guid parentId, string sectionsHref, string name) =>

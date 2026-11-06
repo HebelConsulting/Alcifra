@@ -28,7 +28,7 @@ namespace Alcifra.Client.Services;
 /// detail pane — again the caller's business, not this one's.
 /// </para>
 /// </remarks>
-public sealed class DocumentActions(HttpClient http, IDialogService dialogs, ISnackbar snackbar, ApiRoot apiRoot, BrowseService browse)
+public sealed class DocumentActions(HttpClient http, IDialogService dialogs, ISnackbar snackbar, ApiRoot apiRoot, BrowseService browse, NewItemCreation newItems)
 {
     /// <summary>
     /// A row's own address, taken from the rel it advertises rather than built from its id (ADR 0543). A row
@@ -97,6 +97,16 @@ public sealed class DocumentActions(HttpClient http, IDialogService dialogs, ISn
         if (admitted.Prompt is "contact" or "appointment")
         {
             return await CreateStructuredAsync(node, admitted);
+        }
+
+        // A kind with REQUIRED fields gets its whole form (#2217, ADR 1067): a name alone would be refused for values it
+        // had no way to send. NewItemCreation reads the definition the entry advertised, asks, and shapes the create.
+        if (await newItems.RequiredFieldFormAsync(admitted) is { } fields)
+        {
+            var filled = await newItems.AskAsync(admitted, fields, admitted.NameValuesHref is { Length: > 0 } names
+                ? (typed, cancellationToken) => NameSuggestionsAsync(names, admitted.NameValuesAreMultiple, typed, cancellationToken)
+                : null);
+            return filled is not null && await PostCreateAsync(admitted.Href, filled.Payload, "StErrCreateFolder", "StCreatedFolder", filled.Name);
         }
 
         // Titled with the mask's own name, so the user is told which of the kinds on the menu they picked —
@@ -314,7 +324,8 @@ public sealed class DocumentActions(HttpClient http, IDialogService dialogs, ISn
 
         if (!response.IsSuccessStatusCode)
         {
-            snackbar.Add(Strings.Get(errKey), Severity.Error);
+            // The refusal by its code, in the reader's words (a required field left empty names the field, #2217).
+            snackbar.Add(await ProblemWords.ForAsync(response) ?? Strings.Get(errKey), Severity.Error);
             return false;
         }
 

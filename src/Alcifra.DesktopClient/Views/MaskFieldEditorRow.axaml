@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:i="using:Projektanker.Icons.Avalonia"
+             xmlns:loc="using:Alcifra.DesktopClient.Localization"
+             xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Alcifra.DesktopClient.Views.MaskFieldEditorRow"
+             x:DataType="vm:MaskFieldEditViewModel">
+    <!-- One index field's editor, by its data type: the label and the control the detail pane edits a field with. Its
+         own control (#2217) so the New dialog edits a field exactly as the pane does afterwards, one editor per type
+         rather than two that come to disagree about a date or a toggle. -->
+    <Grid ColumnDefinitions="180,*" Margin="0,3">
+        <SelectableTextBlock Grid.Column="0" Text="{Binding DisplayLabel}" Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" />
+        <Panel Grid.Column="1">
+            <CalendarDatePicker IsVisible="{Binding IsDate}" HorizontalAlignment="Left" SelectedDate="{Binding DateValue}" Watermark="yyyy-MM-dd" />
+            <!-- A DateTime field is a MOMENT (#660): a day picker alone was the pane bug the
+                 owner reported — the time was there in the value and nowhere on the screen. -->
+            <StackPanel IsVisible="{Binding IsDateTime}" Orientation="Horizontal" Spacing="6">
+                <CalendarDatePicker SelectedDate="{Binding DateValue}" Watermark="yyyy-MM-dd" />
+                <TimePicker SelectedTime="{Binding TimeValue}" />
+            </StackPanel>
+            <CheckBox IsVisible="{Binding IsBoolean}" IsChecked="{Binding BoolValue}" />
+            <ToggleSwitch Classes="field-toggle" IsVisible="{Binding IsToggle}" IsEnabled="{Binding !Locked}" IsChecked="{Binding BoolValue}" OnContent="{loc:Tr ToggleEnabled}" OffContent="{loc:Tr ToggleDisabled}" />
+            <TextBox IsVisible="{Binding IsMultiLine}" Text="{Binding TextValue}" IsReadOnly="{Binding Locked}" AcceptsReturn="True" Height="60" Watermark="{loc:Tr OneValuePerLine}" />
+            <!-- A field the server offers values for completes as you type (#1127):
+                 an aerodrome, a cost centre, a project code — a vocabulary the tenant
+                 already uses and nobody should have to retype from memory. The list is
+                 what has been filed under this field, narrowed on every keystroke.
+                 Typing stays primary: an unlisted value is simply a new one. -->
+            <Grid IsVisible="{Binding Completes}" ColumnDefinitions="*,Auto">
+                <AutoCompleteBox Text="{Binding TextValue}" AsyncPopulator="{Binding SuggestionSource}"
+                                 FilterMode="None" MinimumPrefixLength="0" MaxDropDownHeight="220"
+                                 Height="28" Padding="4,2" />
+            </Grid>
+
+            <Grid IsVisible="{Binding IsPlainSingleLine}" ColumnDefinitions="*,Auto">
+                <TextBox Text="{Binding TextValue}" IsReadOnly="{Binding Locked}" Height="28" Padding="4,2" VerticalContentAlignment="Center" />
+                <!-- A machine proposal fills this field (ABI 0.11, ADR 0769): the picker
+                     writes a candidate into the editor; typing stays primary. Each choice
+                     carries its own command, so the menu items bind locally. -->
+                <Button Grid.Column="1" IsVisible="{Binding HasProposals}" Margin="4,0,0,0" Height="28" Padding="5,0" MinWidth="0"
+                        ToolTip.Tip="{Binding ProposalLabel}">
+                    <i:Icon Value="mdi-account-search" FontSize="14" />
+                    <Button.Flyout>
+                        <MenuFlyout ItemsSource="{Binding Proposals}">
+                            <MenuFlyout.ItemContainerTheme>
+                                <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}"
+                                              x:DataType="vm:MaskFieldEditViewModel+ProposalChoice">
+                                    <Setter Property="Header" Value="{Binding Display}" />
+                                    <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                                </ControlTheme>
+                            </MenuFlyout.ItemContainerTheme>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+        </Panel>
+    </Grid>
+</UserControl>

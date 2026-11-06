@@ -52,7 +52,8 @@ public partial class NoServerDetailInClientsTests
         ["src/Alcifra.ApiClient/ApiCore.cs"] = 1,
         // ADR 0769's proposal-item Detail (the second license above):
         ["src/Alcifra.Client/Services/DetailEditor.cs"] = 1,
-        ["src/Alcifra.Client/Components/Panes/IndexDataPane.razor"] = 1,
+        // The proposal row moved into the shared field editor with the New dialog (#2217).
+        ["src/Alcifra.Client/Components/FieldEditorRow.razor"] = 1,
         ["src/Alcifra.DesktopClient/ViewModels/MainWindowViewModel.DetailEdit.cs"] = 1,
         ["src/Alcifra.ApiClient/DocumentsClient.cs"] = 1,
         // ADR 0786's module-action refusal: a module's own sentence, composed by ITS catalog for the request

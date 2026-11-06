@@ -58,6 +58,17 @@ public class CreatableChild
     /// </remarks>
     public bool NameValuesAreMultiple { get; set; }
 
+    /// <summary>
+    /// Where the mask's definition is read: its fields, which of them are required (#2217, Mobile #271).
+    /// </summary>
+    /// <remarks>
+    /// A "name" prompt promised a name-only create, and a mask with REQUIRED fields refused it (#2216): the New dialog
+    /// now reads the definition from here and asks for the mask's form. Advertised so the client follows rather than
+    /// composes <c>/api/masks/{id}</c> (ADR 0543). Until the entry carries the fields themselves (#2216), this is where
+    /// they come from.
+    /// </remarks>
+    public string MaskHref { get; set; } = string.Empty;
+
     /// <summary>What to draw for this entry — the mask's icon token, or null for the shape default.</summary>
     /// <remarks>
     /// So a menu entry wears the same glyph the thing will wear once it exists. Without it the menu says
@@ -223,6 +234,7 @@ public static class CreatableChildren
             Folder = rules.IsFolderMask(maskId),
             Href = $"/api/documents/{documentId}/{path}",
             Method = "POST",
+            MaskHref = $"/api/masks/{maskId}",
             FolderMask = LegacySlugs.GetValueOrDefault(maskId),
             Prompt = prompt,
             Icon = rules.IconOf(maskId),
