@@ -37,6 +37,10 @@ public sealed class TestModule : IIndustryModule
     // carry its index data.
     public static readonly Guid RegisterMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000007");
     public static readonly Guid CaseMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000008");
+
+    /// <summary>An exclusive folder admitting only Test Clips (ADR 1065): the Tube Channel's shape, where a file uploaded
+    /// without a mask is typed by what the folder admits and the mask's accepted extensions, instead of Basic Entry.</summary>
+    public static readonly Guid ReelMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000009");
     public const string ReaderCertificateHolderField = "Holder user";
     public const string ReaderCertificateWithdrawnField = "Withdrawn";
 
@@ -251,6 +255,8 @@ public sealed class TestModule : IIndustryModule
         {
             AcceptedExtensions = ["mp4", ".MOV"],
         },
+        new ModuleMaskSeed(ReelMaskId, "Test Reel", IsFolderMask: true, IsBookable: false, [],
+            AdmitsOnlyDeclaredChildren: true, AdmittedChildren: [ClipMaskId]),
         new ModuleMaskSeed(BinderMaskId, "Test Binder", IsFolderMask: true, IsBookable: false, [],
             AdmitsOnlyDeclaredChildren: true, AdmittedChildren: [CertificateMaskId]),
         new ModuleMaskSeed(RegisterMaskId, "Test Register", IsFolderMask: true, IsBookable: false, [],

@@ -30,6 +30,7 @@ public class DocumentFinalizer
     private readonly IAuditRecorder _audit;
     private readonly IDavCollectionKindRegistry _kinds;
     private readonly ILogger<DocumentFinalizer> _logger;
+    private readonly IModuleMaskDeclarations? _modules;
 
     // EVERY save here goes through SaveTranslatingContainmentAsync (#665). Several of them assign a mask or add
     // a child document, so any can trip the typed-folder invariant — and this class had none of them, which is
@@ -50,7 +51,8 @@ public class DocumentFinalizer
         Alcifra.Infrastructure.Masks.IMaskContainmentProvider containment,
         IAuditRecorder audit,
         IDavCollectionKindRegistry kinds,
-        ILogger<DocumentFinalizer> logger)
+        ILogger<DocumentFinalizer> logger,
+        IModuleMaskDeclarations? modules = null)
     {
         _dbContext = dbContext;
         _objectStorageClient = objectStorageClient;
@@ -66,6 +68,7 @@ public class DocumentFinalizer
         _audit = audit;
         _kinds = kinds;
         _logger = logger;
+        _modules = modules;
     }
 
     // Extensions that trigger a searchable-PDF successor job. A TIFF always converts; a PDF is a *candidate* —
@@ -550,6 +553,17 @@ public class DocumentFinalizer
             return false; // classified, but it has no attachments to file
         }
 
+        // A module's exclusive folder types what is filed into it (ADR 1065): a Tube Channel admits only a Video and a
+        // Video Thumbnail, so the Basic Entry below was refused by the channel's admission and no client could file a clip
+        // there without naming the mask itself. The same rule as the two above — the destination says what the file is —
+        // with the admitted masks' own accepted extensions telling the kinds apart.
+        if (await ModuleItemMaskAsync(document, version.ObjectKey, cancellationToken) is { } moduleItemMaskId)
+        {
+            document.MaskVersionId = await ResolveCurrentMaskVersionIdAsync(moduleItemMaskId, cancellationToken);
+            await _dbContext.SaveTranslatingContainmentAsync(cancellationToken);
+            return false;
+        }
+
         document.MaskVersionId = await ResolveCurrentMaskVersionIdAsync(WellKnownMaskIds.BasicEntry, cancellationToken);
         await _dbContext.SaveTranslatingContainmentAsync(cancellationToken);
         return false;
@@ -570,17 +584,26 @@ public class DocumentFinalizer
             return null;
         }
 
-        var parentMaskId = await _dbContext.Documents
-            .Where(d => d.Id == parentId)
-            .Select(d => _dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault())
-            .SingleOrDefaultAsync(cancellationToken);
-
+        var parentMaskId = await ExclusiveFolderTyping.ParentMaskIdAsync(_dbContext, parentId, cancellationToken);
         var rules = await _containment.ForAsync(_dbContext, document.TenantId, cancellationToken);
         var kind = _kinds.ForFolderMask(parentMaskId);
         var itemMaskId = kind is not null && kind.Extension == extension
             ? kind.ItemMaskId
             : extension == ".vcf" ? WellKnownMaskIds.Contact : WellKnownMaskIds.Appointment;
         return rules.Allows(itemMaskId, parentMaskId) ? itemMaskId : null;
+    }
+
+    /// <summary>The module item mask the PARENT, an exclusive module folder, gives a file with this key, or null (ADR 1065).</summary>
+    private async Task<Guid?> ModuleItemMaskAsync(Document document, string objectKey, CancellationToken cancellationToken)
+    {
+        if (document.ParentId is not { } parentId)
+        {
+            return null;
+        }
+
+        var rules = await _containment.ForAsync(_dbContext, document.TenantId, cancellationToken);
+        var parentMaskId = await ExclusiveFolderTyping.ParentMaskIdAsync(_dbContext, parentId, cancellationToken);
+        return ExclusiveFolderTyping.AdmittedItemMask(rules, _modules, parentMaskId, objectKey);
     }
 
     // One level only (a nested email's own attachments aren't extracted); best-effort per attachment. The
