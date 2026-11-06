@@ -78,6 +78,18 @@ public sealed class TubeClient(ApiCore core, DocumentsClient documents, MasksCli
             cancellationToken: cancellationToken);
     }
 
+    /// <summary>
+    /// Files a new video into a channel through the channel's own <c>children</c> rel. The client names no mask: the channel
+    /// is an exclusive folder, and the core types the upload a Video at finalize by the mask's accepted extensions (ADR 1065),
+    /// or refuses a file the channel holds no kind for. Returns the new document's id.
+    /// </summary>
+    public async Task<Guid> FileAsync(TubeChannelRow channel, string fileName, byte[] bytes, CancellationToken cancellationToken = default)
+    {
+        var childrenHref = ApiCore.RelHref(await DocumentAsync(channel.Href("document"), cancellationToken), "children")
+            ?? throw new ApiActionException("This channel does not offer 'children'.");
+        return await documents.UploadFileAsync(childrenHref, fileName, bytes, cancellationToken: cancellationToken);
+    }
+
     /// <summary>Places a reference to the video in a channel; the core checks the channel's admission and the person's rights.</summary>
     public async Task PlaceAsync(TubeChannelRow channel, Guid videoId, CancellationToken cancellationToken = default) =>
         await references.CreateReferenceAsync(await ReferencesHrefAsync(channel, cancellationToken), videoId, cancellationToken);

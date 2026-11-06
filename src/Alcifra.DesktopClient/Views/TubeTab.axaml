@@ -49,6 +49,12 @@
                 <i:Icon DockPanel.Dock="Right" Value="mdi-lock-outline" FontSize="13" Foreground="{DynamicResource WbMuted}"
                         VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding Locked}"
                         ToolTip.Tip="{loc:Tr TubeReadOnly}" />
+                <!-- The add sits on the channel it files into, where the lock sits on one it can't (ADR 0559). -->
+                <Button DockPanel.Dock="Right" Click="OnAdd" Tag="{Binding Row}" IsVisible="{Binding CanAdd}"
+                        Padding="2" Margin="6,0,0,0" Background="Transparent" BorderThickness="0" VerticalAlignment="Center"
+                        ToolTip.Tip="{loc:Tr TubeAddHint}" AutomationProperties.Name="{loc:Tr TubeAdd}">
+                  <i:Icon Value="mdi-plus" FontSize="14" />
+                </Button>
                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               </DockPanel>
             </DataTemplate>

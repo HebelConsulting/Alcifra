@@ -110,6 +110,21 @@ public class DesktopTubeTabTests
         Assert.True(tab.CanPlace);
     }
 
+    // The add sits on the channel row it files into, and only where the person may create there (ADR 0559); without a
+    // session nothing is sent and nothing is reported.
+    [Fact]
+    public async Task Only_a_channel_the_person_can_write_to_offers_an_add()
+    {
+        var shell = new TestShell();
+        var tab = new TubeTabViewModel(shell, () => null);
+        tab.Adopt(new TubeShelfAnswer { Items = [Channel("Open", true), Channel("Closed", false)] });
+
+        Assert.Equal([true, false], tab.Channels.Select(c => c.CanAdd));
+
+        await tab.AddAsync(tab.Channels[0].Row, [("clip.mp4", [1, 2, 3])]);
+        Assert.Empty(shell.Reports);
+    }
+
     [Fact]
     public void Signing_out_forgets_the_channels()
     {

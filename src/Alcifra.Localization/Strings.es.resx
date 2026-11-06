@@ -6957,6 +6957,21 @@
   <data name="TubeUnpublish" xml:space="preserve">
     <value>Retirar publicación</value>
   </data>
+  <data name="TubeAdd" xml:space="preserve">
+    <value>Añadir un vídeo</value>
+  </data>
+  <data name="TubeAddHint" xml:space="preserve">
+    <value>Añadir un vídeo a este canal</value>
+  </data>
+  <data name="TubeAddTitle" xml:space="preserve">
+    <value>Añadir un vídeo a {0}</value>
+  </data>
+  <data name="TubeAdded" xml:space="preserve">
+    <value>{0} vídeo(s) archivados en {1}.</value>
+  </data>
+  <data name="TubeAddNameTaken" xml:space="preserve">
+    <value>Ya hay un vídeo llamado '{0}' en este canal.</value>
+  </data>
   <data name="TubeWatch" xml:space="preserve">
     <value>Ver en el navegador</value>
   </data>

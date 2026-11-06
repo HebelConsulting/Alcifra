@@ -23,6 +23,9 @@ public sealed partial class TubeChannelItemViewModel(TubeChannelRow row) : Obser
     public string Name => Row.Name;
 
     public bool Locked => !Row.CanWrite;
+
+    /// <summary>The add sits on the channel row it files into (ADR 0559), and only where the person may create there.</summary>
+    public bool CanAdd => Row.CanWrite;
 }
 
 /// <summary>
@@ -282,6 +285,42 @@ public sealed partial class TubeTabViewModel(IShellContext shell, Func<AlcifraAp
         IsEditing = false;
         shell.Report(Strings.Get("TubeSaved"));
         await LoadAsync();
+    }
+
+    /// <summary>
+    /// Files the chosen files into a channel, one by one, and says what happened to each; the list is reloaded once at the end.
+    /// The channel types the upload (core ADR 1065), so a file it holds no kind for is refused by name.
+    /// </summary>
+    public async Task AddAsync(TubeChannelRow channel, IReadOnlyList<(string Name, byte[] Bytes)> files)
+    {
+        if (_boundTo is not { } client || files.Count == 0)
+        {
+            return;
+        }
+
+        var filed = 0;
+        foreach (var (name, bytes) in files)
+        {
+            try
+            {
+                await client.Tube.FileAsync(channel, name, bytes);
+                filed++;
+            }
+            catch (DocumentNameTakenException)
+            {
+                shell.Report(string.Format(Strings.Get("TubeAddNameTaken"), name));
+            }
+            catch (Exception e) when (e is ApiActionException or HttpRequestException)
+            {
+                shell.Report(string.Format(Strings.Get("TubeSaveFailed"), e.Message));
+            }
+        }
+
+        if (filed > 0)
+        {
+            shell.Report(string.Format(Strings.Get("TubeAdded"), filed, channel.Name));
+            await LoadAsync();
+        }
     }
 
     [RelayCommand]

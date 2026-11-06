@@ -2,6 +2,7 @@
 @using Alcifra.Presentation
 @inject TubeService Tube
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 @* The Tube tab of the workbench (#2148), the web twin of the desktop tab (ADR 0511): channels │ videos │ detail, shaped like
    Contacts. The web plays in the tab; a draft plays for who may edit it. *@
@@ -34,12 +35,19 @@
                 <div style="display:flex; align-items:center; gap:4px;" data-testid="tube-channel" data-channel="@channel.Name">
                     <MudCheckBox T="bool" Dense="true" Value="@_ticked.Contains(channel.Id)" ValueChanged="@(on => Tick(channel.Id, on))" />
                     <span style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@channel.Name</span>
-                    @if (!channel.CanWrite)
+                    @if (channel.CanWrite)
+                    {
+                        @* The add sits on the channel it files into, where the lock sits on one it can't (ADR 0559). *@
+                        <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="@(() => PickForAsync(channel))"
+                                       title="@Strings.Get("TubeAddHint")" aria-label="@Strings.Get("TubeAdd")" data-testid="tube-add" />
+                    }
+                    else
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" title="@Strings.Get("TubeReadOnly")" data-testid="tube-lock" />
                     }
                 </div>
             }
+            <InputFile id="tube-file-input" OnChange="OnFilesChosenAsync" multiple style="display:none" />
         </div>
 
         <div style="flex:1 1 auto; min-width:0; display:flex; flex-direction:column;">
@@ -131,6 +139,7 @@
     private string? _editDescription;
     private string? _editTags;
     private Guid _placeIn;
+    private TubeChannelRow? _addTo;
 
     private IReadOnlyList<TubeListing> Rows => TubeShelf.Visible(_shelf.Items, _ticked, _filter);
 
@@ -253,6 +262,49 @@
 
         Snackbar.Add(Strings.Get("TubeSaved"), Severity.Success);
         await LoadAsync();
+    }
+
+    // One hidden file input for the tab; the channel clicked is remembered until the browser answers with the files.
+    private async Task PickForAsync(TubeChannelRow channel)
+    {
+        _addTo = channel;
+        await JS.InvokeVoidAsync("openFilePicker", "tube-file-input");
+    }
+
+    private async Task OnFilesChosenAsync(InputFileChangeEventArgs e)
+    {
+        if (_addTo is not { } channel)
+        {
+            return;
+        }
+
+        var filed = 0;
+        foreach (var file in e.GetMultipleFiles(20))
+        {
+            try
+            {
+                using var buffer = new MemoryStream();
+                await file.OpenReadStream(maxAllowedSize: 2L * 1024 * 1024 * 1024).CopyToAsync(buffer);
+                if (await Tube.FileAsync(channel.Id, file.Name, buffer.ToArray(), file.ContentType))
+                {
+                    filed++;
+                }
+                else
+                {
+                    Snackbar.Add(string.Format(Strings.Get("TubeAddNameTaken"), file.Name), Severity.Warning);
+                }
+            }
+            catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or IOException)
+            {
+                Snackbar.Add(string.Format(Strings.Get("TubeSaveFailed"), ex.Message), Severity.Error);
+            }
+        }
+
+        if (filed > 0)
+        {
+            Snackbar.Add(string.Format(Strings.Get("TubeAdded"), filed, channel.Name), Severity.Success);
+            await LoadAsync();
+        }
     }
 
     private async Task RemoveAsync()

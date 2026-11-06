@@ -6957,6 +6957,21 @@
   <data name="TubeUnpublish" xml:space="preserve">
     <value>Veröffentlichung zurückziehen</value>
   </data>
+  <data name="TubeAdd" xml:space="preserve">
+    <value>Video hinzufügen</value>
+  </data>
+  <data name="TubeAddHint" xml:space="preserve">
+    <value>Ein Video in diesen Kanal ablegen</value>
+  </data>
+  <data name="TubeAddTitle" xml:space="preserve">
+    <value>Video in {0} ablegen</value>
+  </data>
+  <data name="TubeAdded" xml:space="preserve">
+    <value>{0} Video(s) in {1} abgelegt.</value>
+  </data>
+  <data name="TubeAddNameTaken" xml:space="preserve">
+    <value>Ein Video namens '{0}' liegt bereits in diesem Kanal.</value>
+  </data>
   <data name="TubeWatch" xml:space="preserve">
     <value>Im Browser ansehen</value>
   </data>

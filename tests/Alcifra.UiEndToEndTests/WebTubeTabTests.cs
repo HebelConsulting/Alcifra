@@ -30,7 +30,8 @@ public class WebTubeTabTests(ModuleAppFixture app)
         await Expect(page.GetByTestId("tube-row")).ToHaveCountAsync(3);
         await Expect(page.GetByTestId("tube-draft")).ToHaveCountAsync(1);
 
-        var filter = page.Locator(".wb-tube input:not([type=checkbox])").First;
+        // Not the checkboxes, and not the hidden file input behind the channels' add (#2148).
+        var filter = page.Locator(".wb-tube input:not([type=checkbox]):not([type=file])").First;
         await filter.FillAsync("keynote");
         await filter.BlurAsync();
         await Expect(page.GetByTestId("tube-row")).ToHaveCountAsync(1);

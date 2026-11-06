@@ -6957,6 +6957,21 @@
   <data name="TubeUnpublish" xml:space="preserve">
     <value>Unpublish</value>
   </data>
+  <data name="TubeAdd" xml:space="preserve">
+    <value>Add a video</value>
+  </data>
+  <data name="TubeAddHint" xml:space="preserve">
+    <value>Add a video to this channel</value>
+  </data>
+  <data name="TubeAddTitle" xml:space="preserve">
+    <value>Add a video to {0}</value>
+  </data>
+  <data name="TubeAdded" xml:space="preserve">
+    <value>{0} video(s) filed in {1}.</value>
+  </data>
+  <data name="TubeAddNameTaken" xml:space="preserve">
+    <value>A video named '{0}' is already in this channel.</value>
+  </data>
   <data name="TubeWatch" xml:space="preserve">
     <value>Watch in the browser</value>
   </data>

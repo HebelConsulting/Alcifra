@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Alcifra.Client.Hypermedia;
+using Alcifra.Localization;
 using Alcifra.Presentation;
 
 namespace Alcifra.Client.Services;
@@ -76,6 +77,53 @@ public sealed class TubeService(HttpClient http, ApiRoot apiRoot, BrowseService 
         response.EnsureSuccessStatusCode();
         return true;
     }
+
+    /// <summary>
+    /// Files a new video into a channel through the channel's own <c>children</c> rel: create, version, the bytes to storage,
+    /// finalize. The client names no mask — the channel types the upload a Video at finalize (core ADR 1065) or refuses a
+    /// file it holds no kind for. False means the name is taken in this channel.
+    /// </summary>
+    public async Task<bool> FileAsync(Guid channelId, string fileName, byte[] bytes, string? contentType)
+    {
+        // Document.Name is the stem; the extension rides on the version's object key, which is what types the upload.
+        var childrenHref = await browse.FetchRelAsync(channelId, "children");
+        using var create = await http.PostAsJsonAsync(childrenHref, new { name = Path.GetFileNameWithoutExtension(fileName) });
+        if (create.StatusCode == HttpStatusCode.Conflict)
+        {
+            return false;
+        }
+
+        create.EnsureSuccessStatusCode();
+        var created = await create.Content.ReadFromJsonAsync<JsonElement>();
+
+        using var versionResponse = await http.PostAsJsonAsync(RequiredHref(created, "versions"), new { fileExtension = Path.GetExtension(fileName) });
+        versionResponse.EnsureSuccessStatusCode();
+        var version = await versionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        if (version.TryGetProperty("encryption", out var encryption) && encryption.ValueKind == JsonValueKind.Object)
+        {
+            // A tenant that wraps at rest answers the shelf empty (tube ADR 0007), so no channel offers an add there; this
+            // guards the one path the browser would otherwise take with plaintext bytes.
+            throw new InvalidOperationException(Strings.Get("TubeEncrypts"));
+        }
+
+        using var content = new ByteArrayContent(bytes);
+        if (!string.IsNullOrWhiteSpace(contentType))
+        {
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        }
+
+        (await PresignedTransfer.Anonymous.PutAsync(version.GetProperty("uploadUrl").GetString()!, content)).EnsureSuccessStatusCode();
+        using var finalize = await http.PutAsJsonAsync(RequiredHref(version, "self"), new { });
+        finalize.EnsureSuccessStatusCode();
+        return true;
+    }
+
+    private static string RequiredHref(JsonElement resource, string rel) =>
+        resource.TryGetProperty("links", out var links) && links.ValueKind == JsonValueKind.Array
+            ? links.EnumerateArray().FirstOrDefault(l => l.GetProperty("rel").GetString() == rel).TryGetProperty("href", out var href)
+                ? href.GetString() ?? throw new InvalidOperationException($"The '{rel}' link has no address.")
+                : throw new InvalidOperationException($"The answer advertised no '{rel}' rel (ADR 0543).")
+            : throw new InvalidOperationException($"The answer advertised no '{rel}' rel (ADR 0543).");
 
     public async Task PlaceAsync(Guid channelId, Guid videoId)
     {
