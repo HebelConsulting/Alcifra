@@ -78,6 +78,9 @@ public sealed partial class DocumentsClient
                 // for a module's name vocabulary, and never read here until now, so the clients never offered it.
                 e.TryGetProperty("nameValuesHref", out var nv) && nv.ValueKind == JsonValueKind.String ? nv.GetString() : null,
                 ApiWire.TrueOrFalse(e, "nameValuesAreMultiple"),
-                e.TryGetProperty("maskHref", out var mh) && mh.ValueKind == JsonValueKind.String ? mh.GetString() : null))]
+                e.TryGetProperty("maskHref", out var mh) && mh.ValueKind == JsonValueKind.String ? mh.GetString() : null,
+                e.TryGetProperty("requiredFields", out var rf) && rf.ValueKind == JsonValueKind.Array
+                    ? [.. rf.EnumerateArray().Select(f => f.GetString() ?? string.Empty)]
+                    : null))]
             : [];
 }

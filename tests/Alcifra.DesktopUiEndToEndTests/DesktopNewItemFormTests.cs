@@ -39,6 +39,7 @@ public class DesktopNewItemFormTests
         var folder = documents.Admits.Single(a => a.Name == "Folder");
 
         Assert.False(string.IsNullOrEmpty(folder.MaskHref), "the entry carries no maskHref");
+        Assert.Equal([], folder.RequiredFields);   // the entry says so (#2216): no request decides this
         Assert.Null(await vm.NewItemFormAsync(folder));
     }
 
@@ -63,7 +64,7 @@ public class DesktopNewItemFormTests
         var maskId = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         // The address the server answered the create with: followed, as a client follows an entry's maskHref.
         var maskHref = response.Headers.Location!.ToString();
-        var entry = new CreatableChild(maskId, "Case", true, "/unused", null, "name", MaskHref: maskHref);
+        var entry = new CreatableChild(maskId, "Case", true, "/unused", null, "name", MaskHref: maskHref, RequiredFields: ["Case number"]);
 
         var form = await vm.NewItemFormAsync(entry);
         Assert.NotNull(form);

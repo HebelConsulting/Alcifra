@@ -26,7 +26,9 @@ public sealed class NewItemCreation(HttpClient http, IDialogService dialogs)
     /// </summary>
     public async Task<List<EditField>?> RequiredFieldFormAsync(CreatableChild admitted)
     {
-        if (admitted.MaskHref is not { Length: > 0 } maskHref)
+        // The entry says whether anything is required (#2216), so a kind that needs nothing costs no request; a server from
+        // before that names nothing (null), and the definition decides.
+        if (admitted.MaskHref is not { Length: > 0 } maskHref || admitted.RequiredFields is { Count: 0 })
         {
             return null;
         }

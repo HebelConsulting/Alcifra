@@ -42,7 +42,10 @@ public sealed record AclRights(
 /// space-separated (ABI 0.23) — a NOTAM briefing's "LSZH LSAS EDGG".</param>
 public sealed record CreatableChild(Guid MaskId, string Name, bool Folder, string Href, string? FolderMask, string Prompt, string? Icon = null, string? NameValuesHref = null, bool NameValuesAreMultiple = false,
     // Where the mask's definition is read (#2217): the New dialog asks for the mask's form where a field is required.
-    string? MaskHref = null);
+    string? MaskHref = null,
+    // The fields the mask requires at creation (#2216): empty means a name suffices; null means a server from before the
+    // entry said so, which a client then asks the definition.
+    IReadOnlyList<string>? RequiredFields = null);
 
 /// <summary>
 /// Whether the caller can decrypt a row of encrypted content (ADR 0983), as the listing's <c>encryptedForCaller</c> says.

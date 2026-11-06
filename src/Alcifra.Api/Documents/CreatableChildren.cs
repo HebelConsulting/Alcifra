@@ -69,6 +69,13 @@ public class CreatableChild
     /// </remarks>
     public string MaskHref { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The names of the fields the mask REQUIRES at creation (#2216, ADR 1067): what the entry promises beyond a name. A
+    /// client offers the plain name prompt where this is empty and asks for the mask's form where it is not, reading the
+    /// whole form from <see cref="MaskHref"/>; the answer costs no request per kind on the menu.
+    /// </summary>
+    public List<string> RequiredFields { get; set; } = [];
+
     /// <summary>What to draw for this entry — the mask's icon token, or null for the shape default.</summary>
     /// <remarks>
     /// So a menu entry wears the same glyph the thing will wear once it exists. Without it the menu says
@@ -235,6 +242,7 @@ public static class CreatableChildren
             Href = $"/api/documents/{documentId}/{path}",
             Method = "POST",
             MaskHref = $"/api/masks/{maskId}",
+            RequiredFields = [.. rules.RequiredFieldsOf(maskId)],
             FolderMask = LegacySlugs.GetValueOrDefault(maskId),
             Prompt = prompt,
             Icon = rules.IconOf(maskId),

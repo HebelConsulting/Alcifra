@@ -91,6 +91,8 @@ public class CreateWithIndexDataTests(E2EApiFactory factory)
             var entry = registerRow.GetProperty("admits").EnumerateArray()
                 .Single(a => a.GetProperty("maskId").GetGuid() == TestModule.TestModule.CaseMaskId);
             Assert.Equal("name", entry.GetProperty("prompt").GetString());
+            // The entry itself names what it requires (#2216), so a client needs no request to know a name will not do.
+            Assert.Equal(["Case number"], entry.GetProperty("requiredFields").EnumerateArray().Select(f => f.GetString()));
             var maskHref = entry.GetProperty("maskHref").GetString();
             Assert.False(string.IsNullOrEmpty(maskHref), "the entry advertises no maskHref");
 
