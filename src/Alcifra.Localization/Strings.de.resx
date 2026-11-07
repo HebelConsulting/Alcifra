@@ -72,6 +72,9 @@
   <data name="ApiErrRequiredFieldMissing" xml:space="preserve">
     <value>{0} ist erforderlich.</value>
   </data>
+  <data name="ApiErrMaskHeldByReference" xml:space="preserve">
+    <value>Ein Ordner oder ein Feld, das dieses Element enthält, nimmt nur seinen jetzigen Typ an. Entfernen Sie es zuerst dort.</value>
+  </data>
   <data name="ApiErrRequiredFieldMissingUnnamed" xml:space="preserve">
     <value>Ein Pflichtfeld ist leer.</value>
   </data>

@@ -482,6 +482,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     {
         await AcceptedContentInvariants.EnforceAsync(this, _moduleMasks, cancellationToken);
         await ReferenceAdmissionInvariants.EnforceAsync(this, _moduleMasks, _containmentProvider, cancellationToken);
+        await MaskHeldByReferenceInvariants.EnforceAsync(this, _moduleMasks, _containmentProvider, cancellationToken);
 
         var changedDocuments = ChangeTracker.Entries<Document>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified)

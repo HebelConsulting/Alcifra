@@ -53,6 +53,8 @@ public static class ApiErrorText
     {
         // A mask's required field left empty (ADR 0176, #2217): with the field named, the overload above says which.
         "REQUIRED_FIELD_MISSING" => Strings.Get("ApiErrRequiredFieldMissingUnnamed"),
+        // A folder or a reference field holds the document and would not take the new mask (#2214, ADR 1074).
+        "MASK_HELD_BY_REFERENCE" => Strings.Get("ApiErrMaskHeldByReference"),
         // Mail-domain registration (#667). The not-verified one is the interesting case: it is the EXPECTED
         // answer between publishing a record and DNS carrying it, so the sentence says what to do next rather
         // than reporting a fault.

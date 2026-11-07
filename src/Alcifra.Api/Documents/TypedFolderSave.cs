@@ -58,6 +58,11 @@ public static class TypedFolderSave
         Domain.Masks.StructuralMaskImmutableException x =>
             new Errors.Exceptions.Documents.StructuralMaskImmutableException(x.Message),
 
+        // The same catch, and a remedy unlike a missing field's: take the document out of the folder or field holding
+        // it (#2214, ADR 1074).
+        Domain.Masks.MaskHeldByReferenceException x =>
+            new Errors.Exceptions.Documents.MaskHeldByReferenceException(x.Message),
+
         // Translated for the same reason as the line above, and it is the same bug twice: a caller that
         // catches InvalidOperationException wholesale reports whatever cause it happens to assume — which for
         // DocumentChildrenController is a name clash, on a name that is a fresh GUID.

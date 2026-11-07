@@ -86,6 +86,9 @@ public class ApiExceptionHandler : IExceptionHandler
             // A version filed through a path that does not translate its own save (ABI 1.29, ADR 1046).
             Alcifra.Domain.Masks.ContentExtensionNotAcceptedException content =>
                 ("CONTENT_EXTENSION_NOT_ACCEPTED", StatusCodes.Status415UnsupportedMediaType, content.Message),
+            // A mask changed by a path that does not translate its own save, while something holds the document (ADR 1074).
+            Alcifra.Domain.Masks.MaskHeldByReferenceException held =>
+                ("MASK_HELD_BY_REFERENCE", StatusCodes.Status409Conflict, held.Message),
             _ => ("INTERNAL_ERROR", StatusCodes.Status500InternalServerError, "An unexpected error occurred."),
         };
 

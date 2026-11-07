@@ -5,8 +5,8 @@ namespace Alcifra.Infrastructure.Persistence;
 /// <summary>
 /// The one check of a reference field's accepted masks (#2214, ADR 1068): where a field names masks, a value must point at a
 /// document wearing one of them, the way an accepted extension refuses the wrong file. Called from SaveChanges, the sole
-/// enforcement point. Only a value being written is checked: a target whose mask changes later is the world changing under a
-/// correct value, as a target purged later is.
+/// enforcement point. Only a value being written is checked here; a target whose mask changes later is refused by
+/// <see cref="MaskHeldByReferenceInvariants"/> (ADR 1074), and a target purged later is the world changing under a correct value.
 /// </summary>
 internal static class ReferenceFieldTargets
 {

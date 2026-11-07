@@ -72,6 +72,9 @@
   <data name="ApiErrRequiredFieldMissing" xml:space="preserve">
     <value>{0} es obligatorio.</value>
   </data>
+  <data name="ApiErrMaskHeldByReference" xml:space="preserve">
+    <value>Una carpeta o un campo que contiene este elemento solo acepta su tipo actual. Quítelo primero de allí.</value>
+  </data>
   <data name="ApiErrRequiredFieldMissingUnnamed" xml:space="preserve">
     <value>Un campo obligatorio está vacío.</value>
   </data>
