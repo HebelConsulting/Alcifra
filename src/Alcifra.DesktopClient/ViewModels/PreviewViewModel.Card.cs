@@ -12,6 +12,21 @@ public sealed partial class PreviewViewModel
     [NotifyPropertyChangedFor(nameof(HasWatermark))]
     private StructuredCardViewModel? _card;
 
+    /// <summary>A mail's card on show (#2215); null when the preview shows anything else.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPreview))]
+    [NotifyPropertyChangedFor(nameof(HasWatermark))]
+    private MailCardViewModel? _mailCard;
+
+    /// <summary>Shows a mail's card in place of its rendition.</summary>
+    public void ShowMailCard(MailCardViewModel card)
+    {
+        Reset(null);
+        LastRendered = null;
+        (PreviewConverted, _annotationsUrl, AddNoteMode) = (false, null, false);
+        MailCard = card;
+    }
+
     /// <summary>Shows <paramref name="card"/> in place of a rendering.</summary>
     public void ShowCard(StructuredCardViewModel card)
     {

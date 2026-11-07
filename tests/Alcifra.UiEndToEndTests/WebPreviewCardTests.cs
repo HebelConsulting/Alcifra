@@ -61,6 +61,40 @@ public class WebPreviewCardTests(SelfHostedAppFixture app)
         await Expect(preview.Locator("[data-preview-card]")).ToHaveCountAsync(0);
     }
 
+    // A mail previews as its card (ADR 1073): the envelope, the sanitised HTML in a sandboxed frame, and its attachments.
+    [Fact]
+    public async Task A_mail_shows_as_its_card_with_its_html_in_a_sandboxed_frame()
+    {
+        var run = Guid.NewGuid().ToString("N")[..8];
+        using var http = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", await Ui.GetUserTokenAsync(app.BaseUrl));
+        var repos = (await http.GetFromJsonAsync<JsonElement>("/api/repositories")).GetProperty("repositories");
+        var repoId = repos.EnumerateArray().First(r => r.GetProperty("name").GetString() == "Demo Repository").GetProperty("id").GetGuid();
+        var folder = await FolderAsync(http, repoId, $"Mails-{run}", "folder");
+        var rfc822 = $"From: Anna <anna@example.com>\r\nTo: tom@example.com\r\nSubject: Quarterly {run}\r\nMIME-Version: 1.0\r\n"
+            + "Content-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/html; charset=utf-8\r\n\r\n"
+            + "<p>Hello <b>there</b></p><script>alert(1)</script>\r\n--b\r\nContent-Type: text/plain\r\n"
+            + $"Content-Disposition: attachment; filename=report-{run}.txt\r\n\r\nthe report\r\n--b--\r\n";
+        await FileAsync(http, folder, $"mail-{run}", ".eml", rfc822);
+
+        var page = await Ui.LoginAsync(app);
+        var list = page.Locator("[data-pane='list']");
+        var preview = page.Locator("[data-pane='preview']");
+        await Expect(page.Locator("[data-pane='tree']")).ToBeVisibleAsync(new() { Timeout = 60000 });
+        await page.Locator("[data-pane='tree']").GetByText("Demo Repository").First.ClickAsync();
+        await list.Locator(".wb-list-row").Filter(new() { HasText = $"Mails-{run}" }).First.DblClickAsync();
+        await list.Locator(".wb-list-row").Filter(new() { HasText = $"Quarterly {run}" }).First.ClickAsync();
+
+        var mail = preview.Locator("[data-preview-mail]");
+        await Expect(mail).ToContainTextAsync($"Quarterly {run}");
+        await Expect(mail.Locator("[data-preview-mail-attachment]")).ToContainTextAsync($"report-{run}");
+        var frame = mail.Locator("iframe[data-preview-mail-body]");
+        await Expect(frame).ToHaveAttributeAsync("sandbox", "allow-popups allow-popups-to-escape-sandbox");
+        var body = await frame.GetAttributeAsync("srcdoc");
+        Assert.Contains("<b>there</b>", body);
+        Assert.DoesNotContain("script", body, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static async Task<Guid> FolderAsync(HttpClient http, Guid parent, string name, string folderMask) =>
         (await (await http.PostAsJsonAsync($"/api/documents/{parent}/children", new { name, folderMask })).EnsureSuccessStatusCode()
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();

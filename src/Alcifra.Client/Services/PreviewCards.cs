@@ -1,12 +1,25 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using MudBlazor;
+using Alcifra.Client.Models;
 using Alcifra.Localization;
 
 namespace Alcifra.Client.Services;
 
 /// <summary>A contact's or an appointment's card in a preview pane (#2215): the editor's own form, read-only, and its pencil.</summary>
-public sealed record StructuredCard(ContactCardForm? Contact, AppointmentForm? Appointment, bool CanEdit, Func<Task>? Edit);
+public sealed record StructuredCard(ContactCardForm? Contact, AppointmentForm? Appointment, bool CanEdit, Func<Task>? Edit)
+{
+    /// <summary>A mail's card instead (ADR 1073): read-only, no pencil.</summary>
+    public MailCard? Mail { get; init; }
+}
+
+/// <summary>A mail as the web shows it: the envelope, the sanitised HTML with its inline images as data, the text, and the
+/// attachments with their open and download addresses.</summary>
+public sealed record MailCard(string Subject, string From, string To, string? Cc, DateTimeOffset? Date, string? Html, string Text,
+    IReadOnlyList<MailAttachment> Attachments);
+
+/// <summary>An attachment: its name and the presigned address it opens and downloads from (null where none is offered).</summary>
+public sealed record MailAttachment(string Name, string? Url);
 
 /// <summary>
 /// Decides whether a preview shows a card instead of a rendering, and builds it (#2215). Only a document whose mask is
@@ -18,6 +31,7 @@ public sealed class PreviewCards(HttpClient http, StructuredEditors editors, IDi
 {
     private const string ContactMaskName = "Contact";
     private const string AppointmentMaskName = "Appointment";
+    private const string MailMaskName = "eMail";
 
     /// <summary>
     /// The card for the document at <paramref name="selfHref"/>, or null where it gets none. <paramref name="maskName"/> is
@@ -36,6 +50,7 @@ public sealed class PreviewCards(HttpClient http, StructuredEditors editors, IDi
         {
             ContactMaskName => await ContactAsync(selfHref, show),
             AppointmentMaskName => await AppointmentAsync(selfHref, show),
+            MailMaskName => await MailAsync(selfHref),
             _ => null,
         };
     }
@@ -89,6 +104,68 @@ public sealed class PreviewCards(HttpClient http, StructuredEditors editors, IDi
             }
         });
     }
+
+    // A mail's card (ADR 1073): the frame that shows its HTML is sandboxed and sends no credentials, so an inline image
+    // is fetched here, with them, and handed over as data; the attachments carry their presigned download address.
+    private async Task<StructuredCard?> MailAsync(string selfHref)
+    {
+        try
+        {
+            var document = await http.GetFromJsonAsync<JsonElement>(selfHref);
+            if (Rel(document, "email-card") is not { } cardHref)
+            {
+                return null;
+            }
+
+            var card = await http.GetFromJsonAsync<JsonElement>(cardHref);
+            var html = card.TryGetProperty("html", out var h) && h.ValueKind == JsonValueKind.String ? h.GetString() : null;
+            if (html is not null)
+            {
+                foreach (var src in System.Text.RegularExpressions.Regex.Matches(html, "src=\"([^\"]+/email-card/inline/\\d+)\"").Select(m => m.Groups[1].Value).Distinct().ToList())
+                {
+                    using var image = await http.GetAsync(src);
+                    var data = image.IsSuccessStatusCode
+                        ? $"data:{image.Content.Headers.ContentType?.MediaType};base64,{Convert.ToBase64String(await image.Content.ReadAsByteArrayAsync())}"
+                        : string.Empty;
+                    html = html.Replace($"src=\"{src}\"", $"src=\"{data}\"", StringComparison.Ordinal);
+                }
+            }
+
+            var attachments = new List<MailAttachment>();
+            foreach (var a in card.TryGetProperty("attachments", out var list) ? list.EnumerateArray().ToList() : [])
+            {
+                var name = a.GetProperty("name").GetString() ?? string.Empty;
+                string? url = null;
+                if (Rel(a, "versions") is { } versionsHref)
+                {
+                    var versions = await http.GetFromJsonAsync<VersionListResponse>(versionsHref);
+                    var current = VersionListResponse.PickCurrent(versions?.Versions?.Where(v => v.Status == "Confirmed").ToList() ?? [], versions?.CurrentVersionId);
+                    url = current is null ? null : http.Absolute(Hypermedia.Links.Href(current.Links, "download"));
+                }
+
+                attachments.Add(new MailAttachment(name, url));
+            }
+
+            string? Str(string property) => card.TryGetProperty(property, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+            return new StructuredCard(null, null, false, null)
+            {
+                Mail = new MailCard(Str("subject") ?? string.Empty, Str("from") ?? string.Empty, Str("to") ?? string.Empty, Str("cc"),
+                    card.TryGetProperty("date", out var d) && d.ValueKind == JsonValueKind.String ? d.GetDateTimeOffset() : null,
+                    html, Str("text") ?? string.Empty, attachments),
+            };
+        }
+        catch (Exception e) when (e is HttpRequestException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string? Rel(JsonElement resource, string rel) =>
+        resource.TryGetProperty("links", out var links) && links.ValueKind == JsonValueKind.Array
+            ? links.EnumerateArray().FirstOrDefault(l => l.GetProperty("rel").GetString() == rel) is { ValueKind: JsonValueKind.Object } link
+                ? link.GetProperty("href").GetString()
+                : null
+            : null;
 
     private async Task SaveAndShowAsync(string href, object payload, string etag, Func<Task<StructuredCard?>> reread, Func<StructuredCard, Task> show)
     {

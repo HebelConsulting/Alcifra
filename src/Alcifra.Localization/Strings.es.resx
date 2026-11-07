@@ -1149,6 +1149,24 @@
   <data name="RightManageIntrays" xml:space="preserve">
     <value>Gestionar bandejas</value>
   </data>
+  <data name="MailFrom" xml:space="preserve">
+    <value>De</value>
+  </data>
+  <data name="MailTo" xml:space="preserve">
+    <value>Para</value>
+  </data>
+  <data name="MailCc" xml:space="preserve">
+    <value>Cc</value>
+  </data>
+  <data name="MailDate" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="MailAttachmentOpen" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="MailAttachmentSave" xml:space="preserve">
+    <value>Guardar…</value>
+  </data>
   <data name="OneValuePerLine" xml:space="preserve">
     <value>Un valor por línea</value>
   </data>

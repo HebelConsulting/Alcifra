@@ -379,6 +379,12 @@ public sealed class DocumentResourceLinks
         //
         // Without these the endpoints are unreachable by a conforming client: the desktop composes no API URLs
         // at all, so an endpoint no rel reaches does not exist as far as it is concerned.
+        // A mail's card for the preview (#2215, ADR 1073): only a document the archive classified as an eMail.
+        if (rights.CanReadContent && folderMaskId == WellKnownMaskIds.EMail)
+        {
+            links.Add(new Link("email-card", $"/api/documents/{documentId}/email-card", "GET"));
+        }
+
         if (rights.CanReadContent && folderMaskId == WellKnownMaskIds.Contact)
         {
             links.Add(new Link("contact-card", $"/api/documents/{documentId}/contact-card", "GET"));

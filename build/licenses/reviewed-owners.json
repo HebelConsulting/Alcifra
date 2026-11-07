@@ -321,5 +321,29 @@
     ],
     "ProjectUrl": "https://github.com/micjahn/ZXing.Net/",
     "Reviewed": "2026-10-31"
+  },
+  {
+    "Id": "AngleSharp",
+    "Owners": [
+      "florianrappl"
+    ],
+    "ProjectUrl": "https://anglesharp.github.io/",
+    "Reviewed": "2026-11-07"
+  },
+  {
+    "Id": "AngleSharp.Css",
+    "Owners": [
+      "florianrappl"
+    ],
+    "ProjectUrl": "https://anglesharp.github.io/",
+    "Reviewed": "2026-11-07"
+  },
+  {
+    "Id": "HtmlSanitizer",
+    "Owners": [
+      "mganss"
+    ],
+    "ProjectUrl": "https://github.com/mganss/HtmlSanitizer",
+    "Reviewed": "2026-11-07"
   }
 ]

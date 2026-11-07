@@ -96,7 +96,48 @@
                                            title="@Strings.Get("Edit")" aria-label="@Strings.Get("Edit")" data-preview-card-edit />
                         </div>
                     }
-                    @if (card.Contact is { } contact)
+                    @if (card.Mail is { } mail)
+                    {
+                        @* A mail's card (ADR 1073): the envelope, its attachments, and the body. The HTML was sanitised on the
+                           server and sits in a sandboxed frame that runs nothing and sends no credentials; links open apart. *@
+                        <div data-preview-mail>
+                            <div style="font-size:1.1em; font-weight:600;">@mail.Subject</div>
+                            <div class="mud-text-secondary" style="font-size:.9em;">
+                                <div>@Strings.Get("MailFrom") @mail.From</div>
+                                <div>@Strings.Get("MailTo") @mail.To</div>
+                                @if (!string.IsNullOrEmpty(mail.Cc))
+                                {
+                                    <div>@Strings.Get("MailCc") @mail.Cc</div>
+                                }
+                                @if (mail.Date is { } date)
+                                {
+                                    <div>@Strings.Get("MailDate") @date.InZone(SessionTimeZone.Current).ToString("g", System.Globalization.CultureInfo.CurrentCulture)</div>
+                                }
+                            </div>
+                            @foreach (var attachment in mail.Attachments)
+                            {
+                                <div style="display:flex; gap:8px; align-items:center; margin-top:4px;" data-preview-mail-attachment>
+                                    <MudIcon Icon="@Icons.Material.Filled.AttachFile" Size="Size.Small" />
+                                    <span>@attachment.Name</span>
+                                    @if (attachment.Url is { } url)
+                                    {
+                                        <a href="@url" target="_blank" rel="noopener">@Strings.Get("MailAttachmentOpen")</a>
+                                        <a href="@url" download="@attachment.Name">@Strings.Get("MailAttachmentSave")</a>
+                                    }
+                                </div>
+                            }
+                            @if (mail.Html is { } html)
+                            {
+                                <iframe sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" data-preview-mail-body
+                                        srcdoc="@($"<base target=\"_blank\">{html}")" style="width:100%; min-height:360px; border:0; margin-top:8px; background:#fff;"></iframe>
+                            }
+                            else
+                            {
+                                <pre style="white-space:pre-wrap; font-family:inherit; margin-top:8px;" data-preview-mail-body>@mail.Text</pre>
+                            }
+                        </div>
+                    }
+                    else if (card.Contact is { } contact)
                     {
                         <ContactFormFields Form="contact" />
                     }

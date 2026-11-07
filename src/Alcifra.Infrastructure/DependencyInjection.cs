@@ -431,6 +431,7 @@ public static class DependencyInjection
         // Email envelope parsing for auto-classification (ADR "Email auto-classification") — no Gotenberg
         // needed (header-only, unlike the preview converter), so registered unconditionally.
         services.AddSingleton<IEmailMetadataExtractor, EmailMetadataExtractor>();
+        services.AddSingleton<IEmailCardReader, EmailCardReader>();
 
         // On-demand .zip reading for browsing archive contents (ADR "Zip file browsing").
         services.AddSingleton<IArchiveReader, ZipArchiveReader>();

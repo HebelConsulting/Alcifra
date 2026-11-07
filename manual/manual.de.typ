@@ -113,6 +113,10 @@ Ein *Kontakt* oder ein *Termin*#idx("Kontaktkarte") erscheint stattdessen als ei
 Register *Kontakte* und *Kalender* ihn bearbeiten, schreibgeschützt. Der Stift über der Karte öffnet dieses Formular zum
 Ändern. Nur was das Archiv als Kontakt oder Termin abgelegt hat, erhält eine Karte; jede andere .vcf- oder .ics-Datei behält
 ihre gewohnte Vorschau.
+
+Eine *E-Mail*#idx("E-Mail-Karte") erscheint ebenso: wer sie wann an wen gesendet hat, ihre Anhänge mit *Öffnen* und
+*Speichern* und ihr Text. Der Web-Client zeigt die E-Mail so formatiert, wie sie geschrieben wurde, ohne das, was ausgeführt
+werden oder nach Hause melden könnte; der Desktop-Client zeigt ihren Text.
 Im Desktop-Client können Sie das Dokument ausserdem in seiner nativen
 Anwendung *öffnen*#idx("Dokument öffnen") — über das Kontextmenü der Zeile, das Menüband, einen Doppelklick oder das Tastenkürzel
 *⌘O* (*Ctrl+O* unter Windows und Linux). Dasselbe Kürzel öffnet im Register *Eingangskorb* den ausgewählten Eintrag.]

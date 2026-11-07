@@ -46,6 +46,9 @@
     <!-- MailKit (MIT), MimeKit's SMTP companion — sends notification emails (ADR "Email notifications"). -->
     <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="MSGReader" Version="6.1.0" />
+    <!-- A mail card's HTML is sanitised once, here, before any client shows it (#2215, ADR 1073). 9.2.1039, not the newest:
+         the newest was a day old when this was added, and a release that young has not been looked at by anyone. -->
+    <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <!-- Markdown -> HTML for the .md preview (ADR "CSV and Markdown preview"). BSD-2-Clause (Apache-2.0-compatible). -->
     <PackageReference Include="Markdig" Version="1.3.2" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />

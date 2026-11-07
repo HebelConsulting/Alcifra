@@ -372,6 +372,21 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         var reviewed = await VersionedDocumentAsync(owner, folder, "Reviewed");
         var deleted = await VersionedDocumentAsync(owner, folder, "Deleted");
 
+        // A mail with an inline image, so the crawl reaches its card and the image (#2215, ADR 1073).
+        var mail = (await TestJson.Post(owner, $"/api/documents/{folder}/children", new { name = "Mail" })).GetProperty("id").GetGuid();
+        var mailVersion = await TestJson.Post(owner, $"/api/documents/{mail}/versions", new { fileExtension = ".eml" });
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        var mime = "From: a@reach.local\r\nTo: b@reach.local\r\nSubject: Reach\r\nMIME-Version: 1.0\r\n"
+            + "Content-Type: multipart/related; boundary=r\r\n\r\n--r\r\nContent-Type: text/html\r\n\r\n<img src=\"cid:i@reach\">\r\n"
+            + "--r\r\nContent-Type: image/png\r\nContent-ID: <i@reach>\r\nContent-Transfer-Encoding: base64\r\n\r\n"
+            + Convert.ToBase64String(png) + "\r\n--r--\r\n";
+        using (var storage = new HttpClient())
+        {
+            (await storage.PutAsync(mailVersion.GetProperty("uploadUrl").GetString()!, new ByteArrayContent(Encoding.UTF8.GetBytes(mime)))).EnsureSuccessStatusCode();
+        }
+
+        await TestJson.Put(owner, $"/api/documents/{mail}/versions/{mailVersion.GetProperty("id").GetGuid()}", new { });
+
         // The user may read the repository (an ACL entry, and a notification), and reviews one version.
         await TestJson.Put(owner, $"/api/documents/{repo}/acl-entries/users/{userId}", new { canSee = true, canReadContent = true });
         var reviewedVersion = (await TestJson.Get(owner, $"/api/documents/{reviewed}/versions")).GetProperty("versions")[0].GetProperty("id").GetGuid();

@@ -70,6 +70,47 @@ public class DesktopStructuredCardTests(SelfHostedAppFixture app)
         Assert.Null(vm.Preview.Card);
     }
 
+    // A mail previews as its card (ADR 1073): the envelope, the body as text, and its attachments, which open and save.
+    [Fact]
+    public async Task A_mail_shows_as_its_card_with_the_body_as_text_and_its_attachments()
+    {
+        DesktopClientOptions.ApiBaseUrl = app.BaseUrl;
+        var token = await Ui.GetUserTokenAsync(app.BaseUrl);
+        var api = new AlcifraApiClient(token);
+        using var http = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var repos = (await http.GetFromJsonAsync<JsonElement>("/api/repositories")).GetProperty("repositories");
+        var repoId = repos.EnumerateArray().First(r => r.GetProperty("name").GetString() == "Demo Repository").GetProperty("id").GetGuid();
+        var run = Guid.NewGuid().ToString("N")[..8];
+        var folder = await FolderAsync(http, repoId, $"Mail {run}", "folder");
+
+        var builder = new MimeKit.BodyBuilder { HtmlBody = "<p>Hello <b>there</b></p><script>x()</script>" };
+        builder.Attachments.Add($"report-{run}.txt", Encoding.UTF8.GetBytes("the report"), new MimeKit.ContentType("text", "plain"));
+        var message = new MimeKit.MimeMessage { Subject = $"Quarterly {run}", Body = builder.ToMessageBody() };
+        message.From.Add(new MimeKit.MailboxAddress("Anna", "anna@example.com"));
+        message.To.Add(new MimeKit.MailboxAddress("Tom", "tom@example.com"));
+        using var buffer = new MemoryStream();
+        await message.WriteToAsync(buffer);
+        await FileAsync(http, folder, $"mail-{run}", ".eml", Encoding.UTF8.GetString(buffer.ToArray()));
+
+        var vm = new MainWindowViewModel();
+        await vm.InitializeSessionAsync(api, SelfHostedAppFixture.AdminEmail);
+        await vm.OpenFolderAsync($"/api/documents/{folder}");
+        vm.SelectedItem = vm.Items.Single(i => !i.IsFolder && i.DocumentType == "eMail");
+        await WaitForAsync(() => vm.Preview.MailCard is not null);
+
+        var card = vm.Preview.MailCard!;
+        Assert.Equal($"Quarterly {run}", card.Subject);
+        Assert.Contains("anna@example.com", card.From);
+        Assert.Contains("Hello there", card.Body);
+        Assert.DoesNotContain("x()", card.Body);
+        var attachment = Assert.Single(card.Attachments);
+        Assert.Equal($"report-{run}", attachment.Name);
+        var read = await attachment.Read();
+        Assert.Equal("the report", Encoding.UTF8.GetString(read!.Value.Bytes));
+        Assert.Equal($"report-{run}.txt", read.Value.FileName);
+    }
+
     private static async Task<Guid> FolderAsync(HttpClient http, Guid parent, string name, string folderMask) =>
         (await (await http.PostAsJsonAsync($"/api/documents/{parent}/children", new { name, folderMask })).EnsureSuccessStatusCode()
             .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();

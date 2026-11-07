@@ -195,6 +195,38 @@
                                        IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).Card.Appointment, Converter={x:Static conv:ObjectConverters.IsNotNull}, FallbackValue=False}" />
                 </StackPanel>
             </ScrollViewer>
+            <!-- A mail's card (#2215, ADR 1073): the envelope, the body as text (no HTML view on this client yet, #2243), and the
+                 attachments, each opened in its own application or saved. -->
+            <ScrollViewer IsVisible="{Binding MailCard, Converter={x:Static conv:ObjectConverters.IsNotNull}}">
+                <StackPanel Margin="14" Spacing="6" MaxWidth="720" HorizontalAlignment="Left" DataContext="{Binding MailCard}">
+                    <SelectableTextBlock Text="{Binding Subject}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="60,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Text="{loc:Tr MailFrom}" Foreground="{DynamicResource WbMuted}" />
+                        <SelectableTextBlock Grid.Row="0" Grid.Column="1" Text="{Binding From}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="1" Text="{loc:Tr MailTo}" Foreground="{DynamicResource WbMuted}" />
+                        <SelectableTextBlock Grid.Row="1" Grid.Column="1" Text="{Binding To}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="2" Text="{loc:Tr MailCc}" Foreground="{DynamicResource WbMuted}" IsVisible="{Binding HasCc}" />
+                        <SelectableTextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Cc}" TextWrapping="Wrap" IsVisible="{Binding HasCc}" />
+                        <TextBlock Grid.Row="3" Text="{loc:Tr MailDate}" Foreground="{DynamicResource WbMuted}" />
+                        <SelectableTextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Date}" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding Attachments}" IsVisible="{Binding HasAttachments}" Margin="0,4,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MailAttachmentViewModel">
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
+                                    <i:Icon Value="mdi-paperclip" FontSize="14" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                    <Button Content="{loc:Tr MailAttachmentOpen}" Command="{Binding OpenCommand}" Padding="6,1" />
+                                    <Button Content="{loc:Tr MailAttachmentSave}" Click="OnSaveAttachment" Padding="6,1" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,8,0,0">
+                        <SelectableTextBlock Text="{Binding Body}" TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
             <!-- The placeholder, and for a sealed document this machine could not open, its plain state: a lock, the
                  title, what is known about the user's keys, and "Open with my key" (ADR 0969). -->
             <StackPanel x:Name="Placeholder" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="280"

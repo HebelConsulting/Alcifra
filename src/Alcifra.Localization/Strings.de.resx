@@ -1149,6 +1149,24 @@
   <data name="RightManageIntrays" xml:space="preserve">
     <value>Eingänge verwalten</value>
   </data>
+  <data name="MailFrom" xml:space="preserve">
+    <value>Von</value>
+  </data>
+  <data name="MailTo" xml:space="preserve">
+    <value>An</value>
+  </data>
+  <data name="MailCc" xml:space="preserve">
+    <value>Cc</value>
+  </data>
+  <data name="MailDate" xml:space="preserve">
+    <value>Datum</value>
+  </data>
+  <data name="MailAttachmentOpen" xml:space="preserve">
+    <value>Öffnen</value>
+  </data>
+  <data name="MailAttachmentSave" xml:space="preserve">
+    <value>Speichern…</value>
+  </data>
   <data name="OneValuePerLine" xml:space="preserve">
     <value>Ein Wert pro Zeile</value>
   </data>

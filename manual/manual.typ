@@ -110,6 +110,10 @@ way to fill index fields on the *Intray* tab: click the values in the scan's pre
 A *contact* or an *appointment*#idx("Contact card") shows as its own card instead: the same form the Contacts and
 Calendar tabs edit it with, read-only. The pencil above the card opens that form to change it. Only an item the
 archive filed as a contact or an appointment gets a card; any other .vcf or .ics file keeps its ordinary preview.
+
+A *mail*#idx("Mail card") shows the same way: who sent it, to whom and when, its attachments with *Open* and *Save*, and
+its text. The web client shows the mail as it was formatted, without anything that could run or call home; the desktop
+client shows its text.
 In the desktop client you can also *open* the document in its native
 application#idx("Open a document") — from the row's context menu, the ribbon, a double-click, or the keyboard
 shortcut *⌘O* (*Ctrl+O* on Windows and Linux). The same shortcut opens the selected item on the *Intray* tab.]

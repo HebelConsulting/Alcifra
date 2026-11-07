@@ -307,4 +307,23 @@ public partial class PreviewPane : UserControl
             await edit.SaveAsync(filled);
         }
     });
+
+    // An attachment's Save (#2215): the dialog is the view's, the bytes are the card's.
+    private void OnSaveAttachment(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Alcifra.DesktopClient.Services.Safe.Fire(async () =>
+    {
+        if ((sender as Control)?.DataContext is not MailAttachmentViewModel attachment || TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage
+            || await attachment.Read() is not { } read)
+        {
+            return;
+        }
+
+        var file = await storage.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions { SuggestedFileName = read.FileName });
+        if (file is null)
+        {
+            return;
+        }
+
+        await using var stream = await file.OpenWriteAsync();
+        await stream.WriteAsync(read.Bytes);
+    });
 }

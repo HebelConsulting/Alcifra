@@ -1,5 +1,6 @@
 using Alcifra.ApiClient;
 using Alcifra.DesktopClient.Services;
+using Alcifra.Localization;
 
 namespace Alcifra.DesktopClient.ViewModels;
 
@@ -10,6 +11,7 @@ public partial class MainWindowViewModel
     // the same form and the server offers it the appointment rel, but its preview stays what it was.
     private const string ContactMaskName = "Contact";
     private const string AppointmentMaskName = "Appointment";
+    private const string MailMaskName = "eMail";
 
     /// <summary>
     /// Shows the open document as a card where its mask is Contact or Appointment, and the server offers the matching
@@ -35,6 +37,11 @@ public partial class MainWindowViewModel
             card = await CardAsync(self, "appointment", AppointmentEditViewModel.From);
         }
 
+        if (mask == MailMaskName && _detailLinks.Href("email-card") is { } mailHref)
+        {
+            return await TryShowMailCardAsync(mailHref, documentId);
+        }
+
         if (card is null || _selectedDocumentId != documentId)
         {
             return false;
@@ -42,6 +49,52 @@ public partial class MainWindowViewModel
 
         Preview.ShowCard(card);
         return true;
+    }
+
+    // A mail's card (#2215): its attachments open in their own application through the content funnel, and are saved
+    // from the same bytes.
+    private async Task<bool> TryShowMailCardAsync(string href, Guid? documentId)
+    {
+        if (await _api!.Documents.ReadMailCardAsync(href) is not { } mail || _selectedDocumentId != documentId)
+        {
+            return false;
+        }
+
+        var attachments = mail.Attachments.Select(a => new MailAttachmentViewModel(a.Name,
+            async () => await OpenAttachmentAsync(a),
+            async () => await ReadAttachmentAsync(a))).ToList();
+        Preview.ShowMailCard(new MailCardViewModel(mail, attachments));
+        return true;
+    }
+
+    private async Task OpenAttachmentAsync(DocumentsClient.MailAttachment attachment)
+    {
+        try
+        {
+            if (attachment.VersionsHref is not { } versions || await _api!.Documents.GetPreviewAsync(versions) is not { DownloadUrl: { } url } preview)
+            {
+                Status = string.Format(Strings.Get("StNoDownloadable"), attachment.Name);
+                return;
+            }
+
+            await NativeFileOpener.OpenAsync(url, WithExtension(attachment.Name, preview.FileExtension));
+            Status = string.Format(Strings.Get("StOpenedNative"), attachment.Name);
+        }
+        catch (Exception e) when (e is HttpRequestException or ApiActionException or IOException)
+        {
+            ReportError(string.Format(Strings.Get("StErrOpen2"), attachment.Name, e.Message));
+        }
+    }
+
+    private async Task<(byte[] Bytes, string FileName)?> ReadAttachmentAsync(DocumentsClient.MailAttachment attachment)
+    {
+        if (attachment.VersionsHref is not { } versions || await _api!.Documents.GetPreviewAsync(versions) is not { DownloadUrl: { } url } preview)
+        {
+            return null;
+        }
+
+        var (bytes, _, _) = await AlcifraApiClient.DownloadDetailedAsync(url);
+        return (bytes, WithExtension(attachment.Name, preview.FileExtension));
     }
 
     // One reading of the item, the card built over it, and its pencil: a fresh read for the editor (a card read minutes
