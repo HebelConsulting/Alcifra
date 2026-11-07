@@ -73,8 +73,8 @@ dotnet tool install --global Alcifra.Cli
 # the earlier ids SimplArchive.Cli and HebelConsulting.SimplArchive.Cli install `saconsole`; replace them once:
 #   dotnet tool uninstall --global SimplArchive.Cli
 
-# interactive: approve the sign-in in your browser, then the session is set for this shell
-eval "$(alcifra login --url https://archive.example.com)"
+# interactive: approve the sign-in in your browser; the session is kept for this tool and apass
+alcifra login --url https://archive.example.com
 alcifra whoami
 ```
 

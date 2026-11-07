@@ -59,7 +59,7 @@ public static class WireNames
 
     /// <summary>
     /// The environment variables the command-line tools share (<c>alcifra</c>, <c>apass</c>): the installation's address,
-    /// the session's access token (both printed by <c>login</c> as shell exports), and a client secret, which is never an
+    /// the session's access token (both override the session file, and a service account's login prints them as shell exports), and a client secret, which is never an
     /// option. Wire in ADR 0987's sense: a script written against them must work whatever the build is called.
     /// </summary>
     public const string UrlVariable = "ALCIFRA_URL";
@@ -69,6 +69,9 @@ public static class WireNames
 
     /// <inheritdoc cref="UrlVariable"/>
     public const string ClientSecretVariable = "ALCIFRA_CLIENT_SECRET";
+
+    /// <summary>Where the tools keep a person's session, in place of the platform's per-user data folder (ADR 1071).</summary>
+    public const string SessionFileVariable = "ALCIFRA_SESSION_FILE";
 
     /// <summary>The file extension of a user's sealed Messenger backup.</summary>
     public const string MessengerBackupExtension = $".{Product}-messages";

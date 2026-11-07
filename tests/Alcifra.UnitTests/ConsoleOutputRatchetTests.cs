@@ -46,7 +46,6 @@ public class ConsoleOutputRatchetTests
         ["src/Alcifra.DesktopClient/Services/DesktopLog.cs"] = 1,
         // apass (ADR 0964, 2026-10-25): a pass-like CLI, so its DATA output is stdout by contract — what a script
         // captures (`apass show x | head -1`, `eval "$(apass login …)"`) and what completion reads.
-        ["src/Alcifra.Pass/Commands/LoginCommand.cs"] = 2,   // data output only: the two shell exports
         ["src/Alcifra.Pass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
         ["src/Alcifra.Pass/Commands/AudienceCommand.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)
         ["src/Alcifra.Pass/Commands/FindCommand.cs"] = 1,   // data output only: the matching paths

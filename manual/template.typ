@@ -12,6 +12,11 @@
 // The product's name (ADR 0989), passed by generate-manual.sh from brand/brand.json: never spelled here.
 #let product = sys.inputs.at("product")
 
+// The installed desktop client on macOS (#2229): the bundle is named by the brand's fileStem
+// (scripts/package-macos-dmg.sh), and the executable inside it by the project, which no brand changes.
+#let mac-app = brand.fileStem + ".app"
+#let mac-executable = "/Applications/" + mac-app + "/Contents/MacOS/Alcifra.DesktopClient"
+
 // Document-wide configuration. Wrap the whole manual body in `#show: conf`.
 // Set by every heading, read and cleared by the first paragraph after it (#699) — see the show rules below.
 #let after-heading = state("manual.after-heading", false)

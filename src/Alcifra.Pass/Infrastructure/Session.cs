@@ -12,14 +12,8 @@ namespace Alcifra.Pass.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The neutral variables come first, and alcifra's are still read for one release</b> (owner, 2026-10-25): the
-/// session was named after one of the two tools, so a person who signed in with either tool should not have to
-/// sign in again with the other while the names settle.
-/// </para>
-/// <para>
-/// <b>Nothing is written to disk.</b> The session lives in the environment, so there is no credential file to
-/// find on a host and no second place for "which installation" to be answered differently from the shell that
-/// is typing.
+/// <b>One session for both tools, in the environment by the time a command runs</b>: the session file's, loaded at start-up
+/// (<see cref="Alcifra.ApiClient.Login.CliSession"/>, ADR 1071), unless the shell set the variables itself.
 /// </para>
 /// </remarks>
 internal sealed class Session : IDisposable
@@ -48,9 +42,9 @@ internal sealed class Session : IDisposable
     public static Session FromEnvironment(IEnvelopeOpener? opener = null)
     {
         var url = Variable(UrlVariable)
-            ?? throw new PassException($"No installation. Run: eval \"$(apass login --url …)\" to set ${UrlVariable}.");
+            ?? throw new PassException("No installation. Run: apass login --url …");
         var token = Variable(TokenVariable)
-            ?? throw new PassException($"Not signed in. Run: eval \"$(apass login --url {url})\" to set ${TokenVariable}.");
+            ?? throw new PassException($"Not signed in. Run: apass login --url {url}");
 
         // The shared client resolves a RELATIVE content address (the sealed tier's /api/encrypted-content?t=…) against
         // ApiClientSettings.ApiRootUrl, which each host sets once. apass never did, so an entry's content went to the
@@ -96,6 +90,6 @@ internal sealed class SessionExpiry(string url) : DelegatingHandler
         }
 
         response.Dispose();
-        throw new PassException($"The session has expired. Run: eval \"$(apass login --url {url})\". This tool holds no refresh token by design.");
+        throw new PassException($"The session has expired. Run: apass login --url {url}");
     }
 }

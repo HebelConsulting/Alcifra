@@ -34,7 +34,13 @@ public static class SaConsoleClientSeeder
         {
             var current = new OpenIddictApplicationDescriptor();
             await applications.PopulateAsync(current, existing, cancellationToken);
-            if (current.Permissions.Add(TokenExchange))
+            var added = current.Permissions.Add(TokenExchange);
+            foreach (var permission in CliSessionPolicy.Permissions)
+            {
+                added |= current.Permissions.Add(permission);
+            }
+
+            if (added)
             {
                 await applications.UpdateAsync(existing, current, cancellationToken);
             }
@@ -73,6 +79,9 @@ public static class SaConsoleClientSeeder
                 // access and identity tokens unconditionally, exactly as AuthorizationController does.
                 OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.OpenId,
                 TokenExchange,
+                CliSessionPolicy.Permissions[0],
+                CliSessionPolicy.Permissions[1],
+                CliSessionPolicy.Permissions[2],
             },
         }, cancellationToken);
     }

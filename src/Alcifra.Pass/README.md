@@ -7,7 +7,7 @@ with your hardware key and its PIN.
 ```sh
 dotnet tool install --global Alcifra.Pass
 
-eval "$(apass login --url https://archive.example.com)"   # approve a code in your browser
+apass login --url https://archive.example.com             # approve a code in your browser
 apass ls                                                  # My Passwords, folders and entries
 apass find bank
 apass show Mail/Banking                                   # every field in the form's order: URL, user name, password, …

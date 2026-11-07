@@ -261,6 +261,8 @@ public class DesktopContentAddressTests : IDisposable
             ["Alcifra.DesktopClient/Services/ClientUpdate.cs"] = "the version manifest and the releases API — absolute, from configuration",
             ["Alcifra.DesktopClient/Services/ServerReachability.cs"] = "the discovery document at a configured base URL",
             ["Alcifra.ApiClient/ServerIdentity.cs"] = "the API root at a configured base URL",
+            ["Alcifra.ApiClient/Login/CliSession.cs"] = "the tools' renewal at connect/token of the installation the session file names (ADR 1071); carries no bearer",
+            ["Alcifra.ApiClient/Login/TokenRevocation.cs"] = "sign-out at connect/revoke of the session's own installation, moved out of ApiCore (ADR 1071); carries no bearer",
         };
 
         // The desktop AND the shared API client it reads content through (ADR 0917): ApiCore moved there.

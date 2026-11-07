@@ -19,19 +19,9 @@ public sealed class LoginSettings : CommandSettings
 }
 
 /// <summary>
-/// Signs a user in through the device authorization grant (RFC 8628) and prints the session as shell exports.
+/// Signs a user in through the device authorization grant (RFC 8628) and keeps the session in the file both tools read
+/// (ADR 1071). Nothing is printed to stdout, so <c>eval "$(apass login …)"</c> from before that still works.
 /// </summary>
-/// <remarks>
-/// <para>
-/// <b>Nothing is written to disk.</b> The session lives in the environment, like alcifra's, so there is no
-/// credential file to find on a host and no second place for "which installation am I pointing at?".
-/// </para>
-/// <para>
-/// <b>The exports go to STDOUT and everything a person reads goes to STDERR</b> — that split is what makes
-/// <c>eval "$(apass login --url …)"</c> work. The token is not repeated in the readable half: it is on stdout
-/// because the shell must read it there, and nowhere else.
-/// </para>
-/// </remarks>
 public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<LoginSettings>
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, LoginSettings settings, CancellationToken cancellationToken)
@@ -49,11 +39,15 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
         }
 
         logger.LogInformation("Check the code on that page matches the one above before approving. Waiting for approval…");
-        var token = await flow.PollAsync(authorization, _ => { }, cancellationToken);
+        var session = await flow.PollForSessionAsync(authorization, _ => { }, cancellationToken);
 
-        // Data output (ADR 0906): the shell reads exactly these two lines.
-        Console.Out.WriteLine($"export {Session.UrlVariable}='{url}'");
-        Console.Out.WriteLine($"export {Session.TokenVariable}='{token}'");
+        CliSession.Default.Save(url, PassIdentity.ClientId, session);
+        logger.LogInformation("Signed in to {Url}.", url);
+        if (CliSession.ShellOverrideWarning(Environment.GetEnvironmentVariable(Session.UrlVariable), Environment.GetEnvironmentVariable(Session.TokenVariable), url) is { } warning)
+        {
+            logger.LogWarning("{Warning}", warning);
+        }
+
         return 0;
     }
 }

@@ -76,10 +76,9 @@ public sealed class AlcifraApi(HttpClient http)
         if (!response.IsSuccessStatusCode)
         {
             // 401 is called out because it has ONE cause here and a generic status would send the reader
-            // looking at rights instead: the session in the environment has expired, and there is no refresh
-            // token by design (ADR 0823).
+            // looking at rights instead: the session has reached its limit (ADR 1071).
             throw new CliException(response.StatusCode == System.Net.HttpStatusCode.Unauthorized
-                ? "The session has expired. Run 'alcifra login' again — this tool holds no refresh token by design."
+                ? "The session has expired. Run 'alcifra login' again."
                 : Describe(response.StatusCode, body, path));
         }
 

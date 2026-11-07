@@ -1,3 +1,4 @@
+using Alcifra.ApiClient.Login;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.BrowserHost;
 
@@ -16,19 +17,37 @@ namespace Alcifra.Pass.Infrastructure;
 /// </remarks>
 internal sealed class PassAutofillStore : IAutofillStore
 {
-    private readonly Lazy<Session> _session = new(() => Session.FromEnvironment(new CardOpener()));
+    private readonly CardOpener _opener = new();
+    private Session? _session;
+    private string? _token;
 
-    public Task<IReadOnlyList<AutofillMatch>> MatchAsync(string site, string? app, CancellationToken cancellationToken) =>
-        PasswordStoreAutofill.MatchAsync(_session.Value.Passwords, site, app, cancellationToken);
+    public async Task<IReadOnlyList<AutofillMatch>> MatchAsync(string site, string? app, CancellationToken cancellationToken) =>
+        await PasswordStoreAutofill.MatchAsync((await CurrentAsync(cancellationToken)).Passwords, site, app, cancellationToken);
 
-    public Task<AutofillCredentials?> OpenAsync(Guid entryId, CancellationToken cancellationToken) =>
-        PasswordStoreAutofill.OpenAsync(_session.Value.Passwords, entryId, cancellationToken);
+    public async Task<AutofillCredentials?> OpenAsync(Guid entryId, CancellationToken cancellationToken) =>
+        await PasswordStoreAutofill.OpenAsync((await CurrentAsync(cancellationToken)).Passwords, entryId, cancellationToken);
 
-    public Task<AutofillSaved> SaveAsync(AutofillSave save, CancellationToken cancellationToken) =>
-        PasswordStoreAutofill.SaveAsync(_session.Value.Passwords, save, cancellationToken);
+    public async Task<AutofillSaved> SaveAsync(AutofillSave save, CancellationToken cancellationToken) =>
+        await PasswordStoreAutofill.SaveAsync((await CurrentAsync(cancellationToken)).Passwords, save, cancellationToken);
 
     public string Generate(int length) => Passwords.Generate(length);
 
-    public IBookmarkRemote Bookmarks => new BookmarksClient(_session.Value.Core);
+    public IBookmarkRemote Bookmarks => new BookmarksClient(CurrentAsync(CancellationToken.None).GetAwaiter().GetResult().Core);
 
+    // The browser starts this process with no environment of ours and keeps it running for as long as it likes, so each
+    // request loads the session file again, which also renews it (ADR 1071). The opener outlives a renewal, and with it what
+    // it holds for the card.
+    private async Task<Session> CurrentAsync(CancellationToken cancellationToken)
+    {
+        await CliSession.LoadIntoEnvironmentAsync(renew: true, cancellationToken);
+        var token = Environment.GetEnvironmentVariable(Session.TokenVariable);
+        if (_session is null || token != _token)
+        {
+            _session?.Dispose();
+            _session = Session.FromEnvironment(_opener);
+            _token = token;
+        }
+
+        return _session;
+    }
 }

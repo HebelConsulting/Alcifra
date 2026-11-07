@@ -99,13 +99,17 @@ public class TokenController : ControllerBase
         if (request.IsDeviceCodeGrantType())
         {
             var approved = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            if (CliSessionPolicy.Governs(request.ClientId))
+            {
+                CliSessionPolicy.Begin(approved.Principal!, DateTimeOffset.UtcNow);
+            }
 
             return SignIn(approved.Principal!, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
         if (request.IsRefreshTokenGrantType())
         {
-            return await HandleRefreshAsync();
+            return await HandleRefreshAsync(request.ClientId);
         }
 
         // Two different exchanges share the RFC 8693 grant, told apart by the CALLING client: the autofill client's is
@@ -209,7 +213,7 @@ public class TokenController : ControllerBase
     /// token pipeline gets to ask the same question, so it asks it.
     /// </para>
     /// </remarks>
-    private async Task<IActionResult> HandleRefreshAsync()
+    private async Task<IActionResult> HandleRefreshAsync(string? clientId)
     {
         var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         if (result.Principal is not { } principal)
@@ -252,6 +256,21 @@ public class TokenController : ControllerBase
                     }),
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }
+        }
+
+        // A command-line session has a hard limit however busy it is (ADR 1071).
+        if (CliSessionPolicy.Governs(clientId) && !CliSessionPolicy.TryContinue(principal, DateTimeOffset.UtcNow))
+        {
+            _logger.LogInformation("Refused to renew a command-line session past its limit for client {ClientId}", clientId);
+
+            return Forbid(
+                new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidGrant,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
+                        "The session has reached its limit. Sign in again.",
+                }),
+                OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

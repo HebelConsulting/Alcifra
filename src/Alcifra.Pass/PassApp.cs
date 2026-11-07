@@ -42,6 +42,8 @@ public static class PassApp
 
         if (args.Length > 0 && args[0] == CompleteVerb)
         {
+            // Costs no renewal and extends nothing: a TAB is not a command (ADR 1071).
+            CliSession.LoadIntoEnvironmentAsync(renew: false).GetAwaiter().GetResult();
             return Completion.RunAsync([.. args[1..]], CancellationToken.None).GetAwaiter().GetResult();
         }
 
@@ -60,6 +62,11 @@ public static class PassApp
             return 0;
         }
 
+        if (args.Length > 0 && args[0] is not ("login" or "logout" or "completion" or "--help" or "-h"))
+        {
+            CliSession.LoadIntoEnvironmentAsync(renew: true).GetAwaiter().GetResult();
+        }
+
         // With the shared registrar: without one, Spectre cannot construct a command that takes a logger (#2042).
         var app = new CommandApp(TypeRegistrar.WithLogging(logging));
         app.Configure(config =>
@@ -68,7 +75,9 @@ public static class PassApp
             config.SetExceptionHandler((exception, _) => Fail(logging, exception));
 
             config.AddCommand<LoginCommand>("login")
-                .WithDescription("Sign in to an installation; prints shell exports for eval.");
+                .WithDescription("Sign in to an installation; the session is kept for this tool and alcifra.");
+            config.AddCommand<LogoutCommand>("logout")
+                .WithDescription("End the session, on the installation and on this machine.");
             config.AddCommand<LsCommand>("ls")
                 .WithDescription("List a folder's folders and entries.");
             config.AddCommand<FindCommand>("find")

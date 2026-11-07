@@ -14,11 +14,24 @@ public static class PassClientSeeder
 {
     public const string ClientId = Alcifra.Presentation.WireNames.PassClientId;
 
-    /// <summary>Idempotent: creates the client when it is absent, and asks nothing of an existing one.</summary>
+    /// <summary>Idempotent: creates the client when it is absent, and heals an existing one by adding a permission it lacks.</summary>
     public static async Task SeedAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken = default)
     {
-        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is not null)
+        if (await applications.FindByClientIdAsync(ClientId, cancellationToken) is { } existing)
         {
+            var current = new OpenIddictApplicationDescriptor();
+            await applications.PopulateAsync(current, existing, cancellationToken);
+            var added = false;
+            foreach (var permission in CliSessionPolicy.Permissions)
+            {
+                added |= current.Permissions.Add(permission);
+            }
+
+            if (added)
+            {
+                await applications.UpdateAsync(existing, current, cancellationToken);
+            }
+
             return;
         }
 
@@ -41,6 +54,9 @@ public static class PassClientSeeder
                 OpenIddictConstants.Permissions.Endpoints.Token,
                 OpenIddictConstants.Permissions.GrantTypes.DeviceCode,
                 OpenIddictConstants.Permissions.Prefixes.Scope + OpenIddictConstants.Scopes.OpenId,
+                CliSessionPolicy.Permissions[0],
+                CliSessionPolicy.Permissions[1],
+                CliSessionPolicy.Permissions[2],
             },
         }, cancellationToken);
     }

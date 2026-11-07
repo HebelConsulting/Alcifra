@@ -42,7 +42,7 @@ public class ApiSettings : CommandSettings
 
     // Spectre builds settings by reflection and does not enforce `required` — validate explicitly.
     public override ValidationResult Validate() => string.IsNullOrWhiteSpace(ResolvedUrl)
-        ? ValidationResult.Error($"No installation. Pass --url, or run 'alcifra login --url …' and eval its output to set ${UrlVariable}.")
+        ? ValidationResult.Error("No installation. Pass --url, or run: alcifra login --url …")
         : ValidationResult.Success();
 }
 
@@ -66,7 +66,7 @@ public class TenantSessionSettings : ApiSettings
     {
         _ when base.Validate() is { Successful: false } failed => failed,
         _ when string.IsNullOrEmpty(ResolvedToken) => ValidationResult.Error(
-            $"Not signed in. Run: eval \"$(alcifra login --url {ResolvedUrl})\""),
+            $"Not signed in. Run: alcifra login --url {ResolvedUrl}"),
         _ => ValidationResult.Success(),
     };
 }

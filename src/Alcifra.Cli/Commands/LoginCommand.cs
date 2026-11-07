@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
+using Alcifra.ApiClient;
 using Alcifra.ApiClient.Login;
 using Alcifra.Cli.Infrastructure;
 using Spectre.Console;
@@ -14,21 +15,12 @@ namespace Alcifra.Cli.Commands;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Nothing is written to disk.</b> The session lives in the environment and nowhere else, so there is no
-/// credential file to find on a host, no stale token to revoke, and no second place for "which installation
-/// am I pointed at?" to be answered differently from the shell the administrator is typing into. The cost is
-/// that a new shell means a new approval, which is the honest consequence of not persisting anything.
+/// <b>A person's session is kept in the file both tools read</b> (ADR 1071), so nothing goes to stdout for them.
 /// </para>
 /// <para>
-/// <b>The stdout/stderr split is what makes this usable</b> and is not a stylistic choice: the exports go to
-/// STDOUT and everything a person reads — the code, the URL, the progress, the confirmation — goes to STDERR.
-/// That is what lets <c>eval "$(alcifra login --url …)"</c> work while the administrator still sees the
-/// code they have to approve. Printing the prompt to stdout would have `eval` try to execute it.
-/// </para>
-/// <para>
-/// The token is deliberately NOT echoed in the human output. It is on stdout because that is where the shell
-/// must read it from; repeating it in the readable half would put an access token in a terminal scrollback
-/// and, over SSH, in somebody's session log.
+/// <b>A service account's exports go to STDOUT and everything a person reads goes to STDERR</b>: that split is what lets
+/// <c>eval "$(alcifra login --client-id …)"</c> work in an unattended script, which holds no file of its own. The token is
+/// not echoed in the readable half, which would put it in somebody's session log.
 /// </para>
 /// </remarks>
 public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<LoginCommand.Settings>
@@ -67,10 +59,9 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
 
         using var http = new HttpClient { BaseAddress = new Uri(settings.ResolvedUrl.TrimEnd('/') + "/") };
 
-        var token = settings.ClientId is { Length: > 0 } clientId
-            ? await new AlcifraApi(http).RequestServiceAccountTokenAsync(
-                clientId, ApiSettings.ClientSecretFromEnvironment, cancellationToken)
-            : await ApproveDeviceCodeAsync(http, logger, cancellationToken);
+        var person = settings.ClientId is { Length: > 0 } ? null : await ApproveDeviceCodeAsync(http, logger, cancellationToken);
+        var token = person?.AccessToken ?? await new AlcifraApi(http).RequestServiceAccountTokenAsync(
+            settings.ClientId!, ApiSettings.ClientSecretFromEnvironment, cancellationToken);
 
         // Prove the token works AND name who it belongs to, before announcing success. A login that reports
         // success and then fails on the first real command has told the administrator the wrong thing about
@@ -97,7 +88,21 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
             return 0;
         }
 
-        logger.LogInformation("Run the exports below, or wrap the command in: eval \"$(alcifra login --url …)\"");
+        var url = settings.ResolvedUrl.TrimEnd('/');
+        if (person is not null)
+        {
+            // A person's session lives in the file both tools read (ADR 1071), and stdout stays empty, so an
+            // eval "$(alcifra login …)" from before that still works.
+            CliSession.Default.Save(url, CliIdentity.ClientId, person);
+            if (CliSession.ShellOverrideWarning(Environment.GetEnvironmentVariable(ApiSettings.UrlVariable), Environment.GetEnvironmentVariable(ApiSettings.TokenVariable), url) is { } warning)
+            {
+                logger.LogWarning("{Warning}", warning);
+            }
+
+            return 0;
+        }
+
+        logger.LogInformation("Run the exports below, or wrap the command in: eval \"$(alcifra login --client-id …)\"");
 
         // STDOUT, and only this. Single-quoted so a URL with shell metacharacters cannot be re-interpreted;
         // neither value can contain a single quote (one is a bearer token, the other a URL we just used).
@@ -106,13 +111,12 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
         // console width — 80 when stdout is not a terminal, which is exactly the eval/script case — so the token
         // line broke, `eval` ran a bare `export`, and bash dumped the whole environment, a client secret included,
         // into the caller's log (the kiosk's first v0.37.0 reset). A shell export line must arrive as one line.
-        var url = settings.ResolvedUrl.TrimEnd('/');
         Console.Out.WriteLine($"export {ApiSettings.TokenVariable}='{token}'");
         Console.Out.WriteLine($"export {ApiSettings.UrlVariable}='{url}'");
         return 0;
     }
 
-    private static async Task<string> ApproveDeviceCodeAsync(HttpClient http, ILogger logger, CancellationToken cancellationToken)
+    private static async Task<TokenSession> ApproveDeviceCodeAsync(HttpClient http, ILogger logger, CancellationToken cancellationToken)
     {
         try
         {
@@ -125,7 +129,7 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
         }
     }
 
-    private static async Task<string> ApproveAsync(HttpClient http, ILogger logger, CancellationToken cancellationToken)
+    private static async Task<TokenSession> ApproveAsync(HttpClient http, ILogger logger, CancellationToken cancellationToken)
     {
         var flow = new DeviceFlow(http, CliIdentity.ClientId);
 
@@ -141,6 +145,6 @@ public sealed class LoginCommand(ILogger<LoginCommand> logger) : AsyncCommand<Lo
         }
 
         logger.LogInformation("Check the code on that page matches the one above before approving. Waiting for approval…");
-        return await flow.PollAsync(authorization, _ => { }, cancellationToken);
+        return await flow.PollForSessionAsync(authorization, _ => { }, cancellationToken);
     }
 }

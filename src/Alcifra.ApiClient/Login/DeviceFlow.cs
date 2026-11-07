@@ -27,18 +27,31 @@ public sealed class DeviceFlow(HttpClient http, string clientId)
 
     public async Task<Authorization> RequestAsync(CancellationToken cancellationToken)
     {
+        // offline_access is what lets every command renew the session (ADR 1071). An installation older than that refuses
+        // the scope for this client, and then the login still works, as a session of one access token's lifetime.
+        using var renewable = await RequestCodeAsync("openid offline_access", cancellationToken);
+        if (renewable.IsSuccessStatusCode)
+        {
+            return await AuthorizationFromAsync(renewable, cancellationToken);
+        }
+
+        using var plain = await RequestCodeAsync("openid", cancellationToken);
+        return await AuthorizationFromAsync(plain, cancellationToken);
+    }
+
+    private async Task<HttpResponseMessage> RequestCodeAsync(string scope, CancellationToken cancellationToken)
+    {
         using var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["client_id"] = clientId,
-
-            // "openid" and nothing else. offline_access is deliberately NOT asked for: the installation does
-            // not grant this client a refresh token, and a session that cannot outlive its access token is
-            // the decision rather than a limitation — nothing long-lived is left on a host the approver may
-            // not be sitting at.
-            ["scope"] = "openid",
+            ["scope"] = scope,
         });
 
-        using var response = await http.PostAsync("connect/device", form, cancellationToken);
+        return await http.PostAsync("connect/device", form, cancellationToken);
+    }
+
+    private static async Task<Authorization> AuthorizationFromAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -84,6 +97,11 @@ public sealed class DeviceFlow(HttpClient http, string clientId)
     /// somebody who already answered.
     /// </remarks>
     public async Task<string> PollAsync(
+        Authorization authorization, Action<TimeSpan> onWait, CancellationToken cancellationToken) =>
+        (await PollForSessionAsync(authorization, onWait, cancellationToken)).AccessToken;
+
+    /// <summary>As <see cref="PollAsync"/>, with the refresh token where the installation issued one.</summary>
+    public async Task<TokenSession> PollForSessionAsync(
         Authorization authorization, Action<TimeSpan> onWait, CancellationToken cancellationToken)
     {
         var interval = authorization.Interval;
@@ -133,9 +151,8 @@ public sealed class DeviceFlow(HttpClient http, string clientId)
 
             if (response.IsSuccessStatusCode)
             {
-                return json.TryGetProperty("access_token", out var token) && token.GetString() is { Length: > 0 } value
-                    ? value
-                    : throw new DeviceFlowException("The token endpoint answered success without an access_token.");
+                return RefreshGrant.FromTokenResponse(json, null)
+                    ?? throw new DeviceFlowException("The token endpoint answered success without an access_token.");
             }
 
             switch (json.TryGetProperty("error", out var error) ? error.GetString() : null)

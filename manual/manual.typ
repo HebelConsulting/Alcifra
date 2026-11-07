@@ -1,4 +1,4 @@
-#import "template.typ": product, brand, conf, shot, pair, note, accent, idx, index-page, feature
+#import "template.typ": product, brand, mac-app, mac-executable, conf, shot, pair, note, accent, idx, index-page, feature
 
 #show: doc => conf(doc)
 
@@ -766,7 +766,7 @@ command-line tool prints it too (below).
 
 *From the command line.*#idx("apass") `apass` reads the same stores in a terminal, opening each entry with your hardware
 key and its PIN, which it does not keep. It is installed with `dotnet tool install --global Alcifra.Pass`, and
-`eval "$(apass login --url https://your.server)"` signs it in. An entry is named by its path, as the tree shows it:
+`apass login --url https://your.server` signs it in. An entry is named by its path, as the tree shows it:
 
 ```sh
 apass show Mail/webmail             # every field, in the form's order
@@ -792,6 +792,23 @@ eval "$(apass completion zsh)"
 
 `apass show Ma` then completes to `Mail/`, and the next Tab goes on inside that folder. Without the line, Tab completes
 local files instead. Completion stays silent when you are not signed in.
+
+The sign-in lasts while you work: every command extends it, it ends after 15 minutes without one, and after 12 hours you
+approve again whatever you were doing. `apass` and `alcifra` share it, and `apass logout` ends it.
+
+*The browser extension.*#idx("browser extension") The extension fills sign-ins from your stores. It is not in a browser's
+store yet, so you load it yourself, in Chrome or Edge:
+
++ Open `chrome://extensions` (or `edge://extensions`), switch on *Developer mode*, choose *Load unpacked*, and pick the
+  `browser-extension/chrome` folder of the source repository. The extension's id is shown on its card.
++ Connect it to a client. In the desktop client, open *Browser autofill…* in the account menu and enter the id. Or, from a terminal:
+  ```sh
+  apass browser install chrome --extension-id <the id>
+  ```
++ Restart the browser.
+
+The extension asks the desktop client first, then `apass`. With `apass`, it can fill only while you are signed in: after 15
+minutes without a command or a fill, run `apass login` again.
 
 *Bookmarks in your browser.*#idx("bookmarks") The browser extension also keeps your bookmarks in step. The first time it
 syncs, it makes a file called Bookmarks in your My Documents, and that file appears as a folder of its own among the
@@ -1651,12 +1668,9 @@ reach for when a card misbehaves later.
 Both are the *installed desktop client*, run from a terminal with a flag — there is nothing extra to install
 and no source tree to build.
 
-```sh
-# The installed executable. This is the macOS path; the others are below.
-CLIENT=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
-```
+#raw(block: true, lang: "sh", "# The installed executable. This is the macOS path; the others are below.\nCLIENT=" + mac-executable)
 
-/ macOS: #linebreak() `/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient`
+/ macOS: #linebreak() #raw(mac-executable)
 / Windows, in the unpacked folder: #linebreak() `Alcifra.DesktopClient.exe`
 / Linux, in the unpacked folder: #linebreak() `./Alcifra.DesktopClient`
 
@@ -2016,7 +2030,7 @@ request as it is.
 printed to the terminal as it happens — useful when reproducing a problem step by step:
 
 - Windows — `Alcifra.DesktopClient.exe --verbose`
-- macOS — `Alcifra.app/Contents/MacOS/Alcifra.DesktopClient --verbose`
+- macOS — #raw(mac-app + "/Contents/MacOS/Alcifra.DesktopClient --verbose")
 - Linux — `./Alcifra.DesktopClient --verbose`
 
 Without the flag a terminal shows only the important lines; the file always carries everything, flag or no

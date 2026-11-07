@@ -29,6 +29,11 @@ public static class SaConsoleApp
     {
         var verbose = args.Contains(PlainConsoleLogging.VerboseFlag, StringComparer.Ordinal);
         using var logging = PlainConsoleLogging.CreateFactory(verbose);
+        if (args.Length > 0 && args[0] is not ("login" or "logout" or "--help" or "-h"))
+        {
+            Alcifra.ApiClient.Login.CliSession.LoadIntoEnvironmentAsync(renew: true).GetAwaiter().GetResult();
+        }
+
         return Build(logging).Run([.. args.Where(a => a != PlainConsoleLogging.VerboseFlag)]);
     }
 
@@ -87,7 +92,9 @@ public static class SaConsoleApp
             // for first, and burying them under a noun would make the tool's entry point the least discoverable part
             // of it.
             config.AddCommand<LoginCommand>("login")
-                .WithDescription("Sign in through the device grant and print the session as shell exports.");
+                .WithDescription("Sign in through the device grant; the session is kept for this tool and apass.");
+            config.AddCommand<LogoutCommand>("logout")
+                .WithDescription("End the session, on the installation and on this machine.");
             config.AddCommand<WhoAmICommand>("whoami")
                 .WithDescription("Name the installation and identity the current session acts as.");
             // What a sealed file is and who can open it (#2007): local, no session, no key.

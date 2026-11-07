@@ -1,4 +1,4 @@
-#import "template.typ": product, brand, conf, shot, pair, note, accent, idx, index-page, feature
+#import "template.typ": product, brand, mac-app, mac-executable, conf, shot, pair, note, accent, idx, index-page, feature
 
 #show: doc => conf(doc, lang: "de")
 
@@ -772,7 +772,7 @@ das Kommandozeilenwerkzeug gibt ihn ebenfalls aus (siehe unten).
 
 *Auf der Kommandozeile.*#idx("apass") `apass` liest dieselben Speicher im Terminal und öffnet jeden Eintrag mit Ihrem
 Hardware-Schlüssel und dessen PIN, die es nicht behält. Installiert wird es mit `dotnet tool install --global Alcifra.Pass`,
-angemeldet mit `eval "$(apass login --url https://ihr.server)"`. Ein Eintrag wird mit seinem Pfad benannt, wie ihn der Baum
+angemeldet mit `apass login --url https://ihr.server`. Ein Eintrag wird mit seinem Pfad benannt, wie ihn der Baum
 zeigt:
 
 ```sh
@@ -800,6 +800,24 @@ eval "$(apass completion zsh)"
 
 `apass show Ma` wird dann zu `Mail/` ergänzt, und der nächste Tabulator geht in diesem Ordner weiter. Ohne die Zeile ergänzt
 die Tabulatortaste stattdessen lokale Dateien. Sind Sie nicht angemeldet, bietet die Ergänzung nichts an.
+
+Die Anmeldung hält, solange Sie arbeiten: Jeder Befehl verlängert sie, nach 15 Minuten ohne Befehl endet sie, und nach
+12 Stunden bestätigen Sie in jedem Fall neu. `apass` und `alcifra` teilen sie, und `apass logout` beendet sie.
+
+*Die Browser-Erweiterung.*#idx("Browser-Erweiterung") Die Erweiterung füllt Anmeldungen aus Ihren Speichern aus. Sie steht noch
+in keinem Browser-Store, Sie laden sie also selbst, in Chrome oder Edge:
+
++ Öffnen Sie `chrome://extensions` (oder `edge://extensions`), schalten Sie den *Entwicklermodus* ein, wählen Sie *Entpackte
+  Erweiterung laden* und den Ordner `browser-extension/chrome` des Quellcode-Repositorys. Die Kennung der Erweiterung steht
+  auf ihrer Karte.
++ Verbinden Sie sie mit einem Client. Im Desktop-Client öffnen Sie *Browser-Autofill…* im Kontomenü und geben die Kennung ein. Oder im Terminal:
+  ```sh
+  apass browser install chrome --extension-id <die Kennung>
+  ```
++ Starten Sie den Browser neu.
+
+Die Erweiterung fragt zuerst den Desktop-Client, dann `apass`. Mit `apass` füllt sie nur aus, solange Sie angemeldet sind: Nach
+15 Minuten ohne Befehl oder Ausfüllen führen Sie `apass login` erneut aus.
 
 *Lesezeichen im Browser.*#idx("Lesezeichen") Die Browser-Erweiterung hält auch Ihre Lesezeichen aktuell. Beim ersten Abgleich
 legt sie in Ihren Eigenen Dokumenten eine Datei namens Bookmarks an, und diese Datei erscheint unter den Lesezeichen des Browsers
@@ -1721,12 +1739,9 @@ seltsam verhält.
 Beide sind der *installierte Desktop-Client*, im Terminal mit einem Schalter aufgerufen — es muss nichts
 zusätzlich installiert und kein Quellcode gebaut werden.
 
-```sh
-# The installed executable. This is the macOS path; the others are below.
-CLIENT=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
-```
+#raw(block: true, lang: "sh", "# The installed executable. This is the macOS path; the others are below.\nCLIENT=" + mac-executable)
 
-/ macOS: #linebreak() `/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient`
+/ macOS: #linebreak() #raw(mac-executable)
 / Windows, im entpackten Ordner: #linebreak() `Alcifra.DesktopClient.exe`
 / Linux, im entpackten Ordner: #linebreak() `./Alcifra.DesktopClient`
 
@@ -2116,7 +2131,7 @@ Supportanfrage beilegen.
 laufend im Terminal ausgegeben — nützlich, wenn Sie ein Problem Schritt für Schritt nachstellen:
 
 - Windows — `Alcifra.DesktopClient.exe --verbose`
-- macOS — `Alcifra.app/Contents/MacOS/Alcifra.DesktopClient --verbose`
+- macOS — #raw(mac-app + "/Contents/MacOS/Alcifra.DesktopClient --verbose")
 - Linux — `./Alcifra.DesktopClient --verbose`
 
 Ohne den Schalter zeigt ein Terminal nur die wichtigen Zeilen; die Datei enthält immer alles, mit oder ohne

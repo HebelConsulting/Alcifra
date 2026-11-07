@@ -389,35 +389,7 @@ public sealed class ApiCore
             return;
         }
 
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-        foreach (var (token, hint) in new[] { (session.RefreshToken, "refresh_token"), (session.AccessToken, "access_token") })
-        {
-            if (string.IsNullOrEmpty(token))
-            {
-                continue;
-            }
-
-            try
-            {
-                using var response = await http.PostAsync($"{_apiRootUrl.TrimEnd('/')}/connect/revoke", new FormUrlEncodedContent(
-                    new Dictionary<string, string>
-                    {
-                        ["token"] = token,
-                        ["token_type_hint"] = hint,
-                        ["client_id"] = ApiClientSettings.ClientId,
-                    }));
-                if (!response.IsSuccessStatusCode)
-                {
-                    ApiClientSettings.Logger.LogWarning("Sign-out could not revoke the {Hint} on the server ({Status}); it stays valid until it expires",
-                        hint, (int)response.StatusCode);
-                }
-            }
-            catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
-            {
-                ApiClientSettings.Logger.LogWarning("Sign-out could not reach the server to revoke the {Hint} ({Reason}); it stays valid until it expires",
-                    hint, e.Message);
-            }
-        }
+        await Login.TokenRevocation.RevokeAsync(_apiRootUrl, session.RefreshToken, session.AccessToken, ApiClientSettings.ClientId);
     }
 
     /// <summary>The API root's advertised href for <paramref name="rel"/> (cached after the first read).</summary>

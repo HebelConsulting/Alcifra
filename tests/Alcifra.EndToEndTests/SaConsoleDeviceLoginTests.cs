@@ -89,6 +89,89 @@ public class SaConsoleDeviceLoginTests
         Assert.DoesNotContain("expired", error.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    // The session file against a real server (ADR 1071): the login carries a refresh token, a command renews it, and a
+    // second renewal proves the token still knows when the session began, which the hard limit reads.
+    [Theory]
+    [InlineData("alcifra-cli")]
+    [InlineData("alcifra-pass")]
+    public async Task A_command_renews_the_session_kept_in_the_file(string clientId)
+    {
+        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
+        var email = $"clisession-{Guid.NewGuid():N}@e2e.local";
+        var userId = await _factory.SeedUserAsync(tenantId, email, "cli-1234", "CLI Session");
+
+        using var transport = _factory.CreateClient();
+        var flow = new DeviceFlow(transport, clientId);
+        var authorization = await flow.RequestAsync(CancellationToken.None);
+        var approval = Task.Run(() => ApproveAsync(authorization.UserCode, email, "cli-1234"));
+        var login = await flow.PollForSessionAsync(authorization, _ => { }, CancellationToken.None);
+        await approval;
+        Assert.False(string.IsNullOrEmpty(login.RefreshToken));
+
+        var path = Path.Combine(Path.GetTempPath(), $"cli-session-{Guid.NewGuid():N}", "session.json");
+        var url = transport.BaseAddress!.ToString().TrimEnd('/');
+        var session = new CliSession(path, (request, cancellationToken) => transport.SendAsync(request, cancellationToken));
+        session.Save(url, clientId, login);
+
+        var seen = login.RefreshToken;
+        for (var renewal = 0; renewal < 2; renewal++)
+        {
+            // Aged past "renewed moments ago", which would otherwise rightly skip the request.
+            await File.WriteAllTextAsync(path, System.Text.Json.JsonSerializer.Serialize(session.Read()! with { RenewedAt = DateTimeOffset.UtcNow.AddMinutes(-1) }));
+
+            var state = await session.ResolveAsync(null, null, renew: true);
+
+            Assert.False(string.IsNullOrEmpty(state!.AccessToken));
+            Assert.NotEqual(seen, state.RefreshToken);
+            seen = state.RefreshToken;
+            using var tool = _factory.CreateAuthedClient(state.AccessToken!);
+            Assert.Equal(userId, (await TestJson.Get(tool, "/api/diagnostics/whoami")).GetProperty("userId").GetGuid());
+        }
+
+        Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
+    }
+
+    // What the hard limit does not catch: somebody copied the file and renews from it. The next use of a spent token,
+    // whoever's it was, is refused, and the session in use stops renewing with it.
+    [Fact]
+    public async Task A_spent_refresh_token_presented_again_ends_the_session()
+    {
+        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
+        var email = $"clicopy-{Guid.NewGuid():N}@e2e.local";
+        await _factory.SeedUserAsync(tenantId, email, "cli-1234", "CLI Copy");
+
+        using var transport = _factory.CreateClient();
+        var flow = new DeviceFlow(transport, "alcifra-pass");
+        var authorization = await flow.RequestAsync(CancellationToken.None);
+        var approval = Task.Run(() => ApproveAsync(authorization.UserCode, email, "cli-1234"));
+        var login = await flow.PollForSessionAsync(authorization, _ => { }, CancellationToken.None);
+        await approval;
+
+        async Task<(HttpStatusCode Status, string? Refresh)> RenewAsync(string token)
+        {
+            using var response = await transport.PostAsync("/connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "refresh_token",
+                ["refresh_token"] = token,
+                ["client_id"] = "alcifra-pass",
+            }));
+            var body = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+            return (response.StatusCode, body.TryGetProperty("refresh_token", out var refresh) ? refresh.GetString() : null);
+        }
+
+        var (first, current) = await RenewAsync(login.RefreshToken!);
+        Assert.Equal(HttpStatusCode.OK, first);
+
+        // Past the leeway the test host sets for parallel commands.
+        await Task.Delay(TimeSpan.FromSeconds(3));
+
+        var (replayed, _) = await RenewAsync(login.RefreshToken!);
+        Assert.Equal(HttpStatusCode.BadRequest, replayed);
+
+        var (followed, _) = await RenewAsync(current!);
+        Assert.Equal(HttpStatusCode.BadRequest, followed);
+    }
+
     /// <summary>Drives the real browser journey: sign in, then approve or refuse the code.</summary>
     private async Task ApproveAsync(string userCode, string email, string password, string handler = "Approve")
     {

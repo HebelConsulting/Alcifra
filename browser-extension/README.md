@@ -19,6 +19,9 @@ hardware key and its PIN.
    desktop's host first and falls back to apass's (ADR 0978).
 3. **Restart the browser** (native-messaging manifests are read at start), then sign in where a login form is.
 
+With `apass` as the host, sign in with `apass login` first. The host uses that session and renews it with each fill; after 15
+minutes without a command or a fill, sign in again (ADR 1071).
+
 ## What it does
 
 - Focusing a password field offers the entries whose indexed site matches the page (ADR 0973) — name and user name,
