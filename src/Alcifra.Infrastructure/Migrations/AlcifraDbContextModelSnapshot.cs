@@ -17,7 +17,7 @@ namespace Alcifra.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -1716,6 +1716,33 @@ namespace Alcifra.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("FieldDefinitions");
+                });
+
+            modelBuilder.Entity("Alcifra.Domain.Masks.FieldDefinitionAcceptedMask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FieldDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("MaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldDefinitionId");
+
+                    b.HasIndex("TenantId", "MaskId");
+
+                    b.HasIndex("TenantId", "FieldDefinitionId", "MaskId")
+                        .IsUnique();
+
+                    b.ToTable("FieldDefinitionAcceptedMasks");
                 });
 
             modelBuilder.Entity("Alcifra.Domain.Masks.FieldValue", b =>
@@ -4402,6 +4429,21 @@ namespace Alcifra.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Alcifra.Domain.Masks.FieldDefinitionAcceptedMask", b =>
+                {
+                    b.HasOne("Alcifra.Domain.Masks.FieldDefinition", null)
+                        .WithMany()
+                        .HasForeignKey("FieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Alcifra.Domain.Masks.Mask", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "MaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

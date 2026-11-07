@@ -29,19 +29,22 @@ public class MasksController : ControllerBase
     private readonly ICurrentUserAccessor _currentUserAccessor;
     private readonly ICurrentTenantAccessor _currentTenantAccessor;
     private readonly IUserSystemRightsResolver _userSystemRights;
+    private readonly IEffectiveRightsCalculator _effectiveRights;
 
     public MasksController(
         AlcifraDbContext dbContext,
         ICurrentServiceAccountAccessor currentServiceAccountAccessor,
         ICurrentUserAccessor currentUserAccessor,
         ICurrentTenantAccessor currentTenantAccessor,
-        IUserSystemRightsResolver userSystemRights)
+        IUserSystemRightsResolver userSystemRights,
+        IEffectiveRightsCalculator effectiveRights)
     {
         _dbContext = dbContext;
         _currentServiceAccountAccessor = currentServiceAccountAccessor;
         _currentUserAccessor = currentUserAccessor;
         _currentTenantAccessor = currentTenantAccessor;
         _userSystemRights = userSystemRights;
+        _effectiveRights = effectiveRights;
     }
 
     // Plain mutable classes, not records — System.Xml.Serialization.XmlSerializer (ADR "JSON/XML content
@@ -109,7 +112,45 @@ public class MasksController : ControllerBase
     [HttpHead("{maskId:guid}/fields/{fieldId:guid}/values")]
     public IActionResult HeadFieldValues(Guid maskId, Guid fieldId) => NoContent();
 
+    /// <summary>What a reference field naming accepted masks may point at, for its picker (#2214, ADR 1068): only what the caller may see.</summary>
+    [HttpGet("{maskId:guid}/fields/{fieldId:guid}/targets")]
+    public async Task<IActionResult> FieldTargets(Guid maskId, Guid fieldId, [FromQuery] string? q, [FromQuery] int? limit, CancellationToken cancellationToken)
+    {
+        if (!await _dbContext.FieldDefinitionAcceptedMasks.AnyAsync(a => a.FieldDefinitionId == fieldId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        var targets = await Documents.ReferenceFieldTargetList.ForAsync(_dbContext, fieldId, q, Math.Clamp(limit ?? 20, 1, 100), CanSeeAsync, cancellationToken);
+        return Ok(new FieldTargetsResource
+        {
+            Targets = [.. targets.Select(t => new FieldTargetResource { Id = t.Id, Name = t.Name })],
+            Links = [new Link("self", $"/api/masks/{maskId}/fields/{fieldId}/targets", "GET")],
+        });
+    }
+
+    [HttpHead("{maskId:guid}/fields/{fieldId:guid}/targets")]
+    public async Task<IActionResult> HeadFieldTargets(Guid maskId, Guid fieldId, CancellationToken cancellationToken) =>
+        await _dbContext.FieldDefinitionAcceptedMasks.AnyAsync(a => a.FieldDefinitionId == fieldId, cancellationToken) ? NoContent() : NotFound();
+
+    private async Task<bool> CanSeeAsync(Guid documentId, CancellationToken cancellationToken) =>
+        _currentServiceAccountAccessor.ServiceAccountId is { } serviceAccountId
+            ? (await _effectiveRights.GetEffectiveRightsForServiceAccountAsync(serviceAccountId, documentId, cancellationToken)).CanSee
+            : _currentUserAccessor.UserId is { } userId && (await _effectiveRights.GetEffectiveRightsAsync(userId, documentId, cancellationToken)).CanSee;
+
     /// <summary>The values already filed under one index field.</summary>
+    public class FieldTargetResource
+    {
+        public Guid Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class FieldTargetsResource : HypermediaResource
+    {
+        public List<FieldTargetResource> Targets { get; set; } = [];
+    }
+
     public class FieldValuesResource : HypermediaResource
     {
         public List<string> Values { get; set; } = [];
@@ -377,7 +418,10 @@ public class MasksController : ControllerBase
             .OrderBy(f => f.SortOrder).ThenBy(f => f.CreatedAt).ThenBy(f => f.Id)
             .ToListAsync(cancellationToken);
 
-        return Ok(BuildResource(maskId, version.Name, version.VersionNumber, version.ReviewSlaDays, version.RetentionYears, version.DefaultSensitivityLabelId, fields));
+        // The fields that name accepted masks advertise their picker's address (#2214, ADR 1068): the rel's presence says so.
+        var fieldIds = fields.Select(f => f.Id).ToList();
+        var restricted = (await _dbContext.FieldDefinitionAcceptedMasks.Where(a => fieldIds.Contains(a.FieldDefinitionId)).Select(a => a.FieldDefinitionId).ToListAsync(cancellationToken)).ToHashSet();
+        return Ok(BuildResource(maskId, version.Name, version.VersionNumber, version.ReviewSlaDays, version.RetentionYears, version.DefaultSensitivityLabelId, fields, restricted));
     }
 
     // Standing convention: every GET action gets a companion HEAD action — a separate action, not
@@ -390,7 +434,7 @@ public class MasksController : ControllerBase
         return exists ? NoContent() : NotFound();
     }
 
-    private static MaskResource BuildResource(Guid maskId, string name, int versionNumber, int? reviewSlaDays, int? retentionYears, Guid? defaultSensitivityLabelId, List<FieldDefinition> fields)
+    private static MaskResource BuildResource(Guid maskId, string name, int versionNumber, int? reviewSlaDays, int? retentionYears, Guid? defaultSensitivityLabelId, List<FieldDefinition> fields, IReadOnlySet<Guid>? restricted = null)
     {
         return new MaskResource
         {
@@ -419,9 +463,11 @@ public class MasksController : ControllerBase
                 //
                 // A rel, so the client follows an address instead of composing one (ADR 0543); its absence
                 // simply means "no suggestions here", which is what an editor gates the autocomplete on.
-                Links = SuggestibleTypes.Contains(f.DataType)
-                    ? [new Link("values", $"/api/masks/{maskId}/fields/{f.Id}/values", "GET")]
-                    : [],
+                Links = restricted?.Contains(f.Id) == true
+                    ? [new Link("targets", $"/api/masks/{maskId}/fields/{f.Id}/targets", "GET")]
+                    : SuggestibleTypes.Contains(f.DataType)
+                        ? [new Link("values", $"/api/masks/{maskId}/fields/{f.Id}/values", "GET")]
+                        : [],
             }).ToList(),
             Links = [new Link("self", $"/api/masks/{maskId}", "GET")],
         };

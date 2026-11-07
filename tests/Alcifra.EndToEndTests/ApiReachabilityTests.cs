@@ -385,6 +385,27 @@ public class ApiReachabilityTests(E2EApiFactory factory)
 
         // As the administrator: a tag, a label, a hold, an external link, a checkout, a mail domain, a group, a deleted
         // document, a deactivated user.
+        // A reference field naming an accepted mask advertises its picker (ADR 1068). The row is made directly: only a
+        // module's seed declares one, and the test module does not until ABI 2.1 is published.
+        var accepting = await TestJson.Post(admin, "/api/masks", new
+        {
+            name = $"Reach {Guid.NewGuid():N}"[..14],
+            fields = new object[] { new { name = "Poster", dataType = (int)Alcifra.Domain.Masks.FieldDataType.DocumentReference, isRequired = false, isList = false } },
+        });
+        using (var scope = factory.Services.CreateScope())
+        {
+            scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.CurrentTenantAccessor>().TenantId = tenantId;
+            var db = scope.ServiceProvider.GetRequiredService<Alcifra.Infrastructure.Persistence.AlcifraDbContext>();
+            db.FieldDefinitionAcceptedMasks.Add(new Alcifra.Domain.Masks.FieldDefinitionAcceptedMask
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                FieldDefinitionId = accepting.GetProperty("fields")[0].GetProperty("id").GetGuid(),
+                MaskId = accepting.GetProperty("id").GetGuid(),
+            });
+            await db.SaveChangesAsync();
+        }
+
         await TestJson.Post(admin, "/api/tags", new { name = $"Reach {Guid.NewGuid():N}"[..14], color = "#FF0000" });
         await TestJson.Post(admin, "/api/sensitivity-labels", new { name = $"Reach {Guid.NewGuid():N}"[..14], rank = 9, color = "#000000", watermark = true });
         var hold = (await TestJson.Post(admin, "/api/legal-holds", new { name = "Matter", reason = "reach" })).GetProperty("id").GetGuid();

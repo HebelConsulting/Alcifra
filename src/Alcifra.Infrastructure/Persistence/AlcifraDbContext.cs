@@ -199,6 +199,8 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<DocumentReference> DocumentReferences => Set<DocumentReference>();
 
+    public DbSet<FieldDefinitionAcceptedMask> FieldDefinitionAcceptedMasks => Set<FieldDefinitionAcceptedMask>();
+
     // The inventory-booking primitive's claims (ADR 0735).
     public DbSet<ResourceBooking> ResourceBookings => Set<ResourceBooking>();
 
@@ -828,6 +830,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
 
         var trackedFieldDefinitions = ChangeTracker.Entries<FieldDefinition>().ToDictionary(e => e.Entity.Id, e => e.Entity);
         var referenced = new Dictionary<Guid, string>();
+        var targetsOfRestrictableFields = new List<(Guid FieldDefinitionId, string FieldName, Guid Target)>();
 
         foreach (var fieldValue in changedFieldValues)
         {
@@ -844,10 +847,12 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
                 // document, or a list field repeating it — and Add would throw on the duplicate key, turning
                 // an ordinary write into an invariant failure.
                 referenced[Guid.Parse(fieldValue.Value)] = fieldDefinition.Name;
+                targetsOfRestrictableFields.Add((fieldDefinition.Id, fieldDefinition.Name, Guid.Parse(fieldValue.Value)));
             }
         }
 
         await ValidateDocumentReferencesAsync(referenced, cancellationToken);
+        await ReferenceFieldTargets.EnsureAcceptedAsync(this, targetsOfRestrictableFields, cancellationToken);
     }
 
     // A DocumentReference value must name a document that EXISTS, in this tenant, not in the recycle bin —
