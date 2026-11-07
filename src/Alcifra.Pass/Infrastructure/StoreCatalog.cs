@@ -23,13 +23,36 @@ internal sealed class StoreCatalog(Session session)
     /// <summary>The store to read: the named one, or My Passwords (created on first use, as in the apps).</summary>
     public async Task<PasswordFolderInfo> StoreAsync(string? name, CancellationToken cancellationToken)
     {
+        PasswordFolderInfo store;
         if (string.IsNullOrWhiteSpace(name))
         {
-            return await session.Passwords.EnsureMyPasswordsAsync(cancellationToken);
+            store = await session.Passwords.EnsureMyPasswordsAsync(cancellationToken);
+        }
+        else
+        {
+            var (stores, _) = await session.Passwords.ListStoresAsync(cancellationToken);
+            store = await session.Passwords.GetFolderAsync(Resolve(stores, name).Href, cancellationToken);
         }
 
-        var (stores, _) = await session.Passwords.ListStoresAsync(cancellationToken);
-        return await session.Passwords.GetFolderAsync(Resolve(stores, name).Href, cancellationToken);
+        await RememberStoreAsync(name, store.Id);
+        return store;
+    }
+
+    /// <summary>
+    /// The tree of the store <paramref name="name"/> names, from the cache alone, or null where it is not there or stale.
+    /// For completion: a TAB answers from what the last command read, with no request, so it works while the installation
+    /// is slow or the session has lapsed.
+    /// </summary>
+    public async Task<IReadOnlyList<PasswordTreeEntry>?> CachedRowsAsync(string? name)
+    {
+        if (await ReadStoresAsync() is not { } stores || !stores.TryGetValue(StoreKey(name), out var storeId))
+        {
+            return null;
+        }
+
+        return await ReadAsync(CachePath(session.Url, storeId)) is { } cached && DateTimeOffset.UtcNow - cached.Written < CacheFor
+            ? cached.Rows
+            : null;
     }
 
     /// <summary>
@@ -106,13 +129,56 @@ internal sealed class StoreCatalog(Session session)
 
     private sealed record CachedTree(DateTimeOffset Written, List<PasswordTreeEntry> Rows);
 
+    // LocalApplicationData rather than a home-relative .cache: the platform's own place for disposable data, and the same
+    // call on every OS this tool ships for. ALCIFRA_CACHE_DIR moves it, for a test that must not touch a real cache.
+    internal static string CacheFolder =>
+        Environment.GetEnvironmentVariable("ALCIFRA_CACHE_DIR") is { Length: > 0 } given
+            ? given
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "apass");
+
     private static string CachePath(string url, Guid storeId)
     {
-        // LocalApplicationData rather than a home-relative .cache: the platform's own place for disposable data,
-        // and the same call on every OS this tool ships for.
-        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "apass");
         var key = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes($"{url}|{storeId:D}")))[..16];
-        return Path.Combine(folder, $"tree-{key}.json");
+        return Path.Combine(CacheFolder, $"tree-{key}.json");
+    }
+
+    // Which store a name meant when a command last resolved it, per installation: the key the tree cache needs.
+    private string StoresPath => Path.Combine(CacheFolder,
+        $"stores-{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(session.Url)))[..16]}.json");
+
+    private static string StoreKey(string? name) => string.IsNullOrWhiteSpace(name) ? string.Empty : name;
+
+    private async Task<Dictionary<string, Guid>?> ReadStoresAsync()
+    {
+        try
+        {
+            return File.Exists(StoresPath) ? JsonSerializer.Deserialize<Dictionary<string, Guid>>(await File.ReadAllTextAsync(StoresPath)) : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+        {
+            PassLog.For<StoreCatalog>().LogDebug("Ignoring an unreadable store cache at {Path}: {Reason}", StoresPath, e.Message);
+            return null;
+        }
+    }
+
+    private async Task RememberStoreAsync(string? name, Guid storeId)
+    {
+        var stores = await ReadStoresAsync() ?? [];
+        if (stores.TryGetValue(StoreKey(name), out var known) && known == storeId)
+        {
+            return;
+        }
+
+        stores[StoreKey(name)] = storeId;
+        try
+        {
+            Directory.CreateDirectory(CacheFolder);
+            await File.WriteAllTextAsync(StoresPath, JsonSerializer.Serialize(stores));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            PassLog.For<StoreCatalog>().LogDebug("Could not write the store cache at {Path}: {Reason}", StoresPath, e.Message);
+        }
     }
 
     private static async Task<CachedTree?> ReadAsync(string path)

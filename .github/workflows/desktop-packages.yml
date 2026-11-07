@@ -54,7 +54,9 @@ jobs:
 
   # Every desktop package, on the one runner that can build them all (ADRs 0444/0478).
   packages:
-    timeout-minutes: 60
+    # Room for both .dmgs to use their notarization retry (scripts/package-macos-dmg.sh: 20 minutes per wait, one
+    # resubmission), on top of the build: a slow notary should fail the wait, not the whole job.
+    timeout-minutes: 120
     needs: gate
     if: ${{ needs.gate.outputs.publishes == 'true' }}
     runs-on: macos-latest

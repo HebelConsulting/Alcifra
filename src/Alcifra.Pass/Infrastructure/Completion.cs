@@ -95,8 +95,9 @@ internal static class Completion
     {
         using var session = Session.FromEnvironment();
         var catalog = new StoreCatalog(session);
-        var store = await catalog.StoreAsync(storeName, cancellationToken);
-        var rows = await catalog.RowsAsync(store, refresh: false, cancellationToken);
+        // The cache first, with no request at all; the installation only when the cache has nothing fresh.
+        var rows = await catalog.CachedRowsAsync(storeName)
+            ?? await catalog.RowsAsync(await catalog.StoreAsync(storeName, cancellationToken), refresh: false, cancellationToken);
 
         // The partial's own folder, so a TAB after "Mail/" offers Mail's children rather than the whole tree's.
         var slash = partial.LastIndexOf('/');

@@ -100,15 +100,35 @@ sign_app() {
 
 # Sign, notarize and staple the .dmg. The password reaches notarytool through its argv, which is unavoidable
 # for the Apple ID route; it is never echoed, and on CI the runner masks secrets in its log.
+#
+# Apple's wait is usually minutes and once ran past the job's whole hour (v0.59.1's first run). So each wait has its own
+# limit, NOTARY_WAIT (20 minutes), and a wait that runs out is submitted once more: a new submission rather than waiting
+# again, because a submission stuck in the queue may never come out. Any other failure ends the script at once.
+NOTARY_WAIT="${NOTARY_WAIT:-20m}"
 notarize_dmg() {
-  local dmg="$1" out submission
+  local dmg="$1" out submission attempt
   codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"
-  echo "==> Notarizing $(basename "$dmg") (this waits for Apple, typically a few minutes)…"
-  if ! out="$(xcrun notarytool submit "$dmg" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_APP_PASSWORD" \
-      --team-id "$APPLE_TEAM_ID" --wait 2>&1)"; then
-    echo "$out" >&2
-    exit 1
-  fi
+  for attempt in 1 2; do
+    echo "==> Notarizing $(basename "$dmg"), attempt $attempt (this waits for Apple, at most $NOTARY_WAIT)…"
+    local answered=1
+    out="$(xcrun notarytool submit "$dmg" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_APP_PASSWORD" \
+      --team-id "$APPLE_TEAM_ID" --wait --timeout "$NOTARY_WAIT" 2>&1)" || answered=0
+    # A wait that ran out leaves the submission "In Progress", whether notarytool then exits with an error or not.
+    if [[ "$out" == *"status: In Progress"* || ( $answered -eq 0 && "$out" == *[Tt]imeout* ) ]]; then
+      echo "$out" >&2
+      if [[ $attempt -eq 1 ]]; then
+        echo "==> Apple did not answer within $NOTARY_WAIT; submitting once more." >&2
+        continue
+      fi
+      echo "error: Apple did not notarize $(basename "$dmg") within two waits of $NOTARY_WAIT." >&2
+      exit 1
+    fi
+    if [[ $answered -eq 0 ]]; then
+      echo "$out" >&2
+      exit 1
+    fi
+    break
+  done
   grep -E "id:|status:" <<<"$out" || true   # informational only; must never fail the script
   if [[ "$out" != *"status: Accepted"* ]]; then
     # The notary says WHY in a log the submit output only links to; fetch it, or the refusal is unreadable.
