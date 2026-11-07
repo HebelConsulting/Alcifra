@@ -56,7 +56,9 @@ public class WebNewItemDialogTests(ModuleAppFixture app)
         await Expect(create).ToBeEnabledAsync();
         await create.ClickAsync();
 
-        await Expect(page.Locator(".mud-snackbar")).ToContainTextAsync(caseName);
+        // The notice that names this case: another may be showing at the same moment (a warning from the page around
+        // the dialog, seen twice in CI), and a bare ".mud-snackbar" then matches both and fails in strict mode.
+        await Expect(page.Locator(".mud-snackbar").Filter(new() { HasText = caseName })).ToBeVisibleAsync();
         await Expect(page.Locator("[data-pane='list']").GetByText(caseName)).ToBeVisibleAsync();
     }
 }
