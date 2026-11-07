@@ -1,6 +1,6 @@
 using Alcifra.Cli;
 using Alcifra.ConsoleLogging;
-using Alcifra.Sapass;
+using Alcifra.Pass;
 using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 
@@ -47,12 +47,12 @@ public class CommandConstructionTests
     public void Both_tools_have_commands_to_check()
     {
         // A guard over an empty set passes for the wrong reason.
-        Assert.Contains(CommandTypes(), t => t.Assembly == typeof(SapassApp).Assembly);
+        Assert.Contains(CommandTypes(), t => t.Assembly == typeof(PassApp).Assembly);
         Assert.Contains(CommandTypes(), t => t.Assembly == typeof(SaConsoleApp).Assembly);
     }
 
     private static IEnumerable<Type> CommandTypes() =>
-        new[] { typeof(SapassApp).Assembly, typeof(SaConsoleApp).Assembly }
+        new[] { typeof(PassApp).Assembly, typeof(SaConsoleApp).Assembly }
             .SelectMany(assembly => assembly.GetTypes())
             .Where(t => t is { IsAbstract: false, IsGenericTypeDefinition: false } && typeof(ICommand).IsAssignableFrom(t));
 }

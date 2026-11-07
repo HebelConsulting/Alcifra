@@ -46,16 +46,16 @@ public class ConsoleOutputRatchetTests
         ["src/Alcifra.DesktopClient/Services/DesktopLog.cs"] = 1,
         // apass (ADR 0964, 2026-10-25): a pass-like CLI, so its DATA output is stdout by contract — what a script
         // captures (`apass show x | head -1`, `eval "$(apass login …)"`) and what completion reads.
-        ["src/Alcifra.Sapass/Commands/LoginCommand.cs"] = 2,   // data output only: the two shell exports
-        ["src/Alcifra.Sapass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
-        ["src/Alcifra.Sapass/Commands/AudienceCommand.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)
-        ["src/Alcifra.Sapass/Commands/FindCommand.cs"] = 1,   // data output only: the matching paths
-        ["src/Alcifra.Sapass/Commands/ShowCommand.cs"] = 1,   // data output only: the entry's fields in the form's order
-        ["src/Alcifra.Sapass/Commands/PasswordCommand.cs"] = 1,   // data output only: the entry's password (ADR 1024)
-        ["src/Alcifra.Sapass/Commands/OtpCommand.cs"] = 1,   // data output only: the current verification code (ADR 1013)
-        ["src/Alcifra.Sapass/Commands/GenerateCommand.cs"] = 1,   // data output only: the secret it generated
-        ["src/Alcifra.Sapass/Commands/CompletionCommand.cs"] = 1,   // data output only: the completion script
-        ["src/Alcifra.Sapass/Infrastructure/Completion.cs"] = 1,   // data output only: candidates a shell captures
+        ["src/Alcifra.Pass/Commands/LoginCommand.cs"] = 2,   // data output only: the two shell exports
+        ["src/Alcifra.Pass/Commands/LsCommand.cs"] = 1,   // data output only: the folder's names
+        ["src/Alcifra.Pass/Commands/AudienceCommand.cs"] = 1,   // data output only: the audience, one member per line (ADR 0983)
+        ["src/Alcifra.Pass/Commands/FindCommand.cs"] = 1,   // data output only: the matching paths
+        ["src/Alcifra.Pass/Commands/ShowCommand.cs"] = 1,   // data output only: the entry's fields in the form's order
+        ["src/Alcifra.Pass/Commands/PasswordCommand.cs"] = 1,   // data output only: the entry's password (ADR 1024)
+        ["src/Alcifra.Pass/Commands/OtpCommand.cs"] = 1,   // data output only: the current verification code (ADR 1013)
+        ["src/Alcifra.Pass/Commands/GenerateCommand.cs"] = 1,   // data output only: the secret it generated
+        ["src/Alcifra.Pass/Commands/CompletionCommand.cs"] = 1,   // data output only: the completion script
+        ["src/Alcifra.Pass/Infrastructure/Completion.cs"] = 1,   // data output only: candidates a shell captures
     };
 
     /// <summary>

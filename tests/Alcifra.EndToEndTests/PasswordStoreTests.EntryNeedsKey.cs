@@ -6,8 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Alcifra.ApiClient;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.Infrastructure.Persistence;
-using Alcifra.Sapass;
-using Alcifra.Sapass.Infrastructure;
+using Alcifra.Pass;
+using Alcifra.Pass.Infrastructure;
 
 namespace Alcifra.EndToEndTests;
 
@@ -61,7 +61,7 @@ public sealed partial class PasswordStoreTests
         Assert.Equal(NewEntryUnavailability.EnrolmentRequired, withheld.Reason);
         using (var session = Session.Over(_factory.CreateAuthedClient(carolToken)))   // the session owns its client
         {
-            var refusal = await Assert.ThrowsAsync<SapassException>(() => EntryWriter.StoreForNewEntryAsync(session, "Team", CancellationToken.None));
+            var refusal = await Assert.ThrowsAsync<PassException>(() => EntryWriter.StoreForNewEntryAsync(session, "Team", CancellationToken.None));
             Assert.StartsWith("Enrol a hardware key first", refusal.Message);
         }
 

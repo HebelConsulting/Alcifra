@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The hardware key, reachable from every host that has one: the desktop client and sapass (ADR 0964/0975,
-       sapass decisions 2026-10-25). A leaf like TextLayout, and for the same kind of reason: the PKCS#11 module is
+  <!-- The hardware key, reachable from every host that has one: the desktop client and apass (ADR 0964/0975,
+       apass decisions 2026-10-25). A leaf like TextLayout, and for the same kind of reason: the PKCS#11 module is
        loaded once per PROCESS (C_Initialize answers CKR_CRYPTOKI_ALREADY_INITIALIZED to a second copy), so the
        session, the certificate reader and the envelope opener must be ONE implementation rather than one per client.
-       Referenced by the desktop and by sapass; NOT by ApiClient (the phone would drag a native PKCS#11 package it
+       Referenced by the desktop and by apass; NOT by ApiClient (the phone would drag a native PKCS#11 package it
        cannot use) and never by a server project. -->
 
   <PropertyGroup>

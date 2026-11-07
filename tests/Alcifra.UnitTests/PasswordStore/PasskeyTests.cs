@@ -5,8 +5,8 @@ using System.Text;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.BrowserHost;
 using Alcifra.Presentation;
-using Alcifra.Sapass;
-using Alcifra.Sapass.Infrastructure;
+using Alcifra.Pass;
+using Alcifra.Pass.Infrastructure;
 
 namespace Alcifra.UnitTests.PasswordStore;
 
@@ -160,14 +160,14 @@ public sealed class PasskeyTests
         var passkey = Passkey.Create("example.com", UserHandle, "anna");
         var content = PasswordEntryContent.Of("pw", userName: "anna").WithPasskey(passkey);
 
-        Assert.Contains("Passkey: anna @ example.com", Alcifra.Sapass.Commands.ShowCommand.FieldLines(content, TimeProvider.System));
+        Assert.Contains("Passkey: anna @ example.com", Alcifra.Pass.Commands.ShowCommand.FieldLines(content, TimeProvider.System));
         var text = EntryText.Format(content);
         Assert.DoesNotContain("Passkey", text, StringComparison.Ordinal);
 
         var edited = EntryText.Parse(text.Replace("pw\n", "new\n", StringComparison.Ordinal), content.Fields);
         Assert.Equal("new", edited.Password);
         Assert.Equal(passkey.ToText(), edited.Value(PasswordEntryFieldNames.Passkey));
-        Assert.Throws<SapassException>(() => EntryText.Parse("pw\nPasskey: {}\n", content.Fields));
+        Assert.Throws<PassException>(() => EntryText.Parse("pw\nPasskey: {}\n", content.Fields));
     }
 
     private static (string Format, byte[] AuthData) ReadAttestation(CborReader reader)

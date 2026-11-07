@@ -42,7 +42,7 @@ public static class HostRegistration
 
         if (OperatingSystem.IsWindows())
         {
-            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "sapass");
+            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "apass");
             Directory.CreateDirectory(folder);
             var manifestPath = Path.Combine(folder, $"{hostName}.json");
             var reg = Path.Combine(folder, $"{hostName}.reg");

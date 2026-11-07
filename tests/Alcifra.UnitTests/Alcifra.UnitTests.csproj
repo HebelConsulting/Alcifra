@@ -50,7 +50,7 @@
     <ProjectReference Include="..\..\src\Alcifra.Application\Alcifra.Application.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.Client\Alcifra.Client.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.BrowserHost\Alcifra.BrowserHost.csproj" />
-    <ProjectReference Include="..\..\src\Alcifra.Sapass\Alcifra.Sapass.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.Pass\Alcifra.Pass.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.Presentation\Alcifra.Presentation.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
     <!-- Referenced so the architecture tests can inspect these assemblies (layer + convention rules). -->

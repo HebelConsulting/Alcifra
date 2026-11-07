@@ -77,7 +77,7 @@ public class BrowserHostTests
         var responses = await ExchangeAsync(new { command = "ping", id = 1 });
 
         Assert.True(responses[0].GetProperty("ok").GetBoolean());
-        Assert.Equal("sapass", responses[0].GetProperty("host").GetString());
+        Assert.Equal("apass", responses[0].GetProperty("host").GetString());
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class BrowserHostTests
 
         input.Position = 0;
         var output = new MemoryStream();
-        await new AutofillHost(new FakeStore(), logger, "sapass").RunAsync(input, output);
+        await new AutofillHost(new FakeStore(), logger, "apass").RunAsync(input, output);
 
         output.Position = 0;
         var responses = new List<JsonElement>();
@@ -188,7 +188,7 @@ public class BrowserHostTests
         public Task<AutofillSaved> SaveAsync(AutofillSave save, CancellationToken cancellationToken) =>
             Task.FromResult(new AutofillSaved(Entry, save.Site, save.Site));
 
-        public string Generate(int length) => Alcifra.Sapass.Infrastructure.Passwords.Generate(length);
+        public string Generate(int length) => Alcifra.Pass.Infrastructure.Passwords.Generate(length);
     }
 
     private sealed class RecordingLogger : ILogger

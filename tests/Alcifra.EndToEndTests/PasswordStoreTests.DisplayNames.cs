@@ -1,8 +1,8 @@
 using Alcifra.ApiClient;
 using Alcifra.ApiClient.PasswordStore;
 using Alcifra.Domain.Masks;
-using Alcifra.Sapass;
-using Alcifra.Sapass.Infrastructure;
+using Alcifra.Pass;
+using Alcifra.Pass.Infrastructure;
 
 namespace Alcifra.EndToEndTests;
 
@@ -55,8 +55,8 @@ public sealed partial class PasswordStoreTests
         var catalog = new StoreCatalog(session);
         Assert.Equal(inFolder, (await catalog.StoreAsync("Ops / Team", CancellationToken.None)).Id);
         Assert.Equal(adminsOwn.Id, (await catalog.StoreAsync("My Passwords", CancellationToken.None)).Id);
-        await Assert.ThrowsAsync<SapassException>(() => catalog.StoreAsync("Anna / My Passwords", CancellationToken.None));
-        var refused = await Assert.ThrowsAsync<SapassException>(() => catalog.StoreAsync("Team", CancellationToken.None));
+        await Assert.ThrowsAsync<PassException>(() => catalog.StoreAsync("Anna / My Passwords", CancellationToken.None));
+        var refused = await Assert.ThrowsAsync<PassException>(() => catalog.StoreAsync("Team", CancellationToken.None));
         Assert.Contains("'Ops / Team'", refused.Message);
         return 0;
     });

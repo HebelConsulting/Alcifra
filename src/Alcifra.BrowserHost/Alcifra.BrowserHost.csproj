@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- The browser autofill host (owner, 2026-10-25): ONE implementation of Chrome's native-messaging protocol and
-       the fill/save commands, served by BOTH the desktop client and sapass — each registers its own host name, and
+       the fill/save commands, served by BOTH the desktop client and apass — each registers its own host name, and
        the extension tries them in order. A leaf referencing the shared client and the card code, no UI: the PIN
        prompt is a delegate the host application supplies. -->
 

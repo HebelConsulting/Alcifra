@@ -9,7 +9,7 @@ namespace Alcifra.BrowserExtensionTests;
 /// </summary>
 public sealed class BookmarkSyncExtensionTests
 {
-    private const string Sapass = "sapass";
+    private const string Pass = "apass";
 
     private static readonly FakeBookmarkFile Personal = new(Guid.Parse("7a1f6f7e-59d0-4f0b-8a53-0c3a3f1f2a01"), "Bookmarks", IsPersonal: true, CanEdit: true);
     private static readonly FakeBookmarkFile ReadOnly = new(Guid.Parse("7a1f6f7e-59d0-4f0b-8a53-0c3a3f1f2a02"), "Team links", IsPersonal: false, CanEdit: false);
@@ -24,7 +24,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task A_file_becomes_its_own_folder_and_a_new_bookmark_goes_back_with_an_id()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         browser.Bookmarks.Put(Personal, Html(Mark("a", "Mail"), new BookmarkNode("f", "Tools", null, [Mark("b", "Docs")])));
 
         await browser.SyncBookmarksAsync();
@@ -49,7 +49,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task A_change_on_the_server_reaches_the_browser_and_a_change_made_there_saves_by_itself()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], null, TimeSpan.FromSeconds(2), Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], null, TimeSpan.FromSeconds(2), Pass);
         browser.Bookmarks.Put(Personal, Html(Mark("a", "Mail")));
         await browser.SyncBookmarksAsync();
 
@@ -72,7 +72,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task One_bookmark_edited_in_both_places_keeps_the_browsers_edit_and_files_the_other_in_conflicts()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         browser.Bookmarks.Put(Personal, Html(Mark("a", "Mail")));
         await browser.SyncBookmarksAsync();
 
@@ -94,7 +94,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task A_change_to_a_read_only_file_is_reverted_and_never_written()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         browser.Bookmarks.Put(ReadOnly, Html(Mark("a", "Handbook")));
         var before = browser.Bookmarks.Html(ReadOnly.Id);
         await browser.SyncBookmarksAsync();
@@ -116,7 +116,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task A_folder_removed_by_hand_comes_back_and_the_file_is_not_emptied()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         browser.Bookmarks.Put(Personal, Html(Mark("a", "Mail")));
         await browser.SyncBookmarksAsync();
 
@@ -135,7 +135,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task A_file_no_longer_listed_takes_its_folder_with_it()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         browser.Bookmarks.Put(ReadOnly, Html(Mark("a", "Handbook")));
         await browser.SyncBookmarksAsync();
         Assert.Single(await browser.BrowserFolderAsync("Team links"));
@@ -150,7 +150,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task A_file_larger_than_one_message_syncs_both_ways()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         var padding = new string('x', 3000);
         var marks = Enumerable.Range(0, 500).Select(i => Mark($"m{i}", $"Mark {i}", $"https://example.test/{i}/{padding}")).ToArray();
         browser.Bookmarks.Put(Personal, Html(marks));
@@ -174,7 +174,7 @@ public sealed class BookmarkSyncExtensionTests
     [Fact]
     public async Task An_address_the_browser_refuses_stays_in_the_file()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         browser.Bookmarks.Put(Personal, Html(Mark("odd", "Odd", "not an address"), Mark("a", "Mail")));
 
         await browser.SyncBookmarksAsync();

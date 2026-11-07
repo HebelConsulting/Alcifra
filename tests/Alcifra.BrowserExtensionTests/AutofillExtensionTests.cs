@@ -10,7 +10,7 @@ namespace Alcifra.BrowserExtensionTests;
 /// </summary>
 public sealed class AutofillExtensionTests : IDisposable
 {
-    private const string Sapass = "sapass";
+    private const string Pass = "apass";
     private const string Desktop = "desktop";
 
     /// <summary>The keep-alive interval the keep-alive tests patch in (20 s ships), so several ticks take seconds.</summary>
@@ -33,7 +33,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task A_matching_entry_is_offered_on_focus_and_fills_the_login_when_chosen()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Pass);
         var page = await OpenLoginAsync(browser, "localhost");
 
         await page.Locator("#pass").ClickAsync();
@@ -50,13 +50,13 @@ public sealed class AutofillExtensionTests : IDisposable
         Assert.Equal(
             [("match", "localhost", (Guid?)null), ("open", null, Mail.Id)],
             browser.Calls.Select(c => (c.Command, c.Site, c.EntryId)));
-        Assert.All(browser.Calls, c => Assert.Equal(Sapass, c.Host));
+        Assert.All(browser.Calls, c => Assert.Equal(Pass, c.Host));
     }
 
     [Fact]
     public async Task Generate_puts_a_fresh_password_into_the_field_and_leaves_the_user_name_alone()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Pass);
         var page = await OpenLoginAsync(browser, "localhost");
 
         await page.Locator("#pass").ClickAsync();
@@ -73,7 +73,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task A_page_with_no_matching_entry_offers_no_entry()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Pass);
         var page = await OpenLoginAsync(browser, "127.0.0.1");
 
         await page.Locator("#pass").ClickAsync();
@@ -91,7 +91,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task A_submitted_login_is_offered_on_the_next_page_and_saving_reaches_the_store()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         var page = await OpenLoginAsync(browser, "127.0.0.1");
 
         await SubmitAsync(page, "tom@example.test", "typed by hand 42");
@@ -113,7 +113,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task Not_now_drops_the_submitted_login_without_saving_it()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], Pass);
         var page = await OpenLoginAsync(browser, "127.0.0.1");
 
         await SubmitAsync(page, "tom@example.test", "typed by hand 42");
@@ -139,7 +139,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task A_login_submitted_while_the_service_worker_is_stopped_is_still_offered()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], KeepAliveTick, Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], KeepAliveTick, Pass);
         var page = await OpenLoginAsync(browser, "127.0.0.1");
         await page.Locator("#user").FillAsync("tom@example.test");
         await page.Locator("#pass").FillAsync("typed by hand 42");
@@ -161,7 +161,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task The_keep_alive_stops_when_the_password_field_is_cleared()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([], KeepAliveTick, Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([], KeepAliveTick, Pass);
         var page = await OpenLoginAsync(browser, "127.0.0.1");
         await page.Locator("#user").FillAsync("tom@example.test");
         await page.Locator("#pass").FillAsync("typed by hand 42");
@@ -178,7 +178,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task With_both_clients_registered_the_desktop_answers()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Sapass, Desktop);
+        await using var browser = await ExtensionBrowser.LaunchAsync([Mail], Pass, Desktop);
         var page = await OpenLoginAsync(browser, "localhost");
 
         await page.Locator("#pass").ClickAsync();
@@ -194,7 +194,7 @@ public sealed class AutofillExtensionTests : IDisposable
     [Fact]
     public async Task A_one_time_code_field_is_offered_the_entries_with_a_code_and_filled_with_the_current_code()
     {
-        await using var browser = await ExtensionBrowser.LaunchAsync([Mail, Bank], Sapass);
+        await using var browser = await ExtensionBrowser.LaunchAsync([Mail, Bank], Pass);
         var page = await browser.OpenAsync(_site.Verify("localhost"));
         var setup = Alcifra.ApiClient.PasswordStore.VerificationCodeSetup.Parse(Bank.CodeSetup);
         var before = setup.Current(TimeProvider.System).Value;

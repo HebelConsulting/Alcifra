@@ -6,7 +6,7 @@ namespace Alcifra.ConsoleLogging;
 /// <summary>
 /// A secret typed at the terminal with no echo. The one place both the card's PIN and a new password are read, so
 /// "never keep the secret, never show it, never log it" is one implementation rather than two that can drift. Shared by
-/// the command-line tools (sapass; alcifra's `inspect --try-open`, #2007).
+/// the command-line tools (apass; alcifra's `inspect --try-open`, #2007).
 /// </summary>
 public static class SecretInput
 {

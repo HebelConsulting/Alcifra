@@ -12,11 +12,11 @@ hardware key and its PIN.
 2. **Register a host**: install one of the clients and let it register itself against that id:
 
    ```sh
-   sapass browser install chrome --extension-id <the id from step 1>
+   apass browser install chrome --extension-id <the id from step 1>
    ```
 
    The desktop client registers its own host name from its settings. Both may be installed; the extension asks the
-   desktop's host first and falls back to sapass's (ADR 0978).
+   desktop's host first and falls back to apass's (ADR 0978).
 3. **Restart the browser** (native-messaging manifests are read at start), then sign in where a login form is.
 
 ## What it does

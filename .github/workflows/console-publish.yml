@@ -78,7 +78,7 @@ jobs:
         run: |
           set -euo pipefail
           version=${{ steps.version.outputs.value }}
-          for project in src/Alcifra.Cli/Alcifra.Cli.csproj src/Alcifra.Sapass/Alcifra.Sapass.csproj; do
+          for project in src/Alcifra.Cli/Alcifra.Cli.csproj src/Alcifra.Pass/Alcifra.Pass.csproj; do
             dotnet pack "$project" -c Release -o dist/nuget --nologo -p:Version="$version"
           done
           ls dist/nuget

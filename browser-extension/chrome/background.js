@@ -1,10 +1,10 @@
 // The bridge between the page and the native host, and the bookmark sync over the same host (bookmarks.js).
 //
 // Chrome starts a native-messaging host by NAME; the host is whichever client registered that name. The desktop's
-// host is tried first, then sapass's (owner, 2026-10-25), so installing one client never repoints the other.
+// host is tried first, then apass's (owner, 2026-10-25), so installing one client never repoints the other.
 // A request opens its own port: a host process lives only while its port does, and one process per user action is
 // simpler and more robust than a long-lived port that has to be re-established after every browser sleep.
-const HOSTS = ["com.alcifra.autofill.desktop", "com.alcifra.autofill.sapass"];
+const HOSTS = ["com.alcifra.autofill.desktop", "com.alcifra.autofill.apass"];
 
 // A submitted login waits here until the user decides on the page that follows. chrome.storage.session is the
 // extension's own store: page scripts cannot read it, and it is cleared when the browser closes.

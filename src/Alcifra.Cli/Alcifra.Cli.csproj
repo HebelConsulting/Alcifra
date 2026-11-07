@@ -56,8 +56,8 @@
              is sealed on the client to the store's readers, and that sealing lives there ONCE ("moved, not copied").
              A client library, not an application project: it carries none of the server. -->
         <ProjectReference Include="../Alcifra.ApiClient/Alcifra.ApiClient.csproj" />
-        <!-- The key path the desktop and sapass share (ADR 0832), for the inspect command's try-open (#2007): which of the caller's
-             keys opens a file, with the hardware key's PIN asked at the terminal as sapass asks it. -->
+        <!-- The key path the desktop and apass share (ADR 0832), for the inspect command's try-open (#2007): which of the caller's
+             keys opens a file, with the hardware key's PIN asked at the terminal as apass asks it. -->
         <ProjectReference Include="../Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj" />
     </ItemGroup>
 

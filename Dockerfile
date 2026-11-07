@@ -44,7 +44,7 @@ COPY ["src/Alcifra.Presentation/Alcifra.Presentation.csproj", "src/Alcifra.Prese
 COPY ["src/Alcifra.TextLayout/Alcifra.TextLayout.csproj", "src/Alcifra.TextLayout/"]
 COPY ["src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj", "src/Alcifra.HardwareKeys/"]
 COPY ["src/Alcifra.BrowserHost/Alcifra.BrowserHost.csproj", "src/Alcifra.BrowserHost/"]
-COPY ["src/Alcifra.Sapass/Alcifra.Sapass.csproj", "src/Alcifra.Sapass/"]
+COPY ["src/Alcifra.Pass/Alcifra.Pass.csproj", "src/Alcifra.Pass/"]
 COPY ["src/Alcifra.SealedArchive/Alcifra.SealedArchive.csproj", "src/Alcifra.SealedArchive/"]
 COPY ["src/Alcifra.Theming/Alcifra.Theming.csproj", "src/Alcifra.Theming/"]
 COPY ["src/Alcifra.Domain/Alcifra.Domain.csproj", "src/Alcifra.Domain/"]

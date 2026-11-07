@@ -85,7 +85,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
     <!-- The card code (PKCS#11 module, session, certificates, envelope opener) moved to a leaf on 2026-10-25 so
-         sapass can reach the same key through ONE implementation: C_Initialize is per process, and two copies of
+         apass can reach the same key through ONE implementation: C_Initialize is per process, and two copies of
          the module in one process answer CKR_CRYPTOKI_ALREADY_INITIALIZED (ADR 0832). -->
     <ProjectReference Include="..\Alcifra.BrowserHost\Alcifra.BrowserHost.csproj" />
     <ProjectReference Include="..\Alcifra.HardwareKeys\Alcifra.HardwareKeys.csproj" />
