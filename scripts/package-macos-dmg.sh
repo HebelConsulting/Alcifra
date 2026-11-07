@@ -105,6 +105,14 @@ sign_app() {
 # limit, NOTARY_WAIT (20 minutes), and a wait that runs out is submitted once more: a new submission rather than waiting
 # again, because a submission stuck in the queue may never come out. Any other failure ends the script at once.
 NOTARY_WAIT="${NOTARY_WAIT:-20m}"
+
+# The submission's FINAL status, from the last "status:" line notarytool prints for it. Its progress lines read
+# "Current status: In Progress..." even when the same output ends "status: Accepted", so a search of the whole output
+# for "In Progress" took every accepted submission for a wait that ran out (v0.60.0's first packaging run).
+notary_final_status() {
+  sed -n 's/^ *status: //p' | tail -1
+}
+
 notarize_dmg() {
   local dmg="$1" out submission attempt
   codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"
@@ -114,7 +122,9 @@ notarize_dmg() {
     out="$(xcrun notarytool submit "$dmg" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_APP_PASSWORD" \
       --team-id "$APPLE_TEAM_ID" --wait --timeout "$NOTARY_WAIT" 2>&1)" || answered=0
     # A wait that ran out leaves the submission "In Progress", whether notarytool then exits with an error or not.
-    if [[ "$out" == *"status: In Progress"* || ( $answered -eq 0 && "$out" == *[Tt]imeout* ) ]]; then
+    local final
+    final="$(notary_final_status <<<"$out")"
+    if [[ "$final" == "In Progress" || ( $answered -eq 0 && -z "$final" && "$out" == *[Tt]imeout* ) ]]; then
       echo "$out" >&2
       if [[ $attempt -eq 1 ]]; then
         echo "==> Apple did not answer within $NOTARY_WAIT; submitting once more." >&2
@@ -130,7 +140,7 @@ notarize_dmg() {
     break
   done
   grep -E "id:|status:" <<<"$out" || true   # informational only; must never fail the script
-  if [[ "$out" != *"status: Accepted"* ]]; then
+  if [[ "$(notary_final_status <<<"$out")" != "Accepted" ]]; then
     # The notary says WHY in a log the submit output only links to; fetch it, or the refusal is unreadable.
     submission="$(echo "$out" | sed -n 's/^ *id: //p' | head -1)"
     xcrun notarytool log "$submission" --apple-id "$NOTARY_APPLE_ID" --password "$NOTARY_APP_PASSWORD" \
