@@ -94,7 +94,7 @@ public sealed class IntrayIngestPipeline(
 
             await using (var empty = new MemoryStream())
             {
-                await storage.PutObjectAsync($"{prefix}{name}{SignedSuffix}", empty, "application/octet-stream", cancellationToken);
+                await PutBesideAsync(prefix, name, SignedSuffix, empty, "application/octet-stream", cancellationToken);
             }
 
             await MarkSeenAsync(prefix, name, cancellationToken);
@@ -244,7 +244,23 @@ public sealed class IntrayIngestPipeline(
     {
         var marker = JsonSerializer.SerializeToUtf8Bytes(new { processors = ran });
         await using var payload = new MemoryStream(marker);
-        await storage.PutObjectAsync($"{prefix}{name}{MarkerSuffix}", payload, "application/json", cancellationToken);
+        await PutBesideAsync(prefix, name, MarkerSuffix, payload, "application/json", cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes a file that describes the item, then makes sure the item is still there (#2221). A delete removes the item
+    /// first and then sweeps what lies beside it; a pipeline still running when that sweep passed would write its file
+    /// after it, an orphan nothing would ever remove. Checking afterwards closes the window: the item is gone before the
+    /// sweep starts, so a file written after the sweep finds no item, and is taken back.
+    /// </summary>
+    private async Task PutBesideAsync(string prefix, string name, string suffix, Stream payload, string contentType, CancellationToken cancellationToken)
+    {
+        await storage.PutObjectAsync($"{prefix}{name}{suffix}", payload, contentType, cancellationToken);
+        if (!await storage.ExistsAsync(prefix + name, cancellationToken))
+        {
+            logger.LogDebug("Intray ingest: {Item} was deleted while it was processed; its {Suffix} is taken back.", name, suffix);
+            await storage.DeleteObjectAsync($"{prefix}{name}{suffix}", cancellationToken);
+        }
     }
 
     private async Task<byte[]> ReadAsync(string key, CancellationToken cancellationToken)
