@@ -34,6 +34,7 @@ public sealed class ModuleMaskSeeder
         foreach (var seed in module.Masks)
         {
             await ReconcileContainmentAsync(module.ModuleId, seed, tenantId, cancellationToken);
+            await ReconcileAcceptedMasksAsync(module.ModuleId, seed, tenantId, cancellationToken);
         }
     }
 
@@ -180,25 +181,8 @@ public sealed class ModuleMaskSeeder
         // A row may only be written once BOTH masks exist for the tenant (the FK demands it — the core's own
         // containment pass makes the same guard). A declared id with no mask is a module bug worth a Warning
         // rather than a silent skip: the folder would quietly admit less than the module believes.
-        var present = (await _dbContext.Masks.IgnoreQueryFilters(["TenantFilter"])
-            .Where(m => m.TenantId == tenantId)
-            .Select(m => m.Id)
-            .ToListAsync(cancellationToken)).ToHashSet();
-        HashSet<Guid> Present(IReadOnlyList<Guid>? declared, string family)
-        {
-            var wanted = (declared ?? []).ToHashSet();
-            foreach (var absent in wanted.Where(id => !present.Contains(id)))
-            {
-                _logger.LogWarning(
-                    "Module {ModuleId}: mask {Mask} declares {Family} {Declared}, which this tenant has no mask for — skipped.",
-                    moduleId, seed.Name, family, absent);
-            }
-
-            wanted.IntersectWith(present);
-            return wanted;
-        }
-
-        var wantedChildren = Present(seed.AdmittedChildren, "admitted child");
+        var present = await PresentMasksAsync(tenantId, cancellationToken);
+        var wantedChildren = Present(moduleId, seed, present, seed.AdmittedChildren, "admitted child");
         var existingChildren = await _dbContext.MaskAdmittedChildren.IgnoreQueryFilters(["TenantFilter"])
             .Where(c => c.TenantId == tenantId && c.FolderMaskId == seed.MaskId)
             .ToListAsync(cancellationToken);
@@ -215,7 +199,7 @@ public sealed class ModuleMaskSeeder
 
         _dbContext.MaskAdmittedChildren.RemoveRange(existingChildren.Where(e => !wantedChildren.Contains(e.ChildMaskId)));
 
-        var wantedParents = Present(seed.AllowedParents, "allowed parent");
+        var wantedParents = Present(moduleId, seed, present, seed.AllowedParents, "allowed parent");
         var existingParents = await _dbContext.MaskAllowedParents.IgnoreQueryFilters(["TenantFilter"])
             .Where(p => p.TenantId == tenantId && p.MaskId == seed.MaskId)
             .ToListAsync(cancellationToken);
@@ -232,6 +216,74 @@ public sealed class ModuleMaskSeeder
 
         _dbContext.MaskAllowedParents.RemoveRange(existingParents.Where(e => !wantedParents.Contains(e.ParentMaskId)));
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// The accepted-mask rows of the fields on the mask's current version, reconciled to the seed (ABI 2.1, ADR 1068): after
+    /// the first pass, because a field may name a sibling mask. The module is the authority for its own fields, so missing
+    /// rows are added and stale ones removed. Values already stored are not touched (ADR 1068: only a write is checked).
+    /// </summary>
+    private async Task ReconcileAcceptedMasksAsync(string moduleId, ModuleMaskSeed seed, Guid tenantId, CancellationToken cancellationToken)
+    {
+        var current = await _dbContext.MaskVersions.IgnoreQueryFilters(["TenantFilter"])
+            .SingleAsync(v => v.TenantId == tenantId && v.MaskId == seed.MaskId && v.IsCurrent, cancellationToken);
+        var fields = await _dbContext.FieldDefinitions.IgnoreQueryFilters(["TenantFilter"])
+            .Where(f => f.TenantId == tenantId && f.MaskVersionId == current.Id)
+            .ToListAsync(cancellationToken);
+        var fieldIds = fields.Select(f => f.Id).ToList();
+        var existing = await _dbContext.FieldDefinitionAcceptedMasks.IgnoreQueryFilters(["TenantFilter"])
+            .Where(a => a.TenantId == tenantId && fieldIds.Contains(a.FieldDefinitionId))
+            .ToListAsync(cancellationToken);
+        var present = await PresentMasksAsync(tenantId, cancellationToken);
+
+        foreach (var field in fields)
+        {
+            var declared = seed.Fields.FirstOrDefault(f => string.Equals(f.Name, field.Name, StringComparison.Ordinal))?.AcceptedMasks;
+            if (declared is { Count: > 0 } && field.DataType != FieldDataType.DocumentReference)
+            {
+                _logger.LogWarning(
+                    "Module {ModuleId}: field {Field} of mask {Mask} names accepted masks but is {DataType}, not a document reference — skipped.",
+                    moduleId, field.Name, seed.Name, field.DataType);
+                declared = null;
+            }
+
+            var wanted = Present(moduleId, seed, present, declared, "accepted mask");
+            var rows = existing.Where(a => a.FieldDefinitionId == field.Id).ToList();
+            foreach (var maskId in wanted.Where(id => rows.All(r => r.MaskId != id)))
+            {
+                _dbContext.FieldDefinitionAcceptedMasks.Add(new FieldDefinitionAcceptedMask
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = tenantId,
+                    FieldDefinitionId = field.Id,
+                    MaskId = maskId,
+                });
+            }
+
+            _dbContext.FieldDefinitionAcceptedMasks.RemoveRange(rows.Where(r => !wanted.Contains(r.MaskId)));
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<HashSet<Guid>> PresentMasksAsync(Guid tenantId, CancellationToken cancellationToken) =>
+        (await _dbContext.Masks.IgnoreQueryFilters(["TenantFilter"])
+            .Where(m => m.TenantId == tenantId)
+            .Select(m => m.Id)
+            .ToListAsync(cancellationToken)).ToHashSet();
+
+    private HashSet<Guid> Present(string moduleId, ModuleMaskSeed seed, HashSet<Guid> present, IReadOnlyList<Guid>? declared, string family)
+    {
+        var wanted = (declared ?? []).ToHashSet();
+        foreach (var absent in wanted.Where(id => !present.Contains(id)))
+        {
+            _logger.LogWarning(
+                "Module {ModuleId}: mask {Mask} declares {Family} {Declared}, which this tenant has no mask for — skipped.",
+                moduleId, seed.Name, family, absent);
+        }
+
+        wanted.IntersectWith(present);
+        return wanted;
     }
 
     private static FieldDefinition NewField(MaskVersion version, ModuleFieldSeed field, Guid tenantId, int sortOrder) => new()

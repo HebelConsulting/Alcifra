@@ -280,8 +280,8 @@ public static class CoreMaskIds
 /// both clients' detail panes — the DABS folder's link to its source portal. "DocumentReference" (core ADR
 /// 0773) holds the id of ANOTHER DOCUMENT — the typed relationship a mask names, such as the flight a lesson
 /// record was flown on — validated against an existing document and rendered as one to open. WHICH documents
-/// may be chosen is not part of the field: declare a <c>Proposal</c> on the mask's machine (ADR 0769) and its
-/// query is the restriction, which is strictly more expressive than a mask-or-folder rule.
+/// may be chosen: <see cref="AcceptedMasks"/> names the kinds, and the core holds it at save (ABI 2.1); a
+/// <c>Proposal</c> on the mask's machine (ADR 0769) is a query, more expressive, and offers without refusing.
 /// "Toggle" (core ADR 1047) is enabled or disabled, drawn as a slider; a Text field of an existing mask may become
 /// one, and its values move with it.
 /// Because the vocabulary is a string, naming this on an older core is refused by name at activation —
@@ -293,7 +293,17 @@ public sealed record ModuleFieldSeed(
     string Name,
     string DataType,
     bool IsRequired = false,
-    bool IsList = false);
+    bool IsList = false)
+{
+    /// <summary>
+    /// The masks a "DocumentReference" field accepts (ABI 2.1, core ADR 1068): the core refuses any other target when a
+    /// value is written, and the field advertises a <c>targets</c> rel in place of <c>values</c>. Null or empty accepts any
+    /// document, as before. May name a sibling mask of the same module. The seed is the authority: a mask dropped from this
+    /// list stops being accepted on the next heal, and values already stored stay. Named on any other data type, or naming
+    /// a mask the tenant does not have, it is skipped with a warning.
+    /// </summary>
+    public IReadOnlyList<Guid>? AcceptedMasks { get; init; }
+}
 
 /// <summary>
 /// Marker for the shared documentation of <see cref="ModuleMaskSeed.NameVocabularyRel"/>.

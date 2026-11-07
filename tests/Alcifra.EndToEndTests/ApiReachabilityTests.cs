@@ -386,7 +386,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         // As the administrator: a tag, a label, a hold, an external link, a checkout, a mail domain, a group, a deleted
         // document, a deactivated user.
         // A reference field naming an accepted mask advertises its picker (ADR 1068). The row is made directly: only a
-        // module's seed declares one, and the test module does not until ABI 2.1 is published.
+        // module's seed declares one, and the test module declares none.
         var accepting = await TestJson.Post(admin, "/api/masks", new
         {
             name = $"Reach {Guid.NewGuid():N}"[..14],

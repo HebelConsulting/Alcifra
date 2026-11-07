@@ -175,5 +175,10 @@ public static class ModuleAbiVersion
     /// that it can see, and one that such a document names in a reference field. Init properties and a default-implemented
     /// member, so a 1.28 module is unaffected.
     /// </para>
-    public const int Minor = 0;
+    /// <para>
+    /// 2.1 adds <see cref="ModuleFieldSeed.AcceptedMasks"/>: a reference field names the masks it accepts, the core refuses
+    /// any other target at save, and the field advertises a <c>targets</c> rel for a picker (core ADR 1068, core #2214). An
+    /// init property, so a 2.0 module is unaffected.
+    /// </para>
+    public const int Minor = 1;
 }
