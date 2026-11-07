@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using Alcifra.ApiClient;
 using Alcifra.ApiClient.PasswordStore;
@@ -55,7 +56,7 @@ internal sealed class Session : IDisposable
         // ApiClientSettings.ApiRootUrl, which each host sets once. apass never did, so an entry's content went to the
         // default http://localhost:8080 while everything else went to the installation (#2042).
         ApiClientSettings.ApiRootUrl = url.TrimEnd('/');
-        var http = new HttpClient { BaseAddress = new Uri($"{url.TrimEnd('/')}/") };
+        var http = new HttpClient(new SessionExpiry(url.TrimEnd('/')) { InnerHandler = new HttpClientHandler() }) { BaseAddress = new Uri($"{url.TrimEnd('/')}/") };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var core = ApiCore.Over(http);
         return new Session(url.TrimEnd('/'), http, core, new PasswordStoreClient(core, opener));
@@ -76,4 +77,25 @@ internal sealed class Session : IDisposable
 
     private static string? Variable(string name) =>
         Environment.GetEnvironmentVariable(name) is { } value && !string.IsNullOrWhiteSpace(value) ? value : null;
+}
+
+/// <summary>
+/// Says what a 401 means. It has one cause here: the session in the environment has expired, and there is no refresh
+/// token by design (ADR 0823). Left to the shared client, an expired session reads "The password store could not be
+/// read", because a 401 carries no problem body, and sends the reader looking at the store. Held at the client so every
+/// command says the same.
+/// </summary>
+internal sealed class SessionExpiry(string url) : DelegatingHandler
+{
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var response = await base.SendAsync(request, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
+        {
+            return response;
+        }
+
+        response.Dispose();
+        throw new SapassException($"The session has expired. Run: eval \"$(apass login --url {url})\". This tool holds no refresh token by design.");
+    }
 }
