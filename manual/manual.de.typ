@@ -1723,7 +1723,7 @@ zusätzlich installiert und kein Quellcode gebaut werden.
 
 ```sh
 # The installed executable. This is the macOS path; the others are below.
-SA=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
+CLIENT=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
 ```
 
 / macOS: #linebreak() `/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient`
@@ -1733,7 +1733,7 @@ SA=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
 *Was der Client sehen kann* — ohne PIN, denn Zertifikate sind öffentlich:
 
 ```sh
-$SA --card-test
+$CLIENT --card-test
 ```
 
 Er gibt das gefundene PKCS\#11-Modul aus, dann jedes Zertifikat auf jedem Token in jedem Lesegerät, mit dem
@@ -1744,7 +1744,7 @@ zeigt, zeigt auch im Dialog nichts, und die Ursache liegt dann beim Modul oder b
 *Ob sie tatsächlich entschlüsseln kann* — dieser Test braucht die PIN:
 
 ```sh
-CARD_PIN=<pin> $SA --card-open-test
+CARD_PIN=<pin> $CLIENT --card-open-test
 ```
 
 Er baut einen Umschlag *so, wie der Server ihn baut*, adressiert an das Zertifikat auf der Karte, und öffnet ihn

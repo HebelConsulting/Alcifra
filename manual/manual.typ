@@ -1653,7 +1653,7 @@ and no source tree to build.
 
 ```sh
 # The installed executable. This is the macOS path; the others are below.
-SA=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
+CLIENT=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
 ```
 
 / macOS: #linebreak() `/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient`
@@ -1663,7 +1663,7 @@ SA=/Applications/Alcifra.app/Contents/MacOS/Alcifra.DesktopClient
 *What the client can see* — no PIN, because certificates are public:
 
 ```sh
-$SA --card-test
+$CLIENT --card-test
 ```
 
 It prints the PKCS\#11 module it found, then every certificate on every token in every reader, with the
@@ -1674,7 +1674,7 @@ the module or the reader rather than the archive.
 *Whether it can actually decrypt* — this one needs the PIN:
 
 ```sh
-CARD_PIN=<pin> $SA --card-open-test
+CARD_PIN=<pin> $CLIENT --card-open-test
 ```
 
 It builds an envelope *the way the server builds one*, addressed to the certificate on the card, and opens it
