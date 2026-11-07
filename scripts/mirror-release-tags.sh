@@ -20,6 +20,9 @@ created=0
 refused=()
 while read -r public_sha ref; do
   tag="${ref#refs/tags/}"
+  # Releases before v0.2 are not mirrored (owner, 2026-11-07, #2225): their public commits are not ones this repository
+  # may push a tag to, so every run failed on the same six tags and hid a real refusal among them.
+  [[ "$tag" =~ ^v0\.[01]\. ]] && continue
   # An existing tag is never moved, and not even looked up: the earliest releases were tagged here directly, before
   # the mirror existed, so theirs legitimately differ from the public commit's.
   git rev-parse --quiet --verify "refs/tags/$tag" >/dev/null && continue
