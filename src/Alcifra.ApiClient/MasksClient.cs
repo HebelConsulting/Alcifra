@@ -36,7 +36,81 @@ public sealed class MasksClient
         bool RequiresMailRouting = false,
         // The address of the values already filed under this field (#1127), when the server offers them —
         // absent means "no suggestions here", which is what the editor gates its autocomplete on (ADR 0543).
-        string? ValuesHref = null);
+        string? ValuesHref = null,
+        // A reference field naming the masks it accepts (#2214, ADR 1068): the address of its picker's candidates, and
+        // the masks themselves; a picker offers to file a new item only where exactly one is named.
+        string? TargetsHref = null,
+        IReadOnlyList<AcceptedMask>? AcceptedMasks = null);
+
+    /// <summary>A mask a reference field accepts, as the server named it.</summary>
+    public sealed record AcceptedMask(Guid Id, string Name);
+
+    /// <summary>One document a reference field's picker offers, and the address its picture is reached through.</summary>
+    /// <param name="DocumentHref">The target's own address, where only that is known (a value already stored, whose
+    /// resolved target carries it): its versions are then read from it.</param>
+    public sealed record ReferenceTarget(Guid Id, string Name, string? VersionsHref, string? DocumentHref = null);
+
+    /// <summary>
+    /// The documents a reference field may point at, narrowed by what was typed (#2214), from the field's own <c>targets</c>
+    /// rel. Best-effort, as the value suggestions are: a list that cannot be read costs the picker its candidates, never the
+    /// edit.
+    /// </summary>
+    public async Task<IReadOnlyList<ReferenceTarget>> FieldTargetsAsync(
+        string targetsHref, string? typed, CancellationToken cancellationToken = default)
+    {
+        var href = typed is { Length: > 0 }
+            ? $"{targetsHref}{(targetsHref.Contains('?') ? "&" : "?")}q={Uri.EscapeDataString(typed)}"
+            : targetsHref;
+
+        try
+        {
+            using var response = await _core.Http.GetAsync(href, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            return document.RootElement.TryGetProperty("targets", out var targets)
+                ? [.. targets.EnumerateArray().Select(t => new ReferenceTarget(
+                    t.GetProperty("id").GetGuid(),
+                    t.GetProperty("name").GetString() ?? string.Empty,
+                    ApiCore.ParseLinks(t)?.Href("versions")))]
+                : [];
+        }
+        catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// A candidate's picture for the picker: its current version's preview, read through the one content funnel; null
+    /// where it has none or the preview is not one an image can show.
+    /// </summary>
+    public async Task<byte[]?> TargetPictureAsync(ReferenceTarget target, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var versionsHref = target.VersionsHref;
+            if (versionsHref is null && target.DocumentHref is { } documentHref)
+            {
+                versionsHref = ApiCore.RelHref(await _core.Http.GetFromJsonAsync<JsonElement>(documentHref, cancellationToken), "versions");
+            }
+
+            if (versionsHref is null)
+            {
+                return null;
+            }
+
+            var preview = await new VersionsClient(_core).GetPreviewFromVersionsAsync(versionsHref, cancellationToken);
+            return preview.PreviewUrl is { } url ? (await ApiCore.GetContentAsync(url, cancellationToken)).Bytes : null;
+        }
+        catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>
     /// The values already filed under one index field, for an editor's type-ahead (#1127).
@@ -126,7 +200,11 @@ public sealed class MasksClient
                     f.TryGetProperty("isList", out var isList) && isList.GetBoolean(),
                     f.TryGetProperty("classifierOwned", out var owned) && owned.GetBoolean(),
                     f.TryGetProperty("requiresMailRouting", out var rmr) && rmr.GetBoolean(),
-                    ApiCore.ParseLinks(f)?.Href("values")));
+                    ApiCore.ParseLinks(f)?.Href("values"),
+                    ApiCore.ParseLinks(f)?.Href("targets"),
+                    f.TryGetProperty("acceptedMasks", out var accepted) && accepted.ValueKind == JsonValueKind.Array
+                        ? [.. accepted.EnumerateArray().Select(a => new AcceptedMask(a.GetProperty("id").GetGuid(), a.GetProperty("name").GetString() ?? string.Empty))]
+                        : []));
             }
         }
 

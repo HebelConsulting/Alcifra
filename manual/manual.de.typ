@@ -1035,6 +1035,10 @@ durchsuchbar gemacht werden. Wo die automatische Erkennung entschieden hat, dass
 nicht lohnt, sagt der Detailbereich, warum. Um das zu übersteuern, checken Sie das Dokument aus: *Durchsuchbar
 machen* steht im Menüband des Tabs *Ausgecheckt*.
 
+Ein Feld, das auf ein anderes Dokument einer bestimmten Art zeigt, etwa das Vorschaubild eines Videos, wird
+*ausgewählt*#idx("Verweisfeld"): Tippen Sie einen Teil des Namens, und die Dokumente dieser Art werden mit ihren Bildern
+aufgelistet. Wo das Feld genau eine Art annimmt, legt *Aus einer Datei…* ein neues neben dem Dokument ab und wählt es aus.
+
 #note[
   Indexfelder werden durch die Maske geprüft — ein als Pflichtfeld markiertes Feld muss ausgefüllt sein, und
   Format- und Bereichsregeln werden beim Speichern durchgesetzt. Bekannte Masken (Folder, Basic Entry, e-Mail)

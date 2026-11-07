@@ -34,7 +34,19 @@ public sealed class NewItemCreation(HttpClient http, IDialogService dialogs)
         }
 
         var definition = (await http.GetFromJsonAsync<MaskFieldsResponse>(maskHref))?.Fields ?? [];
-        return definition.Any(f => f.IsRequired) ? [.. definition.Select(f => EditField.Create(f, []))] : null;
+        if (!definition.Any(f => f.IsRequired))
+        {
+            return null;
+        }
+
+        // A picked file is filed in the folder the new item is created in, the entry's own create address (#2214).
+        var fields = definition.Select(f => EditField.Create(f, [])).ToList();
+        foreach (var field in fields.Where(f => f.IsReferencePicker))
+        {
+            field.FolderChildren = () => Task.FromResult<string?>(admitted.Href);
+        }
+
+        return fields;
     }
 
     /// <summary>

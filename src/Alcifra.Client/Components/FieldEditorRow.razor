@@ -57,6 +57,48 @@
             </MudMenu>
         </div>
     }
+    else if (Field.IsReferencePicker)
+    {
+        @* A reference field naming the masks it accepts is PICKED (#2214, ADR 1068), as on the desktop: the documents of
+           those kinds, narrowed by name, each with its picture, and the chosen one shown beside its name. "From a file"
+           files a new one of the field's single kind beside the item and picks it. *@
+        <div style="display:flex; gap:6px; align-items:center; flex:1;" data-reference-picker>
+            @if (Field.Chosen?.PictureUrl is { } chosenPicture)
+            {
+                <img src="@chosenPicture" alt="" style="width:40px; height:40px; object-fit:contain;" data-reference-chosen-picture />
+            }
+            <MudAutocomplete T="ReferenceChoice" Value="@Field.Chosen" ValueChanged="@(c => Field.Choose(c))"
+                             SearchFunc="@((string? typed, CancellationToken token) => Picker.CandidatesAsync(Field.TargetsHref!, typed, token))"
+                             ToStringFunc="@(c => c?.Name)" MaxItems="20" Placeholder="@Strings.Get("RefPickerWatermark")"
+                             Margin="Margin.Dense" Variant="Variant.Outlined" Style="flex:1;">
+                <ItemTemplate Context="choice">
+                    <div style="display:flex; gap:6px; align-items:center;" data-reference-choice>
+                        <span style="width:32px; height:32px; display:inline-flex;">
+                            @if (choice.PictureUrl is { } picture)
+                            {
+                                <img src="@picture" alt="" style="width:32px; height:32px; object-fit:contain;" />
+                            }
+                        </span>
+                        <span>@choice.Name</span>
+                    </div>
+                </ItemTemplate>
+            </MudAutocomplete>
+            @if (Field.OffersFile)
+            {
+                <MudFileUpload T="IBrowserFile" FilesChanged="FromFileAsync" Class="d-inline-flex">
+                    <CustomContent Context="upload">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => upload.OpenFilePickerAsync())" data-reference-from-file>
+                            @Strings.Get("RefPickerFromFile")
+                        </MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+            }
+        </div>
+        @if (Field.FileProblem is { } problem)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error">@problem</MudText>
+        }
+    }
     else if (Field.ValuesHref is { } valuesHref && Suggest is { } suggest)
     {
         @* A field the server offers values for completes as you type (#1127): an aerodrome,
@@ -75,7 +117,38 @@
     }
 </div>
 
+@inject Alcifra.Client.Services.ReferencePicker Picker
+
 @code {
+    // "From a file" (#2214): filed as the field's one accepted mask in the item's folder, and picked. A taken name or a
+    // refusal is said beside the field, which keeps what it held.
+    private async Task FromFileAsync(IBrowserFile? file)
+    {
+        Field.FileProblem = null;
+        if (file is null || !Field.OffersFile || await Field.FolderChildren!() is not { } childrenHref)
+        {
+            return;
+        }
+
+        try
+        {
+            using var buffer = new MemoryStream();
+            await file.OpenReadStream(maxAllowedSize: 50L * 1024 * 1024).CopyToAsync(buffer);
+            var filed = await Picker.FileAsync(childrenHref, file.Name, buffer.ToArray(), file.ContentType, Field.AcceptedMasks[0].Id);
+            if (filed is null)
+            {
+                Field.FileProblem = string.Format(Strings.Get("RefPickerNameTaken"), Path.GetFileNameWithoutExtension(file.Name));
+                return;
+            }
+
+            Field.Choose(filed);
+        }
+        catch (Exception e) when (e is HttpRequestException or InvalidOperationException or IOException)
+        {
+            Field.FileProblem = e.Message;
+        }
+    }
+
     /// <summary>The field being edited: its definition and its value.</summary>
     [Parameter, EditorRequired] public EditField Field { get; set; } = null!;
 

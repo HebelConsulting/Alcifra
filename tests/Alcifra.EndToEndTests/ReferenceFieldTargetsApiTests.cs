@@ -62,8 +62,16 @@ public class ReferenceFieldTargetsApiTests(E2EApiFactory factory)
         var field = (await TestJson.Get(admin, $"/api/masks/{clipMask}")).GetProperty("fields")[0];
         var href = field.GetProperty("links").EnumerateArray().Single(l => l.GetProperty("rel").GetString() == "targets").GetProperty("href").GetString()!;
 
-        var offered = (await TestJson.Get(admin, $"{href}?q={run}")).GetProperty("targets").EnumerateArray().Select(t => t.GetProperty("id").GetGuid()).ToList();
-        Assert.Equal([still], offered);
+        var rows = (await TestJson.Get(admin, $"{href}?q={run}")).GetProperty("targets").EnumerateArray().ToList();
+        Assert.Equal([still], rows.Select(t => t.GetProperty("id").GetGuid()));
+
+        // The field names what it accepts, so a picker knows when to offer filing a file (#2214), and each row links its
+        // versions, which is how a picker reaches its picture.
+        var accepted = Assert.Single(field.GetProperty("acceptedMasks").EnumerateArray());
+        Assert.Equal(stillMask, accepted.GetProperty("id").GetGuid());
+        Assert.Equal($"Still {run}", accepted.GetProperty("name").GetString());
+        Assert.Contains(rows[0].GetProperty("links").EnumerateArray(),
+            l => l.GetProperty("rel").GetString() == "versions" && l.GetProperty("href").GetString() == $"/api/documents/{still}/versions");
         Assert.Empty((await TestJson.Get(other, href)).GetProperty("targets").EnumerateArray());
 
         var wrong = await admin.PutAsJsonAsync($"/api/documents/{video}/index-data", new { fields = new[] { new { fieldDefinitionId = poster, values = new[] { video.ToString() } } } });

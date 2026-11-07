@@ -1149,6 +1149,18 @@
   <data name="RightManageIntrays" xml:space="preserve">
     <value>Gestionar bandejas</value>
   </data>
+  <data name="RefPickerEncrypts" xml:space="preserve">
+    <value>Este inquilino cifra sus archivos, algo que este navegador no hace antes de subirlos. Usa el cliente de escritorio.</value>
+  </data>
+  <data name="RefPickerNameTaken" xml:space="preserve">
+    <value>«{0}» ya existe aquí.</value>
+  </data>
+  <data name="RefPickerWatermark" xml:space="preserve">
+    <value>Escribe un nombre…</value>
+  </data>
+  <data name="RefPickerFromFile" xml:space="preserve">
+    <value>Desde un archivo…</value>
+  </data>
   <data name="MailFrom" xml:space="preserve">
     <value>De</value>
   </data>

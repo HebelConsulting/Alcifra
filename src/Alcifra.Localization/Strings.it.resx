@@ -1149,6 +1149,18 @@
   <data name="RightManageIntrays" xml:space="preserve">
     <value>Gestisci caselle</value>
   </data>
+  <data name="RefPickerEncrypts" xml:space="preserve">
+    <value>Questo tenant cifra i suoi file, cosa che questo browser non fa prima del caricamento. Usa il client desktop.</value>
+  </data>
+  <data name="RefPickerNameTaken" xml:space="preserve">
+    <value>«{0}» esiste già qui.</value>
+  </data>
+  <data name="RefPickerWatermark" xml:space="preserve">
+    <value>Digita un nome…</value>
+  </data>
+  <data name="RefPickerFromFile" xml:space="preserve">
+    <value>Da un file…</value>
+  </data>
   <data name="MailFrom" xml:space="preserve">
     <value>Da</value>
   </data>

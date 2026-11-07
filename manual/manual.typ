@@ -1015,6 +1015,10 @@ and one or more *OCR languages*#idx("OCR") used to make scans searchable. Where 
 scan was not worth converting, the detail pane says why. To overrule it, check the document out: *Make searchable*
 is in the Check-out tab's ribbon.
 
+A field that points at another document of a given kind, such as a video's thumbnail, is *picked*#idx("Reference
+field"): type part of a name, and the documents of that kind are listed with their pictures. Where the field takes
+exactly one kind, *From a file…* files a new one beside the document and picks it.
+
 #note[
   Index fields are validated by the mask — a field marked required must be filled, and format/range rules are
   enforced when you save. Well-known masks (Folder, Basic Entry, e-Mail) exist in every tenant; administrators can

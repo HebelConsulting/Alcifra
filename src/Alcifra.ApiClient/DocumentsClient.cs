@@ -591,7 +591,10 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
     // for .eml/.msg, else Basic Entry — ADR "Email auto-classification"), so the client doesn't classify.
     // Returns the created document's id. An optional feed comment is posted on it after finalize (ADR "Filing
     // posts a feed comment") — used by list-pane drop filing into a folder (ADR "List-pane drop filing").
-    public async Task<Guid> UploadFileAsync(string childrenHref, string fileName, byte[] bytes, string? comment = null, CancellationToken cancellationToken = default)
+    /// <param name="maskId">The mask the new document is given once filed (a picker filing a thumbnail, #2214), through its
+    /// own <c>mask</c> rel: a create names only a folder's mask, and finalize classifies an item first. Null keeps finalize's
+    /// classification, as before.</param>
+    public async Task<Guid> UploadFileAsync(string childrenHref, string fileName, byte[] bytes, string? comment = null, CancellationToken cancellationToken = default, Guid? maskId = null)
     {
         // Document.Name is the stem (no extension); the extension rides on the version's object key (ADR
         // "Extension off Document.Name, derived from the object key").
@@ -638,7 +641,14 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
         finalizeResponse.EnsureSuccessStatusCode();
 
         // The server assigns the mask at finalize (eMail for .eml/.msg, else Basic Entry) — ADR "Email
-        // auto-classification"; the client no longer classifies.
+        // auto-classification"; the client no longer classifies, unless it was told which mask the file is (#2214).
+        if (maskId is { } assigned)
+        {
+            // The create answer is the child row, without the mask rel; the document itself advertises it.
+            var filed = await _core.Http.GetFromJsonAsync<JsonElement>(ApiCore.RequireRel(created, "self", "The created document"), cancellationToken);
+            using var maskResponse = await _core.Http.PutAsJsonAsync(ApiCore.RequireRel(filed, "mask", "The filed document"), new { maskId = assigned }, cancellationToken);
+            await ApiCore.ThrowIfProblemAsync(maskResponse, "The file was filed, but its kind could not be set.", cancellationToken);
+        }
 
         return documentId;
     }

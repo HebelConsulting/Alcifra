@@ -1,6 +1,7 @@
 using Alcifra.Presentation;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Alcifra.ApiClient;
 using Alcifra.DesktopClient.Services;
 
 namespace Alcifra.DesktopClient.ViewModels;
@@ -58,10 +59,74 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
     /// from memory. Not for the multi-line list editor, where a line is one of many and a dropdown over the
     /// caret would fight the editing.
     /// </remarks>
-    public bool Completes => IsSingleLine && !Locked && SuggestionSource is not null;
+    public bool Completes => IsSingleLine && !Locked && SuggestionSource is not null && !IsReferencePicker;
 
     /// <summary>The plain text box, for a single-line field with nothing to complete from.</summary>
-    public bool IsPlainSingleLine => IsSingleLine && !Completes;
+    public bool IsPlainSingleLine => IsSingleLine && !Completes && !IsReferencePicker;
+
+    // ---- A reference field's picker (#2214, ADR 1068) ---------------------------------------------------
+    // A single reference field naming the masks it accepts is picked rather than typed: the documents of those kinds,
+    // narrowed by name, each with its picture, and the chosen one shown beside its name. A field naming no masks keeps
+    // the plain box (owner, 2026-11-07). The lists and the filing are the builder's, which holds the api client.
+
+    /// <summary>The address of the picker's candidates, where the field names the masks it accepts.</summary>
+    public string? TargetsHref { get; init; }
+
+    /// <summary>The masks the field accepts; "From a file" is offered only where there is exactly one.</summary>
+    public IReadOnlyList<MasksClient.AcceptedMask> AcceptedMasks { get; init; } = [];
+
+    /// <summary>Whether this field is picked: a single reference field with a candidates address, not locked.</summary>
+    public bool IsReferencePicker => DataType == "DocumentReference" && TargetsHref is not null && Editor == IndexFieldEditor.Text;
+
+    /// <summary>The candidates for what has been typed, as <see cref="ReferenceChoice"/>s; assigned by the builder.</summary>
+    public Func<string?, CancellationToken, Task<IEnumerable<object>>>? TargetSource { get; set; }
+
+    /// <summary>Files a picked file as the one accepted mask, beside the item, and answers the new choice; assigned by the
+    /// builder, null where the item has no folder to file into.</summary>
+    public Func<string, byte[], Guid, CancellationToken, Task<ReferenceChoice?>>? FileFiler { get; set; }
+
+    /// <summary>Whether "From a file" is offered: one accepted mask, and somewhere to file it.</summary>
+    public bool OffersFile => IsReferencePicker && AcceptedMasks.Count == 1 && FileFiler is not null;
+
+    /// <summary>The document the field points at, with its picture once loaded.</summary>
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasChosen))] private ReferenceChoice? _chosen;
+
+    public bool HasChosen => Chosen is not null;
+
+    // Picking writes the id the field stores; the name and the picture are only what a person sees.
+    partial void OnChosenChanged(ReferenceChoice? value)
+    {
+        if (value is not null)
+        {
+            TextValue = value.Target.Id.ToString();
+        }
+    }
+
+    /// <summary>Files <paramref name="bytes"/> as the field's one accepted mask and picks the new document.</summary>
+    public async Task FileAsync(string fileName, byte[] bytes, CancellationToken cancellationToken = default)
+    {
+        if (!OffersFile)
+        {
+            return;
+        }
+
+        FileProblem = null;
+        try
+        {
+            if (await FileFiler!(fileName, bytes, AcceptedMasks[0].Id, cancellationToken) is { } filed)
+            {
+                Chosen = filed;
+            }
+        }
+        catch (Exception e) when (e is DocumentNameTakenException or ApiActionException or HttpRequestException)
+        {
+            // Said beside the field: the file was not filed, and the field keeps what it held.
+            FileProblem = e.Message;
+        }
+    }
+
+    /// <summary>Why the last "From a file" filed nothing, shown beside the field; null once one succeeds.</summary>
+    [ObservableProperty] private string? _fileProblem;
 
     [ObservableProperty] private string _textValue = string.Empty;
     // DateTime?, NOT DateTimeOffset? — Avalonia ships TWO date controls with DIFFERENT property types, and
@@ -136,6 +201,8 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
             IsList = definition.IsList,
             Locked = IndexFieldEdit.IsLocked(definition.RequiresMailRouting, mayRouteMail, definition.ClassifierOwned),
             ValuesHref = definition.ValuesHref,
+            TargetsHref = definition.TargetsHref,
+            AcceptedMasks = definition.AcceptedMasks ?? [],
         };
         field._originalValues = [.. values];
         var loaded = IndexFieldEdit.Load(field.Editor, definition.DataType, values, SessionTimeZone.Current);

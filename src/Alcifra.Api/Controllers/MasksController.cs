@@ -124,7 +124,18 @@ public class MasksController : ControllerBase
         var targets = await Documents.ReferenceFieldTargetList.ForAsync(_dbContext, fieldId, q, Math.Clamp(limit ?? 20, 1, 100), CanSeeAsync, cancellationToken);
         return Ok(new FieldTargetsResource
         {
-            Targets = [.. targets.Select(t => new FieldTargetResource { Id = t.Id, Name = t.Name })],
+            // Each row links its document and its versions, so a picker follows them to show the item (a thumbnail's own
+            // picture) through the preview every client already reads; the list itself presigns nothing.
+            Targets = [.. targets.Select(t => new FieldTargetResource
+            {
+                Id = t.Id,
+                Name = t.Name,
+                Links =
+                [
+                    new Link("self", $"/api/documents/{t.Id}", "GET"),
+                    new Link("versions", $"/api/documents/{t.Id}/versions", "GET"),
+                ],
+            })],
             Links = [new Link("self", $"/api/masks/{maskId}/fields/{fieldId}/targets", "GET")],
         });
     }
@@ -138,8 +149,8 @@ public class MasksController : ControllerBase
             ? (await _effectiveRights.GetEffectiveRightsForServiceAccountAsync(serviceAccountId, documentId, cancellationToken)).CanSee
             : _currentUserAccessor.UserId is { } userId && (await _effectiveRights.GetEffectiveRightsAsync(userId, documentId, cancellationToken)).CanSee;
 
-    /// <summary>The values already filed under one index field.</summary>
-    public class FieldTargetResource
+    /// <summary>One document a reference field's picker offers.</summary>
+    public class FieldTargetResource : HypermediaResource
     {
         public Guid Id { get; set; }
 
@@ -231,6 +242,17 @@ public class MasksController : ControllerBase
         public string? MinValue { get; set; }
 
         public string? MaxValue { get; set; }
+
+        /// <summary>The masks a reference field accepts (#2214, ADR 1068); empty where any document will do.</summary>
+        public List<AcceptedMaskResource> AcceptedMasks { get; set; } = [];
+    }
+
+    /// <summary>A mask a reference field accepts (#2214, ADR 1068), named for the picker.</summary>
+    public class AcceptedMaskResource
+    {
+        public Guid Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
     }
 
     public class MaskResource : HypermediaResource
@@ -420,7 +442,18 @@ public class MasksController : ControllerBase
 
         // The fields that name accepted masks advertise their picker's address (#2214, ADR 1068): the rel's presence says so.
         var fieldIds = fields.Select(f => f.Id).ToList();
-        var restricted = (await _dbContext.FieldDefinitionAcceptedMasks.Where(a => fieldIds.Contains(a.FieldDefinitionId)).Select(a => a.FieldDefinitionId).ToListAsync(cancellationToken)).ToHashSet();
+        // The masks are named too: a picker offers to file a new item only where the field accepts exactly one kind (#2214).
+        var restricted = (await _dbContext.FieldDefinitionAcceptedMasks
+                .Where(a => fieldIds.Contains(a.FieldDefinitionId))
+                .Select(a => new
+                {
+                    a.FieldDefinitionId,
+                    a.MaskId,
+                    Name = _dbContext.MaskVersions.Where(v => v.MaskId == a.MaskId && v.IsCurrent).Select(v => v.Name).FirstOrDefault(),
+                })
+                .ToListAsync(cancellationToken))
+            .GroupBy(a => a.FieldDefinitionId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(a => a.Name).Select(a => new AcceptedMaskResource { Id = a.MaskId, Name = a.Name ?? string.Empty }).ToList());
         return Ok(BuildResource(maskId, version.Name, version.VersionNumber, version.ReviewSlaDays, version.RetentionYears, version.DefaultSensitivityLabelId, fields, restricted));
     }
 
@@ -434,7 +467,7 @@ public class MasksController : ControllerBase
         return exists ? NoContent() : NotFound();
     }
 
-    private static MaskResource BuildResource(Guid maskId, string name, int versionNumber, int? reviewSlaDays, int? retentionYears, Guid? defaultSensitivityLabelId, List<FieldDefinition> fields, IReadOnlySet<Guid>? restricted = null)
+    private static MaskResource BuildResource(Guid maskId, string name, int versionNumber, int? reviewSlaDays, int? retentionYears, Guid? defaultSensitivityLabelId, List<FieldDefinition> fields, IReadOnlyDictionary<Guid, List<AcceptedMaskResource>>? restricted = null)
     {
         return new MaskResource
         {
@@ -463,7 +496,8 @@ public class MasksController : ControllerBase
                 //
                 // A rel, so the client follows an address instead of composing one (ADR 0543); its absence
                 // simply means "no suggestions here", which is what an editor gates the autocomplete on.
-                Links = restricted?.Contains(f.Id) == true
+                AcceptedMasks = restricted?.GetValueOrDefault(f.Id) ?? [],
+                Links = restricted?.ContainsKey(f.Id) == true
                     ? [new Link("targets", $"/api/masks/{maskId}/fields/{f.Id}/targets", "GET")]
                     : SuggestibleTypes.Contains(f.DataType)
                         ? [new Link("values", $"/api/masks/{maskId}/fields/{f.Id}/values", "GET")]

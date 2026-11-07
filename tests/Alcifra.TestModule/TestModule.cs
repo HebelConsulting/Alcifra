@@ -41,6 +41,12 @@ public sealed class TestModule : IIndustryModule
     /// <summary>An exclusive folder admitting only Test Clips (ADR 1065): the Tube Channel's shape, where a file uploaded
     /// without a mask is typed by what the folder admits and the mask's accepted extensions, instead of Basic Entry.</summary>
     public static readonly Guid ReelMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000009");
+
+    /// <summary>A Test Poster's Picture field accepts only a Test Picture (ABI 2.1, ADR 1068): the Video's Thumbnail in
+    /// miniature, for the reference picker's tests (#2214).</summary>
+    public static readonly Guid PictureMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-00000000000A");
+    public static readonly Guid PosterMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-00000000000B");
+    public const string PosterPictureField = "Picture";
     public const string ReaderCertificateHolderField = "Holder user";
     public const string ReaderCertificateWithdrawnField = "Withdrawn";
 
@@ -255,6 +261,14 @@ public sealed class TestModule : IIndustryModule
         {
             AcceptedExtensions = ["mp4", ".MOV"],
         },
+        new ModuleMaskSeed(PictureMaskId, "Test Picture", IsFolderMask: false, IsBookable: false, [])
+        {
+            AcceptedExtensions = ["png", "jpg"],
+        },
+        new ModuleMaskSeed(PosterMaskId, "Test Poster", IsFolderMask: false, IsBookable: false,
+        [
+            new ModuleFieldSeed(PosterPictureField, "DocumentReference") { AcceptedMasks = [PictureMaskId] },
+        ]),
         new ModuleMaskSeed(ReelMaskId, "Test Reel", IsFolderMask: true, IsBookable: false, [],
             AdmitsOnlyDeclaredChildren: true, AdmittedChildren: [ClipMaskId]),
         new ModuleMaskSeed(BinderMaskId, "Test Binder", IsFolderMask: true, IsBookable: false, [],

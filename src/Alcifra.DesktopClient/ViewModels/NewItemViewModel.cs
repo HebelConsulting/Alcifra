@@ -67,6 +67,10 @@ public sealed partial class NewItemViewModel : ObservableObject
                 editor.SuggestionSource = async (typed, token) => await api.Masks.FieldValuesAsync(valuesHref, typed, token);
             }
 
+            // A reference field naming the masks it accepts is picked (#2214); a picked file is filed in the folder the new
+            // item is created in, which is the entry's own create address.
+            ReferencePickerWiring.Wire(editor, api, _ => Task.FromResult<string?>(admitted.Href));
+
             editor.PropertyChanged += (_, _) => form.OnPropertyChanged(nameof(CanCreate));
             form.Fields.Add(editor);
         }

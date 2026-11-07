@@ -1149,6 +1149,18 @@
   <data name="RightManageIntrays" xml:space="preserve">
     <value>Manage intrays</value>
   </data>
+  <data name="RefPickerEncrypts" xml:space="preserve">
+    <value>This tenant encrypts its files, which this browser does not do before uploading. Use the desktop client.</value>
+  </data>
+  <data name="RefPickerNameTaken" xml:space="preserve">
+    <value>‘{0}’ is already taken here.</value>
+  </data>
+  <data name="RefPickerWatermark" xml:space="preserve">
+    <value>Type a name…</value>
+  </data>
+  <data name="RefPickerFromFile" xml:space="preserve">
+    <value>From a file…</value>
+  </data>
   <data name="MailFrom" xml:space="preserve">
     <value>From</value>
   </data>

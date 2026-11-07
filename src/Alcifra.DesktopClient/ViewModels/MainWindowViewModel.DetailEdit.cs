@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -165,9 +166,8 @@ public sealed partial class MainWindowViewModel
         }
 
         var fields = await _api.Masks.GetMaskFieldsAsync(chosen);
-        var valuesByName = withCurrentValues
-            ? (await _api.Documents.GetIndexDataAsync(DetailHref("index-data"))).ToDictionary(f => f.FieldName, f => f.Values)
-            : new Dictionary<string, IReadOnlyList<string>>();
+        var current = withCurrentValues ? await _api.Documents.GetIndexDataAsync(DetailHref("index-data")) : [];
+        var valuesByName = current.ToDictionary(f => f.FieldName, f => f.Values);
 
         foreach (var field in fields)
         {
@@ -183,8 +183,28 @@ public sealed partial class MainWindowViewModel
                     await api.Masks.FieldValuesAsync(valuesHref, typed, cancellationToken);
             }
 
+            // A reference field naming the masks it accepts is picked (#2214); a picked file is filed in this document's folder.
+            if (_api is { } pickerApi)
+            {
+                ReferencePickerWiring.Wire(editor, pickerApi, DetailFolderChildrenAsync,
+                    current.FirstOrDefault(f => f.FieldName == field.Name)?.Targets.FirstOrDefault());
+            }
+
             MaskEditFields.Add(editor);
         }
+    }
+
+    // The folder the open document sits in, as the address it files into: followed from the document's "parent" rel and
+    // the parent's "children" rel, never composed (ADR 0543). Null where either is not offered here.
+    private async Task<string?> DetailFolderChildrenAsync(CancellationToken cancellationToken)
+    {
+        if (_api is null || _detailLinks?.Href("parent") is not { } parentHref)
+        {
+            return null;
+        }
+
+        var parent = await _api.Core.Http.GetFromJsonAsync<System.Text.Json.JsonElement>(parentHref, cancellationToken);
+        return ApiCore.RelHref(parent, "children");
     }
 
     // Persists every read-write field that actually changed. Each field is independent, so one failure doesn't

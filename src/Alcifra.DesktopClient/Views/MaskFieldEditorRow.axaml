@@ -32,6 +32,32 @@
                                  Height="28" Padding="4,2" />
             </Grid>
 
+            <!-- A reference field naming the masks it accepts is PICKED (#2214, ADR 1068): the documents of those kinds,
+                 narrowed by name, each with its picture, and the chosen one shown beside its name. "From a file" files
+                 a new one of the field's single kind beside the item and picks it. -->
+            <Grid IsVisible="{Binding IsReferencePicker}" ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+                <Image Grid.Column="0" Source="{Binding Chosen.Picture}" IsVisible="{Binding Chosen.HasPicture, FallbackValue=False}"
+                       Width="40" Height="40" Margin="0,0,6,0" Stretch="Uniform" />
+                <AutoCompleteBox Grid.Column="1" AsyncPopulator="{Binding TargetSource}" SelectedItem="{Binding Chosen}"
+                                 FilterMode="None" MinimumPrefixLength="0" MaxDropDownHeight="260" Height="28" Padding="4,2"
+                                 Watermark="{loc:Tr RefPickerWatermark}">
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ReferenceChoice">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Panel Width="32" Height="32">
+                                    <Image Source="{Binding Picture}" Stretch="Uniform" />
+                                </Panel>
+                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+                <Button Grid.Column="2" IsVisible="{Binding OffersFile}" Content="{loc:Tr RefPickerFromFile}" Click="OnFromFile"
+                        Margin="6,0,0,0" Height="28" Padding="8,0" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding FileProblem}" IsVisible="{Binding FileProblem, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           Foreground="{DynamicResource WbDanger}" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </Grid>
+
             <Grid IsVisible="{Binding IsPlainSingleLine}" ColumnDefinitions="*,Auto">
                 <TextBox Text="{Binding TextValue}" IsReadOnly="{Binding Locked}" Height="28" Padding="4,2" VerticalContentAlignment="Center" />
                 <!-- A machine proposal fills this field (ABI 0.11, ADR 0769): the picker

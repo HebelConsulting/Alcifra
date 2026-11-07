@@ -1149,6 +1149,18 @@
   <data name="RightManageIntrays" xml:space="preserve">
     <value>Eingänge verwalten</value>
   </data>
+  <data name="RefPickerEncrypts" xml:space="preserve">
+    <value>Dieser Mandant verschlüsselt seine Dateien, was dieser Browser vor dem Hochladen nicht tut. Verwenden Sie den Desktop-Client.</value>
+  </data>
+  <data name="RefPickerNameTaken" xml:space="preserve">
+    <value>„{0}“ ist hier schon vergeben.</value>
+  </data>
+  <data name="RefPickerWatermark" xml:space="preserve">
+    <value>Namen eingeben…</value>
+  </data>
+  <data name="RefPickerFromFile" xml:space="preserve">
+    <value>Aus einer Datei…</value>
+  </data>
   <data name="MailFrom" xml:space="preserve">
     <value>Von</value>
   </data>

@@ -43,10 +43,10 @@ public class ModuleLoaderTests
             // CalDAV collection needs — Test Log and Test Log Entry (#1242) — and the Test Reader Certificate the
             // reader-certificate capability answers from (ADR 0890), the exclusive Test Binder, the Test Register with
             // its Test Case (a folder with a REQUIRED field, #1634), and the Test Reel that types a clip filed into it
-            // (ADR 1065). The certificate is the one whose typed fields
+            // (ADR 1065), and the Test Poster whose Picture field accepts only a Test Picture (#2214). The certificate is the one whose typed fields
             // prove the boundary; the count is here to prove the boundary carries ALL of them, so it moves whenever
             // the fixture grows and that is the point.
-            Assert.Equal(11, module.Masks.Count);
+            Assert.Equal(13, module.Masks.Count);
             var mask = module.Masks.Single(m => m.Name == "Test Certificate");
             Assert.False(mask.IsBookable);
 

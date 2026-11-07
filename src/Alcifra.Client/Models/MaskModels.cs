@@ -58,8 +58,38 @@ public record MaskFieldInfo
     /// of the stored .ics/.vcf; the metadata PUT refuses a change, so the editor must not offer one.</summary>
     public bool ClassifierOwned { get; set; }
 
-    /// <summary>Its advertised addresses — <c>values</c> when the server offers suggestions (#1127).</summary>
+    /// <summary>Its advertised addresses — <c>values</c> when the server offers suggestions (#1127), <c>targets</c> for a
+    /// reference field naming the masks it accepts (#2214).</summary>
     public List<LinkResponse>? Links { get; set; }
+
+    /// <summary>The masks a reference field accepts (#2214, ADR 1068); empty where any document will do.</summary>
+    public List<AcceptedMaskInfo> AcceptedMasks { get; set; } = [];
+}
+
+/// <summary>A mask a reference field accepts, as the server named it.</summary>
+public record AcceptedMaskInfo
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+}
+
+/// <summary>One document a reference field's picker offers: its name, and its picture's address once read (#2214).</summary>
+public sealed class ReferenceChoice
+{
+    public Guid Id { get; init; }
+
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>Where its picture is read from: its versions, or its own address where only that is known.</summary>
+    public string? VersionsHref { get; init; }
+
+    public string? DocumentHref { get; init; }
+
+    /// <summary>The picture's address (a presigned preview, which an image element loads as it is), or null.</summary>
+    public string? PictureUrl { get; set; }
+
+    public override string ToString() => Name;
 }
 
 /// <summary>An OCR language the tenant offers, for the per-item language picker.</summary>
@@ -108,6 +138,40 @@ public sealed class EditField
     /// <remarks>Absent means "no suggestions here" — the editor stays a plain text box (ADR 0543).</remarks>
     public string? ValuesHref { get; init; }
 
+    // ---- A reference field's picker (#2214, ADR 1068): the desktop's MaskFieldEditViewModel is its twin ----
+
+    /// <summary>The address of the picker's candidates, where the field names the masks it accepts.</summary>
+    public string? TargetsHref { get; init; }
+
+    /// <summary>The masks the field accepts; "From a file" is offered only where there is exactly one.</summary>
+    public List<AcceptedMaskInfo> AcceptedMasks { get; init; } = [];
+
+    /// <summary>Whether this field is picked: a single reference field with a candidates address, not locked.</summary>
+    public bool IsReferencePicker => DataType == "DocumentReference" && TargetsHref is not null && Editor == Alcifra.Presentation.IndexFieldEditor.Text;
+
+    /// <summary>The address a picked file is filed into (the item's folder), asked when it is needed; assigned by the builder,
+    /// null where there is nowhere to file.</summary>
+    public Func<Task<string?>>? FolderChildren { get; set; }
+
+    /// <summary>Whether "From a file" is offered: one accepted mask, and somewhere to file it.</summary>
+    public bool OffersFile => IsReferencePicker && AcceptedMasks.Count == 1 && FolderChildren is not null;
+
+    /// <summary>The document the field points at, with its picture once read.</summary>
+    public ReferenceChoice? Chosen { get; private set; }
+
+    /// <summary>Why the last "From a file" filed nothing, shown beside the field.</summary>
+    public string? FileProblem { get; set; }
+
+    /// <summary>Picks <paramref name="choice"/>: the field stores its id; the name and picture are what a person sees.</summary>
+    public void Choose(ReferenceChoice? choice)
+    {
+        Chosen = choice;
+        if (choice is not null)
+        {
+            TextValue = choice.Id.ToString();
+        }
+    }
+
     public string TextValue { get; set; } = string.Empty;
 
     public DateTime? DateValue { get; set; }
@@ -154,6 +218,8 @@ public sealed class EditField
             Locked = Alcifra.Presentation.IndexFieldEdit.IsLocked(f.RequiresMailRouting, mayRouteMail, f.ClassifierOwned),
             // Followed, never composed (ADR 0543): absent means the server offers nothing to complete from.
             ValuesHref = Hypermedia.Links.Href(f.Links, "values"),
+            TargetsHref = Hypermedia.Links.Href(f.Links, "targets"),
+            AcceptedMasks = f.AcceptedMasks,
         };
         field._originalValues = [.. values];
         var loaded = Alcifra.Presentation.IndexFieldEdit.Load(field.Editor, f.DataType, values, SessionTimeZone.Current);

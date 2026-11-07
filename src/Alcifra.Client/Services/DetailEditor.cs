@@ -77,7 +77,7 @@ public sealed record DetailSaveOutcome(
 /// with no transaction and, for seven of the eight writes, no precondition either.
 /// </para>
 /// </remarks>
-public sealed class DetailEditor(HttpClient http, DetailState detail, DetailCatalogs catalogs)
+public sealed class DetailEditor(HttpClient http, DetailState detail, DetailCatalogs catalogs, ReferencePicker picker)
 {
     /// <summary>
     /// Whether the pane can enter edit: there is a subject, no edit is already open, and — the part that was
@@ -242,7 +242,23 @@ public sealed class DetailEditor(HttpClient http, DetailState detail, DetailCata
 
         foreach (var f in fields?.Fields ?? [])
         {
-            detail.EditFields.Add(EditField.Create(f, valuesByName.TryGetValue(f.Name, out var v) ? v : [], catalogs.MayRouteMail));
+            var field = EditField.Create(f, valuesByName.TryGetValue(f.Name, out var v) ? v : [], catalogs.MayRouteMail);
+            if (field.IsReferencePicker)
+            {
+                // A picked file is filed in this document's folder (#2214); the current target shows its name and picture.
+                var parentHref = detail.Links?.GetValueOrDefault("parent");
+                field.FolderChildren = () => picker.FolderChildrenAsync(parentHref);
+                if (useCurrentValues
+                    && (detail.IndexData ?? []).FirstOrDefault(i => i.FieldName == f.Name)?.Targets.FirstOrDefault() is { Name: { Length: > 0 } name } target
+                    && Links.Href(target.Links, "document") is { } documentHref)
+                {
+                    var chosen = new ReferenceChoice { Id = target.Id, Name = name, DocumentHref = documentHref };
+                    await picker.WithPictureAsync(chosen);
+                    field.Choose(chosen);
+                }
+            }
+
+            detail.EditFields.Add(field);
         }
     }
 
