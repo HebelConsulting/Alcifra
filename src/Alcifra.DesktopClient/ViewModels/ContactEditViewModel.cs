@@ -124,6 +124,6 @@ public sealed partial class ContactEditViewModel : StructuredEditFormViewModel
         [.. Addresses.Select(a => new ContactCard.Address(a.Type, a.Street, a.City, a.Region, a.PostalCode, a.Country))]);
 
     /// <summary>The body a PUT sends back. Empty rows are dropped rather than saved as blank properties.</summary>
-    public object ToPayload() => ToCard().ToPayload();
+    public override object ToPayload() => ToCard().ToPayload();
 }
 

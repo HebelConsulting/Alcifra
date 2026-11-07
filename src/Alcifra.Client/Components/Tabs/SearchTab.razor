@@ -3,6 +3,7 @@
 @inject Alcifra.Client.Services.ApiRoot ApiRoot
 @inject Alcifra.Client.Services.SearchState S
 @inject IDialogService DialogService
+@inject Alcifra.Client.Services.PreviewCards PreviewCards
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 
@@ -586,6 +587,13 @@
         _previewSealed = false;
         try
         {
+            // A Contact or an Appointment hit shows its card (#2215); a hit names no mask, so its document is asked.
+            if (_preview is { } pane && await PreviewCards.ForAsync(Links.Href(hit.Links, "self"), null, pane.ShowCardAsync) is { } card)
+            {
+                await pane.ShowCardAsync(card);
+                return;
+            }
+
             if (Links.Href(hit.Links, "versions") is not { } versionsHref)
             {
                 _preview?.Clear();

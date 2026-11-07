@@ -1,0 +1,139 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="using:Projektanker.Icons.Avalonia"
+             xmlns:loc="using:Alcifra.DesktopClient.Localization"
+             xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+             x:Class="Alcifra.DesktopClient.Views.ContactForm"
+             x:DataType="vm:ContactEditViewModel">
+  <!-- The contact's structured fields (#564, ADR 0631), one control for the editor window and the preview's card (#2215):
+       the same form in two postures, so they cannot come to disagree. Where the card shows it, CanEdit is false: the
+       boxes are read-only and nothing is added or removed; the card's pencil opens the editor window. -->
+  <StackPanel Spacing="10">
+    <Grid ColumnDefinitions="110,*" IsVisible="{Binding ShowTargetPicker}" Margin="0,0,0,6">
+      <TextBlock Grid.Column="0" Text="{loc:Tr ContactsCollections}" VerticalAlignment="Center" />
+      <ComboBox IsEnabled="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="1" ItemsSource="{Binding Targets}" SelectedItem="{Binding SelectedTarget}"
+                HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Tr ContactsCollections}" />
+    </Grid>
+
+    <Grid ColumnDefinitions="110,*" IsVisible="{Binding ShowTargetName}" Margin="0,0,0,6">
+      <TextBlock Grid.Column="0" Text="{loc:Tr ContactsCollections}" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="{Binding TargetName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+    </Grid>
+
+    <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto">
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Tr ContactGivenName}" VerticalAlignment="Center" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="0" Grid.Column="1" Text="{Binding GivenName}" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Tr ContactFamilyName}" VerticalAlignment="Center" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="1" Grid.Column="1" Text="{Binding FamilyName}" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Tr ContactsOrg}" VerticalAlignment="Center" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="2" Grid.Column="1" Text="{Binding Organization}" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Tr ContactJobTitle}" VerticalAlignment="Center" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="3" Grid.Column="1" Text="{Binding Title}" />
+    </Grid>
+
+    <!-- E-mail addresses. The label row carries the Add button, so the affordance sits with the thing it
+         adds to rather than at the far end of the form. -->
+    <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+      <TextBlock Grid.Column="0" Text="{loc:Tr ContactsEmail}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Command="{Binding AddEmailCommand}" ToolTip.Tip="{loc:Tr ContactAddEmail}"
+              AutomationProperties.Name="{loc:Tr ContactAddEmail}" IsVisible="{Binding CanEdit}">
+        <i:Icon Value="mdi-plus" FontSize="16" />
+      </Button>
+    </Grid>
+    <ItemsControl ItemsSource="{Binding Emails}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ContactFieldRowViewModel">
+          <Grid ColumnDefinitions="100,*,Auto" Margin="0,0,0,4">
+            <ComboBox IsEnabled="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="0" ItemsSource="{x:Static vm:ContactFieldRowViewModel.Types}"
+                      SelectedItem="{Binding Type}" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+            <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="1" Text="{Binding Value}" Watermark="name@example.com" />
+            <Button Grid.Column="2" Margin="6,0,0,0" IsVisible="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}"
+                    Command="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).RemoveEmailCommand}"
+                    CommandParameter="{Binding}" ToolTip.Tip="{loc:Tr Remove}"
+                    AutomationProperties.Name="{loc:Tr Remove}">
+              <i:Icon Value="mdi-close" FontSize="14" />
+            </Button>
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+      <TextBlock Grid.Column="0" Text="{loc:Tr ContactsPhone}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Command="{Binding AddPhoneCommand}" ToolTip.Tip="{loc:Tr ContactAddPhone}"
+              AutomationProperties.Name="{loc:Tr ContactAddPhone}" IsVisible="{Binding CanEdit}">
+        <i:Icon Value="mdi-plus" FontSize="16" />
+      </Button>
+    </Grid>
+    <ItemsControl ItemsSource="{Binding Phones}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ContactFieldRowViewModel">
+          <Grid ColumnDefinitions="100,*,Auto" Margin="0,0,0,4">
+            <ComboBox IsEnabled="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="0" ItemsSource="{x:Static vm:ContactFieldRowViewModel.Types}"
+                      SelectedItem="{Binding Type}" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+            <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="1" Text="{Binding Value}" />
+            <Button Grid.Column="2" Margin="6,0,0,0" IsVisible="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}"
+                    Command="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).RemovePhoneCommand}"
+                    CommandParameter="{Binding}" ToolTip.Tip="{loc:Tr Remove}"
+                    AutomationProperties.Name="{loc:Tr Remove}">
+              <i:Icon Value="mdi-close" FontSize="14" />
+            </Button>
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+      <TextBlock Grid.Column="0" Text="{loc:Tr ContactAddress}" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Command="{Binding AddAddressCommand}" ToolTip.Tip="{loc:Tr ContactAddAddress}"
+              AutomationProperties.Name="{loc:Tr ContactAddAddress}" IsVisible="{Binding CanEdit}">
+        <i:Icon Value="mdi-plus" FontSize="16" />
+      </Button>
+    </Grid>
+    <ItemsControl ItemsSource="{Binding Addresses}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ContactAddressRowViewModel">
+          <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4"
+                  Padding="8" Margin="0,0,0,6">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="100,*,Auto">
+                <ComboBox IsEnabled="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="0" ItemsSource="{x:Static vm:ContactAddressRowViewModel.Types}"
+                          SelectedItem="{Binding Type}" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+                <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="1" Text="{Binding Street}" Watermark="{loc:Tr ContactStreet}" />
+                <Button Grid.Column="2" Margin="6,0,0,0" IsVisible="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}"
+                        Command="{Binding $parent[UserControl].((vm:ContactEditViewModel)DataContext).RemoveAddressCommand}"
+                        CommandParameter="{Binding}" ToolTip.Tip="{loc:Tr Remove}"
+                        AutomationProperties.Name="{loc:Tr Remove}">
+                  <i:Icon Value="mdi-close" FontSize="14" />
+                </Button>
+              </Grid>
+              <Grid ColumnDefinitions="*,6,110">
+                <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="0" Text="{Binding City}" Watermark="{loc:Tr ContactCity}" />
+                <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="2" Text="{Binding PostalCode}" Watermark="{loc:Tr ContactPostalCode}" />
+              </Grid>
+              <Grid ColumnDefinitions="*,6,*">
+                <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="0" Text="{Binding Region}" Watermark="{loc:Tr ContactRegion}" />
+                <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Column="2" Text="{Binding Country}" Watermark="{loc:Tr ContactCountry}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+
+    <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto" Margin="0,6,0,0">
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Tr ContactBirthday}" VerticalAlignment="Center" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="0" Grid.Column="1" Text="{Binding Birthday}" Watermark="1990-02-15" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Tr ContactUrl}" VerticalAlignment="Center" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="1" Grid.Column="1" Text="{Binding Url}" Margin="0,0,0,6" />
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Tr ContactNote}" VerticalAlignment="Top" Margin="0,6,0,0" />
+      <TextBox IsReadOnly="{Binding !$parent[UserControl].((vm:ContactEditViewModel)DataContext).CanEdit}" Grid.Row="2" Grid.Column="1" Text="{Binding Note}" AcceptsReturn="True"
+               TextWrapping="Wrap" MinHeight="60" />
+    </Grid>
+
+    <!-- Says plainly that the rest of the card is safe. Without it, a user who knows their contact has a
+         photo has no reason to believe this form kept it. -->
+    <TextBlock Text="{loc:Tr ContactPreservedNote}" IsVisible="{Binding CanEdit}" Foreground="{DynamicResource WbMuted}"
+               TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0" />
+  </StackPanel>
+</UserControl>

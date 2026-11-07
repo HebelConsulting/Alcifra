@@ -379,6 +379,11 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        if (await TryShowStructuredCardAsync())
+        {
+            return;
+        }
+
         await Preview.RenderAsync(await _api!.Documents.GetPreviewAsync(versionsHref));
     }
 }

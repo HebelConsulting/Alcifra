@@ -286,4 +286,25 @@ public partial class PreviewPane : UserControl
         vm.ZoomBy(e.Delta.Y >= 0 ? PreviewZoom.WheelStep : 1 / PreviewZoom.WheelStep);
         e.Handled = true;
     }
+
+    // A card's pencil (#2215): the editor window is the view's, the reading and the saving are the card's builder's.
+    private void OnEditCard(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Alcifra.DesktopClient.Services.Safe.Fire(async () =>
+    {
+        if (DataContext is not PreviewViewModel { Card.OpenForEdit: { } open } || TopLevel.GetTopLevel(this) is not Window owner
+            || await open() is not { } edit)
+        {
+            return;
+        }
+
+        var filled = edit.Form switch
+        {
+            ContactEditViewModel contact => (StructuredEditFormViewModel?)await new ContactDialog(contact).ShowDialog<ContactEditViewModel?>(owner),
+            AppointmentEditViewModel appointment => await new AppointmentDialog(appointment).ShowDialog<AppointmentEditViewModel?>(owner),
+            _ => null,
+        };
+        if (filled is not null)
+        {
+            await edit.SaveAsync(filled);
+        }
+    });
 }

@@ -181,6 +181,20 @@
             <!-- An opened password entry (ADR 0968): its fields from memory, found in by the same find box. -->
             <v:PasswordEntryView DataContext="{Binding PasswordEntry}"
                                  IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).PasswordEntry, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+            <!-- A contact's or an appointment's card (#2215): the editor's own form, read-only, chosen by the document's mask.
+                 The pencil opens the editor window; saving there refreshes the card. -->
+            <ScrollViewer IsVisible="{Binding Card, Converter={x:Static conv:ObjectConverters.IsNotNull}}" x:Name="CardScroll">
+                <StackPanel Margin="14" Spacing="8" MaxWidth="640" HorizontalAlignment="Left">
+                    <Button HorizontalAlignment="Right" Click="OnEditCard" IsVisible="{Binding Card.CanEdit, FallbackValue=False}"
+                            ToolTip.Tip="{loc:Tr Edit}" AutomationProperties.Name="{loc:Tr Edit}">
+                        <i:Icon Value="mdi-pencil" FontSize="14" />
+                    </Button>
+                    <v:ContactForm DataContext="{Binding Card.Contact}"
+                                   IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).Card.Contact, Converter={x:Static conv:ObjectConverters.IsNotNull}, FallbackValue=False}" />
+                    <v:AppointmentForm DataContext="{Binding Card.Appointment}"
+                                       IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).Card.Appointment, Converter={x:Static conv:ObjectConverters.IsNotNull}, FallbackValue=False}" />
+                </StackPanel>
+            </ScrollViewer>
             <!-- The placeholder, and for a sealed document this machine could not open, its plain state: a lock, the
                  title, what is known about the user's keys, and "Open with my key" (ADR 0969). -->
             <StackPanel x:Name="Placeholder" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="280"

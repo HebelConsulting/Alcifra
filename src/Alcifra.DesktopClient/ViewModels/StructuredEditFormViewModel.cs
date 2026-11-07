@@ -25,6 +25,9 @@ public abstract partial class StructuredEditFormViewModel : ObservableObject
     /// <summary>False when the caller may read but not save — the form opens with Save disabled.</summary>
     [ObservableProperty] private bool _canEdit = true;
 
+    /// <summary>What a save sends: the structured body the item's PUT takes (the preview card's pencil saves through it, #2215).</summary>
+    public abstract object ToPayload();
+
     /// <summary>True when the dialog is composing a NEW item rather than editing a stored one.</summary>
     [ObservableProperty] private bool _isCreate;
 

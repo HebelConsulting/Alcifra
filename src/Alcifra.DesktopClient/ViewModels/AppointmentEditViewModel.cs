@@ -264,6 +264,11 @@ public sealed partial class AppointmentEditViewModel : StructuredEditFormViewMod
 
     public bool HasReminders => ReminderCount > 0;
 
+    /// <summary>What the form says of the reminders, without implying they can be changed here.</summary>
+    public string ReminderSummary => ReminderCount == 1
+        ? Alcifra.Localization.Strings.Get("ApptReminderOne")
+        : string.Format(System.Globalization.CultureInfo.CurrentCulture, Alcifra.Localization.Strings.Get("ApptReminderMany"), ReminderCount);
+
     public bool HasAttendees => Attendees.Count > 0;
 
     public static AppointmentEditViewModel From(JsonElement body) => From(AppointmentCard.From(body));
@@ -337,7 +342,7 @@ public sealed partial class AppointmentEditViewModel : StructuredEditFormViewMod
         StartTimeZoneId = EndTimeZoneId = Alcifra.Presentation.TimeZoneChoices.Local();
     }
 
-    public object ToPayload()
+    public override object ToPayload()
     {
         // The picker writes into the rule before it is sent — never the reverse, so a rule richer than the
         // offered list survives a save untouched (#1133).

@@ -108,6 +108,11 @@ konvertierte Office-, E-Mail- und Markdown-Dokumente gleichermassen. Treffer der
 und Sie können jedes Wort anklicken, um es zu kopieren#idx("Klicken zum Kopieren") — *Umschalt-Klick* hängt an, statt zu ersetzen, sodass
 einige Klicks eine Wortfolge sammeln (eine Rechnungsnummer, dann ihr Datum), ohne die Tastatur zu berühren. So füllen Sie
 Indexfelder im Register *Eingangskorb* am schnellsten aus: Klicken Sie die Werte in der Vorschau des Scans an und fügen Sie sie ins Feld ein.
+
+Ein *Kontakt* oder ein *Termin*#idx("Kontaktkarte") erscheint stattdessen als eigene Karte: dasselbe Formular, mit dem die
+Register *Kontakte* und *Kalender* ihn bearbeiten, schreibgeschützt. Der Stift über der Karte öffnet dieses Formular zum
+Ändern. Nur was das Archiv als Kontakt oder Termin abgelegt hat, erhält eine Karte; jede andere .vcf- oder .ics-Datei behält
+ihre gewohnte Vorschau.
 Im Desktop-Client können Sie das Dokument ausserdem in seiner nativen
 Anwendung *öffnen*#idx("Dokument öffnen") — über das Kontextmenü der Zeile, das Menüband, einen Doppelklick oder das Tastenkürzel
 *⌘O* (*Ctrl+O* unter Windows und Linux). Dasselbe Kürzel öffnet im Register *Eingangskorb* den ausgewählten Eintrag.]

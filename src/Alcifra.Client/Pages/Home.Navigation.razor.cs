@@ -502,7 +502,16 @@ public partial class Home
             // opened from elsewhere — a search hit, a notification — call SetTab(Repositories) and select in the
             // same synchronous run, with no render in between. Rendering straight into a null ref would lose the
             // preview silently on exactly those paths, so defer to OnAfterRenderAsync when it is not there yet.
-            await ShowPreviewAsync(loaded.PreviewUrl, loaded.TextLayoutUrl, loaded.Converted, loaded.HasVersion, loaded.Facts);
+            // A Contact or an Appointment shows its card instead of a rendering (#2215), where the pane is there to show it.
+            if (_repoPreview is { } pane
+                && await PreviewCards.ForAsync(Detail.Links?.GetValueOrDefault("self"), Detail.MaskName ?? string.Empty, pane.ShowCardAsync) is { } card)
+            {
+                await pane.ShowCardAsync(card);
+            }
+            else
+            {
+                await ShowPreviewAsync(loaded.PreviewUrl, loaded.TextLayoutUrl, loaded.Converted, loaded.HasVersion, loaded.Facts);
+            }
         }
 
         await LoadCommentsAsync(item);

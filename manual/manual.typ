@@ -106,6 +106,10 @@ converted Office/e-mail/Markdown documents alike. Full-text search hits are high
 and you can click any word to copy it#idx("Click-to-copy") — *shift-click* appends instead of replacing, so a
 few clicks collect a phrase (an invoice number, then its date) without touching the keyboard. That is the fast
 way to fill index fields on the *Intray* tab: click the values in the scan's preview, paste them into the field.
+
+A *contact* or an *appointment*#idx("Contact card") shows as its own card instead: the same form the Contacts and
+Calendar tabs edit it with, read-only. The pencil above the card opens that form to change it. Only an item the
+archive filed as a contact or an appointment gets a card; any other .vcf or .ics file keeps its ordinary preview.
 In the desktop client you can also *open* the document in its native
 application#idx("Open a document") — from the row's context menu, the ribbon, a double-click, or the keyboard
 shortcut *⌘O* (*Ctrl+O* on Windows and Linux). The same shortcut opens the selected item on the *Intray* tab.]

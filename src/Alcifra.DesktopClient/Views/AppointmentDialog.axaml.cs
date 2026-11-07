@@ -26,10 +26,6 @@ public partial class AppointmentDialog : Window
         {
             Title = Strings.Get("CalendarNew");
         }
-
-        ReminderText.Text = model.ReminderCount == 1
-            ? Strings.Get("ApptReminderOne")
-            : string.Format(CultureInfo.CurrentCulture, Strings.Get("ApptReminderMany"), model.ReminderCount);
     }
 
 
