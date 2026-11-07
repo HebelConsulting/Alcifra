@@ -783,6 +783,16 @@ meantime stays.
 `apass show` labels each field as the form does and shows a verification code as the code valid now, never its setup.
 `--store` names a shared store (the default is My Passwords); `apass ls` and `apass find` list what there is.
 
+The Tab key completes commands, store names and paths once your shell loads the completion script. For zsh, add this line
+to `~/.zshrc`; for bash, write `bash` instead of `zsh` and add it to `~/.bashrc`:
+
+```sh
+eval "$(apass completion zsh)"
+```
+
+`apass show Ma` then completes to `Mail/`, and the next Tab goes on inside that folder. Without the line, Tab completes
+local files instead. Completion stays silent when you are not signed in.
+
 *Bookmarks in your browser.*#idx("bookmarks") The browser extension also keeps your bookmarks in step. The first time it
 syncs, it makes a file called Bookmarks in your My Documents, and that file appears as a folder of its own among the
 browser's bookmarks. Add, rename, move or delete bookmarks in that folder, and the change is saved half a minute later;

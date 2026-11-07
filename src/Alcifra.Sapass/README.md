@@ -22,7 +22,7 @@ apass otp Mail/Banking -c                                 # the code onto the cl
   name the apps show, `Parent / Name` (e.g. `Anna Berger / My Passwords`); the plain name is refused as ambiguous — except
   `My Passwords`, which always means your own.
 - `--refresh` re-reads the tree instead of using the five-minute cache.
-- Completion: `apass completion bash|zsh|fish` prints the script; it completes commands, store names and paths.
+- Completion: `apass completion bash|zsh|fish` prints the script; it completes commands, store names and paths. Add `eval "$(apass completion zsh)"` to `~/.zshrc`, or the bash line to `~/.bashrc`. Without it a TAB completes local files.
 
 Nothing is written to the installation's servers in clear: the content is sealed to the store's readers by the shared
 client, and the server stores only the envelope. The PIN is never stored — the card holds the session.

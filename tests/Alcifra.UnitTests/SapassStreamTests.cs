@@ -38,7 +38,7 @@ public class SapassStreamTests
         var (exit, stdout, stderr) = Run(withoutSession: true, "completion", "bash");
 
         Assert.Equal(0, exit);
-        Assert.Contains("complete -o default", stdout);
+        Assert.Contains("complete -o nospace", stdout);
         Assert.True(string.IsNullOrWhiteSpace(stderr));
     }
 
@@ -52,6 +52,26 @@ public class SapassStreamTests
 
         Assert.NotEqual(0, exit);
         Assert.DoesNotContain("Could not resolve type", stderr);
+    }
+
+    // What the scripts must keep: an empty last word reaches the binary, a folder takes no space so the next TAB goes on
+    // inside it, and a word nothing matches never falls back to local files.
+    [Fact]
+    public void The_zsh_script_keeps_an_empty_last_word_and_no_space_after_a_folder()
+    {
+        var (_, stdout, _) = Run(withoutSession: false, "completion", "zsh");
+
+        Assert.Contains("\"${(@)words[2,-1]}\"", stdout, StringComparison.Ordinal);
+        Assert.Contains("compadd -S '' -a folders", stdout, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_bash_script_never_falls_back_to_files_and_adds_no_space_after_a_folder()
+    {
+        var (_, stdout, _) = Run(withoutSession: false, "completion", "bash");
+
+        Assert.Contains("complete -o nospace -F _apass_complete apass", stdout, StringComparison.Ordinal);
+        Assert.DoesNotContain("-o default", stdout, StringComparison.Ordinal);
     }
 
     /// <summary>Runs the tool with both streams captured, restoring the console and the environment afterwards.</summary>

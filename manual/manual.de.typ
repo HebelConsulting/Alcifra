@@ -791,6 +791,16 @@ inzwischen kopiert haben, bleibt.
 Einrichtung. `--store` nennt einen gemeinsamen Speicher (Standard ist Meine Passwörter); `apass ls` und `apass find`
 listen, was es gibt.
 
+Die Tabulatortaste ergänzt Befehle, Speichernamen und Pfade, sobald Ihre Shell das Ergänzungsskript lädt. Für zsh fügen Sie
+diese Zeile in `~/.zshrc` ein; für bash schreiben Sie `bash` statt `zsh` und fügen sie in `~/.bashrc` ein:
+
+```sh
+eval "$(apass completion zsh)"
+```
+
+`apass show Ma` wird dann zu `Mail/` ergänzt, und der nächste Tabulator geht in diesem Ordner weiter. Ohne die Zeile ergänzt
+die Tabulatortaste stattdessen lokale Dateien. Sind Sie nicht angemeldet, bietet die Ergänzung nichts an.
+
 *Lesezeichen im Browser.*#idx("Lesezeichen") Die Browser-Erweiterung hält auch Ihre Lesezeichen aktuell. Beim ersten Abgleich
 legt sie in Ihren Eigenen Dokumenten eine Datei namens Bookmarks an, und diese Datei erscheint unter den Lesezeichen des Browsers
 als eigener Ordner. Fügen Sie in diesem Ordner Lesezeichen hinzu, benennen Sie sie um, verschieben oder löschen Sie sie, und die
