@@ -7,7 +7,7 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.Notifications;
 
 /// <summary>
-/// Sends a new notification to the recipient's registered phones (SimplArchiveMobile #20, slice B; owner decisions
+/// Sends a new notification to the recipient's registered phones (AlcifraMobile #20, slice B; owner decisions
 /// 2026-10-12): right after the save, best effort, never blocking the request. Per recipient it skips a type whose
 /// phone switch is off, encrypts the (id-only) payload to each device (RFC 8291 aes128gcm, <see cref="WebPushMessage"/>; signed
 /// with the installation's VAPID key, RFC 8292),

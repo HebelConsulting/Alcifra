@@ -20,7 +20,7 @@ public class UserNotificationPreference : ITenantScoped
     // Whether this type is also emailed for this user (in-app is unconditional). Default true = emailed.
     public bool EmailEnabled { get; set; } = true;
 
-    // Whether this type is also pushed to the user's phones (SimplArchiveMobile #20). Default true, as for email:
+    // Whether this type is also pushed to the user's phones (AlcifraMobile #20). Default true, as for email:
     // the absence of a row means both channels are on.
     public bool PhoneEnabled { get; set; } = true;
 }

@@ -6,7 +6,7 @@ using Alcifra.Domain.Users;
 
 namespace Alcifra.Infrastructure.Persistence.Configurations;
 
-// SimplArchiveMobile #20 slice B (owner-approved schema, 2026-10-12). Unique on (TenantId, Endpoint): a device
+// AlcifraMobile #20 slice B (owner-approved schema, 2026-10-12). Unique on (TenantId, Endpoint): a device
 // registering again refreshes its row instead of duplicating it, which would send every notification twice.
 // Cascade from the user: a deleted account takes its devices along.
 public class PhonePushRegistrationConfiguration : IEntityTypeConfiguration<PhonePushRegistration>

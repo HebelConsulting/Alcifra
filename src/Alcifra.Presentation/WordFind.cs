@@ -2,7 +2,7 @@ namespace Alcifra.Presentation;
 
 /// <summary>
 /// Find-in-document over a PDF's or a scan's word boxes: which words a query lights up. One rule for every client
-/// (the desktop's preview and the phone's, SimplArchiveMobile #14), so both find the same things; a text document's
+/// (the desktop's preview and the phone's, AlcifraMobile #14), so both find the same things; a text document's
 /// find is <see cref="TextFind"/> instead, over the characters.
 /// </summary>
 /// <remarks>

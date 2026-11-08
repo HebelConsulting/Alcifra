@@ -20,7 +20,7 @@ namespace Alcifra.DesktopClient.ViewModels;
 /// shown is <see cref="Close"/>d, so nothing it was still reading lands in the next one's pane (ADR 0661).
 /// </summary>
 /// <remarks>DEBT (ADR 0967): the read and the send follow the phone's <c>ThreadView</c>, whose orchestration still lives
-/// in the MAUI screens; it moves into the Messenger client (SimplArchiveMessenger#34), and this copy goes then.</remarks>
+/// in the MAUI screens; it moves into the Messenger client (AlcifraMessenger#34), and this copy goes then.</remarks>
 public sealed partial class MessengerThreadViewModel : ObservableObject
 {
     private readonly ChatSession _session;

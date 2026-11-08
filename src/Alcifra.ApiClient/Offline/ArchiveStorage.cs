@@ -37,7 +37,7 @@ public sealed class ZipArchiveStorage(byte[] zip) : IArchiveStorage
 
 /// <summary>
 /// An archive read from a directory, each file passed through <paramref name="open"/> on the way out: the phone's
-/// cache keeps every file encrypted on its own (SimplArchiveMobile #5), and decrypts here, asking for the user's card
+/// cache keeps every file encrypted on its own (AlcifraMobile #5), and decrypts here, asking for the user's card
 /// where a file is sealed to it. Null for plain files.
 /// </summary>
 public sealed class DirectoryArchiveStorage(string directory, Func<string, byte[], CancellationToken, Task<byte[]>>? open = null) : IArchiveStorage

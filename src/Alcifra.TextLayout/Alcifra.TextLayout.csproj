@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Published for the mobile app (ADR 0917, SimplArchiveMobile #14): the ApiClient package's word source reads PDF
+  <!-- Published for the mobile app (ADR 0917, AlcifraMobile #14): the ApiClient package's word source reads PDF
        bytes with it on the phone too. Conditional for the Docker restore layer, as in Presentation. -->
   <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
   <PropertyGroup>

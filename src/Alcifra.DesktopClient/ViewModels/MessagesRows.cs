@@ -155,7 +155,7 @@ internal static class MessengerRefusal
 {
     // DEBT (ADR 0967): the same wording as the phone screens' MessengerScreens.ShowAsync, which keeps it inside the MAUI
     // package; it moves to Alcifra.Messenger.Client with the thread's read and send orchestration
-    // (SimplArchiveMessenger#34), and this copy goes then.
+    // (AlcifraMessenger#34), and this copy goes then.
     public static string Wording(Exception exception) => exception switch
     {
         MessengerApiException { Code: "ETAG_MISMATCH" } => ViewText.Get("ChangedElsewhere"),

@@ -364,7 +364,7 @@ public sealed class EncryptionModes(IConfiguration configuration)
     /// shipped "with the Service alone" (ADR 0866).
     /// </para>
     /// <para>
-    /// <b>The registry is retired (ADR 0890, SimplArchiveEncryptionService#23)</b>, because it enveloped to
+    /// <b>The registry is retired (ADR 0890, AlcifraEncryptionService#23)</b>, because it enveloped to
     /// certificates nobody held: one PEM per e-mail, replaced on register, no history and no revocation — the
     /// kiosk's Crypto tenant decrypted with no card for exactly that reason. With it gone, a Service-only
     /// installation has no certificate source for an enveloping tenant at all: the column is closed there by

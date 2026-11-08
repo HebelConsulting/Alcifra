@@ -3,7 +3,7 @@ using Alcifra.Domain.Notifications;
 namespace Alcifra.Api.Controllers;
 
 /// <summary>
-/// What a phone may register for push (SimplArchiveMobile #20; APNs, core #1805), per transport: a Web Push endpoint
+/// What a phone may register for push (AlcifraMobile #20; APNs, core #1805), per transport: a Web Push endpoint
 /// with usable keys, or an APNs device token with its environment — the latter only where the installation sends through
 /// APNs. Its own class so it is unit-tested without the controller.
 /// </summary>

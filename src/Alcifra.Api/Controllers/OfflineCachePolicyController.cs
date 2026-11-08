@@ -11,7 +11,7 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.Controllers;
 
 /// <summary>
-/// What the tenant allows a phone's offline cache (#1742, owner decisions 2026-10-13; SimplArchiveMobile #5). One rel,
+/// What the tenant allows a phone's offline cache (#1742, owner decisions 2026-10-13; AlcifraMobile #5). One rel,
 /// <c>offlineCachePolicy</c> on <c>/me</c>, the method says which action (ADR 0719): every user READS it, because the
 /// phone shows only the allowed choices; a tenant administrator WRITES it with <c>PUT</c> and <c>If-Match</c>, which
 /// the <c>canEdit</c> flag announces. Its own controller rather than a section of the tenant settings, which are

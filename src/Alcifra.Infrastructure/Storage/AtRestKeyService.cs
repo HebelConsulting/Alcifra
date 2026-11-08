@@ -14,7 +14,7 @@ namespace Alcifra.Infrastructure.Storage;
 /// The key half of at-rest encryption (ADR 0818): which tenants encrypt (the SAME `Encryption:Tenants`
 /// gate as the IMAP enveloping, ADR 0813 — owner-decided), the current KEK fetched from the encryption
 /// service and cached, DEK wrapping in-process (RSA-OAEP needs only the public half), and unwrapping
-/// through the service's HSM oracle (SimplArchiveEncryptionService ADR 0013) with a bounded DEK cache.
+/// through the service's HSM oracle (AlcifraEncryptionService ADR 0013) with a bounded DEK cache.
 /// </summary>
 public sealed class AtRestKeyService(
     IConfiguration configuration,
@@ -523,7 +523,7 @@ public sealed class AtRestKeyService(
             var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
             var publicKey = RSA.Create();
             publicKey.ImportFromPem(json.GetProperty("publicKeyPem").GetString()!);
-            // The service publishes the OAEP hash BOTH sides must use (SimplArchiveEncryptionService ADR 0011):
+            // The service publishes the OAEP hash BOTH sides must use (AlcifraEncryptionService ADR 0011):
             // the dev HSM is SHA-1-only, and a hash we assumed would be an unwrappable DEK.
             var padding = json.GetProperty("oaepHash").GetString() == "SHA1"
                 ? RSAEncryptionPadding.OaepSHA1

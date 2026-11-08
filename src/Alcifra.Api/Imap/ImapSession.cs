@@ -60,7 +60,7 @@ public sealed class ImapSession
     private string _email = "anonymous";
 
     /// <summary>The authenticated user's email — the recipient identity the envelope hook needs
-    /// (SimplArchiveEncryptionService ADR 0007). "anonymous" before LOGIN, but FETCH is unreachable then.</summary>
+    /// (AlcifraEncryptionService ADR 0007). "anonymous" before LOGIN, but FETCH is unreachable then.</summary>
     internal string Email => _email;
 
     private string _tenantName = string.Empty;

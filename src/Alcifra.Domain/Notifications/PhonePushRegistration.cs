@@ -3,7 +3,7 @@ using Alcifra.Domain.Abstractions;
 namespace Alcifra.Domain.Notifications;
 
 /// <summary>
-/// One phone's push registration for one user (SimplArchiveMobile #20, slice B): the UnifiedPush endpoint a
+/// One phone's push registration for one user (AlcifraMobile #20, slice B): the UnifiedPush endpoint a
 /// notification is posted to, encrypted to the device (RFC 8291), when the user's notification preferences send that
 /// type to the phone. Written by the device that owns it: registered on sign-in, refreshed, removed on sign-out.
 /// </summary>

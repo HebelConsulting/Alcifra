@@ -26,7 +26,7 @@ public partial class MainWindowViewModel
     /// <summary>
     /// Modules' ephemeral events off the window's live connection (core ABI 1.25, ADR 0957), subscribed here rather than
     /// on the connection, so a subscription outlives a reconnect: the Messages tab hears "is typing" on it
-    /// (SimplArchiveMessenger #26).
+    /// (AlcifraMessenger #26).
     /// </summary>
     public Alcifra.Presentation.ModuleLiveEventRouter ModuleLiveEvents { get; } = new();
 

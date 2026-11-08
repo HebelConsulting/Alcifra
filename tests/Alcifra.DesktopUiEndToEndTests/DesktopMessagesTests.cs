@@ -82,7 +82,7 @@ public class DesktopMessagesTests(SelfHostedAppFixture app) : IDisposable
         Assert.Empty(tab.Conversations);
     }
 
-    // SimplArchiveMessenger #26: the tab hears "is typing" off the window's one live connection, the Messenger's events only.
+    // AlcifraMessenger #26: the tab hears "is typing" off the window's one live connection, the Messenger's events only.
     [Fact]
     public void The_window_hands_the_tab_only_the_Messengers_own_live_events()
     {

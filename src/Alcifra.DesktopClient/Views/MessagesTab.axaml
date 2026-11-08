@@ -74,7 +74,7 @@
         <Button Command="{Binding RestoreCommand}" ToolTip.Tip="{loc:Tr MobBackupRestore}" AutomationProperties.Name="{loc:Tr MobBackupRestore}">
           <i:Icon Value="mdi-backup-restore" FontSize="18" />
         </Button>
-        <!-- "Is typing" both ways (SimplArchiveMessenger #26): a state, so a toggle; only where the server offers it. -->
+        <!-- "Is typing" both ways (AlcifraMessenger #26): a state, so a toggle; only where the server offers it. -->
         <Border Width="1" Background="{DynamicResource WbBorder}" Margin="4,2" IsVisible="{Binding OffersTypingPreference}" />
         <ToggleButton IsChecked="{Binding TypingIndicator}" IsVisible="{Binding OffersTypingPreference}"
                       ToolTip.Tip="{loc:Msg TypingIndicatorHint}" AutomationProperties.Name="{loc:Msg TypingIndicator}">
@@ -184,7 +184,7 @@
               </DockPanel>
             </StackPanel>
 
-            <!-- Who else is typing (SimplArchiveMessenger #26): under the thread, above the composer. -->
+            <!-- Who else is typing (AlcifraMessenger #26): under the thread, above the composer. -->
             <TextBlock DockPanel.Dock="Bottom" Text="{Binding TypingLine}" Foreground="{DynamicResource WbMuted}" FontStyle="Italic"
                        FontSize="12" Margin="4,4,0,0" TextTrimming="CharacterEllipsis"
                        IsVisible="{Binding TypingLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

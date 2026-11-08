@@ -380,7 +380,7 @@ public static class AuditActions
     // The mobile app opened its autofill extension's own session (ADR 0981): a second renewable authorization for the
     // same user, which a reader of the trail asks about after a lost phone just as for a registered device.
     public const string AutofillSessionStarted = "Auth.AutofillSessionStarted";
-    // A phone registered for push, re-keyed, or removed (SimplArchiveMobile #20). Recorded because a registered
+    // A phone registered for push, re-keyed, or removed (AlcifraMobile #20). Recorded because a registered
     // device receives the user's notification titles from then on: who added a device, and when one went, is what
     // a reader of the trail asks after a lost phone. A device registering again unchanged records nothing.
     public const string PushDeviceRegistered = "Auth.PushDeviceRegistered";

@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace Alcifra.EndToEndTests;
 
-// A user's phones registered for push (SimplArchiveMobile #20, slice B; owner decisions 2026-10-12): registered after
+// A user's phones registered for push (AlcifraMobile #20, slice B; owner decisions 2026-10-12): registered after
 // sign-in, refreshed and removed with If-Match because one user may have several clients, never shared with another
 // user, and the per-type phone switch in the notification preferences.
 [Collection(E2ECollection.Name)]

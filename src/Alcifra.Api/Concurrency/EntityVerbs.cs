@@ -53,7 +53,7 @@ public sealed class GroupVerbs(AlcifraDbContext dbContext)
 public sealed class TagDefinitionVerbs(AlcifraDbContext dbContext)
     : EntityVerbContract<TagDefinition>(dbContext, EtagMismatchException.ForTag);
 
-/// <summary>The verb contract for <see cref="PhonePushRegistration"/>: one user, several clients (SimplArchiveMobile #20).</summary>
+/// <summary>The verb contract for <see cref="PhonePushRegistration"/>: one user, several clients (AlcifraMobile #20).</summary>
 public sealed class PhonePushRegistrationVerbs(AlcifraDbContext dbContext)
     : EntityVerbContract<PhonePushRegistration>(dbContext, EtagMismatchException.ForPushRegistration);
 

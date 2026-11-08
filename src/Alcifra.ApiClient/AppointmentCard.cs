@@ -5,7 +5,7 @@ namespace Alcifra.ApiClient;
 
 /// <summary>
 /// An appointment as the API's <c>appointment</c> resource carries it, without any UI: what the desktop's appointment
-/// form and the phone's Calendar (SimplArchiveMobile #47) both read and save (core ADR 0917: moved, not copied).
+/// form and the phone's Calendar (AlcifraMobile #47) both read and save (core ADR 0917: moved, not copied).
 /// </summary>
 /// <remarks>
 /// <para><b>Times are wall clocks</b>, sent without an offset: the zone travels separately in the per-endpoint zone

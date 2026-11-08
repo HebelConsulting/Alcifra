@@ -14,7 +14,7 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.Controllers;
 
 /// <summary>
-/// "Changes since" (ADR 0925; SimplArchiveMobile #5): the documents the caller may see whose
+/// "Changes since" (ADR 0925; AlcifraMobile #5): the documents the caller may see whose
 /// <see cref="Document.ChangedAt"/> moved after a cursor, as small rows, so an offline copy refreshes only what
 /// changed. Root rel <c>changes</c>.
 /// </summary>

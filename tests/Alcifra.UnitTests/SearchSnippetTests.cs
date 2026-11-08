@@ -3,7 +3,7 @@ using Alcifra.Presentation;
 namespace Alcifra.UnitTests;
 
 // A hit's fragment as both clients render it: the matched terms marked, everything HTML-decoded (the phone once
-// printed the raw <em> tags and &#x27; entities, SimplArchiveMobile #24).
+// printed the raw <em> tags and &#x27; entities, AlcifraMobile #24).
 public class SearchSnippetTests
 {
     [Fact]

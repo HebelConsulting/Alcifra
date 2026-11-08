@@ -11,7 +11,7 @@ namespace Alcifra.Api.Controllers;
 
 /// <summary>
 /// The caller's certificate SET, the one the server addresses envelopes to (#1741; ADR 0842): read-only, for a client
-/// that seals something to its own user, such as the phone's offline cache (SimplArchiveMobile #5). Answered by the same
+/// that seals something to its own user, such as the phone's offline cache (AlcifraMobile #5). Answered by the same
 /// rule as delivery (<see cref="ReaderCertificateSource"/>): where a module answers, its set is the only source; else the
 /// core's registry (#1970 slice 4). The rel is <c>readerCertificates</c> on <c>/me</c>; enrolling is <c>certificates</c>.
 /// </summary>

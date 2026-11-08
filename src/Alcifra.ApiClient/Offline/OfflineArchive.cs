@@ -51,7 +51,7 @@ public sealed class OfflineArchive
         JsonElement? Json(string path) => files[path] is { } bytes ? JsonDocument.Parse(bytes).RootElement.Clone() : null;
         IEnumerable<JsonElement> Lines(string path) => LinesOf(files[path]);
         var manifest = Json("manifest.json") ?? throw new OfflineArchiveException("The archive has no manifest.json.");
-        // An export names its root; a cache (SimplArchiveMobile #5) spans repositories and names none.
+        // An export names its root; a cache (AlcifraMobile #5) spans repositories and names none.
         var hasRoot = manifest.TryGetProperty("root", out var root) && root.ValueKind == JsonValueKind.Object;
         Name = (hasRoot && root.TryGetProperty("name", out var n) ? n.GetString() : null)
             ?? (manifest.TryGetProperty("name", out var cacheName) ? cacheName.GetString() : null) ?? string.Empty;
@@ -114,7 +114,7 @@ public sealed class OfflineArchive
                 .OrderBy(fg => fieldDefinitions[fg.Key].Order)
                 .Select(fg => new ArchivedField(fieldDefinitions[fg.Key].Name, fieldDefinitions[fg.Key].Type, [.. fg.OrderBy(x => x.Ordinal).Select(x => x.Value)]))]);
 
-        // Cache-only (SimplArchiveMobile #5): absent from an export, and then no notifications link is offered at all.
+        // Cache-only (AlcifraMobile #5): absent from an export, and then no notifications link is offered at all.
         _notifications = files["tree/notifications.jsonl"] is null ? null : [.. Lines("tree/notifications.jsonl").Select(x => new ArchivedNotification(
             x.GetProperty("id").GetGuid(),
             x.TryGetProperty("type", out var t) ? t.GetString() ?? string.Empty : string.Empty,

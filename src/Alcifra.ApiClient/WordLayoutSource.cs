@@ -2,7 +2,7 @@ namespace Alcifra.ApiClient;
 
 /// <summary>
 /// Where the find-in-document word boxes come from: the server's text layout, or — when it will not answer —
-/// the PDF bytes this client already holds (#1402). Shared by the desktop's preview and the phone's (SimplArchiveMobile
+/// the PDF bytes this client already holds (#1402). Shared by the desktop's preview and the phone's (AlcifraMobile
 /// #14; moved, not copied, core ADR 0917).
 /// </summary>
 /// <remarks>

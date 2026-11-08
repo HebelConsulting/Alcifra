@@ -5,7 +5,7 @@ using Alcifra.Infrastructure.Http;
 namespace Alcifra.Api.Notifications;
 
 /// <summary>
-/// New notifications to the recipients' phones (SimplArchiveMobile #20; APNs, core #1805): best effort, after the save,
+/// New notifications to the recipients' phones (AlcifraMobile #20; APNs, core #1805): best effort, after the save,
 /// off the request. Moved out of Program.cs when APNs joined, which would have taken it past the 1000-line ceiling.
 /// </summary>
 public static class PhonePushServices

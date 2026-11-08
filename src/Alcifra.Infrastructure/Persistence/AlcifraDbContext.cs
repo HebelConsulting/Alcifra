@@ -63,7 +63,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     // like the three above, so the design-time factory and the DI-less tests keep working.
     private readonly IModuleProjectionDispatcher? _moduleProjections;
 
-    // The phone push (SimplArchiveMobile #20): optional like the notifiers above.
+    // The phone push (AlcifraMobile #20): optional like the notifiers above.
     private readonly IPhonePushNotifier? _phonePush;
 
     // What loaded modules declare on their masks (ABI 1.18): the folders they provision at a personal space's first level.

@@ -188,7 +188,7 @@ public class Tenant : IConcurrencyTracked
 
     public long? StorageQuotaBytes { get; set; }
 
-    // The phone's offline cache (#1742, owner decisions 2026-10-13; SimplArchiveMobile #5): what this tenant allows.
+    // The phone's offline cache (#1742, owner decisions 2026-10-13; AlcifraMobile #5): what this tenant allows.
     // Everything is allowed until an administrator narrows it. It binds our apps, which honour what the server
     // advertises; the server cannot enforce what a phone stores.
     public bool OfflineCacheAllowed { get; set; } = true;

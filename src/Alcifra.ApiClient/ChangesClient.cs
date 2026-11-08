@@ -5,7 +5,7 @@ namespace Alcifra.ApiClient;
 
 /// <summary>
 /// "Changes since" (core ADR 0925): what the caller may see that changed after a cursor, so an offline copy refreshes
-/// only that (SimplArchiveMobile #5). Follows the root's <c>changes</c> rel; the cursor is opaque.
+/// only that (AlcifraMobile #5). Follows the root's <c>changes</c> rel; the cursor is opaque.
 /// </summary>
 public sealed class ChangesClient(ApiCore core)
 {

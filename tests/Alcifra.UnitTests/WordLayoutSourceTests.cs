@@ -10,7 +10,7 @@ namespace Alcifra.UnitTests;
 // where the server cannot, which is the strict tier: there the text-layout endpoint refuses outright (409
 // PLAINTEXT_CONTENT_REFUSED, ADR 0829), so the words must be computed from the bytes the card decrypted.
 //
-// Shared by the desktop and the phone (SimplArchiveMobile #14). Asserted with no api client at all, which is exactly the "server cannot answer" shape and needs no fixture.
+// Shared by the desktop and the phone (AlcifraMobile #14). Asserted with no api client at all, which is exactly the "server cannot answer" shape and needs no fixture.
 public class WordLayoutSourceTests
 {
     [Fact]

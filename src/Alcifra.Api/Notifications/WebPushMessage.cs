@@ -13,7 +13,7 @@ namespace Alcifra.Api.Notifications;
 /// <b>Why not the WebPush package's own encryption.</b> It produces the older draft coding <c>aesgcm</c>, which puts
 /// the salt and the sender's key in HTTP headers. A UnifiedPush distributor hands the app the BODY only, so a phone
 /// could never decrypt it. <c>aes128gcm</c> carries both inside the body (found by the phone push's own test,
-/// SimplArchiveMobile #20). Everything here is .NET's built-in cryptography: no new dependency.
+/// AlcifraMobile #20). Everything here is .NET's built-in cryptography: no new dependency.
 /// </para>
 /// </remarks>
 public static class WebPushMessage

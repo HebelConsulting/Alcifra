@@ -4,7 +4,7 @@ namespace Alcifra.ApiClient;
 
 /// <summary>
 /// A contact as the API's <c>contact-card</c> resource carries it, without any UI: what the desktop's contact form and
-/// the phone's Address book (SimplArchiveMobile #46) both read and save (core ADR 0917: moved, not copied). Empty rows
+/// the phone's Address book (AlcifraMobile #46) both read and save (core ADR 0917: moved, not copied). Empty rows
 /// are dropped on the way back rather than saved as blank properties.
 /// </summary>
 public sealed record ContactCard(

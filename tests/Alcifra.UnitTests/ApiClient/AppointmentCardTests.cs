@@ -3,7 +3,7 @@ using Alcifra.ApiClient;
 
 namespace Alcifra.UnitTests.ApiClient;
 
-// The appointment both clients read and save (SimplArchiveMobile #47; moved out of the desktop's form).
+// The appointment both clients read and save (AlcifraMobile #47; moved out of the desktop's form).
 public sealed class AppointmentCardTests
 {
     [Fact]

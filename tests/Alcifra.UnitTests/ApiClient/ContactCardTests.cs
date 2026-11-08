@@ -3,7 +3,7 @@ using Alcifra.ApiClient;
 
 namespace Alcifra.UnitTests.ApiClient;
 
-// The contact card both clients read and save (SimplArchiveMobile #46; moved out of the desktop's form).
+// The contact card both clients read and save (AlcifraMobile #46; moved out of the desktop's form).
 public sealed class ContactCardTests
 {
     [Fact]

@@ -14,7 +14,7 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.Api.Controllers;
 
 /// <summary>
-/// A user's phones, registered for push (SimplArchiveMobile #20, slice B; owner decisions 2026-10-12). A device posts
+/// A user's phones, registered for push (AlcifraMobile #20, slice B; owner decisions 2026-10-12). A device posts
 /// its UnifiedPush endpoint and Web Push keys after signing in, refreshes them with <c>If-Match</c>, and removes its
 /// registration on sign-out. The collection also tells the phone what it needs to set up: the server's public Web
 /// Push key and the address of the installation's push server, for the distributor app.
@@ -263,7 +263,7 @@ public sealed class PushRegistrationsController : ControllerBase
     };
 }
 
-/// <summary>The installation's push settings for phones (SimplArchiveMobile #20).</summary>
+/// <summary>The installation's push settings for phones (AlcifraMobile #20).</summary>
 public sealed class PhonePushOptions
 {
     public const string SectionName = "PhonePush";

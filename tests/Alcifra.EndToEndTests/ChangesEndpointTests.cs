@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Alcifra.EndToEndTests;
 
-// "Changes since" (ADR 0925; SimplArchiveMobile #5): an offline copy asks what changed after its cursor. The caller
+// "Changes since" (ADR 0925; AlcifraMobile #5): an offline copy asks what changed after its cursor. The caller
 // sees only rows it may see (the listing's rule, ADR 0765), a deletion comes back as deleted, the cursor lags "now"
 // by the settle window, and a cursor the endpoint did not issue is refused rather than treated as "start now".
 [Collection(E2ECollection.Name)]

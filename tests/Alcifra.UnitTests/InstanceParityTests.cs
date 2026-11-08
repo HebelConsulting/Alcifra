@@ -354,7 +354,7 @@ public class InstanceParityTests
     /// </para>
     /// </remarks>
     // The kiosk's proxy is the host's edge proxy since ADR 0903 (one site); the local stack's proxy serves the two
-    // instances on two sites, :8080 and the LAN's :9443 — it lacked the rule until SimplArchiveMessenger #26 found it.
+    // instances on two sites, :8080 and the LAN's :9443 — it lacked the rule until AlcifraMessenger #26 found it.
     [Theory]
     [InlineData("tools/edge/Caddyfile", 1)]
     [InlineData("scripts/Caddyfile", 2)]

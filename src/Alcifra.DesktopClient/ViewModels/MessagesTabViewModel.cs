@@ -50,7 +50,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
     private bool _inFront = true;
 
     /// <param name="api">The signed-in client, read when needed: the tab is built before sign-in.</param>
-    /// <param name="live">The Messenger's events off the window's own live connection (SimplArchiveMessenger #26): who is
+    /// <param name="live">The Messenger's events off the window's own live connection (AlcifraMessenger #26): who is
     /// typing in the thread on show. ADR 0730: what the shell supplies is a constructor argument.</param>
     /// <param name="email">The signed-in user's e-mail: how a new chat or group finds the user's own certificates.</param>
     public MessagesTabViewModel(IShellContext shell, Func<AlcifraApiClient?> api, IMessengerLiveEvents live, Func<string?> email) =>
@@ -80,7 +80,7 @@ public sealed partial class MessagesTabViewModel : ObservableObject
 
     [ObservableProperty] private MessengerMembersViewModel? _members;
 
-    /// <summary>Whether the user's "is typing" goes both ways (SimplArchiveMessenger #26); null while the server offers no preference.</summary>
+    /// <summary>Whether the user's "is typing" goes both ways (AlcifraMessenger #26); null while the server offers no preference.</summary>
     [ObservableProperty] private bool? _typingIndicator;
 
     public bool OffersTypingPreference => TypingIndicator is not null;

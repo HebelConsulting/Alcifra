@@ -128,7 +128,7 @@
 	# instance and then opens the WebSocket carrying it, so round-robin sent the upgrade to the OTHER instance, which
 	# answered 404 — this stack's live notifications and modules' live events (ADR 0957) connected only when both
 	# requests happened to land on the same instance. Found walking the Messenger's typing indicator here
-	# (SimplArchiveMessenger #26): every negotiate on api, every upgrade a 404 on api-b. Everything else stays
+	# (AlcifraMessenger #26): every negotiate on api, every upgrade a 404 on api-b. Everything else stays
 	# round-robin.
 	handle /hubs/* {
 		reverse_proxy api:8080 api-b:8080 {
@@ -151,7 +151,7 @@
 	# instance and then opens the WebSocket carrying it, so round-robin sent the upgrade to the OTHER instance, which
 	# answered 404 — this stack's live notifications and modules' live events (ADR 0957) connected only when both
 	# requests happened to land on the same instance. Found walking the Messenger's typing indicator here
-	# (SimplArchiveMessenger #26): every negotiate on api, every upgrade a 404 on api-b. Everything else stays
+	# (AlcifraMessenger #26): every negotiate on api, every upgrade a 404 on api-b. Everything else stays
 	# round-robin.
 	handle /hubs/* {
 		reverse_proxy api:8080 api-b:8080 {

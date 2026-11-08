@@ -70,7 +70,7 @@ public class NotificationsController : ControllerBase
         public string TypeName { get; set; } = string.Empty;
         public bool EmailEnabled { get; set; }
 
-        /// <summary>Whether this type is also pushed to the user's phones (SimplArchiveMobile #20).</summary>
+        /// <summary>Whether this type is also pushed to the user's phones (AlcifraMobile #20).</summary>
         public bool PhoneEnabled { get; set; }
     }
 

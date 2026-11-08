@@ -253,7 +253,7 @@ builder.Services.AddScoped<Alcifra.Api.Documents.ICallerTimeZone, Alcifra.Api.Do
 // WebDAV-Push (#564 slice 3, ADR 0622): the VAPID configuration is a singleton because in Development it
 // GENERATES an ephemeral key pair — one per process, not one per request, or every client's registration
 // would be signed by a different key.
-// The Web Push signing keys, one server identity for the calendar push and the phone push (SimplArchiveMobile #20,
+// The Web Push signing keys, one server identity for the calendar push and the phone push (AlcifraMobile #20,
 // owner decision): read from the general "WebPush" section, and from the original "DavPush" one where an existing
 // installation still names it.
 builder.Services.Configure<Alcifra.Api.CalDav.DavPushOptions>(
@@ -489,7 +489,7 @@ Alcifra.Infrastructure.Modules.ModuleProjectionWiring.AddModuleProjections(build
 // code the same caller/rights answers core controllers get.
 Alcifra.Api.Modules.ModuleApiServices.AddModuleApiSeams(builder.Services);
 
-// The per-installation encryption service's client (SimplArchiveEncryptionService ADR 0007) — inert until
+// The per-installation encryption service's client (AlcifraEncryptionService ADR 0007) — inert until
 // Encryption:ServiceUrl is configured, at which point IMAP FETCH envelopes served messages to the
 // recipient's registered certificate.
 Alcifra.Infrastructure.Encryption.MessageEnvelopeServices.AddMessageEnvelope(builder.Services);

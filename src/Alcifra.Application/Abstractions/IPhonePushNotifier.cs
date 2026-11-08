@@ -1,7 +1,7 @@
 namespace Alcifra.Application.Abstractions;
 
 /// <summary>
-/// Pushes a just-written notification to the recipient's registered phones (SimplArchiveMobile #20, slice B). Called
+/// Pushes a just-written notification to the recipient's registered phones (AlcifraMobile #20, slice B). Called
 /// from the DbContext's save, like <see cref="IRealtimeNotifier"/>, so every write path is covered. Best effort and
 /// non-blocking (owner decision 2026-10-12): it hands the items over and returns; a lost push costs nothing that the
 /// stored notification does not still show when the app opens.

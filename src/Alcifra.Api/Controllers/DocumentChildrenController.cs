@@ -722,7 +722,7 @@ public class DocumentChildrenController : ControllerBase
             : null;
 
         // …and a MODULE's exclusive folder is one too (a Customer admits only an Issued license and a Pull credential,
-        // SimplArchiveLicensing ADR 0003). The core table above knows only the core's own families, while SaveChanges
+        // AlcifraLicensing ADR 0003). The core table above knows only the core's own families, while SaveChanges
         // enforces the tenant's whole containment model, module masks included; asking the same rules here is what
         // keeps an unnamed child an item-to-be instead of a Folder that SaveChanges then refuses.
         var parentMaskId = parent.MaskVersionId is { } versionId

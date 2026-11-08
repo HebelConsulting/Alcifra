@@ -26,12 +26,12 @@ SEEDED=(AlcifraCertificateAuthority AlcifraEncryption AlcifraEncryptionService A
 # Deliberately NOT measured, each for its own reason — recorded here because an unexplained exclusion is
 # indistinguishable from an oversight, and counting these would make the problem look twice its size.
 #   CAManagement      predates the seed entirely and never mentions it.
-#   SimplArchiveDeck  a deliberately bespoke CLAUDE.md in a different shape (content lives once, bundled
+#   AlcifraMarketing  (was SimplArchiveDeck) a deliberately bespoke CLAUDE.md in a different shape (content lives once, bundled
 #                     fonts only, measure text through LibreOffice).
 #   Alcifra      the public mirror of THIS repository; CLAUDE.md is withheld from it by ADR 0484.
 #   AlcifraTube  public; its seeded CLAUDE.md stays local and gitignored, like the Messenger's, and its ADRs
 #                live here under docs/modules/tube/adr/ (owner, 2026-11-03: the seed is not published).
-EXCLUDED=(CAManagement SimplArchiveDeck Alcifra SimplArchivePrivate AlcifraTube)
+EXCLUDED=(CAManagement AlcifraMarketing Alcifra AlcifraPrivate AlcifraTube)
 
 # A title, reduced to what a reader would call "the same principle": the prose, without the ADR or issue
 # pointer a sibling may legitimately drop, case-folded. Keeps an exact-looking comparison from failing on

@@ -4,7 +4,7 @@ using Alcifra.Application.Abstractions;
 
 namespace Alcifra.UnitTests;
 
-// What a phone push carries (SimplArchiveMobile #20, owner decision 2026-10-12): the notification's id and nothing
+// What a phone push carries (AlcifraMobile #20, owner decision 2026-10-12): the notification's id and nothing
 // else, on every tenant. Web Push's AES-128-GCM over P-256 is not what content should rest on; the phone fetches the
 // notification over TLS and keeps it in its own encrypted cache.
 public class PhonePushPayloadTests
