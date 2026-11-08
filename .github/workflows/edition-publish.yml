@@ -33,9 +33,10 @@ jobs:
       contents: read
       packages: read
     steps:
+      # The tools come from the branch the run starts on, not from the release's tag: the images, packages and manual are
+      # taken from the registry and the release, so nothing here needs the tag's tree, and a fix to the publishing tools
+      # reaches a release that is already tagged (0.60.1: cosign 3's signature tag) without rebuilding its images.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: v${{ inputs.version }}
 
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:

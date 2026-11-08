@@ -35,9 +35,24 @@ copy() {   # repository, tag
 for image in "$BRAND_IMAGE_NAME" "$BRAND_IMAGE_NAME-ocr" "$BRAND_IMAGE_NAME-postfix"; do
   echo "Copying $image:$version" >&2
   copy "$image" "$version"
-  # The signature of this version's digest, which cosign finds under a tag derived from the digest.
-  digest="$(skopeo inspect --authfile /auth/auth.json --format '{{.Digest}}' "docker://$BRAND_IMAGE_REGISTRY/$image:$version")"
-  copy "$image" "${digest/:/-}.sig"
+  # The signature of this version's digest, which cosign finds under a tag derived from the digest: `sha256-<hex>.sig` as
+  # cosign 2 wrote it, or `sha256-<hex>`, the referrers tag cosign 3 writes its bundles under (first seen at 0.60.1, after
+  # the signing action moved to cosign 3). Whichever is there is copied; neither is a release that cannot be verified.
+  # The digest of what the tag names, the index itself: hashed from its raw bytes, so no platform is chosen (an edition
+  # image is amd64 only, and on any other machine skopeo's own choice of an instance fails).
+  digest="sha256:$(skopeo inspect --raw --authfile /auth/auth.json "docker://$BRAND_IMAGE_REGISTRY/$image:$version" \
+    | python3 -I -c 'import hashlib, sys; print(hashlib.sha256(sys.stdin.buffer.read()).hexdigest())')"
+  found=0
+  for tag in "${digest/:/-}.sig" "${digest/:/-}"; do
+    if skopeo inspect --raw --authfile /auth/auth.json "docker://$BRAND_IMAGE_REGISTRY/$image:$tag" >/dev/null 2>&1; then
+      copy "$image" "$tag"
+      found=1
+    fi
+  done
+  if [ "$found" -eq 0 ]; then
+    echo "error: $image:$version ($digest) has no signature under either tag; it was not signed, so it is not published." >&2
+    exit 1
+  fi
 done
 
 echo "Copying charts/$BRAND_CHART_NAME:$version" >&2
