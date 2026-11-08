@@ -77,6 +77,31 @@ public class DocumentFileCommandTests(E2EApiFactory factory)
         }
     }
 
+    // #2258: an existing document's named fields are replaced in one request and every other field keeps its value; a
+    // reread shows exactly that, and an unknown name writes nothing.
+    [Fact]
+    public async Task The_named_fields_of_an_existing_document_are_set_and_the_others_kept()
+    {
+        var (http, api, maskName, repositoryId) = await ArchiveAsync();
+        var name = $"Clip {Guid.NewGuid():N}"[..13];
+        var hypermedia = new Hypermedia(api);
+        var filed = await DocumentFiling.FileAsync(api, hypermedia, repositoryId, name, ".mp4", [1, 2, 3], maskName,
+            [DocumentFiling.ParseField("Description=first"), DocumentFiling.ParseField("Tags=demo")], CancellationToken.None);
+
+        await DocumentFiling.SetFieldsAsync(api, hypermedia, filed.DocumentId,
+            [DocumentFiling.ParseField("Tags=one"), DocumentFiling.ParseField("Tags=two")], CancellationToken.None);
+
+        var shown = await DocumentFiling.ShowFieldsAsync(api, hypermedia, filed.DocumentId, CancellationToken.None);
+        Assert.Equal(maskName, shown.MaskName);
+        Assert.Equal(["first"], shown.Fields.Single(f => f.Name == "Description").Values);
+        Assert.Equal(["one", "two"], shown.Fields.Single(f => f.Name == "Tags").Values);
+
+        var refused = await Assert.ThrowsAsync<CliException>(() => DocumentFiling.SetFieldsAsync(
+            api, hypermedia, filed.DocumentId, [DocumentFiling.ParseField("Colour=blue")], CancellationToken.None));
+        Assert.Contains("no field 'Colour'", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(["one", "two"], (await DocumentFiling.ShowFieldsAsync(api, hypermedia, filed.DocumentId, CancellationToken.None)).Fields.Single(f => f.Name == "Tags").Values);
+    }
+
     [Fact]
     public async Task An_unknown_field_is_refused_before_anything_is_written()
     {

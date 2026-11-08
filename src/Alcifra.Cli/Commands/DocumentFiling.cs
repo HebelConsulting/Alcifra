@@ -148,6 +148,64 @@ public static class DocumentFiling
         return true;
     }
 
+    /// <summary>
+    /// A document's mask and its fields by name, with their stored values (#2258): what <c>alcifra document fields show</c>
+    /// prints, and what <see cref="SetFieldsAsync"/> merges into.
+    /// </summary>
+    public sealed record StoredFields(string MaskName, IReadOnlyList<(string Name, IReadOnlyList<string> Values)> Fields);
+
+    /// <summary>The fields of <paramref name="documentId"/> by name, read from its own <c>detail</c> and its mask.</summary>
+    public static async Task<StoredFields> ShowFieldsAsync(AlcifraApi api, Hypermedia hypermedia, Guid documentId, CancellationToken cancellationToken)
+    {
+        var (stored, mask, _, _) = await ReadDetailAsync(api, hypermedia, documentId, cancellationToken);
+        var names = mask.FieldIds.ToDictionary(f => f.Value, f => f.Key);
+        var values = StoredGroups(stored);
+        return new StoredFields(
+            stored.GetProperty("maskName").GetString() ?? string.Empty,
+            [.. names.OrderBy(n => n.Value, StringComparer.Ordinal)
+                .Select(n => (n.Value, (IReadOnlyList<string>)(values.GetValueOrDefault(n.Key) ?? [])))]);
+    }
+
+    /// <summary>
+    /// Replaces the named fields of an existing document and keeps every other one as stored (#2258): ONE request, the
+    /// detail stated back with the <c>If-Match</c> of the read it was taken from (ADR 0794). A name given twice is a list
+    /// field's values. An unknown name is refused before anything is written. A module's mask works like any other.
+    /// </summary>
+    public static async Task SetFieldsAsync(
+        AlcifraApi api, Hypermedia hypermedia, Guid documentId, IReadOnlyList<FieldValue> fields, CancellationToken cancellationToken)
+    {
+        if (fields.Count == 0)
+        {
+            throw new CliException("Name at least one --field Name=Value to set.");
+        }
+
+        var (stored, mask, detailHref, etag) = await ReadDetailAsync(api, hypermedia, documentId, cancellationToken);
+        var named = FieldGroups(mask, fields);
+        var namedIds = fields.Select(f => mask.FieldIds[f.Name]).ToHashSet();
+        var kept = StoredGroups(stored).Where(g => !namedIds.Contains(g.Key))
+            .Select(g => (object)new { fieldDefinitionId = g.Key, values = g.Value });
+        await PutDetailAsync(api, detailHref, stored, etag, mask.Id, [.. kept, .. named], cancellationToken);
+    }
+
+    private static async Task<(JsonElement Stored, MaskFields Mask, string DetailHref, string? ETag)> ReadDetailAsync(
+        AlcifraApi api, Hypermedia hypermedia, Guid documentId, CancellationToken cancellationToken)
+    {
+        var document = LicenceFiling.Links(await LicenceFiling.ResolveAsync(api, hypermedia, documentId, cancellationToken));
+        var detailHref = Hypermedia.Href(document, "detail", $"Document {documentId:D}");
+        var (stored, etag) = await api.GetWithETagAsync(detailHref, cancellationToken);
+        var maskId = stored.TryGetProperty("maskId", out var id) && id.ValueKind == JsonValueKind.String
+            ? id.GetGuid()
+            : throw new CliException($"Document {documentId:D} wears no mask, so it has no fields to set.");
+        return (stored, await ResolveMaskAsync(api, hypermedia, maskId.ToString("D"), cancellationToken, assigning: false), detailHref, etag);
+    }
+
+    private static Dictionary<Guid, List<string>> StoredGroups(JsonElement stored) =>
+        stored.TryGetProperty("fields", out var fields) && fields.ValueKind == JsonValueKind.Array
+            ? fields.EnumerateArray().ToDictionary(
+                f => f.GetProperty("fieldDefinitionId").GetGuid(),
+                f => f.GetProperty("values").EnumerateArray().Select(v => v.GetString() ?? string.Empty).ToList())
+            : [];
+
     /// <summary>A mask's id and its fields by name, found through the root's <c>masks</c> rel by name or id.</summary>
     internal sealed record MaskFields(Guid Id, IReadOnlyDictionary<string, Guid> FieldIds);
 
@@ -205,6 +263,13 @@ public static class DocumentFiling
         AlcifraApi api, string detailHref, Guid maskId, IReadOnlyList<object> groups, CancellationToken cancellationToken)
     {
         var (stored, etag) = await api.GetWithETagAsync(detailHref, cancellationToken);
+        await PutDetailAsync(api, detailHref, stored, etag, maskId, groups, cancellationToken);
+    }
+
+    // The stored aspects echoed from the read the If-Match belongs to, with the mask and the fields stated.
+    private static async Task PutDetailAsync(
+        AlcifraApi api, string detailHref, JsonElement stored, string? etag, Guid maskId, IReadOnlyList<object> groups, CancellationToken cancellationToken)
+    {
         string? Text(string property) =>
             stored.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
         List<string> Texts(string property) =>

@@ -265,6 +265,14 @@ public static class SaConsoleApp
                     .WithDescription("Place a reference to a document in a folder.");
                 document.AddCommand<DocumentFileCommand>("file")
                     .WithDescription("File a local file under a folder, with a mask and fields. Prints its id on stdout.");
+                document.AddBranch("fields", fields =>
+                {
+                    fields.SetDescription("An existing document's fields, a module's documents among them (#2258).");
+                    fields.AddCommand<DocumentFieldsShowCommand>("show")
+                        .WithDescription("Print the document's mask and its fields as Name=Value lines on stdout.");
+                    fields.AddCommand<DocumentFieldsSetCommand>("set")
+                        .WithDescription("Set the named fields; every other field keeps its value. One request with If-Match.");
+                });
             });
 
             // ACL: `set` states the complete set of rights (a replace, because the endpoint is a PUT), while
