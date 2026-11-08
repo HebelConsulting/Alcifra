@@ -30,7 +30,8 @@ public class WebDragMoveReferenceTests
         var repoId = repos.EnumerateArray().First(r => r.GetProperty("name").GetString() == "Demo Repository").GetProperty("id").GetGuid();
 
         var targetName = $"drag-target-{suffix}";
-        (await http.PostAsJsonAsync($"/api/documents/{repoId}/children", new { name = targetName })).EnsureSuccessStatusCode();
+        using var created = await http.PostAsJsonAsync($"/api/documents/{repoId}/children", new { name = targetName });
+        var targetId = (await created.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         var docNames = new[] { $"drag-{suffix}-a", $"drag-{suffix}-b" };
         foreach (var name in docNames)
         {
@@ -70,9 +71,15 @@ public class WebDragMoveReferenceTests
         await Expect(rowA).ToHaveCountAsync(0);
         await Expect(rowB).ToHaveCountAsync(0);
 
-        // …and now live inside the target folder (open it and confirm).
+        // …and now live inside the target folder: opened, its list holds exactly one row for each…
         await targetRow.DblClickAsync();
-        await Expect(list.GetByText(docNames[0]).First).ToBeVisibleAsync();
-        await Expect(list.GetByText(docNames[1]).First).ToBeVisibleAsync();
+        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = docNames[0] })).ToHaveCountAsync(1);
+        await Expect(list.Locator(".wb-list-row").Filter(new() { HasText = docNames[1] })).ToHaveCountAsync(1);
+
+        // …and the server agrees: the folder's own children are the two documents. A name seen anywhere in the list
+        // proved neither where they went nor that they went at all.
+        var children = (await http.GetFromJsonAsync<JsonElement>($"/api/documents/{targetId}/children"))
+            .GetProperty("children").EnumerateArray().Select(c => c.GetProperty("name").GetString()).ToList();
+        Assert.Equal(docNames.Order(StringComparer.Ordinal), children.Order(StringComparer.Ordinal));
     }
 }
