@@ -55,6 +55,13 @@ public static class ProductionReadinessValidator
         }
 
         // Demo-data seeding provisions a tenant admin with a known password — never in production.
+        // ...and so is showing a login on the sign-in page (ADR 1075), refused on its own because it is set apart from
+        // the seeding, so it can never be left on where a real password would be shown.
+        if (!string.IsNullOrWhiteSpace(configuration["DemoSignIn:Password"]))
+        {
+            violations.Add("A login is shown on the sign-in page (DemoSignIn:*) — remove it from a production deployment.");
+        }
+
         if (!string.IsNullOrWhiteSpace(configuration["Demo:Administrator:Password"]))
         {
             violations.Add("Demo-data seeding is configured (Demo:*) — remove it from a production deployment.");

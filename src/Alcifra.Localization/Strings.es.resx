@@ -2181,6 +2181,12 @@
   <data name="LoginPasskeyFailedAlert" xml:space="preserve">
     <value>La autenticación con passkey se canceló o falló.</value>
   </data>
+  <data name="LoginDemoFill" xml:space="preserve">
+    <value>Usar el acceso de la demo</value>
+  </data>
+  <data name="LoginDemoHint" xml:space="preserve">
+    <value>Demo pública: inicia sesión como {0} con la contraseña {1}.</value>
+  </data>
   <data name="LoginSignIn" xml:space="preserve">
     <value>Iniciar sesión</value>
   </data>

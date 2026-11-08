@@ -154,6 +154,10 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
     public int DecryptedEnvelopeCalls => Volatile.Read(ref _decryptedEnvelopeCalls);
     public const string CryptoAdminEmail = "crypt@crypto.e2e.local";
     public const string CryptoPassword = "CryptoDemo-1234!";
+
+    /// <summary>The demo login the sign-in page shows here (ADR 1075). Shown only: nothing signs in with it.</summary>
+    public const string DemoSignInEmail = "visitor@demo.e2e.local";
+    public const string DemoSignInPassword = "Visit<&>2026!";
     public const string CryptoFormerDomain = "former.e2e.local";
     public const string CryptoOwnAddress = "florian.own@personal.e2e.local";
 
@@ -390,6 +394,9 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
         Environment.SetEnvironmentVariable("CryptoDemo__Tenant__Name", CryptoTenantName);
         Environment.SetEnvironmentVariable("CryptoDemo__Administrator__Email", CryptoAdminEmail);
         Environment.SetEnvironmentVariable("CryptoDemo__Password", CryptoPassword);
+        // The sign-in page's demo login (ADR 1075), so its markup is rendered and checked here (LoginHintTests).
+        Environment.SetEnvironmentVariable("DemoSignIn__Email", DemoSignInEmail);
+        Environment.SetEnvironmentVariable("DemoSignIn__Password", DemoSignInPassword);
         // The former login domain as confirmed aliases (ADR 1039), on a declared identity domain as the invariant asks.
         Environment.SetEnvironmentVariable("CryptoDemo__IdentityDomains", $"{CryptoFormerDomain},personal.e2e.local");
         Environment.SetEnvironmentVariable("CryptoDemo__AliasDomains", CryptoFormerDomain);

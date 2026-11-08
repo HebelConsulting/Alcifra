@@ -2181,6 +2181,12 @@
   <data name="LoginPasskeyFailedAlert" xml:space="preserve">
     <value>Passkey-Authentifizierung wurde abgebrochen oder ist fehlgeschlagen.</value>
   </data>
+  <data name="LoginDemoFill" xml:space="preserve">
+    <value>Demo-Anmeldung einsetzen</value>
+  </data>
+  <data name="LoginDemoHint" xml:space="preserve">
+    <value>Öffentliche Demo: Melden Sie sich als {0} mit dem Passwort {1} an.</value>
+  </data>
   <data name="LoginSignIn" xml:space="preserve">
     <value>Anmelden</value>
   </data>

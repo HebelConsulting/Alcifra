@@ -2181,6 +2181,12 @@
   <data name="LoginPasskeyFailedAlert" xml:space="preserve">
     <value>L'autenticazione con passkey è stata annullata o non è riuscita.</value>
   </data>
+  <data name="LoginDemoFill" xml:space="preserve">
+    <value>Usa l'accesso demo</value>
+  </data>
+  <data name="LoginDemoHint" xml:space="preserve">
+    <value>Demo pubblica: accedi come {0} con la password {1}.</value>
+  </data>
   <data name="LoginSignIn" xml:space="preserve">
     <value>Accedi</value>
   </data>

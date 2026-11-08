@@ -103,6 +103,19 @@ public class ProductionReadinessValidatorTests
         Assert.Contains("Refusing to start", ex.Message);
     }
 
+    // ADR 1075: the sign-in page's demo login is set apart from the seeding, so it is refused on its own.
+    [Fact]
+    public void A_login_shown_on_the_sign_in_page_is_refused_in_production()
+    {
+        var config = Config(new Dictionary<string, string?>(CleanProduction)
+        {
+            ["DemoSignIn:Email"] = "admin@demo.example",
+            ["DemoSignIn:Password"] = "SimplDemo2026!",
+        });
+
+        Assert.Contains(ProductionReadinessValidator.Validate(config, new StubEnvironment(), StampedVersion), v => v.Contains("DemoSignIn", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void OpenBao_configured_connection_isnt_flagged_for_the_dev_postgres_password()
     {

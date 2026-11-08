@@ -37,4 +37,19 @@ public class LoginHintTests
         var html = await response.Content.ReadAsStringAsync();
         Assert.DoesNotContain("value=\"you@example.com\"", html);
     }
+
+    // ADR 1075: where a demo login is configured, the sign-in step names it and carries it for the fill button, HTML-encoded
+    // like everything else on the page. Where none is, nothing (DemoSignInHintTests).
+    [Fact]
+    public async Task Login_page_shows_the_configured_demo_login_with_its_fill_button()
+    {
+        using var client = _factory.CreateClient();
+
+        var html = await (await client.GetAsync("/Account/Login")).Content.ReadAsStringAsync();
+        Assert.Contains("id=\"demoLogin\"", html, StringComparison.Ordinal);
+        Assert.Contains($"data-email=\"{E2EApiFactory.DemoSignInEmail}\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-password=\"Visit&lt;&amp;&gt;2026!\"", html, StringComparison.Ordinal);
+        Assert.Contains("Public demo: sign in as visitor@demo.e2e.local with the password Visit&lt;&amp;&gt;2026!.", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"demoLoginFill\"", html, StringComparison.Ordinal);
+    }
 }
