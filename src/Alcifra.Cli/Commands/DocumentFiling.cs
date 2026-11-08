@@ -206,6 +206,24 @@ public static class DocumentFiling
                 f => f.GetProperty("values").EnumerateArray().Select(v => v.GetString() ?? string.Empty).ToList())
             : [];
 
+    /// <summary>
+    /// Moves a document, and the subtree under it, to the recycle bin (ADR 1078): a DELETE on its own address with the
+    /// <c>If-Match</c> of the read that showed it, refused up front where its <c>canDelete</c> is false. Restorable; never a
+    /// purge. Answers the name it deleted, for the log.
+    /// </summary>
+    public static async Task<string> DeleteAsync(AlcifraApi api, Hypermedia hypermedia, Guid documentId, CancellationToken cancellationToken)
+    {
+        var self = Hypermedia.Href(LicenceFiling.Links(await LicenceFiling.ResolveAsync(api, hypermedia, documentId, cancellationToken)), "self", $"Document {documentId:D}");
+        var (document, etag) = await api.GetWithETagAsync(self, cancellationToken);
+        if (!document.TryGetProperty("canDelete", out var permitted) || permitted.ValueKind != JsonValueKind.True)
+        {
+            throw new CliException($"Document {documentId:D} may not be deleted by this caller.");
+        }
+
+        await api.DeleteWithETagAsync(self, etag, cancellationToken);
+        return document.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty;
+    }
+
     /// <summary>One row of <see cref="ListAsync"/>.</summary>
     public sealed record ListedDocument(Guid Id, bool IsFolder, string Type, string Name);
 

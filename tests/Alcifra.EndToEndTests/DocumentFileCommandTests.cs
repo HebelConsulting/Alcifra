@@ -119,6 +119,22 @@ public class DocumentFileCommandTests(E2EApiFactory factory)
         Assert.Equal((name, maskName, false), (row.Name, row.Type, row.IsFolder));
     }
 
+    // ADR 1078: a delete moves the document to the recycle bin through its own address, so it leaves the listing and
+    // its parent shows it no more.
+    [Fact]
+    public async Task A_document_is_moved_to_the_recycle_bin_and_leaves_its_folder()
+    {
+        var (http, api, maskName, repositoryId) = await ArchiveAsync();
+        var hypermedia = new Hypermedia(api);
+        var name = $"Clip {Guid.NewGuid():N}"[..13];
+        var filed = await DocumentFiling.FileAsync(api, hypermedia, repositoryId, name, ".mp4", [1, 2, 3], maskName, [], CancellationToken.None);
+
+        Assert.Equal(name, await DocumentFiling.DeleteAsync(api, hypermedia, filed.DocumentId, CancellationToken.None));
+
+        Assert.DoesNotContain(await DocumentFiling.ListAsync(api, hypermedia, repositoryId, CancellationToken.None), c => c.Id == filed.DocumentId);
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, (await http.GetAsync($"/api/documents/{filed.DocumentId}")).StatusCode);
+    }
+
     [Fact]
     public async Task An_unknown_field_is_refused_before_anything_is_written()
     {
