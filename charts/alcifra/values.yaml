@@ -472,8 +472,8 @@ modules:
       sha512: nZGkED5s2pF847JgAyeDeWDF26FM0h4rH8TRD9wyPMPcmI7ilz8GGpSOL1hQjhv3PTfUKn7v3kLzXofVbsoXMQ==
     LICENSING:
       package: Alcifra.Licensing
-      version: 0.9.0
-      sha512: 9YdEOiTRKn96glabbNtYb3hpY4E65LApBf+z+KDMG6e14QDH1lQUal4gqh4QfU8vZceTmxnNkbHFrounEobq/A==
+      version: 0.9.1
+      sha512: ebr2HiGu8ABCOrPlrWu3e3TW1hRbY0UCq/QebTpQvt7e3h1U4OveZYKimlIJjbtEA09UuTxROrbWOWBIsW3iSQ==
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).
     MESSENGER:
       package: Alcifra.Messenger
