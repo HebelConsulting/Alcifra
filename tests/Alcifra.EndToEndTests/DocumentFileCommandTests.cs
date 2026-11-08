@@ -102,6 +102,23 @@ public class DocumentFileCommandTests(E2EApiFactory factory)
         Assert.Equal(["one", "two"], (await DocumentFiling.ShowFieldsAsync(api, hypermedia, filed.DocumentId, CancellationToken.None)).Fields.Single(f => f.Name == "Tags").Values);
     }
 
+    // ADR 1077: the ids a person needs for the other document commands, listed through the rels a client follows.
+    [Fact]
+    public async Task The_repositories_and_a_folders_children_are_listed_with_their_ids()
+    {
+        var (_, api, maskName, repositoryId) = await ArchiveAsync();
+        var hypermedia = new Hypermedia(api);
+        var name = $"Clip {Guid.NewGuid():N}"[..13];
+        var filed = await DocumentFiling.FileAsync(api, hypermedia, repositoryId, name, ".mp4", [1, 2, 3], maskName, [], CancellationToken.None);
+
+        var repositories = await DocumentFiling.ListAsync(api, hypermedia, null, CancellationToken.None);
+        Assert.Contains(repositories, r => r.Id == repositoryId && r.IsFolder);
+
+        var children = await DocumentFiling.ListAsync(api, hypermedia, repositoryId, CancellationToken.None);
+        var row = Assert.Single(children, c => c.Id == filed.DocumentId);
+        Assert.Equal((name, maskName, false), (row.Name, row.Type, row.IsFolder));
+    }
+
     [Fact]
     public async Task An_unknown_field_is_refused_before_anything_is_written()
     {

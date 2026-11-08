@@ -206,6 +206,39 @@ public static class DocumentFiling
                 f => f.GetProperty("values").EnumerateArray().Select(v => v.GetString() ?? string.Empty).ToList())
             : [];
 
+    /// <summary>One row of <see cref="ListAsync"/>.</summary>
+    public sealed record ListedDocument(Guid Id, bool IsFolder, string Type, string Name);
+
+    /// <summary>
+    /// The repositories visible to the caller (the root's <c>repositories</c> rel), or the children of
+    /// <paramref name="parentId"/> (its <c>children</c> rel), every page followed by its <c>next</c> link (ADR 1077).
+    /// </summary>
+    public static async Task<IReadOnlyList<ListedDocument>> ListAsync(
+        AlcifraApi api, Hypermedia hypermedia, Guid? parentId, CancellationToken cancellationToken)
+    {
+        var (href, property) = parentId is { } id
+            ? (Hypermedia.Href(LicenceFiling.Links(await LicenceFiling.ResolveAsync(api, hypermedia, id, cancellationToken)), "children", $"Document {id:D}"), "children")
+            : (await hypermedia.RootHrefAsync("repositories", cancellationToken), "repositories");
+        var rows = new List<ListedDocument>();
+        // Following, not composing (ADR 0557): a query on the advertised address, then each page's own next link.
+        for (string? page = parentId is null ? href : $"{href}?limit=200"; page is not null;)
+        {
+            var listing = await api.GetAsync(page, cancellationToken);
+            if (listing.TryGetProperty(property, out var items) && items.ValueKind == JsonValueKind.Array)
+            {
+                rows.AddRange(items.EnumerateArray().Select(r => new ListedDocument(
+                    r.GetProperty("id").GetGuid(),
+                    parentId is null || (r.TryGetProperty("isFolder", out var folder) && folder.ValueKind == JsonValueKind.True),
+                    r.TryGetProperty("documentType", out var type) && type.ValueKind == JsonValueKind.String ? type.GetString()! : string.Empty,
+                    r.GetProperty("name").GetString() ?? string.Empty)));
+            }
+
+            page = Hypermedia.LinksOf(listing).TryGetValue("next", out var next) ? next : null;
+        }
+
+        return rows;
+    }
+
     /// <summary>A mask's id and its fields by name, found through the root's <c>masks</c> rel by name or id.</summary>
     internal sealed record MaskFields(Guid Id, IReadOnlyDictionary<string, Guid> FieldIds);
 

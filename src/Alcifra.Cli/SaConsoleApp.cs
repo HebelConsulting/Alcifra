@@ -265,6 +265,8 @@ public static class SaConsoleApp
                     .WithDescription("Place a reference to a document in a folder.");
                 document.AddCommand<DocumentFileCommand>("file")
                     .WithDescription("File a local file under a folder, with a mask and fields. Prints its id on stdout.");
+                document.AddCommand<DocumentListCommand>("list")
+                    .WithDescription("List the repositories, or a document's children: id, folder or document, type, name.");
                 document.AddBranch("fields", fields =>
                 {
                     fields.SetDescription("An existing document's fields, a module's documents among them (#2258).");

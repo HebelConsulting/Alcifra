@@ -24,9 +24,10 @@ public sealed class DocumentFieldsShowCommand : AsyncCommand<DocumentFieldsShowS
         var shown = await DocumentFiling.ShowFieldsAsync(api, new Hypermedia(api), settings.Document, cancellationToken);
         // Data output (ADR 0906): the mask, then one Name=Value per value, so the lines read back as --field arguments.
         Console.Out.WriteLine($"mask: {shown.MaskName}");
+        // An empty field is printed as Name= so it is seen to exist (setting the easyname Edition's Customer, 2026-11-08).
         foreach (var (name, values) in shown.Fields)
         {
-            foreach (var value in values)
+            foreach (var value in values.Count == 0 ? [string.Empty] : values)
             {
                 Console.Out.WriteLine($"{name}={value}");
             }
