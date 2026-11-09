@@ -326,6 +326,14 @@ public static class SaConsoleApp
                 });
             });
 
+            config.AddBranch("search", search =>
+            {
+                search.SetDescription("The installation's search index (platform administrator).");
+                search.AddCommand<SearchReindexCommand>("reindex")
+                    .WithDescription("Rebuild the search index for every tenant (ADR 1081); --wait follows it to the end.");
+                search.AddCommand<SearchReindexStatusCommand>("status")
+                    .WithDescription("The latest rebuild and the index's health: alias, pending outbox, last count.");
+            });
             config.AddBranch("storage", storage =>
             {
                 storage.SetDescription("The installation's object storage (platform administrator).");

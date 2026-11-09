@@ -164,6 +164,10 @@ public class UsersController : ControllerBase
         // logged in) or a future admin-reset endpoint sets one. See ADR "Interactive User login
         // (foundation slice)".
         public string? Password { get; set; }
+
+        // Create the user as a copy of this one (#2277): its system rights and its groups, in this one request. A
+        // refusal creates nobody. The source travels as data, as a group member does (it is chosen, not followed).
+        public Guid? CopyFrom { get; set; }
     }
 
     public class RenameUserRequest
@@ -219,6 +223,11 @@ public class UsersController : ControllerBase
 
         _dbContext.Users.Add(user);
 
+        // A copy is part of the create, so it commits with it or not at all (#2277, ADR 0794).
+        var copied = request.CopyFrom is { } copyFrom
+            ? await Users.UserCopy.ApplyAsync(_dbContext, user, copyFrom, await GetCallerSystemRightsAsync(cancellationToken), cancellationToken)
+            : null;
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -240,6 +249,15 @@ public class UsersController : ControllerBase
         await _personalSpaces.EnsureAsync(user.Id, user.TenantId, cancellationToken);
 
         await _audit.RecordAsync(AuditActions.UserCreated, "User", user.Id, user.DisplayName, cancellationToken: cancellationToken);
+        if (copied is not null)
+        {
+            await _audit.RecordAsync(AuditActions.UserRightsChanged, "User", user.Id, user.DisplayName,
+                $"copied: {Users.SystemRightsMapping.Describe(copied.Rights)}", cancellationToken: cancellationToken);
+            foreach (var group in await _dbContext.Groups.Where(g => copied.GroupIds.Contains(g.Id)).Select(g => new { g.Id, g.Name }).ToListAsync(cancellationToken))
+            {
+                await _audit.RecordAsync(AuditActions.GroupMemberAdded, "Group", group.Id, group.Name, $"member: {user.DisplayName}", cancellationToken: cancellationToken);
+            }
+        }
 
         var resource = BuildResource(user, _emailEditable);
 
@@ -822,6 +840,9 @@ public class UsersController : ControllerBase
             [
                 new Link("self", $"/api/users/{user.Id}", "GET"),
                 new Link("rights", $"/api/users/{user.Id}/rights", "PUT"),
+                // The person's hardware keys, for the Users tab to list and revoke (#2278). Only a user administrator
+                // reads this resource, and the listing answers that question by holder.
+                new Link("certificates", $"/api/certificates?holder={Uri.EscapeDataString(user.Email)}", "GET"),
                 // Setting this user's avatar — the admin counterpart of the me resource's own `photo` rel
                 // (issue #416). The list is already CanManageUsers-gated, which is the same right the PUT
                 // enforces, so anyone holding this row may use it. Its absence elsewhere is what kept the
@@ -897,32 +918,13 @@ public class UsersController : ControllerBase
             // Effective rights (own ∪ groups) so the escalation cap counts rights held via a group as
             // grantable — ADR "Enforce group system rights for members". Clearance likewise is the caller's
             // effective clearance (own ⊔ groups), so a clearance held via a group can be handed out.
-            var caller = ToApiRights(await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken));
+            var caller = Users.SystemRightsMapping.FromEffective(await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken));
             caller.ClearanceRank = (await _clearanceResolver.GetForUserAsync(userId, cancellationToken)).Rank;
             return caller;
         }
 
         return new SystemRights();
     }
-
-    private static SystemRights ToApiRights(SystemRightsSet r) => new()
-    {
-        IsTenantAdmin = r.IsTenantAdmin,
-        CanImpersonate = r.CanImpersonate,
-        CanOverrideCheckout = r.CanOverrideCheckout,
-        CanLegalHold = r.CanLegalHold,
-        CanManageClassification = r.CanManageClassification,
-        CanResetMfa = r.CanResetMfa,
-        CanManageRepositories = r.CanManageRepositories,
-        CanManageMasks = r.CanManageMasks,
-        CanManageServiceAccounts = r.CanManageServiceAccounts,
-        CanManageUsers = r.CanManageUsers,
-        CanViewAuditLog = r.CanViewAuditLog,
-        CanExport = r.CanExport,
-        CanImport = r.CanImport,
-        CanManageIntrays = r.CanManageIntrays,
-        CanCreateExternalLink = r.CanCreateExternalLink,
-    };
 
     // Forwards to UserAccessService (#849): the walk moved there when the password endpoints became their own
     // controller and would otherwise have needed a second copy of it.

@@ -598,30 +598,9 @@ public class GroupsController : ControllerBase
         {
             // Effective rights (own ∪ groups) so the escalation cap counts rights held via a group as
             // grantable — ADR "Enforce group system rights for members".
-            var r = await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken);
-            return new SystemRights
-            {
-                IsTenantAdmin = r.IsTenantAdmin,
-                CanImpersonate = r.CanImpersonate,
-                CanOverrideCheckout = r.CanOverrideCheckout,
-                CanLegalHold = r.CanLegalHold,
-                CanManageClassification = r.CanManageClassification,
-                CanResetMfa = r.CanResetMfa,
-                CanManageRepositories = r.CanManageRepositories,
-                CanManageMasks = r.CanManageMasks,
-                CanManageServiceAccounts = r.CanManageServiceAccounts,
-                CanManageUsers = r.CanManageUsers,
-                CanViewAuditLog = r.CanViewAuditLog,
-                CanExport = r.CanExport,
-                CanImport = r.CanImport,
-                CanManageIntrays = r.CanManageIntrays,
-                CanCreateExternalLink = r.CanCreateExternalLink,
-                CanAccessWithoutGrant = r.CanAccessWithoutGrant,
-                CanManageMailRouting = r.CanManageMailRouting,
-                CanBlockResources = r.CanBlockResources,
-                CanReleaseResources = r.CanReleaseResources,
-                ClearanceRank = (await _clearanceResolver.GetForUserAsync(userId, cancellationToken)).Rank,
-            };
+            var rights = Users.SystemRightsMapping.FromEffective(await _userSystemRights.GetEffectiveSystemRightsAsync(userId, cancellationToken));
+            rights.ClearanceRank = (await _clearanceResolver.GetForUserAsync(userId, cancellationToken)).Rank;
+            return rights;
         }
 
         return new SystemRights();

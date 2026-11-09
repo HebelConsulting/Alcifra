@@ -8,7 +8,7 @@
 
 ## What's in it
 
-- **The workbench, on the web and on the desktop** — tree, list, index data, preview and chat side by side; a contact, an appointment or a mail previewed as a card of its own; drag and drop to file; versions you can compare; check-out and check-in; approval workflows with a task inbox; tags, reminders, references and external links, and a reference field that offers only the kinds it accepts, with a picture of each; calendars and address books; an intray that straightens and splits scans.
+- **The workbench, on the web and on the desktop** — tree, list, index data, preview and chat side by side; a contact, an appointment or a mail previewed as a card of its own, a contact's or an appointment's with the stored text beneath it; drag and drop to file; versions you can compare; check-out and check-in; approval workflows with a task inbox; tags, reminders, references and external links, and a reference field that offers only the kinds it accepts, with a picture of each; calendars and address books; an intray that straightens and splits scans.
 - **Phone and tablet apps** for Android, iPhone and iPad — coming to the app stores. The archive's tree, previews and search on the go; sealed documents opened with a hardware key over NFC or USB-C; the Password Store with autofill in other apps and the browser.
 - **Your own devices, with a password each** — mail, files, calendars and contacts over the open protocols, each device enrolled under *Devices…* with its own password, a QR code for the password and a one-time setup profile a phone's camera can install. A device shows all your calendars and address books, or only your own and the shared ones you tick for it; an iPhone or iPad set up from its profile starts with your own. Revoking a lost phone cuts off that phone only.
 - **A Password Store** — logins kept in the archive, sealed on your machine to the hardware keys of the people allowed to read them: folders, shared stores with their own audience, verification codes (TOTP) and passkeys (an entry needs no password when it holds either), import from a password manager's export, autofill in the browser through an extension, and `apass`, a command-line tool in the spirit of `pass`.
@@ -117,7 +117,9 @@ helm upgrade --install alcifra oci://ghcr.io/hebelconsulting/charts/alcifra \
 
 **Without either, your own hardware keys.** Every installation lets people enrol a smartcard or security key — two per
 person — and seals to it what is meant only for them: the mail a device fetches,
-where that device asks for it, the Password Store's entries, sealed documents and offline exports.
+where that device asks for it, the Password Store's entries, sealed documents and offline exports. A lost or replaced
+key is revoked by its holder, or by an administrator who manages users, with a reason that stays on the key; from then
+on nothing is sealed to it.
 
 Beyond that, encryption for Alcifra comes as **two separate products**, and the line between them is not
 packaging: it is **whether the component holds a secret.**

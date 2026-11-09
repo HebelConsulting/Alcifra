@@ -41,9 +41,14 @@ public sealed partial class SecretFieldViewModel : ObservableObject, IHoldToReve
     private int _activeValue;
     private ITimer? _ticker;
 
-    public SecretFieldViewModel(PasswordEntryRow row, SecretFieldServices services)
+    private readonly Action? _used;
+
+    /// <param name="used">
+    /// Told when the value is shown or copied: a CI/CD secret reports that by key (ADR 1084). Null for a password entry.
+    /// </param>
+    public SecretFieldViewModel(PasswordEntryRow row, SecretFieldServices services, Action? used = null)
     {
-        (_field, _services) = (new SecretField(row, services.Clipboard, services.Time), services);
+        (_field, _services, _used) = (new SecretField(row, services.Clipboard, services.Time), services, used);
         _field.Reveal.Changed += Revealed;
 
         // A verification code (ADR 1013) shows the code valid NOW: redrawn every second, on the UI thread, for the
@@ -111,6 +116,7 @@ public sealed partial class SecretFieldViewModel : ObservableObject, IHoldToReve
     [RelayCommand]
     private async Task CopyAsync()
     {
+        _used?.Invoke();
         if (!IsSecret)
         {
             await _field.CopyAsync(_services.CopyPlain);
@@ -170,6 +176,7 @@ public sealed partial class SecretFieldViewModel : ObservableObject, IHoldToReve
     {
         if (IsRevealed && IsSecret)
         {
+            _used?.Invoke();
             _protection ??= _services.Screens.Showing();
         }
         else

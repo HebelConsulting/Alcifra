@@ -1,4 +1,5 @@
 using Alcifra.Api.Controllers;
+using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Users;
 
 namespace Alcifra.Api.Users;
@@ -41,6 +42,38 @@ public static class SystemRightsMapping
         CanBlockResources = u.CanBlockResources,
         CanReleaseResources = u.CanReleaseResources,
         ClearanceRank = u.ClearanceRank,
+    };
+
+    /// <summary>
+    /// A caller's EFFECTIVE rights (own ∪ groups) in the shape the escalation cap compares (<see cref="SystemRightsPolicy"/>).
+    /// Clearance is not part of the set; the caller adds it from the clearance resolver.
+    /// </summary>
+    /// <remarks>
+    /// One mapping for the users and the groups endpoints (#2277). Each had its own copy, and the users one never learned
+    /// the four rights added later, so the cap read them as held by nobody: no tenant administrator could grant them, and
+    /// copying any user who held them was refused. <c>SystemRightsMappingTests</c> keeps every right in it.
+    /// </remarks>
+    public static SystemRights FromEffective(SystemRightsSet r) => new()
+    {
+        IsTenantAdmin = r.IsTenantAdmin,
+        CanImpersonate = r.CanImpersonate,
+        CanOverrideCheckout = r.CanOverrideCheckout,
+        CanLegalHold = r.CanLegalHold,
+        CanManageClassification = r.CanManageClassification,
+        CanResetMfa = r.CanResetMfa,
+        CanManageRepositories = r.CanManageRepositories,
+        CanManageMasks = r.CanManageMasks,
+        CanManageServiceAccounts = r.CanManageServiceAccounts,
+        CanManageUsers = r.CanManageUsers,
+        CanViewAuditLog = r.CanViewAuditLog,
+        CanExport = r.CanExport,
+        CanImport = r.CanImport,
+        CanManageIntrays = r.CanManageIntrays,
+        CanCreateExternalLink = r.CanCreateExternalLink,
+        CanAccessWithoutGrant = r.CanAccessWithoutGrant,
+        CanManageMailRouting = r.CanManageMailRouting,
+        CanBlockResources = r.CanBlockResources,
+        CanReleaseResources = r.CanReleaseResources,
     };
 
     /// <summary>Writes a rights request onto the user — the PUT is a full replacement, so every column is set.</summary>

@@ -1,0 +1,51 @@
+@* A card's stored vCard or iCalendar (#2274): collapsed until opened, and read only then. What is shown has a long photo
+   shortened (StructuredItemSource); Copy copies the stored text. The desktop's twin is PreviewPane.axaml's CardSource. *@
+@inject IJSRuntime JS
+
+<div class="wb-pv-card-source" data-preview-card-source>
+    <MudExpansionPanels Elevation="0" Outlined="true">
+        <MudExpansionPanel Text="@Title" Expanded="_open" ExpandedChanged="OnExpandedAsync" data-preview-card-source-toggle>
+            <div style="display:flex; justify-content:flex-end;">
+                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Disabled="@(_source is null)"
+                               OnClick="CopyAsync" title="@Strings.Get("Copy")" aria-label="@Strings.Get("Copy")" data-preview-card-source-copy />
+            </div>
+            <pre style="white-space:pre-wrap; word-break:break-all; font-family:Menlo,Consolas,monospace; font-size:12px; margin:0;"
+                 data-preview-card-source-text>@_shown</pre>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public Func<Task<string?>> Load { get; set; } = default!;
+
+    private bool _open;
+    private string? _shown;
+    private string? _source;
+
+    private async Task OnExpandedAsync(bool open)
+    {
+        _open = open;
+        if (open && _shown is null)
+        {
+            _source = await Load();
+            _shown = _source is null ? Strings.Get("CardSourceUnreadable") : Alcifra.Presentation.StructuredItemSource.Shown(_source);
+        }
+    }
+
+    private async Task CopyAsync()
+    {
+        if (_source is not null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("navigator.clipboard.writeText", _source);
+            }
+            catch (JSException)
+            {
+                // The browser refused the clipboard (no permission, an insecure origin): the text stays selectable.
+            }
+        }
+    }
+}

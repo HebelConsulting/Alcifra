@@ -107,8 +107,12 @@ public partial class MainWindowViewModel
             return null;
         }
 
+        // The source section (#2274) reads what the editor's "Advanced: the stored item" reads (#648): the structured
+        // resource's own `source` rel. Where none is offered, the card has no section.
+        var links = loaded.Links;
         return new StructuredCardViewModel(loaded.Value, loaded.CanEdit)
         {
+            LoadSource = links.Href("source") is null ? null : async () => (await _api.StructuredEditors.ReadRawAsync(links))?.Text,
             OpenForEdit = async () => await _api.StructuredEditors.ReadAsync(self, rel, parse) is { } fresh
                 ? new StructuredCardViewModel.StructuredEdit(fresh.Value, async edited =>
                 {

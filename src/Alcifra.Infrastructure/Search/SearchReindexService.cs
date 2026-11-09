@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Alcifra.Infrastructure.Persistence;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -6,8 +7,9 @@ namespace Alcifra.Infrastructure.Search;
 
 // Runs search-index rebuilds in the background (ADR 0139) — off the request path, one at a time. At startup
 // it triggers an initial backfill if the alias doesn't exist yet (fresh deployment, or OpenSearch just
-// enabled / its index lost); thereafter it processes admin-triggered requests from SearchReindexState.
-// Registered only when OpenSearch is configured.
+// enabled / its index lost); thereafter it processes admin-triggered requests. Each rebuild is a SearchReindexRun
+// row (ADR 1081): the channel only wakes this instance, which then CLAIMS the oldest queued run, so whichever instance
+// answers the next status request reports the same run. Registered only when OpenSearch is configured.
 public sealed class SearchReindexService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -28,8 +30,31 @@ public sealed class SearchReindexService : BackgroundService
 
         await foreach (var _ in _state.Requests.ReadAllAsync(stoppingToken))
         {
-            await RunWithRetryAsync(stoppingToken);
+            // Every queued run, not one: requests that arrived while this one ran were coalesced into the channel.
+            while (!stoppingToken.IsCancellationRequested && await ClaimAsync(stoppingToken) is { } run)
+            {
+                await RunWithRetryAsync(run.Id, stoppingToken);
+            }
         }
+    }
+
+    private async Task<SearchReindexRun?> ClaimAsync(CancellationToken stoppingToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+        return await SearchReindexRuns.ClaimNextAsync(db, Environment.MachineName, DateTimeOffset.UtcNow, stoppingToken);
+    }
+
+    // Queues a run of the service's own (the startup backfill) and wakes this instance.
+    private async Task RequestAsync(CancellationToken stoppingToken)
+    {
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+            await SearchReindexRuns.RequestAsync(db, SearchReindexTrigger.Startup, DateTimeOffset.UtcNow, stoppingToken);
+        }
+
+        _state.Request();
     }
 
     /// <summary>
@@ -55,7 +80,7 @@ public sealed class SearchReindexService : BackgroundService
     /// the endpoint to retrigger it.
     /// </para>
     /// </remarks>
-    private async Task RunWithRetryAsync(CancellationToken stoppingToken)
+    private async Task RunWithRetryAsync(Guid runId, CancellationToken stoppingToken)
     {
         for (var attempt = 1; !stoppingToken.IsCancellationRequested; attempt++)
         {
@@ -63,15 +88,20 @@ public sealed class SearchReindexService : BackgroundService
             {
                 _state.IsRunning = true;
                 using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+                await SearchReindexRuns.CountAttemptAsync(db, runId, stoppingToken);
                 var rebuilder = scope.ServiceProvider.GetRequiredService<OpenSearchIndexRebuilder>();
                 _state.LastIndexedCount = await rebuilder.RebuildAsync(stoppingToken);
+                await SearchReindexRuns.SucceedAsync(db, runId, _state.LastIndexedCount, DateTimeOffset.UtcNow, stoppingToken);
                 _logger.LogInformation("Rebuilt the search index with {Count} document(s).", _state.LastIndexedCount);
+                await PruneAsync(stoppingToken);
                 return;
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 if (!await SearchIsDeadAsync(stoppingToken))
                 {
+                    await RecordFailureAsync(runId, e, stoppingToken);
                     // The existing index is still answering, so this is degraded rather than down.
                     _logger.LogWarning(
                         e,
@@ -99,6 +129,33 @@ public sealed class SearchReindexService : BackgroundService
             {
                 _state.IsRunning = false;
             }
+        }
+    }
+
+    // A failure the service gives up on ends the run, so whoever follows it learns why. A failure it retries does not.
+    private async Task RecordFailureAsync(Guid runId, Exception failure, CancellationToken stoppingToken)
+    {
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+            await SearchReindexRuns.FailAsync(db, runId, failure, DateTimeOffset.UtcNow, stoppingToken);
+        }
+
+        await PruneAsync(stoppingToken);
+    }
+
+    // Outside the run's outcome on purpose: the run has ended, and a prune that fails only leaves old rows a day longer.
+    private async Task PruneAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            await SearchReindexRuns.PruneAsync(scope.ServiceProvider.GetRequiredService<AlcifraDbContext>(), DateTimeOffset.UtcNow, stoppingToken);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _logger.LogWarning(e, "Could not delete the search-index rebuilds older than {Days} days; they stay until the next rebuild.",
+                SearchReindexRuns.Kept.TotalDays);
         }
     }
 
@@ -135,7 +192,7 @@ public sealed class SearchReindexService : BackgroundService
                 if (!await rebuilder.AliasExistsAsync(stoppingToken))
                 {
                     _logger.LogInformation("Search alias missing at startup — running an initial backfill.");
-                    _state.Request();
+                    await RequestAsync(stoppingToken);
                 }
                 else if (await rebuilder.MappingIsStaleAsync(stoppingToken))
                 {
@@ -146,7 +203,7 @@ public sealed class SearchReindexService : BackgroundService
                     // results that look plausible (#1254).
                     _logger.LogInformation(
                         "Search index predates the current mapping — rebuilding so every document carries the new fields.");
-                    _state.Request();
+                    await RequestAsync(stoppingToken);
                 }
 
                 return; // OpenSearch answered — decision made
@@ -164,6 +221,6 @@ public sealed class SearchReindexService : BackgroundService
         _logger.LogWarning(
             "OpenSearch was not reachable within 60s of startup, so whether the index exists is unknown. Requesting "
             + "a backfill regardless; it retries until it succeeds. Until then search answers zero hits.");
-        _state.Request();
+        await RequestAsync(stoppingToken);
     }
 }

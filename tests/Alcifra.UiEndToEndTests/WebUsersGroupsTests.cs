@@ -85,6 +85,37 @@ public class WebUsersGroupsTests
         await Expect(rows.GetByText(copy)).Not.ToBeVisibleAsync();
     }
 
+    // A user copy carries the source's rights (#2277). "Release resources" is one of the four rights the server's caller
+    // mapping left out, so granting it, and copying a user who has it, was refused for every administrator and the web
+    // said nothing: the copy simply had no rights.
+    [Fact]
+    public async Task Copy_user_carries_its_rights()
+    {
+        var page = await Ui.LoginAsync(_app);
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var source = "ug-usrc-" + suffix;
+        var copy = "ug-ucopy-" + suffix;
+        var rows = page.Locator(".wb-ug-rows");
+
+        await OpenTabAsync(page);
+        await CreateUserAsync(page, source, $"{source}@example.test");
+        await rows.GetByText(source).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Edit", Exact = true }).ClickAsync();
+        await page.Locator(".wb-ug-right").Filter(new() { HasText = "Release resources" }).ClickAsync();
+        await page.GetByRole(AriaRole.Button, new() { Name = "Save", Exact = true }).ClickAsync();
+        await Expect(page.GetByText("Rights saved.")).ToBeVisibleAsync();
+
+        // Copy → a new e-mail and name, Create.
+        await page.Locator(".wb-ug-toolbar").GetByRole(AriaRole.Button).Nth(1).ClickAsync(); // Copy button
+        var dialog = page.Locator(".mud-dialog");
+        await dialog.Locator("input").Nth(0).FillAsync($"{copy}@example.test");
+        await dialog.Locator("input").Nth(1).FillAsync(copy);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Create" }).ClickAsync();
+
+        await rows.GetByText(copy).ClickAsync();
+        await Expect(page.Locator(".wb-ug-right").Filter(new() { HasText = "Release resources" }).Locator("input")).ToBeCheckedAsync();
+    }
+
     [Fact]
     public async Task Rights_matrix_is_readonly_until_edit_and_cancel_reverts()
     {

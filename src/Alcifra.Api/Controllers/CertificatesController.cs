@@ -19,7 +19,7 @@ namespace Alcifra.Api.Controllers;
 [ApiVersion("1.0")]
 [Route("api/certificates")]
 [Authorize]
-public class CertificatesController(CertificateEnrolment enrolment) : ControllerBase
+public class CertificatesController(CertificateEnrolment enrolment, CertificateRevocation revocation) : ControllerBase
 {
     public class EnrolledResource : HypermediaResource
     {
@@ -52,6 +52,17 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         public string? HolderName { get; set; }
 
         public string? HolderEmail { get; set; }
+
+        /// <summary>Why it was revoked (#2278): lost, compromised, replaced, left, or the words written for Other.</summary>
+        public string? RevocationReason { get; set; }
+    }
+
+    /// <summary>A revocation (#2278): one of the reasons, or "other" with a text of its own.</summary>
+    public class RevocationRequest
+    {
+        public string? Reason { get; set; }
+
+        public string? Text { get; set; }
     }
 
     /// <summary>A key's attestation as the enrolling client read it from the token (ADR 0963).</summary>
@@ -110,7 +121,8 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         // "only this holder's" while the server ignored the value and listed everybody. Whether the caller may ask at
         // all, and what an omitted holder means, are the enrolment's rules — one place, one answer.
         var rows = await enrolment.ListAsync(holder, cancellationToken);
-        return Ok(rows.Select(Resource));
+        var mayRevoke = await revocation.WhoseKeysMayBeRevokedAsync(cancellationToken);
+        return Ok(rows.Select(row => Resource(row, mayRevoke)));
     }
 
     // Standing convention: every GET action gets a companion HEAD action of its own.
@@ -130,7 +142,8 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         var (enrolled, created) = await enrolment.EnrolAsync(request.CertificatePem, request.Label, request.Holder, evidence, cancellationToken, proof);
 
         // An existing enrolment that gained its attestation is not a new resource: 200 with what it now is.
-        return created ? Created($"/api/documents/{enrolled.DocumentId}", Resource(enrolled)) : Ok(Resource(enrolled));
+        var mayRevoke = await revocation.WhoseKeysMayBeRevokedAsync(cancellationToken);
+        return created ? Created($"/api/documents/{enrolled.DocumentId}", Resource(enrolled, mayRevoke)) : Ok(Resource(enrolled, mayRevoke));
     }
 
     /// <summary>Under Possession, a member proves they hold the key by opening what this seals to it (ADR 1061). Nothing is
@@ -142,7 +155,18 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         return Ok(new ChallengeResource { Envelope = Convert.ToBase64String(envelope), Token = token });
     }
 
-    private static EnrolledResource Resource(CertificateEnrolment.Listed row) => new()
+    /// <summary>
+    /// Revokes the key (#2278, ADR 1083): its holder or a user administrator, with a reason. A transition of its own,
+    /// reached by the listed key's <c>revoke</c> rel, so a holder needs no rights on the Reader certificates folder.
+    /// </summary>
+    [HttpPost("{documentId:guid}/revocation")]
+    public async Task<IActionResult> Revoke(Guid documentId, [FromBody] RevocationRequest request, CancellationToken cancellationToken)
+    {
+        await revocation.RevokeAsync(documentId, request.Reason, request.Text, cancellationToken);
+        return NoContent();
+    }
+
+    private static EnrolledResource Resource(CertificateEnrolment.Listed row, Func<Guid, bool> mayRevoke) => new()
     {
         DocumentId = row.DocumentId,
         Label = row.Label,
@@ -159,6 +183,10 @@ public class CertificatesController(CertificateEnrolment enrolment) : Controller
         SubjectKeyIdentifier = row.SubjectKeyIdentifier,
         HolderName = row.HolderName,
         HolderEmail = row.HolderEmail,
-        Links = [new Link("document", $"/api/documents/{row.DocumentId}", "GET")],
+        RevocationReason = row.RevocationReason,
+        // A revoked key offers no revoke: the rel says what the caller may do here, now (ADR 0543).
+        Links = row.RevokedAt is null && mayRevoke(row.HolderUserId)
+            ? [new Link("document", $"/api/documents/{row.DocumentId}", "GET"), new Link("revoke", $"/api/certificates/{row.DocumentId}/revocation", "POST")]
+            : [new Link("document", $"/api/documents/{row.DocumentId}", "GET")],
     };
 }

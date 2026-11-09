@@ -1,0 +1,93 @@
+@inject HttpClient Http
+@using Alcifra.Presentation
+
+@* Revoking one key (#2278, ADR 1083): what is revoked and what follows, why (one of the reasons, or Other in one's own
+   words), the advice to enrol the new key first, and a warning when it is the holder's only valid key. One POST to the
+   key's `revoke` rel; the server refuses what is not the caller's to revoke. Mirrors the desktop's dialog (ADR 0511). *@
+<MudDialog>
+    <DialogContent>
+        <div class="wb-revoke-key" style="max-width: 520px;">
+            <MudText Typo="Typo.body2">@string.Format(Strings.Get("RevokeConfirm"), Label)</MudText>
+            @if (OnlyValidKey)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3 wb-revoke-only-key">@Strings.Get("RevokeOnlyKey")</MudAlert>
+            }
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@Strings.Get("RevokeAdvice")</MudAlert>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("RevokeReason")</MudText>
+            <MudRadioGroup T="string" @bind-Value="_choice" Class="wb-revoke-reasons">
+                @foreach (var choice in CertificateRevocationReasons.Choices)
+                {
+                    <MudRadio T="string" Value="choice" Color="Color.Primary" Dense="true">@Strings.Get(CertificateRevocationReasons.ChoiceKey(choice))</MudRadio>
+                }
+            </MudRadioGroup>
+            @if (_choice == CertificateRevocationReasons.Other)
+            {
+                <MudTextField T="string" @bind-Value="_text" Immediate="true" Label="@Strings.Get("RevokeOtherText")"
+                              MaxLength="CertificateRevocationReasons.OtherTextLimit" Counter="CertificateRevocationReasons.OtherTextLimit"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-1 wb-revoke-other" Disabled="_busy" />
+            }
+
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@_error</MudAlert>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Cancel()" Disabled="_busy">@Strings.Get("Cancel")</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="RevokeAsync"
+                   Disabled="@(_busy || CertificateRevocationReasons.Stored(_choice, _text) is null)">@Strings.Get("RevokeSubmit")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    /// <summary>The key's label, as the list shows it.</summary>
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>The key's <c>revoke</c> rel.</summary>
+    [Parameter, EditorRequired]
+    public string Href { get; set; } = string.Empty;
+
+    /// <summary>Whether it is its holder's only valid key.</summary>
+    [Parameter]
+    public bool OnlyValidKey { get; set; }
+
+    // No reason is preselected: the reason is the one thing this dialog asks, and a default would be given unread.
+    private string? _choice;
+    private string? _text;
+    private string? _error;
+    private bool _busy;
+
+    private async Task RevokeAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            using var response = await Http.PostAsJsonAsync(Href, new { reason = _choice, text = _text?.Trim() });
+            if (response.IsSuccessStatusCode)
+            {
+                Dialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            var problem = await response.Content.ReadFromJsonAsync<ProblemDto>();
+            _error = problem?.ErrorCode is { } code ? Alcifra.Localization.ApiErrorText.For(code) : Strings.Get("RevokeFailed");
+        }
+        catch (Exception)
+        {
+            _error = Strings.Get("RevokeFailed");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed record ProblemDto(string? Detail, string? ErrorCode);
+}

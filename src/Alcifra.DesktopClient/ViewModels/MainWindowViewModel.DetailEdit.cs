@@ -399,6 +399,12 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        if (DetailIsCiCdSecret())
+        {
+            await ShowCiCdSecretAsync();
+            return;
+        }
+
         if (await TryShowStructuredCardAsync())
         {
             return;

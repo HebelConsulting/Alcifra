@@ -17,7 +17,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
     /// <summary>The first path segments under <c>tenants/{tenant}/</c> the core itself uses (ObjectKeyPrefixes).</summary>
     private static readonly HashSet<string> Reserved = new(StringComparer.Ordinal)
     {
-        "users", "groups", "mailboxes", "fs", "module-uploads", "audit-worm", "passwords",
+        "users", "groups", "mailboxes", "fs", "module-uploads", "audit-worm", "passwords", "cicd",
     };
 
     /// <summary>No module declares anything: what a host without modules, and a test constructing a service, gets.</summary>
@@ -123,7 +123,7 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
 
         // ...and the password store's masks are kept out of retention and legal hold (ADR 0964): a superseded secret
         // lives for its undo window and no longer, which a retention schedule or a hold would defeat.
-        foreach (var maskId in Domain.Masks.WellKnownMaskIds.PasswordStoreMasks)
+        foreach (var maskId in Domain.Masks.WellKnownMaskIds.SealedStoreMasks)
         {
             notRetained.Add(maskId);
             notHeld.Add(maskId);

@@ -71,6 +71,9 @@ public static class MaskIcon
         ["password-store"] = (Icons.Material.Filled.Lock, Icons.Material.Outlined.Lock),
         ["password-folder"] = (Icons.Material.Filled.FolderSpecial, Icons.Material.Outlined.FolderSpecial),
         ["password-entry"] = (Icons.Material.Filled.Key, Icons.Material.Outlined.Key),
+        // The CI/CD store (ADR 1084): where pipelines are launched from, and one rotation unit of their secrets.
+        ["cicd-store"] = (Icons.Material.Filled.RocketLaunch, Icons.Material.Outlined.RocketLaunch),
+        ["cicd-secret"] = (Icons.Material.Filled.VpnKey, Icons.Material.Outlined.VpnKey),
         ["email"] = (Icons.Material.Filled.Email, Icons.Material.Outlined.Email),
         ["note"] = (Icons.Material.Filled.StickyNote2, Icons.Material.Outlined.StickyNote2),
         ["contact"] = (Icons.Material.Filled.ContactPage, Icons.Material.Outlined.ContactPage),

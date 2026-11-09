@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Alcifra.Api.Errors.Exceptions.Search;
 using Alcifra.Application.Abstractions;
 using Alcifra.Infrastructure.Persistence;
 using Alcifra.Infrastructure.Search;
@@ -14,7 +15,8 @@ namespace Alcifra.Api.Controllers;
 /// that predate indexing (or were missed while OpenSearch was down) via a blue-green alias swap. Restricted
 /// to a PlatformAdministrator — the index spans every tenant, so this is platform maintenance, not a
 /// per-tenant action (like TenantsController/PlatformAdministratorsController). The rebuild runs in a
-/// background hosted service; POST enqueues it and returns 202, GET reports status.
+/// background hosted service; POST queues a run and returns 202 with it, GET reports the latest one, and each run
+/// answers at its own address. The runs live in the database, so either instance reports the same (ADR 1081).
 /// </summary>
 [ApiController]
 [ApiVersion("1.0")]
@@ -39,9 +41,37 @@ public class SearchReindexController : ControllerBase
         _rebuilder = rebuilder;
     }
 
-    public class ReindexResource
+    // The latest rebuild with the index's health (GET), or the run a POST queued. A run's own address answers the
+    // same shape, so `alcifra search reindex --wait` follows one link (ADR 1081).
+    public class ReindexResource : HypermediaResource
     {
+        // idle (no run yet), queued, running, succeeded or failed — of the run this resource describes.
         public string Status { get; set; } = string.Empty;
+
+        [XmlElement(IsNullable = true)]
+        public Guid? RunId { get; set; }
+
+        [XmlElement(IsNullable = true)]
+        public string? Trigger { get; set; }
+
+        [XmlElement(IsNullable = true)]
+        public DateTimeOffset? RequestedAt { get; set; }
+
+        [XmlElement(IsNullable = true)]
+        public DateTimeOffset? StartedAt { get; set; }
+
+        [XmlElement(IsNullable = true)]
+        public DateTimeOffset? FinishedAt { get; set; }
+
+        public int Attempts { get; set; }
+
+        // The reason a failed run gave up: the exception's type and message, nothing more.
+        [XmlElement(IsNullable = true)]
+        public string? Failure { get; set; }
+
+        // The instance that ran it, so a run left open by an instance that died can be named.
+        [XmlElement(IsNullable = true)]
+        public string? Instance { get; set; }
 
         // Documents indexed by the last completed rebuild, or -1 if none has finished yet.
         public int LastIndexedCount { get; set; }
@@ -59,19 +89,21 @@ public class SearchReindexController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Trigger()
+    public async Task<IActionResult> Trigger(CancellationToken cancellationToken)
     {
         if (_platformAdministratorAccessor.PlatformAdministratorId is null)
         {
             return Forbid();
         }
 
-        _state.Request();
-        return Accepted(new ReindexResource
+        if (_rebuilder is null)
         {
-            Status = _state.IsRunning ? "running" : "queued",
-            LastIndexedCount = _state.LastIndexedCount,
-        });
+            throw new SearchReindexNotConfiguredException();
+        }
+
+        var run = await SearchReindexRuns.RequestAsync(_dbContext, SearchReindexTrigger.Requested, DateTimeOffset.UtcNow, cancellationToken);
+        _state.Request();
+        return Accepted(await DescribeAsync(run, cancellationToken));
     }
 
     [HttpGet]
@@ -82,13 +114,52 @@ public class SearchReindexController : ControllerBase
             return Forbid();
         }
 
-        return Ok(new ReindexResource
+        return Ok(await DescribeAsync(await SearchReindexRuns.LatestAsync(_dbContext, cancellationToken), cancellationToken));
+    }
+
+    [HttpGet("runs/{runId:guid}")]
+    public async Task<IActionResult> Run(Guid runId, CancellationToken cancellationToken)
+    {
+        if (_platformAdministratorAccessor.PlatformAdministratorId is null)
         {
-            Status = _state.IsRunning ? "running" : "idle",
-            LastIndexedCount = _state.LastIndexedCount,
+            return Forbid();
+        }
+
+        var run = await SearchReindexRuns.FindAsync(_dbContext, runId, cancellationToken) ?? throw new SearchReindexRunNotFoundException();
+        return Ok(await DescribeAsync(run, cancellationToken));
+    }
+
+    private async Task<ReindexResource> DescribeAsync(SearchReindexRun? run, CancellationToken cancellationToken)
+    {
+        var lastSucceeded = await SearchReindexRuns.LastIndexedCountAsync(_dbContext, cancellationToken);
+        var resource = new ReindexResource
+        {
+            Status = run switch
+            {
+                null => "idle",
+                { FinishedAt: null, StartedAt: null } => "queued",
+                { FinishedAt: null } => "running",
+                { Failure: not null } => "failed",
+                _ => "succeeded",
+            },
+            RunId = run?.Id,
+            Trigger = run?.Trigger.ToString(),
+            RequestedAt = run?.RequestedAt,
+            StartedAt = run?.StartedAt,
+            FinishedAt = run?.FinishedAt,
+            Attempts = run?.Attempts ?? 0,
+            Failure = run?.Failure,
+            Instance = run?.Instance,
+            LastIndexedCount = lastSucceeded ?? -1,
             AliasMissing = await AliasMissingAsync(cancellationToken),
             PendingOutbox = await _dbContext.SearchIndexOutbox.CountAsync(cancellationToken), // not tenant-scoped by design
-        });
+        };
+        if (run is not null)
+        {
+            resource.Links.Add(new Link("self", $"/api/search/reindex/runs/{run.Id}", "GET"));
+        }
+
+        return resource;
     }
 
     private async Task<bool?> AliasMissingAsync(CancellationToken cancellationToken)
@@ -111,4 +182,15 @@ public class SearchReindexController : ControllerBase
     // Standing convention: every GET action gets a companion HEAD action.
     [HttpHead]
     public IActionResult Head() => _platformAdministratorAccessor.PlatformAdministratorId is null ? Forbid() : NoContent();
+
+    [HttpHead("runs/{runId:guid}")]
+    public async Task<IActionResult> HeadRun(Guid runId, CancellationToken cancellationToken)
+    {
+        if (_platformAdministratorAccessor.PlatformAdministratorId is null)
+        {
+            return Forbid();
+        }
+
+        return await SearchReindexRuns.FindAsync(_dbContext, runId, cancellationToken) is null ? NotFound() : NoContent();
+    }
 }

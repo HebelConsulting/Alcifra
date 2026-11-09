@@ -27,9 +27,13 @@ cp -R charts/alcifra "$chart"
 sed -i.bak -E "s|^name: .*$|name: $chart_name|" "$chart/Chart.yaml"
 # The images: a prefix replace, so the two sidecars' suffixes carry over.
 sed -i.bak "s|$shipped_images|$BRAND_DELIVERY_REGISTRY/$image_name|g" "$chart/values.yaml" "$chart/values-production.example.yaml"
+# The example's spread constraint selects the pods by the chart's name, which the brand just changed.
+sed -i.bak -E "s|(app.kubernetes.io/name:) alcifra$|\1 $chart_name|" "$chart/values-production.example.yaml"
 rm -f "$chart"/*.bak
 
 grep -q "^name: $chart_name$" "$chart/Chart.yaml" || { echo "error: the chart's name was not rewritten" >&2; exit 1; }
+grep -q "app.kubernetes.io/name: $chart_name$" "$chart/values-production.example.yaml" \
+  || { echo "error: the example's pod selector was not rewritten" >&2; exit 1; }
 helm lint "$chart" >/dev/null
 mkdir -p dist
 helm package "$chart" --version "$version" --app-version "$version" --destination dist

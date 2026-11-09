@@ -181,10 +181,14 @@
             <!-- An opened password entry (ADR 0968): its fields from memory, found in by the same find box. -->
             <v:PasswordEntryView DataContext="{Binding PasswordEntry}"
                                  IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).PasswordEntry, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+            <!-- A CI/CD secret (ADR 1084): its targets, keys and variables, and its values once opened with the key. -->
+            <v:CiCdEntryView DataContext="{Binding CiCdEntry}"
+                             IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).CiCdEntry, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
             <!-- A contact's or an appointment's card (#2215): the editor's own form, read-only, chosen by the document's mask.
                  The pencil opens the editor window; saving there refreshes the card. -->
+            <!-- It fills the pane (owner, 2026-11-08, #2274): the form's fields stretch with it, as in the editor window. -->
             <ScrollViewer IsVisible="{Binding Card, Converter={x:Static conv:ObjectConverters.IsNotNull}}" x:Name="CardScroll">
-                <StackPanel Margin="14" Spacing="8" MaxWidth="640" HorizontalAlignment="Left">
+                <StackPanel Margin="14" Spacing="8" HorizontalAlignment="Stretch">
                     <Button HorizontalAlignment="Right" Click="OnEditCard" IsVisible="{Binding Card.CanEdit, FallbackValue=False}"
                             ToolTip.Tip="{loc:Tr Edit}" AutomationProperties.Name="{loc:Tr Edit}">
                         <i:Icon Value="mdi-pencil" FontSize="14" />
@@ -193,6 +197,19 @@
                                    IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).Card.Contact, Converter={x:Static conv:ObjectConverters.IsNotNull}, FallbackValue=False}" />
                     <v:AppointmentForm DataContext="{Binding Card.Appointment}"
                                        IsVisible="{Binding $parent[UserControl].((vm:PreviewViewModel)DataContext).Card.Appointment, Converter={x:Static conv:ObjectConverters.IsNotNull}, FallbackValue=False}" />
+                    <!-- The stored vCard or iCalendar (#2274), collapsed until opened, read only then. Copy copies the stored
+                         text; what is shown has a long photo shortened. -->
+                    <Expander x:Name="CardSource" Header="{Binding Card.SourceTitle, FallbackValue=''}" HorizontalAlignment="Stretch"
+                              IsExpanded="{Binding Card.IsSourceOpen, FallbackValue=False}" IsVisible="{Binding Card.HasSource, FallbackValue=False}">
+                        <StackPanel Spacing="6">
+                            <Button HorizontalAlignment="Right" Click="OnCopyCardSource" IsEnabled="{Binding Card.CanCopySource, FallbackValue=False}"
+                                    ToolTip.Tip="{loc:Tr Copy}" AutomationProperties.Name="{loc:Tr Copy}">
+                                <i:Icon Value="mdi-content-copy" FontSize="14" />
+                            </Button>
+                            <SelectableTextBlock x:Name="CardSourceText" Text="{Binding Card.SourceShown}" TextWrapping="Wrap"
+                                                 FontFamily="Menlo,Consolas,monospace" FontSize="12" />
+                        </StackPanel>
+                    </Expander>
                 </StackPanel>
             </ScrollViewer>
             <!-- A mail's card (#2215, ADR 1073): the envelope, the body as text (no HTML view on this client yet, #2243), and the

@@ -67,8 +67,9 @@ public sealed class PasswordEntryHistory(
     public async Task<Outcome> SweepAsync(DateTimeOffset now, CancellationToken cancellationToken)
     {
         var revoked = await sealing.RevokedAsync(cancellationToken);
+        var entryMasks = SealedStoreFamily.EntryMasks.ToList();
         var entries = await dbContext.Documents.AsNoTracking()
-            .Where(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.PasswordEntry))
+            .Where(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && entryMasks.Contains(v.MaskId)))
             .Select(d => d.Id)
             .ToListAsync(cancellationToken);
 
@@ -96,9 +97,20 @@ public sealed class PasswordEntryHistory(
     {
         revoked ??= await sealing.RevokedAsync(cancellationToken);
         var document = await dbContext.Documents.AsNoTracking().Where(d => d.Id == entryId)
-            .Select(d => new { d.Id, d.Name, d.TenantId, d.CurrentVersionId, d.CreatedAt })
+            .Select(d => new
+            {
+                d.Id,
+                d.Name,
+                d.TenantId,
+                d.CurrentVersionId,
+                d.CreatedAt,
+                MaskId = dbContext.MaskVersions.Where(v => v.Id == d.MaskVersionId).Select(v => (Guid?)v.MaskId).FirstOrDefault(),
+            })
             .SingleOrDefaultAsync(cancellationToken);
-        if (document is null)
+
+        // Only a sealed STORE's entry keeps its superseded versions no longer than the rules here allow (#2281). A Sealed
+        // document is sealed too, but its history is part of the document and is kept as any document's.
+        if (document is null || SealedStoreFamily.Of(document.MaskId) is not { } family || family.EntryMask != document.MaskId)
         {
             return new Outcome(0, 0);
         }
@@ -107,14 +119,14 @@ public sealed class PasswordEntryHistory(
         {
             // An entry whose first upload never finished: nothing sealed was ever filed, so after the undo window it goes.
             return now >= document.CreatedAt + UndoWindow
-                && await RemoveAbandonedAsync(entryId, document.Name, document.TenantId, cancellationToken)
+                && await RemoveAbandonedAsync(entryId, document.Name, document.TenantId, family, cancellationToken)
                     ? new Outcome(0, 0, 1)
                     : new Outcome(0, 0);
         }
 
         var recipients = await sealing.RecipientsAsync(current, cancellationToken);
         var exposedAt = revoked.Where(r => recipients.Any(x => x.Is(r.Certificate))).Select(r => (DateTimeOffset?)r.RevokedAt).Min();
-        var marked = exposedAt is { } at && await MarkExposedAsync(entryId, document.Name, document.TenantId, at, cancellationToken);
+        var marked = exposedAt is { } at && await MarkExposedAsync(entryId, document.Name, document.TenantId, at, family, cancellationToken);
         var exposed = await ExposedSinceAsync(dbContext, entryId, cancellationToken) is not null;
 
         // Re-sealed without the revoked key: what came before is deleted now, not after the undo window.
@@ -168,7 +180,7 @@ public sealed class PasswordEntryHistory(
             : null;
     }
 
-    private async Task<bool> MarkExposedAsync(Guid entryId, string name, Guid tenantId, DateTimeOffset at, CancellationToken cancellationToken)
+    private async Task<bool> MarkExposedAsync(Guid entryId, string name, Guid tenantId, DateTimeOffset at, SealedStoreFamily family, CancellationToken cancellationToken)
     {
         if (await ExposedSinceAsync(dbContext, entryId, cancellationToken) is not null)
         {
@@ -220,7 +232,7 @@ public sealed class PasswordEntryHistory(
         logger.LogWarning("Password entry {DocumentId} is sealed to a certificate revoked on {RevokedAt:yyyy-MM-dd}: marked exposed; "
             + "its store needs re-sealing, and the secret should be changed", entryId, at);
         await audit.RecordForActorAsync(AuditActorType.System, Guid.Empty, "Password store", tenantId,
-            AuditActions.PasswordEntryExposed, "Document", entryId, name, $"Exposed since {at:yyyy-MM-dd}", cancellationToken);
+            family.EntryExposed, "Document", entryId, name, $"Exposed since {at:yyyy-MM-dd}", cancellationToken);
         return true;
     }
 
@@ -245,7 +257,7 @@ public sealed class PasswordEntryHistory(
     /// it only while it still has no confirmed version: of two instances, one deletes the row and the other affects none.
     /// Its pending uploads' objects go with it; the row's dependents cascade.
     /// </summary>
-    internal async Task<bool> RemoveAbandonedAsync(Guid entryId, string name, Guid tenantId, CancellationToken cancellationToken)
+    internal async Task<bool> RemoveAbandonedAsync(Guid entryId, string name, Guid tenantId, SealedStoreFamily family, CancellationToken cancellationToken)
     {
         var pendingKeys = await dbContext.DocumentVersions.AsNoTracking()
             .Where(v => v.DocumentId == entryId).Select(v => v.ObjectKey).ToListAsync(cancellationToken);
@@ -273,7 +285,7 @@ public sealed class PasswordEntryHistory(
         await indexQueue.EnqueueAsync(entryId, cancellationToken);
         logger.LogInformation("Removed password entry {DocumentId}: it received no content within {Window}", entryId, UndoWindow);
         await audit.RecordForActorAsync(AuditActorType.System, Guid.Empty, "Password store", tenantId,
-            AuditActions.PasswordEntryAbandonedRemoved, "Document", entryId, name, "No content within 24 hours", cancellationToken);
+            family.EntryAbandonedRemoved, "Document", entryId, name, "No content within 24 hours", cancellationToken);
         return true;
     }
 

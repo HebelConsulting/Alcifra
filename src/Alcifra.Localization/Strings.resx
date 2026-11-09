@@ -7089,4 +7089,211 @@
   <data name="PvMediaUseApp" xml:space="preserve">
     <value>Video or sound file: open it in an application to play it.</value>
   </data>
+  <data name="CardSourceVCard" xml:space="preserve">
+    <value>vCard source</value>
+  </data>
+  <data name="CardSourceICalendar" xml:space="preserve">
+    <value>iCalendar source</value>
+  </data>
+  <data name="CardSourceUnreadable" xml:space="preserve">
+    <value>The stored file could not be read.</value>
+  </data>
+  <data name="StCopyRightsRefused" xml:space="preserve">
+    <value>The copy would get rights you do not hold yourself, so no user was created.</value>
+  </data>
+  <data name="StCopySourceGone" xml:space="preserve">
+    <value>The user to copy no longer exists, so no user was created.</value>
+  </data>
+  <data name="StGroupCopyRightsRefused" xml:space="preserve">
+    <value>The group was created, but its rights were not copied: you do not hold them all yourself.</value>
+  </data>
+  <data name="AccountMyKeys" xml:space="preserve">
+    <value>My keys…</value>
+  </data>
+  <data name="KeysTitleMine" xml:space="preserve">
+    <value>My keys</value>
+  </data>
+  <data name="KeysTitleOf" xml:space="preserve">
+    <value>Keys of {0}</value>
+  </data>
+  <data name="KeysNone" xml:space="preserve">
+    <value>No key is enrolled.</value>
+  </data>
+  <data name="KeysLoadError" xml:space="preserve">
+    <value>The keys could not be loaded.</value>
+  </data>
+  <data name="KeysRevokedOn" xml:space="preserve">
+    <value>Revoked on {0}</value>
+  </data>
+  <data name="KeysRevokedBecause" xml:space="preserve">
+    <value>Revoked on {0}: {1}</value>
+  </data>
+  <data name="KeysRevoke" xml:space="preserve">
+    <value>Revoke…</value>
+  </data>
+  <data name="UgKeys" xml:space="preserve">
+    <value>Keys…</value>
+  </data>
+  <data name="RevokeTitle" xml:space="preserve">
+    <value>Revoke key</value>
+  </data>
+  <data name="RevokeConfirm" xml:space="preserve">
+    <value>Revoke “{0}”? Nothing is sealed to it any more, and what it could read is marked exposed. This cannot be undone.</value>
+  </data>
+  <data name="RevokeReason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="RevokeReasonLost" xml:space="preserve">
+    <value>Lost</value>
+  </data>
+  <data name="RevokeReasonCompromised" xml:space="preserve">
+    <value>Stolen or compromised</value>
+  </data>
+  <data name="RevokeReasonReplaced" xml:space="preserve">
+    <value>Replaced by a new key</value>
+  </data>
+  <data name="RevokeReasonLeft" xml:space="preserve">
+    <value>Holder left the organisation</value>
+  </data>
+  <data name="RevokeReasonOther" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="RevokeOtherText" xml:space="preserve">
+    <value>The reason in your own words</value>
+  </data>
+  <data name="RevokeAdvice" xml:space="preserve">
+    <value>Replacing a key? Enrol the new key first, then revoke this one, so sealed items stay readable.</value>
+  </data>
+  <data name="RevokeOnlyKey" xml:space="preserve">
+    <value>This is the only valid key. Until another is enrolled, sealed items cannot be opened.</value>
+  </data>
+  <data name="RevokeSubmit" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="RevokeFailed" xml:space="preserve">
+    <value>The key could not be revoked.</value>
+  </data>
+  <data name="StKeyRevoked" xml:space="preserve">
+    <value>Key revoked.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyRevoked" xml:space="preserve">
+    <value>This key was revoked already.</value>
+  </data>
+  <data name="ApiErrCertificateRevocationNotAllowed" xml:space="preserve">
+    <value>Only the key's holder or an administrator who manages users may revoke it.</value>
+  </data>
+  <data name="CiCdTargets" xml:space="preserve">
+    <value>Targets</value>
+  </data>
+  <data name="CiCdTargetsHint" xml:space="preserve">
+    <value>One per line: github:owner/repository, or github:owner/repository@environment.</value>
+  </data>
+  <data name="CiCdSecrets" xml:space="preserve">
+    <value>Secrets</value>
+  </data>
+  <data name="CiCdVariables" xml:space="preserve">
+    <value>Variables</value>
+  </data>
+  <data name="CiCdKeys" xml:space="preserve">
+    <value>Keys</value>
+  </data>
+  <data name="CiCdOpen" xml:space="preserve">
+    <value>Open with key</value>
+  </data>
+  <data name="CiCdEdit" xml:space="preserve">
+    <value>Edit…</value>
+  </data>
+  <data name="CiCdSaveAs" xml:space="preserve">
+    <value>Save as…</value>
+  </data>
+  <data name="CiCdFileSize" xml:space="preserve">
+    <value>File, {0}</value>
+  </data>
+  <data name="CiCdStoredFile" xml:space="preserve">
+    <value>Stored file</value>
+  </data>
+  <data name="CiCdNoFile" xml:space="preserve">
+    <value>No file chosen</value>
+  </data>
+  <data name="CiCdUnreadable" xml:space="preserve">
+    <value>This secret's sealed content is not a CI/CD entry's.</value>
+  </data>
+  <data name="CiCdNewTitle" xml:space="preserve">
+    <value>New CI/CD secret</value>
+  </data>
+  <data name="CiCdEditTitle" xml:space="preserve">
+    <value>Edit CI/CD secret</value>
+  </data>
+  <data name="CiCdName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="CiCdKindSecret" xml:space="preserve">
+    <value>Secret</value>
+  </data>
+  <data name="CiCdKindFile" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="CiCdKindVariable" xml:space="preserve">
+    <value>Variable</value>
+  </data>
+  <data name="CiCdChooseFile" xml:space="preserve">
+    <value>Choose file…</value>
+  </data>
+  <data name="CiCdRemoveKey" xml:space="preserve">
+    <value>Remove this key</value>
+  </data>
+  <data name="CiCdAddKey" xml:space="preserve">
+    <value>Add key</value>
+  </data>
+  <data name="CiCdDropHint" xml:space="preserve">
+    <value>Drop a file here to add it as a file secret.</value>
+  </data>
+  <data name="CiCdFileTooLarge" xml:space="preserve">
+    <value>'{0}' is larger than 1 MB, which no CI secret can hold.</value>
+  </data>
+  <data name="CiCdSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CiCdChangedMeanwhile" xml:space="preserve">
+    <value>Somebody changed this secret meanwhile. Close, open it again and repeat the change.</value>
+  </data>
+  <data name="CiCdNotYours" xml:space="preserve">
+    <value>This CI/CD store is not one you can read.</value>
+  </data>
+  <data name="CiCdCreated" xml:space="preserve">
+    <value>Created CI/CD secret '{0}'.</value>
+  </data>
+  <data name="CiCdSaved" xml:space="preserve">
+    <value>Saved CI/CD secret '{0}'.</value>
+  </data>
+  <data name="CiCdProblemNoName" xml:space="preserve">
+    <value>Give the secret a name.</value>
+  </data>
+  <data name="CiCdProblemNoTarget" xml:space="preserve">
+    <value>Name at least one target.</value>
+  </data>
+  <data name="CiCdProblemNoFile" xml:space="preserve">
+    <value>A file key has no file yet.</value>
+  </data>
+  <data name="CiCdProblemInvalidKeyName" xml:space="preserve">
+    <value>A key name may hold only letters, digits and underscores, and may not start with a digit or GITHUB_.</value>
+  </data>
+  <data name="CiCdProblemDuplicateKeyName" xml:space="preserve">
+    <value>Two keys have the same name.</value>
+  </data>
+  <data name="CiCdProblemFileKeyNotASecret" xml:space="preserve">
+    <value>A file key must be a secret.</value>
+  </data>
+  <data name="CiCdProblemInvalidVariable" xml:space="preserve">
+    <value>A variable needs a name.</value>
+  </data>
+  <data name="CiCdProblemInvalidTarget" xml:space="preserve">
+    <value>A target must read github:owner/repository or github:owner/repository@environment.</value>
+  </data>
+  <data name="CiCdNameHint" xml:space="preserve">
+    <value>Developer ID certificate</value>
+  </data>
+  <data name="CiCdNewSecret" xml:space="preserve">
+    <value>CI/CD secret…</value>
+  </data>
 </root>

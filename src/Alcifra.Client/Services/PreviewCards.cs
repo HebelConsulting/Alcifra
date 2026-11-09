@@ -11,6 +11,13 @@ public sealed record StructuredCard(ContactCardForm? Contact, AppointmentForm? A
 {
     /// <summary>A mail's card instead (ADR 1073): read-only, no pencil.</summary>
     public MailCard? Mail { get; init; }
+
+    /// <summary>Reads the stored vCard or iCalendar for the collapsed source section (#2274), through the item's
+    /// <c>source</c> rel as the editor's disclosure does (#648); null where the server offers none.</summary>
+    public Func<Task<string?>>? LoadSource { get; init; }
+
+    /// <summary>The source section's heading: "vCard source" on a contact, "iCalendar source" on an appointment.</summary>
+    public string SourceTitle => Strings.Get(Contact is not null ? "CardSourceVCard" : "CardSourceICalendar");
 }
 
 /// <summary>A mail as the web shows it: the envelope, the sanitised HTML with its inline images as data, the text, and the
@@ -77,8 +84,14 @@ public sealed class PreviewCards(HttpClient http, StructuredEditors editors, IDi
             {
                 await SaveAndShowAsync(fresh.Href, saved.Form.ToPayload(), fresh.ETag, () => ContactAsync(selfHref, show), show);
             }
-        });
+        })
+        { LoadSource = Source(loaded.Links) };
     }
+
+    // The source section (#2274) reads what the editor's "Advanced: the stored item" reads (#648): the structured resource's
+    // own `source` rel. Where none is offered, the card has no section.
+    private Func<Task<string?>>? Source(IReadOnlyDictionary<string, string> links) =>
+        links.ContainsKey("source") ? async () => (await editors.ReadRawAsync(links))?.Text : null;
 
     private async Task<StructuredCard?> AppointmentAsync(string selfHref, Func<StructuredCard, Task> show)
     {
@@ -102,7 +115,8 @@ public sealed class PreviewCards(HttpClient http, StructuredEditors editors, IDi
             {
                 await SaveAndShowAsync(fresh.Href, saved.Form.ToPayload(), fresh.ETag, () => AppointmentAsync(selfHref, show), show);
             }
-        });
+        })
+        { LoadSource = Source(loaded.Links) };
     }
 
     // A mail's card (ADR 1073): the frame that shows its HTML is sandboxed and sends no credentials, so an inline image

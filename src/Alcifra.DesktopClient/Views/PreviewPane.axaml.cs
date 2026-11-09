@@ -287,6 +287,15 @@ public partial class PreviewPane : UserControl
         e.Handled = true;
     }
 
+    // A card's source Copy (#2274): the clipboard is the view's. It copies the stored text, never the shortened one.
+    private void OnCopyCardSource(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Alcifra.DesktopClient.Services.Safe.Fire(async () =>
+    {
+        if (DataContext is PreviewViewModel { Card.Source: { } source } && TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(source);
+        }
+    });
+
     // A card's pencil (#2215): the editor window is the view's, the reading and the saving are the card's builder's.
     private void OnEditCard(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Alcifra.DesktopClient.Services.Safe.Fire(async () =>
     {

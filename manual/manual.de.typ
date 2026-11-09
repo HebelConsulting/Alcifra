@@ -112,7 +112,9 @@ Indexfelder im Register *Eingangskorb* am schnellsten aus: Klicken Sie die Werte
 Ein *Kontakt* oder ein *Termin*#idx("Kontaktkarte") erscheint stattdessen als eigene Karte: dasselbe Formular, mit dem die
 Register *Kontakte* und *Kalender* ihn bearbeiten, schreibgeschützt. Der Stift über der Karte öffnet dieses Formular zum
 Ändern. Nur was das Archiv als Kontakt oder Termin abgelegt hat, erhält eine Karte; jede andere .vcf- oder .ics-Datei behält
-ihre gewohnte Vorschau.
+ihre gewohnte Vorschau. Die Karte füllt die Vorschau. Unten zeigt ein zugeklappter Abschnitt *vCard-Quelltext* oder
+*iCalendar-Quelltext* den Eintrag genau so, wie er gespeichert ist, denselben Text wie *Erweitert: der gespeicherte Eintrag*
+im Bearbeiten-Fenster, ein langes Foto gekürzt; *Kopieren* kopiert ihn vollständig.
 
 Eine *E-Mail*#idx("E-Mail-Karte") erscheint ebenso: wer sie wann an wen gesendet hat, ihre Anhänge mit *Öffnen* und
 *Speichern* und ihr Text. Der Web-Client zeigt die E-Mail so formatiert, wie sie geschrieben wurde, ohne das, was ausgeführt
@@ -842,6 +844,33 @@ Datei enthält nur Webadressen; eine Skriptadresse (ein Bookmarklet) funktionier
 Wurde dasselbe Lesezeichen gleichzeitig an zwei Orten geändert, gewinnt die Änderung im Browser, und die andere bleibt in einem
 Ordner namens Conflicts erhalten. Wenn Sie den Ordner im Browser löschen, sind Ihre Lesezeichen nicht weg: Er kommt beim nächsten
 Abgleich zurück.
+
+== CI/CD-Geheimnisse <desktopcicd>
+
+Ein *CI/CD-Speicher*#idx("CI/CD-Speicher") bewahrt die Geheimnisse und Variablen Ihrer Build-Pipelines auf, versiegelt
+für die Hardware-Schlüssel der Personen, die sie lesen dürfen, wie ein Passwortspeicher. Sie legen ihn mit Neu ▸
+*CI/CD Store* in einem beliebigen Ordner an; für wen er versiegelt ist, bestimmt seine Zielgruppe, wie bei einem
+gemeinsamen Passwortspeicher. Sein Inhalt sind *CI/CD-Geheimnisse*, und jedes ist eine Rotationseinheit: die Werte, die
+sich gemeinsam ändern, etwa ein Signaturzertifikat und sein Passwort, beieinander.
+
+Ein Geheimnis nennt seine *Ziele*, die Repositorys, auf die es gesetzt wird (`github:owner/repository`, oder
+`github:owner/repository@environment` für eine Umgebung), und enthält beliebig viele Schlüssel. Jeder Schlüssel ist ein
+*Geheimnis* als Text, eine *Datei*, aufbewahrt als die Bytes, die sie war (etwa eine `.p12`), und base64-kodiert gesendet,
+oder eine *Variable*, die nicht geheim ist und im Klartext gespeichert wird. In einem CI/CD-Speicher öffnet Neu ▸
+*CI/CD Secret* den Editor: die Ziele je eine pro Zeile und eine Zeile pro Schlüssel. Eine Datei kommt aus *Datei
+wählen…* in ihrer Zeile oder wird irgendwo auf das Fenster gezogen, wo sie zu einem neuen Datei-Schlüssel mit ihrem Namen
+wird.
+
+Ein ausgewähltes Geheimnis zeigt seine Ziele, Schlüsselnamen und Variablen sofort, ganz ohne Schlüssel. *Mit Schlüssel
+öffnen* öffnet die Werte einmal mit Ihrem Hardware-Schlüssel: Ein Textwert ist dann nur sichtbar, solange sein Auge
+gehalten wird, und wird kopiert wie ein Passwort; eine Datei hat *Speichern unter…*, das sie genau so zurückschreibt,
+wie sie war. Jeder gezeigte, kopierte oder gespeicherte Wert wird mit dem Namen des Schlüssels protokolliert, nie mit
+dem Wert. *Bearbeiten…* ändert das Geheimnis in einem Schritt und wird abgelehnt, wenn es inzwischen jemand geändert hat.
+
+Auf der Kommandozeile setzt `apass cicd apply <store>` auf jedem Ziel, was fehlt oder veraltet ist: eine PIN für den
+ganzen Lauf, jeder Wert über die Standardeingabe an das Werkzeug der Plattform übergeben und nie ausgegeben.
+`apass cicd apply <store> --dry-run` meldet, was es setzen würde, und braucht keinen Schlüssel; `apass cicd show` gibt
+einen Wert aus oder speichert ihn; `apass cicd set` legt ein Geheimnis an oder ersetzt es.
 
 == Auf einem Telefon oder Tablet
 
@@ -1859,6 +1888,21 @@ dieselbe Stelle schicken würde.
   einem Zertifikat pro Person. Er ist ausser Dienst gestellt: Die hier hinterlegten Zertifikate sind die einzigen, an die
   das Archiv Dokumente und E-Mails adressiert, also widerruft ein Widerruf überall.
 ]
+
+== Einen Schlüssel widerrufen <revokekey>
+
+*Meine Schlüssel…*#idx("Schlüssel widerrufen") im Kontomenü listet die für Sie hinterlegten Schlüssel mit ihrem Zustand
+und bietet bei jedem noch gültigen *Widerrufen…* an. Wer Benutzer verwaltet, findet dieselbe Liste unter *Schlüssel…*
+bei einer Person in *Benutzer und Gruppen*; sonst kann niemand Ihren Schlüssel widerrufen. Der Widerruf fragt nach dem
+*Grund* — verloren, gestohlen oder kompromittiert, durch einen neuen Schlüssel ersetzt, der Inhaber hat die Organisation
+verlassen, oder in eigenen Worten —, und dieser Grund bleibt beim Schlüssel. Hat jemand anderes Ihren Schlüssel
+widerrufen, sagt Ihnen eine Benachrichtigung, welchen, wer und warum.
+
+*Ersetzen Sie einen Schlüssel? Hinterlegen Sie zuerst den neuen, widerrufen Sie dann den alten.* Ab dem Widerruf wird
+nichts mehr für ihn versiegelt, und was er lesen konnte, wird als offengelegt markiert; war es Ihr einziger gültiger
+Schlüssel, warnt der Dialog, denn bis ein weiterer hinterlegt ist, lassen sich versiegelte Objekte nicht öffnen. Ein
+Widerruf lässt sich nicht rückgängig machen. Auf der Kommandozeile: `alcifra certificates revoke --thumbprint …
+--reason lost`.
 
 == Nur bestätigte Hardware-Schlüssel werden hinterlegt <attestedenrolment>
 

@@ -434,9 +434,11 @@ public sealed class AdminClient(ApiCore core)
     /// Creates a user and returns the created ROW — not its id. The create response is the resource, rels
     /// included, so a caller that goes on to act on what it created already holds the addresses (ADR 0555).
     /// </summary>
-    public async Task<PrincipalInfo> CreateUserAsync(string email, string displayName, CancellationToken cancellationToken = default)
+    /// <summary>Creates a user; with <paramref name="copyFrom"/>, as a copy of that user, with its rights and groups, in the
+    /// same request (#2277): a refusal creates nobody.</summary>
+    public async Task<PrincipalInfo> CreateUserAsync(string email, string displayName, Guid? copyFrom = null, CancellationToken cancellationToken = default)
     {
-        using var response = await _core.Http.PostAsJsonAsync(await _core.RootHrefAsync("users", cancellationToken), new { email, displayName }, cancellationToken);
+        using var response = await _core.Http.PostAsJsonAsync(await _core.RootHrefAsync("users", cancellationToken), new { email, displayName, copyFrom }, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Conflict)
         {
             throw new ApiActionException("A user with this email already exists.");
@@ -444,7 +446,14 @@ public sealed class AdminClient(ApiCore core)
 
         if (response.StatusCode == HttpStatusCode.Forbidden)
         {
-            throw new ApiActionException("You don't have permission to manage users.");
+            throw new ApiActionException(await ProblemCodeAsync(response, cancellationToken) == "INSUFFICIENT_RIGHTS_TO_GRANT"
+                ? Strings.Get("StCopyRightsRefused")
+                : "You don't have permission to manage users.");
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound && copyFrom is not null)
+        {
+            throw new ApiActionException(Strings.Get("StCopySourceGone"));
         }
 
         response.EnsureSuccessStatusCode();
@@ -915,5 +924,19 @@ public sealed class AdminClient(ApiCore core)
     {
         var response = await _core.Http.PostAsync(takeOverHref, JsonContent.Create(new { }), cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    // The machine-readable code of an RFC 7807 answer, or null.
+    private static async Task<string?> ProblemCodeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            return problem.TryGetProperty("errorCode", out var code) ? code.GetString() : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }

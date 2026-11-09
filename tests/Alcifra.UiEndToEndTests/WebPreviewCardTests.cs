@@ -8,7 +8,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Alcifra.UiEndToEndTests;
 
 // A contact shows as a card in the Repositories preview, chosen by its mask (#2215): the editor's own form, read-only, and a
-// pencil that opens the editor and shows the card again after Save. A .vcf the archive filed as a Basic Entry gets no card.
+// pencil that opens the editor and shows the card again after Save, filling the pane, with its stored vCard in a collapsed
+// section (#2274). A .vcf the archive filed as a Basic Entry gets no card.
 // The desktop's DesktopStructuredCardTests is its twin.
 [Collection(UiCollection.Name)]
 [Trait("Area", "ui-2")]
@@ -42,6 +43,24 @@ public class WebPreviewCardTests(SelfHostedAppFixture app)
         await Expect(card).ToBeVisibleAsync();
         await Expect(card.Locator("input").First).ToHaveValueAsync("Anna");
         await Expect(card.Locator("input").First).ToHaveAttributeAsync("readonly", string.Empty);
+
+        // It fills the pane (#2274): its width is the preview pane's, not a 640-pixel column at the left. Measured in a wide
+        // window, since in a pane narrower than the old cap a capped card fills it too and the check proves nothing.
+        await page.SetViewportSizeAsync(2400, 1000);
+        await Expect(card).ToBeVisibleAsync();
+        var paneBox = (await preview.BoundingBoxAsync())!;
+        Assert.True(paneBox.Width > 800, $"the preview pane is only {paneBox.Width:0} px wide, so the card's width says nothing");
+        var cardBox = (await card.BoundingBoxAsync())!;
+        Assert.True(cardBox.Width >= paneBox.Width - 24, $"the card is {cardBox.Width:0} px wide in a pane of {paneBox.Width:0} px");
+
+        // The stored vCard (#2274): collapsed, then opened, verbatim.
+        var source = card.Locator("[data-preview-card-source]");
+        await Expect(source).ToContainTextAsync("vCard source");
+        await Expect(source.Locator("[data-preview-card-source-text]")).Not.ToBeVisibleAsync();
+        await source.GetByText("vCard source").ClickAsync();
+        await Expect(source.Locator("[data-preview-card-source-text]")).ToContainTextAsync($"UID:web-card-{run}");
+        await Expect(source.Locator("[data-preview-card-source-text]")).ToContainTextAsync("BEGIN:VCARD");
+        await Expect(source.Locator("[data-preview-card-source-copy]")).ToBeEnabledAsync();
 
         // The pencil: the editor dialog, and the card again after Save.
         await card.Locator("[data-preview-card-edit]").ClickAsync();

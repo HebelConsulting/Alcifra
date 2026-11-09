@@ -95,6 +95,9 @@ public enum NotificationType
     // key. Sent once per user by v0.56.0's startup carry. RETIRED with the column (#2059): nothing produces it any more,
     // and the value stays so the notifications already sent keep displaying.
     OwnCertificateRetired = 22,
+    // Somebody else, an administrator, revoked this user's hardware key (#2278, ADR 1083): which key, by whom and why,
+    // and that a new key is needed to read sealed items. Not sent when the holder revoked it themself: they know.
+    CertificateRevoked = 23,
 }
 
 // A per-User in-app notification (ADR "Notifications (in-app, first slice)"). Written by INotificationService

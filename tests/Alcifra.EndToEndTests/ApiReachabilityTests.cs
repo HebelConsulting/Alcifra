@@ -73,7 +73,6 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         ["DELETE api/modules/{moduleId}/activation"] = "advertised only for an active module that needs no licence (ADR 0944); this tenant's test module requires one — LicenceFreeModuleTests follows the rel",
         ["PUT api/modules/{moduleId}/activation"] = "advertised only for a module that needs no licence (ADR 0944); this tenant's test module requires one — LicenceFreeModuleTests follows the rel",
         ["POST api/tenants/{tenantId:guid}/storage-migration"] = "advertised only while ObjectStorage:LegacyBucketPrefix is set (ADR 1000); this stack has none — TenantStorageMigrationRelTests asserts the absent rel, TenantBucketMigrationTests the migration",
-        ["POST api/password-folders/{folderId:guid}/entries"] = "advertised only to a reader holding an enrolled key (ADR 0982); no module licenses enrolment in this tenant — PasswordStoreTests follows the rel",
         ["GET api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
         ["HEAD api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
         ["GET api/documents/{documentId:guid}/archive-entries"] = "needs a zip document; the seed files none",
@@ -331,7 +330,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
 
         var admin = factory.CreateAuthedClient(await factory.GetUserTokenAsync(adminEmail, password));
         var user = factory.CreateAuthedClient(await factory.GetUserTokenAsync(userEmail, password));
-        await SeedArchiveAsync(owner, admin, user, userId, tenantId);
+        await SeedArchiveAsync(owner, admin, user, userId, tenantId, adminEmail);
 
         return [owner, admin, user, factory.CreateAuthedClient(await factory.GetTokenAsync(platformId, platformSecret))];
     }
@@ -361,7 +360,7 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         await db.SaveChangesAsync();
     }
 
-    private async Task SeedArchiveAsync(HttpClient owner, HttpClient admin, HttpClient user, Guid userId, Guid tenantId)
+    private async Task SeedArchiveAsync(HttpClient owner, HttpClient admin, HttpClient user, Guid userId, Guid tenantId, string adminEmail)
     {
         var repo = (await TestJson.Post(owner, "/api/repositories", new { name = $"Reach {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
         // The Administration folder (ADR 1066), so the crawl reaches `take-over` where it lives now: on the Users
@@ -485,6 +484,24 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         {
             (await storage.PutAsync(intray.GetProperty("uploadUrl").GetString()!, new ByteArrayContent(Encoding.UTF8.GetBytes("reach")))).EnsureSuccessStatusCode();
         }
+
+        // An enrolled key, so the crawl meets its `revoke` rel (#2278). The tenant is this test's own, so its certificate
+        // settings stay switched on.
+        await Alcifra.TestSupport.TestKeyEnrolment.EnrolAsync(admin, adminEmail, "Reach card", repo);
+
+        // A CI/CD store with one secret sealed to that key (ADR 1084), so the crawl meets the store list's rel and the
+        // secret's report rel. Sealing needs only the audience's public certificates, never a private key.
+        // The administrator reads the repository by a grant of its own: the tenant-admin bypass alone never makes a reader of
+        // a sealed store (ADR 0982), so without it the store would list for nobody.
+        var adminId = (await TestJson.Get(admin, "/api/me")).GetProperty("userId").GetGuid();
+        await TestJson.Put(owner, $"/api/documents/{repo}/acl-entries/users/{adminId}",
+            new { canSee = true, canReadContent = true, canEditContent = true, canCreateSubItems = true });
+        var cicdStore = (await TestJson.Post(admin, $"/api/documents/{repo}/children",
+            new { name = "Reach pipelines", maskId = Alcifra.Domain.Masks.WellKnownMaskIds.CiCdStore })).GetProperty("id").GetGuid();
+        var cicd = new Alcifra.ApiClient.CiCd.CiCdStoreClient(Alcifra.ApiClient.ApiCore.Over(admin));
+        var store = await cicd.GetStoreAsync((await cicd.ListStoresAsync()).Single(s => s.Id == cicdStore).Href);
+        await cicd.CreateAsync(store, "Reach secret", new Alcifra.ApiClient.CiCd.CiCdEntryContent(
+            ["github:reach/repository"], [new Alcifra.ApiClient.CiCd.CiCdSecretValue("REACH_TOKEN", "x"u8.ToArray(), IsFile: false)], []));
     }
 
     private static async Task<Guid> VersionedDocumentAsync(HttpClient owner, Guid parent, string name)

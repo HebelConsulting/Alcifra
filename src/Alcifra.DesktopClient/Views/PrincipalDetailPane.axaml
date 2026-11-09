@@ -102,6 +102,8 @@
             <StackPanel Orientation="Vertical" Spacing="6" VerticalAlignment="Center">
                 <Button Content="{loc:Tr AccountChangePhoto}" Click="OnChangePrincipalPhoto" />
                 <Button Content="{loc:Tr UgRemove}" Click="OnRemovePrincipalPhoto" IsVisible="{Binding HasSelectedPrincipalPhoto}" />
+                <!-- The user's enrolled keys, to see and revoke (#2278): where the row names them. -->
+                <Button Content="{loc:Tr UgKeys}" Click="OnPrincipalKeys" IsVisible="{Binding SelectedPrincipalHasKeys}" />
                 <!-- Admin password reset — ADR "User password management". -->
                 <Button Content="{loc:Tr UgResetPassword}" Click="OnResetPrincipalPassword" />
                 <!-- Two-factor status + admin reset — ADR "MFA (interactive login, TOTP)". -->

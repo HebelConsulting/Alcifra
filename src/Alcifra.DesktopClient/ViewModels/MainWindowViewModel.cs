@@ -782,7 +782,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
             CanViewAuditLog = me.CanViewAuditLog;
             Audit.IsTenantAdmin = me.IsTenantAdmin;
             MfaEnabled = me.MfaEnabled;
-            CanSelfEnrol = await OffersSelfEnrolmentAsync();
+            await LoadAccountOffersAsync();
             await LoadDemoProfileAsync();
             CanResetMfa = me.CanResetMfa;
             CanLegalHold = me.CanLegalHold;

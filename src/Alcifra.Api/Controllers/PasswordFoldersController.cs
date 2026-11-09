@@ -51,7 +51,8 @@ public class PasswordFoldersController(
     [HttpPost("folders")]
     public async Task<IActionResult> CreateFolder(Guid folderId, [FromBody] CreatePasswordItemRequest request, CancellationToken cancellationToken)
     {
-        var child = await CreateAsync(folderId, request, WellKnownMaskIds.PasswordFolder, cancellationToken);
+        // A flat store (the CI/CD Store, ADR 1084) has no folder mask, and its resource offers no folders rel.
+        var child = await CreateAsync(folderId, request, folder => folder.Family.FolderMask, cancellationToken);
         if (child is null)
         {
             return Forbid();
@@ -71,7 +72,7 @@ public class PasswordFoldersController(
     [HttpPost("entries")]
     public async Task<IActionResult> CreateEntry(Guid folderId, [FromBody] CreatePasswordItemRequest request, CancellationToken cancellationToken)
     {
-        var child = await CreateAsync(folderId, request, WellKnownMaskIds.PasswordEntry, cancellationToken,
+        var child = await CreateAsync(folderId, request, folder => folder.Family.EntryMask, cancellationToken,
             beforeWrite: folder => entryCreation.RequireAsync(folder.StoreId, cancellationToken));
         if (child is null)
         {
@@ -83,10 +84,11 @@ public class PasswordFoldersController(
         return Created(PasswordStoreResourceBuilder.EntryHref(created.Id), await resources.EntryAsync(created, cancellationToken));
     }
 
-    // The one create both kinds share: a document of the store's mask, by name, under this store or folder. What differs
-    // per kind before the write (an entry's sealing check, ADR 0982) is passed in.
+    // The one create both kinds share: a document of the store family's mask, by name, under this store or folder. What
+    // differs per kind (which mask, an entry's sealing check, ADR 0982) is passed in.
     private async Task<Document?> CreateAsync(
-        Guid folderId, CreatePasswordItemRequest request, Guid maskId, CancellationToken cancellationToken, Func<PasswordItem, Task>? beforeWrite = null)
+        Guid folderId, CreatePasswordItemRequest request, Func<PasswordItem, Guid?> maskOf, CancellationToken cancellationToken,
+        Func<PasswordItem, Task>? beforeWrite = null)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
@@ -94,6 +96,7 @@ public class PasswordFoldersController(
         }
 
         var folder = await VisibleFolderAsync(folderId, cancellationToken);
+        var maskId = maskOf(folder) ?? throw new NotAPasswordStoreItemException();
         if (!(await access.GetCallerRightsAsync(folder.Id, cancellationToken)).CanCreateSubItems)
         {
             return null;

@@ -46,7 +46,7 @@ public partial class MainWindow
         var result = await new PrincipalDialog(p.IsGroup, initialName, "").ShowDialog<PrincipalDialog.Result?>(this);
         if (result is not null)
         {
-            await vm.CreatePrincipalAsync(p.IsGroup, result.Name, result.Email, p.Rights);
+            await vm.CreatePrincipalAsync(p.IsGroup, result.Name, result.Email, p.Rights, p.IsGroup ? null : p.Id);
         }
     });
 
@@ -136,6 +136,17 @@ public partial class MainWindow
         if (await vm.ResetSelectedUserPasswordAsync() is { } password)
         {
             await new GeneratedPasswordDialog(p.Name, password).ShowDialog(this);
+        }
+    });
+
+    // The selected user's enrolled keys (#2278, ADR 1083), from the row's `certificates` rel.
+    internal void OnPrincipalKeys(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is MainWindowViewModel { Api: { } api } vm
+            && vm.SelectedPrincipal is { IsGroup: false, Source: { } source } p
+            && source.Href("certificates") is { } href)
+        {
+            await new KeysDialog(api, href, string.Format(Strings.Get("KeysTitleOf"), p.Name)).ShowDialog(this);
         }
     });
 

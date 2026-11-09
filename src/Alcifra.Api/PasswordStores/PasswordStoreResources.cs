@@ -27,6 +27,9 @@ public class PasswordStoreSummary : HypermediaResource
 /// <summary>A store or a folder in one, with its direct contents (folders first, then by name).</summary>
 public class PasswordFolderResource : HypermediaResource
 {
+    /// <summary>Which kind of sealed store (ADR 1084): <c>password</c> or <c>cicd</c>.</summary>
+    public string StoreKind { get; set; } = "password";
+
     public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
@@ -77,6 +80,12 @@ public class PasswordFolderResource : HypermediaResource
 /// <summary>One row of a folder: a folder or an entry, with the flags that gate its actions (ADR 0719).</summary>
 public class PasswordItemResource : HypermediaResource
 {
+    /// <summary>Which kind of sealed store (ADR 1084): <c>password</c> or <c>cicd</c>.</summary>
+    public string StoreKind { get; set; } = "password";
+
+    /// <summary>A CI/CD secret's plain index data (ADR 1084): its targets, key names and variables; null on a password entry.</summary>
+    public CiCdIndex? CiCd { get; set; }
+
     public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
@@ -124,6 +133,12 @@ public class PasswordItemResource : HypermediaResource
 /// <summary>One entry: what opening, editing and re-sealing it needs. Its ETag is the <c>If-Match</c> of a new version.</summary>
 public class PasswordEntryResource : HypermediaResource
 {
+    /// <summary>Which kind of sealed store (ADR 1084): <c>password</c> or <c>cicd</c>.</summary>
+    public string StoreKind { get; set; } = "password";
+
+    /// <summary>A CI/CD secret's plain index data (ADR 1084): its targets, key names and variables; null on a password entry.</summary>
+    public CiCdIndex? CiCd { get; set; }
+
     public Guid Id { get; set; }
 
     public string Name { get; set; } = string.Empty;

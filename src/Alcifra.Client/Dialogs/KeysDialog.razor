@@ -1,0 +1,20 @@
+@* A person's enrolled keys (#2278, ADR 1083): "My keys" from the account menu, or a user's from the Users tab. *@
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 460px;">
+            <Alcifra.Client.Components.Keys.EnrolledKeyList Href="@Href" />
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialog.Close()">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance Dialog { get; set; } = null!;
+
+    /// <summary>The listing's address: the root's <c>certificates</c>, or a user's <c>certificates</c> rel.</summary>
+    [Parameter, EditorRequired]
+    public string Href { get; set; } = string.Empty;
+}

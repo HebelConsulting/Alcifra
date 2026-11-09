@@ -71,6 +71,8 @@
   <ItemGroup>
     <!-- The generated test attestation hierarchy (ADR 0963), shared by the suites that verify attested enrolment. -->
     <Compile Include="..\Shared\TestAttestationHierarchy.cs" Link="Shared\TestAttestationHierarchy.cs" />
+    <!-- A throwaway key for the signed-in caller (#2278), shared with the web suite. -->
+    <Compile Include="..\Shared\TestKeyEnrolment.cs" Link="Shared\TestKeyEnrolment.cs" />
   </ItemGroup>
 
 </Project>

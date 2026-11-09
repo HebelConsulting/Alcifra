@@ -54,6 +54,7 @@ public class ConsoleOutputRatchetTests
         ["src/Alcifra.Pass/Commands/ShowCommand.cs"] = 1,   // data output only: the entry's fields in the form's order
         ["src/Alcifra.Pass/Commands/PasswordCommand.cs"] = 1,   // data output only: the entry's password (ADR 1024)
         ["src/Alcifra.Pass/Commands/OtpCommand.cs"] = 1,   // data output only: the current verification code (ADR 1013)
+        ["src/Alcifra.Pass/Commands/CiCdShowCommand.cs"] = 1,   // data output only: one CI/CD secret's value (ADR 1084)
         ["src/Alcifra.Pass/Commands/GenerateCommand.cs"] = 1,   // data output only: the secret it generated
         ["src/Alcifra.Pass/Commands/CompletionCommand.cs"] = 1,   // data output only: the completion script
         ["src/Alcifra.Pass/Infrastructure/Completion.cs"] = 1,   // data output only: candidates a shell captures

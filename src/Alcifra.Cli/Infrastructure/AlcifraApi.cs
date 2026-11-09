@@ -185,7 +185,8 @@ public sealed class AlcifraApi(HttpClient http)
             throw new CliException(Describe(response.StatusCode, body, path));
         }
 
-        return JsonDocument.Parse(body).RootElement.Clone();
+        // A transition may answer 204 (revoking a key, #2278), as a PUT may.
+        return string.IsNullOrWhiteSpace(body) ? default : JsonDocument.Parse(body).RootElement.Clone();
     }
 
     /// <summary>

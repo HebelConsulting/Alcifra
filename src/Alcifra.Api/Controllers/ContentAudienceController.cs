@@ -207,7 +207,12 @@ public class ContentAudienceController(
         var resource = new ContentAudienceResource
         {
             DocumentId = root.DocumentId,
-            Kind = root.Kind == AudienceKind.PasswordStore ? "password-store" : "sealed-document",
+            Kind = root.Kind switch
+            {
+                AudienceKind.PasswordStore => "password-store",
+                AudienceKind.CiCdStore => "cicd-store",
+                _ => "sealed-document",
+            },
             IsPersonal = root.IsPersonal,
             ETag = Tag(root.ConcurrencyToken),
             CanManage = canManage,

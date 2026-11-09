@@ -15,6 +15,9 @@ public enum AudienceKind
 {
     PasswordStore,
     SealedDocument,
+
+    /// <summary>A CI/CD store (ADR 1084): declares the audience its secrets are sealed to, as a Password Store does.</summary>
+    CiCdStore,
 }
 
 /// <summary>
@@ -70,6 +73,7 @@ public sealed class ContentAudience(
     public static AudienceKind? DeclaredBy(Guid? maskId) =>
         maskId == WellKnownMaskIds.PasswordStore ? AudienceKind.PasswordStore
         : maskId == WellKnownMaskIds.SealedDocument ? AudienceKind.SealedDocument
+        : maskId == WellKnownMaskIds.CiCdStore ? AudienceKind.CiCdStore
         : null;
 
     /// <summary>
@@ -270,7 +274,7 @@ public sealed class ContentAudience(
     /// </summary>
     public async Task<bool> MayMoveAsync(Guid itemId, Guid targetParentId, CancellationToken cancellationToken)
     {
-        if (await RootOfAsync(itemId, cancellationToken) is not { Kind: AudienceKind.PasswordStore } from
+        if (await RootOfAsync(itemId, cancellationToken) is not { Kind: AudienceKind.PasswordStore or AudienceKind.CiCdStore } from
             || from.DocumentId == itemId
             || await RootOfAsync(targetParentId, cancellationToken) is not { } to
             || to.DocumentId == from.DocumentId)

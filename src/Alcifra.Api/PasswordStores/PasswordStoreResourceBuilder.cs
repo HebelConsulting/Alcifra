@@ -20,7 +20,8 @@ public sealed class PasswordStoreResourceBuilder(
     IObjectStorageClient storage,
     OmittableLinks omittable,
     Alcifra.Api.Audience.ContentAudience audience,
-    ICurrentUserAccessor currentUser)
+    ICurrentUserAccessor currentUser,
+    IAuditRecorder audit)
 {
     private static readonly TimeSpan ContentLinkExpiry = TimeSpan.FromMinutes(15);
 
@@ -41,6 +42,7 @@ public sealed class PasswordStoreResourceBuilder(
         // One query for the autofill index of every row in the folder (ADR 0973): the sheet a client shows lists
         // entries and their sites without opening any of them.
         var index = await PasswordIndexValues.LoadAsync(dbContext, [.. children.Select(c => c.Id)], cancellationToken);
+        var cicd = await CiCdIndexValues.LoadAsync(dbContext, [.. children.Select(c => c.Id)], cancellationToken);
         var store = folder.Kind == PasswordItemKind.Store ? folder : await tree.FindAsync(folder.StoreId, cancellationToken) ?? folder;
         var state = await sealing.StateAsync(store, cancellationToken);
         var needsReseal = state.EntriesNeedingReseal.Count > 0;
@@ -58,6 +60,7 @@ public sealed class PasswordStoreResourceBuilder(
             Name = folder.Name,
             DisplayName = ParentQualifiedName.For(parentName, folder.Name),
             Kind = folder.Kind == PasswordItemKind.Store ? "store" : "folder",
+            StoreKind = KindName(folder.Family),
             StoreId = folder.StoreId,
             IsPersonal = IsPersonal(folder),
             ETag = Tag(folder.ConcurrencyToken),
@@ -69,7 +72,7 @@ public sealed class PasswordStoreResourceBuilder(
             [
                 .. children
                     .Where(c => childRights.TryGetValue(c.Id, out var r) && r.CanSee)
-                    .Select(c => Row(c, childRights[c.Id], index.GetValueOrDefault(c.Id))),
+                    .Select(c => Row(c, childRights[c.Id], index.GetValueOrDefault(c.Id), cicd.GetValueOrDefault(c.Id))),
             ],
         };
 
@@ -97,7 +100,11 @@ public sealed class PasswordStoreResourceBuilder(
                 resource.Links.Add(new Link("password-entries", $"{FolderHref(folder.Id)}/entries", "POST"));
             }
 
-            resource.Links.Add(new Link("password-folders", $"{FolderHref(folder.Id)}/folders", "POST"));
+            // A flat store (the CI/CD Store, ADR 1084) has no folders to make.
+            if (folder.Family.FolderMask is not null)
+            {
+                resource.Links.Add(new Link("password-folders", $"{FolderHref(folder.Id)}/folders", "POST"));
+            }
         }
 
         if (needsReseal && (await access.GetCallerRightsAsync(folder.StoreId, cancellationToken)).CanEditContent)
@@ -115,11 +122,14 @@ public sealed class PasswordStoreResourceBuilder(
         var version = await CurrentVersion.ResolveAsync(dbContext.DocumentVersions, entry.Id, entry.CurrentVersionId, cancellationToken);
         var certificates = await readers.CertificatesAsync(entry.StoreId, cancellationToken);
         var index = (await PasswordIndexValues.LoadAsync(dbContext, [entry.Id], cancellationToken)).GetValueOrDefault(entry.Id);
+        var cicd = (await CiCdIndexValues.LoadAsync(dbContext, [entry.Id], cancellationToken)).GetValueOrDefault(entry.Id);
 
         var resource = new PasswordEntryResource
         {
             Id = entry.Id,
             Name = entry.Name,
+            StoreKind = KindName(entry.Family),
+            CiCd = cicd,
             StoreId = entry.StoreId,
             ParentId = entry.ParentId ?? entry.StoreId,
             CurrentVersionId = version?.Id,
@@ -158,6 +168,16 @@ public sealed class PasswordStoreResourceBuilder(
                 "content") is { } content)
         {
             resource.Links.Add(new Link("content", content.ToString(), "GET"));
+
+            // The one point the server sees a CI/CD secret's sealed values leave (ADR 1084): the bytes come from storage, so
+            // handing out their address is the delivery. Recorded by entry, never with anything of the content.
+            if (entry.Family == SealedStoreFamily.CiCd)
+            {
+                await audit.RecordAsync(Controllers.AuditActions.CiCdSecretRead, "Document", entry.Id, entry.Name, cancellationToken: cancellationToken);
+
+                // Where the client says what it did with a value it opened: revealed, or applied to a target.
+                resource.Links.Add(new Link("cicd-report", $"{EntryHref(entry.Id)}/cicd-reports", "POST"));
+            }
         }
 
         if (rights.CanEditContent)
@@ -173,13 +193,15 @@ public sealed class PasswordStoreResourceBuilder(
         return resource;
     }
 
-    private PasswordItemResource Row(PasswordItem item, EffectiveRights rights, PasswordIndexValues? index)
+    private PasswordItemResource Row(PasswordItem item, EffectiveRights rights, PasswordIndexValues? index, CiCdIndex? cicd)
     {
         var row = new PasswordItemResource
         {
             Id = item.Id,
             Name = item.Name,
             Kind = item.Kind == PasswordItemKind.Folder ? "folder" : "entry",
+            StoreKind = KindName(item.Family),
+            CiCd = cicd,
             ETag = Tag(item.ConcurrencyToken),
             // An entry's autofill index (ADR 0973); a folder has none.
             Site = item.Kind == PasswordItemKind.Entry ? index?.Site : null,
@@ -205,6 +227,9 @@ public sealed class PasswordStoreResourceBuilder(
 
         return row;
     }
+
+    /// <summary>The family's wire name (ADR 1084), which clients read to tell the two kinds of store apart.</summary>
+    public static string KindName(SealedStoreFamily family) => family == SealedStoreFamily.CiCd ? "cicd" : "password";
 
     private bool IsPersonal(PasswordItem item) => item.PersonalRootOwnerId is { } owner && owner == currentUser.UserId;
 }

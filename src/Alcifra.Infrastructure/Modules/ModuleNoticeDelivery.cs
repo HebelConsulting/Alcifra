@@ -81,8 +81,9 @@ public sealed class ModuleNoticeDelivery(
             .Select(d => new { d.Name, d.CurrentVersionId }).SingleOrDefaultAsync(cancellationToken)
             ?? throw new ArgumentException($"The attachment document {documentId} does not exist.", nameof(documentId));
         // Encrypted content goes only to its audience (ADR 0983), and a mail goes to whoever the module names.
+        var sealedMasks = WellKnownMaskIds.SealedContentMasks.Keys.ToList();
         if (await dbContext.Documents.Where(d => d.Id == documentId).AnyAsync(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId
-                && (v.MaskId == WellKnownMaskIds.PasswordEntry || v.MaskId == WellKnownMaskIds.SealedDocument)), cancellationToken))
+                && sealedMasks.Contains(v.MaskId)), cancellationToken))
         {
             throw new ArgumentException($"The attachment document {documentId} is encrypted content, which is never attached to a notice.", nameof(documentId));
         }

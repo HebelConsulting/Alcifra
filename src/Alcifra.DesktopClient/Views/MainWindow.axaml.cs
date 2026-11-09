@@ -87,6 +87,20 @@ public partial class MainWindow : Window
                 vm.NameConflictDialog = req => new NameConflictDialog(req).ShowDialog<Services.UploadConflictResolver.NameConflictChoice?>(this);
                 vm.ShowReminderDialog = rvm => new ReminderDialog(rvm).ShowDialog(this);
                 vm.ShowBookingDialog = bvm => new BookingDialog(bvm).ShowDialog(this);
+                // The CI/CD store (ADR 1084): its editor, and saving a file secret as the bytes it was.
+                vm.ShowCiCdEditor = editor => new CiCdEntryDialog(editor).ShowDialog<bool>(this);
+                vm.SaveCiCdFile = async (name, bytes) =>
+                {
+                    var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { SuggestedFileName = name });
+                    if (file is null)
+                    {
+                        return false;
+                    }
+
+                    await using var stream = await file.OpenWriteAsync();
+                    await stream.WriteAsync(bytes);
+                    return true;
+                };
                 vm.RunWorkflowTransitionInView = transition => RunWorkflowTransitionAsync(vm, transition);
 
                 // The picker a module action opens (core ADR 0786). A settable callback rather than a

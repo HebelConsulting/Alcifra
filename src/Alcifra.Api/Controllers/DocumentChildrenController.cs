@@ -672,6 +672,15 @@ public class DocumentChildrenController : ControllerBase
             throw new Errors.Exceptions.PasswordStores.PasswordEntryUsesItsStoreException();
         }
 
+        // A CI/CD secret likewise (ADR 1084): named, or implied by an unnamed item in a CI/CD store, which holds nothing else.
+        if (request.MaskId == WellKnownMaskIds.CiCdSecret
+            || (request.MaskId is null && request.FolderMask is not { Length: > 0 }
+                && parent.MaskVersionId is { } cicdParentVersion
+                && await _dbContext.MaskVersions.AnyAsync(v => v.Id == cicdParentVersion && v.MaskId == WellKnownMaskIds.CiCdStore, cancellationToken)))
+        {
+            throw new Errors.Exceptions.PasswordStores.CiCdSecretUsesItsStoreException();
+        }
+
         var rules = await _containment.ForAsync(_dbContext, parent.TenantId, cancellationToken);
         var folderMaskId = WellKnownMaskIds.Folder;
         var folderMaskRequested = request.MaskId is not null || request.FolderMask is { Length: > 0 };

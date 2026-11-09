@@ -82,7 +82,6 @@ public partial class ExemptControllerShapeTests
         ["ModulesController.cs"] = 5,
         ["NotebookController.cs"] = 2,
         ["PasswordFoldersController.cs"] = 2,
-        ["PasswordStoresController.cs"] = 1,
         ["NotificationsController.cs"] = 3,
         ["PasskeysController.cs"] = 3,
         ["PersonalRepositoryController.cs"] = 1,

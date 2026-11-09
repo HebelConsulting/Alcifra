@@ -304,6 +304,9 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec("Valid from", FieldDataType.DateTime, IsRequired: false),
             new FieldSpec("Valid until", FieldDataType.DateTime, IsRequired: false),
             new FieldSpec("Revoked on", FieldDataType.DateTime, IsRequired: false),
+            // Why it was revoked (#2278, ADR 1083): a code (lost, compromised, replaced, left) the clients translate, or the
+            // holder's or administrator's own words for "Other". Written with Revoked on by the revoke transition.
+            new FieldSpec("Revocation reason", FieldDataType.Text, IsRequired: false),
         ], cancellationToken);
 
         // The manuals folder and what it holds (ADR 0891). The folder mask is fieldless and CORE-OWNED — the core
@@ -346,6 +349,18 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.PasskeySite, FieldDataType.Text, IsRequired: false),
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.PasskeyId, FieldDataType.Text, IsRequired: false),
             new FieldSpec(WellKnownMaskIds.PasswordEntryFields.PasskeyUserHandle, FieldDataType.Text, IsRequired: false),
+        ], cancellationToken);
+
+        // The CI/CD store (ADR 1084): a fieldless flat folder, and its rotation units. Everything a dry run compares is plain
+        // index data (targets, key names, variables); only the secret values are sealed, in the content.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.CiCdStore, "CI/CD Store", [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.CiCdSecret, "CI/CD Secret",
+        [
+            new FieldSpec(WellKnownMaskIds.CiCdSecretFields.Targets, FieldDataType.Text, IsRequired: false, IsList: true),
+            new FieldSpec(WellKnownMaskIds.CiCdSecretFields.SecretKeys, FieldDataType.Text, IsRequired: false, IsList: true),
+            new FieldSpec(WellKnownMaskIds.CiCdSecretFields.FileKeys, FieldDataType.Text, IsRequired: false, IsList: true),
+            new FieldSpec(WellKnownMaskIds.CiCdSecretFields.Variables, FieldDataType.Text, IsRequired: false, IsList: true),
+            new FieldSpec(WellKnownMaskIds.CiCdSecretFields.ExposedSince, FieldDataType.Date, IsRequired: false),
         ], cancellationToken);
 
         // A sealed document (owner decision 2026-10-24): the content is a CMS envelope sealed on the device to an

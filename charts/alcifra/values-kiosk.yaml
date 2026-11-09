@@ -86,5 +86,7 @@ extraEnv:
     value: "Demo"
   - name: Demo__Administrator__Email
     value: "admin@demo.alcifra.dev"
+  - name: Demo__Administrator__DisplayName
+    value: "Demo Admin"
   - name: Demo__Administrator__Password
     value: "SimplDemo2026!"

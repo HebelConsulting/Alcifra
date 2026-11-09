@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:i="using:Projektanker.Icons.Avalonia"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        x:Class="Alcifra.DesktopClient.Views.CiCdEntryDialog"
+        x:DataType="vm:CiCdEntryEditorViewModel"
+        Title="{Binding Title}" Width="720" SizeToContent="Height" MaxHeight="820" CanResize="True"
+        WindowStartupLocation="CenterOwner">
+  <!-- A CI/CD secret (ADR 1084): its name when new, its targets one per line, and its keys. A file comes from the picker
+       on its row or is dropped anywhere on the window, where it becomes a new file key named after it. Nothing is sent
+       before Save, and Save seals the values to the store's audience on this machine. -->
+  <DockPanel x:Name="DropArea" Margin="18" DragDrop.AllowDrop="True">
+    <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,10,0,0">
+      <TextBlock Text="{Binding Problems}" IsVisible="{Binding HasProblems}" Foreground="{DynamicResource WbWarning}" TextWrapping="Wrap" FontSize="12" />
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Content="{loc:Tr Cancel}" Click="OnCancel" IsCancel="True" />
+        <Button Content="{loc:Tr CiCdSave}" Command="{Binding SaveCommand}" IsDefault="True" Classes="accent" />
+      </StackPanel>
+    </StackPanel>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="8">
+        <TextBlock Text="{loc:Tr CiCdName}" FontWeight="SemiBold" FontSize="12" IsVisible="{Binding IsNew}" />
+        <TextBox Text="{Binding Name}" IsVisible="{Binding IsNew}" Watermark="{loc:Tr CiCdNameHint}" />
+
+        <TextBlock Text="{loc:Tr CiCdTargets}" FontWeight="SemiBold" FontSize="12" />
+        <TextBox Text="{Binding TargetsText}" AcceptsReturn="True" MinHeight="56" FontFamily="Menlo,Consolas,monospace"
+                 Watermark="github:owner/repository" />
+        <TextBlock Text="{loc:Tr CiCdTargetsHint}" Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" />
+
+        <TextBlock Text="{loc:Tr CiCdKeys}" FontWeight="SemiBold" FontSize="12" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Keys}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CiCdKeyRowViewModel">
+              <Grid ColumnDefinitions="200,110,*,Auto" ColumnSpacing="6" Margin="0,3">
+                <TextBox Grid.Column="0" Text="{Binding Name}" FontFamily="Menlo,Consolas,monospace" Watermark="KEY_NAME" />
+                <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:CiCdKeyRowViewModel.KindLabels}" SelectedIndex="{Binding KindIndex}" HorizontalAlignment="Stretch" />
+                <TextBox Grid.Column="2" Text="{Binding Text}" IsVisible="{Binding IsSecretText}" PasswordChar="•" />
+                <TextBox Grid.Column="2" Text="{Binding Text}" IsVisible="{Binding IsVariable}" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsFile}">
+                  <Button Content="{loc:Tr CiCdChooseFile}" Click="OnChooseFile" />
+                  <TextBlock Text="{Binding FileLabel}" VerticalAlignment="Center" Foreground="{DynamicResource WbMuted}" />
+                </StackPanel>
+                <Button Grid.Column="3" Click="OnRemoveKey" ToolTip.Tip="{loc:Tr CiCdRemoveKey}" AutomationProperties.Name="{loc:Tr CiCdRemoveKey}" Padding="6,4">
+                  <i:Icon Value="mdi-close" FontSize="14" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Command="{Binding AddKeyCommand}" Content="{loc:Tr CiCdAddKey}" HorizontalAlignment="Left" />
+        <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,4,0,0">
+          <TextBlock Text="{loc:Tr CiCdDropHint}" Foreground="{DynamicResource WbMuted}" HorizontalAlignment="Center" TextWrapping="Wrap" />
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

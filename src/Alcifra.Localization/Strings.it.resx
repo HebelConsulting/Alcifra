@@ -7089,4 +7089,211 @@
   <data name="PvMediaUseApp" xml:space="preserve">
     <value>File video o audio: aprilo in un'applicazione per riprodurlo.</value>
   </data>
+  <data name="CardSourceVCard" xml:space="preserve">
+    <value>Sorgente vCard</value>
+  </data>
+  <data name="CardSourceICalendar" xml:space="preserve">
+    <value>Sorgente iCalendar</value>
+  </data>
+  <data name="CardSourceUnreadable" xml:space="preserve">
+    <value>Non è stato possibile leggere il file salvato.</value>
+  </data>
+  <data name="StCopyRightsRefused" xml:space="preserve">
+    <value>La copia riceverebbe diritti che lei stesso non possiede, quindi non è stato creato alcun utente.</value>
+  </data>
+  <data name="StCopySourceGone" xml:space="preserve">
+    <value>L'utente da copiare non esiste più, quindi non è stato creato alcun utente.</value>
+  </data>
+  <data name="StGroupCopyRightsRefused" xml:space="preserve">
+    <value>Il gruppo è stato creato, ma i suoi diritti non sono stati copiati: lei non li possiede tutti.</value>
+  </data>
+  <data name="AccountMyKeys" xml:space="preserve">
+    <value>Le mie chiavi…</value>
+  </data>
+  <data name="KeysTitleMine" xml:space="preserve">
+    <value>Le mie chiavi</value>
+  </data>
+  <data name="KeysTitleOf" xml:space="preserve">
+    <value>Chiavi di {0}</value>
+  </data>
+  <data name="KeysNone" xml:space="preserve">
+    <value>Nessuna chiave registrata.</value>
+  </data>
+  <data name="KeysLoadError" xml:space="preserve">
+    <value>Impossibile caricare le chiavi.</value>
+  </data>
+  <data name="KeysRevokedOn" xml:space="preserve">
+    <value>Revocata il {0}</value>
+  </data>
+  <data name="KeysRevokedBecause" xml:space="preserve">
+    <value>Revocata il {0}: {1}</value>
+  </data>
+  <data name="KeysRevoke" xml:space="preserve">
+    <value>Revoca…</value>
+  </data>
+  <data name="UgKeys" xml:space="preserve">
+    <value>Chiavi…</value>
+  </data>
+  <data name="RevokeTitle" xml:space="preserve">
+    <value>Revoca chiave</value>
+  </data>
+  <data name="RevokeConfirm" xml:space="preserve">
+    <value>Revocare «{0}»? Nulla verrà più sigillato per questa chiave e ciò che poteva leggere viene segnato come esposto. L'operazione non è reversibile.</value>
+  </data>
+  <data name="RevokeReason" xml:space="preserve">
+    <value>Motivo</value>
+  </data>
+  <data name="RevokeReasonLost" xml:space="preserve">
+    <value>Smarrita</value>
+  </data>
+  <data name="RevokeReasonCompromised" xml:space="preserve">
+    <value>Rubata o compromessa</value>
+  </data>
+  <data name="RevokeReasonReplaced" xml:space="preserve">
+    <value>Sostituita da una nuova chiave</value>
+  </data>
+  <data name="RevokeReasonLeft" xml:space="preserve">
+    <value>Il titolare ha lasciato l'organizzazione</value>
+  </data>
+  <data name="RevokeReasonOther" xml:space="preserve">
+    <value>Altro</value>
+  </data>
+  <data name="RevokeOtherText" xml:space="preserve">
+    <value>Il motivo con parole tue</value>
+  </data>
+  <data name="RevokeAdvice" xml:space="preserve">
+    <value>Sostituisci una chiave? Registra prima la nuova, poi revoca questa, così gli elementi sigillati restano leggibili.</value>
+  </data>
+  <data name="RevokeOnlyKey" xml:space="preserve">
+    <value>Questa è l'unica chiave valida. Finché non ne viene registrata un'altra, gli elementi sigillati non si possono aprire.</value>
+  </data>
+  <data name="RevokeSubmit" xml:space="preserve">
+    <value>Revoca</value>
+  </data>
+  <data name="RevokeFailed" xml:space="preserve">
+    <value>Impossibile revocare la chiave.</value>
+  </data>
+  <data name="StKeyRevoked" xml:space="preserve">
+    <value>Chiave revocata.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyRevoked" xml:space="preserve">
+    <value>Questa chiave è già stata revocata.</value>
+  </data>
+  <data name="ApiErrCertificateRevocationNotAllowed" xml:space="preserve">
+    <value>Solo il titolare della chiave o un amministratore che gestisce gli utenti può revocarla.</value>
+  </data>
+  <data name="CiCdTargets" xml:space="preserve">
+    <value>Destinazioni</value>
+  </data>
+  <data name="CiCdTargetsHint" xml:space="preserve">
+    <value>Una per riga: github:owner/repository oppure github:owner/repository@environment.</value>
+  </data>
+  <data name="CiCdSecrets" xml:space="preserve">
+    <value>Segreti</value>
+  </data>
+  <data name="CiCdVariables" xml:space="preserve">
+    <value>Variabili</value>
+  </data>
+  <data name="CiCdKeys" xml:space="preserve">
+    <value>Chiavi</value>
+  </data>
+  <data name="CiCdOpen" xml:space="preserve">
+    <value>Apri con la chiave</value>
+  </data>
+  <data name="CiCdEdit" xml:space="preserve">
+    <value>Modifica…</value>
+  </data>
+  <data name="CiCdSaveAs" xml:space="preserve">
+    <value>Salva con nome…</value>
+  </data>
+  <data name="CiCdFileSize" xml:space="preserve">
+    <value>File, {0}</value>
+  </data>
+  <data name="CiCdStoredFile" xml:space="preserve">
+    <value>File archiviato</value>
+  </data>
+  <data name="CiCdNoFile" xml:space="preserve">
+    <value>Nessun file scelto</value>
+  </data>
+  <data name="CiCdUnreadable" xml:space="preserve">
+    <value>Il contenuto sigillato di questo segreto non è una voce CI/CD.</value>
+  </data>
+  <data name="CiCdNewTitle" xml:space="preserve">
+    <value>Nuovo segreto CI/CD</value>
+  </data>
+  <data name="CiCdEditTitle" xml:space="preserve">
+    <value>Modifica segreto CI/CD</value>
+  </data>
+  <data name="CiCdName" xml:space="preserve">
+    <value>Nome</value>
+  </data>
+  <data name="CiCdKindSecret" xml:space="preserve">
+    <value>Segreto</value>
+  </data>
+  <data name="CiCdKindFile" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="CiCdKindVariable" xml:space="preserve">
+    <value>Variabile</value>
+  </data>
+  <data name="CiCdChooseFile" xml:space="preserve">
+    <value>Scegli file…</value>
+  </data>
+  <data name="CiCdRemoveKey" xml:space="preserve">
+    <value>Rimuovi questa chiave</value>
+  </data>
+  <data name="CiCdAddKey" xml:space="preserve">
+    <value>Aggiungi chiave</value>
+  </data>
+  <data name="CiCdDropHint" xml:space="preserve">
+    <value>Trascina qui un file per aggiungerlo come segreto file.</value>
+  </data>
+  <data name="CiCdFileTooLarge" xml:space="preserve">
+    <value>«{0}» supera 1 MB, più di quanto un segreto CI possa contenere.</value>
+  </data>
+  <data name="CiCdSave" xml:space="preserve">
+    <value>Salva</value>
+  </data>
+  <data name="CiCdChangedMeanwhile" xml:space="preserve">
+    <value>Qualcuno ha modificato questo segreto nel frattempo. Chiudi, riaprilo e ripeti la modifica.</value>
+  </data>
+  <data name="CiCdNotYours" xml:space="preserve">
+    <value>Non puoi leggere questo archivio CI/CD.</value>
+  </data>
+  <data name="CiCdCreated" xml:space="preserve">
+    <value>Segreto CI/CD «{0}» creato.</value>
+  </data>
+  <data name="CiCdSaved" xml:space="preserve">
+    <value>Segreto CI/CD «{0}» salvato.</value>
+  </data>
+  <data name="CiCdProblemNoName" xml:space="preserve">
+    <value>Dai un nome al segreto.</value>
+  </data>
+  <data name="CiCdProblemNoTarget" xml:space="preserve">
+    <value>Indica almeno una destinazione.</value>
+  </data>
+  <data name="CiCdProblemNoFile" xml:space="preserve">
+    <value>Una chiave file non ha ancora un file.</value>
+  </data>
+  <data name="CiCdProblemInvalidKeyName" xml:space="preserve">
+    <value>Il nome di una chiave può contenere solo lettere, cifre e trattini bassi, e non può iniziare con una cifra o con GITHUB_.</value>
+  </data>
+  <data name="CiCdProblemDuplicateKeyName" xml:space="preserve">
+    <value>Due chiavi hanno lo stesso nome.</value>
+  </data>
+  <data name="CiCdProblemFileKeyNotASecret" xml:space="preserve">
+    <value>Una chiave file deve essere un segreto.</value>
+  </data>
+  <data name="CiCdProblemInvalidVariable" xml:space="preserve">
+    <value>Una variabile ha bisogno di un nome.</value>
+  </data>
+  <data name="CiCdProblemInvalidTarget" xml:space="preserve">
+    <value>Una destinazione deve essere github:owner/repository oppure github:owner/repository@environment.</value>
+  </data>
+  <data name="CiCdNameHint" xml:space="preserve">
+    <value>Certificato Developer ID</value>
+  </data>
+  <data name="CiCdNewSecret" xml:space="preserve">
+    <value>Segreto CI/CD…</value>
+  </data>
 </root>

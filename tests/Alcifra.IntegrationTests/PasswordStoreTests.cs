@@ -327,6 +327,26 @@ public sealed partial class PasswordStoreTests : IDisposable
         Assert.Single(_storage.Objects.Keys, k => k.Contains($"/{entry}/", StringComparison.Ordinal));
     }
 
+    // #2281: a Sealed document is sealed too, and its versions are filed through the same guard, but its history is part
+    // of the document (retention, legal hold and WORM apply). The history rules of a sealed STORE's entry never touch it.
+    [Fact]
+    public async Task A_sealed_documents_earlier_version_survives_the_history_rules()
+    {
+        using var reader = Certificate("reader");
+        var (repository, _) = await StoreAsync();
+        var document = await AddAsync("Board pack", repository, WellKnownMaskIds.SealedDocument);
+        var old = await VersionAsync(document, Sealed(reader), DateTimeOffset.UtcNow.AddDays(-3), 1);
+        var current = await VersionAsync(document, Sealed(reader), DateTimeOffset.UtcNow.AddDays(-2), 2);
+
+        using (var db = Ctx())
+        {
+            var outcome = await History(db).ReconcileAsync(document, DateTimeOffset.UtcNow, [], CancellationToken.None);
+            Assert.Equal(0, outcome.VersionsDeleted);
+        }
+
+        Assert.Equal([old, current], await VersionIdsAsync(document));
+    }
+
     [Fact]
     public async Task Two_instances_acting_on_one_read_delete_a_version_once()
     {
@@ -412,7 +432,7 @@ public sealed partial class PasswordStoreTests : IDisposable
     [Fact]
     public async Task Password_store_masks_are_kept_out_of_retention_and_legal_hold()
     {
-        Assert.All(WellKnownMaskIds.PasswordStoreMasks, mask =>
+        Assert.All(WellKnownMaskIds.SealedStoreMasks, mask =>
         {
             Assert.Contains(mask, ModuleMaskDeclarations.None.NotRetained);
             Assert.Contains(mask, ModuleMaskDeclarations.None.NotHeld);
@@ -443,14 +463,14 @@ public sealed partial class PasswordStoreTests : IDisposable
         // Both instances decided from the same read that it is due; the one statement that removes it is the claim.
         using var first = Ctx();
         using var second = Ctx();
-        Assert.True(await History(first).RemoveAbandonedAsync(abandoned, "Never uploaded", _tenantId, CancellationToken.None));
-        Assert.False(await History(second).RemoveAbandonedAsync(abandoned, "Never uploaded", _tenantId, CancellationToken.None));
+        Assert.True(await History(first).RemoveAbandonedAsync(abandoned, "Never uploaded", _tenantId, Alcifra.Api.PasswordStores.SealedStoreFamily.Password, CancellationToken.None));
+        Assert.False(await History(second).RemoveAbandonedAsync(abandoned, "Never uploaded", _tenantId, Alcifra.Api.PasswordStores.SealedStoreFamily.Password, CancellationToken.None));
 
         using var check = Ctx();
         Assert.False(await check.Documents.IgnoreQueryFilters().AnyAsync(d => d.Id == abandoned));
         Assert.DoesNotContain(_storage.Objects.Keys, k => k.Contains($"/{abandoned}/", StringComparison.Ordinal));
         Assert.True(await check.Documents.AnyAsync(d => d.Id == filed));   // an entry with content is never touched
-        Assert.False(await History(check).RemoveAbandonedAsync(filed, "Filed", _tenantId, CancellationToken.None));
+        Assert.False(await History(check).RemoveAbandonedAsync(filed, "Filed", _tenantId, Alcifra.Api.PasswordStores.SealedStoreFamily.Password, CancellationToken.None));
     }
 
     [Fact]

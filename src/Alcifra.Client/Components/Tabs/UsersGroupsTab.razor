@@ -135,6 +135,12 @@
                         <MudButton Size="Size.Small" Color="Color.Error" OnClick="RemovePrincipalPhotoAsync">@Strings.Get("UgRemove")</MudButton>
                     }
                 </div>
+                @* The user's enrolled keys, to see and revoke (#2278): where the row names them. *@
+                @if (sel.Href("certificates") is { } keys)
+                {
+                    <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.VpnKey" Class="mb-2 me-2"
+                               OnClick="@(() => DialogService.ShowAsync<Dialogs.KeysDialog>(string.Format(Strings.Get("KeysTitleOf"), sel.Name), new DialogParameters { ["Href"] = keys }))">@Strings.Get("UgKeys")</MudButton>
+                }
                 @* Admin password reset (ADR "User password management"). *@
                 <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Password" OnClick="ResetPrincipalPasswordAsync" Class="mb-2">@Strings.Get("UgResetPassword")</MudButton>
                 @* Two-factor status + admin reset (ADR "MFA (interactive login, TOTP)"). *@
@@ -628,7 +634,8 @@
             new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
     }
 
-    // Copy = the New dialog pre-filled from the selection; the created principal then gets the copied rights.
+    // Copy = the New dialog pre-filled from the selection. A user copy names its source and the server gives it the source's
+    // rights and groups in the create itself, so a refusal creates nobody (#2277). A group copy sets the rights after.
     private async Task CopyPrincipalAsync()
     {
         if (_selectedPrincipal is not { } p)
@@ -639,7 +646,7 @@
         var initialName = p.IsGroup ? $"{p.Name} (copy)" : p.Name;
         if (await ShowPrincipalDialogAsync(p.IsGroup, p.IsGroup ? "Copy group" : "Copy user", initialName, "") is { } result)
         {
-            await CreatePrincipalAsync(p.IsGroup, result.Name, result.Email, p.Rights with { });
+            await CreatePrincipalAsync(p.IsGroup, result.Name, result.Email, p.IsGroup ? p.Rights with { } : null, p.IsGroup ? null : p.Id);
         }
     }
 
@@ -656,7 +663,7 @@
         return result is { Canceled: false, Data: PrincipalDialog.Result data } ? data : null;
     }
 
-    private async Task CreatePrincipalAsync(bool isGroup, string name, string email, SystemRightsDto? copyRights)
+    private async Task CreatePrincipalAsync(bool isGroup, string name, string email, SystemRightsDto? copyRights, Guid? copyFromUserId = null)
     {
         try
         {
@@ -664,7 +671,7 @@
             string? rightsHref;
             using (var resp = isGroup
                 ? await Http.PostAsJsonAsync(await ApiRoot.RequireAsync("groups"), new { name })
-                : await Http.PostAsJsonAsync(await ApiRoot.RequireAsync("users"), new { email, displayName = name }))
+                : await Http.PostAsJsonAsync(await ApiRoot.RequireAsync("users"), new { email, displayName = name, copyFrom = copyFromUserId }))
             {
                 if (!resp.IsSuccessStatusCode)
                 {
@@ -672,6 +679,8 @@
                     {
                         HttpStatusCode.Conflict when isGroup => "StGroupNameExists",
                         HttpStatusCode.Conflict => "StUserEmailExists",
+                        HttpStatusCode.Forbidden when copyFromUserId is not null => "StCopyRightsRefused",
+                        HttpStatusCode.NotFound when copyFromUserId is not null => "StCopySourceGone",
                         _ => "StErrCreate",
                     }), Severity.Warning);
                     return;
@@ -693,7 +702,12 @@
 
             if (copyRights is not null && rightsHref is not null)
             {
-                await Http.PutAsJsonAsync(rightsHref, copyRights);
+                // Said, not swallowed (#2277): a refused rights step leaves the copy without the source's rights.
+                using var rights = await Http.PutAsJsonAsync(rightsHref, copyRights);
+                if (!rights.IsSuccessStatusCode)
+                {
+                    Snackbar.Add(Strings.Get("StGroupCopyRightsRefused"), Severity.Warning);
+                }
             }
 
             await LoadPrincipalsAsync();

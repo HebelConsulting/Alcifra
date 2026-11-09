@@ -102,6 +102,17 @@ public static class PassApp
                 .WithDescription("Show or change who a store is encrypted for, and re-seal it.");
             config.AddCommand<CompletionCommand>("completion")
                 .WithDescription("Print the shell completion script (bash, zsh, fish).");
+            // The CI/CD store (ADR 1084): pipeline secrets kept sealed, set on their repositories with gh.
+            config.AddBranch("cicd", cicd =>
+            {
+                cicd.SetDescription("Keep CI/CD secrets sealed in a CI/CD store, and set them on their repositories.");
+                cicd.AddCommand<CiCdApplyCommand>("apply")
+                    .WithDescription("Set what is missing or stale on each target. --dry-run reports it and needs no key.");
+                cicd.AddCommand<CiCdShowCommand>("show")
+                    .WithDescription("Print one value of a secret, or --save it as the file it was.");
+                cicd.AddCommand<CiCdSetCommand>("set")
+                    .WithDescription("Make a secret, or replace it whole: --target, --secret, --from-file, --variable.");
+            });
             config.AddBranch("browser", browser =>
             {
                 browser.SetDescription("Browser autofill: register this tool as the browser's host.");

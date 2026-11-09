@@ -15,7 +15,7 @@ namespace Alcifra.Api.PasswordStores;
 /// <param name="Document">The document, tracked: the finalize commits through its verb contract when it is gated.</param>
 /// <param name="FirstVersion">True for an entry's first content, which has no earlier state anybody saw.</param>
 /// <param name="Reseal">True when the version is a re-seal after an access change, a system act.</param>
-public sealed record SealedVersionFinalize(Document Document, bool FirstVersion, bool Reseal)
+public sealed record SealedVersionFinalize(Document Document, bool FirstVersion, bool Reseal, SealedStoreFamily? Family = null)
 {
     /// <summary>Whether the finalize carries the caller's precondition: every change of an entry that already had content.</summary>
     public bool Gated => !FirstVersion;
@@ -139,7 +139,9 @@ public sealed class PasswordEntryVersions(
             version.Comment = null;
         }
 
-        return new SealedVersionFinalize(document, firstVersion, reseal);
+        // The store's family names the audit and opts the entry into the history rules; a Sealed document has none (#2281).
+        var family = SealedStoreFamily.Of(sealedMask) is { } of && of.EntryMask == sealedMask ? of : null;
+        return new SealedVersionFinalize(document, firstVersion, reseal, family);
     }
 
     /// <summary>

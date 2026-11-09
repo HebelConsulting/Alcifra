@@ -75,7 +75,7 @@ public sealed class EncryptedForCaller(
         }
 
         // Only content has recipients: a store or a folder is "you" as soon as the caller is a member.
-        if (maskId != WellKnownMaskIds.SealedDocument && maskId != WellKnownMaskIds.PasswordEntry)
+        if (!WellKnownMaskIds.SealedContentMasks.ContainsKey(maskId))
         {
             return You;
         }

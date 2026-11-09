@@ -39,6 +39,8 @@ public partial class PrincipalDetailPane : UserControl
 
     private void OnResetPrincipalPassword(object? sender, RoutedEventArgs e) => (TopLevel.GetTopLevel(this) as MainWindow)?.OnResetPrincipalPassword(sender, e);
 
+    private void OnPrincipalKeys(object? sender, RoutedEventArgs e) => (TopLevel.GetTopLevel(this) as MainWindow)?.OnPrincipalKeys(sender, e);
+
     private void OnResetPrincipalMfa(object? sender, RoutedEventArgs e) => (TopLevel.GetTopLevel(this) as MainWindow)?.OnResetPrincipalMfa(sender, e);
 
     private void OnImpersonatePrincipal(object? sender, RoutedEventArgs e) => (TopLevel.GetTopLevel(this) as MainWindow)?.OnImpersonatePrincipal(sender, e);

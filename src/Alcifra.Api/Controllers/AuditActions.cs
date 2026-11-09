@@ -104,6 +104,17 @@ public static class AuditActions
     public const string PasswordEntryExposed = "PasswordEntry.Exposed";
     // An entry that received no content within a day of its creation, removed by the sweep (ADR 0964).
     public const string PasswordEntryAbandonedRemoved = "PasswordEntry.AbandonedRemoved";
+
+    // The CI/CD store (ADR 1084): the Password Store's entry actions under their own names, plus what the server records when
+    // it delivers a secret's sealed content and what a client reports it revealed or applied (a key name, never a value).
+    public const string CiCdSecretCreated = "CiCdSecret.Created";
+    public const string CiCdSecretChanged = "CiCdSecret.Changed";
+    public const string CiCdSecretResealed = "CiCdSecret.Resealed";
+    public const string CiCdSecretExposed = "CiCdSecret.Exposed";
+    public const string CiCdSecretAbandonedRemoved = "CiCdSecret.AbandonedRemoved";
+    public const string CiCdSecretRead = "CiCdSecret.Read";
+    public const string CiCdSecretRevealed = "CiCdSecret.Revealed";
+    public const string CiCdSecretApplied = "CiCdSecret.Applied";
     // Auto-disposed by the retention sweep (ADR "Retention policies (auto-disposition)"). Also used as a literal
     // in Infrastructure's RetentionService, which can't reference this Api-layer class.
     public const string DocumentRetentionDisposed = "Document.RetentionDisposed";
@@ -247,6 +258,8 @@ public static class AuditActions
     // Certificate enrolment, owned by the core (ADR 0936): a certificate filed into the reader-certificate folder, and
     // the tenant's certificate policy replaced. Details carry the holder and thumbprint, never the certificate.
     public const string CertificateEnrolled = "Certificate.Enrolled";
+    // A key revoked from a client or the CLI, by its holder or a user administrator, with the reason (#2278, ADR 1083).
+    public const string CertificateRevoked = "Certificate.Revoked";
     public const string CertificatePolicyChanged = "Certificate.PolicyChanged";
 
     // Attested enrolment (ADR 0963): an enrolment refused (the code and the holder, never the certificate), evidence added

@@ -76,6 +76,22 @@ public static class SmimeEnvelope
     /// <summary>The CMS envelope of a served response, for a host that opens CMS itself (the phone).</summary>
     public static byte[] Cms(byte[] served) => Cms(Unwrap(served));
 
+    /// <summary>
+    /// The inverse of <see cref="Payload(byte[])"/> for one document: its bytes as a single MIME part of its type, what a
+    /// sealed payload is. Sealing bytes as they were opened therefore needs them wrapped again (a re-seal, ADR 1084).
+    /// </summary>
+    public static byte[] Part(byte[] bytes, string contentType)
+    {
+        var part = new MimePart(ContentType.Parse(contentType))
+        {
+            Content = new MimeContent(new MemoryStream(bytes)),
+            ContentTransferEncoding = ContentEncoding.Base64,
+        };
+        using var stream = new MemoryStream();
+        part.WriteTo(stream);
+        return stream.ToArray();
+    }
+
     /// <summary>The document a key decrypted, and its real content type, from the inner MIME bytes.</summary>
     public static (byte[] Bytes, string ContentType) Payload(byte[] decrypted) =>
         Payload(MimeEntity.Load(new MemoryStream(decrypted)));

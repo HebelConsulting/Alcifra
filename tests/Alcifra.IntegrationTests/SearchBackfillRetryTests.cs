@@ -123,12 +123,25 @@ public class SearchBackfillRetryTests
             await Task.Delay(200, CancellationToken.None);
         }
 
+        // The run is a row (ADR 1081): it ends as succeeded, having counted every attempt it took.
+        SearchReindexRun? run = null;
+        while (run?.FinishedAt is null && !stop.IsCancellationRequested)
+        {
+            await Task.Delay(200, CancellationToken.None);
+            using var scope = provider.CreateScope();
+            run = await SearchReindexRuns.LatestAsync(scope.ServiceProvider.GetRequiredService<AlcifraDbContext>(), CancellationToken.None);
+        }
+
         await service.StopAsync(CancellationToken.None);
 
         // Before this fix the count stuck at 1 forever, and search stayed empty for the life of the process.
         Assert.True(
             handler.CreateAttempts >= 3,
             $"the backfill gave up after {handler.CreateAttempts} attempt(s); a transient refusal became a permanent outage.");
+        Assert.NotNull(run);
+        Assert.Equal(SearchReindexTrigger.Startup, run.Trigger);
+        Assert.Null(run.Failure);
+        Assert.True(run.Attempts >= 3, $"the run counted {run.Attempts} attempt(s)");
     }
 
     [Fact]

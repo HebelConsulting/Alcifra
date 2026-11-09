@@ -50,6 +50,9 @@ public sealed class EnrolledCertificate : ITenantScoped
     /// <summary>When the certificate was revoked, from the document's Revoked on field: a state, never a deletion.</summary>
     public DateTimeOffset? RevokedAt { get; set; }
 
+    /// <summary>Why, from the document's Revocation reason field (#2278): a code the clients translate, or free text.</summary>
+    public string? RevocationReason { get; set; }
+
     /// <summary>
     /// The trusted attestation root the certificate's key is attested to (#1790, ADR 0963), or null when it is not
     /// attested. DERIVED like every column here: verified again from <see cref="CertificateAttestation"/> at every

@@ -24,6 +24,9 @@ public sealed record PasswordItemInfo(
 {
     /// <summary>The row's own resource: a folder's contents, or an entry.</summary>
     public string Href => Links.Href("self") ?? throw new InvalidOperationException($"'{Name}' advertised no 'self' rel (ADR 0543).");
+
+    /// <summary>A CI/CD secret's plain index data (ADR 1084), so a store's listing says what each secret sets; null otherwise.</summary>
+    public CiCdIndexInfo? CiCd { get; init; }
 }
 
 /// <summary>A store or a folder in one, with its contents and its store's sealing state.</summary>
@@ -126,7 +129,45 @@ public sealed record PasswordEntryInfo(
         ApiWire.StrOrNull(json, "userName"),
         ApiWire.StrOrNull(json, "app"),
         ApiWire.TrueOrFalse(json, "hasCode"),
-        PasskeyIdentity.From(json));
+        PasskeyIdentity.From(json))
+    {
+        StoreKind = ApiWire.StrOrNull(json, "storeKind") ?? PasswordKind,
+        CiCd = json.TryGetProperty("ciCd", out var cicd) && cicd.ValueKind == JsonValueKind.Object ? CiCdIndexInfo.From(cicd) : null,
+    };
+
+    /// <summary>The wire names of the two kinds of sealed store (ADR 1084).</summary>
+    public const string PasswordKind = "password";
+
+    public const string CiCdKind = "cicd";
+
+    /// <summary>Which kind of sealed store the entry belongs to: <see cref="PasswordKind"/> or <see cref="CiCdKind"/>.</summary>
+    public string StoreKind { get; init; } = PasswordKind;
+
+    /// <summary>A CI/CD secret's plain index data (ADR 1084); null on a password entry.</summary>
+    public CiCdIndexInfo? CiCd { get; init; }
+}
+
+/// <summary>A CI/CD secret's plain index data as the server lists it (ADR 1084): readable without the key.</summary>
+public sealed record CiCdIndexInfo(
+    IReadOnlyList<string> Targets, IReadOnlyList<string> SecretKeys, IReadOnlyList<string> FileKeys, IReadOnlyList<string> Variables)
+{
+    internal static CiCdIndexInfo From(JsonElement json)
+    {
+        IReadOnlyList<string> List(string name) =>
+            json.TryGetProperty(name, out var list) && list.ValueKind == JsonValueKind.Array
+                ? [.. list.EnumerateArray().Select(v => v.GetString() ?? string.Empty)]
+                : [];
+        return new CiCdIndexInfo(List("targets"), List("secretKeys"), List("fileKeys"), List("variables"))
+        {
+            ChangedAt = json.TryGetProperty("changedAt", out var at) && at.ValueKind == JsonValueKind.String
+                && DateTimeOffset.TryParse(at.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var changed)
+                    ? changed
+                    : null,
+        };
+    }
+
+    /// <summary>When the secret's current version was filed: a target updated before it is stale (ADR 1084).</summary>
+    public DateTimeOffset? ChangedAt { get; init; }
 }
 
 /// <summary>An entry opened with the reader's key: its resource as read, and its content.</summary>

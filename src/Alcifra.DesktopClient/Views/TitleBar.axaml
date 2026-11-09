@@ -124,6 +124,8 @@
                          the selfEnrolments rel is (ADR 0864; every tenant since #1970 slice 4). -->
                     <MenuItem Header="{loc:Tr AccountSelfEnrol}" Click="OnSelfEnrol"
                               IsVisible="{Binding CanSelfEnrol}" />
+                    <!-- The caller's own keys, to see and revoke (#2278): where the root lists them. -->
+                    <MenuItem Header="{loc:Tr AccountMyKeys}" Click="OnMyKeys" IsVisible="{Binding CanListKeys}" />
                     <MenuItem Header="{loc:Tr AccountNotificationPrefs}" Click="OnNotificationPreferences" />
                     <Separator />
                     <MenuItem Header="{loc:Tr AccountLogout}" Command="{Binding LogoutCommand}" />

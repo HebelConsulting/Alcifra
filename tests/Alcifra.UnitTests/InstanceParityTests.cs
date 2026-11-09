@@ -32,11 +32,22 @@ public class InstanceParityTests
         { Path.Combine("tools", "kiosk", "docker-compose.yml"), "kiosk-api-env", "kiosk-api-build" },
     };
 
-    public static TheoryData<string> OverlayFiles() => new()
+    // Every overlay beside the kiosk's base file, found rather than listed: a hand-kept list had left the Messenger and
+    // Tube overlays unchecked. The public mirror has no tools/, so it yields one placeholder the test skips.
+    public static TheoryData<string> OverlayFiles()
     {
-        Path.Combine("tools", "kiosk", "docker-compose.encryption.yml"),
-        Path.Combine("tools", "kiosk", "docker-compose.flightschool.yml"),
-    };
+        var data = new TheoryData<string>();
+        var kiosk = Path.Combine(RepoRoot(), "tools", "kiosk");
+        var found = Directory.Exists(kiosk)
+            ? Directory.GetFiles(kiosk, "docker-compose.*.yml").Select(f => Path.Combine("tools", "kiosk", Path.GetFileName(f))).Order(StringComparer.Ordinal).ToList()
+            : [];
+        foreach (var file in found.Count > 0 ? found : [Path.Combine("tools", "kiosk", "docker-compose.encryption.yml")])
+        {
+            data.Add(file);
+        }
+
+        return data;
+    }
 
     public static TheoryData<string> ComposeFileNames() => new()
     {
@@ -243,8 +254,8 @@ public class InstanceParityTests
     /// <para>
     /// <b>The seeding keys are the deliberate exception</b> (ADR 0808): seeding is config-gated and rides on
     /// <c>api</c> alone, so a <c>CryptoDemo__</c> key on both instances would be a second seeder rather than
-    /// parity. An overlay with no <c>api</c> service at all — the flight school's, which configures a one-shot
-    /// <c>modules-init</c> — has no instances to keep in step and is not this rule's business.
+    /// parity. An overlay with no <c>api</c> service at all, or whose <c>api</c> carries only seeding keys (the
+    /// Messenger's, the flight school's), has no setting to keep in step and is not this rule's business.
     /// </para>
     /// </remarks>
     [Theory]
@@ -311,6 +322,10 @@ public class InstanceParityTests
     {
         var first = EnvironmentKeys(ServiceBlock(text, "api"));
         var shared = first.Where(e => !SeedingOnly(e.Key)).ToDictionary(e => e.Key, e => e.Value);
+        if (shared.Count == 0)
+        {
+            return; // only seeding keys, which ride on `api` alone by design (ADR 0808)
+        }
 
         Assert.True(text.Contains("\n  api-b:\n", StringComparison.Ordinal),
             $"{file} configures `api` but not `api-b`. Every setting here reaches one instance of two behind the "

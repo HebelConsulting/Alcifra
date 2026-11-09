@@ -240,11 +240,14 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
     /// its audience (ADR 0983). A module's principal holds no key and is never a member, so it reads such content as
     /// nonexistent; a module's own sealed masks are its business and are not asked about here.
     /// </summary>
-    private Task<bool> IsAudienceContentAsync(Guid documentId, CancellationToken cancellationToken) =>
-        _dbContext.Documents
+    private Task<bool> IsAudienceContentAsync(Guid documentId, CancellationToken cancellationToken)
+    {
+        // Every core mask whose content is sealed to an audience: a password entry, a Sealed document, a CI/CD secret.
+        var sealedMasks = WellKnownMaskIds.SealedContentMasks.Keys.ToList();
+        return _dbContext.Documents
             .Where(d => d.Id == documentId)
-            .AnyAsync(d => _dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId
-                && (v.MaskId == WellKnownMaskIds.PasswordEntry || v.MaskId == WellKnownMaskIds.SealedDocument)), cancellationToken);
+            .AnyAsync(d => _dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && sealedMasks.Contains(v.MaskId)), cancellationToken);
+    }
 
     public async Task<byte[]?> GetDocumentContentAsync(Guid documentId, CancellationToken cancellationToken = default)
     {

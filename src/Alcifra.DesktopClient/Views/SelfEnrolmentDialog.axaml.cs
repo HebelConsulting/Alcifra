@@ -106,15 +106,8 @@ public partial class SelfEnrolmentDialog : Window
             : string.Join(Environment.NewLine, mine.Select(Describe));
     }
 
-    internal static string Describe(Alcifra.ApiClient.EnrolledCertificatesClient.Enrolled row)
-    {
-        var (key, namesRoot) = CertificateAttestationText.For(row.Attestation, row.Usable);
-        var state = namesRoot ? string.Format(Strings.Get(key), row.AttestationRoot) : Strings.Get(key);
-        var token = row.DeviceSerial is { Length: > 0 } serial && row.Attestation == "attested"
-            ? $", {string.Format(Strings.Get("EnrolAttestedToken"), serial)}"
-            : string.Empty;
-        return $"{row.Label}: {state}{token}";
-    }
+    // One sentence per key, the same the key list says (#2278): its state, or when and why it was revoked.
+    internal static string Describe(Alcifra.ApiClient.EnrolledCertificatesClient.Enrolled row) => $"{row.Label}: {KeysDialog.Describe(row)}";
 
     private void OnChoose(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {

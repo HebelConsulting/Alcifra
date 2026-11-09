@@ -88,7 +88,8 @@
             {
                 @* A contact's or an appointment's card (#2215): the editor's own form, read-only, chosen by the document's
                    mask. The pencil opens the editor dialog; saving there shows the card again. *@
-                <div class="wb-pv-card" style="padding:14px; max-width:640px; overflow:auto;" data-preview-card>
+                @* A contact's or an appointment's card fills the pane (owner, 2026-11-08, #2274); a mail's keeps its measure. *@
+                <div class="wb-pv-card" style="padding:14px; overflow:auto; @(card.Mail is null ? "width:100%; box-sizing:border-box;" : "max-width:640px;")" data-preview-card>
                     @if (card.CanEdit && card.Edit is { } edit)
                     {
                         <div style="display:flex; justify-content:flex-end;">
@@ -144,6 +145,10 @@
                     else if (card.Appointment is { } appointment)
                     {
                         <AppointmentFormFields Form="appointment" />
+                    }
+                    @if (card.Mail is null && card.LoadSource is { } load)
+                    {
+                        <CardSourceSection @key="card" Title="@card.SourceTitle" Load="load" />
                     }
                 </div>
             }

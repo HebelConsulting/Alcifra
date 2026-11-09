@@ -9,7 +9,8 @@ using Alcifra.DesktopClient.ViewModels;
 namespace Alcifra.UiEndToEndTests;
 
 // A contact or an appointment shows as a card in the preview, chosen by its mask (#2215): the editor's own form, read-only,
-// and a pencil that edits it and refreshes the card. A .vcf the archive filed as a Basic Entry keeps its text preview.
+// and a pencil that edits it and refreshes the card, and its stored text in a collapsed source section (#2274). A .vcf the
+// archive filed as a Basic Entry keeps its text preview.
 [Collection(UiCollection.Name)]
 public class DesktopStructuredCardTests(SelfHostedAppFixture app)
 {
@@ -48,6 +49,18 @@ public class DesktopStructuredCardTests(SelfHostedAppFixture app)
         Assert.False(contact.CanEdit, "the card's form is read-only");
         Assert.True(vm.Preview.Card.CanEdit, "an administrator may edit it, so the pencil is offered");
 
+        // Its stored vCard (#2274): offered, collapsed and unread until opened, then verbatim, and Copy takes the stored text.
+        var card = vm.Preview.Card;
+        Assert.True(card.HasSource);
+        Assert.Equal(Alcifra.Localization.Strings.Get("CardSourceVCard"), card.SourceTitle);
+        Assert.False(card.IsSourceOpen);
+        Assert.Null(card.SourceShown);
+        card.IsSourceOpen = true;
+        await WaitForAsync(() => card.SourceShown is not null);
+        Assert.Equal(vcard, card.Source);
+        Assert.Contains($"UID:card-{run}", card.SourceShown);
+        Assert.True(card.CanCopySource);
+
         // The pencil: a fresh copy for the editor, saved, and the card read again.
         var edit = await vm.Preview.Card.OpenForEdit!();
         var form = Assert.IsType<ContactEditViewModel>(edit!.Form);
@@ -62,6 +75,11 @@ public class DesktopStructuredCardTests(SelfHostedAppFixture app)
         await WaitForAsync(() => vm.Preview.Card?.Appointment is not null);
         Assert.Equal($"Review {run}", vm.Preview.Card!.Appointment!.Summary);
         Assert.Equal("Room 4", vm.Preview.Card.Appointment.Location);
+        var appointment = vm.Preview.Card;
+        Assert.Equal(Alcifra.Localization.Strings.Get("CardSourceICalendar"), appointment.SourceTitle);
+        appointment.IsSourceOpen = true;
+        await WaitForAsync(() => appointment.SourceShown is not null);
+        Assert.Contains($"SUMMARY:Review {run}", appointment.SourceShown);
 
         // A .vcf filed in an ordinary folder is a Basic Entry, not a contact: whatever its preview is, it is not a card.
         await vm.OpenFolderAsync($"/api/documents/{plain}");

@@ -92,6 +92,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(SelectedPrincipalMfaStatus));
         OnPropertyChanged(nameof(SelectedPrincipalImapStatus));
         OnPropertyChanged(nameof(CanResetSelectedPrincipalMfa));
+        OnPropertyChanged(nameof(SelectedPrincipalHasKeys));
         OnPropertyChanged(nameof(CanImpersonateSelectedPrincipal));
         PrincipalRightsHeader = $"{value.Name} — {(value.IsGroup ? "group" : "user")} rights";
         RebuildRightsMatrix(value);
@@ -301,6 +302,31 @@ public sealed partial class MainWindowViewModel
     /// </para>
     /// </remarks>
     [ObservableProperty] private bool _canSelfEnrol;
+
+    /// <summary>Whether the account menu offers "My keys" (#2278): where the root lists the caller's keys.</summary>
+    [ObservableProperty] private bool _canListKeys;
+
+    // The account menu's optional entries, each asked so that a failure hides only that entry.
+    private async Task LoadAccountOffersAsync()
+    {
+        CanSelfEnrol = await OffersSelfEnrolmentAsync();
+        CanListKeys = await ListsKeysAsync();
+    }
+
+    private async Task<bool> ListsKeysAsync()
+    {
+        try
+        {
+            return Api is { } api && (await api.Core.GetRootLinksAsync()).ContainsKey("certificates");
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Whether the selected user's row names their keys (#2278): the Users pane's Keys button.</summary>
+    public bool SelectedPrincipalHasKeys => SelectedPrincipal is { IsGroup: false, Source: { } source } && source.Href("certificates") is not null;
 
     /// <summary>
     /// Whether this installation offers a per-user enrolment — asked so that it CANNOT affect anything else.
@@ -658,9 +684,10 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    // Called from the view's New/Copy code-behind (the create dialog lives in the view). copyRights carries
-    // the source principal's rights for Copy; null for a fresh New.
-    public async Task CreatePrincipalAsync(bool isGroup, string name, string email, AdminClient.SystemRightsData? copyRights)
+    // Called from the view's New/Copy code-behind (the create dialog lives in the view). A user copy names its source
+    // (copyFromUserId): the server gives it the source's rights and groups in the create itself (#2277). A group copy
+    // still carries the source's rights (copyRights) and sets them after the create.
+    public async Task CreatePrincipalAsync(bool isGroup, string name, string email, AdminClient.SystemRightsData? copyRights, Guid? copyFromUserId = null)
     {
         if (_api is null)
         {
@@ -669,8 +696,8 @@ public sealed partial class MainWindowViewModel
 
         try
         {
-            var created = isGroup ? await _api.Admin.CreateGroupAsync(name) : await _api.Admin.CreateUserAsync(email, name);
-            if (copyRights is not null)
+            var created = isGroup ? await _api.Admin.CreateGroupAsync(name) : await _api.Admin.CreateUserAsync(email, name, copyFromUserId);
+            if (isGroup && copyRights is not null)
             {
                 // The create response IS the resource, rels included, so Copy applies the source's rights by
                 // following the new row's own `rights` rel — no re-fetch, no path rebuilt from an id (ADR 0555).

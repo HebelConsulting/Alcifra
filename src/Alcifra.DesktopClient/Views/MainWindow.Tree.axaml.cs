@@ -82,6 +82,17 @@ public partial class MainWindow
                     // siblings, which wear their mask's own icon. Seen in the built menu, not in a diff.
                     Services.MaskIcon.For(a.Icon) ?? (a.Folder ? "mdi-folder" : "mdi-file-document-outline"),
                     () => Safe.Fire(() => CreateAdmittedAsync(vm, node, a))))];
+
+            // A CI/CD store's secret (ADR 1084) is not among what a folder admits: it is made only through the store's own
+            // door, with its values sealed on this machine first, so a client that would ask only for a name must never be
+            // offered it. This client has the editor, so it adds the entry itself for a node wearing the store's token;
+            // the store's own rel then says whether this person may make one.
+            if (node.MaskIconToken == "cicd-store")
+            {
+                vm.TreeContextAdmits.Add(TreeMenuEntry.Create(Strings.Get("CiCdNewSecret"), Services.MaskIcon.For("cicd-secret") ?? "mdi-shield-key",
+                    () => Safe.Fire(() => vm.CreateCiCdSecretAsync(node.Id))));
+            }
+
             vm.TreeContextCanCreateAny = vm.TreeContextAdmits.Count > 0;
         }
     }

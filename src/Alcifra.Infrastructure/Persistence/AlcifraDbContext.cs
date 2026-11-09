@@ -255,6 +255,7 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
     // Durable async-indexing queue (ADR "Async indexing", 0011) — drained by SearchIndexWorker. Not
     // ITenantScoped (the worker spans every tenant).
     public DbSet<Search.SearchIndexOutbox> SearchIndexOutbox => Set<Search.SearchIndexOutbox>();
+    public DbSet<Search.SearchReindexRun> SearchReindexRuns => Set<Search.SearchReindexRun>();
 
     // Durable searchable-PDF conversion queue (ADR "Searchable PDF successor for TIFFs") — drained by
     // SearchablePdfWorker. Not ITenantScoped (the worker spans every tenant).

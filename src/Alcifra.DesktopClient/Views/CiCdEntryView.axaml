@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:i="using:Projektanker.Icons.Avalonia"
+             xmlns:loc="using:Alcifra.DesktopClient.Localization"
+             xmlns:v="using:Alcifra.DesktopClient.Views"
+             xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+             x:Class="Alcifra.DesktopClient.Views.CiCdEntryView"
+             x:DataType="vm:CiCdEntryPreviewViewModel">
+
+  <!-- A CI/CD secret in the preview pane (ADR 1084): targets, key names and variables from plain index data, the values
+       after one open with the key. A text value shows only while its eye is held; a file is saved as the bytes it was. -->
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="16,12" Spacing="10" MaxWidth="720" HorizontalAlignment="Left">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Command="{Binding EditCommand}" IsVisible="{Binding CanEdit}" Content="{loc:Tr CiCdEdit}" />
+        <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </DockPanel>
+
+      <TextBlock Text="{loc:Tr CiCdTargets}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+      <ItemsControl ItemsSource="{Binding Targets}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <SelectableTextBlock Text="{Binding}" FontFamily="Menlo,Consolas,monospace" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock Text="{loc:Tr CiCdSecrets}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource WbMuted}" />
+      <!-- Before the key: the names, and one open for all of them (one PIN). -->
+      <StackPanel IsVisible="{Binding IsClosed}" Spacing="6">
+        <ItemsControl ItemsSource="{Binding SecretKeys}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" FontFamily="Menlo,Consolas,monospace" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Command="{Binding OpenCommand}" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <i:Icon Value="mdi-key" FontSize="16" />
+            <TextBlock Text="{loc:Tr CiCdOpen}" />
+          </StackPanel>
+        </Button>
+        <TextBlock Text="{Binding OpenError}" IsVisible="{Binding OpenError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Foreground="{DynamicResource WbWarning}" TextWrapping="Wrap" />
+      </StackPanel>
+      <!-- After the key: each text value as a password is drawn, each file with Save as. -->
+      <StackPanel IsVisible="{Binding IsOpened}" Spacing="2">
+        <ItemsControl ItemsSource="{Binding Secrets}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SecretFieldViewModel">
+              <v:SecretFieldRow />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding Files}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CiCdFileViewModel">
+              <Grid ColumnDefinitions="150,*,Auto" Margin="0,4">
+                <TextBlock Grid.Column="0" Text="{Binding Name}" Foreground="{DynamicResource WbMuted}" Margin="0,4,12,0" TextWrapping="Wrap" />
+                <TextBlock Grid.Column="1" Text="{Binding Size}" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Command="{Binding SaveCommand}" Content="{loc:Tr CiCdSaveAs}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <TextBlock Text="{loc:Tr CiCdVariables}" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource WbMuted}"
+                 IsVisible="{Binding Variables.Count}" />
+      <ItemsControl ItemsSource="{Binding Variables}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:SecretFieldViewModel">
+            <v:SecretFieldRow />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

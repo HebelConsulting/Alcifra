@@ -21,12 +21,13 @@ internal sealed class Session : IDisposable
     public const string UrlVariable = WireNames.UrlVariable;
     public const string TokenVariable = WireNames.TokenVariable;
 
-    private Session(string url, HttpClient http, ApiCore core, PasswordStoreClient passwords)
+    private Session(string url, HttpClient http, ApiCore core, PasswordStoreClient passwords, IEnvelopeOpener? opener)
     {
         Url = url;
         Http = http;
         Core = core;
         Passwords = passwords;
+        CiCd = new Alcifra.ApiClient.CiCd.CiCdStoreClient(core, opener);
     }
 
     public string Url { get; }
@@ -36,6 +37,9 @@ internal sealed class Session : IDisposable
     public ApiCore Core { get; }
 
     public PasswordStoreClient Passwords { get; }
+
+    /// <summary>The CI/CD stores (ADR 1084), with the same key path as <see cref="Passwords"/>.</summary>
+    public Alcifra.ApiClient.CiCd.CiCdStoreClient CiCd { get; }
 
     /// <summary>The session the environment describes, or a sentence saying how to get one.</summary>
     /// <param name="opener">The key path, for a command that opens an entry; null for one that only lists names.</param>
@@ -53,7 +57,7 @@ internal sealed class Session : IDisposable
         var http = new HttpClient(new SessionExpiry(url.TrimEnd('/')) { InnerHandler = new HttpClientHandler() }) { BaseAddress = new Uri($"{url.TrimEnd('/')}/") };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var core = ApiCore.Over(http);
-        return new Session(url.TrimEnd('/'), http, core, new PasswordStoreClient(core, opener));
+        return new Session(url.TrimEnd('/'), http, core, new PasswordStoreClient(core, opener), opener);
     }
 
     /// <summary>
@@ -64,7 +68,7 @@ internal sealed class Session : IDisposable
     internal static Session Over(HttpClient http, IEnvelopeOpener? opener = null)
     {
         var core = ApiCore.Over(http);
-        return new Session(http.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty, http, core, new PasswordStoreClient(core, opener));
+        return new Session(http.BaseAddress?.ToString().TrimEnd('/') ?? string.Empty, http, core, new PasswordStoreClient(core, opener), opener);
     }
 
     public void Dispose() => Http.Dispose();

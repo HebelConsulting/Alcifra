@@ -28,6 +28,8 @@ public static class NotificationTypePolicy
             NotificationType.AccessGranted => true,
             NotificationType.SubscribedActivity => true,
             NotificationType.DocumentReminder => true,
+            // The holder is told in the app either way; whether it is also mailed follows their settings (owner, 2026-11-09).
+            NotificationType.CertificateRevoked => true,
 
             NotificationType.ReviewReminder => false,
             NotificationType.ReviewOverdue => false,

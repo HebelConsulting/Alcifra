@@ -86,9 +86,6 @@ public partial class ConcurrencyContractRatchetTests
         ["PasswordFoldersController.cs:Document"] =
             "Creates only: Documents.Add of a password folder or entry is its single write (ADR 0964); an entry's content "
             + "is then filed through the versions controller, whose finalize carries the entry's If-Match.",
-        ["PasswordStoresController.cs:Document"] =
-            "Reads only: lists stores and answers recipients and the re-seal list; My Passwords is created by "
-            + "MyPasswordsProvisioner, a create with no prior version to conflict with (ADR 0964).",
         ["NotebookController.cs:Document"] =
             "Creates only: Documents.Add(section) is its single write, same shape as the children endpoint.",
         ["TypedItemsController.cs:Document"] =
@@ -280,6 +277,9 @@ public partial class ConcurrencyContractRatchetTests
             + "It reads the tenant to write a USER.",
         ["UsersController.cs:ServiceAccount"] =
             "Reads only: projects a calling service account's system-right flags, to gate what it may do.",
+        ["UsersController.cs:Group"] =
+            "Reads only: a copied user's groups, { Id, Name }, named in the audit trail after the commit (#2277). The "
+            + "memberships are GroupMembership rows, created with the user; no Group is changed.",
         ["RepositoriesController.cs:ServiceAccount"] =
             "Reads only: CanManageRepositories and CanImport projections, gating the caller.",
         ["TokenController.cs:ServiceAccount"] =

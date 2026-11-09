@@ -20,6 +20,15 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
         /// <summary>The certificate's issuer, which with the serial names it as an envelope recipient does (ADR 0969);
         /// null from an installation older than that.</summary>
         public string? Issuer { get; init; }
+
+        /// <summary>When it was revoked; null while it is not (#2278).</summary>
+        public DateTimeOffset? RevokedAt { get; init; }
+
+        /// <summary>Why: a reason's code (<c>CertificateRevocationReasons</c>) or the words given for "Other".</summary>
+        public string? RevocationReason { get; init; }
+
+        /// <summary>The key's <c>revoke</c> rel: present where the caller may revoke it (its holder, a user administrator).</summary>
+        public string? RevokeHref { get; init; }
     }
 
     /// <summary>The caller's own enrolled certificates; empty where the installation offers no enrolment.</summary>
@@ -32,6 +41,38 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
 
         var listing = await core.Http.GetFromJsonAsync<JsonElement>(href, cancellationToken);
         return listing.ValueKind == JsonValueKind.Array ? [.. listing.EnumerateArray().Select(Parse)] : [];
+    }
+
+    /// <summary>The keys at a listing a rel named: a user's <c>certificates</c> in the Users tab (#2278).</summary>
+    public async Task<IReadOnlyList<Enrolled>> GetAtAsync(string href, CancellationToken cancellationToken = default)
+    {
+        var listing = await core.Http.GetFromJsonAsync<JsonElement>(href, cancellationToken);
+        return listing.ValueKind == JsonValueKind.Array ? [.. listing.EnumerateArray().Select(Parse)] : [];
+    }
+
+    /// <summary>
+    /// Revokes a key through its <c>revoke</c> rel with a reason (#2278, ADR 1083). Null when it is revoked, else the
+    /// server's error code (empty when the refusal carried none), for <c>ApiErrorText</c>.
+    /// </summary>
+    public async Task<string?> RevokeAsync(string revokeHref, string reason, string? text, CancellationToken cancellationToken = default)
+    {
+        using var response = await core.Http.PostAsJsonAsync(revokeHref, new { reason, text }, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        try
+        {
+            var problem = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            return problem.TryGetProperty("errorCode", out var code) && code.ValueKind == JsonValueKind.String
+                ? code.GetString() ?? string.Empty
+                : string.Empty;
+        }
+        catch (JsonException)
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>
@@ -64,6 +105,9 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
             Text("deviceSerial"))
         {
             Issuer = Text("issuer"),
+            RevokedAt = DateTimeOffset.TryParse(Text("revokedAt"), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var revoked) ? revoked : null,
+            RevocationReason = Text("revocationReason"),
+            RevokeHref = ApiCore.ParseLinks(row)?.Href("revoke"),
         };
     }
 }

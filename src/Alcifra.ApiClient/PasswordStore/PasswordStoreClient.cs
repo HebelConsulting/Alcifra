@@ -164,6 +164,14 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
         }
 
         var sealedBytes = await SealAsync(folder.Links, content, cancellationToken);
+        var created = await CreateEmptyEntryAsync(folder, name, cancellationToken);
+        await UploadVersionAsync(created, sealedBytes, PasswordIndexParts(content), ifMatch: null, commentKind: null, passwordChanged: null, cancellationToken);
+        return await GetEntryAsync(created.Links.Href("self")!, cancellationToken);
+    }
+
+    /// <summary>A new entry in <paramref name="folder"/> through the store's own door, still without content.</summary>
+    internal async Task<PasswordEntryInfo> CreateEmptyEntryAsync(PasswordFolderInfo folder, string name, CancellationToken cancellationToken)
+    {
         using var response = await core.SendRelAsync(folder.Links, "password-entries", new { name }, cancellationToken);
         if (response.StatusCode == HttpStatusCode.Conflict)
         {
@@ -171,9 +179,7 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
         }
 
         await ApiCore.ThrowIfProblemAsync(response, $"'{name}' could not be created.", cancellationToken);
-        var created = PasswordEntryInfo.From(await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken));
-        await UploadVersionAsync(created, sealedBytes, content, ifMatch: null, commentKind: null, passwordChanged: null, cancellationToken);
-        return await GetEntryAsync(created.Links.Href("self")!, cancellationToken);
+        return PasswordEntryInfo.From(await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken));
     }
 
     /// <summary>
@@ -189,7 +195,7 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
         }
 
         var sealedBytes = await SealAsync(entry.Links, content, cancellationToken);
-        await UploadVersionAsync(entry, sealedBytes, content, ifMatch: null, commentKind: null, passwordChanged: null, cancellationToken);
+        await UploadVersionAsync(entry, sealedBytes, PasswordIndexParts(content), ifMatch: null, commentKind: null, passwordChanged: null, cancellationToken);
         return await GetEntryAsync(entry.Links.Href("self")!, cancellationToken);
     }
 
@@ -202,7 +208,7 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
     {
         var sealedBytes = await SealAsync(opened.Entry.Links, edited, cancellationToken);
         var changed = !string.Equals(opened.Content.Password, edited.Password, StringComparison.Ordinal);
-        await UploadVersionAsync(opened.Entry, sealedBytes, edited, opened.Entry.ETag, commentKind: null, passwordChanged: changed, cancellationToken);
+        await UploadVersionAsync(opened.Entry, sealedBytes, PasswordIndexParts(edited), opened.Entry.ETag, commentKind: null, passwordChanged: changed, cancellationToken);
         return await GetEntryAsync(opened.Entry.Links.Href("self")!, cancellationToken);
     }
 
@@ -324,9 +330,23 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
         {
             try
             {
-                var opened = await OpenAsync(entry, cancellationToken);
-                var sealedBytes = ConversationKeys.SealTo(PasswordEntryFormat.ToBytes(opened.Content), recipients);
-                await UploadVersionAsync(entry, sealedBytes, opened.Content, entry.ETag, commentKind: ResealedAfterAccessChange, passwordChanged: false, cancellationToken);
+                // A CI/CD secret (ADR 1084) is sealed again exactly as it was and keeps its index; a password entry is parsed,
+                // so the autofill index it derives rides along as it always has (ADR 0973).
+                byte[] payload;
+                IReadOnlyDictionary<string, object?> index;
+                if (entry.StoreKind == PasswordEntryInfo.CiCdKind)
+                {
+                    var (bytes, contentType) = await OpenBytesAsync(entry, cancellationToken);
+                    (payload, index) = (SmimeEnvelope.Part(bytes, contentType), NoIndex);
+                }
+                else
+                {
+                    var content = (await OpenAsync(entry, cancellationToken)).Content;
+                    (payload, index) = (PasswordEntryFormat.ToBytes(content), PasswordIndexParts(content));
+                }
+
+                var sealedBytes = ConversationKeys.SealTo(payload, recipients);
+                await UploadVersionAsync(entry, sealedBytes, index, entry.ETag, commentKind: ResealedAfterAccessChange, passwordChanged: false, cancellationToken);
                 resealed.Add(entry.Name);
             }
             catch (PasswordEntryChangedException)
@@ -353,7 +373,7 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
             {
                 var entry = await GetEntryAsync(existing.Href, cancellationToken);
                 var sealedBytes = await SealAsync(entry.Links, step.Draft.Content, cancellationToken);
-                await UploadVersionAsync(entry, sealedBytes, step.Draft.Content, entry.ETag, commentKind: null, passwordChanged: true, cancellationToken);
+                await UploadVersionAsync(entry, sealedBytes, PasswordIndexParts(step.Draft.Content), entry.ETag, commentKind: null, passwordChanged: true, cancellationToken);
             }
             else
             {
@@ -381,6 +401,38 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
         return stream.ToArray();
     }
 
+    // A version that states no index: the stored one stays as it is.
+    internal static readonly IReadOnlyDictionary<string, object?> NoIndex = new Dictionary<string, object?>();
+
+    // A password entry's autofill index (ADR 0973), derived from the content just sealed.
+    private static Dictionary<string, object?> PasswordIndexParts(PasswordEntryContent content) => new()
+    {
+        ["index"] = new
+        {
+            site = content.Site,
+            userName = content.UserName,
+            app = content.App,
+            hasCode = content.HasCode,
+            passkeySite = content.PasskeyIndex.Site,
+            passkeyId = content.PasskeyIndex.Id,
+            passkeyUserHandle = content.PasskeyIndex.UserHandle,
+        },
+    };
+
+    /// <summary>An entry's opened document and its type, with no format read into it (a CI/CD secret's, ADR 1084).</summary>
+    internal async Task<(byte[] Bytes, string ContentType)> OpenBytesAsync(PasswordEntryInfo entry, CancellationToken cancellationToken)
+    {
+        var fetched = await FetchSealedAsync(entry, cancellationToken);
+        return await Opener.OpenAsync(AsSmime(fetched.SealedBytes), EnvelopeType);
+    }
+
+    /// <summary>The bare CMS envelope of <paramref name="payload"/>, sealed to the store's audience, read from any of its rels.</summary>
+    internal async Task<byte[]> SealBytesAsync(LinkMap links, byte[] payload, CancellationToken cancellationToken)
+    {
+        var recipients = Certificates(await GetRecipientsAsync(links, cancellationToken));
+        return recipients.Count == 0 ? throw new PasswordStoreHasNoRecipientsException() : ConversationKeys.SealTo(payload, recipients);
+    }
+
     // VersionCommentKind.ResealedAfterAccessChange on the wire (ADR 0964).
     private const int ResealedAfterAccessChange = 2;
 
@@ -392,7 +444,9 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
 
     // POST the entry's versions, PUT the sealed bytes to the presigned address (encrypted first where the tenant says
     // so, ADR 0818), PUT the version under the entry's ETag. One user action, one precondition (ADR 0794).
-    private async Task UploadVersionAsync(PasswordEntryInfo entry, byte[] sealedBytes, PasswordEntryContent content, string? ifMatch, int? commentKind, bool? passwordChanged, CancellationToken cancellationToken)
+    internal async Task UploadVersionAsync(
+        PasswordEntryInfo entry, byte[] sealedBytes, IReadOnlyDictionary<string, object?> indexParts, string? ifMatch, int? commentKind, bool? passwordChanged,
+        CancellationToken cancellationToken)
     {
         using var created = await core.SendRelAsync(entry.Links, "versions", new { fileExtension = SealedExtension }, cancellationToken);
         await ApiCore.ThrowIfProblemAsync(created, $"'{entry.Name}' could not be saved.", cancellationToken);
@@ -408,24 +462,14 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
 
         using var finalize = new HttpRequestMessage(HttpMethod.Put, ApiCore.RequireRel(version, "self", "The pending version"))
         {
-            // The autofill index rides with the version it describes (ADR 0973): the client derived it from the content
-            // it just sealed, so the entry is matchable without opening it. The server never sees the content.
-            Content = JsonContent.Create(new
+            // The family's plain index rides with the version it describes (ADR 0973, ADR 1084): the client derived it from the
+            // content it just sealed, so the entry is matchable without opening it. The server never sees the content.
+            Content = JsonContent.Create(new Dictionary<string, object?>(indexParts)
             {
-                wrappedDek = encrypted?.WrappedDek,
-                kekGeneration = encrypted?.KekGeneration,
-                commentKind,
-                passwordChanged,
-                index = new
-                {
-                    site = content.Site,
-                    userName = content.UserName,
-                    app = content.App,
-                    hasCode = content.HasCode,
-                    passkeySite = content.PasskeyIndex.Site,
-                    passkeyId = content.PasskeyIndex.Id,
-                    passkeyUserHandle = content.PasskeyIndex.UserHandle,
-                },
+                ["wrappedDek"] = encrypted?.WrappedDek,
+                ["kekGeneration"] = encrypted?.KekGeneration,
+                ["commentKind"] = commentKind,
+                ["passwordChanged"] = passwordChanged,
             }),
         };
         if (ifMatch is not null)
@@ -496,7 +540,10 @@ public sealed class PasswordStoreClient(ApiCore core, IEnvelopeOpener? opener = 
                 ApiWire.StrOrNull(i, "userName"),
                 ApiWire.StrOrNull(i, "app"),
                 ApiWire.TrueOrFalse(i, "hasCode"),
-                PasskeyIdentity.From(i))),
+                PasskeyIdentity.From(i))
+            {
+                CiCd = i.TryGetProperty("ciCd", out var cicd) && cicd.ValueKind == JsonValueKind.Object ? CiCdIndexInfo.From(cicd) : null,
+            }),
         ],
         LinkMap.From(json) ?? LinkMap.Empty,
         ApiWire.StrOrNull(json, "newEntryUnavailableReason"),

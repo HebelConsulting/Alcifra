@@ -67,6 +67,9 @@ public static class MaskIcon
         ["password-store"] = "mdi-lock",
         ["password-folder"] = "mdi-folder-key",
         ["password-entry"] = "mdi-key",
+        // The CI/CD store (ADR 1084), the web's two glyphs in this set, each with its -outline partner.
+        ["cicd-store"] = "mdi-rocket-launch",
+        ["cicd-secret"] = "mdi-shield-key",
         ["email"] = "mdi-email",
         ["note"] = "mdi-note-text",
         ["contact"] = "mdi-card-account-details",

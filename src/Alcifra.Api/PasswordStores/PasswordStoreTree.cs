@@ -12,9 +12,11 @@ public enum PasswordItemKind
     Entry,
 }
 
-/// <summary>A document of a password store, read once: enough for every rel and every rights question about it.</summary>
+/// <summary>A document of a sealed store, read once: enough for every rel and every rights question about it.</summary>
+/// <param name="Family">Which kind of store it belongs to (ADR 1084): its masks and audit names.</param>
 public sealed record PasswordItem(
-    Guid Id, string Name, PasswordItemKind Kind, Guid? ParentId, Guid StoreId, Guid? PersonalRootOwnerId, Guid ConcurrencyToken, Guid? CurrentVersionId);
+    Guid Id, string Name, PasswordItemKind Kind, Guid? ParentId, Guid StoreId, Guid? PersonalRootOwnerId, Guid ConcurrencyToken, Guid? CurrentVersionId,
+    SealedStoreFamily Family);
 
 /// <summary>
 /// The password store's view of the archive's tree (ADR 0964): which documents are stores, folders and entries, and an
@@ -22,12 +24,14 @@ public sealed record PasswordItem(
 /// </summary>
 public sealed class PasswordStoreTree(AlcifraDbContext dbContext)
 {
-    /// <summary>The kind a mask makes a document, or null for a mask that is no part of a store.</summary>
-    public static PasswordItemKind? KindOf(Guid? maskId) =>
-        maskId == WellKnownMaskIds.PasswordStore ? PasswordItemKind.Store
-        : maskId == WellKnownMaskIds.PasswordFolder ? PasswordItemKind.Folder
-        : maskId == WellKnownMaskIds.PasswordEntry ? PasswordItemKind.Entry
-        : null;
+    /// <summary>The kind a mask makes a document in any sealed store (ADR 1084), or null for a mask that is no part of one.</summary>
+    public static PasswordItemKind? KindOf(Guid? maskId) => SealedStoreFamily.Of(maskId) switch
+    {
+        null => null,
+        { } family when family.StoreMask == maskId => PasswordItemKind.Store,
+        { } family when family.FolderMask == maskId => PasswordItemKind.Folder,
+        _ => PasswordItemKind.Entry,
+    };
 
     /// <summary>The item, or null when the document does not exist, is not visible here or is no part of a store.</summary>
     public async Task<PasswordItem?> FindAsync(Guid documentId, CancellationToken cancellationToken)
@@ -50,7 +54,8 @@ public sealed class PasswordStoreTree(AlcifraDbContext dbContext)
             store = parent;
         }
 
-        return new PasswordItem(row.Id, row.Name, kind, row.ParentId, store.Id, row.PersonalRootOwnerId, row.ConcurrencyToken, row.CurrentVersionId);
+        return new PasswordItem(row.Id, row.Name, kind, row.ParentId, store.Id, row.PersonalRootOwnerId, row.ConcurrencyToken, row.CurrentVersionId,
+            SealedStoreFamily.Of(row.MaskId)!);
     }
 
     /// <summary>The direct children of a store or folder that are part of it, folders first, then by name.</summary>
@@ -71,7 +76,8 @@ public sealed class PasswordStoreTree(AlcifraDbContext dbContext)
 
         return [.. rows
             .Where(r => KindOf(r.MaskId) is PasswordItemKind.Folder or PasswordItemKind.Entry)
-            .Select(r => new PasswordItem(r.Id, r.Name, KindOf(r.MaskId)!.Value, container.Id, container.StoreId, r.PersonalRootOwnerId, r.ConcurrencyToken, r.CurrentVersionId))
+            .Select(r => new PasswordItem(r.Id, r.Name, KindOf(r.MaskId)!.Value, container.Id, container.StoreId, r.PersonalRootOwnerId, r.ConcurrencyToken, r.CurrentVersionId,
+                SealedStoreFamily.Of(r.MaskId)!))
             .OrderBy(i => i.Kind == PasswordItemKind.Folder ? 0 : 1)
             .ThenBy(i => i.Name, StringComparer.CurrentCultureIgnoreCase)];
     }
@@ -132,10 +138,10 @@ public sealed class PasswordStoreTree(AlcifraDbContext dbContext)
         return ids;
     }
 
-    /// <summary>The stores the caller's tenant holds, as ids: a client asks rights of these.</summary>
-    public async Task<IReadOnlyList<Guid>> StoreIdsAsync(CancellationToken cancellationToken) =>
+    /// <summary>The stores of one family the caller's tenant holds, as ids: a client asks rights of these.</summary>
+    public async Task<IReadOnlyList<Guid>> StoreIdsAsync(SealedStoreFamily family, CancellationToken cancellationToken) =>
         await dbContext.Documents
-            .Where(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.PasswordStore))
+            .Where(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == family.StoreMask))
             .Select(d => d.Id)
             .ToListAsync(cancellationToken);
 

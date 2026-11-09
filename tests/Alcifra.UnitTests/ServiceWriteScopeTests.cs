@@ -85,6 +85,10 @@ public partial class ServiceWriteScopeTests
         // The folder is created inside either of those transactions.
         ["CertificateEnrolment.cs"] = CalleeOfAContract,
         ["ReaderCertificateFolder.cs"] = CalleeOfAContract,
+        // Revoking a key (#2278, ADR 1083): a one-way transition, refused once it has happened, that nobody edits back. Its
+        // precondition is the state itself (409 CERTIFICATE_ALREADY_REVOKED), not a tag of what a form showed; the write
+        // moves the document's token, so an index-data edit holding the old tag fails 412 as it should.
+        ["CertificateRevocation.cs"] = "FINAL TRANSITION. " + CalleeOfAContract,
         ["ManualsFolder.cs"] = Provisioning,
         ["AdministrationFolders.cs"] = Provisioning,
 

@@ -110,6 +110,9 @@ way to fill index fields on the *Intray* tab: click the values in the scan's pre
 A *contact* or an *appointment*#idx("Contact card") shows as its own card instead: the same form the Contacts and
 Calendar tabs edit it with, read-only. The pencil above the card opens that form to change it. Only an item the
 archive filed as a contact or an appointment gets a card; any other .vcf or .ics file keeps its ordinary preview.
+The card fills the preview. At its bottom, a collapsed *vCard source* or *iCalendar source* shows the item exactly as
+stored, the same text as the editor's *Advanced: the stored item*, with a long photo shortened;
+*Copy* copies the whole of it.
 
 A *mail*#idx("Mail card") shows the same way: who sent it, to whom and when, its attachments with *Open* and *Save*, and
 its text. The web client shows the mail as it was formatted, without anything that could run or call home; the desktop
@@ -830,6 +833,30 @@ addresses only; a script address (a bookmarklet) works only in your own file.
 
 When the same bookmark was changed in two places at once, the browser's change wins and the other is kept in a folder
 called Conflicts. Deleting the browser's folder does not delete your bookmarks: it comes back at the next sync.
+
+== CI/CD secrets <desktopcicd>
+
+A *CI/CD store*#idx("CI/CD store") keeps the secrets and variables your build pipelines need, sealed to the hardware
+keys of the people allowed to read them, like a password store. Make one with New ▸ *CI/CD Store* in any folder; who it
+is sealed to is its audience, as for a shared password store. Its contents are *CI/CD secrets*, and each one is a
+rotation unit: the values that change together, such as a signing certificate and its password, kept together.
+
+A secret names its *targets*, the repositories it is set on (`github:owner/repository`, or
+`github:owner/repository@environment` for one environment), and holds any number of keys. Each key is a *secret*
+typed as text, a *file* kept as the bytes it was (a `.p12`, say) and sent base64-encoded, or a *variable*, which is not
+secret and is stored in the clear. In a CI/CD store, New ▸ *CI/CD Secret* opens the editor: its targets one per line,
+and a row per key. A file comes from *Choose file…* on its row, or is dropped anywhere on the window, where it becomes a
+new file key named after it.
+
+Selecting a secret shows its targets, key names and variables at once, with no key involved. *Open with key* opens the
+values with your hardware key, once: a text value then shows only while its eye is held and copies like a password; a
+file has *Save as…*, which writes it back exactly as it was. Every value shown, copied or saved is recorded by key name,
+never with the value. *Edit…* changes the secret in one step, refused if somebody changed it meanwhile.
+
+From the command line, `apass cicd apply <store>` sets what is missing or stale on every target: one PIN for the run,
+each value handed to the platform's own tool on its standard input and never printed. `apass cicd apply <store>
+--dry-run` reports what it would set and needs no key; `apass cicd show` prints or saves one value; `apass cicd set`
+makes or replaces a secret.
 
 == On a phone or a tablet
 
@@ -1782,6 +1809,19 @@ is — @holderaddress), or it is enrolled already (nothing to do). The sentence 
   person beside this one. It is retired: the certificates enrolled here are the only ones the archive addresses
   documents and mail to, so revoking one revokes it everywhere.
 ]
+
+== Revoking a key <revokekey>
+
+*My keys…*#idx("Revoking a key") in the account menu lists the keys enrolled for you, each with its state, and
+offers *Revoke…* on every one still valid. An administrator who manages users finds the same list under *Keys…* on
+a person in *Users & groups*; nobody else can revoke your key. Revoking asks *why* — lost, stolen or compromised,
+replaced by a new key, the holder left the organisation, or in your own words — and that reason stays on the key.
+When somebody else revoked your key, a notification tells you which, by whom and why.
+
+*Replacing a key? Enrol the new one first, then revoke the old one.* From the moment a key is revoked nothing is
+sealed to it any more, and what it could read is marked exposed; if it was your only valid key, the dialog warns you,
+because until another is enrolled you cannot open sealed items. A revocation cannot be undone. From the command
+line it is `alcifra certificates revoke --thumbprint … --reason lost`.
 
 == Only attested hardware keys are enrolled <attestedenrolment>
 

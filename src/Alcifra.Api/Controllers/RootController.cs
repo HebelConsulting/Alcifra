@@ -135,6 +135,8 @@ public class RootController : ControllerBase
                 new Link("checkouts", "/api/checkouts", "GET"),
                 // The caller's password stores (ADR 0964): My Passwords and the shared stores they may see.
                 new Link("passwordStores", "/api/password-stores", "GET"),
+                // The CI/CD stores (ADR 1084): sealed stores of pipeline secrets, which apass sets on their repositories.
+                new Link("cicdStores", "/api/cicd-stores", "GET"),
                 // The bookmark files the caller's browser keeps in step with (ADR 1062).
                 new Link("bookmarks", "/api/bookmarks", "GET"),
                 // Everything the caller has shared outside the system (ADR 0546) — a top-level collection, so

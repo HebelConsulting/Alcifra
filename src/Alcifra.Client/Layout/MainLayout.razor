@@ -219,6 +219,11 @@
                     {
                         <MudMenuItem Icon="@Icons.Material.Filled.AddModerator" OnClick="SelfEnrolAsync">@Strings.Get("AccountSelfEnrol")</MudMenuItem>
                     }
+                    @* The caller's own keys, to see and revoke (#2278): where the root lists them. *@
+                    @if (_myKeys is not null)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.VpnKey" OnClick="MyKeysAsync">@Strings.Get("AccountMyKeys")</MudMenuItem>
+                    }
                     <MudMenuItem Icon="@Icons.Material.Filled.NotificationsActive" OnClick="NotificationPreferencesAsync">@Strings.Get("AccountNotificationPrefs")</MudMenuItem>
                     <MudDivider />
                     @* Promote the desktop fat-client (ADR 0505): resolve the visitor's OS → /download/clients/<os>/. *@
@@ -523,6 +528,7 @@
             try
             {
                 _canSelfEnrol = await ApiRoot.MeHrefAsync("selfEnrolments") is { Length: > 0 };
+                _myKeys = await ApiRoot.MemberHrefAsync("certificates") is { Length: > 0 } keys ? keys : null;
             }
             catch (Exception)
             {
@@ -617,6 +623,13 @@
     // retired (#1970 slice 4).
     private async Task SelfEnrolAsync() =>
         await (await DialogService.ShowAsync<SelfEnrolmentDialog>(Strings.Get("EnrolTitle"))).Result;
+
+    // The caller's enrolled keys (#2278, ADR 1083), from the root's `certificates` rel.
+    private string? _myKeys;
+
+    private async Task MyKeysAsync() =>
+        await (await DialogService.ShowAsync<KeysDialog>(Strings.Get("KeysTitleMine"),
+            new DialogParameters { ["Href"] = _myKeys! })).Result;
 
     private async Task NotificationPreferencesAsync() =>
         await (await DialogService.ShowAsync<NotificationPreferencesDialog>(Strings.Get("DlgNotificationPrefs"))).Result;

@@ -42,6 +42,7 @@ public static class ModuleApiServices
         services.AddScoped<Alcifra.Api.Documents.ModulePersonalFolders>();
         // Certificate enrolment, owned by the core and offered while a module licenses it (ADR 0936).
         services.AddScoped<Alcifra.Api.Certificates.CertificateEnrolment>();
+        services.AddScoped<Alcifra.Api.Certificates.CertificateRevocation>();
         // Attested enrolment (ADR 0963): the decision on a key's evidence, and the trusted roots' verb contract.
         services.AddSingleton<Alcifra.Api.Certificates.CertificatePossessionChallenge>();
         services.AddScoped<Alcifra.Api.Certificates.EnrolmentAttestation>();

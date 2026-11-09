@@ -33,6 +33,7 @@ public sealed class CertificateEnrolment(
     DocumentFinalizer finalizer,
     IAuditRecorder audit,
     DocumentAccessService access,
+    Principals.UserAccessService users,
     ICurrentTenantAccessor tenant,
     IReadOnlyList<ModuleLoader.LoadedModule> modules,
     EnrolmentAttestation attestation,
@@ -47,7 +48,8 @@ public sealed class CertificateEnrolment(
     public sealed record Listed(
         Guid DocumentId, string Label, string Thumbprint, string Serial, DateTimeOffset NotAfter, DateTimeOffset? RevokedAt,
         bool Usable, string? FailsPolicy, string Attestation = "notAttested", string? AttestationRoot = null, string? DeviceSerial = null,
-        string? Issuer = null, string? SubjectKeyIdentifier = null, string? HolderName = null, string? HolderEmail = null);
+        string? Issuer = null, string? SubjectKeyIdentifier = null, string? HolderName = null, string? HolderEmail = null,
+        string? RevocationReason = null, Guid HolderUserId = default);
 
     private Guid TenantId => tenant.TenantId ?? throw new InvalidOperationException("Certificate enrolment needs a current tenant.");
 
@@ -68,9 +70,10 @@ public sealed class CertificateEnrolment(
         var query = dbContext.EnrolledCertificates.AsNoTracking();
         if (holder is { Length: > 0 })
         {
-            // Asking for somebody else's certificates is an administrator's question; anyone else gets an empty
-            // answer rather than a refusal, as the module always answered.
-            if (!await CallerAdministersAsync(cancellationToken))
+            // Asking for somebody else's certificates is an administrator's question: one who administers enrolment, or
+            // one who manages users, whose Users tab lists a person's keys to revoke them (#2278). Anyone else gets an
+            // empty answer rather than a refusal, as the module always answered.
+            if (!await CallerAdministersAsync(cancellationToken) && !await users.CanManageUsersAsync(cancellationToken))
             {
                 return [];
             }
@@ -114,7 +117,9 @@ public sealed class CertificateEnrolment(
                 IssuerOf(r.CertificatePem),
                 SubjectKeyIdentifierOf(r.CertificatePem),
                 holders.GetValueOrDefault(r.UserId)?.DisplayName,
-                holders.GetValueOrDefault(r.UserId)?.Email))];
+                holders.GetValueOrDefault(r.UserId)?.Email,
+                r.RevocationReason,
+                r.UserId))];
     }
 
     /// <summary>An enrolled certificate as an envelope names its recipient, with the label its holder knows it by.</summary>

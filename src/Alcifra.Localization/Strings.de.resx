@@ -7089,4 +7089,211 @@
   <data name="PvMediaUseApp" xml:space="preserve">
     <value>Video- oder Tondatei: zum Abspielen in einer Anwendung öffnen.</value>
   </data>
+  <data name="CardSourceVCard" xml:space="preserve">
+    <value>vCard-Quelltext</value>
+  </data>
+  <data name="CardSourceICalendar" xml:space="preserve">
+    <value>iCalendar-Quelltext</value>
+  </data>
+  <data name="CardSourceUnreadable" xml:space="preserve">
+    <value>Die gespeicherte Datei konnte nicht gelesen werden.</value>
+  </data>
+  <data name="StCopyRightsRefused" xml:space="preserve">
+    <value>Die Kopie bekäme Rechte, die Sie selbst nicht haben, daher wurde kein Benutzer angelegt.</value>
+  </data>
+  <data name="StCopySourceGone" xml:space="preserve">
+    <value>Der zu kopierende Benutzer existiert nicht mehr, daher wurde kein Benutzer angelegt.</value>
+  </data>
+  <data name="StGroupCopyRightsRefused" xml:space="preserve">
+    <value>Die Gruppe wurde angelegt, ihre Rechte aber nicht kopiert: Sie haben nicht alle selbst.</value>
+  </data>
+  <data name="AccountMyKeys" xml:space="preserve">
+    <value>Meine Schlüssel…</value>
+  </data>
+  <data name="KeysTitleMine" xml:space="preserve">
+    <value>Meine Schlüssel</value>
+  </data>
+  <data name="KeysTitleOf" xml:space="preserve">
+    <value>Schlüssel von {0}</value>
+  </data>
+  <data name="KeysNone" xml:space="preserve">
+    <value>Es ist kein Schlüssel registriert.</value>
+  </data>
+  <data name="KeysLoadError" xml:space="preserve">
+    <value>Die Schlüssel konnten nicht geladen werden.</value>
+  </data>
+  <data name="KeysRevokedOn" xml:space="preserve">
+    <value>Widerrufen am {0}</value>
+  </data>
+  <data name="KeysRevokedBecause" xml:space="preserve">
+    <value>Widerrufen am {0}: {1}</value>
+  </data>
+  <data name="KeysRevoke" xml:space="preserve">
+    <value>Widerrufen…</value>
+  </data>
+  <data name="UgKeys" xml:space="preserve">
+    <value>Schlüssel…</value>
+  </data>
+  <data name="RevokeTitle" xml:space="preserve">
+    <value>Schlüssel widerrufen</value>
+  </data>
+  <data name="RevokeConfirm" xml:space="preserve">
+    <value>„{0}“ widerrufen? Nichts wird mehr dafür versiegelt, und was er lesen konnte, wird als offengelegt markiert. Das lässt sich nicht rückgängig machen.</value>
+  </data>
+  <data name="RevokeReason" xml:space="preserve">
+    <value>Grund</value>
+  </data>
+  <data name="RevokeReasonLost" xml:space="preserve">
+    <value>Verloren</value>
+  </data>
+  <data name="RevokeReasonCompromised" xml:space="preserve">
+    <value>Gestohlen oder kompromittiert</value>
+  </data>
+  <data name="RevokeReasonReplaced" xml:space="preserve">
+    <value>Durch einen neuen Schlüssel ersetzt</value>
+  </data>
+  <data name="RevokeReasonLeft" xml:space="preserve">
+    <value>Inhaber hat die Organisation verlassen</value>
+  </data>
+  <data name="RevokeReasonOther" xml:space="preserve">
+    <value>Anderer</value>
+  </data>
+  <data name="RevokeOtherText" xml:space="preserve">
+    <value>Der Grund in eigenen Worten</value>
+  </data>
+  <data name="RevokeAdvice" xml:space="preserve">
+    <value>Ersetzen Sie einen Schlüssel? Registrieren Sie zuerst den neuen und widerrufen Sie dann diesen, damit versiegelte Objekte lesbar bleiben.</value>
+  </data>
+  <data name="RevokeOnlyKey" xml:space="preserve">
+    <value>Dies ist der einzige gültige Schlüssel. Bis ein weiterer registriert ist, lassen sich versiegelte Objekte nicht öffnen.</value>
+  </data>
+  <data name="RevokeSubmit" xml:space="preserve">
+    <value>Widerrufen</value>
+  </data>
+  <data name="RevokeFailed" xml:space="preserve">
+    <value>Der Schlüssel konnte nicht widerrufen werden.</value>
+  </data>
+  <data name="StKeyRevoked" xml:space="preserve">
+    <value>Schlüssel widerrufen.</value>
+  </data>
+  <data name="ApiErrCertificateAlreadyRevoked" xml:space="preserve">
+    <value>Dieser Schlüssel wurde bereits widerrufen.</value>
+  </data>
+  <data name="ApiErrCertificateRevocationNotAllowed" xml:space="preserve">
+    <value>Nur der Inhaber des Schlüssels oder ein Administrator, der Benutzer verwaltet, darf ihn widerrufen.</value>
+  </data>
+  <data name="CiCdTargets" xml:space="preserve">
+    <value>Ziele</value>
+  </data>
+  <data name="CiCdTargetsHint" xml:space="preserve">
+    <value>Eines pro Zeile: github:owner/repository oder github:owner/repository@environment.</value>
+  </data>
+  <data name="CiCdSecrets" xml:space="preserve">
+    <value>Geheimnisse</value>
+  </data>
+  <data name="CiCdVariables" xml:space="preserve">
+    <value>Variablen</value>
+  </data>
+  <data name="CiCdKeys" xml:space="preserve">
+    <value>Schlüssel</value>
+  </data>
+  <data name="CiCdOpen" xml:space="preserve">
+    <value>Mit Schlüssel öffnen</value>
+  </data>
+  <data name="CiCdEdit" xml:space="preserve">
+    <value>Bearbeiten…</value>
+  </data>
+  <data name="CiCdSaveAs" xml:space="preserve">
+    <value>Speichern unter…</value>
+  </data>
+  <data name="CiCdFileSize" xml:space="preserve">
+    <value>Datei, {0}</value>
+  </data>
+  <data name="CiCdStoredFile" xml:space="preserve">
+    <value>Gespeicherte Datei</value>
+  </data>
+  <data name="CiCdNoFile" xml:space="preserve">
+    <value>Keine Datei gewählt</value>
+  </data>
+  <data name="CiCdUnreadable" xml:space="preserve">
+    <value>Der versiegelte Inhalt dieses Geheimnisses ist kein CI/CD-Eintrag.</value>
+  </data>
+  <data name="CiCdNewTitle" xml:space="preserve">
+    <value>Neues CI/CD-Geheimnis</value>
+  </data>
+  <data name="CiCdEditTitle" xml:space="preserve">
+    <value>CI/CD-Geheimnis bearbeiten</value>
+  </data>
+  <data name="CiCdName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="CiCdKindSecret" xml:space="preserve">
+    <value>Geheimnis</value>
+  </data>
+  <data name="CiCdKindFile" xml:space="preserve">
+    <value>Datei</value>
+  </data>
+  <data name="CiCdKindVariable" xml:space="preserve">
+    <value>Variable</value>
+  </data>
+  <data name="CiCdChooseFile" xml:space="preserve">
+    <value>Datei wählen…</value>
+  </data>
+  <data name="CiCdRemoveKey" xml:space="preserve">
+    <value>Diesen Schlüssel entfernen</value>
+  </data>
+  <data name="CiCdAddKey" xml:space="preserve">
+    <value>Schlüssel hinzufügen</value>
+  </data>
+  <data name="CiCdDropHint" xml:space="preserve">
+    <value>Eine Datei hierher ziehen, um sie als Datei-Geheimnis hinzuzufügen.</value>
+  </data>
+  <data name="CiCdFileTooLarge" xml:space="preserve">
+    <value>„{0}“ ist grösser als 1 MB, das kann kein CI-Geheimnis aufnehmen.</value>
+  </data>
+  <data name="CiCdSave" xml:space="preserve">
+    <value>Speichern</value>
+  </data>
+  <data name="CiCdChangedMeanwhile" xml:space="preserve">
+    <value>Jemand hat dieses Geheimnis inzwischen geändert. Schliessen, erneut öffnen und die Änderung wiederholen.</value>
+  </data>
+  <data name="CiCdNotYours" xml:space="preserve">
+    <value>Diesen CI/CD-Speicher können Sie nicht lesen.</value>
+  </data>
+  <data name="CiCdCreated" xml:space="preserve">
+    <value>CI/CD-Geheimnis „{0}“ erstellt.</value>
+  </data>
+  <data name="CiCdSaved" xml:space="preserve">
+    <value>CI/CD-Geheimnis „{0}“ gespeichert.</value>
+  </data>
+  <data name="CiCdProblemNoName" xml:space="preserve">
+    <value>Geben Sie dem Geheimnis einen Namen.</value>
+  </data>
+  <data name="CiCdProblemNoTarget" xml:space="preserve">
+    <value>Nennen Sie mindestens ein Ziel.</value>
+  </data>
+  <data name="CiCdProblemNoFile" xml:space="preserve">
+    <value>Ein Datei-Schlüssel hat noch keine Datei.</value>
+  </data>
+  <data name="CiCdProblemInvalidKeyName" xml:space="preserve">
+    <value>Ein Schlüsselname darf nur Buchstaben, Ziffern und Unterstriche enthalten und nicht mit einer Ziffer oder GITHUB_ beginnen.</value>
+  </data>
+  <data name="CiCdProblemDuplicateKeyName" xml:space="preserve">
+    <value>Zwei Schlüssel haben denselben Namen.</value>
+  </data>
+  <data name="CiCdProblemFileKeyNotASecret" xml:space="preserve">
+    <value>Ein Datei-Schlüssel muss ein Geheimnis sein.</value>
+  </data>
+  <data name="CiCdProblemInvalidVariable" xml:space="preserve">
+    <value>Eine Variable braucht einen Namen.</value>
+  </data>
+  <data name="CiCdProblemInvalidTarget" xml:space="preserve">
+    <value>Ein Ziel muss github:owner/repository oder github:owner/repository@environment lauten.</value>
+  </data>
+  <data name="CiCdNameHint" xml:space="preserve">
+    <value>Developer-ID-Zertifikat</value>
+  </data>
+  <data name="CiCdNewSecret" xml:space="preserve">
+    <value>CI/CD-Geheimnis…</value>
+  </data>
 </root>

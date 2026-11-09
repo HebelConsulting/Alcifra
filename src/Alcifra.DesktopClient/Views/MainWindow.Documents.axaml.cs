@@ -505,6 +505,15 @@ public partial class MainWindow
         }
     });
 
+    // The caller's enrolled keys, to see and revoke (#2278, ADR 1083).
+    internal void OnMyKeys(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is MainWindowViewModel { Api: { } api })
+        {
+            await new KeysDialog(api, null, null).ShowDialog(this);
+        }
+    });
+
     // The Intray / Check-out tabs' single WebDAV button (ADR "One WebDAV button per tab, deep-linked"). It does
     // the same next-useful-thing the ribbon button does — set up credentials, else mount, else open what is
     // already mounted — with one difference that is the whole point of it being on a tab: when the volume is

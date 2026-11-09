@@ -48,4 +48,9 @@
     <ProjectReference Include="..\Alcifra.SelfHosting\Alcifra.SelfHosting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- A throwaway key for the signed-in caller (#2278), shared with the desktop suite. -->
+    <Compile Include="..\Shared\TestKeyEnrolment.cs" Link="Shared\TestKeyEnrolment.cs" />
+  </ItemGroup>
+
 </Project>

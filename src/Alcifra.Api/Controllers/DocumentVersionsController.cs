@@ -622,6 +622,10 @@ public class DocumentVersionsController : ControllerBase
         // and an Android package name. Present = these are the values now (an empty string clears one); absent = leave
         // them as they are, which is what a client that predates the field, or another mask, sends.
         public PasswordStores.PasswordIndex? Index { get; set; }
+
+        // A CI/CD secret's plain index data (ADR 1084): targets, key names and variables, which must change in the same
+        // commit as the sealed values they name. Present = these lists are the values now; absent = leave them.
+        public PasswordStores.CiCdIndex? CiCd { get; set; }
     }
 
     [HttpPut("{versionId:guid}")]
@@ -723,7 +727,7 @@ public class DocumentVersionsController : ControllerBase
         var sealedFinalize = await _sealedVersions.GuardAsync(version, request?.CommentKind, Request, cancellationToken);
 
         // An index sent for a document that is not a sealed entry would look stored and never be (ADR 0973).
-        if (request?.Index is not null && sealedFinalize is null)
+        if ((request?.Index is not null || request?.CiCd is not null) && sealedFinalize is null)
         {
             throw new Errors.Exceptions.PasswordStores.NotAPasswordStoreItemException();
         }
@@ -742,6 +746,7 @@ public class DocumentVersionsController : ControllerBase
                     if (wasPending)
                     {
                         await PasswordIndexWriter.ApplyAsync(_dbContext, documentId, request?.Index, cancellationToken);
+                        await CiCdIndexWriter.ApplyAsync(_dbContext, documentId, request?.CiCd, cancellationToken);
                     }
 
                     await _finalizer.FileAsync(version, cancellationToken);
@@ -755,6 +760,7 @@ public class DocumentVersionsController : ControllerBase
             if (wasPending)
             {
                 await PasswordIndexWriter.ApplyAsync(_dbContext, documentId, request?.Index, cancellationToken);
+                await CiCdIndexWriter.ApplyAsync(_dbContext, documentId, request?.CiCd, cancellationToken);
             }
 
             await _finalizer.FileAsync(version, cancellationToken);
@@ -773,13 +779,18 @@ public class DocumentVersionsController : ControllerBase
 
         if (wasPending && sealedFinalize is not null)
         {
-            var action = sealedFinalize.FirstVersion ? AuditActions.PasswordEntryCreated
-                : sealedFinalize.Reseal ? AuditActions.PasswordEntryResealed
-                : AuditActions.PasswordEntryChanged;
-            await _audit.RecordAsync(action, "Document", documentId, documentName, $"Version {version.VersionNumber}", cancellationToken: cancellationToken);
+            // A sealed STORE's entry (ADR 0964, ADR 1084) is audited under its family's names and gets the history rules at
+            // once: after a re-seal without a revoked key, what came before goes now. A Sealed document or a bookmark file
+            // has no store family; its version is audited as any document's, above, and its history is kept (#2281).
+            if (sealedFinalize.Family is { } family)
+            {
+                var action = sealedFinalize.FirstVersion ? family.EntryCreated
+                    : sealedFinalize.Reseal ? family.EntryResealed
+                    : family.EntryChanged;
+                await _audit.RecordAsync(action, "Document", documentId, documentName, $"Version {version.VersionNumber}", cancellationToken: cancellationToken);
+                await _sealedVersions.ReconcileHistoryAsync(documentId, cancellationToken);
+            }
 
-            // The history rules at once (ADR 0964): after a re-seal without a revoked key, what came before goes now.
-            await _sealedVersions.ReconcileHistoryAsync(documentId, cancellationToken);
             _documents.EmitETag(Response, sealedFinalize.Document);
         }
 

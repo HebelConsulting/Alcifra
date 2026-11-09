@@ -111,6 +111,8 @@ public static class ApiErrorText
         // The rest of enrolment's refusals (AlcifraMobile #82): the phone shows each by name. Self-service switched
         // off and no enrolment at all already have their sentences, which the desktop's dialog shows for the same states.
         "CERTIFICATE_ALREADY_ENROLLED" => Strings.Get("ApiErrCertificateAlreadyEnrolled"),
+        "CERTIFICATE_ALREADY_REVOKED" => Strings.Get("ApiErrCertificateAlreadyRevoked"),
+        "CERTIFICATE_REVOCATION_NOT_ALLOWED" => Strings.Get("ApiErrCertificateRevocationNotAllowed"),
         "CERTIFICATE_SELF_SERVICE_DISABLED" => Strings.Get("EnrolDisabled"),
         "CERTIFICATE_LIMIT_REACHED" => Strings.Get("ApiErrCertificateLimit"),
         "CERTIFICATE_REFUSED" => Strings.Get("ApiErrCertificateRefused"),

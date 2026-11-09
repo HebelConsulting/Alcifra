@@ -588,6 +588,10 @@ namespace Alcifra.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("NotBefore")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3461,6 +3465,45 @@ namespace Alcifra.Infrastructure.Migrations
                     b.HasIndex("EnqueuedAt", "Id");
 
                     b.ToTable("SearchIndexOutbox");
+                });
+
+            modelBuilder.Entity("Alcifra.Infrastructure.Search.SearchReindexRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Failure")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("IndexedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Instance")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Trigger")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedAt");
+
+                    b.ToTable("SearchReindexRuns");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>

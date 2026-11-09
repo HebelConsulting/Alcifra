@@ -109,7 +109,15 @@ jobs:
         run: dotnet restore
       - name: Restore local tools
         run: dotnet tool restore
+      # The brand's icons (ADR 0993), generated ONCE here and not by the build Stryker analyses: a project with
+      # UsesBrandIcons builds the generator through a nested MSBuild call, and Stryker's project analysis took that
+      # nested compile for the unit-test project's own, then failed reading tests/Alcifra.UnitTests/IconArt.cs (the
+      # weekly runs from 2026-11-02 on). GenerateBrandIcons=false below keeps the nested call out of its analysis.
+      - name: Generate the brand icons
+        run: dotnet build src/Alcifra.BrandIcons -c Release -p:BrandIconsPhase=Generate
       - name: Stryker ${{ matrix.name }}
+        env:
+          GenerateBrandIcons: "false"
         run: >-
           dotnet stryker
           --config-file stryker-config.json

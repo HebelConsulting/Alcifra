@@ -4,7 +4,7 @@ namespace Alcifra.Domain.Masks;
 // same Id, matching how a real DMS ships a fixed set of default document-type identifiers rather than
 // each tenant getting its own randomly-generated ones. See ADR "Mask composite primary key for cross-tenant
 // well-known IDs" and ADR "Mask creation endpoint".
-public static class WellKnownMaskIds
+public static partial class WellKnownMaskIds
 {
     public static readonly Guid BasicEntry = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E30");
 
@@ -244,20 +244,6 @@ public static class WellKnownMaskIds
     /// </summary>
     public static readonly Guid Manual = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E4C");
 
-    /// <summary>The Manual mask's field names (ADR 0891), in display order — the seeder's list and the core's filer
-    /// both read these, so the two cannot spell a field differently.</summary>
-    public static class ManualFields
-    {
-        public const string Brand = "Brand";
-        public const string ProductName = "Product name";
-        public const string ArticleNumber = "Article number";
-        public const string ProductVersion = "Product version";
-        public const string SerialNumbers = "Serial numbers";
-        public const string DateOfPurchase = "Date of purchase";
-        public const string WarrantyExpiry = "Warranty expiry";
-        public const string ExpectedDurationOfUse = "Expected duration of use (years)";
-    }
-
     /// <summary>
     /// The "Reader certificates" folder (ADR 0936): the one folder per tenant whose <see cref="Certificate"/>
     /// documents are READER certificates, the ones a sealed document is addressed to.
@@ -330,80 +316,35 @@ public static class WellKnownMaskIds
     /// </summary>
     public static readonly Guid Users = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E53");
 
+    /// <summary>A CI/CD store (ADR 1084, #2269): a flat folder holding only CI/CD Secrets, sealed to its declared audience.</summary>
+    /// <remarks>
+    /// Made anywhere a folder may be, so a team keeps its pipelines' secrets beside its work; there is no personal one. It
+    /// declares the audience every secret beneath it is sealed to (ADR 0983), as a Password Store does.
+    /// </remarks>
+    public static readonly Guid CiCdStore = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E54");
+
+    /// <summary>One rotation unit of CI/CD secrets and variables (ADR 1084), set on its targets by <c>apass cicd apply</c>.</summary>
+    /// <remarks>
+    /// <b>Its content is declared SEALED</b> (<see cref="SealedContentMasks"/>): the secret values, as one envelope sealed on
+    /// the device to the store's audience. Key names, targets and variables are plain index data
+    /// (<see cref="CiCdSecretFields"/>), so what a dry run compares needs no key.
+    /// </remarks>
+    public static readonly Guid CiCdSecret = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E55");
+
     /// <summary>
     /// The CORE's masks whose content is sealed to its readers (ADR 0964), mirroring a module's
     /// <c>ContentIsSealed</c> (ABI 1.20, ADR 0940): each maps to its content segment, which no other mask shares.
     /// </summary>
     public static readonly IReadOnlyDictionary<Guid, string> SealedContentMasks =
-        new Dictionary<Guid, string> { [PasswordEntry] = "passwords", [SealedDocument] = "sealed" };
+        new Dictionary<Guid, string> { [PasswordEntry] = "passwords", [SealedDocument] = "sealed", [CiCdSecret] = "cicd" };
 
     /// <summary>
-    /// The password store's three masks (ADR 0964), EXEMPT from WORM placement, retention and legal hold: an entry keeps
-    /// its previous version only for its undo window, and nothing may hold a superseded secret beyond it.
+    /// The sealed stores' masks, the Password Store's (ADR 0964) and the CI/CD Store's (ADR 1084), EXEMPT from WORM
+    /// placement, retention and legal hold: an entry keeps its previous version only for its undo window, and nothing may
+    /// hold a superseded secret beyond it.
     /// </summary>
-    public static readonly IReadOnlySet<Guid> PasswordStoreMasks = new HashSet<Guid> { PasswordStore, PasswordFolder, PasswordEntry };
-
-    /// <summary>The Sealed Document mask's one field (owner decision 2026-10-24).</summary>
-    public static class SealedDocumentFields
-    {
-        /// <summary>
-        /// True when the author chose a neutral document name at filing; the real name lives inside the envelope, so
-        /// the server never sees it. False (or absent) when the name stays readable, as any document's.
-        /// </summary>
-        public const string NameHidden = "Name hidden";
-    }
-
-    /// <summary>The Password Entry mask's index fields (ADR 0964, ADR 0973).</summary>
-    public static class PasswordEntryFields
-    {
-        /// <summary>
-        /// When a certificate the entry was sealed to was revoked: the entry's secret must be treated as exposed since
-        /// then. Set by the server from the envelope's recipients; cleared only when a member files a NEW password,
-        /// never by a re-seal, which keeps the old secret.
-        /// </summary>
-        public const string ExposedSince = "Exposed since";
-
-        /// <summary>
-        /// The site the entry belongs to (ADR 0973), the URL slot's host, lowercased: autofill matches a requesting
-        /// browser or app by it WITHOUT opening the entry. Derived from the sealed content by the client that files or
-        /// re-seals a version, never typed into a form of its own.
-        /// </summary>
-        public const string Site = "Site";
-
-        /// <summary>
-        /// The user name the entry fills (ADR 0973), from the content's user-name slot: the autofill sheet shows it
-        /// before the key is used. Derived with <see cref="Site"/>.
-        /// </summary>
-        public const string UserName = "User name";
-
-        /// <summary>
-        /// An Android package name the entry also fills (ADR 0973), for an app with no verified link to its site: the
-        /// one metadata value a user sets deliberately, as an ordinary field of the entry.
-        /// </summary>
-        public const string App = "App";
-
-        /// <summary>
-        /// Whether the entry's sealed content carries a verification code (ADR 1013): a Boolean, true or absent. It says
-        /// only THAT the account uses one-time codes, never anything of the secret behind them, so a one-time-code
-        /// field can be offered the entries that can fill it without opening any. Derived with <see cref="Site"/>.
-        /// </summary>
-        public const string HasCode = "Has code";
-
-        /// <summary>
-        /// The site the entry's passkey signs in to (ADR 1033): WebAuthn's relying-party id, lowercased. A sign-in names
-        /// it, so the entries that can answer are found WITHOUT opening any. It can differ from <see cref="Site"/>, which is
-        /// the URL's host. Derived with <see cref="Site"/>.
-        /// </summary>
-        public const string PasskeySite = "Passkey site";
-
-        /// <summary>The passkey's credential id, base64url (ADR 1033): a site may ask for specific credentials by it, and
-        /// a phone lists the passkey to its system by it. Derived with <see cref="Site"/>.</summary>
-        public const string PasskeyId = "Passkey id";
-
-        /// <summary>The site's opaque id for the account the passkey belongs to, base64url (ADR 1033): the phone's system
-        /// lists a passkey only with it. Random and chosen by the site, not a secret. Derived with <see cref="Site"/>.</summary>
-        public const string PasskeyUserHandle = "Passkey user handle";
-    }
+    public static readonly IReadOnlySet<Guid> SealedStoreMasks =
+        new HashSet<Guid> { PasswordStore, PasswordFolder, PasswordEntry, CiCdStore, CiCdSecret };
 
     /// <summary>
     /// The masks only the CORE assigns (ADR 0891): not offered by any picker, refused by SaveChanges when a document
@@ -469,6 +410,8 @@ public static class WellKnownMaskIds
         // nobody sealed.
         new(PasswordStore, "Password Store", [(PasswordFolder, "Password Folder"), (PasswordEntry, "Password Entry")]),
         new(PasswordFolder, "Password Folder", [(PasswordFolder, "Password Folder"), (PasswordEntry, "Password Entry")]),
+        // A CI/CD store is flat and holds only its secrets (ADR 1084), two-directionally for the same reason.
+        new(CiCdStore, "CI/CD Store", [(CiCdSecret, "CI/CD Secret")]),
         // The administrators' branch (ADR 1066), two-directionally: the root holds only its Users folder, and a Users
         // folder lives nowhere else. Users itself declares nothing — its contents are references the core places.
         new(Administration, "Administration", [(Users, "Users")]),
@@ -540,7 +483,7 @@ public static class WellKnownMaskIds
     /// </para>
     /// </remarks>
     public static readonly IReadOnlySet<Guid> FolderMasks =
-        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder, Administration, Users };
+        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder, Administration, Users, CiCdStore };
 
     /// <summary>
     /// The file extensions that make a well-known mask the automatic choice for an upload (#671).
@@ -629,6 +572,9 @@ public static class WellKnownMaskIds
             [PasswordStore] = "password-store",
             [PasswordFolder] = "password-folder",
             [PasswordEntry] = "password-entry",
+            // A CI/CD store and one rotation unit in it (ADR 1084).
+            [CiCdStore] = "cicd-store",
+            [CiCdSecret] = "cicd-secret",
         };
 
     /// <summary>
@@ -730,7 +676,7 @@ public static class WellKnownMaskIds
         new HashSet<Guid>
         {
             BasicEntry, EMail, Note, Contact, Appointment, Booking, License, Block, AvailabilityWindow,
-            Certificate, Manual, CertificatePolicy, PasswordEntry, SealedDocument, Bookmarks,
+            Certificate, Manual, CertificatePolicy, PasswordEntry, SealedDocument, Bookmarks, CiCdSecret,
         };
 
     /// <summary>
@@ -963,6 +909,7 @@ public static class WellKnownMaskIds
             [Contact] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Contact UID" },
             // The server's own verdict about an entry (ADR 0964): a pane edit could clear an exposure nobody resolved.
             [PasswordEntry] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { PasswordEntryFields.ExposedSince },
+            [CiCdSecret] = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { CiCdSecretFields.ExposedSince },
         };
 
     /// <summary>The well-known masks whose documents are bookable resources (ADR 0735).</summary>

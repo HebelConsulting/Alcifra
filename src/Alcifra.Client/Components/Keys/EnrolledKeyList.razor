@@ -1,0 +1,95 @@
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* The enrolled keys at one listing address (#2278, ADR 1083): the caller's own ("My keys", the enrolment dialog) or a
+   user's in the Users tab, whose `certificates` rel names it. A key offers Revoke where the server advertised its
+   `revoke` rel, so who may revoke what is the server's answer alone (ADR 0543). Mirrors the desktop's key list. *@
+<div class="wb-enrolled-keys">
+    @if (_failed)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("KeysLoadError")</MudText>
+    }
+    else if (_keys is { Count: 0 })
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("KeysNone")</MudText>
+    }
+    @foreach (var key in _keys ?? [])
+    {
+        <div class="sa-enrolled-certificate wb-enrolled-key mt-1">
+            <div class="wb-enrolled-key-text">
+                <MudText Typo="Typo.body2"><b>@key.Label</b></MudText>
+                <MudText Typo="Typo.caption" Class="@(key.Usable ? "mud-text-secondary" : "mud-warning-text")">@Describe(key)</MudText>
+            </div>
+            @if (key.Links?.FirstOrDefault(l => l.Rel == "revoke")?.Href is { } revoke)
+            {
+                <MudButton Size="Size.Small" Color="Color.Error" Class="wb-enrolled-key-revoke"
+                           OnClick="() => RevokeAsync(key, revoke)">@Strings.Get("KeysRevoke")</MudButton>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>The listing's address, as a rel named it: the root's <c>certificates</c> or a user's.</summary>
+    [Parameter, EditorRequired]
+    public string Href { get; set; } = string.Empty;
+
+    private List<KeyDto>? _keys;
+    private bool _failed;
+
+    protected override Task OnParametersSetAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _keys = await Http.GetFromJsonAsync<List<KeyDto>>(Href) ?? [];
+            _failed = false;
+        }
+        catch (Exception)
+        {
+            _failed = true;
+        }
+    }
+
+    private async Task RevokeAsync(KeyDto key, string href)
+    {
+        // The only key that still reads for its holder: revoking it leaves them unable to open sealed items.
+        var onlyValid = key.Usable && _keys!.Count(k => k.Usable && k.RevokedAt is null) == 1;
+        var parameters = new DialogParameters
+        {
+            ["Label"] = key.Label,
+            ["Href"] = href,
+            ["OnlyValidKey"] = onlyValid,
+        };
+        var dialog = await DialogService.ShowAsync<Dialogs.RevokeKeyDialog>(Strings.Get("RevokeTitle"), parameters);
+        if (await dialog.Result is { Canceled: false })
+        {
+            Snackbar.Add(Strings.Get("StKeyRevoked"), Severity.Success);
+            await LoadAsync();
+        }
+    }
+
+    private static string Describe(KeyDto key)
+    {
+        if (key.RevokedAt is { } revokedAt)
+        {
+            var on = revokedAt.InZone(SessionTimeZone.Current).ToString("g");
+            return key.RevocationReason is { Length: > 0 } reason
+                ? string.Format(Strings.Get("KeysRevokedBecause"), on,
+                    Alcifra.Presentation.CertificateRevocationReasons.StoredKey(reason) is { } reasonKey ? Strings.Get(reasonKey) : reason)
+                : string.Format(Strings.Get("KeysRevokedOn"), on);
+        }
+
+        var (textKey, namesRoot) = Alcifra.Presentation.CertificateAttestationText.For(key.Attestation ?? "notAttested", key.Usable);
+        var state = namesRoot ? string.Format(Strings.Get(textKey), key.AttestationRoot) : Strings.Get(textKey);
+        return key.Attestation == "attested" && key.DeviceSerial is { Length: > 0 } serial
+            ? $"{state}, {string.Format(Strings.Get("EnrolAttestedToken"), serial)}"
+            : state;
+    }
+
+    private sealed record KeyDto(
+        string Label, bool Usable, string? Attestation, string? AttestationRoot, string? DeviceSerial,
+        DateTimeOffset? RevokedAt, string? RevocationReason, List<Alcifra.Client.Hypermedia.LinkResponse>? Links);
+}

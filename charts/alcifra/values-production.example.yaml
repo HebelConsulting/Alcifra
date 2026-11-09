@@ -3,9 +3,8 @@
 
 replicaCount: 3
 
-image:
-  repository: ghcr.io/hebelconsulting/alcifra
-  tag: "1.0.0"
+# No `image:` here: the chart's own image, at the chart's version, is the one to run. A tag set in this file
+# would stay pinned through every `helm upgrade` (and a copied example pinned one that was never published).
 
 # The Secret must contain at least OpenBao__SecretId. Create it out-of-band, e.g.:
 #   kubectl create secret generic alcifra-secrets --from-literal=OpenBao__SecretId=...

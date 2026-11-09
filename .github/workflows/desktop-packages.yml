@@ -166,6 +166,9 @@ jobs:
           # the committed one says only its date, and a release attachment names its release.
           if [ "${{ needs.gate.outputs.white_label }}" = "true" ]; then
             assets+=("$(scripts/edition-manual.sh --white-label)")
+            # Its operators' installation manual too, in the edition's names (owner, 2026-11-08): the customer
+            # reaches it on the vendor's download page, since this repository and its releases are private.
+            assets+=("$(scripts/compile-installation-manual.sh --white-label "$GITHUB_REF_NAME")")
           else
             scripts/compile-manual.sh --release "$GITHUB_REF_NAME"
             assets+=("$(scripts/edition-manual.sh)")
@@ -228,7 +231,8 @@ jobs:
             "$BRAND_FILE_STEM-$version-arm64.dmg" \
             "$BRAND_FILE_STEM-$version-x64.dmg" \
             "$BRAND_FILE_STEM-Manual.pdf" \
-            "site-bundle.zip"
+            "site-bundle.zip" \
+            ${{ needs.gate.outputs.white_label == 'true' && '"$BRAND_FILE_STEM-Installation-Manual.pdf"' || '' }}
           do
             # Two traps in one line, both met here. `grep -qxF` rather than `grep -q`: without -x the x64 .dmg
             # is satisfied by the arm64 one, because one name contains the other. And a HERE-STRING rather
