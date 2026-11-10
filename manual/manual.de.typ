@@ -769,6 +769,13 @@ nur Ihnen. Im Tab *Archive* ist ein Speicher oder Eintrag, den Sie sehen, aber n
 und einer, zu dem Sie gerade hinzugefügt wurden, mit *Noch nicht für Sie verschlüsselt*, bis ein Mitglied das nächste Mal neu versiegelt. Ein versiegeltes Dokument
 funktioniert genauso: Wer es ablegt, wählt seinen Empfängerkreis, und *Verschlüsselt für…* ändert ihn.
 
+*Versiegelung prüfen…* im Menü eines versiegelten Dokuments zeigt, für wen sein Inhalt versiegelt ist, ohne ihn zu öffnen: Format und
+Verschlüsselung, den Schlüssel jedes Empfängers mit der Person, der er gehört (soweit Sie sie sehen dürfen), ob ein Schlüssel widerrufen oder
+nicht bestätigt ist, und ob der Umschlag noch zum Empfängerkreis passt. Wer den Empfängerkreis verlassen hat, diese Version aber noch öffnen kann,
+und wen der Umschlag noch nicht nennt, wird aufgeführt; in der Desktop-App versiegelt ein Verwalter dort neu, im Browser, der keinen Schlüssel hat,
+tut es die Desktop- oder Telefon-App. Jeder Empfänger klappt auf und zeigt, wie der Schlüssel ihn erreicht, und unten steht die ASN.1-Struktur,
+wie `alcifra inspect` sie ausgibt.
+
 *Importieren.* Die Import-Schaltfläche liest auf Ihrem Computer die CSV-Datei, die ein Passwortmanager exportiert: Jede Zeile wird zu einem
 Eintrag, hier versiegelt. Nachgefragt wird nur bei einer Zeile, deren Name und Benutzername zu einem Eintrag passen, der schon im Ordner liegt – überspringen,
 als neue Version hinzufügen oder beide behalten. Eine Spalte mit Bestätigungscodes (`totp`, `otpauth` oder ähnlich benannt)

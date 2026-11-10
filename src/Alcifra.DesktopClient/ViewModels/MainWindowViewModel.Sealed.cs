@@ -181,4 +181,43 @@ public sealed partial class MainWindowViewModel
         await RefreshCommand.ExecuteAsync(null);
         return true;
     }
+
+    /// <summary>The seal of the document in the details pane (#2291), as the server inspects it; null when it offers none.</summary>
+    public async Task<SealInspectionViewModel?> LoadDetailSealInspectionAsync()
+    {
+        if (_api is null || _detailLinks?.Href("seal-inspection") is not { } href)
+        {
+            return null;
+        }
+
+        try
+        {
+            return new SealInspectionViewModel(await new Alcifra.ApiClient.Inspection.SealInspectionClient(_api.Core).GetAsync(href), CanChangeAudience);
+        }
+        catch (Exception e) when (e is ApiActionException or HttpRequestException)
+        {
+            ReportError($"{Strings.Get("SealLoadFailed")} {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Seals the document again for its declared audience, unchanged (#2291): the inspection showed the envelope and the
+    /// audience apart. The same act as saving the audience (ADR 0983), so the caller's key opens it first.
+    /// </summary>
+    public async Task<bool> ResealDetailAsync()
+    {
+        if (await LoadDetailAudienceAsync() is not { } seen)
+        {
+            return false;
+        }
+
+        if (!await SaveAudienceAsync(seen, [.. seen.Members.Select(AudienceChange.Of)]))
+        {
+            return false;
+        }
+
+        Status = Strings.Get("SealResealed");
+        return true;
+    }
 }

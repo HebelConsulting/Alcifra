@@ -1,0 +1,164 @@
+@using System.Globalization
+@using Alcifra.Client.Models
+@using Alcifra.Client.Services
+@using Alcifra.Localization
+
+@* What a sealed document is and who can open it (#2291), at the CLI's three levels (ADR 1029): the summary, the details per
+   recipient and signer, and the ASN.1 structure. The server reads the envelope because the browser cannot. A browser holds
+   no key, so where the envelope and the audience disagree this says where to re-seal rather than offering it (ADR 0511's
+   platform exception, as the audience dialog). The desktop's SealInspectionDialog is its twin. *@
+<MudDialog>
+    <DialogContent>
+        <div style="min-width: 420px;" data-dialog="seal-inspection">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@Name</MudText>
+            <table class="wb-sysfields mb-2">
+                <tr><td>@Strings.Get("SealFormat")</td><td>@(Inspection.SmimeWrapped ? string.Format(CultureInfo.CurrentCulture, Strings.Get("SealSmime"), Inspection.Format) : Inspection.Format)</td></tr>
+                <tr><td>@Strings.Get("SealSize")</td><td>@string.Format(CultureInfo.CurrentCulture, Strings.Get("SealBytes"), Inspection.Size.ToString("N0", CultureInfo.CurrentCulture))</td></tr>
+                @if (Inspection.ContentType is { } content)
+                {
+                    <tr><td>@Strings.Get("SealContentType")</td><td>@content</td></tr>
+                }
+                @if (Inspection.ContentEncryption is { } encryption)
+                {
+                    <tr><td>@Strings.Get("SealEncryption")</td><td>@encryption</td></tr>
+                }
+            </table>
+
+            @if (Inspection.Audience is { } audience)
+            {
+                <div data-seal-audience="@(audience.Matches ? "matches" : "differs")" class="mb-2">
+                    @if (audience.Matches)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Strings.Get("SealAudienceMatches")</MudText>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            <div>@Strings.Get("SealAudienceGap")</div>
+                            @foreach (var missing in audience.Missing)
+                            {
+                                <div>@string.Format(CultureInfo.CurrentCulture, Strings.Get("SealMissing"), missing.Person)</div>
+                            }
+                            <div class="mt-1">@Strings.Get("SealWebNoReseal")</div>
+                        </MudAlert>
+                    }
+                </div>
+            }
+
+            @if (Inspection.Kind is "Enveloped" or "Archive")
+            {
+                <MudText Typo="Typo.subtitle2">@string.Format(CultureInfo.CurrentCulture, Strings.Get("SealRecipients"), Inspection.Recipients.Count)</MudText>
+                <MudExpansionPanels MultiExpansion="true" Dense="true" Class="mb-2">
+                    @foreach (var recipient in Inspection.Recipients)
+                    {
+                        <MudExpansionPanel data-seal-recipient>
+                            <TitleContent>
+                                <div>@Who(recipient)</div>
+                                @foreach (var problem in Problems(recipient))
+                                {
+                                    <div class="mud-error-text" style="font-size: 0.85em;">@problem</div>
+                                }
+                            </TitleContent>
+                            <ChildContent>
+                                <div>@Method(recipient)</div>
+                                <div>@Reference(recipient)</div>
+                                @if (recipient.NotAfter is { } notAfter)
+                                {
+                                    <div>@string.Format(CultureInfo.CurrentCulture, Strings.Get("SealValidUntil"), notAfter.InZone(SessionTimeZone.Current).ToString("d", CultureInfo.CurrentCulture))</div>
+                                }
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            }
+            else if (Inspection.Kind == "AuthEnveloped")
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">@Strings.Get("SealAuthEnveloped")</MudText>
+            }
+
+            @if (Inspection.Kind == "Signed")
+            {
+                <MudText Typo="Typo.subtitle2">@string.Format(CultureInfo.CurrentCulture, Strings.Get("SealSigners"), Inspection.Signers.Count)</MudText>
+                <MudExpansionPanels MultiExpansion="true" Dense="true" Class="mb-2">
+                    @foreach (var signer in Inspection.Signers)
+                    {
+                        <MudExpansionPanel Text="@($"{signer.Subject ?? Strings.Get("SealUnnamedSigner")}: {Verdict(signer)}")">
+                            @string.Format(CultureInfo.CurrentCulture, Strings.Get("SealSignedWith"), signer.DigestAlgorithm)
+                            @if (signer.SigningTime is { } signedAt)
+                            {
+                                <span>, @string.Format(CultureInfo.CurrentCulture, Strings.Get("SealSignedAt"), signedAt.InZone(SessionTimeZone.Current).ToString("g", CultureInfo.CurrentCulture))</span>
+                            }
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+                @foreach (var certificate in Inspection.Certificates)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@string.Format(CultureInfo.CurrentCulture, Strings.Get("SealCarries"), certificate)</MudText>
+                }
+            }
+
+            @if (Inspection.Asn1.Count > 0)
+            {
+                <MudExpansionPanels Dense="true">
+                    <MudExpansionPanel Text="@Strings.Get("SealAsn1")" data-seal-asn1>
+                        <pre style="font-size: 12px; overflow-x: auto; margin: 0;">@Asn1Lines()</pre>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Close())">@Strings.Get("Close")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
+
+    /// <summary>The server's answer to the document's <c>seal-inspection</c> rel.</summary>
+    [Parameter, EditorRequired] public SealInspection Inspection { get; set; } = null!;
+
+    /// <summary>The document's name, as the row shows it.</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+
+    private static string Who(SealRecipient r) => r.IsKnown
+        ? $"{r.HolderName ?? Strings.Get("SealHiddenHolder")}{(r.HolderEmail is { } email ? $" <{email}>" : string.Empty)}, "
+            + string.Format(CultureInfo.CurrentCulture, Strings.Get("SealKeyLabel"), r.Label)
+        : Strings.Get("SealUnknownRecipient");
+
+    private static IEnumerable<string> Problems(SealRecipient r)
+    {
+        if (r.RevokedAt is { } revoked)
+        {
+            yield return string.Format(CultureInfo.CurrentCulture, Strings.Get("SealRevoked"), revoked.InZone(SessionTimeZone.Current).ToString("d", CultureInfo.CurrentCulture));
+        }
+
+        if (r.Attestation switch { "rootNotTrusted" => "SealAttRootNotTrusted", "notAttested" => "SealAttNotAttested", _ => null } is { } attestation)
+        {
+            yield return Strings.Get(attestation);
+        }
+
+        if (r.InAudience == false)
+        {
+            yield return Strings.Get("SealExtra");
+        }
+    }
+
+    private static string Method(SealRecipient r) =>
+        string.Format(CultureInfo.CurrentCulture, Strings.Get("SealMethod"), r.Method, r.KeyEncryptionAlgorithm)
+        + (r.OriginatorKeyAlgorithm is { } originator ? $", {string.Format(CultureInfo.CurrentCulture, Strings.Get("SealOriginator"), originator)}" : string.Empty);
+
+    private static string Reference(SealRecipient r) => r switch
+    {
+        { SubjectKeyIdentifier: { } ski } => string.Format(CultureInfo.CurrentCulture, Strings.Get("SealRefSki"), ski),
+        { Issuer: { } issuer, Serial: { } serial } => string.Format(CultureInfo.CurrentCulture, Strings.Get("SealRefIssuerSerial"), issuer, serial),
+        _ => string.Empty,
+    };
+
+    private static string Verdict(SealSigner s) =>
+        Strings.Get(s.SignatureValid switch { true => "SealSignatureHolds", false => "SealSignatureFails", null => "SealSignatureDetached" });
+
+    // The CLI's --extra-verbose lines, by the one rule all three share.
+    private string Asn1Lines() => string.Join('\n', Inspection.Asn1.Select(n =>
+        Alcifra.Presentation.Asn1Line.Of(n.Offset, n.Depth, n.HeaderLength, n.Length, n.Constructed, n.Tag, n.Value)));
+}

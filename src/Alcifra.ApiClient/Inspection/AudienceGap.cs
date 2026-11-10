@@ -32,10 +32,14 @@ public sealed record AudienceGap(IReadOnlyList<MissingRecipient> Missing, IReadO
 {
     public bool None => Missing.Count == 0 && Extra.Count == 0;
 
-    public static AudienceGap Of(IReadOnlyList<InspectedRecipient> envelope, ContentAudienceInfo audience)
+    public static AudienceGap Of(IReadOnlyList<InspectedRecipient> envelope, ContentAudienceInfo audience) =>
+        Of(envelope, [.. audience.Recipients.Select(r => (r.DisplayName, r.CertificatePems))]);
+
+    /// <summary>The same rule over the audience's people and their certificates, as the server holds them (#2291).</summary>
+    public static AudienceGap Of(IReadOnlyList<InspectedRecipient> envelope, IReadOnlyList<(string Person, IReadOnlyList<string> CertificatePems)> audience)
     {
-        var expected = audience.Recipients
-            .SelectMany(r => r.CertificatePems.Select(pem => (Person: r.DisplayName, Certificate: X509Certificate2.CreateFromPem(pem))))
+        var expected = audience
+            .SelectMany(r => r.CertificatePems.Select(pem => (r.Person, Certificate: X509Certificate2.CreateFromPem(pem))))
             .ToList();
         return new AudienceGap(
             [.. expected.Where(e => !envelope.Any(r => r.Reference.Is(e.Certificate))).Select(e => new MissingRecipient(e.Person, e.Certificate))],

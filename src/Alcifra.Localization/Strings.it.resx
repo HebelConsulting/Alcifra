@@ -7296,4 +7296,124 @@
   <data name="CiCdNewSecret" xml:space="preserve">
     <value>Segreto CI/CD…</value>
   </data>
+  <data name="SealInspect" xml:space="preserve">
+    <value>Esamina sigillo…</value>
+  </data>
+  <data name="SealTitle" xml:space="preserve">
+    <value>Sigillo di {0}</value>
+  </data>
+  <data name="SealSummary" xml:space="preserve">
+    <value>Riepilogo</value>
+  </data>
+  <data name="SealDetails" xml:space="preserve">
+    <value>Dettagli</value>
+  </data>
+  <data name="SealAsn1" xml:space="preserve">
+    <value>Struttura ASN.1</value>
+  </data>
+  <data name="SealFormat" xml:space="preserve">
+    <value>Formato</value>
+  </data>
+  <data name="SealSmime" xml:space="preserve">
+    <value>{0} (in un messaggio S/MIME)</value>
+  </data>
+  <data name="SealSize" xml:space="preserve">
+    <value>Dimensione</value>
+  </data>
+  <data name="SealBytes" xml:space="preserve">
+    <value>{0} byte</value>
+  </data>
+  <data name="SealContentType" xml:space="preserve">
+    <value>Contenuto</value>
+  </data>
+  <data name="SealEncryption" xml:space="preserve">
+    <value>Cifratura</value>
+  </data>
+  <data name="SealRecipients" xml:space="preserve">
+    <value>Destinatari ({0})</value>
+  </data>
+  <data name="SealSigners" xml:space="preserve">
+    <value>Firmatari ({0})</value>
+  </data>
+  <data name="SealUnknownRecipient" xml:space="preserve">
+    <value>Destinatario sconosciuto</value>
+  </data>
+  <data name="SealHiddenHolder" xml:space="preserve">
+    <value>Un titolare che non può vedere</value>
+  </data>
+  <data name="SealKeyLabel" xml:space="preserve">
+    <value>chiave «{0}»</value>
+  </data>
+  <data name="SealRevoked" xml:space="preserve">
+    <value>Revocata dal {0}: esposta da allora</value>
+  </data>
+  <data name="SealAttRootNotTrusted" xml:space="preserve">
+    <value>Attestata da una radice non attendibile qui</value>
+  </data>
+  <data name="SealAttNotAttested" xml:space="preserve">
+    <value>Non attestata</value>
+  </data>
+  <data name="SealMethod" xml:space="preserve">
+    <value>Chiave: {0}, cifrata con {1}</value>
+  </data>
+  <data name="SealOriginator" xml:space="preserve">
+    <value>chiave effimera del mittente {0}</value>
+  </data>
+  <data name="SealRefSki" xml:space="preserve">
+    <value>Riferimento: identificatore della chiave {0}</value>
+  </data>
+  <data name="SealRefIssuerSerial" xml:space="preserve">
+    <value>Riferimento: emittente {0}, numero di serie {1}</value>
+  </data>
+  <data name="SealValidUntil" xml:space="preserve">
+    <value>Certificato valido fino al {0}</value>
+  </data>
+  <data name="SealAudienceMatches" xml:space="preserve">
+    <value>La busta corrisponde al pubblico dichiarato.</value>
+  </data>
+  <data name="SealAudienceGap" xml:space="preserve">
+    <value>La busta non corrisponde al pubblico dichiarato.</value>
+  </data>
+  <data name="SealMissing" xml:space="preserve">
+    <value>{0} fa parte del pubblico ma non della busta: va sigillata di nuovo.</value>
+  </data>
+  <data name="SealExtra" xml:space="preserve">
+    <value>Non più nel pubblico, ma può ancora aprire questa versione.</value>
+  </data>
+  <data name="SealReseal" xml:space="preserve">
+    <value>Sigilla di nuovo</value>
+  </data>
+  <data name="SealResealed" xml:space="preserve">
+    <value>Sigillato di nuovo per il pubblico dichiarato.</value>
+  </data>
+  <data name="SealWebNoReseal" xml:space="preserve">
+    <value>Un browser non ha chiavi: sigillalo di nuovo nell'app desktop o telefono.</value>
+  </data>
+  <data name="SealSignatureHolds" xml:space="preserve">
+    <value>firma valida</value>
+  </data>
+  <data name="SealSignatureFails" xml:space="preserve">
+    <value>firma NON valida</value>
+  </data>
+  <data name="SealSignatureDetached" xml:space="preserve">
+    <value>separata: verificarla con il file firmato</value>
+  </data>
+  <data name="SealUnnamedSigner" xml:space="preserve">
+    <value>Firmatario senza nome</value>
+  </data>
+  <data name="SealSignedWith" xml:space="preserve">
+    <value>digest {0}</value>
+  </data>
+  <data name="SealSignedAt" xml:space="preserve">
+    <value>firmato il {0}</value>
+  </data>
+  <data name="SealCarries" xml:space="preserve">
+    <value>Contiene il certificato: {0}</value>
+  </data>
+  <data name="SealAuthEnveloped" xml:space="preserve">
+    <value>Per questo formato i destinatari non vengono decodificati; la struttura ASN.1 lo mostra.</value>
+  </data>
+  <data name="SealLoadFailed" xml:space="preserve">
+    <value>Non è stato possibile esaminare il sigillo.</value>
+  </data>
 </root>

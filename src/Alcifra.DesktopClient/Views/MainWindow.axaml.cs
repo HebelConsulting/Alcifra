@@ -214,6 +214,23 @@ public partial class MainWindow : Window
         }
     });
 
+    // "Inspect seal…" (#2291): what the sealed content of the details' document is and who can open it, as the server
+    // reads it; Re-seal, where offered, seals it again for its declared audience with the caller's key.
+    internal void OnInspectSeal(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is not MainWindowViewModel vm || await vm.LoadDetailSealInspectionAsync() is not { } inspection)
+        {
+            return;
+        }
+
+        var name = vm.DetailDocumentName;
+        var title = string.Format(System.Globalization.CultureInfo.CurrentCulture, Alcifra.Localization.Strings.Get("SealTitle"), name);
+        if (await new SealInspectionDialog(inspection, title, name).ShowDialog<bool>(this))
+        {
+            await vm.ResealDetailAsync();
+        }
+    });
+
     // Rename/Delete are triggered from the ribbon, the row context menu, and F2/Delete — all act on the
     // selected contents-list row and route through these code-behind handlers so the dialogs live in the view.
     internal void OnRename(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>

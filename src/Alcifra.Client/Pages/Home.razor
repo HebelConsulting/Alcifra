@@ -16,6 +16,7 @@
 @inject Alcifra.Client.Services.ApiRoot ApiRoot
 @inject Alcifra.Client.Services.UploadConflictResolver UploadConflicts
 @inject Alcifra.Client.Services.DocumentActions Actions
+@inject Alcifra.Client.Services.SealInspections Seals
 @inject Alcifra.Client.Services.BulkActions Bulk
 @inject Alcifra.Client.Services.BrowseService Browse
 @inject Alcifra.Client.Services.TreeState Tree
@@ -713,6 +714,7 @@
                             <DocumentActionsMenu Offer="@OfferFor(node)" Host="this" />
                             @if (!node.IsReference && node.CanManagePermissions) { <MudMenuItem data-tour="action-manage-access" Icon="@Icons.Material.Filled.Security" OnClick="() => Actions.OpenManageAccessAsync(node)">@Strings.Get("MaManageAccess")</MudMenuItem> }
                             @if (!node.IsReference && node.HasAudience) { <MudMenuItem data-test="action-audience" Icon="@Icons.Material.Outlined.Key" OnClick="() => RunAndRefreshAsync(Actions.OpenAudienceAsync(node))">@Strings.Get("AudRibbon")</MudMenuItem> }
+                            @if (!node.IsReference && node.HasAudience && !node.IsFolder) { <MudMenuItem data-test="action-inspect-seal" Icon="@Icons.Material.Outlined.Policy" OnClick="() => Seals.OpenAsync(node)">@Strings.Get("SealInspect")</MudMenuItem> }
                             @if (!node.IsReference && node.CanDelete)
                             {
                                 <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="() => DeleteRowAsync(node)">@Strings.Get("UgDelete")</MudMenuItem>

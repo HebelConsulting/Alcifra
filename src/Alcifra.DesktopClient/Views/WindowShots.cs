@@ -27,6 +27,12 @@ public static class WindowShots
             return true;
         }
 
+        // Inspect seal (#2291) — its own file, the hook carries a sample report.
+        if (SealInspectionShot.TryRun(args))
+        {
+            return true;
+        }
+
         // Headless render of the annotation dialog in SHAPE (markup) mode — verifies the palette is offered with
         // an optional label so a highlight can be recoloured (ADR "Annotation shape recolour"):
         // `--annotationshape-screenshot <out.png>`.

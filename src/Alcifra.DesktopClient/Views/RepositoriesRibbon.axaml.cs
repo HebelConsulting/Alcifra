@@ -21,6 +21,8 @@ public partial class RepositoriesRibbon : UserControl
 
     private void OnChangeAudience(object? sender, RoutedEventArgs e) => Window()?.OnChangeAudience(sender, e);
 
+    private void OnInspectSeal(object? sender, RoutedEventArgs e) => Window()?.OnInspectSeal(sender, e);
+
     private void OnMoveSelected(object? sender, RoutedEventArgs e) => Window()?.OnMoveSelected(sender, e);
 
     private void OnRename(object? sender, RoutedEventArgs e) => Window()?.OnRename(sender, e);

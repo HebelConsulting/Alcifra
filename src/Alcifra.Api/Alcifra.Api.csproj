@@ -68,6 +68,8 @@
     <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
     <!-- The .alcifra container (ADR 0961): the server WRITES road copies with the same code the clients read them with. -->
     <ProjectReference Include="..\Alcifra.SealedArchive\Alcifra.SealedArchive.csproj" />
+    <!-- The one sealed-file reader (#2291, ADR 1029): the server answers a document's inspection for the web, which cannot. -->
+    <ProjectReference Include="..\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>

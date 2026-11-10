@@ -318,6 +318,12 @@ public class DocumentsController : ControllerBase
         if (audienceRoot is not null)
         {
             links.Add(new Link("audience", $"/api/documents/{audienceRoot.DocumentId}/audience", "GET"));
+
+            // What the sealed content is and who can open it (#2291), for whoever may read it, once there is content.
+            if (!isFolder && latestKey is not null && rights.CanReadContent)
+            {
+                links.Add(new Link("seal-inspection", $"/api/documents/{documentId}/seal-inspection", "GET"));
+            }
         }
 
         return Ok(new DocumentResource

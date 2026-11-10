@@ -1,0 +1,101 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Alcifra.DesktopClient.Localization"
+        xmlns:vm="using:Alcifra.DesktopClient.ViewModels"
+        x:Class="Alcifra.DesktopClient.Views.SealInspectionDialog"
+        x:DataType="vm:SealInspectionViewModel"
+        Width="680" Height="600" MinWidth="480" MinHeight="380"
+        WindowStartupLocation="CenterOwner">
+    <!-- What a sealed file is and who can open it (#2291), at the CLI's three levels (ADR 1029): the summary open, the
+         details and the ASN.1 structure a click away. Read-only; Re-seal is offered where the envelope and the declared
+         audience disagree and the caller manages the audience. -->
+    <DockPanel Margin="18">
+        <TextBlock x:Name="Subject" DockPanel.Dock="Top" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,10" />
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+            <Button x:Name="ResealButton" Content="{loc:Tr SealReseal}" IsVisible="{Binding CanReseal}" Click="OnReseal" Classes="accent" />
+            <Button Content="{loc:Tr Close}" Click="OnClose" IsCancel="True" />
+        </StackPanel>
+
+        <ScrollViewer>
+            <StackPanel Spacing="10">
+                <!-- Summary. -->
+                <ItemsControl ItemsSource="{Binding Summary}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SealSummaryRow">
+                            <Grid ColumnDefinitions="120,*" Margin="0,1">
+                                <TextBlock Text="{Binding Label}" Foreground="{DynamicResource WbMuted}" />
+                                <SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="{Binding AudienceVerdict}" IsVisible="{Binding AudienceMatches}" Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding AudienceVerdict}" IsVisible="{Binding AudienceDiffers}" Foreground="#c62828" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding Missing}" IsVisible="{Binding AudienceDiffers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Text="{Binding}" Foreground="#c62828" TextWrapping="Wrap" Margin="12,0,0,0" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel IsVisible="{Binding HasRecipients}" Spacing="4">
+                    <TextBlock Text="{Binding RecipientsHeading}" FontWeight="SemiBold" />
+                    <ItemsControl ItemsSource="{Binding Recipients}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SealRecipientRow">
+                                <!-- The details level: expand a recipient for its method, algorithms, reference and validity. -->
+                                <Expander HorizontalAlignment="Stretch" Margin="0,2">
+                                    <Expander.Header>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Who}" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Problem}" IsVisible="{Binding HasProblem}" Foreground="#c62828" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <StackPanel Spacing="2">
+                                        <SelectableTextBlock Text="{Binding Method}" TextWrapping="Wrap" />
+                                        <SelectableTextBlock Text="{Binding Reference}" TextWrapping="Wrap" />
+                                        <SelectableTextBlock Text="{Binding Validity}" IsVisible="{Binding HasValidity}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                <TextBlock Text="{loc:Tr SealAuthEnveloped}" IsVisible="{Binding RecipientsNotDecoded}" Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />
+
+                <StackPanel IsVisible="{Binding HasSigners}" Spacing="4">
+                    <TextBlock Text="{Binding SignersHeading}" FontWeight="SemiBold" />
+                    <ItemsControl ItemsSource="{Binding Signers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SealSignerRow">
+                                <Expander HorizontalAlignment="Stretch" Margin="0,2">
+                                    <Expander.Header>
+                                        <TextBlock TextWrapping="Wrap">
+                                            <Run Text="{Binding Who}" /><Run Text=": " /><Run Text="{Binding Verdict}" />
+                                        </TextBlock>
+                                    </Expander.Header>
+                                    <SelectableTextBlock Text="{Binding Detail}" TextWrapping="Wrap" />
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Certificates}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- The third level: the CMS structure with offsets and lengths. -->
+                <Expander Header="{loc:Tr SealAsn1}" IsVisible="{Binding HasAsn1}" HorizontalAlignment="Stretch">
+                    <SelectableTextBlock Text="{Binding Asn1}" FontFamily="monospace" FontSize="12" />
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

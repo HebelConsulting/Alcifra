@@ -79,6 +79,8 @@ public partial class ContentsListPane : UserControl
 
     private void OnChangeAudience(object? sender, RoutedEventArgs e) => Window()?.OnChangeAudience(sender, e);
 
+    private void OnInspectSeal(object? sender, RoutedEventArgs e) => Window()?.OnInspectSeal(sender, e);
+
     private void OnGoTo(object? sender, RoutedEventArgs e) => Window()?.OnGoTo(sender, e);
 
     private void OnManageAccess(object? sender, RoutedEventArgs e) => Window()?.OnManageAccess(sender, e);

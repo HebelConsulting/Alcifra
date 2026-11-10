@@ -56,6 +56,7 @@
                 <!-- "Encrypted for…" (ADR 0983): wherever the details carry an audience — a Sealed document or a store's
                      item — for a manager to change and re-seal, for everybody else to read. -->
                 <Button AutomationProperties.AutomationId="ribbon-change-audience" IsVisible="{Binding HasDetailAudience}" Click="OnChangeAudience" ToolTip.Tip="{loc:Tr AudRibbon}"><i:Icon Value="mdi-account-key-outline" FontSize="18" /></Button>
+                <Button AutomationProperties.AutomationId="ribbon-inspect-seal" IsVisible="{Binding HasDetailSealInspection}" Click="OnInspectSeal" ToolTip.Tip="{loc:Tr SealInspect}"><i:Icon Value="mdi-shield-search" FontSize="18" /></Button>
                 <Button AutomationProperties.AutomationId="ribbon-workflow-steps" IsVisible="{Binding HasDetailWorkflowEntries}" ToolTip.Tip="{loc:Tr CtxWorkflowSteps}">
                     <i:Icon Value="mdi-check-decagram-outline" FontSize="18" />
                     <Button.Flyout>

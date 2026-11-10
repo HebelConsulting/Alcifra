@@ -42,6 +42,10 @@ public partial class MainWindowViewModel
     // change for a manager, to read for everybody else.
     [ObservableProperty] private bool _hasDetailAudience;
 
+    /// <summary>The details' document is sealed and its seal can be inspected here (#2291): the server advertised
+    /// <c>seal-inspection</c>.</summary>
+    [ObservableProperty] private bool _hasDetailSealInspection;
+
     /// <summary>The context menu's short label; the ribbon's tooltip is <see cref="SubscriptionTip"/>.</summary>
     public string SubscriptionMenuHeader => Strings.Get(DetailSubscribed ? "CtxUnfollowDoc" : "CtxFollowDoc");
 

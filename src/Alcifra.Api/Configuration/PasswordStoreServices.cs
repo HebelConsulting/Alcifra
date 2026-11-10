@@ -12,6 +12,7 @@ public static class PasswordStoreServices
             .AddScoped<Alcifra.Api.Audience.ContentAudience>()
             .AddScoped<Alcifra.Api.Audience.EncryptedForCaller>()
             .AddScoped<Alcifra.Api.Audience.ContentAudienceBackfill>()
+            .AddScoped<Alcifra.Api.Documents.SealInspectionService>()
             .AddScoped<PasswordStoreReaders>()
             .AddScoped<PasswordStoreSealing>()
             .AddScoped<PasswordStoreResourceBuilder>()

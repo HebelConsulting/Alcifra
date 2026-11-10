@@ -26,8 +26,7 @@ public static class Asn1Tree
 
     /// <summary>One line per node, indented by depth.</summary>
     public static string Lines(IReadOnlyList<Asn1Node> nodes) => string.Join('\n', nodes.Select(n =>
-        string.Create(CultureInfo.InvariantCulture,
-            $"{n.Offset,5}:d={n.Depth,-2} hl={n.HeaderLength} l={(n.Length < 0 ? "inf" : n.Length.ToString(CultureInfo.InvariantCulture)),4} {(n.Constructed ? "cons" : "prim")}: {new string(' ', n.Depth * 2)}{n.Tag}{(n.Value is null ? string.Empty : $" :{n.Value}")}")));
+        Alcifra.Presentation.Asn1Line.Of(n.Offset, n.Depth, n.HeaderLength, n.Length, n.Constructed, n.Tag, n.Value)));
 
     // Returns where the walk stopped; an end-of-contents marker ends an indefinite-length parent.
     private static int Walk(byte[] der, int at, int end, int depth, List<Asn1Node> nodes)

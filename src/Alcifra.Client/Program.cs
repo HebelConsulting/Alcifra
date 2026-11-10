@@ -73,6 +73,7 @@ builder.Services.AddScoped<Alcifra.Client.Services.DocumentActions>();
 builder.Services.AddScoped<Alcifra.Client.Services.NewItemCreation>();
 builder.Services.AddScoped<Alcifra.Client.Services.ReferencePicker>();
 builder.Services.AddScoped<Alcifra.Client.Services.FieldVocabulary>();
+builder.Services.AddScoped<Alcifra.Client.Services.SealInspections>();
 builder.Services.AddScoped<Alcifra.Client.Services.PreviewCards>();
 
 // The actions that operate on the multi-selection, plus the runner the drag-drop handler posts through — the

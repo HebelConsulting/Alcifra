@@ -40,6 +40,9 @@
     <!-- The module contract, to SIGN the TestModule's licence for the module-action tests (#1628). A dependency-free
          contract assembly, so nothing else comes along. -->
     <ProjectReference Include="..\..\src\Alcifra.ModuleAbi\Alcifra.ModuleAbi.csproj" />
+    <!-- The client library, to FILE a Sealed document for the seal-inspection test (#2291): sealing is a client's act, and
+         this is the one implementation of it. -->
+    <ProjectReference Include="..\..\src\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
     <!-- The product's name the server shows (core #1117). -->
     <ProjectReference Include="..\..\src\Alcifra.Localization\Alcifra.Localization.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.Presentation\Alcifra.Presentation.csproj" />

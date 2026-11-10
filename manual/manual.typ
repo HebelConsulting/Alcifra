@@ -763,6 +763,13 @@ alone. In the *Repositories* tab, a store or an entry you can see but not decryp
 and one you were just added to is marked *Not yet encrypted for you* until a member's next re-seal. A sealed document
 works the same way: whoever files it chooses its audience, and *Encrypted for…* changes it.
 
+*Inspect seal…* in a sealed document's menu shows what its content is sealed to, without opening it: the format and
+encryption, each recipient's key with its holder (where you may see them), whether a key was revoked or is not attested,
+and whether the envelope still matches the audience. Somebody who left the audience but can still open this version, and
+a member the envelope does not name yet, are listed; in the desktop app a manager re-seals from there, in the browser,
+which holds no key, the desktop or phone app does. Each recipient opens to show how the key reaches it, and the ASN.1
+structure is at the bottom, as `alcifra inspect` prints them.
+
 *Importing.* The import button reads the CSV file a password manager exports, on your computer: every row becomes an
 entry, sealed here. Only a row whose name and user name match an entry already in the folder is asked about — skip it,
 add it as a new version, or keep both. A column holding verification codes (named `totp`, `otpauth` or the like)

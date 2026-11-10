@@ -40,14 +40,13 @@ public class DockerfileCoversEveryProjectTests
     //                   assumption that a new src/ project "obviously" did not need a line.
     //   ConsoleLogging — the plain stderr logger of the command-line programs (alcifra, the tools, the published
     //                   test tools; ADRs 0906/0911). Checked: no project in the Api's graph references it.
-    //   ApiClient     — the hypermedia API client the desktop and the mobile app share (ADR 0917), a CLIENT of the
-    //                   Api like Cli. Checked: no project in the Api's graph references it.
     //   BrandIcons    — the brand's icon generator (ADR 0993), run by an MSBuild call, never a reference, and inside
     //                   the image only in its own Debian stage, whose output the Alpine stages copy while building
     //                   with GenerateBrandIcons=false. The Api's restore never sees it.
     private static readonly string[] NotInTheImage =
-        ["Alcifra.DesktopClient", "Alcifra.Worker", "Alcifra.Cli", "Alcifra.ConsoleLogging", "Alcifra.ApiClient",
-         "Alcifra.BrandIcons"];
+        ["Alcifra.DesktopClient", "Alcifra.Worker", "Alcifra.Cli", "Alcifra.ConsoleLogging", "Alcifra.BrandIcons"];
+    // ApiClient left this list with #2291: the Api references it for the one sealed-file reader (ADR 1086), and listed here
+    // it hid exactly the missing COPY line this test exists for, which the image build then reported as a red Trivy scan.
 
     [Fact]
     public void The_restore_layer_copies_every_project_the_image_builds()

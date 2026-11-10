@@ -171,6 +171,9 @@
                 <MenuItem AutomationProperties.AutomationId="ctx-audience" Header="{loc:Tr AudRibbon}" Click="OnChangeAudience" IsVisible="{Binding HasDetailAudience}">
                     <MenuItem.Icon><i:Icon Value="mdi-account-key-outline" /></MenuItem.Icon>
                 </MenuItem>
+                <MenuItem AutomationProperties.AutomationId="ctx-inspect-seal" Header="{loc:Tr SealInspect}" Click="OnInspectSeal" IsVisible="{Binding HasDetailSealInspection}">
+                    <MenuItem.Icon><i:Icon Value="mdi-shield-search" /></MenuItem.Icon>
+                </MenuItem>
                 <MenuItem AutomationProperties.AutomationId="ctx-share" Header="{loc:Tr ExtLinkShare}" Command="{Binding ShowDocumentExternalLinksCommand}" IsVisible="{Binding CanShareDocument}">
                     <MenuItem.Icon><i:Icon Value="mdi-link-plus" /></MenuItem.Icon>
                 </MenuItem>
