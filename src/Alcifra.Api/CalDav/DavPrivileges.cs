@@ -10,6 +10,14 @@ namespace Alcifra.Api.CalDav;
 
 internal static class DavPrivileges
 {
+    /// <summary>
+    /// The owner's privileges on their own home set: every caller's home is their own, so this is not a rights question.
+    /// The same set an owner's collection reports, because a client may read it as the account's.
+    /// </summary>
+    internal static IEnumerable<XElement> OwnHome() =>
+        new[] { DavNames.Read, DavNames.Write, DavNames.WriteContent, DavNames.WriteProperties, DavNames.Bind, DavNames.Unbind }
+            .Select(p => new XElement(DavNames.Privilege, new XElement(p)));
+
     internal static IEnumerable<XElement> From(EffectiveRights rights)
     {
         var privileges = new List<XName>();

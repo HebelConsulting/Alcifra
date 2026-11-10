@@ -47,6 +47,10 @@ public sealed class DeviceEnrolSettings : TenantSessionSettings
     [Description("Seal this device's mail to your hardware keys. Refused, with the reason, without an enrolled hardware key.")]
     public bool EncryptMail { get; init; }
 
+    [CommandOption("--profile <FILE>")]
+    [Description("Also save the device's configuration profile (.mobileconfig) to FILE, through its one-time link. It holds the password.")]
+    public string? Profile { get; init; }
+
     public override ValidationResult Validate() => this switch
     {
         _ when base.Validate() is { Successful: false } failed => failed,
@@ -101,6 +105,24 @@ public sealed class DeviceEnrolCommand(ILogger<DeviceEnrolCommand> logger) : Asy
         // the secret-output guard sees it and its carve-out names a real site.
         var password = enrolled.GetProperty("password").GetString();
         Console.Out.WriteLine(password);
+
+        // The configuration profile a phone takes through the QR code (ADR 1028), saved for a computer that installs it from
+        // a file: followed from the one-time link the answer carries, which is its own authorisation (the link is anonymous).
+        if (settings.Profile is { } path)
+        {
+            if (enrolled.TryGetProperty("handOver", out var handOver) && handOver.TryGetProperty("profileUrl", out var url)
+                && url.GetString() is { Length: > 0 } profileUrl)
+            {
+                using var anonymous = new HttpClient();
+                await System.IO.File.WriteAllBytesAsync(path, await anonymous.GetByteArrayAsync(profileUrl, cancellationToken), cancellationToken);
+                logger.LogInformation("Saved the configuration profile to {Path}. It holds the device's password: keep it private, delete it once installed.", path);
+            }
+            else
+            {
+                logger.LogWarning("The installation offered no configuration profile for {Name}; nothing was saved.", settings.Name);
+            }
+        }
+
         return 0;
     }
 }

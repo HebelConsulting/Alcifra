@@ -40,6 +40,12 @@ internal static class DavResources
         resource.Set(DavNames.ResourceType, new XElement(DavNames.Collection));
         resource.Set(DavNames.DisplayName, protocol == DavProtocol.CalDav ? "Calendars" : "Addressbooks");
         resource.Set(DavNames.CurrentUserPrincipal, new XElement(DavNames.Href, protocol.PrincipalHref(userId)));
+        // The home is its owner's, and says so. macOS Contacts models a CardDAV account as ONE address book anchored at
+        // the home and reads the home's privilege set as whether the account's cards may be changed: with none, every
+        // card it synced was read-only (fields disabled) and an edit was saved as a NEW linked card in the collection,
+        // which does advertise bind. iOS reads the collection's and edited in place. Traced on the kiosk, 2026-11-10.
+        resource.Set(DavNames.Owner, new XElement(DavNames.Href, protocol.PrincipalHref(userId)));
+        resource.Set(DavNames.CurrentUserPrivilegeSet, DavPrivileges.OwnHome());
         return resource;
     }
 

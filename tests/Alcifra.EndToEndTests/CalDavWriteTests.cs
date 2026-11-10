@@ -178,6 +178,54 @@ public class CalDavWriteTests
         Assert.Equal(HttpStatusCode.NotFound, forbidden.StatusCode);
     }
 
+    // macOS Contacts takes a collection's privilege set literally, where iOS does not: an address book that does not say
+    // write and bind of ITSELF is edited by saving new cards. Asked of the personal address book's own response, not of
+    // the listing as a whole, where any one writable collection would answer for all of them.
+    [Theory]
+    [MemberData(nameof(Protocols))]
+    public async Task The_personal_collection_itself_says_its_owner_may_write_and_bind(string protocolName)
+    {
+        var protocol = Of(protocolName);
+        var (client, auth, api) = await SeedAsync();
+        using var _1 = client;
+        using var _2 = api;
+        var href = await CollectionHrefAsync(client, auth, protocol);
+
+        var own = await SendAsync(client, auth, "PROPFIND", href, depth: "0");
+        var privileges = XDocument.Parse(await own.Content.ReadAsStringAsync())
+            .Descendants(Dav + "response").Single(r => r.Element(Dav + "href")!.Value == href)
+            .Descendants(Dav + "privilege").Elements().Select(e => e.Name.LocalName).ToList();
+        Assert.Contains("write", privileges);
+        Assert.Contains("write-content", privileges);
+        Assert.Contains("bind", privileges);
+        Assert.Contains("unbind", privileges);
+    }
+
+    // The HOME says it too, with its owner (traced on the kiosk, 2026-11-10): macOS Contacts reads the home's privilege
+    // set as whether the account's cards may be changed. Without one, every synced card was read-only and each edit was
+    // saved as a new linked card, the "editing creates a new contact" report; iOS reads the collection and was fine.
+    [Theory]
+    [MemberData(nameof(Protocols))]
+    public async Task The_home_says_its_owner_may_write_and_bind(string protocolName)
+    {
+        var protocol = Of(protocolName);
+        var (client, auth, api) = await SeedAsync();
+        using var _1 = client;
+        using var _2 = api;
+        var home = $"{protocol.Base}/{protocol.Collections}/";
+
+        var answer = XDocument.Parse(await (await SendAsync(client, auth, "PROPFIND", home, depth: "0")).Content.ReadAsStringAsync());
+        var own = answer.Descendants(Dav + "response").Single(r => r.Element(Dav + "href")!.Value == home);
+        var granted = own.Descendants(Dav + "propstat").Where(ps => ps.Element(Dav + "status")!.Value.Contains("200"))
+            .Descendants(Dav + "privilege").Elements().Select(e => e.Name.LocalName).ToList();
+        Assert.Contains("read", granted);
+        Assert.Contains("write", granted);
+        Assert.Contains("write-content", granted);
+        Assert.Contains("bind", granted);
+        Assert.Contains("unbind", granted);
+        Assert.NotNull(own.Descendants(Dav + "owner").Elements(Dav + "href").SingleOrDefault());
+    }
+
     [Fact]
     public async Task A_typed_folder_can_be_created_anywhere_and_carries_a_colour()
     {
