@@ -18,7 +18,7 @@ namespace Alcifra.EndToEndTests;
 // asserts "the document is in the archive" passes against a filter that is simply permissive. So each case
 // below asserts a presence AND a matching absence.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ExportInTheCallersDayTests
 {
     private readonly E2EApiFactory _factory;

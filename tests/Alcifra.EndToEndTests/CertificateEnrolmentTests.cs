@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // configured by the tenant's own settings, filed into the "Reader certificates" folder, registered in the same
 // transaction (ADR 0935), and answered as the reader's certificates. The policy is replaced only under If-Match.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public partial class CertificateEnrolmentTests
 {
     private const string LicensesVariable = "SIMPLARCHIVE_TESTMODULE_LICENSES_ENROLMENT";

@@ -24,7 +24,7 @@ namespace Alcifra.EndToEndTests;
 // advertising a create the server then refuses is the affordance ADR 0543 exists to prevent, and would have
 // been the result of fixing either half alone.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class CollectionEntryCreationTests
 {
     private readonly E2EApiFactory _factory;

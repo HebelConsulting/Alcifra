@@ -9,7 +9,7 @@ namespace Alcifra.EndToEndTests;
 // PurgeItemArtifactsAsync). Uses a real User (the intray is scoped to the token's userId) + Gotenberg (the .csv
 // preview generates a real rendition).
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class IntrayLitterTests
 {
     private readonly E2EApiFactory _factory;

@@ -22,7 +22,7 @@ namespace Alcifra.EndToEndTests;
 // The endpoint is external-link creation on purpose: it is where ADR 0548's bug was originally found, from the
 // desktop client in CEST, while every test and the web client (sending TimeSpan.Zero) stayed green.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class XmlTimeContractTests
 {
     private readonly E2EApiFactory _factory;

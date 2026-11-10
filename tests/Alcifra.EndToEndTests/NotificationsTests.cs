@@ -7,7 +7,7 @@ namespace Alcifra.EndToEndTests;
 // slice)"): a ServiceAccount owner grants a User access (→ AccessGranted) and submits a version assigning that
 // User as reviewer (→ ReviewAssigned); the reviewer reads their own intray, sees both, and marks them read.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class NotificationsTests
 {
     private readonly E2EApiFactory _factory;

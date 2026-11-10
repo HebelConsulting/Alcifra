@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // cannot be deleted through the API or a mounted drive; and a tenant administrator changes it with If-Match, which
 // moves the manuals folder in the same transaction.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class StandardRepositoryTests
 {
     private readonly E2EApiFactory _factory;

@@ -23,7 +23,7 @@ namespace Alcifra.EndToEndTests;
 //
 // So this walks all four surfaces and asserts each answers in the direction it should.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ChildCreationRelCoverageTests
 {
     private readonly E2EApiFactory _factory;

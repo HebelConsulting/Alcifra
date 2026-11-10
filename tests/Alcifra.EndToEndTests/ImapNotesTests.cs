@@ -20,7 +20,7 @@ namespace Alcifra.EndToEndTests;
 //
 // Same [Collection] as its siblings, so it shares the one E2EApiFactory rather than standing up a second host.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ImapNotesTests
 {
     private readonly E2EApiFactory _factory;

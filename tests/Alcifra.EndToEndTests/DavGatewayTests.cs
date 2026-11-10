@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // gateway"): a user generates an app-specific WebDAV password, then a WebDAV client round-trips OPTIONS /
 // PROPFIND / MKCOL / PUT / GET / MOVE / DELETE against the mounted archive. Wrong credentials are refused.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class DavGatewayTests
 {
     // The personal space is named after its owner (ADR 0671), so its WebDAV/IMAP path segment is

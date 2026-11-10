@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // module; an undeclared key is refused rather than stored; and the values are per tenant, so one tenant's
 // credential is invisible to another even though both run the same module.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ModuleSettingsTests
 {
     private readonly E2EApiFactory _factory;

@@ -14,7 +14,7 @@ namespace Alcifra.EndToEndTests;
 // loopback, which the fixture allowlists exactly as an operator with an on-premises collector would. That test
 // passing is what shows the guard is a guard rather than a wall.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class OutboundSsrfGuardTests
 {
     private readonly E2EApiFactory _factory;

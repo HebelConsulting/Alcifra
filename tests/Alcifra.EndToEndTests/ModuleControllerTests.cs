@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // license activates it — the rel appears, the controller answers through the ABI's caller/rights seams,
 // its refusals wear the core's RFC 7807 shape; and a license lapsed past grace switches it all off again.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ModuleControllerTests
 {
     private readonly E2EApiFactory _factory;

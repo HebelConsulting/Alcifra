@@ -27,7 +27,7 @@ namespace Alcifra.EndToEndTests;
 /// </para>
 /// </remarks>
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class DemoTenantSeedTests(E2EApiFactory factory)
 {
     private const string Password = "Demo-Seed-2026!";

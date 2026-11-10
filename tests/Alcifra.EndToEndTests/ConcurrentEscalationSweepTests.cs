@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // And the overlap is the ARRANGEMENT: ADR 0808 runs two app instances, each registering
 // WorkflowEscalationWorker on its own timer.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ConcurrentEscalationSweepTests
 {
     private readonly E2EApiFactory _factory;

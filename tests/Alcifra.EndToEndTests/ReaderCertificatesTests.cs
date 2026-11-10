@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // The caller's certificate set (#1741), reached by the `readerCertificates` rel on /me: the same set envelopes are
 // addressed to — the module's where one answers (the Strict tenant), else the user's own column — and why it is empty.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ReaderCertificatesTests
 {
     private readonly E2EApiFactory _factory;

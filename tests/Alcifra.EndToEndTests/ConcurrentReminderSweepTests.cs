@@ -17,7 +17,7 @@ namespace Alcifra.EndToEndTests;
 // twice because two sweeps ran was "arguably correct behaviour". It is not: a one-shot reminder fires once, and
 // the assertion that noticed was the only thing watching.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ConcurrentReminderSweepTests
 {
     private readonly E2EApiFactory _factory;

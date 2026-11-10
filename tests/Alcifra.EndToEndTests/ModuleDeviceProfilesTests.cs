@@ -10,7 +10,7 @@ namespace Alcifra.EndToEndTests;
 // A module's part in a device's setup profile (ABI 1.27, ADR 1036): the test module adds a VPN payload for every device
 // of a tenant it is active in, and records the devices the core tells it were revoked. Read through the real hand-over.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ModuleDeviceProfilesTests
 {
     private const string VerifyKeyVariable = "SIMPLARCHIVE_TESTMODULE_VERIFY_KEY";

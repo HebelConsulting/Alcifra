@@ -16,7 +16,7 @@ namespace Alcifra.EndToEndTests;
 // rejection paths being identical, the tenant kill switch actually killing, and the token never leaking into
 // places that are read more widely than the create response.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ExternalLinkApiTests
 {
     private readonly E2EApiFactory _factory;

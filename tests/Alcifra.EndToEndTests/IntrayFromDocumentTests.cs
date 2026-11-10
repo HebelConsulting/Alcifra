@@ -12,7 +12,7 @@ namespace Alcifra.EndToEndTests;
 // copy and a sidecar write in one request — and because the UI test can only observe the result indirectly (an
 // item that is not square-bracketed).
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class IntrayFromDocumentTests
 {
     private readonly E2EApiFactory _factory;

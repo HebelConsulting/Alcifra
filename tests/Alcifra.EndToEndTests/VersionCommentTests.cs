@@ -6,7 +6,7 @@ namespace Alcifra.EndToEndTests;
 // End-to-end over the real API for ADR 0528: a version can carry a "why this revision" comment, set at creation
 // and read back from the versions list.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class VersionCommentTests
 {
     private readonly E2EApiFactory _factory;

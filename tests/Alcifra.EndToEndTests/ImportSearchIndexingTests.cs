@@ -9,7 +9,7 @@ namespace Alcifra.EndToEndTests;
 // enqueued them for search indexing, so imported documents were invisible to full-text search. Export a repo,
 // re-import it, and assert the imported copy is findable by name.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ImportSearchIndexingTests
 {
     private readonly E2EApiFactory _factory;

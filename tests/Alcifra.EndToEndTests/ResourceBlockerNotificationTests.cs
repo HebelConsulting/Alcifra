@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 // thing that reaches them — and a suspension notice with no revival notice is worse than neither, because
 // they act on a fact that has since stopped being true.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ResourceBlockerNotificationTests
 {
     private readonly E2EApiFactory _factory;

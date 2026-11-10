@@ -12,7 +12,7 @@ namespace Alcifra.EndToEndTests;
 // It is now one transaction, and the intray copy is deleted only once that transaction has committed. So a
 // refusal leaves the user exactly where they started, which is the only honest answer to "no".
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class IntrayFilingAtomicityTests
 {
     private readonly E2EApiFactory _factory;

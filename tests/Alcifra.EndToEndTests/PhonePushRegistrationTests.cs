@@ -9,7 +9,7 @@ namespace Alcifra.EndToEndTests;
 // sign-in, refreshed and removed with If-Match because one user may have several clients, never shared with another
 // user, and the per-type phone switch in the notification preferences.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class PhonePushRegistrationTests
 {
     private readonly E2EApiFactory _factory;

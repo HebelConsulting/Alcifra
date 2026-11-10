@@ -17,7 +17,7 @@ namespace Alcifra.EndToEndTests;
 // entry stored ~2 h out, silently, for as long as it took somebody to notice by hand — because every test host
 // had tzdata and no test asked this question.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ZonedAppointmentDocumentTimeTests
 {
     private readonly E2EApiFactory _factory;

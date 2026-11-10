@@ -14,7 +14,7 @@ namespace Alcifra.EndToEndTests;
 // deliberate: a tenant-scoped rel is advertised to every caller because the followed resource answers what they
 // may do, while a platform administrator is a different PRINCIPAL KIND with no tenant at all (ADR 0206).
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ApiRootPlatformRelsTests
 {
     private static readonly string[] PlatformRels =

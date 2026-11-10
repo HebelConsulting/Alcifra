@@ -338,8 +338,9 @@ jobs:
       || contains(github.event.pull_request.labels.*.name, 'e2e')
     runs-on: ubuntu-latest
     # A leg that HANGS is worse than one that fails: it holds the whole run open, and GitHub refuses to serve any
-    # job's logs while the run is in progress — so a stuck leg makes a DIFFERENT leg's red undiagnosable. The
-    # slowest leg observed is ~11 min; 30 turns a hang into a bounded failure with its own log.
+    # job's logs while the run is in progress — so a stuck leg makes a DIFFERENT leg's red undiagnosable. 30 turns a
+    # hang into a bounded failure with its own log; it is a hang guard, not a budget, so a leg that grows toward it is
+    # split (#2300: e2e-2 reached 22-30 min and became e2e-2 and e2e-3).
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -350,6 +351,7 @@ jobs:
           # leg-balance guard refuses an untagged class (ADR 0697 — no catch-all leg).
           - { name: "EndToEndTests · 1", project: EndToEndTests, filter: '--filter "Area=e2e-1"' }
           - { name: "EndToEndTests · 2", project: EndToEndTests, filter: '--filter "Area=e2e-2"' }
+          - { name: "EndToEndTests · 3", project: EndToEndTests, filter: '--filter "Area=e2e-3"' }
           - { name: DesktopUiEndToEndTests, project: DesktopUiEndToEndTests, filter: "" }
           - { name: "UiEndToEndTests · 1", project: UiEndToEndTests, filter: '--filter "Area=ui-1"' }
           - { name: "UiEndToEndTests · 2", project: UiEndToEndTests, filter: '--filter "Area=ui-2"' }

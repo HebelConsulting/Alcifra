@@ -11,7 +11,7 @@ namespace Alcifra.EndToEndTests;
 // semantics are Valkey's, not ours — what INCR returns, whether EXPIRE restarts a window, what TTL says about
 // a key that has gone. A store whose commands were only ever reasoned about is exactly the production path
 // that fails unnoticed, which is why this one talks to a real server rather than to a mock of one.
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ThrottleCounterStoreTests
 {
     private static readonly TimeSpan Window = TimeSpan.FromSeconds(30);

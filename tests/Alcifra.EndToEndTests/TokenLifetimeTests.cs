@@ -11,7 +11,7 @@ namespace Alcifra.EndToEndTests;
 // took. Reading it off a REAL token is the only assertion that cannot drift back silently: a future options
 // change, a different builder, an OpenIddict default that moves, all show up here.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class TokenLifetimeTests(E2EApiFactory factory)
 {
     [Fact]

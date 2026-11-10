@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // This is the slice where a multi-claim booking is finally created the way a user would create one, so it is
 // also the first test of ADR 0774's shape against a real client rather than rows inserted by hand.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class BookingAttendeeExpansionTests
 {
     private readonly E2EApiFactory _factory;

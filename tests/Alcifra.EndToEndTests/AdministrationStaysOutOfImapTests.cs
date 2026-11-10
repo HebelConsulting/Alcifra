@@ -9,7 +9,7 @@ namespace Alcifra.EndToEndTests;
 // Guarded here, beside ImapEndpointTests' parity, so the exception cannot widen unnoticed; WebDavTreeParityTests
 // holds the mount to the same rule.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class AdministrationStaysOutOfImapTests
 {
     private readonly E2EApiFactory _factory;

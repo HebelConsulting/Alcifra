@@ -22,7 +22,7 @@ namespace Alcifra.EndToEndTests;
 // corrected the gating would, without this, have served ciphertext for every document in the public demo —
 // which is why the rollout had to wipe and reseed rather than roll.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class EncryptedObjectOutlivesItsGateTests
 {
     private readonly E2EApiFactory _factory;

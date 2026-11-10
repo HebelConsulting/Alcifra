@@ -12,7 +12,7 @@ namespace Alcifra.EndToEndTests;
 // then drives the real OpenBaoSecretsReader — AppRole login → KV read → a DYNAMIC Postgres credential — and
 // proves the minted credential actually connects to Postgres. Self-contained (its own throwaway containers), so
 // it doesn't slow the shared E2E collection. Needs Docker.
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class OpenBaoSecretsTests : IAsyncLifetime
 {
     private INetwork _network = null!;

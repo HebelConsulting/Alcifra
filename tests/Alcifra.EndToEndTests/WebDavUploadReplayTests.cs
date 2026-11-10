@@ -10,7 +10,7 @@ namespace Alcifra.EndToEndTests;
 // #2161, ADR 1051: the requests a mounted volume really sent for an upload, replayed one at a time. Each fails when the
 // upload takes too long, and, whatever the machine's speed, when the slow password hash runs more than once.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class WebDavUploadReplayTests
 {
     private const string LockBody =

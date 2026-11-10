@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // client that follows `mask` to fill the detail pane found nothing and threw the ADR 0543 "rel not advertised
 // for 'Demo Admin'" error the desktop hit on the kiosk. Following the rel must yield the UserFolder mask.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class PersonalRepositoryMaskRelTests
 {
     private readonly E2EApiFactory _factory;

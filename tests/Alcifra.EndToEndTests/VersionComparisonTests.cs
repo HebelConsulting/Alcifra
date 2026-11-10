@@ -9,7 +9,7 @@ namespace Alcifra.EndToEndTests;
 // (Presentation TextDiff, pinned by TextDiffTests); a binary version reports "not available"; a note-style
 // .eml pair yields prose, not MIME; the caller needs CanReadContent.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class VersionComparisonTests
 {
     private readonly E2EApiFactory _factory;

@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // #580 is the symptom this closes: the pickers listed every tenant mask, including ones the containment
 // invariant refuses, so a user could choose a mask that cannot work and learn about it from a failed save.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class MaskAssignabilityListingTests
 {
     private readonly E2EApiFactory _factory;

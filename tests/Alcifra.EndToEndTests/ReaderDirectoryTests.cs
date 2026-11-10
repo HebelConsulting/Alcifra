@@ -14,7 +14,7 @@ namespace Alcifra.EndToEndTests;
 // chosen ON THE DEVICE — the server never sees it (ADR 0975) — so the device must be able to learn, from the core
 // itself, which certificates may be sealed to.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ReaderDirectoryTests
 {
     private readonly E2EApiFactory _factory;

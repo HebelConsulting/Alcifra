@@ -10,7 +10,7 @@ namespace Alcifra.EndToEndTests;
 // records with their UIDs untouched — the correlation keys a later sync matches on — and a selection that
 // cannot combine is refused with the reason, because a file silently missing an item is worse than no file.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class BulkExportTests
 {
     private readonly E2EApiFactory _factory;

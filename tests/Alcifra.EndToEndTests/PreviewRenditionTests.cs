@@ -16,7 +16,7 @@ namespace Alcifra.EndToEndTests;
 // StrictTierEnvelopedReadTests converts one. Left standing, the sentence was an instruction not to test the
 // thing — which is how #1529 came to be a gap. The image route is covered there and in the page-algebra tests.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class PreviewRenditionTests
 {
     private readonly E2EApiFactory _factory;

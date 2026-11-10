@@ -20,7 +20,7 @@ namespace Alcifra.EndToEndTests;
 // a new version of the SAME document, a deleted manual is filed afresh — and two instances running the check at the
 // same moment still produce one document and one version. Alcifra's own manual goes the same way.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ManualFilingTests
 {
     private const string VerifyKeyVariable = "SIMPLARCHIVE_TESTMODULE_VERIFY_KEY";

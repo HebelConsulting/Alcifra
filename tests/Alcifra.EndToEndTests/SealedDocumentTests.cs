@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 // a CMS envelope are accepted, a change carries the precondition of what its author saw, and the server serves the
 // content as opaque bytes — it never decrypts it.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class SealedDocumentTests
 {
     private readonly E2EApiFactory _factory;

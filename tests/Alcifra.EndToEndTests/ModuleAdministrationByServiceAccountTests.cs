@@ -11,7 +11,7 @@ namespace Alcifra.EndToEndTests;
 // "yes" by the ABI 1.4 CanAdministerModulesAsync seam — while one without it is refused, the right cannot be
 // handed out by somebody who does not hold it, and the licence it activates with must be one it can READ.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ModuleAdministrationByServiceAccountTests
 {
     private readonly E2EApiFactory _factory;

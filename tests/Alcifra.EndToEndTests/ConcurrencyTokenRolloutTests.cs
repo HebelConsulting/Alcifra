@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 // The second assertion is the one that will CHANGE in step three, and it is written down so that change is a
 // deliberate edit rather than a surprise.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ConcurrencyTokenRolloutTests
 {
     private readonly E2EApiFactory _factory;

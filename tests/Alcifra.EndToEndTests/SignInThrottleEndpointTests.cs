@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // that the two HTTP doors actually apply it — and, just as important, that the one thing which must never be
 // counted is not counted.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class SignInThrottleEndpointTests
 {
     private readonly E2EApiFactory _factory;

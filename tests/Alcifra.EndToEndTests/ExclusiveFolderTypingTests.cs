@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 /// Entry and refused by the folder's own admission.
 /// </summary>
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ExclusiveFolderTypingTests(E2EApiFactory factory)
 {
     private static async Task<(Guid Id, HttpResponseMessage Finalize)> UploadAsync(HttpClient api, Guid folderId, string name, string extension)

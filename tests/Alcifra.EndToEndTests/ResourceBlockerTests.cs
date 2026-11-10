@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // clearing is a WRITE (so the release can be gated and recorded at that same door), and a booking made into a
 // block is refused with its own code rather than as a slot conflict.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ResourceBlockerTests
 {
     private readonly E2EApiFactory _factory;

@@ -10,7 +10,7 @@ namespace Alcifra.EndToEndTests;
 // tenant's used-storage counter; an upload that would exceed it is refused (409 STORAGE_QUOTA_EXCEEDED); purging
 // the first document frees the storage back.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class StorageQuotaTests
 {
     private readonly E2EApiFactory _factory;

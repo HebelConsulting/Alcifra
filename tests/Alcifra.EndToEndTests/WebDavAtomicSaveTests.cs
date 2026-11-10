@@ -15,7 +15,7 @@ namespace Alcifra.EndToEndTests;
 // whole matrix adds just one per-tenant storage bucket, not one per case (which would exhaust the shared E2E
 // server's bucket budget and 500 every later test).
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class WebDavAtomicSaveTests
 {
     // The personal space is named after its owner (ADR 0671), so its WebDAV/IMAP path segment is

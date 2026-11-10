@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 // the most collision-prone edit in the app was unguarded. It now marks the document's token modified, which is
 // what brings the row into the UPDATE and makes the caller's precondition mean something.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class DocumentMetadataConcurrencyTests
 {
     private readonly E2EApiFactory _factory;

@@ -16,7 +16,7 @@ namespace Alcifra.EndToEndTests;
 // legitimately create versions that way. Absence proves nothing, which is exactly why this asserts on a
 // document that DEMONSTRABLY had an hour before it went through the door.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class IntrayKeepsTheHourTests
 {
     private readonly E2EApiFactory _factory;

@@ -19,7 +19,7 @@ namespace Alcifra.EndToEndTests;
 /// invariant to a name clash.
 /// </remarks>
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class CreateWithIndexDataTests(E2EApiFactory factory)
 {
     [Fact]

@@ -12,7 +12,7 @@ namespace Alcifra.EndToEndTests;
 // A test that only checked "the document still opens" would pass just as happily if the sweep had
 // re-encrypted every blob, which is the expensive mistake this design exists to avoid.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class KekRotationTests
 {
     private const string Marker = "KEK-ROTATION-MARKER";

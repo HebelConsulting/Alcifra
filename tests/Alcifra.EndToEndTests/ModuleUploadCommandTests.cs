@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 // rel on the ANONYMOUS root (an installation-wide root link), PUTs the file straight to storage and files it by the
 // offer's commit link, never composing an address.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class ModuleUploadCommandTests(E2EApiFactory factory)
 {
     private static IEnumerable<string> Rels(JsonElement root) =>

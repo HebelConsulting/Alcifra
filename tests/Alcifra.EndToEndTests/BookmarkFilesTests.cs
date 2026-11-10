@@ -12,7 +12,7 @@ namespace Alcifra.EndToEndTests;
 // ADR 1062: the bookmark files a browser keeps in step with, over the real API and real storage. Found by mask, a folder's
 // rights decide, another person's space stays out, and a save carries the tag it started from.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class BookmarkFilesTests(E2EApiFactory factory)
 {
     private const string Html = "<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<DL><p>\n</DL><p>\n";

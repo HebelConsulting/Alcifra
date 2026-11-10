@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // `WebDavTreeParityTests` matches `<D:displayname>` only, so it can (and does) pass while every href points
 // somewhere else: it proves the right NAMES are listed, never that they are listed in the right PLACE.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public partial class WebDavHrefTests
 {
     private const string WebDavMountPath = ("/" + global::Alcifra.Presentation.WireNames.WebDavSegment);

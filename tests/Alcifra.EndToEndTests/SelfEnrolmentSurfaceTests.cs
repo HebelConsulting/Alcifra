@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 // listing is admin-only because it carries licence state and settings rels, so a rel there would have been
 // invisible to exactly the people this surface exists for. Owner-decided 2026-10-01.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class SelfEnrolmentSurfaceTests
 {
     private const string SettingsUrl = "/api/modules/test-module/settings";

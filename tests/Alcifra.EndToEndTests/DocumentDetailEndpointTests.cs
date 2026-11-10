@@ -13,7 +13,7 @@ namespace Alcifra.EndToEndTests;
 //
 // Each test creates its own document: these MUTATE, and shared seeded data is for reading.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class DocumentDetailEndpointTests
 {
     private readonly E2EApiFactory _factory;

@@ -12,7 +12,7 @@ namespace Alcifra.EndToEndTests;
 // into Availability rather than Schedule, so no booking was ever created and the invariant never ran, while
 // every unit and integration test stayed green.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class AvailabilityBookingPathTests
 {
     private readonly E2EApiFactory _factory;

@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // The bucket is made before the founding transaction on purpose (#1226), so until a name check ran first, every refused
 // founding left an empty, object-locked bucket behind for a tenant that never existed.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class TenantNameConflictTests
 {
     private readonly E2EApiFactory _factory;

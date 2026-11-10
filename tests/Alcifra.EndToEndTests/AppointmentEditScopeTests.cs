@@ -11,7 +11,7 @@ namespace Alcifra.EndToEndTests;
 // Each is ONE request. A client doing it in two — cancel the occurrence, then create its replacement — leaves
 // the day cancelled with nothing in its place whenever the second call fails.
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class AppointmentEditScopeTests
 {
     private readonly E2EApiFactory _factory;

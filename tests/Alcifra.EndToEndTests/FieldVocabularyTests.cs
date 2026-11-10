@@ -8,7 +8,7 @@ namespace Alcifra.EndToEndTests;
 // answers coded items with labels; once the license lapses the mask survives (ADR 0740) but the rel is withdrawn,
 // because the module's route would answer 404 (ADR 0543).
 [Collection(E2ECollection.Name)]
-[Trait("Area", "e2e-2")]
+[Trait("Area", "e2e-3")]
 public class FieldVocabularyTests
 {
     private readonly E2EApiFactory _factory;
