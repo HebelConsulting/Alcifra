@@ -24,6 +24,9 @@ internal static class CertificateSurface
 
     internal const string LegacyRel = "encryption:certificates";
 
+    // The whole tenant's certificates, advertised to an administrator only (#2302); `certificates` is the caller's own.
+    internal const string TenantRel = "tenant-certificates";
+
     internal static async Task<string> AddressAsync(Hypermedia hypermedia, CancellationToken cancellationToken)
     {
         foreach (var rel in new[] { Rel, LegacyRel })
@@ -41,5 +44,21 @@ internal static class CertificateSurface
         throw new CliException(
             "This installation does not offer certificate enrolment for this tenant: no active module licenses it. "
             + "File the Encryption Module's licence first: alcifra module activate.");
+    }
+
+    /// <summary>
+    /// Every certificate the caller may see: the whole tenant's for an administrator, else their own (#2302).
+    /// </summary>
+    internal static async Task<string> TenantAddressAsync(Hypermedia hypermedia, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await hypermedia.RootHrefAsync(TenantRel, cancellationToken);
+        }
+        catch (CliException)
+        {
+            // not an administrator, or a release before #2302: the caller's own is what there is
+            return await AddressAsync(hypermedia, cancellationToken);
+        }
     }
 }

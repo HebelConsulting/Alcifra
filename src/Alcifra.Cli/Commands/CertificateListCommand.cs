@@ -37,14 +37,14 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
     {
         using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
-        var address = await CertificateSurface.AddressAsync(new Hypermedia(api), cancellationToken);
+        var hypermedia = new Hypermedia(api);
 
         // The holder rides as a QUERY on the advertised href, which is following rather than composing: the
-        // server owns the path, the client owns the filter (ADR 0557's boundary).
-        if (settings.Holder is { Length: > 0 } holder)
-        {
-            address += $"?holder={Uri.EscapeDataString(holder)}";
-        }
+        // server owns the path, the client owns the filter (ADR 0557's boundary). Without one, an administrator
+        // follows the tenant-wide rel, everyone else their own (#2302).
+        var address = settings.Holder is { Length: > 0 } holder
+            ? await CertificateSurface.AddressAsync(hypermedia, cancellationToken) + $"?holder={Uri.EscapeDataString(holder)}"
+            : await CertificateSurface.TenantAddressAsync(hypermedia, cancellationToken);
 
         var rows = Rows(await api.GetAsync(address, cancellationToken)).ToList();
         if (rows.Count == 0)
@@ -55,7 +55,7 @@ public sealed class CertificateListCommand(ILogger<CertificateListCommand> logge
             }
             else
             {
-                // Without --holder the server answers the caller's own, or the whole tenant's for an administrator (#1838):
+                // Without --holder the caller reads their own, or the whole tenant's as an administrator (#1838, #2302):
                 // an empty answer is "nothing you can see", which is not "nothing in this tenant" for anyone else.
                 logger.LogInformation("Nothing is enrolled that you can see: your own certificates, or the whole tenant's when you administer it.");
             }

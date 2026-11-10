@@ -57,13 +57,17 @@ public sealed class CertificateEnrolment(
     public Task<bool> CallerAdministersAsync(CancellationToken cancellationToken) => access.CanAdministerModulesAsync(cancellationToken);
 
     /// <summary>
-    /// The certificates a listing shows: the caller's own, a named holder's (an administrator's question), or the whole
-    /// tenant's when an administrator names nobody.
+    /// The certificates a listing shows: the caller's own, or a named holder's (an administrator's question).
     /// </summary>
+    /// <remarks>
+    /// <b>No holder means the caller's own, administrator or not</b> (#2302). It used to mean the whole tenant for an
+    /// administrator, and every client reads "my keys" here: *My keys* listed colleagues' keys, and ADR 0969's own-keys
+    /// rule admitted a colleague's token for an administrator. The tenant's are asked for explicitly (<see cref="ListTenantAsync"/>).
+    /// </remarks>
     /// <param name="holder">
-    /// A holder's e-mail, or null/empty for "mine" (or, for an administrator, "the tenant's"). A holder that is not a
-    /// user here answers nothing rather than refusing: the CLI's <c>--holder</c> promised a filter that the server did
-    /// not implement, and an empty answer is the honest one for somebody who is not enrolled.
+    /// A holder's e-mail, or null/empty for "mine". A holder that is not a user here answers nothing rather than refusing:
+    /// the CLI's <c>--holder</c> promised a filter that the server did not implement, and an empty answer is the honest one
+    /// for somebody who is not enrolled.
     /// </param>
     public async Task<IReadOnlyList<Listed>> ListAsync(string? holder, CancellationToken cancellationToken)
     {
@@ -85,12 +89,36 @@ public sealed class CertificateEnrolment(
 
             query = query.Where(c => c.UserId == holderUserId);
         }
-        else if (!await CallerAdministersAsync(cancellationToken))
+        else
         {
             var userId = access.GetCallerIdentity().UserId;
             query = query.Where(c => c.UserId == userId);
         }
 
+        return await ListedAsync(query, cancellationToken);
+    }
+
+    /// <summary>
+    /// Every certificate in the tenant, for an administrator of enrolment (the <c>tenant-certificates</c> rel, #2302);
+    /// nothing for anybody else, as a named holder answers.
+    /// </summary>
+    public async Task<IReadOnlyList<Listed>> ListTenantAsync(CancellationToken cancellationToken) =>
+        await CallerAdministersAsync(cancellationToken)
+            ? await ListedAsync(dbContext.EnrolledCertificates.AsNoTracking(), cancellationToken)
+            : [];
+
+    /// <summary>
+    /// What the caller may see of the tenant's certificates: every one for an administrator of enrolment, their own
+    /// otherwise. For the server's own reads that name holders (a seal inspection, the answer to an enrolment), never for
+    /// a client's "my keys".
+    /// </summary>
+    public async Task<IReadOnlyList<Listed>> ListVisibleAsync(CancellationToken cancellationToken) =>
+        await CallerAdministersAsync(cancellationToken)
+            ? await ListTenantAsync(cancellationToken)
+            : await ListAsync(holder: null, cancellationToken);
+
+    private async Task<IReadOnlyList<Listed>> ListedAsync(IQueryable<Domain.Certificates.EnrolledCertificate> query, CancellationToken cancellationToken)
+    {
         var rows = await query.ToListAsync(cancellationToken);
         var policy = await CurrentPolicyAsync(cancellationToken);
         var now = DateTimeOffset.UtcNow;
@@ -397,7 +425,7 @@ public sealed class CertificateEnrolment(
         await audit.RecordAsync(AuditActions.CertificateAttestationAdded, "Document", existing.DocumentId, existing.Label,
             $"Thumbprint {existing.Thumbprint}, attestation of token {row.DeviceSerial}", cancellationToken: cancellationToken);
         logger.LogInformation("Added the attestation of token {DeviceSerial} to enrolled certificate {Thumbprint}", row.DeviceSerial, existing.Thumbprint);
-        return (await ListAsync(holder: null, cancellationToken)).Single(l => l.DocumentId == existing.DocumentId);
+        return (await ListVisibleAsync(cancellationToken)).Single(l => l.DocumentId == existing.DocumentId);
     }
 
     /// <summary>
@@ -450,7 +478,7 @@ public sealed class CertificateEnrolment(
         await audit.RecordAsync(AuditActions.CertificateEnrolled, "Document", document.Id, document.Name,
             auditDetail, cancellationToken: cancellationToken);
         logger.LogInformation("Enrolled certificate {Thumbprint} as document {DocumentId}", thumbprint, document.Id);
-        return (await ListAsync(holder: null, cancellationToken)).FirstOrDefault(l => l.DocumentId == document.Id)
+        return (await ListVisibleAsync(cancellationToken)).FirstOrDefault(l => l.DocumentId == document.Id)
             ?? new Listed(document.Id, fields["Label"], thumbprint, fields["Serial"], notAfter, null, false, null);
     }
 

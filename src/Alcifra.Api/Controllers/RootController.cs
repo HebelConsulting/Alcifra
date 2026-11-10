@@ -85,6 +85,7 @@ public class RootController : ControllerBase
         [FromServices] ICurrentTenantAccessor tenantAccessor,
         [FromServices] ICurrentPlatformAdministratorAccessor platformAdministratorAccessor,
         [FromServices] AlcifraDbContext dbContext,
+        [FromServices] Alcifra.Api.Certificates.CertificateEnrolment enrolment,
         CancellationToken cancellationToken)
     {
         var resource = new RootResource
@@ -252,6 +253,13 @@ public class RootController : ControllerBase
         if (tenantAccessor.TenantId is not null)
         {
             resource.Links.Add(new Link("certificates", "/api/certificates", "GET"));
+            // Every holder's, for an administrator of enrolment only (#2302): `certificates` is the caller's own, so My keys
+            // and ADR 0969's own-keys rule never see a colleague's key; the tenant's view is asked for by this rel.
+            if (await enrolment.CallerAdministersAsync(cancellationToken))
+            {
+                resource.Links.Add(new Link("tenant-certificates", "/api/certificates/tenant", "GET"));
+            }
+
             resource.Links.Add(new Link("certificateChallenge", "/api/certificates/challenge", "POST"));
             resource.Links.Add(new Link("certificatePolicy", "/api/certificate-policy", "GET"));
             resource.Links.Add(new Link("certificateSettings", "/api/certificate-settings", "GET"));

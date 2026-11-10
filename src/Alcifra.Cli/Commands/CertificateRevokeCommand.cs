@@ -107,7 +107,7 @@ public sealed class CertificateRevokeCommand(ILogger<CertificateRevokeCommand> l
         using var http = TenantHttp.Client(settings);
         var api = new AlcifraApi(http);
         var hypermedia = new Hypermedia(api);
-        var address = await CertificateSurface.AddressAsync(hypermedia, cancellationToken);
+        var address = await CertificateSurface.TenantAddressAsync(hypermedia, cancellationToken);
 
         var listing = await api.GetAsync(address, cancellationToken);
         if (Find(listing, settings) is not { } found)

@@ -132,6 +132,24 @@ public class CertificatesController(CertificateEnrolment enrolment, CertificateR
         return NoContent();
     }
 
+    /// <summary>Every certificate in the tenant, for an administrator of enrolment (the <c>tenant-certificates</c> rel, #2302).</summary>
+    [HttpGet("tenant")]
+    public async Task<IActionResult> Tenant(CancellationToken cancellationToken)
+    {
+        if (!await enrolment.CallerAdministersAsync(cancellationToken))
+        {
+            return Forbid();
+        }
+
+        var rows = await enrolment.ListTenantAsync(cancellationToken);
+        var mayRevoke = await revocation.WhoseKeysMayBeRevokedAsync(cancellationToken);
+        return Ok(rows.Select(row => Resource(row, mayRevoke)));
+    }
+
+    // Standing convention: every GET action gets a companion HEAD action of its own.
+    [HttpHead("tenant")]
+    public IActionResult TenantHead() => NoContent();
+
     [HttpPost]
     public async Task<IActionResult> Enrol([FromBody] EnrolRequest request, CancellationToken cancellationToken)
     {

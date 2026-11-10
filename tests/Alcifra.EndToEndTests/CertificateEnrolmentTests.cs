@@ -33,13 +33,13 @@ public partial class CertificateEnrolmentTests
     }
 
     // `certificates list --holder` promised "only this holder's" while the server ignored the value and listed the
-    // whole tenant. The filter is real now, and what an OMITTED holder means stays the caller's scope: their own, or
-    // the tenant's for an administrator.
+    // whole tenant. The filter is real now, and an OMITTED holder means the caller's own, an administrator's too (#2302):
+    // the tenant's listing is its own rel, advertised to an administrator only.
     // #1943: "my enrolled keys" were read from that listing, so in an ADMINISTRATOR's session every colleague's key
     // counted as the administrator's own and opened what it was addressed to — ADR 0969's own case (crypt@'s card opened
     // the Demo logins in florian@'s session). "me" carries the caller's own, whoever the caller is.
     [Fact]
-    public async Task An_administrators_own_keys_are_theirs_alone_while_the_listing_still_shows_the_tenant()
+    public async Task An_administrators_own_keys_are_theirs_alone_while_the_tenant_rel_shows_the_tenant()
     {
         using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
@@ -54,8 +54,12 @@ public partial class CertificateEnrolmentTests
             await TestJson.Post(rig.Admin, root["certificates"],
                 new { certificatePem = SelfSigned("member", rig.MemberEmail), label = "Member card", holder = rig.MemberEmail });
 
-            // The administration view is unchanged: the tenant.
-            Assert.Equal(2, (await TestJson.Get(rig.Admin, root["certificates"])).EnumerateArray().Count());
+            // "My keys" is the administrator's own (#2302); the administration view is the tenant, under its own rel.
+            Assert.Equal("Admin card", Assert.Single((await TestJson.Get(rig.Admin, root["certificates"])).EnumerateArray().ToList())
+                .GetProperty("label").GetString());
+            Assert.Equal(2, (await TestJson.Get(rig.Admin, root["tenant-certificates"])).EnumerateArray().Count());
+            Assert.DoesNotContain("tenant-certificates", Links(await TestJson.Get(rig.Member, "/api")).Keys);
+            Assert.Equal(HttpStatusCode.Forbidden, (await rig.Member.GetAsync(root["tenant-certificates"])).StatusCode);
 
             // "me" names the administrator's own key only, as an envelope names a recipient.
             using var admin = X509Certificate2.CreateFromPem(adminPem);
@@ -100,8 +104,9 @@ public partial class CertificateEnrolmentTests
                 .EnumerateArray().ToList();
             Assert.Equal("Member card", Assert.Single(forMember).GetProperty("label").GetString());
 
-            // An administrator who names nobody sees the tenant.
-            Assert.Equal(2, (await TestJson.Get(rig.Admin, root["certificates"])).EnumerateArray().Count());
+            // An administrator who names nobody sees their own (#2302); the tenant is the tenant-certificates rel.
+            Assert.Equal("Admin card", Assert.Single((await TestJson.Get(rig.Admin, root["certificates"])).EnumerateArray().ToList())
+                .GetProperty("label").GetString());
 
             // A member asking for somebody else's gets nothing, and their own listing stays their own.
             Assert.Empty((await TestJson.Get(rig.Member,

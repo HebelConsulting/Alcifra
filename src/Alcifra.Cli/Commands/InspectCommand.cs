@@ -200,7 +200,7 @@ public static class InspectSurface
         string href;
         try
         {
-            href = await CertificateSurface.AddressAsync(new Hypermedia(api), cancellationToken);
+            href = await CertificateSurface.TenantAddressAsync(new Hypermedia(api), cancellationToken);
         }
         catch (CliException)
         {
