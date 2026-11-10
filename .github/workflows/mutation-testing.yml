@@ -6,6 +6,9 @@
 # rate instead of codebase size. The monthly FULL sweep (mutation-full.yml) keeps the absolute score
 # honest; this run's score is a statement about the week's changes only.
 #
+# Mutants are judged by the UNIT tests only (ADR 1087): with the integration suite too, run #19 still hit the
+# 120-minute ceiling once past the IconArt crash.
+#
 # Runs ONLY on the public repository and only while public (free unlimited minutes; metered on private) —
 # the gate resolves visibility via the API because the inline context is null on cron.
 name: Mutation testing

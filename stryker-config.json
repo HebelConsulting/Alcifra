@@ -2,8 +2,7 @@
   "stryker-config": {
     "solution": "Alcifra.slnx",
     "test-projects": [
-      "tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj",
-      "tests/Alcifra.IntegrationTests/Alcifra.IntegrationTests.csproj"
+      "tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj"
     ],
     "reporters": ["html", "progress"],
     "mutation-level": "Standard",
