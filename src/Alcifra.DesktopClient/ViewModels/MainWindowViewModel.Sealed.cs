@@ -89,7 +89,9 @@ public sealed partial class MainWindowViewModel
             return false;
         }
 
-        Status = string.Format(Strings.Get("StSealedFiled"), draft.Name);
+        // In a personal space nobody was asked who may open it, because its owner alone may (ADR 0983); the status line says
+        // so, and where to file it to choose an audience, rather than leaving the missing step to look like an omission.
+        Status = string.Format(Strings.Get(draft.Audience.IsPersonal ? "StSealedFiledPersonal" : "StSealedFiled"), draft.Name);
         await LoadFolderContentsAsync(folderId);
         return true;
     }

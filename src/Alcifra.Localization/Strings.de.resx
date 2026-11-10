@@ -6508,6 +6508,9 @@
   <data name="StSealedFiled" xml:space="preserve">
     <value>'{0}' abgelegt und für den Empfängerkreis versiegelt.</value>
   </data>
+  <data name="StSealedFiledPersonal" xml:space="preserve">
+    <value>'{0}' abgelegt und nur für Sie versiegelt: Es liegt in Ihrem persönlichen Bereich. Legen Sie es in einem gemeinsamen Ordner ab, um zu wählen, wer es öffnen kann.</value>
+  </data>
   <data name="StErrSealed" xml:space="preserve">
     <value>'{0}' konnte nicht versiegelt und abgelegt werden: {1}</value>
   </data>

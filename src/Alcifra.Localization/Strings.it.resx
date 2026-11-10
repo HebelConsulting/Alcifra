@@ -6508,6 +6508,9 @@
   <data name="StSealedFiled" xml:space="preserve">
     <value>'{0}' archiviato e sigillato per i destinatari.</value>
   </data>
+  <data name="StSealedFiledPersonal" xml:space="preserve">
+    <value>'{0}' archiviato e sigillato solo per lei: si trova nel suo spazio personale. Lo archivi in una cartella condivisa per scegliere chi può aprirlo.</value>
+  </data>
   <data name="StErrSealed" xml:space="preserve">
     <value>Non è stato possibile sigillare e archiviare '{0}': {1}</value>
   </data>

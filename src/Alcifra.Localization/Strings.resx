@@ -6508,6 +6508,9 @@
   <data name="StSealedFiled" xml:space="preserve">
     <value>'{0}' filed, sealed to its audience.</value>
   </data>
+  <data name="StSealedFiledPersonal" xml:space="preserve">
+    <value>'{0}' filed, sealed for you alone: it is in your personal space. File it in a shared folder to choose who can open it.</value>
+  </data>
   <data name="StErrSealed" xml:space="preserve">
     <value>'{0}' could not be sealed and filed: {1}</value>
   </data>
