@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Alcifra.ApiClient.PasswordStore;
 using System.ComponentModel;
 using Alcifra.Pass.Infrastructure;
@@ -19,7 +20,7 @@ public sealed class LsSettings : StoreSettings
 /// The names come from the flat listing (ADR 0207) and are in the clear (ADR 0964), so nothing here touches the
 /// card or asks for a PIN.
 /// </remarks>
-public sealed class LsCommand : AsyncCommand<LsSettings>
+public sealed class LsCommand(ILogger<LsCommand> logger) : AsyncCommand<LsSettings>
 {
     protected override async Task<int> ExecuteAsync(CommandContext context, LsSettings settings, CancellationToken cancellationToken)
     {
@@ -45,6 +46,19 @@ public sealed class LsCommand : AsyncCommand<LsSettings>
             Console.Out.WriteLine(row.IsFolder ? $"{row.Name}/" : row.Name);
         }
 
+        // An empty default store printed nothing at all, which read as "you have no passwords" while they sat in a shared
+        // store (owner, 2026-11-10). Said on stderr, so a script reading the listing is unaffected.
+        if (rows.Count == 0 && string.IsNullOrWhiteSpace(settings.Store)
+            && StoreCatalog.CompletionNames([.. (await session.Passwords.ListStoresAsync(cancellationToken)).Stores.Where(s => !s.IsPersonal)], offersMyPasswords: false)
+                is { Count: > 0 } others)
+        {
+            logger.LogInformation("{Hint}", EmptyDefaultHint(others));
+        }
+
         return 0;
     }
+
+    /// <summary>What an empty My Passwords says, naming the stores <c>--store</c> accepts.</summary>
+    internal static string EmptyDefaultHint(IReadOnlyList<string> stores) =>
+        $"My Passwords is empty. The stores you may read: {string.Join(", ", stores)}. List one with: apass ls -s \"<name>\"";
 }

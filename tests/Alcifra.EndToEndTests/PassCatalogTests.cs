@@ -91,4 +91,24 @@ public class PassCatalogTests
             }
         }
     }
+
+    // `apass whoami` against a real installation: the person and tenant the session acts as, from the root's whoami rel,
+    // and their enrolled keys (none here), through the same two reads the command makes.
+    [Fact]
+    public async Task Whoami_names_the_person_and_tenant_the_session_acts_as()
+    {
+        var (_, _, tenantId) = await _factory.SeedServiceAccountAsync(canManageRepositories: false);
+        var email = $"apass-who-{Guid.NewGuid():N}@e2e.local";
+        await _factory.SeedUserAsync(tenantId, email, "sp-1234", "Pass Whoami");
+        using var http = _factory.CreateAuthedClient(await _factory.GetUserTokenAsync(email, "sp-1234"));
+        using var session = Session.Over(http);
+
+        var identity = await Alcifra.Pass.Commands.WhoAmICommand.ReadAsync(session, CancellationToken.None);
+
+        Assert.Equal("Pass Whoami", identity.Me.UserName);
+        Assert.False(string.IsNullOrEmpty(identity.Me.TenantName));
+        Assert.Empty(identity.Keys);
+        Assert.Contains("none enrolled: a store's entries cannot be opened", Alcifra.Pass.Commands.WhoAmICommand.Describe(identity));
+        Assert.Contains("My Passwords", identity.Stores);
+    }
 }

@@ -78,6 +78,8 @@ public static class PassApp
                 .WithDescription("Sign in to an installation; the session is kept for this tool and alcifra.");
             config.AddCommand<LogoutCommand>("logout")
                 .WithDescription("End the session, on the installation and on this machine.");
+            config.AddCommand<WhoAmICommand>("whoami")
+                .WithDescription("Name the installation and the person the session acts as, and their hardware keys.");
             config.AddCommand<LsCommand>("ls")
                 .WithDescription("List a folder's folders and entries.");
             config.AddCommand<FindCommand>("find")
