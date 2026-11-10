@@ -29,7 +29,21 @@
             <Grid IsVisible="{Binding Completes}" ColumnDefinitions="*,Auto">
                 <AutoCompleteBox Text="{Binding TextValue}" AsyncPopulator="{Binding SuggestionSource}"
                                  FilterMode="None" MinimumPrefixLength="0" MaxDropDownHeight="220"
-                                 Height="28" Padding="4,2" />
+                                 Height="28" Padding="4,2">
+                    <!-- A module's vocabulary (core #2288) names each code: P28A, Piper PA-28 Archer/Warrior/Cherokee. -->
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FieldSuggestion">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding Value}" />
+                                <TextBlock Text="{Binding Label}" IsVisible="{Binding HasLabel}" Foreground="{DynamicResource WbMuted}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+                <!-- What the stored code names, so P28A reads as an aircraft rather than four letters to decode. -->
+                <TextBlock Grid.Column="1" Text="{Binding ValueLabel}" IsVisible="{Binding ValueLabel, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           Foreground="{DynamicResource WbMuted}" VerticalAlignment="Center" Margin="8,0,0,0"
+                           MaxWidth="260" TextTrimming="CharacterEllipsis" />
             </Grid>
 
             <!-- A reference field naming the masks it accepts is PICKED (#2214, ADR 1068): the documents of those kinds,

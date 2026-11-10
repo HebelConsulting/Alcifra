@@ -72,6 +72,7 @@ builder.Services.AddScoped<Alcifra.Client.Services.DocumentActions>();
 // New ▸ a kind with required fields: the form DocumentActions asks for (#2217, ADR 1067).
 builder.Services.AddScoped<Alcifra.Client.Services.NewItemCreation>();
 builder.Services.AddScoped<Alcifra.Client.Services.ReferencePicker>();
+builder.Services.AddScoped<Alcifra.Client.Services.FieldVocabulary>();
 builder.Services.AddScoped<Alcifra.Client.Services.PreviewCards>();
 
 // The actions that operate on the multi-selection, plus the runner the drag-drop handler posts through — the

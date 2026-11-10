@@ -286,7 +286,8 @@ public sealed class TestModule : IIndustryModule
             new ModuleFieldSeed("Temporarily void", "Boolean", IsRequired: false),
             // Text on purpose (ABI 0.2, #1014): the one type where a saved-blank value can exist, which is
             // what the Present test's whitespace case needs (the core refuses a blank Date outright).
-            new ModuleFieldSeed("Issuer", "Text", IsRequired: false),
+            // Its value also completes from the module's issuer vocabulary (ABI 2.2, core #2288).
+            new ModuleFieldSeed("Issuer", "Text", IsRequired: false) { ValueVocabularyRel = "test-module:issuers" },
         ]),
         // Its own mask, learned the hard way: entries wearing the certificate mask became the NEWEST
         // certificate, and the first logged entry shadowed the medical — every later act read "no Valid
@@ -326,6 +327,9 @@ public sealed class TestModule : IIndustryModule
 
         // The Tube tab's stand-in (#2148): the clients offer the tab where this rel appears, whichever module serves it.
         new ModuleRootLink("tube:channels", "/api/test-module/tube-channels", "GET"),
+
+        // The Issuer field's vocabulary (ABI 2.2, core #2288): a field value completing from the module's own list.
+        new ModuleRootLink("test-module:issuers", "/api/test-module/issuers", "GET"),
 
         // A protocol endpoint's entry (ABI 1.14, ADR 0918): every caller of the root sees it while the module is
         // loaded, so a client holding only a module credential can find the upload.

@@ -174,13 +174,12 @@ public sealed partial class MainWindowViewModel
             var values = valuesByName.GetValueOrDefault(field.Name) is { } v ? v : [];
             var editor = MaskFieldEditViewModel.Create(field, values, CanManageMailRouting);
 
-            // What the field completes from (#1127) — the values already filed under it. Assigned here rather
-            // than resolved by the field itself, which owns no api client; absent when the server offered no
-            // `values` rel, and the editor then stays a plain text box.
-            if (editor.ValuesHref is { } valuesHref && _api is { } api)
+            // What the field completes from — the values already filed under it (#1127), and a module's vocabulary
+            // (core #2288). Assigned here rather than resolved by the field itself, which owns no api client; absent
+            // when the server offered neither rel, and the editor then stays a plain text box.
+            if (_api is { } api)
             {
-                editor.SuggestionSource = async (typed, cancellationToken) =>
-                    await api.Masks.FieldValuesAsync(valuesHref, typed, cancellationToken);
+                FieldCompletionWiring.Wire(editor, api);
             }
 
             // A reference field naming the masks it accepts is picked (#2214); a picked file is filed in this document's folder.

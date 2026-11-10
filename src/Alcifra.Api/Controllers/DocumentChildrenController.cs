@@ -386,7 +386,7 @@ public class DocumentChildrenController : ControllerBase
         var rules = await _containment.ForAsync(_dbContext, _currentTenantAccessor.TenantId!.Value, cancellationToken);
         // Once for the page, beside the rules, for the same reason they are: a per-row resolution would mean
         // an activation query per listed folder (ADR 0557 — one read, many follows).
-        var nameVocabularies = await Documents.ModuleNameVocabularies.ForTenantAsync(
+        var nameVocabularies = await Documents.ModuleVocabularies.NamesForTenantAsync(
             _modules, _dbContext, _logger, DateTimeOffset.UtcNow, cancellationToken);
 
         var children = page.Select(d => new DocumentSummaryResource

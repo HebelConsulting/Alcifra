@@ -40,7 +40,18 @@ public sealed class MasksClient
         // A reference field naming the masks it accepts (#2214, ADR 1068): the address of its picker's candidates, and
         // the masks themselves; a picker offers to file a new item only where exactly one is named.
         string? TargetsHref = null,
-        IReadOnlyList<AcceptedMask>? AcceptedMasks = null);
+        IReadOnlyList<AcceptedMask>? AcceptedMasks = null)
+    {
+        /// <summary>
+        /// Where a module's vocabulary for this field's value answers <c>?q=</c> (core #2288), while that module is active:
+        /// coded items with labels, completing the value and naming a stored code. Null for the ordinary field.
+        /// </summary>
+        /// <remarks>Init-only, not positional: a new parameter would change the constructor callers compiled against.</remarks>
+        public string? VocabularyHref { get; init; }
+    }
+
+    /// <summary>One item of a module's field vocabulary: the stored <paramref name="Value"/>, and what it names.</summary>
+    public sealed record VocabularyItem(string Value, string Label, string? Description = null);
 
     /// <summary>A mask a reference field accepts, as the server named it.</summary>
     public sealed record AcceptedMask(Guid Id, string Name);
@@ -146,6 +157,50 @@ public sealed class MasksClient
         }
     }
 
+    /// <summary>
+    /// A module's vocabulary items matching what was typed (core #2288), from the field's own <c>vocabulary</c> rel, best
+    /// first. Best-effort, as the values are: a vocabulary that cannot be read costs the completion, never the edit.
+    /// </summary>
+    public async Task<IReadOnlyList<VocabularyItem>> FieldVocabularyAsync(
+        string vocabularyHref, string? typed, CancellationToken cancellationToken = default)
+    {
+        var href = $"{vocabularyHref}{(vocabularyHref.Contains('?') ? "&" : "?")}q={Uri.EscapeDataString(typed ?? string.Empty)}";
+
+        try
+        {
+            using var response = await _core.Http.GetAsync(href, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            return document.RootElement.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array
+                ? [.. items.EnumerateArray()
+                    .Select(i => new VocabularyItem(
+                        i.TryGetProperty("value", out var v) ? v.GetString() ?? string.Empty : string.Empty,
+                        i.TryGetProperty("label", out var l) ? l.GetString() ?? string.Empty : string.Empty,
+                        i.TryGetProperty("description", out var d) && d.ValueKind == JsonValueKind.String ? d.GetString() : null))
+                    .Where(i => i.Value.Length > 0)]
+                : [];
+        }
+        catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// What a stored code names in the field's vocabulary — <c>P28A</c> → "Piper PA-28 Archer/Warrior/Cherokee" — or null
+    /// when the vocabulary holds no item with exactly that value (free text is allowed, so that is ordinary).
+    /// </summary>
+    public async Task<VocabularyItem?> VocabularyLabelAsync(
+        string vocabularyHref, string value, CancellationToken cancellationToken = default) =>
+        string.IsNullOrWhiteSpace(value)
+            ? null
+            : (await FieldVocabularyAsync(vocabularyHref, value.Trim(), cancellationToken))
+                .FirstOrDefault(i => string.Equals(i.Value, value.Trim(), StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The masks a user may actually CHOOSE for a document.</summary>
     /// <remarks>
     /// The SERVER decides which those are (ADR 0653): a folder mask types a folder, an extension-claimed mask
@@ -204,7 +259,10 @@ public sealed class MasksClient
                     ApiCore.ParseLinks(f)?.Href("targets"),
                     f.TryGetProperty("acceptedMasks", out var accepted) && accepted.ValueKind == JsonValueKind.Array
                         ? [.. accepted.EnumerateArray().Select(a => new AcceptedMask(a.GetProperty("id").GetGuid(), a.GetProperty("name").GetString() ?? string.Empty))]
-                        : []));
+                        : [])
+                {
+                    VocabularyHref = ApiCore.ParseLinks(f)?.Href("vocabulary"),
+                });
             }
         }
 

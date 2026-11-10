@@ -29,10 +29,10 @@ public class DesktopReferencePickerTests(SelfHostedAppFixture app)
     public async Task A_picture_field_offers_pictures_by_name_and_files_one_from_a_file()
     {
         DesktopClientOptions.ApiBaseUrl = app.BaseUrl;
-        var (token, tenantId, repoId) = await OwnTenantAsync();
+        var (token, tenantId, repoId) = await TestModuleTenant.CreateAsync(app, "pictures");
         using var http = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        await ActivateTestModuleAsync(http, tenantId, repoId);
+        await TestModuleTenant.ActivateAsync(app, http, tenantId, repoId);
         var api = new AlcifraApiClient(token);
         var children = $"/api/documents/{repoId}/children";
         var run = Guid.NewGuid().ToString("N")[..8];
@@ -70,53 +70,5 @@ public class DesktopReferencePickerTests(SelfHostedAppFixture app)
         await editor.FileAsync($"Dawn {run}.png", Png);
         Assert.NotNull(editor.FileProblem);
         Assert.Equal(filed, editor.Chosen!.Target.Id);
-    }
-
-    // A tenant for this test alone, provisioned as the platform administrator: its administrator's token and repository.
-    private async Task<(string Token, Guid TenantId, Guid RepositoryId)> OwnTenantAsync()
-    {
-        using var anonymous = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
-        var (clientId, clientSecret) = app.PlatformAdmin;
-        using var tokenResponse = await anonymous.PostAsync("connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = "client_credentials",
-            ["client_id"] = clientId,
-            ["client_secret"] = clientSecret,
-        }));
-        tokenResponse.EnsureSuccessStatusCode();
-        using var platform = new HttpClient { BaseAddress = new Uri(app.BaseUrl) };
-        platform.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
-            (await tokenResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("access_token").GetString());
-
-        var email = $"pictures-{Guid.NewGuid():N}@desktop.e2e";
-        var tenant = await (await platform.PostAsJsonAsync("api/tenants", new
-        {
-            name = $"Pictures {Guid.NewGuid():N}"[..20],
-            administratorEmail = email,
-            administratorDisplayName = "Pictures Admin",
-            repositoryName = "Pictures",
-        })).EnsureSuccessStatusCode().Content.ReadFromJsonAsync<JsonElement>();
-        var password = tenant.GetProperty("tenantAdministrator").GetProperty("password").GetString()!;
-        return (await Ui.GetUserTokenAsync(app.BaseUrl, email, password), tenant.GetProperty("id").GetGuid(),
-            tenant.GetProperty("repository").GetProperty("id").GetGuid());
-    }
-
-    // The TestModule activated in that tenant: the licence filed in its repository, activation (ADR 0740).
-    private async Task ActivateTestModuleAsync(HttpClient http, Guid tenantId, Guid repoId)
-    {
-        var licenceDoc = await IdOf(await http.PostAsJsonAsync($"/api/documents/{repoId}/children", new { name = "Test module licence" }));
-        var version = await (await http.PostAsJsonAsync($"/api/documents/{licenceDoc}/versions", new { fileExtension = ".json" }))
-            .EnsureSuccessStatusCode().Content.ReadFromJsonAsync<JsonElement>();
-        using (var storage = new HttpClient())
-        {
-            (await storage.PutAsync(version.GetProperty("uploadUrl").GetString()!,
-                new ByteArrayContent(Encoding.UTF8.GetBytes(app.SignTestModuleLicence(tenantId))))).EnsureSuccessStatusCode();
-        }
-
-        (await http.PutAsJsonAsync($"/api/documents/{licenceDoc}/versions/{version.GetProperty("id").GetGuid()}", new { })).EnsureSuccessStatusCode();
-        (await http.PutAsJsonAsync("/api/modules/test-module/license", new { licenseDocumentId = licenceDoc })).EnsureSuccessStatusCode();
-
-        static async Task<Guid> IdOf(HttpResponseMessage response) =>
-            (await response.EnsureSuccessStatusCode().Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
     }
 }

@@ -52,6 +52,45 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
     /// </summary>
     public Func<string?, CancellationToken, Task<IEnumerable<object>>>? SuggestionSource { get; set; }
 
+    /// <summary>Where an active module's vocabulary for this field answers (core #2288); null for the ordinary field.</summary>
+    public string? VocabularyHref { get; init; }
+
+    /// <summary>
+    /// What a value names in the field's vocabulary, or null where it holds none. Assigned by whoever builds the field, as
+    /// <see cref="SuggestionSource"/> is.
+    /// </summary>
+    public Func<string, CancellationToken, Task<string?>>? LabelSource { get; set; }
+
+    /// <summary>What the value in the box names, shown beside it: <c>P28A</c> → "Piper PA-28 Archer/Warrior/Cherokee".</summary>
+    [ObservableProperty] private string? _valueLabel;
+
+    private CancellationTokenSource? _labelLookup;
+
+    partial void OnTextValueChanged(string value)
+    {
+        if (LabelSource is not null)
+        {
+            Services.Safe.Fire(RefreshValueLabelAsync);
+        }
+    }
+
+    /// <summary>Looks up what the current value names; a newer keystroke cancels an older lookup, so the last one wins.</summary>
+    public async Task RefreshValueLabelAsync()
+    {
+        if (LabelSource is not { } source)
+        {
+            return;
+        }
+
+        _labelLookup?.Cancel();
+        var lookup = _labelLookup = new CancellationTokenSource();
+        var label = await source(TextValue, lookup.Token);
+        if (!lookup.IsCancellationRequested)
+        {
+            ValueLabel = label;
+        }
+    }
+
     /// <summary>Whether this field completes as you type — a single-line editor WITH an offered value list.</summary>
     /// <remarks>
     /// Reported from use of a module's Aerodrome field, and true of its METAR/TAF and NOTAM siblings: every
@@ -201,6 +240,7 @@ public sealed partial class MaskFieldEditViewModel : ObservableObject
             IsList = definition.IsList,
             Locked = IndexFieldEdit.IsLocked(definition.RequiresMailRouting, mayRouteMail, definition.ClassifierOwned),
             ValuesHref = definition.ValuesHref,
+            VocabularyHref = definition.VocabularyHref,
             TargetsHref = definition.TargetsHref,
             AcceptedMasks = definition.AcceptedMasks ?? [],
         };

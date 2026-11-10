@@ -165,7 +165,7 @@ public static class CreatableChildren
     /// </param>
     /// <param name="nameVocabularies">
     /// Mask id → the address whose <c>?q=</c> completes that mask's NAME (ABI 0.21), from
-    /// <see cref="ModuleNameVocabularies"/>. Empty is the ordinary case; a mask absent from it gets a plain
+    /// <see cref="ModuleVocabularies"/>. Empty is the ordinary case; a mask absent from it gets a plain
     /// name box, which is every core mask.
     /// </param>
     public static List<CreatableChild> For(
@@ -173,7 +173,7 @@ public static class CreatableChildren
         Guid documentId,
         Guid? folderMaskId,
         bool isPersonalRoot,
-        IReadOnlyDictionary<Guid, ModuleNameVocabularies.Vocabulary>? nameVocabularies = null)
+        IReadOnlyDictionary<Guid, ModuleVocabularies.Vocabulary>? nameVocabularies = null)
     {
         // A personal space's first level holds only what provisioning put there (#634). A separate invariant
         // from containment, so it is answered separately — and answered FIRST, because nothing below it can
@@ -225,7 +225,7 @@ public static class CreatableChildren
         MaskContainmentRules rules,
         Guid documentId,
         Guid maskId,
-        IReadOnlyDictionary<Guid, ModuleNameVocabularies.Vocabulary>? nameVocabularies)
+        IReadOnlyDictionary<Guid, ModuleVocabularies.Vocabulary>? nameVocabularies)
     {
         // A family with its own endpoint goes there; everything else is the children collection's create,
         // carrying the mask id. That is the whole reason a tenant-authored mask needs no entry in any table:

@@ -180,5 +180,10 @@ public static class ModuleAbiVersion
     /// any other target at save, and the field advertises a <c>targets</c> rel for a picker (core ADR 1068, core #2214). An
     /// init property, so a 2.0 module is unaffected.
     /// </para>
-    public const int Minor = 1;
+    /// <para>
+    /// 2.2 adds <see cref="ModuleFieldSeed.ValueVocabularyRel"/>: a field's value completes from one of the module's
+    /// vocabularies, and the field advertises a <c>vocabulary</c> rel beside <c>values</c> (core #2288, for the Flight
+    /// School's aircraft types). An init property, so a 2.1 module is unaffected.
+    /// </para>
+    public const int Minor = 2;
 }

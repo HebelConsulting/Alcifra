@@ -303,6 +303,20 @@ public sealed record ModuleFieldSeed(
     /// a mask the tenant does not have, it is skipped with a warning.
     /// </summary>
     public IReadOnlyList<Guid>? AcceptedMasks { get; init; }
+
+    /// <summary>
+    /// One of this module's own <see cref="IIndustryModule.RootLinks"/> rels, whose endpoint answers <c>?q=</c> with a
+    /// <see cref="ModuleVocabularyResource"/> (ABI 2.2, core #2288): the field's VALUE then completes from that vocabulary,
+    /// as <see cref="ModuleMaskSeed.NameVocabularyRel"/> completes a document's name. The aircraft's type, <c>P28A</c>, chosen
+    /// from "Piper PA-28 Archer/Warrior/Cherokee" rather than typed from memory.
+    /// </summary>
+    /// <remarks>
+    /// Completion only, never validation, for the reason the name vocabulary gives: any text is accepted, and the stored
+    /// value is the item's <c>Value</c>, while a client shows its <c>Label</c> beside it. Resolved per tenant and only while
+    /// the module is active; a rel naming no root link is ignored with a Warning. Named on a field that is not textual, it is
+    /// ignored the same way.
+    /// </remarks>
+    public string? ValueVocabularyRel { get; init; }
 }
 
 /// <summary>

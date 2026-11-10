@@ -173,7 +173,7 @@ public class RepositoriesController : ControllerBase
         // same question of them.
         var rules = await _containment.ForAsync(_dbContext, _currentTenantAccessor.TenantId!.Value, cancellationToken);
         // Once for the listing, beside the rules (ADR 0557: one read, many follows).
-        var nameVocabularies = await Documents.ModuleNameVocabularies.ForTenantAsync(
+        var nameVocabularies = await Documents.ModuleVocabularies.NamesForTenantAsync(
             _modules, _dbContext, _logger, DateTimeOffset.UtcNow, cancellationToken);
 
         // Personal repositories (ADR "Per-user personal repository") are surfaced separately (the clients' "Personal"

@@ -284,6 +284,33 @@ public sealed class TestModuleController : ControllerBase
     [HttpHead("status")]
     public IActionResult HeadStatus() => NoContent();
 
+    // The Issuer field's vocabulary (ABI 2.2, core #2288): code as Value, the name as Label, matched on either.
+    private static readonly ModuleVocabularyItem[] Issuers =
+    [
+        new("AMC-ZRH", "Aeromedical Center Zurich"),
+        new("AMC-GVA", "Aeromedical Center Geneva"),
+        new("FOCA", "Federal Office of Civil Aviation"),
+    ];
+
+    [HttpGet("issuers")]
+    public IActionResult IssuerVocabulary([FromQuery] string? q)
+    {
+        var query = q?.Trim() ?? string.Empty;
+        var items = Issuers
+            .Where(i => i.Value.Contains(query, StringComparison.OrdinalIgnoreCase) || i.Label.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        return Ok(new ModuleVocabularyResource
+        {
+            Query = query,
+            Count = items.Count,
+            Items = items,
+            Links = [new Link("self", "/api/test-module/issuers", "GET")],
+        });
+    }
+
+    [HttpHead("issuers")]
+    public IActionResult HeadIssuerVocabulary() => NoContent();
+
     [HttpGet("documents/{documentId:guid}/rights")]
     public async Task<IActionResult> DocumentRights(
         Guid documentId, [FromServices] IModuleDocumentRights rights, CancellationToken cancellationToken)

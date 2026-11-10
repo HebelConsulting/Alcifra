@@ -30,6 +30,8 @@ public class MasksController : ControllerBase
     private readonly ICurrentTenantAccessor _currentTenantAccessor;
     private readonly IUserSystemRightsResolver _userSystemRights;
     private readonly IEffectiveRightsCalculator _effectiveRights;
+    private readonly IReadOnlyList<Alcifra.Infrastructure.Modules.ModuleLoader.LoadedModule> _modules;
+    private readonly ILogger<MasksController> _logger;
 
     public MasksController(
         AlcifraDbContext dbContext,
@@ -37,7 +39,9 @@ public class MasksController : ControllerBase
         ICurrentUserAccessor currentUserAccessor,
         ICurrentTenantAccessor currentTenantAccessor,
         IUserSystemRightsResolver userSystemRights,
-        IEffectiveRightsCalculator effectiveRights)
+        IEffectiveRightsCalculator effectiveRights,
+        IReadOnlyList<Alcifra.Infrastructure.Modules.ModuleLoader.LoadedModule> modules,
+        ILogger<MasksController> logger)
     {
         _dbContext = dbContext;
         _currentServiceAccountAccessor = currentServiceAccountAccessor;
@@ -45,6 +49,8 @@ public class MasksController : ControllerBase
         _currentTenantAccessor = currentTenantAccessor;
         _userSystemRights = userSystemRights;
         _effectiveRights = effectiveRights;
+        _modules = modules;
+        _logger = logger;
     }
 
     // Plain mutable classes, not records — System.Xml.Serialization.XmlSerializer (ADR "JSON/XML content
@@ -454,7 +460,9 @@ public class MasksController : ControllerBase
                 .ToListAsync(cancellationToken))
             .GroupBy(a => a.FieldDefinitionId)
             .ToDictionary(g => g.Key, g => g.OrderBy(a => a.Name).Select(a => new AcceptedMaskResource { Id = a.MaskId, Name = a.Name ?? string.Empty }).ToList());
-        return Ok(BuildResource(maskId, version.Name, version.VersionNumber, version.ReviewSlaDays, version.RetentionYears, version.DefaultSensitivityLabelId, fields, restricted));
+        // A field a module fills from its own vocabulary (ABI 2.2, core #2288), while that module is active here.
+        var vocabularies = await Documents.ModuleVocabularies.FieldsForTenantAsync(_modules, _dbContext, _logger, DateTimeOffset.UtcNow, cancellationToken);
+        return Ok(BuildResource(maskId, version.Name, version.VersionNumber, version.ReviewSlaDays, version.RetentionYears, version.DefaultSensitivityLabelId, fields, restricted, vocabularies));
     }
 
     // Standing convention: every GET action gets a companion HEAD action — a separate action, not
@@ -467,7 +475,8 @@ public class MasksController : ControllerBase
         return exists ? NoContent() : NotFound();
     }
 
-    private static MaskResource BuildResource(Guid maskId, string name, int versionNumber, int? reviewSlaDays, int? retentionYears, Guid? defaultSensitivityLabelId, List<FieldDefinition> fields, IReadOnlyDictionary<Guid, List<AcceptedMaskResource>>? restricted = null)
+    private static MaskResource BuildResource(Guid maskId, string name, int versionNumber, int? reviewSlaDays, int? retentionYears, Guid? defaultSensitivityLabelId, List<FieldDefinition> fields, IReadOnlyDictionary<Guid, List<AcceptedMaskResource>>? restricted = null,
+        IReadOnlyDictionary<(Guid MaskId, string FieldName), string>? vocabularies = null)
     {
         return new MaskResource
         {
@@ -500,7 +509,15 @@ public class MasksController : ControllerBase
                 Links = restricted?.ContainsKey(f.Id) == true
                     ? [new Link("targets", $"/api/masks/{maskId}/fields/{f.Id}/targets", "GET")]
                     : SuggestibleTypes.Contains(f.DataType)
-                        ? [new Link("values", $"/api/masks/{maskId}/fields/{f.Id}/values", "GET")]
+                        ? [
+                            new Link("values", $"/api/masks/{maskId}/fields/{f.Id}/values", "GET"),
+                            // A module's vocabulary for this field (ABI 2.2, core #2288): items with a label, completing the
+                            // value and naming it beside a stored one. Beside `values`, so a client that does not know
+                            // this rel still completes from the values already filed, as before.
+                            .. vocabularies?.GetValueOrDefault((maskId, f.Name)) is { } vocabulary
+                                ? [new Link("vocabulary", vocabulary, "GET")]
+                                : Array.Empty<Link>(),
+                        ]
                         : [],
             }).ToList(),
             Links = [new Link("self", $"/api/masks/{maskId}", "GET")],

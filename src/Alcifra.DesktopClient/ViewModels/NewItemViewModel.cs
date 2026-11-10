@@ -61,11 +61,8 @@ public sealed partial class NewItemViewModel : ObservableObject
         foreach (var field in definition)
         {
             var editor = MaskFieldEditViewModel.Create(field, []);
-            // What the field completes from (#1127), as in the detail pane: absent when the server offered no values rel.
-            if (editor.ValuesHref is { } valuesHref)
-            {
-                editor.SuggestionSource = async (typed, token) => await api.Masks.FieldValuesAsync(valuesHref, typed, token);
-            }
+            // What the field completes from (#1127, core #2288), as in the detail pane: absent when the server offered neither rel.
+            FieldCompletionWiring.Wire(editor, api);
 
             // A reference field naming the masks it accepts is picked (#2214); a picked file is filed in the folder the new
             // item is created in, which is the entry's own create address.

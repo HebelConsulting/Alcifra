@@ -138,6 +138,9 @@ public sealed class EditField
     /// <remarks>Absent means "no suggestions here" — the editor stays a plain text box (ADR 0543).</remarks>
     public string? ValuesHref { get; init; }
 
+    /// <summary>Where an active module's vocabulary for this field answers (core #2288); null for the ordinary field.</summary>
+    public string? VocabularyHref { get; init; }
+
     // ---- A reference field's picker (#2214, ADR 1068): the desktop's MaskFieldEditViewModel is its twin ----
 
     /// <summary>The address of the picker's candidates, where the field names the masks it accepts.</summary>
@@ -218,6 +221,7 @@ public sealed class EditField
             Locked = Alcifra.Presentation.IndexFieldEdit.IsLocked(f.RequiresMailRouting, mayRouteMail, f.ClassifierOwned),
             // Followed, never composed (ADR 0543): absent means the server offers nothing to complete from.
             ValuesHref = Hypermedia.Links.Href(f.Links, "values"),
+            VocabularyHref = Hypermedia.Links.Href(f.Links, "vocabulary"),
             TargetsHref = Hypermedia.Links.Href(f.Links, "targets"),
             AcceptedMasks = f.AcceptedMasks,
         };

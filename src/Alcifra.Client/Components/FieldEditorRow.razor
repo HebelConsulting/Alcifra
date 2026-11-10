@@ -99,6 +99,21 @@
             <MudText Typo="Typo.caption" Color="Color.Error">@problem</MudText>
         }
     }
+    else if (Field.VocabularyHref is { } vocabularyHref && !Field.IsMultiLine)
+    {
+        @* A module's vocabulary for this field (core #2288): each code offered with what it names, and the stored code's
+           name beneath the box. Completion only — CoerceValue keeps any typed value, as the filed values do. *@
+        <div style="flex:1" data-field-vocabulary>
+        <MudAutocomplete T="string" Value="@Field.TextValue" ValueChanged="@VocabularyValueChangedAsync"
+                         SearchFunc="@((string? typed, CancellationToken token) => SearchVocabularyAsync(vocabularyHref, typed, token))"
+                         CoerceValue="true" ResetValueOnEmptyText="false" MaxItems="20" HelperText="@_valueLabel"
+                         Margin="Margin.Dense" Variant="Variant.Outlined">
+            <ItemTemplate Context="offered">
+                @offered <span class="mud-text-secondary" style="margin-left:8px">@_labels.GetValueOrDefault(offered)</span>
+            </ItemTemplate>
+        </MudAutocomplete>
+        </div>
+    }
     else if (Field.ValuesHref is { } valuesHref && Suggest is { } suggest)
     {
         @* A field the server offers values for completes as you type (#1127): an aerodrome,
@@ -118,8 +133,50 @@
 </div>
 
 @inject Alcifra.Client.Services.ReferencePicker Picker
+@inject Alcifra.Client.Services.FieldVocabulary Vocabulary
 
 @code {
+    // A vocabulary field's labels (core #2288): what each offered code names, and what the stored one does.
+    private readonly Dictionary<string, string> _labels = new(StringComparer.OrdinalIgnoreCase);
+    private string? _valueLabel;
+    private EditField? _labelledField;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ReferenceEquals(_labelledField, Field) && Field.VocabularyHref is { } vocabularyHref)
+        {
+            _labelledField = Field;
+            _valueLabel = await Vocabulary.LabelAsync(vocabularyHref, Field.TextValue);
+        }
+    }
+
+    // The vocabulary first, then what was filed that it does not hold: completion never validates, so a value typed freely
+    // last month is still worth offering.
+    private async Task<IEnumerable<string>> SearchVocabularyAsync(string vocabularyHref, string? typed, CancellationToken token)
+    {
+        var items = await Vocabulary.SearchAsync(vocabularyHref, typed, token);
+        foreach (var item in items)
+        {
+            _labels[item.Value] = item.Label;
+        }
+
+        var offered = items.Select(i => i.Value).ToList();
+        if (Field.ValuesHref is { } valuesHref && Suggest is { } suggest)
+        {
+            offered.AddRange((await suggest(valuesHref, typed, token)).Where(v => !offered.Contains(v, StringComparer.OrdinalIgnoreCase)));
+        }
+
+        return offered;
+    }
+
+    private async Task VocabularyValueChangedAsync(string? value)
+    {
+        Field.TextValue = value ?? string.Empty;
+        _valueLabel = _labels.TryGetValue(Field.TextValue, out var known)
+            ? known
+            : Field.VocabularyHref is { } vocabularyHref ? await Vocabulary.LabelAsync(vocabularyHref, Field.TextValue) : null;
+    }
+
     // "From a file" (#2214): filed as the field's one accepted mask in the item's folder, and picked. A taken name or a
     // refusal is said beside the field, which keeps what it held.
     private async Task FromFileAsync(IBrowserFile? file)
