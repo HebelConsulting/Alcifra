@@ -30,6 +30,8 @@ on:
     tags: ["v*"]
   # The SIGNING DRY-RUN (ADR 0896): builds, signs, notarizes and staples the .dmgs and uploads them as workflow
   # artifacts — no release, no win/linux. How a signing change is proven before a tag depends on it.
+  # Dispatched ON A v* TAG (`--ref vX.Y.Z`) it is the release itself, as the tag's push would have run it: a repository
+  # whose push events start no workflow (Alcifra Bund, 2026-11-10) is released this way. `inputs.version` is then unused.
   workflow_dispatch:
     inputs:
       version:
@@ -77,7 +79,7 @@ jobs:
           global-json-file: global.json
 
       - name: Package win-x64 + linux-x64
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: scripts/package-windows-linux.sh "${GITHUB_REF_NAME#v}"
 
       # The Developer ID certificate goes into a THROWAWAY keychain that dies with the runner: never the login
@@ -117,7 +119,7 @@ jobs:
       - name: Package macOS .dmg (arm64 + x64), AD-HOC signed (notarization postponed, ADR 0905)
         if: ${{ env.NOTARIZATION_POSTPONED == 'true' }}
         env:
-          VERSION: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+          VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
         run: scripts/package-macos-dmg.sh "${VERSION#v}"
 
       - name: Package macOS .dmg (arm64 + x64), signed and notarized
@@ -128,11 +130,11 @@ jobs:
           NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
           NOTARY_APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          VERSION: ${{ github.event_name == 'push' && github.ref_name || inputs.version }}
+          VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
         run: scripts/package-macos-dmg.sh "${VERSION#v}"
 
       - name: Keep the dry-run's .dmgs as workflow artifacts
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: signed-dmgs-${{ inputs.version }}
@@ -143,7 +145,7 @@ jobs:
       # success, which is the shape that let three releases ship without their .dmgs. An unexpanded name here
       # fails the step instead.
       - name: Attach every package to the release
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -189,7 +191,7 @@ jobs:
   # — a red verify that looked exactly like the missing-asset verdict it exists to give.
   verify:
     timeout-minutes: 10
-    if: ${{ needs.gate.outputs.publishes == 'true' && github.event_name == 'push' }}
+    if: ${{ needs.gate.outputs.publishes == 'true' && startsWith(github.ref, 'refs/tags/v') }}
     needs: [gate, packages]
     runs-on: ubuntu-latest
     permissions:

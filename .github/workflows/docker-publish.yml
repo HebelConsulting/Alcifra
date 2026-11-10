@@ -13,6 +13,9 @@ name: Docker image (GHCR)
 on:
   push:
     tags: ["v*"]
+  # Dispatched on a v* tag (`--ref vX.Y.Z`), the same run as the tag's push: a repository whose push events start no
+  # workflow (Alcifra Bund, 2026-11-10) is released this way. Dispatched on a branch, the publish job does not run.
+  workflow_dispatch:
 
 concurrency:
   group: docker-publish-${{ github.ref }}
@@ -36,7 +39,8 @@ jobs:
   publish:
     timeout-minutes: 60
     needs: gate
-    if: ${{ needs.gate.outputs.publishes == 'true' }}
+    # A release tag only: dispatched on a branch, nothing is published.
+    if: ${{ needs.gate.outputs.publishes == 'true' && startsWith(github.ref, 'refs/tags/v') }}
     # A private repository's hosted runner could not finish the edition's image (ADR 1056); its builds run on the Mac.
     runs-on: ${{ needs.gate.outputs.white_label == 'true' && fromJSON('["self-hosted", "simplarchive-mac"]') || 'ubuntu-latest' }}
     permissions:
