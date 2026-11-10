@@ -71,6 +71,29 @@ public partial class TitleBar : UserControl
         }
     });
 
+    // Inspect a file… (#2291): a sealed file on this computer, read here and never uploaded; MainWindow is on the debt list,
+    // so the dialog is opened from here as the key test is.
+    private void OnInspectFile(object? sender, RoutedEventArgs e) => Services.Safe.Fire(async () =>
+    {
+        if (Window() is not { } window || DataContext is not ViewModels.MainWindowViewModel vm
+            || (await window.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions { AllowMultiple = false })) is not [var picked])
+        {
+            return;
+        }
+
+        byte[] bytes;
+        await using (var stream = await picked.OpenReadAsync())
+        using (var buffer = new MemoryStream())
+        {
+            await stream.CopyToAsync(buffer);
+            bytes = buffer.ToArray();
+        }
+
+        var inspection = await vm.InspectFileAsync(bytes);
+        var title = string.Format(System.Globalization.CultureInfo.CurrentCulture, Alcifra.Localization.Strings.Get("SealTitle"), picked.Name);
+        await new SealInspectionDialog(inspection, title, picked.Name).ShowDialog<bool>(window);
+    });
+
     // Null in the headless screenshot renders, which host panes without a window — so every forwarder tolerates
     // it rather than throwing where nothing could have been clicked anyway.
     private MainWindow? Window() => TopLevel.GetTopLevel(this) as MainWindow;

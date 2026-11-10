@@ -7419,4 +7419,37 @@
   <data name="SealLoadFailed" xml:space="preserve">
     <value>The seal could not be inspected.</value>
   </data>
+  <data name="SealInspectFile" xml:space="preserve">
+    <value>Inspect a file…</value>
+  </data>
+  <data name="SealTryMine" xml:space="preserve">
+    <value>Which of my keys opens it?</value>
+  </data>
+  <data name="SealTryFile" xml:space="preserve">
+    <value>Try a key file…</value>
+  </data>
+  <data name="SealTryBusy" xml:space="preserve">
+    <value>Trying your keys…</value>
+  </data>
+  <data name="SealTryOpened" xml:space="preserve">
+    <value>Opened with {0}. The content was discarded at once.</value>
+  </data>
+  <data name="SealTryNotAddressed" xml:space="preserve">
+    <value>It is not sealed to {0}.</value>
+  </data>
+  <data name="SealTryKeyFailed" xml:space="preserve">
+    <value>It names {0}, and that key still did not open it.</value>
+  </data>
+  <data name="SealTryCardNotRecipient" xml:space="preserve">
+    <value>The hardware key in the reader ({0}) is not one it is sealed to.</value>
+  </data>
+  <data name="SealTryNoKey" xml:space="preserve">
+    <value>None of your keys on this computer opens it, and no hardware key it is sealed to is in a reader.</value>
+  </data>
+  <data name="SealTryUnreadable" xml:space="preserve">
+    <value>The key file could not be read: {0}</value>
+  </data>
+  <data name="SealKeyPassword" xml:space="preserve">
+    <value>Password for {0}</value>
+  </data>
 </root>

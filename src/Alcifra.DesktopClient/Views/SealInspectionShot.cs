@@ -43,7 +43,7 @@ public static class SealInspectionShot
             app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
         }
 
-        var window = new SealInspectionDialog(new SealInspectionViewModel(Sample(), mayReseal: true), "Seal of Board pack", "Board pack");
+        var window = new SealInspectionDialog(new SealInspectionViewModel(Sample(), mayReseal: true, SealKeyTrier.Of([])), "Seal of Board pack", "Board pack");
         window.Show();
         Dispatcher.UIThread.RunJobs();
         window.UpdateLayout();

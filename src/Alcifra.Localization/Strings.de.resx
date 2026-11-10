@@ -7419,4 +7419,37 @@
   <data name="SealLoadFailed" xml:space="preserve">
     <value>Die Versiegelung konnte nicht geprüft werden.</value>
   </data>
+  <data name="SealInspectFile" xml:space="preserve">
+    <value>Datei prüfen…</value>
+  </data>
+  <data name="SealTryMine" xml:space="preserve">
+    <value>Welcher meiner Schlüssel öffnet es?</value>
+  </data>
+  <data name="SealTryFile" xml:space="preserve">
+    <value>Schlüsseldatei versuchen…</value>
+  </data>
+  <data name="SealTryBusy" xml:space="preserve">
+    <value>Ihre Schlüssel werden versucht…</value>
+  </data>
+  <data name="SealTryOpened" xml:space="preserve">
+    <value>Mit {0} geöffnet. Der Inhalt wurde sofort verworfen.</value>
+  </data>
+  <data name="SealTryNotAddressed" xml:space="preserve">
+    <value>Es ist nicht für {0} versiegelt.</value>
+  </data>
+  <data name="SealTryKeyFailed" xml:space="preserve">
+    <value>Es nennt {0}, und dieser Schlüssel hat es trotzdem nicht geöffnet.</value>
+  </data>
+  <data name="SealTryCardNotRecipient" xml:space="preserve">
+    <value>Der Hardware-Schlüssel im Lesegerät ({0}) ist keiner, für den es versiegelt ist.</value>
+  </data>
+  <data name="SealTryNoKey" xml:space="preserve">
+    <value>Keiner Ihrer Schlüssel auf diesem Computer öffnet es, und kein Hardware-Schlüssel, für den es versiegelt ist, steckt in einem Lesegerät.</value>
+  </data>
+  <data name="SealTryUnreadable" xml:space="preserve">
+    <value>Die Schlüsseldatei konnte nicht gelesen werden: {0}</value>
+  </data>
+  <data name="SealKeyPassword" xml:space="preserve">
+    <value>Passwort für {0}</value>
+  </data>
 </root>

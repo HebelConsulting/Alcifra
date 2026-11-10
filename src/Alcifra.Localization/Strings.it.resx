@@ -7419,4 +7419,37 @@
   <data name="SealLoadFailed" xml:space="preserve">
     <value>Non è stato possibile esaminare il sigillo.</value>
   </data>
+  <data name="SealInspectFile" xml:space="preserve">
+    <value>Esamina un file…</value>
+  </data>
+  <data name="SealTryMine" xml:space="preserve">
+    <value>Quale delle mie chiavi lo apre?</value>
+  </data>
+  <data name="SealTryFile" xml:space="preserve">
+    <value>Prova un file di chiave…</value>
+  </data>
+  <data name="SealTryBusy" xml:space="preserve">
+    <value>Prova delle sue chiavi…</value>
+  </data>
+  <data name="SealTryOpened" xml:space="preserve">
+    <value>Aperto con {0}. Il contenuto è stato scartato subito.</value>
+  </data>
+  <data name="SealTryNotAddressed" xml:space="preserve">
+    <value>Non è sigillato per {0}.</value>
+  </data>
+  <data name="SealTryKeyFailed" xml:space="preserve">
+    <value>Nomina {0}, ma quella chiave non l'ha aperto.</value>
+  </data>
+  <data name="SealTryCardNotRecipient" xml:space="preserve">
+    <value>La chiave hardware nel lettore ({0}) non è tra quelle per cui è sigillato.</value>
+  </data>
+  <data name="SealTryNoKey" xml:space="preserve">
+    <value>Nessuna delle sue chiavi su questo computer lo apre, e nessuna chiave hardware per cui è sigillato è in un lettore.</value>
+  </data>
+  <data name="SealTryUnreadable" xml:space="preserve">
+    <value>Non è stato possibile leggere il file di chiave: {0}</value>
+  </data>
+  <data name="SealKeyPassword" xml:space="preserve">
+    <value>Password per {0}</value>
+  </data>
 </root>

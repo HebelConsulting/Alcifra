@@ -43,6 +43,30 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
         return listing.ValueKind == JsonValueKind.Array ? [.. listing.EnumerateArray().Select(Parse)] : [];
     }
 
+    /// <summary>
+    /// The installation's certificates as the caller may see them (an administrator every holder, a user their own), in the
+    /// shape a sealed file's recipients are matched against (#2007, #2291); empty where the installation offers no enrolment.
+    /// </summary>
+    public async Task<IReadOnlyList<Inspection.KnownCertificate>> GetKnownAsync(CancellationToken cancellationToken = default) =>
+        (await core.GetRootLinksAsync(cancellationToken)).TryGetValue("certificates", out var href)
+            ? Known(await core.Http.GetFromJsonAsync<JsonElement>(href, cancellationToken))
+            : [];
+
+    /// <summary>A certificate listing's rows as recipients are matched against them: one parse for the CLI and the desktop.</summary>
+    public static IReadOnlyList<Inspection.KnownCertificate> Known(JsonElement listing)
+    {
+        var items = listing.ValueKind == JsonValueKind.Array ? listing : listing.TryGetProperty("items", out var i) ? i : default;
+        return items.ValueKind != JsonValueKind.Array ? [] : [.. items.EnumerateArray().Select(c =>
+        {
+            string? Text(string name) => c.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+            return new Inspection.KnownCertificate(
+                Text("issuer"), Text("serial"), Text("subjectKeyIdentifier"), Text("label") ?? string.Empty,
+                Text("holderName"), Text("holderEmail"),
+                c.TryGetProperty("revokedAt", out var r) && r.ValueKind == JsonValueKind.String ? r.GetDateTimeOffset() : null,
+                Text("attestation") ?? "notAttested");
+        })];
+    }
+
     /// <summary>The keys at a listing a rel named: a user's <c>certificates</c> in the Users tab (#2278).</summary>
     public async Task<IReadOnlyList<Enrolled>> GetAtAsync(string href, CancellationToken cancellationToken = default)
     {

@@ -194,7 +194,13 @@ public sealed partial class MainWindowViewModel
 
         try
         {
-            return new SealInspectionViewModel(await new Alcifra.ApiClient.Inspection.SealInspectionClient(_api.Core).GetAsync(href), CanChangeAudience);
+            // The keys are tried on the stored envelope, fetched only if a key is actually tried.
+            var api = _api;
+            var versions = DetailHref("versions");
+            var keys = new Services.SealKeyTrier(async cancellationToken =>
+                await ApiCore.ReadSealedAsync((await api.Documents.GetPreviewAsync(versions, cancellationToken)).DownloadUrl
+                    ?? throw new ApiActionException(Strings.Get("SealLoadFailed")), cancellationToken));
+            return new SealInspectionViewModel(await new Alcifra.ApiClient.Inspection.SealInspectionClient(_api.Core).GetAsync(href), CanChangeAudience, keys);
         }
         catch (Exception e) when (e is ApiActionException or HttpRequestException)
         {
@@ -221,5 +227,28 @@ public sealed partial class MainWindowViewModel
 
         Status = Strings.Get("SealResealed");
         return true;
+    }
+
+    /// <summary>
+    /// A sealed file on this computer (#2291): read here, its recipients matched to the installation's certificates the
+    /// caller may see; nothing is uploaded. Offline, or before any certificate is known, they stay unknown recipients.
+    /// </summary>
+    public async Task<SealInspectionViewModel> InspectFileAsync(byte[] bytes)
+    {
+        IReadOnlyList<Alcifra.ApiClient.Inspection.KnownCertificate> known = [];
+        if (_api is not null)
+        {
+            try
+            {
+                known = await new EnrolledCertificatesClient(_api.Core).GetKnownAsync();
+            }
+            catch (Exception e) when (e is HttpRequestException or System.Text.Json.JsonException)
+            {
+                Services.DesktopLog.Debug("The installation's certificates could not be read for an inspection: {Reason}", e.Message);
+            }
+        }
+
+        var report = Alcifra.ApiClient.Inspection.SealReport.Of(Alcifra.ApiClient.Inspection.SealedInspector.Inspect(bytes), known);
+        return new SealInspectionViewModel(report, mayReseal: false, Services.SealKeyTrier.Of(bytes));
     }
 }

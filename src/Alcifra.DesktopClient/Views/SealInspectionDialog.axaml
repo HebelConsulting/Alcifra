@@ -91,6 +91,17 @@
                     </ItemsControl>
                 </StackPanel>
 
+                <!-- Which of my keys opens it (#2291, as the CLI tries a key): the keys this computer holds and the card, or a
+                     key file; the content is discarded at once. -->
+                <StackPanel IsVisible="{Binding CanTryKeys}" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="TryMineButton" Content="{loc:Tr SealTryMine}" Click="OnTryMine" IsEnabled="{Binding !TryingKeys}" />
+                        <Button Content="{loc:Tr SealTryFile}" Click="OnTryFile" IsEnabled="{Binding !TryingKeys}" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding KeyVerdict}" IsVisible="{Binding KeyOpened}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding KeyVerdict}" IsVisible="{Binding !KeyOpened}" Foreground="{DynamicResource WbMuted}" TextWrapping="Wrap" />
+                </StackPanel>
+
                 <!-- The third level: the CMS structure with offsets and lengths. -->
                 <Expander Header="{loc:Tr SealAsn1}" IsVisible="{Binding HasAsn1}" HorizontalAlignment="Stretch">
                     <SelectableTextBlock Text="{Binding Asn1}" FontFamily="monospace" FontSize="12" />

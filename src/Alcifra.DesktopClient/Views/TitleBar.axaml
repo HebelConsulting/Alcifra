@@ -73,11 +73,17 @@
             </Button.Flyout>
         </Button>
 
-        <!-- Test the hardware key (core #1864, ADR 0955): a global action like Help beside it, since it is about
-             this machine and the key in it rather than about anything in the archive. -->
+        <!-- The tools (core #1864, ADR 0955; #2291): global actions like Help beside them, about this machine and the files
+             and keys on it rather than about anything in the archive — test the hardware key, inspect a sealed file. -->
         <Button ToolTip.Tip="{loc:Tr KtTitle}" Background="Transparent" BorderThickness="0" Padding="4"
-                Click="OnTestHardwareKey" AutomationProperties.AutomationId="key-test">
+                AutomationProperties.AutomationId="key-test">
             <i:Icon Value="mdi-tools" Foreground="{DynamicResource WbMuted}" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Button.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                    <MenuItem Header="{loc:Tr KtTitle}" Click="OnTestHardwareKey" AutomationProperties.AutomationId="tools-key-test" />
+                    <MenuItem Header="{loc:Tr SealInspectFile}" Click="OnInspectFile" AutomationProperties.AutomationId="tools-inspect-file" />
+                </MenuFlyout>
+            </Button.Flyout>
         </Button>
 
         <!-- Help (?) menu (ADR 0504): the user manual + About box, mirroring the web client's Help menu. -->

@@ -7419,4 +7419,37 @@
   <data name="SealLoadFailed" xml:space="preserve">
     <value>No se pudo inspeccionar el sello.</value>
   </data>
+  <data name="SealInspectFile" xml:space="preserve">
+    <value>Inspeccionar un archivo…</value>
+  </data>
+  <data name="SealTryMine" xml:space="preserve">
+    <value>¿Cuál de mis claves lo abre?</value>
+  </data>
+  <data name="SealTryFile" xml:space="preserve">
+    <value>Probar un archivo de clave…</value>
+  </data>
+  <data name="SealTryBusy" xml:space="preserve">
+    <value>Probando sus claves…</value>
+  </data>
+  <data name="SealTryOpened" xml:space="preserve">
+    <value>Abierto con {0}. El contenido se descartó de inmediato.</value>
+  </data>
+  <data name="SealTryNotAddressed" xml:space="preserve">
+    <value>No está sellado para {0}.</value>
+  </data>
+  <data name="SealTryKeyFailed" xml:space="preserve">
+    <value>Nombra {0}, pero esa clave no lo abrió.</value>
+  </data>
+  <data name="SealTryCardNotRecipient" xml:space="preserve">
+    <value>La clave de hardware del lector ({0}) no es una para la que esté sellado.</value>
+  </data>
+  <data name="SealTryNoKey" xml:space="preserve">
+    <value>Ninguna de sus claves en este equipo lo abre, y ninguna clave de hardware para la que esté sellado está en un lector.</value>
+  </data>
+  <data name="SealTryUnreadable" xml:space="preserve">
+    <value>No se pudo leer el archivo de clave: {0}</value>
+  </data>
+  <data name="SealKeyPassword" xml:space="preserve">
+    <value>Contraseña de {0}</value>
+  </data>
 </root>

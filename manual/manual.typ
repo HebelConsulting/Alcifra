@@ -769,6 +769,10 @@ and whether the envelope still matches the audience. Somebody who left the audie
 a member the envelope does not name yet, are listed; in the desktop app a manager re-seals from there, in the browser,
 which holds no key, the desktop or phone app does. Each recipient opens to show how the key reaches it, and the ASN.1
 structure is at the bottom, as `alcifra inspect` prints them.
+In the desktop app, *Which of my keys opens it?* tries the keys on this computer and then your hardware key (asking for
+its PIN as for any document), and *Try a key file…* tries a key you pick; either says which key opened it and discards
+the content at once. *Inspect a file…* in the tools menu beside the help icon shows the same for a sealed file on your
+computer, without uploading it.
 
 *Importing.* The import button reads the CSV file a password manager exports, on your computer: every row becomes an
 entry, sealed here. Only a row whose name and user name match an entry already in the folder is asked about — skip it,
@@ -1690,7 +1694,8 @@ prepared card look broken.
 == Testing the key from the desktop client <keytest>
 
 *Test the hardware key*#idx("Hardware key test") is the tools icon (a screwdriver and a wrench) on the logon window — so it works before
-you sign in — and beside the help icon in the main window's title bar. Insert the key and press *Run the test*.
+you sign in — and the first entry of the tools menu beside the help icon in the main window's title bar. Insert the key
+and press *Run the test*.
 
 It reads the certificate in the key's key-management slot (no PIN), seals a fresh random message to it on your
 computer, asks for the PIN, opens the message with the key and compares. It needs no server, sends nothing anywhere,

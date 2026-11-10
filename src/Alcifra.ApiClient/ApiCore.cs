@@ -161,6 +161,19 @@ public sealed class ApiCore
         return (bytes, contentType, true);
     }
 
+    /// <summary>
+    /// The content AS SERVED, an envelope left sealed: for inspecting a seal and trying which key opens it (#2291), never
+    /// for showing. Resolved and credentialed as <see cref="ReadContentAsync"/> is; only the opening is left out.
+    /// </summary>
+    public static async Task<byte[]> ReadSealedAsync(string url, CancellationToken cancellationToken = default)
+    {
+        var address = ResolveContentUrl(url);
+        var client = IsOwnInstallation(address) && Authenticated is { } authenticated ? authenticated : Anonymous;
+        using var response = await client.GetAsync(address, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
     /// <summary>The bytes alone, for a caller that already knows what it is decoding.</summary>
     public static async Task<byte[]> GetContentBytesAsync(string url, CancellationToken cancellationToken = default) =>
         (await GetContentAsync(url, cancellationToken)).Bytes;

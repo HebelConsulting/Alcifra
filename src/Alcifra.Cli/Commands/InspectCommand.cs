@@ -207,13 +207,8 @@ public static class InspectSurface
             return [];
         }
 
-        var listing = await api.GetAsync(href, cancellationToken);
-        var items = listing.ValueKind == JsonValueKind.Array ? listing : listing.TryGetProperty("items", out var i) ? i : default;
-        return items.ValueKind != JsonValueKind.Array ? [] : [.. items.EnumerateArray().Select(c => new KnownCertificate(
-            Text(c, "issuer"), Text(c, "serial"), Text(c, "subjectKeyIdentifier"), Text(c, "label") ?? string.Empty,
-            Text(c, "holderName"), Text(c, "holderEmail"),
-            c.TryGetProperty("revokedAt", out var r) && r.ValueKind == JsonValueKind.String ? r.GetDateTimeOffset() : null,
-            Text(c, "attestation") ?? "notAttested"))];
+        // One parse of the listing for the CLI and the desktop (#2291).
+        return EnrolledCertificatesClient.Known(await api.GetAsync(href, cancellationToken));
     }
 
     /// <summary>Each recipient with the installation's certificate it names, else a local one.</summary>
@@ -383,35 +378,31 @@ public static class InspectSurface
     /// </summary>
     public static async Task<TryOpenResult> TryOpenAsync(byte[] cms, IReadOnlyList<InspectedRecipient> recipients, string? keyFile, ILogger logger)
     {
+        // The trying itself is shared with the desktop (Alcifra.HardwareKeys.KeyTry, #2291); the prompts and these
+        // sentences are this command's.
         if (keyFile is not null)
         {
             using var key = LoadKey(keyFile, logger);
-            if (!recipients.Any(r => r.Reference.Is(key)))
+            var file = Path.GetFileName(keyFile);
+            return Alcifra.HardwareKeys.KeyTry.WithKey(cms, recipients, key, message => logger.LogDebug("{Reason}", message)).Outcome switch
             {
-                return new TryOpenResult(null, $"it is not addressed to {key.Subject}");
-            }
-
-            return OpensWithSoftwareKey(cms, recipients, key, logger)
-                ? new TryOpenResult($"the key in {Path.GetFileName(keyFile)} ({key.Subject})", null)
-                : new TryOpenResult(null, $"the key in {Path.GetFileName(keyFile)} did not open it");
+                Alcifra.HardwareKeys.KeyTryOutcome.Opened => new TryOpenResult($"the key in {file} ({key.Subject})", null),
+                Alcifra.HardwareKeys.KeyTryOutcome.NotAddressedToKey => new TryOpenResult(null, $"it is not addressed to {key.Subject}"),
+                _ => new TryOpenResult(null, $"the key in {file} did not open it"),
+            };
         }
 
-        var named = recipients.Where(r => r.Reference is { Issuer: not null, Serial: not null })
-            .Select(r => (r.Reference.Issuer!, r.Reference.Serial!)).ToList();
         Alcifra.HardwareKeys.CardSession.PinPrompt = card =>
             Task.FromResult(Alcifra.ConsoleLogging.SecretInput.ReadHidden($"PIN for {card.TokenLabel} ({card.ObjectLabel}):", logger));
         try
         {
-            if (await Alcifra.HardwareKeys.CardEnvelopeOpener.TryOpenRawAsync(cms, named, _ => true) is { } content)
+            var tried = await Alcifra.HardwareKeys.KeyTry.WithCardAsync(cms, recipients, _ => true);
+            return tried.Outcome switch
             {
-                Array.Clear(content);
-                var card = Alcifra.HardwareKeys.CardEnvelopeOpener.LastSeen.FirstOrDefault(c => recipients.Any(r => r.Reference.Is(c)));
-                return new TryOpenResult($"the hardware key's certificate {card?.Subject ?? "(unnamed)"}", null);
-            }
-
-            return new TryOpenResult(null, Alcifra.HardwareKeys.CardEnvelopeOpener.LastSeen.Count == 0
-                ? Alcifra.HardwareKeys.CardEnvelopeOpener.WhatIsMissing()
-                : "the hardware key in the reader is not one it is sealed to");
+                Alcifra.HardwareKeys.KeyTryOutcome.Opened => new TryOpenResult($"the hardware key's certificate {tried.Key ?? "(unnamed)"}", null),
+                Alcifra.HardwareKeys.KeyTryOutcome.NoCard => new TryOpenResult(null, tried.Detail),
+                _ => new TryOpenResult(null, "the hardware key in the reader is not one it is sealed to"),
+            };
         }
         finally
         {
@@ -419,74 +410,18 @@ public static class InspectSurface
         }
     }
 
-    // RSA through the shared S/MIME opener; ECDH through the key-agreement opener the card uses, with the raw shared secret
-    // derived from the key in the file (the mail library's S/MIME context does not open ECDH key agreement). The content
-    // is wiped either way.
-    private static bool OpensWithSoftwareKey(byte[] cms, IReadOnlyList<InspectedRecipient> recipients, X509Certificate2 key, ILogger logger)
-    {
-        if (key.GetECDiffieHellmanPrivateKey() is { } ecdh)
-        {
-            using (ecdh)
-            {
-                var index = recipients.ToList().FindIndex(r => r.Reference.Is(key));
-                try
-                {
-                    var content = Alcifra.HardwareKeys.CardEnvelopeOpener.OpenWithAgreement(cms, point => Agree(ecdh, point), index);
-                    Array.Clear(content);
-                    return true;
-                }
-                catch (Exception e) when (e is System.Security.Cryptography.CryptographicException or EnvelopeNotOpenedException or ArgumentException)
-                {
-                    logger.LogDebug("The ECDH key of {Subject} did not open it: {Reason}", key.Subject, e.Message);
-                    return false;
-                }
-            }
-        }
-
-        if (SoftwareKeyEnvelope.TryOpenRaw(cms, [key],
-                (certificate, e) => logger.LogDebug("The key of {Subject} could not be used: {Reason}", certificate.Subject, e.Message)) is { } decrypted)
-        {
-            Array.Clear(decrypted);
-            return true;
-        }
-
-        return false;
-    }
-
-    // The RAW agreement (the unhashed Z the X9.63 KDF consumes), with the sender's ephemeral point.
-    private static byte[] Agree(System.Security.Cryptography.ECDiffieHellman key, byte[] uncompressedPoint)
-    {
-        var half = (uncompressedPoint.Length - 1) / 2;
-        using var originator = System.Security.Cryptography.ECDiffieHellman.Create(new System.Security.Cryptography.ECParameters
-        {
-            Curve = key.ExportParameters(false).Curve,
-            Q = new System.Security.Cryptography.ECPoint { X = uncompressedPoint[1..(1 + half)], Y = uncompressedPoint[(1 + half)..] },
-        });
-        return key.DeriveRawSecretAgreement(originator.PublicKey);
-    }
-
-    // A PEM file holding the certificate and its private key, or a PKCS#12 file (its password asked, never logged).
+    // A PEM file holding the certificate and its private key, or a PKCS#12 file (its password asked, never logged); the
+    // loading is shared with the desktop (KeyTry.LoadKeyFile, #2291).
     internal static X509Certificate2 LoadKey(string path, ILogger logger)
     {
         var bytes = System.IO.File.ReadAllBytes(path);
-        var text = Encoding.ASCII.GetString(bytes);
-        if (text.Contains("-----BEGIN CERTIFICATE-----", StringComparison.Ordinal) && text.Contains("PRIVATE KEY-----", StringComparison.Ordinal))
-        {
-            // A key read from PEM is ephemeral, and the S/MIME context imports it by exporting it: re-loaded as exportable.
-            using var ephemeral = X509Certificate2.CreateFromPem(text, text);
-            return X509CertificateLoader.LoadPkcs12(ephemeral.Export(X509ContentType.Pkcs12), null, X509KeyStorageFlags.Exportable);
-        }
-
         try
         {
-            return X509CertificateLoader.LoadPkcs12(bytes, null);
+            return Alcifra.HardwareKeys.KeyTry.LoadKeyFile(bytes, null);
         }
         catch (System.Security.Cryptography.CryptographicException)
         {
-            return X509CertificateLoader.LoadPkcs12(bytes, Alcifra.ConsoleLogging.SecretInput.ReadHidden($"Password for {Path.GetFileName(path)}:", logger));
+            return Alcifra.HardwareKeys.KeyTry.LoadKeyFile(bytes, Alcifra.ConsoleLogging.SecretInput.ReadHidden($"Password for {Path.GetFileName(path)}:", logger));
         }
     }
-
-    private static string? Text(JsonElement json, string name) =>
-        json.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 }

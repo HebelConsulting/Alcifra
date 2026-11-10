@@ -775,6 +775,10 @@ nicht bestätigt ist, und ob der Umschlag noch zum Empfängerkreis passt. Wer de
 und wen der Umschlag noch nicht nennt, wird aufgeführt; in der Desktop-App versiegelt ein Verwalter dort neu, im Browser, der keinen Schlüssel hat,
 tut es die Desktop- oder Telefon-App. Jeder Empfänger klappt auf und zeigt, wie der Schlüssel ihn erreicht, und unten steht die ASN.1-Struktur,
 wie `alcifra inspect` sie ausgibt.
+In der Desktop-App versucht *Welcher meiner Schlüssel öffnet es?* die Schlüssel auf diesem Computer und danach Ihren
+Hardware-Schlüssel (mit PIN-Abfrage wie bei jedem Dokument), und *Schlüsseldatei versuchen…* einen Schlüssel, den Sie
+auswählen; beide sagen, welcher Schlüssel es geöffnet hat, und verwerfen den Inhalt sofort. *Datei prüfen…* im
+Werkzeugmenü neben dem Hilfesymbol zeigt dasselbe für eine versiegelte Datei auf Ihrem Computer, ohne sie hochzuladen.
 
 *Importieren.* Die Import-Schaltfläche liest auf Ihrem Computer die CSV-Datei, die ein Passwortmanager exportiert: Jede Zeile wird zu einem
 Eintrag, hier versiegelt. Nachgefragt wird nur bei einer Zeile, deren Name und Benutzername zu einem Eintrag passen, der schon im Ordner liegt – überspringen,
@@ -1760,8 +1764,8 @@ diesen Schritt auslässt, lässt eine korrekt vorbereitete Karte defekt erschein
 == Den Schlüssel im Desktop-Client testen <keytest>
 
 *Hardware-Schlüssel testen*#idx("Hardware-Schlüssel-Test") ist das Werkzeugsymbol (ein Schraubenzieher und ein
-Schraubenschlüssel) im Anmeldefenster — es funktioniert also schon vor der Anmeldung — und neben dem Hilfesymbol
-in der Titelleiste des Hauptfensters. Stecken Sie den Schlüssel ein und drücken Sie *Test starten*.
+Schraubenschlüssel) im Anmeldefenster — es funktioniert also schon vor der Anmeldung — und der erste Eintrag im
+Werkzeugmenü neben dem Hilfesymbol in der Titelleiste des Hauptfensters. Stecken Sie den Schlüssel ein und drücken Sie *Test starten*.
 
 Der Test liest das Zertifikat im Key-Management-Slot des Schlüssels (ohne PIN), versiegelt auf Ihrem Computer eine
 frische Zufallsnachricht dafür, fragt nach der PIN, öffnet die Nachricht mit dem Schlüssel und vergleicht. Er
