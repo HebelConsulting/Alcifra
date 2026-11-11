@@ -484,7 +484,7 @@ modules:
     TUBE:
       package: Alcifra.Tube
       version: 0.6.0
-      sha512: +0WTNWZLaLmqWJW2/YMj7QXomrXFmlxj/RaDV/x18NQLz/C6UP/1pvWnuIMa4wfBZyOT1xh68qlJd4KQ6NwwCw==
+      sha512: bp4/R+YiCeqm130cqrUZFPFjDOX5yCWnUPxVUYXus1dwrRaryEj06av8K/H70UZJ4U5KYhkl5Yr5ncqxhZaIiw==
       source: nuget.org
 
   # Plain alpine: a .nupkg is a zip, so the installer needs no NuGet tooling and no SDK image.
