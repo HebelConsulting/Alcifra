@@ -477,8 +477,8 @@ modules:
     # Open source, no licence: from nuget.org, anonymously (ADR 0948).
     MESSENGER:
       package: Alcifra.Messenger
-      version: 0.10.0
-      sha512: yvy6vMm9IF5rcpIt8qPO8w4dDCSUFsEz4dPvX1fTaBXEvPMo1xWl4PoTQiNavk5V37Ra9QD6Yfa2Xj3v3+f88Q==
+      version: 0.10.1
+      sha512: rnADtGU1jkFGd7gi8Wa1z/F+Lx8cOiJ+36O8J7Ao+behRcKyNAabct4gP8UkNgSm8aiUwJK7ziCuBLog3VFF6g==
       source: nuget.org
     # The tube module, open source and free like the Messenger: from nuget.org (needs core v0.57.2, ABI 1.28).
     TUBE:
