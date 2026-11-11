@@ -72,11 +72,12 @@ public partial class CertificateEnrolmentTests
             await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Phone key", holder = rig.MemberEmail });
             await RevokeAsync(rig.Member, (await TestJson.Get(rig.Member, certificates)).EnumerateArray().Single());   // by its holder
 
-            // Its holder gets it again: the revoked entry stays, the new one is usable.
-            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Phone key, again", holder = rig.MemberEmail });
+            // Its holder gets it again, under the SAME label a phone proposes (a Pixel's re-enrolment failed on the document's
+            // name, 2026-11-11): the revoked entry stays, the new one is usable.
+            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Phone key", holder = rig.MemberEmail });
             var both = (await TestJson.Get(rig.Admin, forMember)).EnumerateArray().ToList();
             Assert.Equal(2, both.Count);
-            Assert.Single(both, k => k.GetProperty("usable").GetBoolean() && k.GetProperty("label").GetString() == "Phone key, again");
+            Assert.Single(both, k => k.GetProperty("usable").GetBoolean() && k.GetProperty("label").GetString() == "Phone key");
             Assert.Single(both, k => k.GetProperty("revokedAt").ValueKind == JsonValueKind.String);
 
             // While that enrolment stands, nobody else may hold the certificate.
@@ -88,8 +89,8 @@ public partial class CertificateEnrolmentTests
 
             // Revoked again, it goes to somebody else, as on a phone whose other profile enrols the same key.
             await RevokeAsync(rig.Member, (await TestJson.Get(rig.Member, certificates)).EnumerateArray().Single(k => k.GetProperty("usable").GetBoolean()));
-            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Admin's now" });
-            Assert.Equal("Admin's now", (await TestJson.Get(rig.Admin, certificates)).EnumerateArray().Single().GetProperty("label").GetString());
+            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Phone key" });   // the same name a third time
+            Assert.Equal("Phone key", (await TestJson.Get(rig.Admin, certificates)).EnumerateArray().Single().GetProperty("label").GetString());
         }
         finally
         {

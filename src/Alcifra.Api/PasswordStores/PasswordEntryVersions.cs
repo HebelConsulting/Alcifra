@@ -172,8 +172,22 @@ public sealed class PasswordEntryVersions(
 
     /// <summary>Applies the history rules to one entry now, after its new version committed (ADR 0964).</summary>
     /// <remarks>Resolved per call: the history needs the reader set, whose services this class must not construct.</remarks>
-    public Task ReconcileHistoryAsync(Guid entryId, CancellationToken cancellationToken) =>
-        services.GetRequiredService<PasswordEntryHistory>().ReconcileAsync(entryId, DateTimeOffset.UtcNow, null, cancellationToken);
+    /// <remarks>
+    /// Housekeeping, never the upload's verdict: the history rules mark an entry exposed or delete what came before, and a
+    /// clash with another writer is for their next pass (the sweep runs them again). It failed a phone's new entry with a
+    /// 500, leaving an empty entry holding the name (2026-11-11).
+    /// </remarks>
+    public async Task ReconcileHistoryAsync(Guid entryId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await services.GetRequiredService<PasswordEntryHistory>().ReconcileAsync(entryId, DateTimeOffset.UtcNow, null, cancellationToken);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException e)
+        {
+            logger.LogWarning(e, "The history rules of password entry {DocumentId} met another writer; the next pass applies them", entryId);
+        }
+    }
 
     private async Task<bool> IsEnvelopeAsync(string objectKey, CancellationToken cancellationToken)
     {

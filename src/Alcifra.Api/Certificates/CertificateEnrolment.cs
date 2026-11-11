@@ -458,7 +458,8 @@ public sealed class CertificateEnrolment(
         {
             var folder = await ReaderCertificateFolder.FindOrCreateAsync(dbContext, TenantId, creator, cancellationToken)
                 ?? throw new CertificateFolderNotConfiguredException();
-            document = await FileAsync(folder.Id, WellKnownMaskIds.Certificate, $"{fields["Label"]} ({thumbprint[..16]})",
+            document = await FileAsync(folder.Id, WellKnownMaskIds.Certificate,
+                await FreeNameAsync(folder.Id, $"{fields["Label"]} ({thumbprint[..16]})", cancellationToken),
                 Encoding.UTF8.GetBytes(certificatePem), ".pem", "application/x-pem-file", creator, cancellationToken);
             // The evidence in the same save as the fields, so the projection that save triggers derives the root from it.
             if (evidence is not null)
@@ -566,6 +567,23 @@ public sealed class CertificateEnrolment(
             .Where(d => dbContext.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.CertificatePolicy))
             .OrderBy(d => d.Id)
             .FirstOrDefaultAsync(cancellationToken);
+
+    // A certificate enrolled again beside its revoked entry (#2317) would take that entry's name, which its folder refuses
+    // (a Pixel's re-enrolment of a 5Ci failed with a 500, 2026-11-11): the new document gets the day, and a number when even
+    // that is taken. The label field keeps what was given.
+    private async Task<string> FreeNameAsync(Guid folderId, string name, CancellationToken cancellationToken)
+    {
+        var taken = await dbContext.Documents.Where(d => d.ParentId == folderId && d.Name.StartsWith(name))
+            .Select(d => d.Name).ToListAsync(cancellationToken);
+        if (!taken.Contains(name, StringComparer.OrdinalIgnoreCase))
+        {
+            return name;
+        }
+
+        var dated = $"{name}, {DateTimeOffset.UtcNow:yyyy-MM-dd}";
+        return Enumerable.Range(1, int.MaxValue).Select(n => n == 1 ? dated : $"{dated} ({n})")
+            .First(candidate => !taken.Contains(candidate, StringComparer.OrdinalIgnoreCase));
+    }
 
     private async Task<Document> FileAsync(
         Guid folderId, Guid maskId, string name, byte[] bytes, string extension, string contentType,

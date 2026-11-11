@@ -441,6 +441,34 @@ public sealed partial class PasswordStoreTests
         return 0;
     });
 
+    // #2317: a key revoked and then enrolled again is valid. A new entry sealed to it was marked exposed on finalize, which
+    // failed the save with a 500 and left an empty entry holding the name (a Pixel, 2026-11-11).
+    [Fact]
+    public Task A_key_revoked_and_enrolled_again_seals_a_new_entry_that_is_not_exposed() => WithEnrolmentAsync(async rig =>
+    {
+        var client = rig.Anna.Client;
+        var store = await SharedStoreAsync(rig);
+        string pem;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
+            var row = await db.EnrolledCertificates.IgnoreQueryFilters().SingleAsync(c => c.UserId == rig.Anna.Id);
+            row.RevokedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            pem = row.CertificatePem;
+        }
+
+        // The same certificate, enrolled again by its holder beside the revoked entry, under the same label.
+        await TestJson.Post(rig.Anna.Http, "/api/certificates", new { certificatePem = pem, label = "Anna's key" });
+
+        var entry = await client.CreateEntryAsync(store, "After re-enrolment", PasswordEntryContent.Of("v1", "ops"));
+        Assert.Null(entry.ExposedSince);
+        var folder = await client.GetFolderAsync(store.Links.Href("self")!);
+        Assert.False(folder.UrgentReseal);
+        Assert.Equal("v1", (await client.OpenAsync(entry)).Content.Password);
+        return 0;
+    });
+
     [Fact]
     public Task A_tenant_administrator_is_sealed_to_only_once_granted_read_and_added_to_the_audience() => WithEnrolmentAsync(async rig =>
     {

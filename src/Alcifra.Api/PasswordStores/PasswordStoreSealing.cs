@@ -114,7 +114,11 @@ public sealed class PasswordStoreSealing(
         return new PasswordStoreSealState(stale, urgent);
     }
 
-    /// <summary>The tenant's revoked certificates (a revocation is a state on the registry row, never a deletion).</summary>
+    /// <summary>
+    /// The tenant's revoked certificates (a revocation is a state on the registry row, never a deletion), less any enrolled
+    /// again (#2317): a certificate revoked and then enrolled anew is valid, and an entry sealed to it is not exposed. A new
+    /// entry on a Pixel was marked exposed for its holder's own re-enrolled 5Ci, and its save failed (2026-11-11).
+    /// </summary>
     public async Task<IReadOnlyList<RevokedCertificate>> RevokedAsync(CancellationToken cancellationToken)
     {
         if (_revoked is not null)
@@ -123,7 +127,8 @@ public sealed class PasswordStoreSealing(
         }
 
         var rows = await dbContext.EnrolledCertificates.AsNoTracking()
-            .Where(c => c.RevokedAt != null)
+            .Where(c => c.RevokedAt != null
+                && !dbContext.EnrolledCertificates.Any(again => again.Thumbprint == c.Thumbprint && again.RevokedAt == null))
             .Select(c => new { c.CertificatePem, c.RevokedAt })
             .ToListAsync(cancellationToken);
         _revoked = [.. rows.Select(r => new RevokedCertificate(X509Certificate2.CreateFromPem(r.CertificatePem), r.RevokedAt!.Value))];
