@@ -117,6 +117,37 @@ public class DesktopSealedPreviewTests : IDisposable
         Assert.Equal(Strings.Get("PvEnrolledKeysUnknownHint"), preview.SealedSubline);
     }
 
+    // #2312: opened in its application or offered to Save as, a decrypted sealed document is named after what it is, the
+    // name sealed with it, never the stored ".p7m".
+    [Fact]
+    public async Task A_decrypted_sealed_document_is_written_out_under_its_sealed_name()
+    {
+        var reader = NewCertificate();
+        Serving(Alcifra.ApiClient.SealedDocument.Seal("%PDF-1.7"u8.ToArray(), "application/pdf",
+            [X509CertificateLoader.LoadCertificate(reader.RawData)], "contract.pdf"));
+        NoKeys();
+        EnvelopeOpener.Keys = () => [reader];
+        Enrolled(("Office key", reader));
+        var url = $"{Installation}/api/documents/d/versions/v/enveloped-content";
+        var temp = NativeFileOpener.TempDirectoryOverride;
+        NativeFileOpener.TempDirectoryOverride = Directory.CreateTempSubdirectory("sealed-out-").FullName;
+        try
+        {
+            var path = await NativeFileOpener.DownloadToTempAsync(url, "Name hidden.p7m");
+            Assert.Equal("contract.pdf", Path.GetFileName(path));
+            Assert.Equal("%PDF-1.7"u8.ToArray(), await File.ReadAllBytesAsync(path));
+
+            var (suggested, bytes) = await SavedFileName.SuggestAsync(url, "Name hidden.p7m");
+            Assert.Equal("contract.pdf", suggested);
+            Assert.Equal("%PDF-1.7"u8.ToArray(), bytes);
+        }
+        finally
+        {
+            Directory.Delete(NativeFileOpener.TempDirectoryOverride, recursive: true);
+            NativeFileOpener.TempDirectoryOverride = temp;
+        }
+    }
+
     [Fact]
     public async Task A_cancelled_PIN_prompt_shows_the_sealed_state_with_its_action_not_an_error()
     {

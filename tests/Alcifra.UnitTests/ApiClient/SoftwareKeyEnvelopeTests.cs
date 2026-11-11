@@ -23,6 +23,28 @@ public class SoftwareKeyEnvelopeTests
         Assert.Null(Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpenRaw(Sealed(), [Stranger]));
     }
 
+    // #2312: a decrypted sealed document was written out as ".p7m". The name sealed with it comes out with the content, and
+    // the file is named after what it decrypted to.
+    [Fact]
+    public void The_file_name_sealed_with_a_document_comes_out_with_it()
+    {
+        var named = Alcifra.ApiClient.SealedDocument.Seal("%PDF"u8.ToArray(), "application/pdf", [PublicOnly(Anna)], "contract.pdf");
+
+        var opened = Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpenNamed(new ApplicationPkcs7Mime(SecureMimeType.EnvelopedData, new MemoryStream(named)), [Anna])!.Value;
+
+        Assert.Equal(("application/pdf", "contract.pdf"), (opened.ContentType, opened.FileName));
+        Assert.Null(Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpenNamed(new ApplicationPkcs7Mime(SecureMimeType.EnvelopedData, new MemoryStream(Sealed())), [Anna])!.Value.FileName);
+    }
+
+    [Theory]
+    [InlineData("Board pack.p7m", "contract.pdf", "application/pdf", "contract.pdf")]      // the sealed name, a hidden one too
+    [InlineData("Board pack.p7m", null, "application/pdf", "Board pack.pdf")]             // none sealed: the type names it
+    [InlineData("Board pack.p7m", "Board pack", "application/pdf", "Board pack.pdf")]     // a re-seal carries the bare name
+    [InlineData("Board pack v2.p7m", null, "application/x-unknown", "Board pack v2")]     // an unknown type: no extension, never .p7m
+    [InlineData("scan.tif", "scan.tif", "image/tiff", "scan.tif")]                        // a strict tenant's own envelope
+    public void A_decrypted_document_is_named_after_what_it_is(string filedAs, string? sealedName, string contentType, string expected) =>
+        Assert.Equal(expected, Alcifra.ApiClient.SealedDocument.OpenedFileName(filedAs, sealedName, contentType));
+
     [Theory]
     [InlineData("rsa")]
     [InlineData("ecdh")]

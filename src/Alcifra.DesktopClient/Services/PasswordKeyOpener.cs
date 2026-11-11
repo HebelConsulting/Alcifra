@@ -20,7 +20,7 @@ internal sealed class PasswordKeyOpener : IEnvelopeOpener
     public static readonly PasswordKeyOpener Instance = new();
 
     /// <summary>The openers tried, in order: the card alone. Replaced in tests by a key held in memory.</summary>
-    internal static IReadOnlyList<EnvelopeOpener.Opener> Openers { get; set; } = [CardEnvelopeOpener.TryOpen];
+    internal static IReadOnlyList<EnvelopeOpener.Opener> Openers { get; set; } = [CardEnvelopeOpener.TryOpenNamed];
 
     /// <summary>The certificates of the keys at hand — the cards the last read saw; replaced in tests.</summary>
     internal static Func<IReadOnlyList<System.Security.Cryptography.X509Certificates.X509Certificate2>> Present { get; set; } = () => CardEnvelopeOpener.LastSeen;
@@ -48,7 +48,7 @@ internal sealed class PasswordKeyOpener : IEnvelopeOpener
         {
             if (await opener(enveloped, recipients, Admitted) is { } opened)
             {
-                return opened;
+                return (opened.Bytes, opened.ContentType);
             }
         }
 

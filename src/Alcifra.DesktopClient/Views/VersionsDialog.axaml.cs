@@ -35,9 +35,9 @@ public partial class VersionsDialog : Window
             return;
         }
 
-        var bytes = await api.Versions.DownloadVersionBytesAsync(url);
-        var fileName = MainWindowViewModel.WithExtension($"{vm.DocumentName} v{row.VersionNumber}", row.FileExtension);
-        await NativeFileOpener.OpenBytesAsync(bytes, fileName);
+        var read = await AlcifraApiClient.DownloadNamedAsync(url);
+        var fileName = SavedFileName.Of(MainWindowViewModel.WithExtension($"{vm.DocumentName} v{row.VersionNumber}", row.FileExtension), read);
+        await NativeFileOpener.OpenBytesAsync(read.Bytes, fileName);
     });
 
     private void OnSaveAs(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
@@ -47,17 +47,19 @@ public partial class VersionsDialog : Window
             return;
         }
 
+        var (suggested, read) = await SavedFileName.SuggestAsync(url,
+            MainWindowViewModel.WithExtension($"{vm.DocumentName} v{row.VersionNumber}", row.FileExtension));
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Save as",
-            SuggestedFileName = MainWindowViewModel.WithExtension($"{vm.DocumentName} v{row.VersionNumber}", row.FileExtension),
+            SuggestedFileName = suggested,
         });
         if (file is null)
         {
             return; // cancelled
         }
 
-        var bytes = await api.Versions.DownloadVersionBytesAsync(url);
+        var bytes = read ?? await api.Versions.DownloadVersionBytesAsync(url);
         await using var stream = await file.OpenWriteAsync();
         await stream.WriteAsync(bytes);
     });

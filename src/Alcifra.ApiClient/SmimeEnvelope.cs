@@ -96,6 +96,20 @@ public static class SmimeEnvelope
     public static (byte[] Bytes, string ContentType) Payload(byte[] decrypted) =>
         Payload(MimeEntity.Load(new MemoryStream(decrypted)));
 
+    /// <summary>
+    /// The document, its real content type and the file name sealed with it (the part's <c>Content-Disposition</c>, #2312);
+    /// the name is null where none was sealed. Only the audience reads it, so only an opener hands it on.
+    /// </summary>
+    public static (byte[] Bytes, string ContentType, string? FileName) Opened(byte[] decrypted) =>
+        Opened(MimeEntity.Load(new MemoryStream(decrypted)));
+
+    /// <inheritdoc cref="Opened(byte[])"/>
+    public static (byte[] Bytes, string ContentType, string? FileName) Opened(MimeEntity decrypted)
+    {
+        var (bytes, contentType) = Payload(decrypted);
+        return (bytes, contentType, decrypted is MimePart { FileName: { Length: > 0 } name } ? name : null);
+    }
+
     /// <summary>The document and its real content type, from the decrypted MIME entity.</summary>
     /// <remarks>
     /// The INNER type is what a caller renders: the outer pkcs7-mime describes only the wrapper. A MULTIPART is handed on

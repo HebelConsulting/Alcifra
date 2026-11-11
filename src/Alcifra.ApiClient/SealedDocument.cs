@@ -42,6 +42,28 @@ public static class SealedDocument
     /// </summary>
     public static readonly Guid MaskId = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E50");
 
+    /// <summary>
+    /// The name a DECRYPTED sealed document is written out under (#2312): the file name sealed with it, else
+    /// <paramref name="name"/>, with the extension of what it is. Never <see cref="FileExtension"/>: the bytes are no
+    /// longer an envelope. A name filed hidden ("Name hidden") is replaced by the sealed one, which whoever decrypted the
+    /// document may read (owner, 2026-11-11).
+    /// </summary>
+    /// <param name="name">The document's name as the folder shows it, a stem (ADR "Extension off Document.Name").</param>
+    /// <param name="sealedFileName">The name sealed with the content, null where none was.</param>
+    /// <param name="contentType">The decrypted content's real type, for the extension when no sealed name carries one.</param>
+    public static string OpenedFileName(string name, string? sealedFileName, string contentType)
+    {
+        var chosen = sealedFileName is { Length: > 0 } ? Path.GetFileName(sealedFileName.Replace('\\', '/')) : name;
+        if (chosen.EndsWith(FileExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            chosen = chosen[..^FileExtension.Length];
+        }
+
+        return Path.HasExtension(chosen) || !MimeKit.MimeTypes.TryGetExtension(contentType, out var extension)
+            ? chosen
+            : chosen + extension;
+    }
+
     /// <summary>The "Re-sealed after an access change" version comment kind (ADR 0964), as the wire carries it.</summary>
     public const int ResealedAfterAccessChange = 2;
 

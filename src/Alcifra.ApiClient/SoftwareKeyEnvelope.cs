@@ -21,6 +21,11 @@ public static class SoftwareKeyEnvelope
         ApplicationPkcs7Mime enveloped, IReadOnlyList<X509Certificate2> candidates, Action<X509Certificate2, Exception>? skipped = null) =>
         Opened<(byte[] Bytes, string ContentType)?>(candidates, skipped, context => SmimeEnvelope.Payload(enveloped.Decrypt(context)));
 
+    /// <summary>The same opening, also handing on the file name sealed with the document (#2312).</summary>
+    public static (byte[] Bytes, string ContentType, string? FileName)? TryOpenNamed(
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<X509Certificate2> candidates, Action<X509Certificate2, Exception>? skipped = null) =>
+        Opened<(byte[] Bytes, string ContentType, string? FileName)?>(candidates, skipped, context => SmimeEnvelope.Opened(enveloped.Decrypt(context)));
+
     /// <summary>
     /// The decrypted content AS IT IS, not read as a MIME part: an envelope from another producer need not carry one, and
     /// "does this key open it?" (`inspect --try-open`) is a question about the key, not the framing. Null declines.

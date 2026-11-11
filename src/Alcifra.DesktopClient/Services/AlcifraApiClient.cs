@@ -290,6 +290,11 @@ public sealed class AlcifraApiClient
         string url, CancellationToken cancellationToken = default) =>
         ApiCore.ReadContentAsync(url, cancellationToken);
 
+    /// <summary>The same download, also handing on the file name sealed with decrypted content (#2312).</summary>
+    public static Task<(byte[] Bytes, string ContentType, bool WasEnveloped, string? FileName)> DownloadNamedAsync(
+        string url, CancellationToken cancellationToken = default) =>
+        ApiCore.ReadNamedContentAsync(url, cancellationToken);
+
     private Task<List<T>> LoadPagedAsync<T>(string url, string arrayProperty, Func<JsonElement, T> parse, CancellationToken cancellationToken,
         Action<JsonElement>? onPage = null) => Core.LoadPagedAsync(url, arrayProperty, parse, cancellationToken, onPage);
 

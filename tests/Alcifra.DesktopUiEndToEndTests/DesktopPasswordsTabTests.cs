@@ -524,13 +524,13 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
     }
 
     // The hardware key, held in memory: declines an envelope not addressed to it, as the card does.
-    private Task<(byte[] Bytes, string ContentType)?> OpenWithAnnasKey(
+    private Task<(byte[] Bytes, string ContentType, string? FileName)?> OpenWithAnnasKey(
         ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         Interlocked.Increment(ref _keyReads);
         if (!_keyPresent || !EnvelopeRecipients.Matches(_anna, recipients) || !admitted(_anna))
         {
-            return Task.FromResult<(byte[], string)?>(null);
+            return Task.FromResult<(byte[], string, string?)?>(null);
         }
 
         Interlocked.Increment(ref _decrypts);
@@ -538,7 +538,7 @@ public sealed class DesktopPasswordsTabTests : IAsyncDisposable
         var cms = new EnvelopedCms();
         cms.Decode(SmimeEnvelope.Cms(enveloped));
         cms.Decrypt([_anna]);
-        return Task.FromResult<(byte[], string)?>(SmimeEnvelope.Payload(cms.ContentInfo.Content));
+        return Task.FromResult<(byte[], string, string?)?>(SmimeEnvelope.Opened(cms.ContentInfo.Content));
     }
 
     private byte[] Seal(PasswordEntryContent content) => PasswordStoreClient.Seal(content, [PublicOnly(_anna)]);

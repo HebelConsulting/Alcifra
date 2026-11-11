@@ -195,6 +195,17 @@ public partial class MainWindow
             return;
         }
 
+        byte[]? read;
+        try
+        {
+            (suggestedFileName, read) = await SavedFileName.SuggestAsync(url, suggestedFileName);
+        }
+        catch (Exception ex)
+        {
+            vm.Status = $"Could not save '{node.Name}': {ex.Message}";
+            return;
+        }
+
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = "Save as",
@@ -207,7 +218,7 @@ public partial class MainWindow
 
         try
         {
-            var (bytes, _) = await AlcifraApiClient.DownloadAsync(url);
+            var bytes = read ?? (await AlcifraApiClient.DownloadAsync(url)).Bytes;
             await using var stream = await file.OpenWriteAsync();
             await stream.WriteAsync(bytes);
             vm.Status = $"Saved '{node.Name}' to {file.Path.LocalPath}.";

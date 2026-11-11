@@ -133,6 +133,14 @@ public sealed class ApiCore
     /// </para>
     /// </remarks>
     public static async Task<(byte[] Bytes, string ContentType, bool WasEnveloped)> ReadContentAsync(
+        string url, CancellationToken cancellationToken = default) =>
+        await ReadNamedContentAsync(url, cancellationToken) is var (bytes, type, enveloped, _) ? (bytes, type, enveloped) : default;
+
+    /// <summary>
+    /// The same read, also handing on the file name sealed with a decrypted document (#2312): what a file written out of
+    /// the client is named after (<see cref="SealedDocument.OpenedFileName"/>). Null for content that was not enveloped.
+    /// </summary>
+    public static async Task<(byte[] Bytes, string ContentType, bool WasEnveloped, string? FileName)> ReadNamedContentAsync(
         string url, CancellationToken cancellationToken = default)
     {
         // WHICH CLIENT depends on WHERE this goes, never on how the href was spelled. Our own installation may
@@ -154,11 +162,11 @@ public sealed class ApiCore
         var body = await response.Content.ReadAsByteArrayAsync(cancellationToken);
         if (!Envelopes.IsEnvelope(served))
         {
-            return (body, served, false);
+            return (body, served, false, null);
         }
 
-        var (bytes, contentType) = await ApiClientSettings.EnvelopeOpener.OpenAsync(body, served);
-        return (bytes, contentType, true);
+        var (bytes, contentType, fileName) = await ApiClientSettings.EnvelopeOpener.OpenNamedAsync(body, served);
+        return (bytes, contentType, true, fileName);
     }
 
     /// <summary>

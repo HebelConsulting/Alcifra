@@ -87,9 +87,9 @@ public static class DragOutStager
             throw new InvalidOperationException("The document has no downloadable version.");
         }
 
-        var bytes = await api.Versions.DownloadVersionBytesAsync(preview.DownloadUrl, ct);
-        var path = UniquePath(dir, MainWindowViewModel.WithExtension(Sanitize(stem), preview.FileExtension));
-        await File.WriteAllBytesAsync(path, bytes, ct);
+        var read = await AlcifraApiClient.DownloadNamedAsync(preview.DownloadUrl, ct);
+        var path = UniquePath(dir, Sanitize(SavedFileName.Of(MainWindowViewModel.WithExtension(stem, preview.FileExtension), read)));
+        await File.WriteAllBytesAsync(path, read.Bytes, ct);
         return path;
     }
 
@@ -127,10 +127,11 @@ public static class DragOutStager
                     continue;
                 }
 
-                var bytes = await api.Versions.DownloadVersionBytesAsync(preview.DownloadUrl, ct);
-                var entry = zip.CreateEntry(prefix + MainWindowViewModel.WithExtension(name, preview.FileExtension), CompressionLevel.Fastest);
+                var read = await AlcifraApiClient.DownloadNamedAsync(preview.DownloadUrl, ct);
+                var entry = zip.CreateEntry(prefix + Sanitize(SavedFileName.Of(MainWindowViewModel.WithExtension(name, preview.FileExtension), read)),
+                    CompressionLevel.Fastest);
                 await using var stream = entry.Open();
-                await stream.WriteAsync(bytes, ct);
+                await stream.WriteAsync(read.Bytes, ct);
             }
             catch (Exception)
             {

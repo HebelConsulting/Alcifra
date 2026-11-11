@@ -30,13 +30,11 @@ public static class NativeFileOpener
         OpenPath(path);
     }
 
-    public static Task<string> DownloadToTempAsync(string downloadUrl, string fileName, CancellationToken cancellationToken = default) =>
-        DownloadToAsync(downloadUrl, Path.Combine(TempDirectory(), SafeFileName(fileName)), cancellationToken);
-
-    private static async Task<string> DownloadToAsync(string downloadUrl, string path, CancellationToken cancellationToken)
+    public static async Task<string> DownloadToTempAsync(string downloadUrl, string fileName, CancellationToken cancellationToken = default)
     {
-        var bytes = await ApiCore.GetContentBytesAsync(downloadUrl, cancellationToken);
-        await File.WriteAllBytesAsync(path, bytes, cancellationToken);
+        var read = await ApiCore.ReadNamedContentAsync(downloadUrl, cancellationToken);
+        var path = Path.Combine(TempDirectory(), SafeFileName(SavedFileName.Of(fileName, read)));
+        await File.WriteAllBytesAsync(path, read.Bytes, cancellationToken);
         return path;
     }
 

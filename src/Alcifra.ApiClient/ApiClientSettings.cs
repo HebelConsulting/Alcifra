@@ -38,6 +38,13 @@ public interface IEnvelopeOpener
 {
     /// <summary>The plaintext and its content type, or an exception that names what is missing (a key, a card).</summary>
     Task<(byte[] Bytes, string ContentType)> OpenAsync(byte[] envelope, string contentType);
+
+    /// <summary>
+    /// The same opening, also handing on the file name sealed with the document (#2312), so a decrypted file is saved
+    /// as what it is rather than as <c>.p7m</c>. An opener that cannot read it answers no name.
+    /// </summary>
+    async Task<(byte[] Bytes, string ContentType, string? FileName)> OpenNamedAsync(byte[] envelope, string contentType) =>
+        await OpenAsync(envelope, contentType) is var (bytes, type) ? (bytes, type, null) : default;
 }
 
 /// <summary>Whether a served content type is a CMS envelope. Defined once, because the funnel and a host's

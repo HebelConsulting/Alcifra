@@ -51,14 +51,14 @@ public static class EnvelopeOpener
     /// Whether a key may be used at all: its certificate is enrolled for the signed-in user (ADR 0969). Asked before the
     /// key is touched, so a token of somebody else's in the reader is never asked for a PIN.
     /// </param>
-    public delegate Task<(byte[] Bytes, string ContentType)?> Opener(
+    public delegate Task<(byte[] Bytes, string ContentType, string? FileName)?> Opener(
         ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted);
 
     /// <summary>Where the software private keys come from. Replaced in tests.</summary>
     public static Func<X509Certificate2Collection> Keys { get; set; } = FromUserStore;
 
     /// <summary>The openers, tried in order. Replaced in tests; the card is the second by default.</summary>
-    public static IReadOnlyList<Opener> Openers { get; set; } = [OpenWithSoftwareKey, CardEnvelopeOpener.TryOpen];
+    public static IReadOnlyList<Opener> Openers { get; set; } = [OpenWithSoftwareKey, CardEnvelopeOpener.TryOpenNamed];
 
     /// <summary>
     /// Returns the document inside the envelope and its real content type, or the input unchanged.
@@ -79,11 +79,15 @@ public static class EnvelopeOpener
     /// </remarks>
     public static bool IsEnvelope(string contentType) => Alcifra.ApiClient.Envelopes.IsEnvelope(contentType);
 
-    public static async Task<(byte[] Bytes, string ContentType)> OpenAsync(byte[] served, string contentType)
+    public static async Task<(byte[] Bytes, string ContentType)> OpenAsync(byte[] served, string contentType) =>
+        await OpenNamedAsync(served, contentType) is var (bytes, type, _) ? (bytes, type) : default;
+
+    /// <summary>The same opening, also handing on the file name sealed with the document (#2312), null where none was.</summary>
+    public static async Task<(byte[] Bytes, string ContentType, string? FileName)> OpenNamedAsync(byte[] served, string contentType)
     {
         if (!IsEnvelope(contentType))
         {
-            return (served, contentType);
+            return (served, contentType, null);
         }
 
         var enveloped = SmimeEnvelope.Unwrap(served);
@@ -178,11 +182,11 @@ public static class EnvelopeOpener
     }
 
     /// <summary>The software opener: MimeKit over the certificates this machine holds with their private keys.</summary>
-    private static Task<(byte[] Bytes, string ContentType)?> OpenWithSoftwareKey(
+    private static Task<(byte[] Bytes, string ContentType, string? FileName)?> OpenWithSoftwareKey(
         ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted) =>
         Task.FromResult(SoftwareKey(enveloped, recipients, admitted));
 
-    private static (byte[] Bytes, string ContentType)? SoftwareKey(
+    private static (byte[] Bytes, string ContentType, string? FileName)? SoftwareKey(
         ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         // ONLY the certificates this envelope is actually addressed to, decided BEFORE any private key is
@@ -202,7 +206,7 @@ public static class EnvelopeOpener
 
         // The opening itself is the shared one (Alcifra.ApiClient.SoftwareKeyEnvelope), which `alcifra inspect --try-open`
         // uses too; a certificate the platform will not hand over is skipped there, so the card is still the way in.
-        return Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpen(enveloped, candidates,
+        return Alcifra.ApiClient.SoftwareKeyEnvelope.TryOpenNamed(enveloped, candidates,
             (certificate, e) => DesktopLog.Debug("Skipping certificate {Subject}: {Reason}", certificate.Subject, e.Message));
     }
 }
@@ -214,4 +218,7 @@ internal sealed class DesktopEnvelopeOpener : Alcifra.ApiClient.IEnvelopeOpener
 
     public Task<(byte[] Bytes, string ContentType)> OpenAsync(byte[] envelope, string contentType) =>
         EnvelopeOpener.OpenAsync(envelope, contentType);
+
+    public Task<(byte[] Bytes, string ContentType, string? FileName)> OpenNamedAsync(byte[] envelope, string contentType) =>
+        EnvelopeOpener.OpenNamedAsync(envelope, contentType);
 }

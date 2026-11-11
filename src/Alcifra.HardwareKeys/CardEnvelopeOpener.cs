@@ -36,6 +36,11 @@ public static class CardEnvelopeOpener
 {
     /// <summary>Opens the envelope with the card, or declines when the card cannot be the recipient.</summary>
     public static async Task<(byte[] Bytes, string ContentType)?> TryOpen(
+        ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted) =>
+        await TryOpenNamed(enveloped, recipients, admitted) is { } opened ? (opened.Bytes, opened.ContentType) : null;
+
+    /// <summary>The same opening, also handing on the file name sealed with the document (#2312).</summary>
+    public static async Task<(byte[] Bytes, string ContentType, string? FileName)?> TryOpenNamed(
         ApplicationPkcs7Mime enveloped, IReadOnlyList<(string Issuer, string Serial)> recipients, Func<X509Certificate2, bool> admitted)
     {
         if (enveloped.Content is null)
@@ -45,7 +50,7 @@ public static class CardEnvelopeOpener
 
         // What comes out is the inner MIME entity the server enveloped — a part with the document's real content
         // type and file name, which is the whole reason the funnel returns a type at all.
-        return await TryOpenRawAsync(SmimeEnvelope.Cms(enveloped), recipients, admitted) is { } inner ? SmimeEnvelope.Payload(inner) : null;
+        return await TryOpenRawAsync(SmimeEnvelope.Cms(enveloped), recipients, admitted) is { } inner ? SmimeEnvelope.Opened(inner) : null;
     }
 
     /// <summary>

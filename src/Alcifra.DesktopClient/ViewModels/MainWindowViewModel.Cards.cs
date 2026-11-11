@@ -93,8 +93,8 @@ public partial class MainWindowViewModel
             return null;
         }
 
-        var (bytes, _, _) = await AlcifraApiClient.DownloadDetailedAsync(url);
-        return (bytes, WithExtension(attachment.Name, preview.FileExtension));
+        var read = await AlcifraApiClient.DownloadNamedAsync(url);
+        return (read.Bytes, SavedFileName.Of(WithExtension(attachment.Name, preview.FileExtension), read));
     }
 
     // One reading of the item, the card built over it, and its pencil: a fresh read for the editor (a card read minutes
