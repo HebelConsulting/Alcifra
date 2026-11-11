@@ -20,8 +20,26 @@ internal static class ServerPalette
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
     private static readonly ConcurrentDictionary<string, ThemeTokensReader.ThemeLoad> Known = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// A palette pinned for the whole process (<c>Branding__Variant</c>, #2319), which only the manual's capture sets. It
+    /// stands where the server's palette would, so no server is asked: a capture whose sign-in profile names a live server
+    /// would otherwise wear that server's colours, or not, depending on whether it answered before the screenshot.
+    /// </summary>
+    public static ThemeTokensReader.ThemeLoad? Pinned { get; private set; }
+
+    public static void Pin(ThemeTokensReader.ThemeLoad? load) => Pinned = load;
+
+    /// <summary>
+    /// For a headless render (the manual's sign-in and server-manager figures): the brand's own palette, unless a variant is
+    /// pinned already, so the figure never depends on whether the server its profile names is reachable.
+    /// </summary>
+    public static void PinUnlessPinned() => Pinned ??= new ThemeTokensReader.ThemeLoad(ThemeTokensReader.Of(null), true, []);
+
     /// <summary>Whether a profile's stored style means "the server's palette": none chosen, or the default entry.</summary>
-    public static bool Follows(string? styleId) => string.IsNullOrWhiteSpace(styleId) || styleId == ThemeCatalog.DefaultId;
+    public static bool MeansServer(string? styleId) => string.IsNullOrWhiteSpace(styleId) || styleId == ThemeCatalog.DefaultId;
+
+    /// <summary>Whether that palette is read from the server: it means the server's, and none is pinned.</summary>
+    public static bool Follows(string? styleId) => Pinned is null && MeansServer(styleId);
 
     /// <summary>The server's palette, or null where it cannot be read or adds nothing to the shipped design.</summary>
     public static async Task<ThemeTokensReader.ThemeLoad?> ReadAsync(string apiRootUrl, CancellationToken cancellationToken = default)

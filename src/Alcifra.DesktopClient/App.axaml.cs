@@ -29,12 +29,15 @@ public partial class App : Application
         Services.ThemeApplier.InstallShipped(this);
 
         // A palette variant named for the process (Branding__Variant, #2319): the manual's capture wears it with no server
-        // to ask. A desktop in use follows its server's palette instead (ServerPalette); an id the brand lacks is logged.
+        // to ask, whatever its profiles name. A desktop in use follows its server's palette instead; an id the brand lacks
+        // is logged.
         if (Environment.GetEnvironmentVariable("Branding__Variant") is { Length: > 0 } variant)
         {
             try
             {
-                Services.ThemeApplier.Apply(new Alcifra.Theming.ThemeTokensReader.ThemeLoad(Alcifra.Theming.ThemeTokensReader.Of(variant), true, []));
+                // Pinned, so a sign-in window that applies its profile's style later keeps it (ServerPalette.Pinned).
+                Services.ServerPalette.Pin(new Alcifra.Theming.ThemeTokensReader.ThemeLoad(Alcifra.Theming.ThemeTokensReader.Of(variant), true, []));
+                Services.ThemeApplier.Apply(Services.ServerPalette.Pinned!);
             }
             catch (ArgumentException e)
             {

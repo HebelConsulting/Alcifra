@@ -233,6 +233,7 @@ public static class WindowShots
                 .UseSkia()
                 .WithBrandFont()
                 .SetupWithoutStarting();
+            Services.ServerPalette.PinUnlessPinned();
             var win = new Views.ServerManagerWindow();
             var green = args.Contains("--green");
             var editShot = args.Contains("--edit");
@@ -328,6 +329,7 @@ public static class WindowShots
                 .UseSkia()
                 .WithBrandFont()
                 .SetupWithoutStarting();
+            Services.ServerPalette.PinUnlessPinned();
             var logonVm = new ViewModels.LogonViewModel();
             // `--update` injects a sample self-update result (issue #271) so the shot shows that layout, since the
             // real check needs a reachable download area (the window's Activate() runs this seam on open).

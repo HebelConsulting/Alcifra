@@ -31,4 +31,24 @@ public class DesktopServerPaletteTests(SelfHostedAppFixture app)
     {
         Assert.Null(await ServerPalette.ReadAsync("http://127.0.0.1:9"));
     }
+
+    [Fact]
+    public void A_pinned_palette_stands_for_the_server_and_no_server_is_asked()
+    {
+        try
+        {
+            ServerPalette.Pin(new ThemeTokensReader.ThemeLoad(ThemeTokensReader.Shipped, true, []));
+
+            Assert.False(ServerPalette.Follows(null));
+            Assert.False(ServerPalette.Follows(ThemeCatalog.DefaultId));
+            Assert.True(ServerPalette.MeansServer(ThemeCatalog.DefaultId));
+            Assert.False(ServerPalette.MeansServer("indigo"));
+        }
+        finally
+        {
+            ServerPalette.Pin(null);
+        }
+
+        Assert.True(ServerPalette.Follows(null));
+    }
 }

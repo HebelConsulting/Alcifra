@@ -42,7 +42,9 @@ public static class ThemeApplier
     }
 
     /// <summary>What happened, for the log — never shown to the user as an interruption.</summary>
-    public static IReadOnlyList<string> Apply(string? styleId) => Apply(ThemeCatalog.Load(styleId));
+    /// <remarks>The default style is the pinned palette where one is pinned (#2319).</remarks>
+    public static IReadOnlyList<string> Apply(string? styleId) =>
+        ServerPalette.Pinned is { } pinned && ServerPalette.MeansServer(styleId) ? Apply(pinned) : Apply(ThemeCatalog.Load(styleId));
 
     /// <summary>A theme already loaded: a style from the catalogue, or the server's own palette (#2319).</summary>
     public static IReadOnlyList<string> Apply(ThemeTokensReader.ThemeLoad load)
