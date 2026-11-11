@@ -18,6 +18,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Dispatched on main, the same run as a push: a repository whose push events start no workflow (Alcifra Bund,
+  # 2026-11-10) builds the manual its release takes this way. Every "main only" step reads the ref, so a dispatch
+  # on another branch commits nothing.
+  workflow_dispatch:
 
 concurrency:
   group: manual-${{ github.head_ref || github.ref }}
@@ -136,7 +140,7 @@ jobs:
       # Heavy (Testcontainers + Chrome) — main only, so PRs stay cheap. The hosted Ubuntu image ships Docker +
       # Google Chrome, which the self-host fleet + Playwright ("chrome" channel) use (same as the heavy CI tier).
       - name: Capture web screens
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           dotnet run --project tests/Alcifra.ManualCapture --no-build -- --web
           dotnet run --project tests/Alcifra.ManualCapture --no-build -- --web --lang de
@@ -148,7 +152,7 @@ jobs:
       # AFTER the fixture pass deliberately. The fixture step above writes every desktop PNG including the live
       # ones, so this must overwrite them rather than be overwritten — the published figure is the live one.
       - name: Capture desktop screens from the live app
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop-live
           dotnet run --project tests/Alcifra.ManualCapture --no-build -- --desktop-live --lang de
@@ -157,7 +161,7 @@ jobs:
       # (#832) — revert those BEFORE the compile, so neither the PNG nor the PDF that embeds it re-commits
       # over nothing. A real UI change moves pixels by far more and still commits.
       - name: Drop raster-noise screenshot regenerations
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           python3 scripts/keep-unchanged-screenshots.py manual/screenshots
           python3 scripts/keep-unchanged-screenshots.py manual/screenshots/de
@@ -193,7 +197,7 @@ jobs:
           python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
 
       - name: Upload the site bundle
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-bundle
@@ -213,7 +217,7 @@ jobs:
           if-no-files-found: error
 
       - name: Commit the regenerated manual
-        if: ${{ github.event_name == 'push' && needs.gate.outputs.white_label != 'true' }}
+        if: ${{ github.ref == 'refs/heads/main' && needs.gate.outputs.white_label != 'true' }}
         run: |
           git config user.name "simplarchive-manual-bot"
           git config user.email "manual-bot@users.noreply.github.com"
@@ -256,7 +260,7 @@ jobs:
           python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
 
       - name: Upload the site bundle
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-bundle
