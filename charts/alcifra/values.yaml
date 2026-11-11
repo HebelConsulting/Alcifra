@@ -483,8 +483,8 @@ modules:
     # The tube module, open source and free like the Messenger: from nuget.org (needs core v0.57.2, ABI 1.28).
     TUBE:
       package: Alcifra.Tube
-      version: 0.5.0
-      sha512: QIDzN6iOthF4CT6tlVXVVFSH7rZwf/VM39jBIUPzG7dRjLmxy6hvyBWZGELYF7cpPJwi5zYStSU4sYMQdlrJAg==
+      version: 0.6.0
+      sha512: +0WTNWZLaLmqWJW2/YMj7QXomrXFmlxj/RaDV/x18NQLz/C6UP/1pvWnuIMa4wfBZyOT1xh68qlJd4KQ6NwwCw==
       source: nuget.org
 
   # Plain alpine: a .nupkg is a zip, so the installer needs no NuGet tooling and no SDK image.
