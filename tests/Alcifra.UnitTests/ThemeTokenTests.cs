@@ -197,6 +197,24 @@ public class ThemeTokenTests
     }
 
     /// <summary>Known ratios, so a broken luminance formula cannot pass by agreeing with itself.</summary>
+    /// <summary>
+    /// What sits on the secondary colour (an avatar's initials) is the surface, which every theme's accent text is held to:
+    /// MudBlazor's white failed on a dark mode's light accent text (Alcifra Bund's blue, owner 2026-11-11).
+    /// </summary>
+    [Fact]
+    public void Text_on_the_secondary_colour_reads_in_both_modes()
+    {
+        var theme = Alcifra.Client.Services.AlcifraTheme.From(ThemeTokensReader.Shipped);
+        foreach (var (secondary, onIt) in new[]
+        {
+            (theme.PaletteLight.Secondary.Value, theme.PaletteLight.SecondaryContrastText.Value),
+            (theme.PaletteDark.Secondary.Value, theme.PaletteDark.SecondaryContrastText.Value),
+        })
+        {
+            Assert.True(Contrast.Between(secondary[..7], onIt[..7]) >= Contrast.MinimumAa, $"{onIt} on {secondary}");
+        }
+    }
+
     [Fact]
     public void Contrast_matches_the_published_reference_values()
     {

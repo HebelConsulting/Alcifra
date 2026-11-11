@@ -75,6 +75,10 @@ public static class AlcifraTheme
         Primary = palette.Accent.Primary,
         PrimaryContrastText = palette.Accent.OnPrimary,
         Secondary = palette.Accent.Text,
+        // What sits ON the secondary colour (an avatar's initials): the surface, which every theme's accent text is held
+        // to for contrast (ThemeTokensReader.Validate), so the pair reads in both modes and every brand. MudBlazor's white failed on a dark mode's light
+        // accent text (Alcifra Bund's blue, owner 2026-11-11).
+        SecondaryContrastText = palette.Neutral.Surface,
         Success = palette.Semantic.Success,
         Warning = palette.Semantic.Warning,
         Error = palette.Semantic.Danger,
@@ -110,6 +114,10 @@ public static class AlcifraTheme
         Primary = palette.Accent.Primary,
         PrimaryContrastText = palette.Accent.OnPrimary,
         Secondary = palette.Accent.Text,
+        // What sits ON the secondary colour (an avatar's initials): the surface, which every theme's accent text is held
+        // to for contrast (ThemeTokensReader.Validate), so the pair reads in both modes and every brand. MudBlazor's white failed on a dark mode's light
+        // accent text (Alcifra Bund's blue, owner 2026-11-11).
+        SecondaryContrastText = palette.Neutral.Surface,
         Success = palette.Semantic.Success,
         Warning = palette.Semantic.Warning,
         Error = palette.Semantic.Danger,
