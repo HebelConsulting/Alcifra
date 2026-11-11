@@ -48,9 +48,10 @@ public static class CertificateRegistryProjection
             return;
         }
 
-        // One enrolment per key and tenant: a second document carrying the same certificate is skipped, not thrown,
-        // so filing it does not fail; the first enrolment stands.
-        if (await db.EnrolledCertificates.AnyAsync(c => c.Thumbprint == derived.Thumbprint && c.DocumentId != documentId, cancellationToken))
+        // One UNREVOKED enrolment per key and tenant: a second document carrying the same certificate is skipped, not thrown,
+        // so filing it does not fail; the first enrolment stands. Beside a revoked one it is registered (#2317).
+        if (derived.RevokedAt is null
+            && await db.EnrolledCertificates.AnyAsync(c => c.Thumbprint == derived.Thumbprint && c.DocumentId != documentId && c.RevokedAt == null, cancellationToken))
         {
             logger.LogWarning(
                 "Certificate document {DocumentId} carries a key already enrolled under another document; it is not registered again",

@@ -326,7 +326,10 @@ public sealed class CertificateEnrolment(
         }
 
         var thumbprint = Convert.ToHexString(SHA256.HashData(leaf.RawData));
-        var existing = await dbContext.EnrolledCertificates.AsNoTracking().FirstOrDefaultAsync(c => c.Thumbprint == thumbprint, cancellationToken);
+        // Only an UNREVOKED enrolment stands in the way (#2317): a revoked one stays in history, and the same certificate may be
+        // enrolled again beside it, for its holder or somebody else (owner, 2026-11-11).
+        var existing = await dbContext.EnrolledCertificates.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Thumbprint == thumbprint && c.RevokedAt == null, cancellationToken);
 
         // THE WAY BACK for a key enrolled before attestation was required (ADR 0963): the same key, enrolled again with its
         // attestation, by its holder (where self-service is on) or an administrator, gains the evidence. No new key, no new
@@ -341,10 +344,7 @@ public sealed class CertificateEnrolment(
         if (existing is not null)
         {
             throw new CertificateAlreadyEnrolledException(existing.UserId == userId
-                ? $"This certificate is already enrolled as '{existing.Label}'"
-                    + $"{(existing.RevokedAt is { } when ? $", revoked on {when:yyyy-MM-dd}" : string.Empty)}"
-                    + ". Enrolling it again would change nothing; revoke the existing entry first if it should no longer "
-                    + "address documents."
+                ? $"This certificate is already enrolled as '{existing.Label}'. Enrolling it again would change nothing."
                 : "This certificate is already enrolled for somebody else in this tenant. One key cannot be held by two "
                     + "readers; if that is genuinely the intent, the existing enrolment has to be revoked first.");
         }

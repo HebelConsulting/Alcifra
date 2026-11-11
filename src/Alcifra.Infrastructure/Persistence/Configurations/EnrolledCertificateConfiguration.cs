@@ -25,7 +25,9 @@ public class EnrolledCertificateConfiguration : IEntityTypeConfiguration<Enrolle
         builder.Property(c => c.AttestationRootThumbprint).HasMaxLength(64).IsFixedLength();   // ADR 0963
 
         builder.HasIndex(c => new { c.TenantId, c.UserId });
-        builder.HasIndex(c => new { c.TenantId, c.Thumbprint }).IsUnique();
+        // One UNREVOKED enrolment per certificate and tenant (#2317): a revoked one stays in history, and the same certificate
+        // may be enrolled again beside it (owner, 2026-11-11).
+        builder.HasIndex(c => new { c.TenantId, c.Thumbprint }).IsUnique().HasFilter("\"RevokedAt\" IS NULL");
 
         builder.HasOne<Tenant>()
             .WithMany()

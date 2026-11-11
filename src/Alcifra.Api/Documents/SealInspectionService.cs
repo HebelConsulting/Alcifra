@@ -49,7 +49,8 @@ public sealed class SealInspectionService(
         }
 
         var inspection = SealedInspector.Inspect(bytes);
-        var known = await enrolment.ListVisibleAsync(cancellationToken);
+        // An unrevoked enrolment names a recipient before a revoked one of the same certificate (#2317).
+        var known = (await enrolment.ListVisibleAsync(cancellationToken)).OrderBy(k => k.RevokedAt is not null).ToList();
         var members = await audience.EffectiveAsync(root, cancellationToken);
         var gap = AudienceGap.Of(inspection.Recipients, [.. members.Select(m => (m.DisplayName, m.CertificatePems))]);
         return Resource(documentId, inspection, known, gap);

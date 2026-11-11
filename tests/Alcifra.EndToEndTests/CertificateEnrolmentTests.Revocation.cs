@@ -51,6 +51,59 @@ public partial class CertificateEnrolmentTests
         }
     }
 
+    // #2317: a revoked certificate used to block its own re-enrolment for good, with a refusal saying to revoke it first. The
+    // revoked enrolment stays in history and the same certificate is enrolled again beside it, for its holder or somebody
+    // else (owner, 2026-11-11); two UNREVOKED enrolments of it are still refused.
+    [Fact]
+    public async Task A_revoked_certificate_is_enrolled_again_for_its_holder_or_somebody_else()
+    {
+        using var vendorKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Environment.SetEnvironmentVariable(VerifyKeyVariable, vendorKey.ExportSubjectPublicKeyInfoPem());
+        Environment.SetEnvironmentVariable(LicensesVariable, "1");
+        try
+        {
+            // Possession binding, as on the kiosk's Demo tenant: an administrator enrols a key for whoever holds it.
+            var rig = await RigAsync(vendorKey);
+            await SetCertificateSettingsAsync(rig, selfService: true, parent: rig.RepoId);
+            await SetSanMustMatchAccountAsync(rig.Admin, false);
+            var certificates = Links(await TestJson.Get(rig.Admin, "/api"))["certificates"];
+            var forMember = $"{certificates}?holder={Uri.EscapeDataString(rig.MemberEmail)}";
+            var pem = SelfSigned("phone key", rig.MemberEmail);
+            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Phone key", holder = rig.MemberEmail });
+            await RevokeAsync(rig.Member, (await TestJson.Get(rig.Member, certificates)).EnumerateArray().Single());   // by its holder
+
+            // Its holder gets it again: the revoked entry stays, the new one is usable.
+            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Phone key, again", holder = rig.MemberEmail });
+            var both = (await TestJson.Get(rig.Admin, forMember)).EnumerateArray().ToList();
+            Assert.Equal(2, both.Count);
+            Assert.Single(both, k => k.GetProperty("usable").GetBoolean() && k.GetProperty("label").GetString() == "Phone key, again");
+            Assert.Single(both, k => k.GetProperty("revokedAt").ValueKind == JsonValueKind.String);
+
+            // While that enrolment stands, nobody else may hold the certificate.
+            using (var refused = await rig.Admin.PostAsJsonAsync(certificates, new { certificatePem = pem, label = "Taken" }))
+            {
+                Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+                Assert.Contains("CERTIFICATE_ALREADY_ENROLLED", await refused.Content.ReadAsStringAsync());
+            }
+
+            // Revoked again, it goes to somebody else, as on a phone whose other profile enrols the same key.
+            await RevokeAsync(rig.Member, (await TestJson.Get(rig.Member, certificates)).EnumerateArray().Single(k => k.GetProperty("usable").GetBoolean()));
+            await TestJson.Post(rig.Admin, certificates, new { certificatePem = pem, label = "Admin's now" });
+            Assert.Equal("Admin's now", (await TestJson.Get(rig.Admin, certificates)).EnumerateArray().Single().GetProperty("label").GetString());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(LicensesVariable, null);
+            Environment.SetEnvironmentVariable(VerifyKeyVariable, null);
+        }
+    }
+
+    private static async Task RevokeAsync(HttpClient holder, JsonElement key)
+    {
+        using var response = await holder.PostAsJsonAsync(Links(key)["revoke"], new { reason = "replaced" });
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
     [Fact]
     public async Task Nobody_else_revokes_a_key_but_a_user_administrator_who_tells_the_holder()
     {

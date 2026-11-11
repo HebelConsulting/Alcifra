@@ -64,7 +64,7 @@ public sealed class EnrolledCertificatesClient(ApiCore core)
                 Text("holderName"), Text("holderEmail"),
                 c.TryGetProperty("revokedAt", out var r) && r.ValueKind == JsonValueKind.String ? r.GetDateTimeOffset() : null,
                 Text("attestation") ?? "notAttested");
-        })];
+        }).OrderBy(k => k.RevokedAt is not null)];   // an unrevoked enrolment names a recipient before a revoked one (#2317)
     }
 
     /// <summary>The keys at a listing a rel named: a user's <c>certificates</c> in the Users tab (#2278).</summary>
