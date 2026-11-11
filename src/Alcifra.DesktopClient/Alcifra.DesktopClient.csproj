@@ -103,7 +103,7 @@
        the WINDOWS target alone and never reaches the macOS/Linux build. MIT, so the licence gate is satisfied
        without an override. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
-    <PackageReference Include="System.Drawing.Common" Version="10.0.14" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.15" />
   </ItemGroup>
   <!-- The shared API client's types (ADR 0917) are used across the desktop like its own were, and the card's types
        are used across it as they were before the move to the leaf. -->

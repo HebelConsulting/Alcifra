@@ -44,7 +44,7 @@
              The version the shared API client's SealedArchive leaf brings, since this tool references that client (ADR 0966). -->
         <PackageReference Include="Alcifra.Messenger.Client" Version="0.14.0" />
         <!-- Output through a logger to stderr (ADR 0906, #1661); commands get their logger by constructor. -->
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.15" />
     </ItemGroup>
 
     <ItemGroup>
