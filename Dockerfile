@@ -94,7 +94,9 @@ COPY --from=icons /icons /icons
 RUN BRAND_ICONS_DIR=/icons/ bash scripts/package-windows-linux.sh "$VERSION"
 
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
+# The runtime, upgraded and with icu-libs, curl, krb5-libs and tzdata, comes from our base (#2325, ADR 1088), built weekly
+# into our registry and on demand when an advisory should not wait; the reasons for each package stay below.
+FROM ghcr.io/hebelconsulting/alcifra-base-runtime@sha256:55976dbec86707898f211d74d2e83ddc8ed734813b49c35876a8513b0712dd57 AS final
 ARG VERSION=0.0.0-dev
 WORKDIR /app
 
@@ -105,23 +107,17 @@ WORKDIR /app
 #   password auth. Adding it silences that noise.
 # Non-root 'app' user/group already exist in this base image; no addgroup/adduser needed.
 #
-# `apk upgrade` FIRST, and it is not belt-and-braces: the base image is rebuilt on its own schedule, so between
-# rebuilds it carries whatever its packages were at that moment. When an advisory lands against one of them —
-# CVE-2026-14456 in libcrypto3/libssl3, HIGH, fixed in 3.5.8-r0 while the base still had 3.5.7-r0 — the image
-# scan fails for a package we never chose and cannot bump, and it blocks EVERY pull request until the base
-# happens to be refreshed. Upgrading at build time takes the patched package as soon as Alpine publishes it,
-# which is both the real fix and one that keeps working for the next advisory of this kind rather than needing
-# a fresh .trivyignore entry each time.
-#
-# The build and clients stages are deliberately left alone: they are SDK images that never ship, and only this
-# final stage is published and scanned.
+# `apk upgrade` runs in base/runtime, weekly and on demand: when an advisory lands against a base package — as
+# CVE-2026-14456 in libcrypto3/libssl3 once did — the image scan fails on every pull request until base-images.yml is
+# dispatched and this pin moves (ADR 1088). It used to run here at every build, which also asked Alpine's mirror at
+# every build; a mirror outage then blocked every pull request instead.
 # tzdata is NOT optional for this application (#1138). Alpine ships no IANA database, so
 # TimeZoneInfo.FindSystemTimeZoneById("Europe/Zurich") throws — and CalendarInstants catches that and falls
 # back to the container's own zone, which is UTC. The result was silent and severe: an appointment published
 # as 10:00-22:00 Europe/Zurich was STORED as 10:00Z-22:00Z instead of 08:00Z-20:00Z, so every zoned entry sat
 # two hours from where it belonged, and conflict checks, availability and CalDAV interop all judged the wrong
 # instants. Nothing failed; the times were simply wrong.
-RUN apk upgrade --no-cache && apk add --no-cache icu-libs curl krb5-libs tzdata
+# (Installed in base/runtime: `apk upgrade`, then icu-libs curl krb5-libs tzdata.)
 
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
     ASPNETCORE_HTTP_PORTS=8080

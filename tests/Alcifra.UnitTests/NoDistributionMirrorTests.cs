@@ -10,10 +10,7 @@ public partial class NoDistributionMirrorTests
 {
     // The places that still ask one, each with what removes it. This list may only get shorter, and an entry that no
     // longer matches anything fails too, so a removal cannot leave its exception behind.
-    private static readonly Dictionary<string, string> NotYetRemoved = new(StringComparer.Ordinal)
-    {
-        ["Dockerfile"] = "The final stage's `apk upgrade` and `apk add icu-libs curl krb5-libs tzdata`: FROM base/runtime, pinned by digest once its first build exists (#2325, step 4b).",
-    };
+    private static readonly Dictionary<string, string> NotYetRemoved = new(StringComparer.Ordinal);
 
     [Fact]
     public void No_dockerfile_or_workflow_installs_from_a_distribution_mirror()

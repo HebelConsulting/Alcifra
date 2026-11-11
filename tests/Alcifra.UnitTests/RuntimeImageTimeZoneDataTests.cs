@@ -23,7 +23,10 @@ public class RuntimeImageTimeZoneDataTests
         var dockerfile = File.ReadAllText(Path.Combine(RepositoryRoot(), "Dockerfile"));
 
         // The FINAL stage is the one that ships. The build and clients stages are SDK images that never do.
-        var final = dockerfile[dockerfile.LastIndexOf("FROM ", StringComparison.Ordinal)..];
+        // Since ADR 1088 the final stage builds FROM our runtime base, which installs the packages; the guard follows it there.
+        var finalStage = dockerfile[dockerfile.LastIndexOf("FROM ", StringComparison.Ordinal)..];
+        Assert.Contains("alcifra-base-runtime@sha256:", finalStage.Split('\n')[0], StringComparison.Ordinal);
+        var final = File.ReadAllText(Path.Combine(RepositoryRoot(), "base", "runtime", "Dockerfile"));
 
         // The INSTALL line, not the stage text — and comments are skipped. The first version of this test
         // asserted the word appeared anywhere in the stage, and passed with the package removed, because the
