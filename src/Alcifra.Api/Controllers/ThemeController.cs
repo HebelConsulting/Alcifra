@@ -30,7 +30,7 @@ namespace Alcifra.Api.Controllers;
 [ApiVersion("1.0")]
 [Route("api/theme")]
 [AllowAnonymous]
-public class ThemeController(IWebHostEnvironment environment, ILogger<ThemeController> logger) : ControllerBase
+public class ThemeController(IWebHostEnvironment environment, Alcifra.Api.Branding.InstallationPalette palette, ILogger<ThemeController> logger) : ControllerBase
 {
     /// <summary>Where an operator drops a custom theme — a mounted volume, in every real deployment.</summary>
     public const string CustomThemePath = "custom/theme.json";
@@ -73,7 +73,7 @@ public class ThemeController(IWebHostEnvironment environment, ILogger<ThemeContr
         var path = Path.Combine(environment.ContentRootPath, CustomThemePath);
         if (!System.IO.File.Exists(path))
         {
-            return ThemeTokensReader.Shipped;
+            return palette.Tokens;
         }
 
         string json;
@@ -83,11 +83,11 @@ public class ThemeController(IWebHostEnvironment environment, ILogger<ThemeContr
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning(e, "The custom theme at {Path} could not be read; the shipped design is in use.", path);
-            return ThemeTokensReader.Shipped;
+            logger.LogWarning(e, "The custom theme at {Path} could not be read; the installation's palette is in use.", path);
+            return palette.Tokens;
         }
 
-        var load = ThemeTokensReader.Load(json);
+        var load = ThemeTokensReader.Load(json, palette.Tokens);
         foreach (var note in load.Notes)
         {
             // Warning, not Information: every note here is something an operator has to change — a colour that

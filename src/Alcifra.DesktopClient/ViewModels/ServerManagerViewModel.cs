@@ -41,14 +41,37 @@ public sealed partial class ServerManagerViewModel : ObservableObject
     // The styles this installation can offer: the ones bundled with the client, plus anything dropped into a
     // themes/ folder beside it (ADR 0578). Read once — a picker that rescanned the disk on every keystroke
     // would be answering a question nobody asked.
+    // The default entry IS the server's palette since #2319, so it is called that rather than by the brand's name.
     public ObservableCollection<ThemeCatalog.Entry> Themes { get; } =
-        new(ThemeCatalog.Available());
+        new(ThemeCatalog.Available().Select(e => e.Id == ThemeCatalog.DefaultId ? e with { Name = Strings.Get("SmServerPalette") } : e));
 
     // Applied AS IT CHANGES rather than on Save: choosing a colour scheme from a list of names without seeing
     // it is guesswork, and the workbench is right there behind this window.
     [ObservableProperty] private ThemeCatalog.Entry? _editTheme;
 
-    partial void OnEditThemeChanged(ThemeCatalog.Entry? value) => ThemeApplier.Apply(value?.Id);
+    partial void OnEditThemeChanged(ThemeCatalog.Entry? value) => Preview(value?.Id);
+
+    // A style as it would look: the catalogue's, or the server's own palette for the default entry (#2319).
+    private void Preview(string? styleId)
+    {
+        ThemeApplier.Apply(styleId);
+        if (ServerPalette.Follows(styleId) && Selected?.ApiRootUrl is { Length: > 0 } server)
+        {
+            _ = Task.Run(async () =>
+            {
+                if (await ServerPalette.ReadAsync(server) is { } palette)
+                {
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        if (ServerPalette.Follows(EditTheme?.Id ?? Selected?.Theme))
+                        {
+                            ThemeApplier.Apply(palette);
+                        }
+                    });
+                }
+            });
+        }
+    }
 
     /// <summary>What the selected profile's style is CALLED — the read-only pane shows a name, not an id.</summary>
     public string SelectedThemeName => ThemeFor(Selected?.Theme).Name;
@@ -307,7 +330,7 @@ public sealed partial class ServerManagerViewModel : ObservableObject
 
         // The live preview is an edit like any other, so cancelling has to undo it too. Leaving the previewed
         // style on screen would be the one edit a Cancel button did not cancel.
-        ThemeApplier.Apply(Selected?.Theme);
+        Preview(Selected?.Theme);
     }
 
     // A stored id that no longer resolves lands on the shipped design rather than an empty picker — styles come

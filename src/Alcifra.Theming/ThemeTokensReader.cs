@@ -58,7 +58,10 @@ public static class ThemeTokensReader
     /// have to do by hand.
     /// </para>
     /// </remarks>
-    public static ThemeLoad Load(string json)
+    public static ThemeLoad Load(string json) => Load(json, Shipped);
+
+    /// <summary>The same, laid over <paramref name="basis"/>: the installation's selected palette (#2319).</summary>
+    public static ThemeLoad Load(string json, ThemeTokens basis)
     {
         var notes = new List<string>();
 
@@ -69,19 +72,19 @@ public static class ThemeTokensReader
         }
         catch (JsonException e)
         {
-            return new ThemeLoad(Shipped, false, [$"The custom theme is not valid JSON and was ignored: {e.Message}"]);
+            return new ThemeLoad(basis, false, [$"The custom theme is not valid JSON and was ignored: {e.Message}"]);
         }
 
         if (custom is null || (custom.Light is null && custom.Dark is null))
         {
-            return new ThemeLoad(Shipped, false, ["The custom theme contains no light or dark section and was ignored."]);
+            return new ThemeLoad(basis, false, ["The custom theme contains no light or dark section and was ignored."]);
         }
 
         if (custom.Light?.Neutral is not null || custom.Dark?.Neutral is not null)
         {
             notes.Add(
                 "The custom theme sets neutral colours. Those are not overridable — they carry legibility — so "
-                + "they were ignored and the shipped neutrals are in use.");
+                + "they were ignored and the installation's own neutrals are in use.");
         }
 
         // Every supplied value has to be a colour BEFORE anything is derived from it. Derivation converts to
@@ -91,8 +94,8 @@ public static class ThemeTokensReader
         if (malformed.Count > 0)
         {
             notes.AddRange(malformed.Select(v => $"{v.Name} is '{v.Value}', which is not a #RRGGBB colour."));
-            notes.Add("The custom theme was refused and the shipped design is in use.");
-            return new ThemeLoad(Shipped, false, notes);
+            notes.Add("The custom theme was refused and the installation's own palette is in use.");
+            return new ThemeLoad(basis, false, notes);
         }
 
         // A custom theme can be a single colour. Everything unstated is DERIVED from the customer's own
@@ -110,30 +113,30 @@ public static class ThemeTokensReader
         // to derive from, so an override that names only (say) a hover colour still edits the shipped accent.
         var lightAccent = Overlay(
             anyPrimary is null
-                ? Shipped.Light.Accent
-                : AccentDerivation.From(lightPrimary ?? anyPrimary, Shipped.Light.Neutral.Surface, dark: false),
+                ? basis.Light.Accent
+                : AccentDerivation.From(lightPrimary ?? anyPrimary, basis.Light.Neutral.Surface, dark: false),
             custom.Light?.Accent);
 
         var darkAccent = Overlay(
             anyPrimary is null
-                ? Shipped.Dark.Accent
-                : AccentDerivation.From(darkPrimary ?? anyPrimary, Shipped.Dark.Neutral.Surface, dark: true),
+                ? basis.Dark.Accent
+                : AccentDerivation.From(darkPrimary ?? anyPrimary, basis.Dark.Neutral.Surface, dark: true),
             custom.Dark?.Accent);
 
-        var lightSemantic = Merge(Shipped.Light.Semantic, custom.Light?.Semantic);
-        var darkSemantic = Merge(Shipped.Dark.Semantic, custom.Dark?.Semantic ?? custom.Light?.Semantic);
+        var lightSemantic = Merge(basis.Light.Semantic, custom.Light?.Semantic);
+        var darkSemantic = Merge(basis.Dark.Semantic, custom.Dark?.Semantic ?? custom.Light?.Semantic);
 
         var merged = new ThemeTokens(
-            string.IsNullOrWhiteSpace(custom.Name) ? Shipped.Name : custom.Name!,
-            Shipped.Light with { Accent = lightAccent, Semantic = lightSemantic },
-            Shipped.Dark with { Accent = darkAccent, Semantic = darkSemantic });
+            string.IsNullOrWhiteSpace(custom.Name) ? basis.Name : custom.Name!,
+            basis.Light with { Accent = lightAccent, Semantic = lightSemantic },
+            basis.Dark with { Accent = darkAccent, Semantic = darkSemantic });
 
         var failures = Validate(merged).ToList();
         if (failures.Count > 0)
         {
             notes.AddRange(failures);
-            notes.Add("The custom theme was refused and the shipped design is in use.");
-            return new ThemeLoad(Shipped, false, notes);
+            notes.Add("The custom theme was refused and the installation's own palette is in use.");
+            return new ThemeLoad(basis, false, notes);
         }
 
         return new ThemeLoad(merged, true, notes);
@@ -281,6 +284,13 @@ public static class ThemeTokensReader
     // The shipped theme is the brand's colours under the brand's name (ADR 0989).
     private static ThemeTokens ReadShipped() =>
         new(Brand.Shipped.Name, Brand.Shipped.Colors.Light, Brand.Shipped.Colors.Dark);
+
+    /// <summary>The shipped brand's palette <paramref name="variant"/>, or its own colours when none is named (#2319).</summary>
+    /// <exception cref="ArgumentException">The brand carries no variant of that id.</exception>
+    public static ThemeTokens Of(string? variant) =>
+        string.IsNullOrWhiteSpace(variant)
+            ? Shipped
+            : Brand.Shipped.Palette(variant) is var palette ? new(Brand.Shipped.Name, palette.Light, palette.Dark) : Shipped;
 
     // A custom file states only what it changes, so every property is optional — which is a different shape
     // from ThemeTokens, where everything is present by construction.

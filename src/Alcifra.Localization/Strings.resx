@@ -24,6 +24,9 @@
   <data name="SessionExpired" xml:space="preserve">
     <value>Your session has expired — please sign in again.</value>
   </data>
+  <data name="SmServerPalette" xml:space="preserve">
+    <value>The server's palette</value>
+  </data>
   <data name="SmEnvLabel" xml:space="preserve">
     <value>Environment</value>
   </data>

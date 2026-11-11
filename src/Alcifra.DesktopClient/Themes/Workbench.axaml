@@ -84,9 +84,11 @@
         <Setter Property="Background" Value="{DynamicResource WbSelection}" />
         <Setter Property="BorderBrush" Value="{DynamicResource WbAccent}" />
         <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource WbText}" />
     </Style>
     <Style Selector="TreeViewItem:selected:pointerover /template/ Border#PART_LayoutRoot">
         <Setter Property="Background" Value="{DynamicResource WbAccentTint}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource WbText}" />
     </Style>
 
 </Styles>

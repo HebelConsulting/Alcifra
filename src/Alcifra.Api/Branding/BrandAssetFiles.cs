@@ -17,13 +17,28 @@ namespace Alcifra.Api.Branding;
 public static class BrandAssetFiles
 {
     /// <summary>
-    /// The installation's own favicon, then the brand's assets at <c>/brand</c> and, in a source tree, its generated
+    /// The installation's own favicon, the selected palette's manual, then the brand's assets at <c>/brand</c> and, in a source tree, its generated
     /// icons (ADR 0993). Before the shipped static files, because static files serve the first match.
     /// </summary>
     public static IApplicationBuilder UseBrandAssets(this WebApplication app)
     {
         // First, so an operator's custom/favicon.* wins over the brand's.
         app.UseCustomFavicon();
+
+        // The selected palette's manual (#2319) answers at the manual's one URL, so no link has to know the variant.
+        var manual = app.Services.GetRequiredService<InstallationPalette>().ManualPath(app.Environment.WebRootFileProvider);
+        if (manual != InstallationPalette.DefaultManualPath)
+        {
+            app.Use((context, next) =>
+            {
+                if (context.Request.Path.Equals("/" + InstallationPalette.DefaultManualPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Request.Path = "/" + manual;
+                }
+
+                return next(context);
+            });
+        }
 
         if (Locate(app.Environment) is { } directory)
         {

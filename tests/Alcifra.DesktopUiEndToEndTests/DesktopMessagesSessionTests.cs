@@ -111,7 +111,10 @@ public sealed class DesktopMessagesSessionTests : IDisposable
             await api!.GetRootLinksAsync();   // due within the minute: renewed first
 
             Assert.Contains(_archive.Requests, r => r is { Method: "POST", Path: "/connect/token" } && r.Body.Contains("refresh_token=refresh-first", StringComparison.Ordinal));
-            Assert.Equal(["Bearer token-renewed"], _archive.BearersOf("/api"));
+            // The signed-in client's read carries the renewed token; the logon window's read of the server's palette
+            // (#2319) is anonymous by design and carries none.
+            Assert.Equal(["Bearer token-renewed"], _archive.BearersOf("/api").Where(b => b is not null));
+            Assert.All(_archive.BearersOf("/api").Where(b => b != "Bearer token-renewed"), Assert.Null);
             Assert.Equal("refresh-renewed", TokenSessions.Current.For(_archive.BaseUrl)?.RefreshToken);
         }
         finally

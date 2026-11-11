@@ -44,11 +44,15 @@ public class BrandFileTests
     {
         using var schema = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.Root(), "brand", "brand.schema.json")));
         var required = schema.RootElement.GetProperty("required").EnumerateArray().Select(e => e.GetString()).ToHashSet();
-        var read = typeof(Brand).GetProperties()
-            .Select(p => p.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
-                .Cast<System.Text.Json.Serialization.JsonPropertyNameAttribute>().SingleOrDefault()?.Name)
-            .Where(n => n is not null).ToHashSet();
-        Assert.Equal(read, required);
+        var described = schema.RootElement.GetProperty("properties").EnumerateObject().Select(p => p.Name).ToHashSet();
+        // A field with a default (colorVariants, #2319) may be left out, so the schema describes it without requiring it.
+        var optional = typeof(Brand).GetConstructors().Single().GetParameters().Where(p => p.HasDefaultValue).Select(p => p.Name).ToHashSet();
+        var fields = typeof(Brand).GetProperties()
+            .Select(p => (p.Name, Json: p.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
+                .Cast<System.Text.Json.Serialization.JsonPropertyNameAttribute>().SingleOrDefault()?.Name))
+            .Where(f => f.Json is not null).ToList();
+        Assert.Equal(fields.Where(f => !optional.Contains(f.Name)).Select(f => f.Json).ToHashSet(), required);
+        Assert.Subset(described, fields.Select(f => f.Json!).ToHashSet());
     }
 
     private static string Shipped() => File.ReadAllText(Path.Combine(RepoPaths.Root(), "brand", "brand.json"));

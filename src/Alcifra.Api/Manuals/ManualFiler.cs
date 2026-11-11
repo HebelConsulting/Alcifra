@@ -80,16 +80,11 @@ public sealed class ManualFiler(
     IAuditRecorder audit,
     IWebHostEnvironment environment,
     ICurrentTenantAccessor tenant,
+    Alcifra.Api.Branding.InstallationPalette palette,
     ILogger<ManualFiler> logger)
 {
     /// <summary>The Manual "Article number" that identifies Alcifra's own manual — and how it is found again.</summary>
     public const string CoreArticleNumber = "alcifra-core";
-
-    /// <summary>
-    /// Where the served core manual lives under wwwroot — the same file the download link serves, named from the
-    /// brand's file stem (ADR 0997).
-    /// </summary>
-    public static readonly string CoreManualPath = $"download/manual/{Alcifra.Theming.Brand.Shipped.ManualFileName}";
 
     /// <summary>Files Alcifra's own user manual in the current tenant.</summary>
     /// <remarks>
@@ -99,14 +94,16 @@ public sealed class ManualFiler(
     /// </remarks>
     public Task<ManualFilingOutcome> FileCoreManualAsync(CancellationToken cancellationToken = default)
     {
-        var file = environment.WebRootFileProvider.GetFileInfo(CoreManualPath);
+        // The same file the download link serves: the selected palette's manual when the build carries it (#2319).
+        var path = palette.ManualPath(environment.WebRootFileProvider);
+        var file = environment.WebRootFileProvider.GetFileInfo(path);
         if (!file.Exists)
         {
-            logger.LogDebug("No core manual at {Path} in this build; nothing to file.", CoreManualPath);
+            logger.LogDebug("No core manual at {Path} in this build; nothing to file.", path);
             return Task.FromResult(ManualFilingOutcome.NotDeclared);
         }
 
-        var source = new ManualSource(Alcifra.Localization.CoreOwnedNames.CoreManual, Path.GetFileName(CoreManualPath), "application/pdf",
+        var source = new ManualSource(Alcifra.Localization.CoreOwnedNames.CoreManual, Alcifra.Theming.Brand.Shipped.ManualFileName, "application/pdf",
             file.CreateReadStream, Alcifra.Localization.Strings.ProductName, CoreArticleNumber, ServerBuildInfo.Version);
 
         return FileAsync(source,

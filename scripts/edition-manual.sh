@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # edition-manual.sh [--white-label | --stand-in] — make the served manual directory hold exactly this edition's
-# manual, named <fileStem>-Manual.pdf (ADR 0997), and print its path.
+# manual, named <fileStem>-Manual.pdf (ADR 0997), and print its path. A white-label edition's palette variants'
+# manuals (#2319), <fileStem>-Manual-<id>.pdf, are placed beside it and printed after it, one path per line.
 #
 # Upstream commits its manual, so the file is already there and only checked. A white-label edition does not commit
 # its own (ADR 0996): it takes the PDF the last successful manual build on main uploaded, and removes the upstream
@@ -13,6 +14,7 @@
 #
 # Needs GH_TOKEN and GITHUB_REPOSITORY for --white-label (as in a workflow).
 set -euo pipefail
+variants=()
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
@@ -27,8 +29,14 @@ if [[ "${1:-}" == "--white-label" ]]; then
   [ -n "$run" ] || { echo "::error::No successful manual build on main to take this edition's manual from." >&2; exit 1; }
   fetched="$(mktemp -d)"
   gh run download "$run" --repo "$GITHUB_REPOSITORY" --name manual --dir "$fetched" >&2
-  find "$dir" -maxdepth 1 \( -name '*-Manual.pdf' -o -name '*-Manual-de.pdf' \) -delete
+  find "$dir" -maxdepth 1 -name '*-Manual*.pdf' -delete
   cp "$fetched"/*.pdf "$manual"
+  # A build that predates the variants uploaded none; the edition then serves its default manual for every palette.
+  if gh run download "$run" --repo "$GITHUB_REPOSITORY" --name manual-variants --dir "$fetched/variants" >&2 2>/dev/null; then
+    cp "$fetched"/variants/*.pdf "$dir/"
+    # The release attaches the English ones, as it attaches the default's.
+    while IFS= read -r variant; do variants+=("$variant"); done < <(find "$dir" -maxdepth 1 -name "$BRAND_FILE_STEM-Manual-*.pdf" ! -name '*-de.pdf' | sort)
+  fi
 elif [[ "${1:-}" == "--stand-in" && ! -f "$manual" ]]; then
   committed=$(find "$dir" -maxdepth 1 -name '*-Manual.pdf' | head -1)
   [ -n "$committed" ] || { echo "::error::No committed manual in $dir to stand in for $manual." >&2; exit 1; }
@@ -37,3 +45,4 @@ fi
 
 [ -f "$manual" ] || { echo "::error::$manual is missing." >&2; exit 1; }
 echo "$manual"
+for variant in "${variants[@]:-}"; do [ -n "$variant" ] && echo "$variant"; done

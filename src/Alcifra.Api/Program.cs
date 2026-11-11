@@ -121,6 +121,7 @@ builder.Services.AddOpenApi();
 }
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton(Alcifra.Api.Branding.InstallationPalette.From(builder.Configuration));   // #2319: a bad id stops the start
 
 // Persist Data Protection keys in Postgres (ADR 0514) via the EF Core key store, so antiforgery + auth cookies
 // survive an API restart and are SHARED across HPA replicas. The default ephemeral per-container key ring

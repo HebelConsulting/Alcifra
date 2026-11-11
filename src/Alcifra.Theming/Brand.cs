@@ -23,8 +23,30 @@ public sealed record Brand(
     [property: JsonPropertyName("wordmark")] BrandWordmark Wordmark,
     [property: JsonPropertyName("icon")] string? Icon,
     [property: JsonPropertyName("distribution")] BrandDistribution Distribution,
-    [property: JsonPropertyName("imprint")] BrandImprint Imprint)
+    [property: JsonPropertyName("imprint")] BrandImprint Imprint,
+    [property: JsonPropertyName("colorVariants")] IReadOnlyDictionary<string, BrandColorVariant>? ColorVariants = null)
 {
+    /// <summary>
+    /// The palette an installation wears (#2319): the brand's <see cref="Colors"/>, or the named variant an operator
+    /// selected (<c>Branding:Variant</c>). An id the brand does not carry is refused rather than ignored, so a misspelt
+    /// setting stops the start instead of quietly showing the default.
+    /// </summary>
+    /// <exception cref="ArgumentException">The brand carries no variant of that id.</exception>
+    public BrandColors Palette(string? variant)
+    {
+        if (string.IsNullOrWhiteSpace(variant))
+        {
+            return Colors;
+        }
+
+        return ColorVariants is not null && ColorVariants.TryGetValue(variant.Trim(), out var chosen)
+            ? new BrandColors(chosen.Light, chosen.Dark)
+            : throw new ArgumentException(
+                $"The brand '{Name}' carries no palette '{variant}'. "
+                + (ColorVariants is { Count: > 0 } ? $"It carries: {string.Join(", ", ColorVariants.Keys)}." : "It carries none."),
+                nameof(variant));
+    }
+
     /// <summary>
     /// Whether the product shows the brand's own name, so its wordmark may stand for it (ADR 0992). An installation
     /// that renamed the product (<c>Branding:ProductName</c>) keeps its name as text: the mark spells another name.
@@ -72,6 +94,13 @@ public sealed record Brand(
             "brand.json is missing from Alcifra.Theming. It is the shipped brand and is embedded deliberately, so "
             + "this means the build no longer includes brand/brand.json as an EmbeddedResource.");
 }
+
+/// <summary>A named palette an installation may wear instead of the brand's own colours (#2319).</summary>
+/// <param name="Name">What the palette is called, by language ("en", "de").</param>
+public sealed record BrandColorVariant(
+    [property: JsonPropertyName("name")] IReadOnlyDictionary<string, string> Name,
+    [property: JsonPropertyName("light")] ThemePalette Light,
+    [property: JsonPropertyName("dark")] ThemePalette Dark);
 
 /// <summary>The brand's palettes, in the shape the theme uses.</summary>
 public sealed record BrandColors(

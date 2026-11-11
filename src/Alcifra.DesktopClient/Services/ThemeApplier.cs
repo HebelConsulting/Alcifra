@@ -42,14 +42,16 @@ public static class ThemeApplier
     }
 
     /// <summary>What happened, for the log — never shown to the user as an interruption.</summary>
-    public static IReadOnlyList<string> Apply(string? styleId)
+    public static IReadOnlyList<string> Apply(string? styleId) => Apply(ThemeCatalog.Load(styleId));
+
+    /// <summary>A theme already loaded: a style from the catalogue, or the server's own palette (#2319).</summary>
+    public static IReadOnlyList<string> Apply(ThemeTokensReader.ThemeLoad load)
     {
         if (Application.Current is not { } application)
         {
             return []; // headless verification hooks that never build an application
         }
 
-        var load = ThemeCatalog.Load(styleId);
         Remove(application);
 
         if (load.Applied)

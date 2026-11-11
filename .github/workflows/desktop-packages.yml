@@ -167,7 +167,9 @@ jobs:
           # version serves, without a running server. Upstream's is recompiled with this tag first (#2166, ADR 1016):
           # the committed one says only its date, and a release attachment names its release.
           if [ "${{ needs.gate.outputs.white_label }}" = "true" ]; then
-            assets+=("$(scripts/edition-manual.sh --white-label)")
+            # With one manual per palette variant its brand carries (#2319): one path per line.
+            manuals="$(scripts/edition-manual.sh --white-label)"
+            while IFS= read -r manual; do assets+=("$manual"); done <<< "$manuals"
             # Its operators' installation manual too, in the edition's names (owner, 2026-11-08): the customer
             # reaches it on the vendor's download page, since this repository and its releases are private.
             assets+=("$(scripts/compile-installation-manual.sh --white-label "$GITHUB_REF_NAME")")

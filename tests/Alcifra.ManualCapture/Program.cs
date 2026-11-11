@@ -14,6 +14,7 @@ using Alcifra.ManualCapture;
 //   (neither)   capture both
 //   --out <dir> output directory (default: manual/screenshots, or manual/screenshots/<lang> for another language)
 //   --lang <code>  the app's language: en (default) or de, for the German manual's figures (ADR 1011)
+//   --variant <id> the brand's palette variant to capture in (#2319), for that variant's manual
 //
 // Its progress goes through the shared plain logger to stderr (ADRs 0906/0911); it has no data output — the
 // result is the PNGs. The factory is disposed before exit so the console logger's background writer flushes.
@@ -36,6 +37,13 @@ var langIndex = Array.IndexOf(args, "--lang");
 var lang = langIndex >= 0 && langIndex + 1 < args.Length ? args[langIndex + 1] : "en";
 // The harness looks up the labels it clicks in the app's strings, in the language it captures.
 Alcifra.Localization.Culture.Apply(lang);
+
+// A palette variant (#2319): set for this process, so the self-hosted API serves it and the desktop it starts wears it.
+var variantIndex = Array.IndexOf(args, "--variant");
+if (variantIndex >= 0 && variantIndex + 1 < args.Length)
+{
+    Environment.SetEnvironmentVariable("Branding__Variant", args[variantIndex + 1]);
+}
 
 var outIndex = Array.IndexOf(args, "--out");
 var outDir = outIndex >= 0 && outIndex + 1 < args.Length

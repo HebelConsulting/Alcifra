@@ -27,6 +27,20 @@ public partial class App : Application
         // The shipped design, built from the brand file rather than a generated dictionary (ADR 0990). Here and
         // not in OnFrameworkInitializationCompleted, so the headless verification hooks get it too.
         Services.ThemeApplier.InstallShipped(this);
+
+        // A palette variant named for the process (Branding__Variant, #2319): the manual's capture wears it with no server
+        // to ask. A desktop in use follows its server's palette instead (ServerPalette); an id the brand lacks is logged.
+        if (Environment.GetEnvironmentVariable("Branding__Variant") is { Length: > 0 } variant)
+        {
+            try
+            {
+                Services.ThemeApplier.Apply(new Alcifra.Theming.ThemeTokensReader.ThemeLoad(Alcifra.Theming.ThemeTokensReader.Of(variant), true, []));
+            }
+            catch (ArgumentException e)
+            {
+                Services.DesktopLog.Warn("Branding__Variant: {Reason}", e.Message);
+            }
+        }
     }
 
     private async Task ShowAboutAsync()

@@ -186,6 +186,25 @@ jobs:
           path: ${{ env.MANUAL_PDF }}
           if-no-files-found: error
 
+      # One more manual per palette variant the edition's brand carries (#2319), captured in that palette, from the
+      # same surfaces this ref captured above. A white-label edition's only: upstream's brand carries none.
+      - name: Build the palette variants' manuals
+        if: ${{ needs.gate.outputs.white_label == 'true' }}
+        run: |
+          set -euo pipefail
+          surfaces=(--desktop)
+          [[ "$GITHUB_REF" == refs/heads/main ]] && surfaces+=(--web --desktop-live)
+          mkdir -p "$RUNNER_TEMP/manual-variants"
+          scripts/manual-variants.sh "${surfaces[@]}" | while read -r pdf; do cp "$pdf" "$RUNNER_TEMP/manual-variants/"; done
+
+      - name: Upload the palette variants' manuals
+        if: ${{ needs.gate.outputs.white_label == 'true' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: manual-variants
+          path: ${{ runner.temp }}/manual-variants
+          if-no-files-found: ignore
+
       - name: Commit the regenerated manual
         if: ${{ github.ref == 'refs/heads/main' && needs.gate.outputs.white_label != 'true' }}
         run: |

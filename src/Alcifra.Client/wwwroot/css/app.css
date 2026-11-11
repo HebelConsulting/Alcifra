@@ -116,6 +116,9 @@ h1:focus {
 .wb-list-row-selected { background: var(--sa-selection); box-shadow: inset 2px 0 0 0 var(--sa-accent); }
 .wb-list-row-selected:hover { background: var(--sa-accent-tint); }
 .wb-tab-active { color: var(--sa-accent-text); box-shadow: inset 0 -2px 0 0 var(--sa-accent); }
+/* The selected folder's name is accent TEXT, the colour checked for contrast on the surface (#2319). MudBlazor paints
+   it in the primary, a button fill, which in a dark palette is too dim to read as text on the dark surface. */
+.mud-treeview.mud-treeview-selected-primary .mud-treeview-item-content.mud-treeview-item-selected { color: var(--sa-accent-text); }
 
 /* ── Toolbar buttons are icons on a pointer, icon + label on touch ─────────────────────────────────────────
    Moved here from Home.razor's style block when every tab started using it, not just Repositories: the shell

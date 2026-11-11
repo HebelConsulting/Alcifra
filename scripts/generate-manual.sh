@@ -52,4 +52,8 @@ echo "==> Compiling the Typst manual → $pdf_out"
 # The one compile (#2022, ADR 1016): "generated <date>"; only a release build names a version.
 scripts/compile-manual.sh "$pdf_out"
 
+# One more per palette variant the brand carries (#2319); the Alcifra brand carries none.
+# shellcheck disable=SC2086
+scripts/manual-variants.sh $mode
+
 echo "==> Done. Served at /download/manual/ (browse /download or open $pdf_out)."

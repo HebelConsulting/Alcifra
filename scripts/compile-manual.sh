@@ -19,8 +19,23 @@ if [[ "${1:-}" == "--release" ]]; then
   shift 2
 fi
 
+# A palette variant (#2319): --variant <id> --screenshots <dir> compiles <fileStem>-Manual-<id>.pdf in that palette, from
+# a copy of manual/ whose figures are the variant's captures (the sources name screenshots/… as they are).
+variant=""; screenshots=""
+while [[ "${1:-}" == --variant || "${1:-}" == --screenshots ]]; do
+  [[ "$1" == --variant ]] && variant="${2:?--variant needs an id}" || screenshots="${2:?--screenshots needs a directory}"
+  shift 2
+done
 source scripts/brand.sh
-pdf="${1:-src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual.pdf}"
+default_pdf="src/Alcifra.Api/wwwroot/download/manual/$BRAND_FILE_STEM-Manual${variant:+-$variant}.pdf"
+pdf="${1:-$default_pdf}"
+root="."
+if [[ -n "$variant" ]]; then
+  [[ -d "$screenshots" ]] || { echo "--variant needs --screenshots <dir> with that palette's captures" >&2; exit 1; }
+  root="$(mktemp -d)"; trap 'rm -rf "$root"' EXIT
+  cp -R manual brand "$root/"
+  rm -rf "$root/manual/screenshots"; cp -R "$screenshots" "$root/manual/screenshots"
+fi
 mkdir -p "$(dirname "$pdf")"
 
 # Date only, never the time of day: same-day regenerations stay byte-identical (ADR 0817). Each manual says it in its
@@ -33,8 +48,8 @@ stamp_de="${release:+$release · }erstellt am $today"
 for lang in en de; do
   source_typ="manual/manual.typ"; out="$pdf"; stamp="$stamp_en"
   [[ "$lang" == de ]] && { source_typ="manual/manual.de.typ"; out="${pdf%.pdf}-de.pdf"; stamp="$stamp_de"; }
-  SOURCE_DATE_EPOCH=1780304400 typst compile "$source_typ" "$out" --root . --font-path brand/assets/fonts \
-    --input generated="$stamp" --input product="$BRAND_NAME"
+  SOURCE_DATE_EPOCH=1780304400 typst compile "$root/$source_typ" "$out" --root "$root" --font-path brand/assets/fonts \
+    --input generated="$stamp" --input product="$BRAND_NAME" ${variant:+--input variant="$variant"}
 done
 
 echo "Manual compiled ($stamp_en): $pdf and ${pdf%.pdf}-de.pdf"

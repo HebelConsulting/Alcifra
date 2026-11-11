@@ -191,6 +191,38 @@
           "description": "The support address."
         }
       }
+    },
+    "colorVariants": {
+      "description": "Named palettes an installation may wear instead of `colors` (#2319): the operator selects one with Branding__Variant. Each is held to the same contrast rules.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "light",
+          "dark"
+        ],
+        "properties": {
+          "name": {
+            "description": "What the palette is called, by language.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": [
+              "en"
+            ]
+          },
+          "light": {
+            "$ref": "#/$defs/palette"
+          },
+          "dark": {
+            "$ref": "#/$defs/palette"
+          }
+        }
+      }
     }
   },
   "$defs": {

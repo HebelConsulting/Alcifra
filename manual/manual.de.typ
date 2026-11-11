@@ -14,7 +14,7 @@
     ] else [
       #text(size: 34pt, weight: "bold", fill: accent)[#product]
     ]
-    #v(0.2em)
+    #v(1cm)
     #text(size: 18pt)[Benutzerhandbuch]
     #v(1.2em)
     #text(size: 11pt, fill: gray)[

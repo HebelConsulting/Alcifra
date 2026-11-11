@@ -7,7 +7,10 @@
 // Read straight from brand/brand.json (compile with --root .), so nothing generated is committed (ADR 0990).
 // Print wants the LIGHT accent regardless of anybody's dark-mode preference, because paper is white.
 #let brand = json("/brand/brand.json")
-#let accent = rgb(brand.colors.light.accent.primary)
+// A palette variant (#2319): compile-manual.sh --variant passes its id, and the manual wears that palette's accent.
+#let variant = sys.inputs.at("variant", default: none)
+#let palette = if variant == none { brand.colors } else { brand.colorVariants.at(variant) }
+#let accent = rgb(palette.light.accent.primary)
 
 // The product's name (ADR 0989), passed by generate-manual.sh from brand/brand.json: never spelled here.
 #let product = sys.inputs.at("product")

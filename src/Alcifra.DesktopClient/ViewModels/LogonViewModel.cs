@@ -146,6 +146,12 @@ public sealed partial class LogonViewModel : ObservableObject
             Services.DesktopLog.Warn("Style not applied as configured: {Note}", note);
         }
 
+        // No style chosen: the SERVER's palette (#2319), as soon as the server answers; until then the shipped design.
+        if (value is not null && Services.ServerPalette.Follows(value.Theme))
+        {
+            _ = FollowServerPaletteAsync(value);
+        }
+
         if (_activated)
         {
             _ = CheckForUpdatesAsync();
@@ -323,4 +329,13 @@ public sealed partial class LogonViewModel : ObservableObject
     }
 
     // A quick reachability probe: the server's OIDC discovery document, bounded by the caller's timeout token.
+
+    private async Task FollowServerPaletteAsync(Services.ServerProfile profile)
+    {
+        if (await Services.ServerPalette.ReadAsync(profile.ApiRootUrl) is { } palette
+            && ReferenceEquals(SelectedServer, profile) && Services.ServerPalette.Follows(profile.Theme))
+        {
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => Services.ThemeApplier.Apply(palette));
+        }
+    }
 }
