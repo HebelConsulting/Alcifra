@@ -1,0 +1,57 @@
+# Our base images (#2325, ADR 1088): what the OCR, mail and client-packaging images need from a distribution's package
+# mirror or a package index is installed HERE, weekly and on demand, and pushed to our registry. Their own Dockerfiles
+# build FROM these images, pinned by digest, so a mirror outage delays at most this rebuild, never a release or a PR.
+# A new digest reaches the images through a PR that moves the pin, which the vulnerability scan checks.
+#
+# Runs on the public mirror only (REPO_ROLE, ADR 1018), where the images are public, so every installation and every
+# white-label edition can pull them without a credential.
+name: Base images
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"   # Mondays 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    if: ${{ vars.REPO_ROLE == 'public' }}
+    name: Base image (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ocr, postfix, clients]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Log in to the registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: The date tag
+        id: date
+        run: echo "tag=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      - name: Build + push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: base/${{ matrix.name }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/hebelconsulting/alcifra-base-${{ matrix.name }}:${{ steps.date.outputs.tag }}
+            ghcr.io/hebelconsulting/alcifra-base-${{ matrix.name }}:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Alcifra base image (${{ matrix.name }}), ADR 1088
+      # The digest to pin: `FROM ghcr.io/hebelconsulting/alcifra-base-<name>@<digest>`.
+      - name: Say the digest to pin
+        run: echo "ghcr.io/hebelconsulting/alcifra-base-${{ matrix.name }}@${{ steps.build.outputs.digest }}" | tee -a "$GITHUB_STEP_SUMMARY"

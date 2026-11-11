@@ -71,59 +71,22 @@ jobs:
       - name: Set up Typst
         uses: ./.github/actions/setup-typst
 
-      # The desktop client renders headless via Avalonia + Skia; on a Linux runner that needs fontconfig + fonts
-      # (the app embeds Inter via WithInterFont, but fall back to DejaVu/Noto for any other glyphs).
-      # Bounded and retried, because this step HUNG twice on 2026-08-18 (manual runs #659 and #661) while
-      # sibling runs minutes either side passed it — the signature of a stalled package mirror rather than a
-      # broken command. Two things follow:
-      #
-      #   timeout-minutes  — without it the job inherits GitHub's SIX HOUR default, so an apt stall burns a
-      #                      runner all day and the PR simply never reports. A fast failure is strictly better
-      #                      than a silent one.
-      #   the retry loop   — a mirror stall is transient, so one retry usually turns a lost run into a slow one.
-      #
-      # THE BOUND IS PER ATTEMPT, and that is the whole point (#635). It was on the STEP, so all three attempts
-      # shared one five-minute budget: a stall on attempt 1 consumed it and attempts 2 and 3 never ran — the
-      # loop could not retry the one failure it exists for. It failed exactly that way twice on 2026-08-19,
-      # and the tell was in the log: NEITHER failing run contained the loop's own ::warning:: line, so no
-      # iteration ever completed. A retry whose budget is shared with the thing it is retrying is decoration.
-      #
-      # `timeout` runs INSIDE sudo, so it parents apt-get directly — outside it, the signal goes to sudo and
-      # only reaches apt if sudo forwards it. `--kill-after` because ignoring SIGTERM is one of the ways apt
-      # hangs; SIGKILL follows ten seconds later. The step timeout stays as a BACKSTOP, sized above
-      # the loop's worst case (3 x 180s + backoff) so it only ever fires if the loop itself is wedged.
-      #
-      # DEBIAN_FRONTEND/NEEDRESTART_MODE remove the other way this can wait forever: a debconf or needrestart
-      # prompt on a runner where nothing can answer it.
-      - name: Install fonts for headless desktop rendering
-        timeout-minutes: 10
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          NEEDRESTART_MODE: a
+      # The desktop client renders headless via Avalonia + Skia; on a Linux runner that needs fontconfig and fonts (the app
+      # embeds Inter, and falls back to the system's fonts for any other glyph). The image carries fontconfig and DejaVu;
+      # Noto Sans comes from the repository, handed to fontconfig in the user's font folder, so no distribution mirror is
+      # asked (#2325, ADR 1088: Ubuntu's mirror blocked every PR for hours on 2026-11-11). The shipped desktop is unchanged.
+      - name: Hand the capture its fonts
         run: |
           set -euo pipefail
-          for attempt in 1 2 3; do
-            if sudo -E timeout --kill-after=10 90 apt-get update -qq \
-              && sudo -E timeout --kill-after=10 90 apt-get install -y -qq --no-install-recommends \
-                   libfontconfig1 fonts-dejavu-core fonts-noto-core; then
-              exit 0
-            else
-              # Captured in the ELSE, not after the `fi`: past the end of an if-statement `$?` is the status of
-              # the STATEMENT (0 when the condition merely failed), so reading it there would label every
-              # failure identically and the distinction below would be silently inert.
-              rc=$?
-            fi
-            # 124 is timeout's own exit code, so a stalled mirror is named as one rather than reported as a
-            # generic failure — the two want different responses, and only one of them is worth retrying.
-            case $rc in
-              124|137) reason="timed out" ;;
-              *)       reason="failed" ;;
-            esac
-            echo "::warning::font install attempt $attempt $reason — retrying"
-            sleep $((attempt * 5))
+          for p in libfontconfig1 fontconfig fonts-dejavu-core; do
+            dpkg -s "$p" >/dev/null 2>&1 || { echo "::error::the runner image no longer carries $p (#2325)"; exit 1; }
           done
-          echo "::error::could not install the rendering fonts after 3 attempts"
-          exit 1
+          mkdir -p "$HOME/.local/share/fonts"
+          cp tests/Alcifra.ManualCapture/fonts/*.ttf "$HOME/.local/share/fonts/"
+          # The cache the image ships predates these fonts, and Skia met it with `free(): invalid pointer`: the desktop
+          # died on its first screen (2026-11-11). Rebuilt here, it renders every screen.
+          rm -rf "$HOME/.cache/fontconfig"
+          fc-cache -f
 
       # Builds the harness and — via its project references — the API + desktop client, so the capture subprocesses
       # can run with --no-build.
@@ -160,6 +123,13 @@ jobs:
       # A regenerated PNG whose every pixel is within ±1 of the committed one is raster noise, not a change
       # (#832) — revert those BEFORE the compile, so neither the PNG nor the PDF that embeds it re-commits
       # over nothing. A real UI change moves pixels by far more and still commits.
+      # Which figures this change moves, on a PR, where nothing is committed: so a change to the capture or its fonts shows
+      # its effect on the manual before it lands.
+      - name: Say which figures this change moves
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git status --porcelain -- manual/screenshots | sed 's/^/moved: /' || true
+
       - name: Drop raster-noise screenshot regenerations
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |

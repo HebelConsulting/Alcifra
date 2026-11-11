@@ -14,12 +14,10 @@
 # The brand's icons (ADR 0993), generated once for both stages below. Its own stage on the DEBIAN SDK image, because
 # the generator renders with Skia, whose native library has no musl build for ARM64: on Alpine it would break
 # `docker compose up --build` on an Apple Silicon Mac. $BUILDPLATFORM, so it runs natively and never under emulation.
-# fontconfig comes from the distribution's package manager (ADR 0611).
+# Skia without fontconfig (#2325, amending ADR 0611): the stage installs no system package.
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS icons
 WORKDIR /src
-RUN apt-get update \
- && apt-get install -y --no-install-recommends libfontconfig1 \
- && rm -rf /var/lib/apt/lists/*
+# No system package (#2325): the generator's Skia needs no fontconfig, so no distribution mirror is asked.
 COPY . .
 RUN dotnet build src/Alcifra.BrandIcons -c Release -p:BrandIconsPhase=Generate -p:BrandIconsDir=/icons/
 

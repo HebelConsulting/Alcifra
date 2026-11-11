@@ -15,6 +15,10 @@
     <PackageReference Include="Avalonia" Version="11.3.18" />
     <PackageReference Include="Avalonia.Headless" Version="11.3.18" />
     <PackageReference Include="Avalonia.Skia" Version="11.3.18" />
+    <!-- Skia without fontconfig on Linux (#2325): the icons are SVG and need no system font, and fontconfig was the one
+         thing the image build asked a distribution mirror for. The default Linux assets, which link it, are left out. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.9" ExcludeAssets="all" />
     <PackageReference Include="Avalonia.Svg" Version="11.3.0" />
   </ItemGroup>
 

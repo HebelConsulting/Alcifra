@@ -3,7 +3,7 @@
   "parameters": "--include-transitive",
   "projects": [
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Api/Alcifra.Api.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Api/Alcifra.Api.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -604,7 +604,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.ApiClient/Alcifra.ApiClient.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.ApiClient/Alcifra.ApiClient.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -701,7 +701,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Application/Alcifra.Application.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Application/Alcifra.Application.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -719,7 +719,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Auth/Alcifra.Auth.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Auth/Alcifra.Auth.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1150,7 +1150,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.BrandIcons/Alcifra.BrandIcons.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.BrandIcons/Alcifra.BrandIcons.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1174,6 +1174,16 @@
               "id": "Avalonia.Svg",
               "requestedVersion": "11.3.0",
               "resolvedVersion": "11.3.0"
+            },
+            {
+              "id": "SkiaSharp.NativeAssets.Linux",
+              "requestedVersion": "2.88.9",
+              "resolvedVersion": "2.88.9"
+            },
+            {
+              "id": "SkiaSharp.NativeAssets.Linux.NoDependencies",
+              "requestedVersion": "2.88.9",
+              "resolvedVersion": "2.88.9"
             }
           ],
           "transitivePackages": [
@@ -1222,10 +1232,6 @@
               "resolvedVersion": "2.88.9"
             },
             {
-              "id": "SkiaSharp.NativeAssets.Linux",
-              "resolvedVersion": "2.88.9"
-            },
-            {
               "id": "SkiaSharp.NativeAssets.macOS",
               "resolvedVersion": "2.88.9"
             },
@@ -1250,7 +1256,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.BrowserHost/Alcifra.BrowserHost.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.BrowserHost/Alcifra.BrowserHost.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1363,7 +1369,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Cli/Alcifra.Cli.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Cli/Alcifra.Cli.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1498,7 +1504,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Client/Alcifra.Client.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Client/Alcifra.Client.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1702,7 +1708,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.ConsoleLogging/Alcifra.ConsoleLogging.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.ConsoleLogging/Alcifra.ConsoleLogging.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -1777,7 +1783,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.DesktopClient/Alcifra.DesktopClient.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.DesktopClient/Alcifra.DesktopClient.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2341,7 +2347,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Domain/Alcifra.Domain.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Domain/Alcifra.Domain.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2362,7 +2368,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2478,7 +2484,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Infrastructure/Alcifra.Infrastructure.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Infrastructure/Alcifra.Infrastructure.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2856,7 +2862,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Localization/Alcifra.Localization.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Localization/Alcifra.Localization.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -2864,7 +2870,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.ModuleAbi/Alcifra.ModuleAbi.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.ModuleAbi/Alcifra.ModuleAbi.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -2922,7 +2928,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Pass/Alcifra.Pass.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Pass/Alcifra.Pass.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -3055,7 +3061,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Presentation/Alcifra.Presentation.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Presentation/Alcifra.Presentation.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -3063,7 +3069,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.SealedArchive/Alcifra.SealedArchive.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.SealedArchive/Alcifra.SealedArchive.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -3089,7 +3095,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.TextLayout/Alcifra.TextLayout.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.TextLayout/Alcifra.TextLayout.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -3104,7 +3110,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Theming/Alcifra.Theming.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Theming/Alcifra.Theming.csproj",
       "frameworks": [
         {
           "framework": "net10.0"
@@ -3112,7 +3118,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/src/Alcifra.Worker/Alcifra.Worker.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/src/Alcifra.Worker/Alcifra.Worker.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -3449,7 +3455,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.BrowserExtensionTests/Alcifra.BrowserExtensionTests.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.BrowserExtensionTests/Alcifra.BrowserExtensionTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -3634,7 +3640,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.DesktopUiEndToEndTests/Alcifra.DesktopUiEndToEndTests.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.DesktopUiEndToEndTests/Alcifra.DesktopUiEndToEndTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -4048,7 +4054,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.EndToEndTests/Alcifra.EndToEndTests.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.EndToEndTests/Alcifra.EndToEndTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -4910,7 +4916,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.IntegrationTests/Alcifra.IntegrationTests.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.IntegrationTests/Alcifra.IntegrationTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5707,7 +5713,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.LoadTest/Alcifra.LoadTest.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.LoadTest/Alcifra.LoadTest.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5804,7 +5810,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.ManualCapture/Alcifra.ManualCapture.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -5953,7 +5959,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.SelfHosting/Alcifra.SelfHosting.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.SelfHosting/Alcifra.SelfHosting.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -6047,7 +6053,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.UiEndToEndTests/Alcifra.UiEndToEndTests.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.UiEndToEndTests/Alcifra.UiEndToEndTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
@@ -6288,7 +6294,7 @@
       ]
     },
     {
-      "path": "/Users/flhe/dev/AlcifraPrivate-2302/tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj",
+      "path": "/Users/flhe/dev/AlcifraPrivate-2325/tests/Alcifra.UnitTests/Alcifra.UnitTests.csproj",
       "frameworks": [
         {
           "framework": "net10.0",
