@@ -84,14 +84,14 @@ RUN dotnet publish "src/Alcifra.Api/Alcifra.Api.csproj" -c Release -o /app/publi
 # Both final images still carry the archives, so /download/clients/{windows,linux}/ keeps working and downloads
 # stay in lock-step with the API image (ADR 0490). macOS is unaffected — a Linux build cannot produce a .dmg, so
 # clients/macos/ links to the brand's release repository (ADR 0997).
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS clients
+# bash, zip, tar and python3 come with our base (#2325, ADR 1088), built weekly into our registry.
+FROM --platform=$BUILDPLATFORM ghcr.io/hebelconsulting/alcifra-base-clients@sha256:15eb646fd4310ec7ab291086ec2787c3e9742c422005e0f40301eb3fa502945e AS clients
 ARG VERSION=0.0.0-dev
 WORKDIR /src
 COPY . .
 COPY --from=icons /icons /icons
-# python3 reads the brand for the packaging scripts (scripts/brand.sh, ADR 0994); this build stage only.
-RUN apk add --no-cache bash zip tar python3 \
- && BRAND_ICONS_DIR=/icons/ bash scripts/package-windows-linux.sh "$VERSION"
+# python3 (in the base) reads the brand for the packaging scripts (scripts/brand.sh, ADR 0994).
+RUN BRAND_ICONS_DIR=/icons/ bash scripts/package-windows-linux.sh "$VERSION"
 
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final

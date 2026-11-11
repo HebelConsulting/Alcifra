@@ -12,6 +12,9 @@ public partial class BrandDistributionTests
     [GeneratedRegex(@"(Alcifra|Alcifra)-(\$|\*|\{|Manual)|ghcr\.io/hebelconsulting/")]
     private static partial Regex HandWrittenName();
 
+    [GeneratedRegex(@"ghcr\.io/hebelconsulting/alcifra-base-[a-z]+@sha256:[0-9a-f]{64}")]
+    private static partial Regex BaseImage();
+
     // The build path: the files that produce and publish packages, images and the chart.
     public static TheoryData<string> BuildPath() =>
     [
@@ -39,6 +42,9 @@ public partial class BrandDistributionTests
             .Where(l => !l.line.TrimStart().StartsWith('#') && HandWrittenName().IsMatch(l.line))
             // package-chart.sh names the chart's own defaults once, to replace them.
             .Where(l => !l.line.Contains("shipped_images=", StringComparison.Ordinal))
+            // Our base images (ADR 1088) are shared infrastructure every edition builds on, never a deliverable a brand
+            // names: pinned by digest, the same for every brand.
+            .Where(l => !BaseImage().IsMatch(l.line))
             .Select(l => $"{relative}:{l.number}: {l.line.Trim()}")
             .ToList();
 

@@ -1,40 +1,9 @@
 # OCR sidecar (ADR "Searchable PDF successor for TIFFs"): a thin HTTP wrapper over OCRmyPDF, which drives
 # Tesseract to turn a (multi-page) TIFF into a searchable PDF (page image + invisible positioned text layer).
 # OCRmyPDF is MPL-2.0, Tesseract Apache-2.0, FastAPI/uvicorn MIT — all used as-is, no bundling into the Api.
-FROM python:3.14-slim
-
-# ocrmypdf pulls in tesseract-ocr (eng), ghostscript, qpdf, etc.; add the other supported OCR languages
-# (must stay in sync with Alcifra.Domain.Documents.OcrLanguages). "All versions" = the base pack plus
-# Tesseract's variant packs (Middle English enm, old-orthography Spanish spa_old).
-# pngquant unlocks OCRmyPDF's --optimize 2/3, which is not a nicety: straightening a COLOUR scan rasterises
-# and re-encodes it, and at the default --optimize 1 a 2.2 MB scan came back 10 MB — a 4.4x inflation on a
-# feature that is on by default, in a product with storage quotas. With pngquant, --optimize 3 returns 2.0 MB,
-# i.e. slightly SMALLER than the source, for about four more seconds. Without it, levels 2 and 3 simply fail.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ocrmypdf \
-        pngquant \
-        qpdf \
-        tesseract-ocr-deu \
-        tesseract-ocr-fra \
-        tesseract-ocr-ita \
-        tesseract-ocr-enm \
-        tesseract-ocr-spa \
-        tesseract-ocr-spa-old \
-        tesseract-ocr-por \
-        tesseract-ocr-ron \
-        tesseract-ocr-rus \
-    && rm -rf /var/lib/apt/lists/*
-
-# numpy (BSD-3-Clause) and Pillow (MIT-CMU) are patch-code detection (#492): Pillow decodes the rasterised
-# pages and multi-page TIFF frames, numpy does the projection profile. A per-pixel loop in plain Python over a
-# 1240x1754 page is not a micro-optimisation away from being usable — it is seconds per page.
-#
-# anyio (MIT) arrives transitively with FastAPI, but app.py imports it DIRECTLY — the per-kind capacity
-# limiters that keep a sub-second patch-code detection from queueing behind a minute of OCR (#1142) are its
-# primitives. A transitive dependency you import yourself is one a dependency bump can remove without
-# warning, so it is named here.
-RUN pip install --no-cache-dir fastapi uvicorn python-multipart numpy pillow anyio
-
+# Our base (#2325, ADR 1088): Tesseract, OCRmyPDF and the Python packages are installed in base/ocr, built weekly into our
+# registry; this image asks no mirror and no package index. A new digest arrives by a PR the vulnerability scan checks.
+FROM ghcr.io/hebelconsulting/alcifra-base-ocr@sha256:0aaa22c9d16df48b252f9694b7b51a03358bda68a814d9ddb2e43a52d982b06d
 COPY app.py /app/app.py
 COPY patchcode.py /app/patchcode.py
 WORKDIR /app

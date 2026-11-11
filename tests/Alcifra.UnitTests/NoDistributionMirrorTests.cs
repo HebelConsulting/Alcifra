@@ -12,9 +12,7 @@ public partial class NoDistributionMirrorTests
     // longer matches anything fails too, so a removal cannot leave its exception behind.
     private static readonly Dictionary<string, string> NotYetRemoved = new(StringComparer.Ordinal)
     {
-        ["Dockerfile"] = "The clients stage's `apk add bash zip tar python3`: FROM base/clients, pinned by digest (#2325, step 4).",
-        ["ocr/Dockerfile"] = "Tesseract, its languages and the Python packages: FROM base/ocr, pinned by digest (#2325, step 4).",
-        ["postfix/Dockerfile"] = "Postfix: FROM base/postfix, pinned by digest (#2325, step 4).",
+        ["Dockerfile"] = "The final stage's `apk upgrade` and `apk add icu-libs curl krb5-libs tzdata`: FROM base/runtime, pinned by digest once its first build exists (#2325, step 4b).",
     };
 
     [Fact]

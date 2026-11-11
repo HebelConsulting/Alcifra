@@ -2,16 +2,10 @@
 # has spent thirty years developing, and hands us LMTP on a private network. We never see a byte that has not
 # already been through software designed for that job.
 #
-# Built from the distribution's own package rather than pulled from a community image (ADR 0611): this is the
-# most exposed service in the stack, so its provenance is Alpine's package database — queryable, upgradable and
-# auditable by the means an administrator already has — rather than one maintainer's account.
-FROM alpine:3.21
-
-# postfix-pgsql is the map type that lets Postfix read the accepted domains straight out of the application's
-# own table. That is not a convenience: it removes the SECOND list, and with it the drift ADR 0628 warns about
-# in both directions — accepting a domain we cannot resolve (mail taken from the internet, then rejected) or
-# missing one we can (mail that never arrives, with nothing to show for it).
-RUN apk add --no-cache postfix postfix-pgsql ca-certificates
+# Built from the distribution's own package rather than pulled from a community image (ADR 0611): its provenance is
+# Alpine's package database. Installed in base/postfix (with postfix-pgsql, the map type that reads the accepted domains
+# straight out of the application's own table, ADR 0628), built weekly into our registry (#2325, ADR 1088).
+FROM ghcr.io/hebelconsulting/alcifra-base-postfix@sha256:38e1f76c62c2156a417b49a02790c8c107c2dd3980b9019478e40b011a954117
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
