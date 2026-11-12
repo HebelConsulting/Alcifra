@@ -155,10 +155,16 @@ internal static class AclSurface
         var e = existing.Resource;
         bool Flag(string name) => e.TryGetProperty(name, out var value) && value.GetBoolean();
 
+        // The entry's GET carries its tag in the BODY, not in an ETag header (only the PUT emits one). Read from the
+        // header alone, every grant and revoke went out with no If-Match, and the lost-update guard above never ran;
+        // `acl remove` took the missing tag for a missing entry.
+        var etag = existing.ETag
+            ?? (e.TryGetProperty("etag", out var tag) && tag.GetString() is { Length: > 0 } token ? $"\"{token}\"" : null);
+
         return (new AclRights(
             Flag("canSee"), Flag("canReadContent"), Flag("canEditContent"), Flag("canEditIndexData"),
             Flag("canDelete"), Flag("canCreateSubItems"), Flag("canManagePermissions"), Flag("canMove"),
-            Flag("canAnnotate")), existing.ETag);
+            Flag("canAnnotate")), etag);
     }
 
     /// <summary>The request body the ACL endpoint takes — the full intended value, because it is a PUT.</summary>

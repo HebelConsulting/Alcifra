@@ -291,6 +291,8 @@ public static class SaConsoleApp
                     .WithDescription("Add rights to what a principal already holds, leaving the rest alone.");
                 acl.AddCommand<AclRevokeCommand>("revoke")
                     .WithDescription("Take rights away, leaving the rest alone.");
+                acl.AddCommand<AclRemoveCommand>("remove")
+                    .WithDescription("Take a principal's whole entry away: they keep only what inheritance gives them.");
                 acl.AddCommand<AclBreakInheritanceCommand>("break-inheritance")
                     .WithDescription("Make the document's own grants the ones that apply: the inherited ones are copied onto it first.");
             });

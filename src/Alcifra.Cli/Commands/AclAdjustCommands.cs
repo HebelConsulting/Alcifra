@@ -57,6 +57,11 @@ public abstract class AclAdjustCommand(ILogger logger) : AsyncCommand<AclSetting
             return 0;
         }
 
+        if (!Granting && intended == AclRights.None)
+        {
+            throw new CliException(AclRemoval.RevokeAllRefused(settings));
+        }
+
         await api.PutWithETagAsync(target.Address, AclSurface.Body(intended), etag, cancellationToken);
         AclSurface.Report(logger, target, current, intended);
         return 0;
@@ -73,11 +78,10 @@ public sealed class AclGrantCommand(ILogger<AclGrantCommand> logger) : AclAdjust
 /// Takes rights away, leaving the rest alone.
 /// </summary>
 /// <remarks>
-/// Revoking every right leaves an entry granting <b>nothing</b>, which is not the same as having no entry:
-/// an explicit empty grant still breaks nothing and inherits nothing extra, while a deleted entry returns the
-/// principal to whatever inheritance gives them. Removing the entry entirely is
-/// <c>DELETE</c> on the same address and is deliberately not this command — "take away the right to delete"
-/// and "take away their entry" are different acts, and one verb for both is how the wrong one gets run.
+/// Revoking every right is refused, not written: the API refuses an entry granting nothing
+/// (<c>EMPTY_GRANT_NOT_ALLOWED</c>), and the refusal names <c>acl remove</c>, which deletes the entry. Removing the
+/// entry stays a command of its own — "take away the right to delete" and "take away their entry" are different
+/// acts, and one verb for both is how the wrong one gets run.
 /// </remarks>
 public sealed class AclRevokeCommand(ILogger<AclRevokeCommand> logger) : AclAdjustCommand(logger)
 {
