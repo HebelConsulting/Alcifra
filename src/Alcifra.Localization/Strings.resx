@@ -7455,4 +7455,31 @@
   <data name="SealKeyPassword" xml:space="preserve">
     <value>Password for {0}</value>
   </data>
+  <data name="MobShareSeal" xml:space="preserve">
+    <value>Seal into folder…</value>
+  </data>
+  <data name="MobSealAudienceTitle" xml:space="preserve">
+    <value>Who can open it</value>
+  </data>
+  <data name="MobSealAudienceIntro" xml:space="preserve">
+    <value>It is sealed on this phone to the hardware keys of everyone ticked here, you included. Nobody else can read it, not even the server.</value>
+  </data>
+  <data name="MobSealYou" xml:space="preserve">
+    <value>{0} (you)</value>
+  </data>
+  <data name="MobSealNoKeyYet" xml:space="preserve">
+    <value>no key enrolled yet: can open it only after enrolling one and a re-seal</value>
+  </data>
+  <data name="MobSealAndFile" xml:space="preserve">
+    <value>Seal and file</value>
+  </data>
+  <data name="MobSealNoKeyWarning" xml:space="preserve">
+    <value>No hardware key is enrolled for you, so you will not be able to open this document yourself. Seal it anyway?</value>
+  </data>
+  <data name="MobSealNoKeyPersonal" xml:space="preserve">
+    <value>No hardware key is enrolled for you. In your personal space only you could open the document, so nobody ever could. Enrol a key first (Tools ▸ Enrol this key), or choose a shared folder.</value>
+  </data>
+  <data name="MobSealNobodyCanOpen" xml:space="preserve">
+    <value>Nobody ticked has a hardware key enrolled, so there is nothing to seal it to. Tick someone who has one.</value>
+  </data>
 </root>

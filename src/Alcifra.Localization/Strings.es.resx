@@ -7455,4 +7455,31 @@
   <data name="SealKeyPassword" xml:space="preserve">
     <value>Contraseña de {0}</value>
   </data>
+  <data name="MobShareSeal" xml:space="preserve">
+    <value>Sellar en una carpeta…</value>
+  </data>
+  <data name="MobSealAudienceTitle" xml:space="preserve">
+    <value>Quién puede abrirlo</value>
+  </data>
+  <data name="MobSealAudienceIntro" xml:space="preserve">
+    <value>Se sella en este teléfono para las llaves de hardware de todas las personas marcadas aquí, usted incluido. Nadie más puede leerlo, ni siquiera el servidor.</value>
+  </data>
+  <data name="MobSealYou" xml:space="preserve">
+    <value>{0} (usted)</value>
+  </data>
+  <data name="MobSealNoKeyYet" xml:space="preserve">
+    <value>aún sin llave registrada: podrá abrirlo solo tras registrar una y volver a sellarlo</value>
+  </data>
+  <data name="MobSealAndFile" xml:space="preserve">
+    <value>Sellar y archivar</value>
+  </data>
+  <data name="MobSealNoKeyWarning" xml:space="preserve">
+    <value>No tiene ninguna llave de hardware registrada, así que no podrá abrir este documento usted mismo. ¿Sellarlo de todos modos?</value>
+  </data>
+  <data name="MobSealNoKeyPersonal" xml:space="preserve">
+    <value>No tiene ninguna llave de hardware registrada. En su espacio personal solo usted podría abrir el documento, así que nadie podría hacerlo nunca. Registre antes una llave (Herramientas ▸ Registrar esta llave) o elija una carpeta compartida.</value>
+  </data>
+  <data name="MobSealNobodyCanOpen" xml:space="preserve">
+    <value>Nadie de los marcados tiene una llave de hardware registrada, así que no hay nada para lo que sellarlo. Marque a alguien que tenga una.</value>
+  </data>
 </root>

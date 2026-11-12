@@ -7455,4 +7455,31 @@
   <data name="SealKeyPassword" xml:space="preserve">
     <value>Password per {0}</value>
   </data>
+  <data name="MobShareSeal" xml:space="preserve">
+    <value>Sigilla in una cartella…</value>
+  </data>
+  <data name="MobSealAudienceTitle" xml:space="preserve">
+    <value>Chi può aprirlo</value>
+  </data>
+  <data name="MobSealAudienceIntro" xml:space="preserve">
+    <value>Viene sigillato su questo telefono per le chiavi hardware di tutte le persone spuntate qui, lei compreso. Nessun altro può leggerlo, nemmeno il server.</value>
+  </data>
+  <data name="MobSealYou" xml:space="preserve">
+    <value>{0} (lei)</value>
+  </data>
+  <data name="MobSealNoKeyYet" xml:space="preserve">
+    <value>nessuna chiave ancora registrata: potrà aprirlo solo dopo averne registrata una e una nuova sigillatura</value>
+  </data>
+  <data name="MobSealAndFile" xml:space="preserve">
+    <value>Sigilla e archivia</value>
+  </data>
+  <data name="MobSealNoKeyWarning" xml:space="preserve">
+    <value>Non ha alcuna chiave hardware registrata, quindi non potrà aprire questo documento. Sigillarlo comunque?</value>
+  </data>
+  <data name="MobSealNoKeyPersonal" xml:space="preserve">
+    <value>Non ha alcuna chiave hardware registrata. Nel suo spazio personale solo lei potrebbe aprire il documento, quindi nessuno potrebbe mai farlo. Registri prima una chiave (Strumenti ▸ Registra questa chiave) o scelga una cartella condivisa.</value>
+  </data>
+  <data name="MobSealNobodyCanOpen" xml:space="preserve">
+    <value>Nessuna delle persone spuntate ha una chiave hardware registrata, quindi non c'è nulla per cui sigillarlo. Spunti qualcuno che ne abbia una.</value>
+  </data>
 </root>

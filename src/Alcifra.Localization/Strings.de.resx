@@ -7455,4 +7455,31 @@
   <data name="SealKeyPassword" xml:space="preserve">
     <value>Passwort für {0}</value>
   </data>
+  <data name="MobShareSeal" xml:space="preserve">
+    <value>In Ordner versiegeln…</value>
+  </data>
+  <data name="MobSealAudienceTitle" xml:space="preserve">
+    <value>Wer es öffnen kann</value>
+  </data>
+  <data name="MobSealAudienceIntro" xml:space="preserve">
+    <value>Es wird auf diesem Telefon für die Hardware-Schlüssel aller hier Angehakten versiegelt, Sie eingeschlossen. Niemand sonst kann es lesen, auch der Server nicht.</value>
+  </data>
+  <data name="MobSealYou" xml:space="preserve">
+    <value>{0} (Sie)</value>
+  </data>
+  <data name="MobSealNoKeyYet" xml:space="preserve">
+    <value>noch kein Schlüssel hinterlegt: kann es erst öffnen, wenn einer hinterlegt und es neu versiegelt ist</value>
+  </data>
+  <data name="MobSealAndFile" xml:space="preserve">
+    <value>Versiegeln und ablegen</value>
+  </data>
+  <data name="MobSealNoKeyWarning" xml:space="preserve">
+    <value>Für Sie ist kein Hardware-Schlüssel hinterlegt, Sie werden dieses Dokument also selbst nicht öffnen können. Trotzdem versiegeln?</value>
+  </data>
+  <data name="MobSealNoKeyPersonal" xml:space="preserve">
+    <value>Für Sie ist kein Hardware-Schlüssel hinterlegt. In Ihrem persönlichen Bereich könnten nur Sie das Dokument öffnen, also niemand. Hinterlegen Sie zuerst einen Schlüssel (Werkzeuge ▸ Diesen Schlüssel hinterlegen) oder wählen Sie einen gemeinsamen Ordner.</value>
+  </data>
+  <data name="MobSealNobodyCanOpen" xml:space="preserve">
+    <value>Niemand der Angehakten hat einen Hardware-Schlüssel hinterlegt, es gibt also nichts, wofür versiegelt werden kann. Haken Sie jemanden mit Schlüssel an.</value>
+  </data>
 </root>
