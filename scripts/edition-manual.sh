@@ -45,4 +45,6 @@ fi
 
 [ -f "$manual" ] || { echo "::error::$manual is missing." >&2; exit 1; }
 echo "$manual"
-for variant in "${variants[@]:-}"; do [ -n "$variant" ] && echo "$variant"; done
+# Guarded, not looped over "${variants[@]:-}": that runs once on an empty value, and a failed test as the script's last
+# command made it exit 1, which failed the release step that collects its output (v0.62.2).
+if ((${#variants[@]})); then printf '%s\n' "${variants[@]}"; fi
