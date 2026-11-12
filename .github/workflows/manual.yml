@@ -48,7 +48,10 @@ jobs:
   manual:
     # 13-15 min on main with one language (measured 2026-10-30); the German pass captures every screen again
     # (ADR 1011), so about twice that, with room for a slow runner.
-    timeout-minutes: 45
+    # A white-label edition captures everything once more per palette variant its brand carries (#2319): Alcifra Bund's
+    # blue and green took the job past 45 min, and the limit cancelled it in the variants' step (2026-11-12, measured
+    # ~23 min for the default captures, ~17-20 min per variant). Upstream keeps 45, its guard against a hung capture.
+    timeout-minutes: ${{ needs.gate.outputs.white_label == 'true' && 120 || 45 }}
     name: Build the user manual
     needs: gate
     if: ${{ vars.REPO_ROLE == 'private' || (needs.gate.outputs.white_label == 'true' && needs.gate.outputs.publishes == 'true') }}
