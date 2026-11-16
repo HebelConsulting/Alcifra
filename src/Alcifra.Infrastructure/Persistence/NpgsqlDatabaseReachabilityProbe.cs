@@ -33,6 +33,13 @@ public sealed class NpgsqlDatabaseReachabilityProbe : IDatabaseReachabilityProbe
 {
     private const int ConnectTimeoutSeconds = 2;
 
+    /// <summary>
+    /// Opening a local connection takes a few milliseconds; from this long it is logged (#2344), well before the
+    /// two-second limit turns it into a failed probe. On 2026-11-16 the kiosk's passing probes took ~1.35 s just
+    /// before failing ones, and nothing recorded it.
+    /// </summary>
+    public static readonly TimeSpan SlowOpenWarning = TimeSpan.FromMilliseconds(500);
+
     private readonly NpgsqlDataSource _dataSource;
     private readonly RefreshableDatabasePassword _password;
     private readonly ILogger _logger;
@@ -61,10 +68,12 @@ public sealed class NpgsqlDatabaseReachabilityProbe : IDatabaseReachabilityProbe
 
     public async ValueTask<DatabaseReachability> CheckAsync(CancellationToken cancellationToken)
     {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             await using var connection = await _dataSource.OpenConnectionAsync(cancellationToken);
             _logger.LogTrace("Readiness probe opened a new physical connection to the database.");
+            WarnIfSlow(_logger, System.Diagnostics.Stopwatch.GetElapsedTime(started));
             return DatabaseReachability.Reachable;
         }
         catch (Exception e)
@@ -114,6 +123,18 @@ public sealed class NpgsqlDatabaseReachabilityProbe : IDatabaseReachabilityProbe
                     "Readiness: a new database connection could not be opened ({SqlState}).",
                     sqlState ?? "no SQLSTATE — the server did not answer");
                 return new DatabaseReachability(DatabaseReachabilityState.Unreachable, sqlState);
+        }
+    }
+
+    /// <summary>Logs a probe whose connection opened, but slowly: the early sign of a stall (#2344).</summary>
+    public static void WarnIfSlow(ILogger logger, TimeSpan elapsed)
+    {
+        if (elapsed >= SlowOpenWarning)
+        {
+            logger.LogWarning(
+                "Readiness: opening a new database connection took {ElapsedMs} ms (warning from {WarnMs} ms, "
+                + "failing at {LimitS} s).",
+                (int)elapsed.TotalMilliseconds, (int)SlowOpenWarning.TotalMilliseconds, ConnectTimeoutSeconds);
         }
     }
 
