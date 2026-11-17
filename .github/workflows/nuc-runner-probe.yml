@@ -1,0 +1,54 @@
+# The probe of the self-hosted runners on the Proxmox NUC (#2335): one real CI run on a runner cloned from the Rocky
+# Linux 10 template, so whatever the template lacks shows as a failing step and goes back into the template, before
+# any of CI's jobs move there. The runners carry only the label `nuc-test` until then, so no other workflow can land
+# on them, and they sit in the organisation's runner group `nuc`, which public repositories cannot use. Private
+# repository only: on the public mirror no runner would ever pick the job up.
+name: NUC runner probe
+
+on:
+  # Runs on the pull request that changes it, and by hand afterwards (e.g. after the template changed).
+  pull_request:
+    paths: [.github/workflows/nuc-runner-probe.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nuc-runner-probe-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    if: ${{ vars.REPO_ROLE == 'private' }}
+    runs-on: nuc-test
+    # The hosted runners need about 25 minutes for build, unit and integration together; a first run also fills the
+    # NuGet cache from nothing.
+    timeout-minutes: 45
+    steps:
+      # What the template carries, in the log, so a gap is visible before a step trips over it.
+      - name: The runner's tools
+        run: |
+          cat /etc/rocky-release
+          docker version --format 'docker {{.Server.Version}}'
+          google-chrome --version
+          gh --version | head -1
+          magick -version | head -1
+          pdftoppm -v 2>&1 | head -1
+          git --version
+      - name: Docker as the runner user
+        run: docker run --rm hello-world | grep -m1 'Hello from Docker'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-tags: true
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore -c Debug
+      - name: UnitTests
+        run: dotnet test tests/Alcifra.UnitTests --no-build -c Debug
+      - name: IntegrationTests
+        run: dotnet test tests/Alcifra.IntegrationTests --no-build -c Debug
