@@ -22,13 +22,17 @@ concurrency:
   group: ci-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+# Which runners the jobs use (#2335): repository variables, so one switch moves a tier onto the in-house pool of one-job
+# runners or back. CI_RUNNER for the fast tier (fast, tests, coverage, verdict), CI_RUNNER_E2E for the heavy tier.
+# Unset, both mean GitHub's hosted runners; the public mirror has no variables and always uses them. If that server is
+# down, clearing the variable sends the next run back to GitHub at once.
 jobs:
   fast:
     # Setup, gates and build take about 11 minutes at their slowest, and hosted runners vary by about 2×. The tests
     # moved to their own job (#2167, ADR 1055) after this one reached 28 of its 30 minutes.
     timeout-minutes: 25
     name: Build + gates
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     outputs:
       white_label: ${{ steps.role.outputs.white_label }}
     steps:
@@ -209,7 +213,7 @@ jobs:
     needs: fast
     # The slower suite took 10.5 minutes on a slow runner, plus about 2 of setup, and hosted runners vary by about 2×.
     timeout-minutes: 25
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -271,7 +275,7 @@ jobs:
     name: Coverage report
     needs: [fast, tests]
     if: always() && needs.fast.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -336,7 +340,7 @@ jobs:
       (github.event_name == 'push' && needs.fast.outputs.white_label != 'true')
       || github.event_name == 'workflow_dispatch'
       || contains(github.event.pull_request.labels.*.name, 'e2e')
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER_E2E || 'ubuntu-latest' }}
     # A leg that HANGS is worse than one that fails: it holds the whole run open, and GitHub refuses to serve any
     # job's logs while the run is in progress — so a stuck leg makes a DIFFERENT leg's red undiagnosable. 30 turns a
     # hang into a bounded failure with its own log; it is a hang guard, not a budget, so a leg that grows toward it is
@@ -372,6 +376,8 @@ jobs:
       #
       # Only toolchains nothing here uses. NOT /usr/share/dotnet — setup-dotnet installs into it.
       - name: Free runner disk space
+        # GitHub's image only: a pool VM is fresh per job and carries none of these toolchains.
+        if: runner.environment == 'github-hosted'
         run: |
           df -h / | tail -1
           sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
@@ -432,7 +438,7 @@ jobs:
     name: E2E verdict
     needs: [fast, tests, heavy]
     if: always() && needs.tests.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Report whether the E2E tier ran
         env:
