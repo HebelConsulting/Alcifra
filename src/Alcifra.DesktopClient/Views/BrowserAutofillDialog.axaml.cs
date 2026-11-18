@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Alcifra.BrowserHost;
 using Alcifra.DesktopClient.Services;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Views;
 
@@ -42,7 +43,7 @@ public partial class BrowserAutofillDialog : Window
         if (enabled)
         {
             var launcher = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Alcifra.Localization.PersistedNames.DesktopAppData,
+                UserFolders.Get(Environment.SpecialFolder.LocalApplicationData), Alcifra.Localization.PersistedNames.DesktopAppData,
                 OperatingSystem.IsWindows() ? "browser-host.cmd" : "browser-host");
 
             // Chrome starts a manifest's path with NO arguments, so the launcher carries the verb (ADR 0978).

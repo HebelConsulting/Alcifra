@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Serilog;
 using Serilog.Events;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Services;
 
@@ -77,8 +78,8 @@ public static class DesktopLog
     }
 
     /// <summary>The folder the log files live in — what Help ▸ Show log folder opens.</summary>
-    public static string Directory { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Alcifra.Localization.PersistedNames.DesktopAppData, "logs");
+    public static string Directory => Path.Combine(
+        UserFolders.Get(Environment.SpecialFolder.ApplicationData), Alcifra.Localization.PersistedNames.DesktopAppData, "logs");
 
     /// <summary>Called once at startup, before anything that might want to log.</summary>
     /// <param name="verbose">

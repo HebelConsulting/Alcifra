@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Alcifra.ApiClient.PasswordStore;
+using Alcifra.ApiClient;
 
 namespace Alcifra.Pass.Infrastructure;
 
@@ -134,7 +135,7 @@ internal sealed class StoreCatalog(Session session)
     internal static string CacheFolder =>
         Environment.GetEnvironmentVariable("ALCIFRA_CACHE_DIR") is { Length: > 0 } given
             ? given
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "apass");
+            : Path.Combine(UserFolders.Get(Environment.SpecialFolder.LocalApplicationData), "apass");
 
     private static string CachePath(string url, Guid storeId)
     {

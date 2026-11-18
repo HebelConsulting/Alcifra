@@ -1,4 +1,5 @@
 using Alcifra.Theming;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Services;
 
@@ -12,8 +13,8 @@ public sealed class LocalFolders
     public LocalFolders(string tenantName, string userName)
     {
         var basePath = OperatingSystem.IsWindows()
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Alcifra.Localization.PersistedNames.DesktopAppData)
-            : HomeFolder(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Brand.Shipped.FileStem);
+            ? Path.Combine(UserFolders.Get(Environment.SpecialFolder.ApplicationData), Alcifra.Localization.PersistedNames.DesktopAppData)
+            : HomeFolder(UserFolders.Get(Environment.SpecialFolder.UserProfile), Brand.Shipped.FileStem);
 
         Root = Path.Combine(basePath, Sanitize(tenantName), Sanitize(userName));
         TempDirectory = Path.Combine(Root, "temp");

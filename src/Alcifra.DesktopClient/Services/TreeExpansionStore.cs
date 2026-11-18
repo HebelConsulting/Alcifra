@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Services;
 
@@ -37,8 +38,8 @@ public sealed record ExpandedNode(Guid Id, Guid? ParentId);
 /// </remarks>
 public static class TreeExpansionStore
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+    private static string FilePath => Path.Combine(
+        UserFolders.Get(Environment.SpecialFolder.ApplicationData),
         Alcifra.Localization.PersistedNames.DesktopAppData,
         "desktop-tree.json");
 

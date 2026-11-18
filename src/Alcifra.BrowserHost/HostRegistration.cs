@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Alcifra.ApiClient;
 
 namespace Alcifra.BrowserHost;
 
@@ -42,7 +43,7 @@ public static class HostRegistration
 
         if (OperatingSystem.IsWindows())
         {
-            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "apass");
+            var folder = Path.Combine(UserFolders.Get(Environment.SpecialFolder.LocalApplicationData), "apass");
             Directory.CreateDirectory(folder);
             var manifestPath = Path.Combine(folder, $"{hostName}.json");
             var reg = Path.Combine(folder, $"{hostName}.reg");
@@ -96,9 +97,9 @@ public static class HostRegistration
     }
 
     private static string NativeMessagingHostsFolder(string browser) => OperatingSystem.IsMacOS()
-        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support",
+        ? Path.Combine(UserFolders.Get(Environment.SpecialFolder.UserProfile), "Library", "Application Support",
             browser == "edge" ? "Microsoft Edge" : "Google Chrome", "NativeMessagingHosts")
-        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config",
+        : Path.Combine(UserFolders.Get(Environment.SpecialFolder.UserProfile), ".config",
             browser == "edge" ? "microsoft-edge" : "google-chrome", "NativeMessagingHosts");
 
     private static string RegistryKey(string browser) =>

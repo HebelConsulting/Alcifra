@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Services;
 
@@ -61,7 +62,7 @@ public static class BeyondCompare
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            var pf = UserFolders.Get(Environment.SpecialFolder.ProgramFiles);
             foreach (var version in new[] { "Beyond Compare 5", "Beyond Compare 4", "Beyond Compare 3" })
             {
                 yield return Path.Combine(pf, version, "BCompare.exe");

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Alcifra.BrowserHost;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Alcifra.ApiClient;
 
 namespace Alcifra.Pass.Commands;
 
@@ -46,7 +47,7 @@ public sealed class BrowserInstallCommand(ILogger<BrowserInstallCommand> logger)
             ?? throw new InvalidOperationException("Cannot tell this tool's own path; pass --apass <PATH>.");
 
         var launcher = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "apass",
+            UserFolders.Get(Environment.SpecialFolder.LocalApplicationData), "apass",
             OperatingSystem.IsWindows() ? "browser-host.cmd" : "browser-host");
         HostRegistration.WriteLauncher(launcher, apass, "__browser-host");
 

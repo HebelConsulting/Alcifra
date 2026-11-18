@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Services;
 
@@ -43,8 +44,8 @@ public sealed class ServerConfig
 // All IO is best-effort — a missing/unreadable file yields an empty config, and a failed write is swallowed.
 public static class ServerProfileStore
 {
-    private static readonly string FilePath = Path.Combine(
-        System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData),
+    private static string FilePath => Path.Combine(
+        UserFolders.Get(Environment.SpecialFolder.ApplicationData),
         Alcifra.Localization.PersistedNames.DesktopAppData,
         "servers.json");
 

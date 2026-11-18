@@ -42,7 +42,7 @@ public sealed class CliSession(string path, Func<HttpRequestMessage, Cancellatio
     private static string DefaultPath =>
         Environment.GetEnvironmentVariable(WireNames.SessionFileVariable) is { Length: > 0 } given
             ? given
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "alcifra", "session.json");
+            : Path.Combine(UserFolders.Get(Environment.SpecialFolder.LocalApplicationData), "alcifra", "session.json");
 
     /// <summary>
     /// Puts the file's session into this process's environment, where every command already looks.

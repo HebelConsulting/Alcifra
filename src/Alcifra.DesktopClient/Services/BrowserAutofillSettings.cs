@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Alcifra.ApiClient;
 
 namespace Alcifra.DesktopClient.Services;
 
@@ -11,8 +12,8 @@ public sealed record BrowserAutofillSettings(bool Enabled = false, string Extens
 
 public static class BrowserAutofillSettingsStore
 {
-    private static readonly string FilePath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    private static string FilePath => Path.Combine(
+        UserFolders.Get(Environment.SpecialFolder.LocalApplicationData),
         Alcifra.Localization.PersistedNames.DesktopAppData,
         "desktop-autofill.json");
 

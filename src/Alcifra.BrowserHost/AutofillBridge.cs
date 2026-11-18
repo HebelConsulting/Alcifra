@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Alcifra.ApiClient;
 
 namespace Alcifra.BrowserHost;
 
@@ -51,7 +52,7 @@ public sealed class AutofillBridge : IAsyncDisposable
 
     /// <summary>Where a client's shim finds its bridge: one file per client name, under the user's local data.</summary>
     public static string DiscoveryPath(string clientName) => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        UserFolders.Get(Environment.SpecialFolder.LocalApplicationData),
         "alcifra", $"autofill-{clientName}.json");
 
     /// <summary>Starts listening, writes the discovery file, and accepts shims until disposed.</summary>
