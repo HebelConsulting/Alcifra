@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
+using Alcifra.ApiClient;
 using Alcifra.Theming;
 
 namespace Alcifra.DesktopClient.Services;
@@ -11,13 +11,13 @@ namespace Alcifra.DesktopClient.Services;
 /// still pick another style).
 /// </summary>
 /// <remarks>
-/// Followed from the API root rather than composed, held per server for the session, and laid through the same contrast
-/// rules as any custom theme. A server that cannot be reached, or an older one without the rel, leaves the shipped design:
-/// a colour scheme is never worth an error.
+/// Read through the shared <see cref="ServerTheme"/> (ADR 0917), held per server for the session, and laid through the
+/// same contrast rules as any custom theme. A server that cannot be reached, or an older one without the rel, leaves
+/// the shipped design: a colour scheme is never worth an error.
 /// </remarks>
 internal static class ServerPalette
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private static readonly ServerTheme Reader = new();
     private static readonly ConcurrentDictionary<string, ThemeTokensReader.ThemeLoad> Known = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -41,7 +41,11 @@ internal static class ServerPalette
     /// <summary>Whether that palette is read from the server: it means the server's, and none is pinned.</summary>
     public static bool Follows(string? styleId) => Pinned is null && MeansServer(styleId);
 
-    /// <summary>The server's palette, or null where it cannot be read or adds nothing to the shipped design.</summary>
+    /// <summary>The server's palette, or null where it cannot be read (ADR 0917's reader, shared with the phone).</summary>
+    /// <remarks>
+    /// The fetch and the parse live in <see cref="ServerTheme"/> so the two clients cannot drift into their own idea of
+    /// what a server said: the phone reads the same rela without this cache, this pinned-variant branch or Avalonia.
+    /// </remarks>
     public static async Task<ThemeTokensReader.ThemeLoad?> ReadAsync(string apiRootUrl, CancellationToken cancellationToken = default)
     {
         if (Known.TryGetValue(apiRootUrl, out var known))
@@ -49,32 +53,13 @@ internal static class ServerPalette
             return known;
         }
 
-        try
+        if (await Reader.ReadAsync(apiRootUrl, cancellationToken) is not { } tokens)
         {
-            var root = new Uri(apiRootUrl.TrimEnd('/') + "/");
-            using var api = JsonDocument.Parse(await Http.GetStringAsync(new Uri(root, "api"), cancellationToken));
-            var href = api.RootElement.TryGetProperty("links", out var links) && links.ValueKind == JsonValueKind.Array
-                ? links.EnumerateArray().Where(l => l.TryGetProperty("rel", out var rel) && rel.GetString() == "theme")
-                    .Select(l => l.GetProperty("href").GetString()).FirstOrDefault()
-                : null;
-            if (href is null)
-            {
-                return null;
-            }
-
-            var load = ThemeTokensReader.Load(await Http.GetStringAsync(new Uri(root, href.TrimStart('/')), cancellationToken));
-            if (!load.Applied)
-            {
-                return null;
-            }
-
-            Known[apiRootUrl] = load;
-            return load;
-        }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException or UriFormatException or InvalidOperationException or KeyNotFoundException)
-        {
-            DesktopLog.Debug("The server's palette could not be read from {Server}: {Reason}", apiRootUrl, e.Message);
             return null;
         }
+
+        var load = new ThemeTokensReader.ThemeLoad(tokens, true, []);
+        Known[apiRootUrl] = load;
+        return load;
     }
 }

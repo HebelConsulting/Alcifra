@@ -40,6 +40,9 @@
     <ProjectReference Include="..\Alcifra.TextLayout\Alcifra.TextLayout.csproj" />
     <!-- The .alcifra container's reader (ADR 0961): a road copy opens into the same responder as an export. -->
     <ProjectReference Include="..\Alcifra.SealedArchive\Alcifra.SealedArchive.csproj" />
+    <!-- The design tokens the server's palette is read into (ServerTheme, #2319): a dependency-free leaf, so a client
+         can hold a palette without holding a UI toolkit. -->
+    <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
   </ItemGroup>
 
   <ItemGroup>

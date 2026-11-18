@@ -7482,4 +7482,28 @@
   <data name="MobSealNobodyCanOpen" xml:space="preserve">
     <value>Nobody ticked has a hardware key enrolled, so there is nothing to seal it to. Tick someone who has one.</value>
   </data>
+  <data name="MobDeviceShares" xml:space="preserve">
+    <value>On this device</value>
+  </data>
+  <data name="MobDeviceArchive" xml:space="preserve">
+    <value>In the intray</value>
+  </data>
+  <data name="MobDeviceRemove" xml:space="preserve">
+    <value>Remove from device</value>
+  </data>
+  <data name="MobDeviceRemoveAsk" xml:space="preserve">
+    <value>Remove the ticked files from this device? They are not filed anywhere else; this cannot be undone.</value>
+  </data>
+  <data name="MobDeviceLocked" xml:space="preserve">
+    <value>These files are sealed to {0}'s key. Open the key to preview or file them.</value>
+  </data>
+  <data name="MobDeviceWaiting" xml:space="preserve">
+    <value>Files on this device: {0}</value>
+  </data>
+  <data name="MobDeviceUnreadable" xml:space="preserve">
+    <value>This file cannot be opened: the key it was sealed to is not available.</value>
+  </data>
+  <data name="MobDeviceSelected" xml:space="preserve">
+    <value>{0} ticked</value>
+  </data>
 </root>

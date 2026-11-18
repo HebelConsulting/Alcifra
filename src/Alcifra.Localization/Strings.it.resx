@@ -7482,4 +7482,28 @@
   <data name="MobSealNobodyCanOpen" xml:space="preserve">
     <value>Nessuna delle persone spuntate ha una chiave hardware registrata, quindi non c'è nulla per cui sigillarlo. Spunti qualcuno che ne abbia una.</value>
   </data>
+  <data name="MobDeviceShares" xml:space="preserve">
+    <value>Su questo dispositivo</value>
+  </data>
+  <data name="MobDeviceArchive" xml:space="preserve">
+    <value>Nel vassoio d'ingresso</value>
+  </data>
+  <data name="MobDeviceRemove" xml:space="preserve">
+    <value>Rimuovi dal dispositivo</value>
+  </data>
+  <data name="MobDeviceRemoveAsk" xml:space="preserve">
+    <value>Rimuovere i file selezionati da questo dispositivo? Non sono archiviati altrove; l'operazione non è reversibile.</value>
+  </data>
+  <data name="MobDeviceLocked" xml:space="preserve">
+    <value>Questi file sono sigillati con la chiave di {0}. Apri la chiave per visualizzarli o archiviarli.</value>
+  </data>
+  <data name="MobDeviceWaiting" xml:space="preserve">
+    <value>File su questo dispositivo: {0}</value>
+  </data>
+  <data name="MobDeviceUnreadable" xml:space="preserve">
+    <value>Impossibile aprire questo file: la chiave con cui è stato sigillato non è disponibile.</value>
+  </data>
+  <data name="MobDeviceSelected" xml:space="preserve">
+    <value>{0} selezionati</value>
+  </data>
 </root>

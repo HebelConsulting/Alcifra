@@ -7482,4 +7482,28 @@
   <data name="MobSealNobodyCanOpen" xml:space="preserve">
     <value>Niemand der Angehakten hat einen Hardware-Schlüssel hinterlegt, es gibt also nichts, wofür versiegelt werden kann. Haken Sie jemanden mit Schlüssel an.</value>
   </data>
+  <data name="MobDeviceShares" xml:space="preserve">
+    <value>Auf diesem Gerät</value>
+  </data>
+  <data name="MobDeviceArchive" xml:space="preserve">
+    <value>Im Eingangskorb</value>
+  </data>
+  <data name="MobDeviceRemove" xml:space="preserve">
+    <value>Vom Gerät entfernen</value>
+  </data>
+  <data name="MobDeviceRemoveAsk" xml:space="preserve">
+    <value>Die markierten Dateien von diesem Gerät entfernen? Sie sind nirgends abgelegt; das lässt sich nicht rückgängig machen.</value>
+  </data>
+  <data name="MobDeviceLocked" xml:space="preserve">
+    <value>Diese Dateien sind mit dem Schlüssel von {0} versiegelt. Öffnen Sie den Schlüssel, um sie anzusehen oder abzulegen.</value>
+  </data>
+  <data name="MobDeviceWaiting" xml:space="preserve">
+    <value>Dateien auf diesem Gerät: {0}</value>
+  </data>
+  <data name="MobDeviceUnreadable" xml:space="preserve">
+    <value>Diese Datei lässt sich nicht öffnen: Der Schlüssel, mit dem sie versiegelt wurde, ist nicht verfügbar.</value>
+  </data>
+  <data name="MobDeviceSelected" xml:space="preserve">
+    <value>{0} markiert</value>
+  </data>
 </root>

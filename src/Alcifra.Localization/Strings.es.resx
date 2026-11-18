@@ -7482,4 +7482,28 @@
   <data name="MobSealNobodyCanOpen" xml:space="preserve">
     <value>Nadie de los marcados tiene una llave de hardware registrada, así que no hay nada para lo que sellarlo. Marque a alguien que tenga una.</value>
   </data>
+  <data name="MobDeviceShares" xml:space="preserve">
+    <value>En este dispositivo</value>
+  </data>
+  <data name="MobDeviceArchive" xml:space="preserve">
+    <value>En la entrada</value>
+  </data>
+  <data name="MobDeviceRemove" xml:space="preserve">
+    <value>Quitar del dispositivo</value>
+  </data>
+  <data name="MobDeviceRemoveAsk" xml:space="preserve">
+    <value>¿Quitar del dispositivo los archivos marcados? No se han archivado en otro lugar; esto no se puede deshacer.</value>
+  </data>
+  <data name="MobDeviceLocked" xml:space="preserve">
+    <value>Estos archivos están sellados con la clave de {0}. Abre la clave para previsualizarlos o archivarlos.</value>
+  </data>
+  <data name="MobDeviceWaiting" xml:space="preserve">
+    <value>Archivos en este dispositivo: {0}</value>
+  </data>
+  <data name="MobDeviceUnreadable" xml:space="preserve">
+    <value>No se puede abrir este archivo: la clave con la que se selló no está disponible.</value>
+  </data>
+  <data name="MobDeviceSelected" xml:space="preserve">
+    <value>{0} marcados</value>
+  </data>
 </root>
