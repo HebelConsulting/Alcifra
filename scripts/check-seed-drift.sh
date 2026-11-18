@@ -31,7 +31,9 @@ SEEDED=(AlcifraCertificateAuthority AlcifraEncryption AlcifraEncryptionService A
 #   Alcifra      the public mirror of THIS repository; CLAUDE.md is withheld from it by ADR 0484.
 #   AlcifraTube  public; its seeded CLAUDE.md stays local and gitignored, like the Messenger's, and its ADRs
 #                live here under docs/modules/tube/adr/ (owner, 2026-11-03: the seed is not published).
-EXCLUDED=(CAManagement AlcifraMarketing Alcifra AlcifraPrivate AlcifraTube)
+#   Alcifra4Bund, Alcifra4Easyname  white-label editions of THIS repository: they carry the core's own CLAUDE.md,
+#                which names the seed without being one (owner, 2026-11-18, #2352).
+EXCLUDED=(CAManagement AlcifraMarketing Alcifra AlcifraPrivate AlcifraTube Alcifra4Bund Alcifra4Easyname)
 
 # A title, reduced to what a reader would call "the same principle": the prose, without the ADR or issue
 # pointer a sibling may legitimately drop, case-folded. Keeps an exact-looking comparison from failing on
@@ -74,7 +76,8 @@ for repo in "${SEEDED[@]}"; do
 
   if [[ -n "$missing" ]]; then
     echo "✗ $repo — missing $(printf '%s\n' "$missing" | wc -l | tr -d ' ') of $seed_count (and carries $own of its own):"
-    printf '      %s\n' "$missing"
+    # One argument holding several lines: printf's format would indent only the first, so indent each line.
+    printf '%s\n' "$missing" | sed 's/^/      /'
     drift=1
   else
     echo "✓ $repo — carries all $seed_count (plus $own of its own)"
