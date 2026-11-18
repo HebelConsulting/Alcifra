@@ -23,7 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
+    <!-- The generator's own switches stop here: passed on, they made Theming a second configuration that a solution
+         build compiled in parallel with the normal one, into the same bin/ and obj/ folders (#2357). -->
+    <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" GlobalPropertiesToRemove="BrandIconsPhase;BrandIconsDir" />
   </ItemGroup>
 
   <ItemGroup>
