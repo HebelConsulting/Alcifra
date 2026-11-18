@@ -55,7 +55,10 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+      # Hosted only (ADR 1090): on the in-house pool, GitHub's cache took 6-8 minutes per job over the internet line,
+      # while a plain restore from the package source fetched all 3.6 GB in 12 seconds.
       - name: Cache NuGet packages
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.nuget/packages
@@ -191,7 +194,10 @@ jobs:
         run: dotnet build --no-restore -c Debug
       # One build for both test jobs (ADR 1055): building twice would cost the runner minutes this split must not.
       # Only the test projects' output and the generated icons (ADR 0993) a test reads: the sources come from its own checkout.
+      # Hosted only (ADR 1090): on the in-house pool each test job builds for itself, which is faster there than
+      # moving the archive over the internet line.
       - name: Pack the test build
+        if: runner.environment == 'github-hosted'
         run: |
           tar --zstd -cf test-build.tar.zst \
             artifacts/brand-icons \
@@ -199,6 +205,7 @@ jobs:
             tests/Alcifra.IntegrationTests/bin tests/Alcifra.IntegrationTests/obj \
             tests/Alcifra.BrowserExtensionTests/bin tests/Alcifra.BrowserExtensionTests/obj
       - name: Upload the test build
+        if: runner.environment == 'github-hosted'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-build
@@ -229,7 +236,10 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+      # Hosted only (ADR 1090): on the in-house pool, GitHub's cache took 6-8 minutes per job over the internet line,
+      # while a plain restore from the package source fetched all 3.6 GB in 12 seconds.
       - name: Cache NuGet packages
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.nuget/packages
@@ -238,11 +248,18 @@ jobs:
       - name: Restore
         run: dotnet restore
       - name: Download the test build
+        if: runner.environment == 'github-hosted'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: test-build
       - name: Unpack the test build
+        if: runner.environment == 'github-hosted'
         run: tar --zstd -xf test-build.tar.zst && rm test-build.tar.zst
+      # On the in-house pool (ADR 1090): the same build as the fast job's, about a minute there, where the download
+      # took five.
+      - name: Build
+        if: runner.environment != 'github-hosted'
+        run: dotnet build --no-restore -c Debug
       # The migration-data-preservation guard runs inside the integration suite (MigrationDataPreservationTests).
       # Coverage (ADR "Code-coverage reporting"): the fast-tier suites collect line/branch coverage via the
       # coverlet.collector already referenced in every test project (`--collect "XPlat Code Coverage"` → a
@@ -389,7 +406,10 @@ jobs:
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+      # Hosted only (ADR 1090): on the in-house pool, GitHub's cache took 6-8 minutes per job over the internet line,
+      # while a plain restore from the package source fetched all 3.6 GB in 12 seconds.
       - name: Cache NuGet packages
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.nuget/packages
