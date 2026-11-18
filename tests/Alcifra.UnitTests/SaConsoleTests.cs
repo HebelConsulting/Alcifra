@@ -22,13 +22,24 @@ public sealed class SaConsoleTests
             RepositoryName = "Acme Archive",
         };
 
+    // An empty --url falls back to $ALCIFRA_URL, which any machine with an `alcifra login` session has set: without
+    // clearing it, this test failed on exactly the developer machines that use the tool.
     [Fact]
     public void A_url_is_required()
     {
-        var result = Valid(url: "").Validate();
+        var previous = Environment.GetEnvironmentVariable(ApiSettings.UrlVariable);
+        Environment.SetEnvironmentVariable(ApiSettings.UrlVariable, null);
+        try
+        {
+            var result = Valid(url: "").Validate();
 
-        Assert.False(result.Successful);
-        Assert.Contains("--url", result.Message);
+            Assert.False(result.Successful);
+            Assert.Contains("--url", result.Message);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(ApiSettings.UrlVariable, previous);
+        }
     }
 
     private static readonly string[] SecretVariables = ["ALCIFRA_CLIENT_SECRET", "SACONSOLE_CLIENT_SECRET"];
