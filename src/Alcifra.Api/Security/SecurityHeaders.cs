@@ -73,6 +73,9 @@ public static class SecurityHeaders
 
                 // Never overwrite: a deployment that sets these at its edge owns them, and two policies are
                 // intersected by the browser rather than merged — the stricter one wins and the app breaks.
+                // Whether the policy came from the response itself is remembered BEFORE ours is set: that is what
+                // decides whether the older X-Frame-Options may be written beside it (#2340).
+                var policySupplied = headers.ContainsKey("Content-Security-Policy");
                 Set(headers, "Content-Security-Policy", policy.Replace(NoncePlaceholder, nonce, StringComparison.Ordinal));
                 Set(headers, "X-Content-Type-Options", "nosniff");
                 Set(headers, "Referrer-Policy", "strict-origin-when-cross-origin");
@@ -80,8 +83,12 @@ public static class SecurityHeaders
                 // frame-ancestors in the CSP is the modern control and covers this; X-Frame-Options is kept for
                 // browsers that honour only the older header. SAMEORIGIN, not DENY: the OIDC silent-renew flow
                 // frames our own origin, and DENY would break token refresh in a way that presents as a random
-                // sign-out.
-                Set(headers, "X-Frame-Options", "SAMEORIGIN");
+                // sign-out. It steps aside only where the response stated its own framing rule (#2340).
+                if (AddsFrameOptions(policySupplied, headers["Content-Security-Policy"].ToString()))
+                {
+                    Set(headers, "X-Frame-Options", "SAMEORIGIN");
+                }
+
                 Set(headers, "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
 
                 if (hsts is not null && context.Request.IsHttps)
@@ -95,6 +102,19 @@ public static class SecurityHeaders
             await next();
         });
     }
+
+    /// <summary>
+    /// Whether the older <c>X-Frame-Options</c> is written beside the policy on this response (#2340): not where an
+    /// endpoint supplied its own Content-Security-Policy naming <c>frame-ancestors</c> — that response has stated its
+    /// own framing rule, and SAMEORIGIN can only contradict it (the Tube module's embed page allows any origin by its
+    /// own CSP, yet still carried SAMEORIGIN, so a browser honouring only the older header refused the frame).
+    /// </summary>
+    /// <remarks>
+    /// Our own composed policy does not count: it says <c>frame-ancestors 'self'</c> and the older header agrees with
+    /// it, which is the defence-in-depth old browsers are given.
+    /// </remarks>
+    internal static bool AddsFrameOptions(bool policySupplied, string? policy) =>
+        !policySupplied || !(policy?.Contains("frame-ancestors", StringComparison.OrdinalIgnoreCase) ?? false);
 
     /// <summary>The origin the browser reaches object storage at, or null when it is not configured.</summary>
     internal static string? StorageOrigin(IConfiguration configuration)

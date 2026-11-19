@@ -5439,6 +5439,9 @@
   <data name="DelConfirmDocument" xml:space="preserve">
     <value>«{0}» löschen? Es wird in den Papierkorb verschoben.</value>
   </data>
+  <data name="DelConfirmBulk" xml:space="preserve">
+    <value>{0} Element(e) in den Papierkorb verschieben?</value>
+  </data>
   <data name="RemMyself" xml:space="preserve">
     <value>Mich selbst</value>
   </data>

@@ -649,7 +649,7 @@ public partial class MainWindow : Window
     internal void OnBulkDelete(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
         if (DataContext is MainWindowViewModel vm
-            && await new ConfirmDialog($"Move {vm.BulkSelectionCount} item(s) to the recycle bin?", "Delete").ShowDialog<bool>(this))
+            && await new ConfirmDialog(string.Format(Strings.Get("DelConfirmBulk"), vm.BulkSelectionCount), Strings.Get("UgDelete")).ShowDialog<bool>(this))
         {
             await vm.BulkDeleteAsync();
         }

@@ -209,7 +209,7 @@ public sealed partial class RecycleBinTabViewModel : ObservableObject
         try
         {
             await _api.RecycleBin.RestoreAsync(item.Entry!);
-            Report($"Restored '{item.Name}'.");
+            Report(string.Format(Strings.Get("StRestored"), item.Name));
             await LoadAsync();
         }
         catch (Exception e)
@@ -265,7 +265,7 @@ public sealed partial class RecycleBinTabViewModel : ObservableObject
         try
         {
             var (restored, skipped) = await _api.RecycleBin.RestoreManyAsync(BinRel("restore-selected"), ids);
-            Report(skipped > 0 ? $"Restored {restored} item(s), skipped {skipped}." : $"Restored {restored} item(s).");
+            Report(skipped > 0 ? string.Format(Strings.Get("StRestoredSkipped"), restored, skipped) : string.Format(Strings.Get("StRestoredItems"), restored));
             await LoadAsync();
         }
         catch (Exception e)
@@ -292,7 +292,7 @@ public sealed partial class RecycleBinTabViewModel : ObservableObject
         try
         {
             var (purged, skipped) = await _api.RecycleBin.PurgeManyAsync(BinRel("purge"), ids);
-            Report(skipped > 0 ? $"Permanently deleted {purged} item(s), skipped {skipped} (legal hold / locked)." : $"Permanently deleted {purged} item(s).");
+            Report(skipped > 0 ? string.Format(Strings.Get("StPurgedSkipped"), purged, skipped) : string.Format(Strings.Get("StPurgedItems"), purged));
             await LoadAsync();
         }
         catch (Exception e)
@@ -313,7 +313,7 @@ public sealed partial class RecycleBinTabViewModel : ObservableObject
         try
         {
             await _api.RecycleBin.PurgeAsync(item.Entry!);
-            Report($"Permanently deleted '{item.Name}'.");
+            Report(string.Format(Strings.Get("StPermanentlyDeleted"), item.Name));
             await LoadAsync();
         }
         catch (ApiActionException e)
@@ -338,7 +338,7 @@ public sealed partial class RecycleBinTabViewModel : ObservableObject
         try
         {
             await _api.RecycleBin.PurgeRecycleBinAsync(BinRel("purge"));
-            Report("The recycle bin was permanently emptied.");
+            Report(Strings.Get("StRecycleBinEmptied"));
             await LoadAsync();
         }
         catch (ApiActionException e)

@@ -5439,6 +5439,9 @@
   <data name="DelConfirmDocument" xml:space="preserve">
     <value>Eliminare «{0}»? Verrà spostato nel cestino.</value>
   </data>
+  <data name="DelConfirmBulk" xml:space="preserve">
+    <value>Spostare {0} elemento/i nel cestino?</value>
+  </data>
   <data name="RemMyself" xml:space="preserve">
     <value>Me stesso</value>
   </data>

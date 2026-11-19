@@ -5439,6 +5439,9 @@
   <data name="DelConfirmDocument" xml:space="preserve">
     <value>¿Eliminar «{0}»? Se moverá a la papelera.</value>
   </data>
+  <data name="DelConfirmBulk" xml:space="preserve">
+    <value>¿Mover {0} elemento(s) a la papelera?</value>
+  </data>
   <data name="RemMyself" xml:space="preserve">
     <value>Yo mismo</value>
   </data>

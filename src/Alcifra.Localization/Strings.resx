@@ -5439,6 +5439,9 @@
   <data name="DelConfirmDocument" xml:space="preserve">
     <value>Delete '{0}'? It will be moved to the recycle bin.</value>
   </data>
+  <data name="DelConfirmBulk" xml:space="preserve">
+    <value>Move {0} item(s) to the recycle bin?</value>
+  </data>
   <data name="RemMyself" xml:space="preserve">
     <value>Myself</value>
   </data>

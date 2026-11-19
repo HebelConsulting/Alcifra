@@ -690,7 +690,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IShellContex
         _currentRepositoryId = chain[0].Id;
 
         Breadcrumbs.Clear();
-        Breadcrumbs.Add(new BreadcrumbViewModel { Name = "Repositories", FolderId = null, ShowSeparator = false });
+        Breadcrumbs.Add(new BreadcrumbViewModel { Name = Strings.Get("TabRepositories"), FolderId = null, ShowSeparator = false });
         foreach (var ancestor in chain)
         {
             Breadcrumbs.Add(new BreadcrumbViewModel { Name = ancestor.Name, FolderId = ancestor.Id, Links = ancestor.Links, ShowSeparator = true });

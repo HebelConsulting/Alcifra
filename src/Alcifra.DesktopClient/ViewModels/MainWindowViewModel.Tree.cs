@@ -39,7 +39,7 @@ public sealed partial class MainWindowViewModel
         CanCreateFolder = false;
         CanExport = false;
         Breadcrumbs.Clear();
-        Breadcrumbs.Add(new BreadcrumbViewModel { Name = "Repositories", FolderId = null, ShowSeparator = false });
+        Breadcrumbs.Add(new BreadcrumbViewModel { Name = Strings.Get("TabRepositories"), FolderId = null, ShowSeparator = false });
         Status = string.Format(Strings.Get("StRepositories"), Tree.Count);
     }
 
@@ -126,8 +126,8 @@ public sealed partial class MainWindowViewModel
     {
         var launchers = new[]
         {
-            new TreeNodeViewModel(Guid.Empty, "Intray", false, null, personalKind: "intray"),
-            new TreeNodeViewModel(Guid.Empty, "Check-out", false, null, personalKind: "checkout"),
+            new TreeNodeViewModel(Guid.Empty, Strings.Get("TabIntray"), false, null, personalKind: "intray"),
+            new TreeNodeViewModel(Guid.Empty, Strings.Get("TabCheckout"), false, null, personalKind: "checkout"),
         };
         return launchers.Concat(await LoadTreeChildrenAsync(node));
     }

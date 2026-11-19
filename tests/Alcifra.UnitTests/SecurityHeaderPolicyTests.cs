@@ -80,6 +80,18 @@ public class SecurityHeaderPolicyTests
         Assert.Contains("frame-ancestors 'self'", SecurityHeaders.ComposePolicy(null, null));
     }
 
+    // #2340: the Tube module's embed page states its own framing rule (frame-ancestors *) and is the one page other
+    // sites may frame; the core then added X-Frame-Options: SAMEORIGIN beside it, which says the opposite. A browser
+    // that honours only the older header refused the frame. The older header steps aside only for a policy the
+    // response itself supplied — our own composed policy agrees with SAMEORIGIN, so it keeps it.
+    [Theory]
+    [InlineData(true, "default-src 'none'; frame-ancestors *", false)]
+    [InlineData(true, "default-src 'none'; FRAME-ANCESTORS *", false)]
+    [InlineData(true, "default-src 'none'", true)]
+    [InlineData(false, "default-src 'self'; frame-ancestors 'self'", true)]
+    public void Frame_options_steps_aside_only_for_a_policy_the_response_itself_supplied(bool supplied, string policy, bool expected) =>
+        Assert.Equal(expected, SecurityHeaders.AddsFrameOptions(supplied, policy));
+
     [Fact]
     public void Additional_sources_are_appended_for_a_topology_this_code_cannot_know()
     {
