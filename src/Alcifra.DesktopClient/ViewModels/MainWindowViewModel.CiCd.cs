@@ -13,7 +13,7 @@ namespace Alcifra.DesktopClient.ViewModels;
 public partial class MainWindowViewModel
 {
     /// <summary>The seeded mask's name, which a listing row carries (<c>WellKnownMaskSeeder</c>).</summary>
-    private const string CiCdSecretMask = "CI/CD Secret";
+    private const string CiCdSecretMask = CiCdMasks.SecretMaskName;
 
     /// <summary>Set by the window: asks where to save a file under the suggested name, writes it, false when cancelled.</summary>
     public Func<string, byte[], Task<bool>>? SaveCiCdFile { get; set; }

@@ -7506,4 +7506,7 @@
   <data name="MobDeviceSelected" xml:space="preserve">
     <value>{0} marcados</value>
   </data>
+  <data name="MobPreviewPartial" xml:space="preserve">
+    <value>Se muestra el principio de este archivo ({0}). Abrir con… o Compartir obtiene el archivo completo.</value>
+  </data>
 </root>

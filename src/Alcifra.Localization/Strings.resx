@@ -7506,4 +7506,7 @@
   <data name="MobDeviceSelected" xml:space="preserve">
     <value>{0} ticked</value>
   </data>
+  <data name="MobPreviewPartial" xml:space="preserve">
+    <value>Showing the beginning of this {0} file. Open with… or Share gets the whole file.</value>
+  </data>
 </root>
