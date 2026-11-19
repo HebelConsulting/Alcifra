@@ -260,6 +260,10 @@ public static class EditionDownloads
         _ when fileName.EndsWith("-win-x64.zip", StringComparison.Ordinal) => ("windows-x64", "client"),
         _ when fileName.EndsWith("-linux-x64.tar.gz", StringComparison.Ordinal) => ("linux-x64", "client"),
         _ when fileName.EndsWith("-Manual.pdf", StringComparison.Ordinal) => ("any", "manual"),
+        // A palette variant's manual, <fileStem>-Manual-<id>.pdf (#2319/#2342), is a manual as well: it matched
+        // nothing before and the edition publish left it out without a word, so the vendor's download page offered
+        // only the default one. The variant is named by the file itself, which is what the vendor keys downloads by.
+        _ when fileName.Contains("-Manual-", StringComparison.Ordinal) && fileName.EndsWith(".pdf", StringComparison.Ordinal) => ("any", "manual"),
         _ => null,
     };
 }

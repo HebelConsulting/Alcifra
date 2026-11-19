@@ -94,11 +94,23 @@ public sealed class EditionPublishLayoutTests : IDisposable
     [InlineData("easyname-Archiv-0.57.6-win-x64.zip", "windows-x64", "client")]
     [InlineData("easyname-Archiv-0.57.6-linux-x64.tar.gz", "linux-x64", "client")]
     [InlineData("easyname-Archiv-Manual.pdf", "any", "manual")]
+    [InlineData("AlcifraBund-Manual-blue.pdf", "any", "manual")]
+    [InlineData("AlcifraBund-Manual-green.pdf", "any", "manual")]
     public void A_release_file_for_a_person_says_what_it_is(string file, string platform, string kind) =>
         Assert.Equal((platform, kind), EditionDownloads.Classify(file));
+
+    // A palette variant's manual is still a manual (#2319, #2342): the edition publish left it out silently, so the
+    // vendor's download page offered only the default one. All three of Bund's manuals arrive at the vendor.
+    [Theory]
+    [InlineData("AlcifraBund-Manual.pdf")]
+    [InlineData("AlcifraBund-Manual-blue.pdf")]
+    [InlineData("AlcifraBund-Manual-green.pdf")]
+    public void Every_palette_variants_manual_reaches_the_vendor(string file) =>
+        Assert.Equal(("any", "manual"), EditionDownloads.Classify(file));
 
     [Theory]
     [InlineData("easyname-archiv-0.57.6.tgz")]
     [InlineData("site-bundle.zip")]
+    [InlineData("easyname-Archiv-Manual-notes.txt")]
     public void What_is_not_for_a_person_is_left_out(string file) => Assert.Null(EditionDownloads.Classify(file));
 }
