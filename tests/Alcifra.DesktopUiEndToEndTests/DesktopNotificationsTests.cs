@@ -1,6 +1,9 @@
 using System.Text;
+using Alcifra.ApiClient;
 using Alcifra.DesktopClient;
 using Alcifra.DesktopClient.Services;
+using Alcifra.DesktopClient.ViewModels;
+using Avalonia.Controls;
 
 namespace Alcifra.UiEndToEndTests;
 
@@ -50,5 +53,24 @@ public class DesktopNotificationsTests
         var after = await reviewer.Notifications.GetNotificationsAsync();
         Assert.True(after.Items.First(x => x.Id == n.Id).IsRead);
         Assert.Equal(list.UnreadCount - 1, after.UnreadCount);
+    }
+
+    // #1739 (owner, 2026-10-13): a chat notification opens its item with the conversation in front. On the
+    // desktop the chat is a pane, so it expands — at its saved width, not the zero width a collapse leaves —
+    // and a notification about anything else leaves the layout as the person set it.
+    [Fact]
+    public async Task A_chat_notification_expands_the_chat_pane_and_another_kind_does_not()
+    {
+        static NotificationRowViewModel Row(string type) => new(new NotificationsClient.NotificationInfo(
+            Guid.NewGuid(), type, "Title", "Body", Guid.NewGuid(), null, DateTimeOffset.UtcNow, IsRead: false));
+
+        var chat = new MainWindowViewModel { ChatCollapsed = true, ChatWidth = new GridLength(0) };
+        await chat.OpenNotificationCommand.ExecuteAsync(Row("ChatMessagePosted"));
+        Assert.False(chat.ChatCollapsed);
+        Assert.NotEqual(0d, chat.ChatWidth.Value);
+
+        var review = new MainWindowViewModel { ChatCollapsed = true, ChatWidth = new GridLength(0) };
+        await review.OpenNotificationCommand.ExecuteAsync(Row("ReviewAssigned"));
+        Assert.True(review.ChatCollapsed);
     }
 }

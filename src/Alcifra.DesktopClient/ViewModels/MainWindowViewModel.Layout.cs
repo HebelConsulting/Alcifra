@@ -159,6 +159,18 @@ public partial class MainWindowViewModel
         SaveLayout();
     }
 
+    // The chat pane expanded where the person had collapsed it (#1739): the saved width returns with it. Showing a
+    // conversation is not re-laying-out the workbench, so the persisted layout — the person's own choice — is left
+    // as it was; the next toggle saves from the state it finds.
+    private void ExpandChat()
+    {
+        if (ChatCollapsed)
+        {
+            ChatWidth = _chatSaved;
+            ChatCollapsed = false;
+        }
+    }
+
     // Restores the default pane proportions and expands every pane — an escape hatch when the persisted
     // layout has drifted into an inconsistent state (GridSplitter drags can mix star and absolute sizes).
     [RelayCommand]

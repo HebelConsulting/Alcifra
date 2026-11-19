@@ -751,7 +751,7 @@
                            that a property of the transition — while the actions themselves stay the shell's. *@
                         <IndexDataPane Save="SaveDetailAsync" Cancel="@(() => Editor.Cancel())"
                                        KeyDown="OnDetailKeyDown" EditMaskChanged="@((Guid? m) => Editor.ChangeMaskAsync(m))"
-                                       ToggleOcrCode="@((string c) => Editor.ToggleOcr(c))" SearchByTag="SearchByTagAsync" OpenDocument="@(id => OpenDocumentFromNotificationAsync(id, null))">
+                                       ToggleOcrCode="@((string c) => Editor.ToggleOcr(c))" SearchByTag="SearchByTagAsync" OpenDocument="@(id => OpenDocumentFromNotificationAsync(id, null, opensChat: false))">
                             <ReadActions>
                                 @* Only the details' own action (ADR 0970): every other per-document action is in the ribbon and the row's ⋮ menu. *@
                                 @if (Editor.CanEdit)
@@ -1164,13 +1164,13 @@
         _myExternalLinksHref = await Actions.MyExternalLinksHrefAsync(); // gates the ribbon's "my external links" button (ADR 0546)
         await LoadTasksAsync(); // for the Tasks tab badge count
 
-        AppNav.OpenDocumentRequested += OpenDocumentFromNotificationAsync; // ADR "Notification viewer + click-through"
+        AppNav.OpenDocumentRequested += OnNotificationOpenRequested; // ADR "Notification viewer + click-through"
 
         // A deep link parked by the /go/{id} lander before this page existed (#761): consume exactly once,
         // through the same open-and-select path the notification bell uses — deep-linking is NAVIGATING.
         if (AppNav.TakePendingDeepLink() is { } deepLink)
         {
-            await OpenDocumentFromNotificationAsync(deepLink.DocumentId, deepLink.ParentId);
+            await OpenDocumentFromNotificationAsync(deepLink.DocumentId, deepLink.ParentId, opensChat: false);
         }
     }
 
@@ -1186,7 +1186,11 @@
     }
 
     // A notification bell click (in MainLayout) asks the workbench to open the related document.
-    private Task OpenDocumentFromNotificationAsync(Guid documentId, Guid? parentId) => InvokeAsync(async () =>
+    // The shell's event, as a method so subscribing and unsubscribing are the same delegate (#1739).
+    private Task OnNotificationOpenRequested(Guid documentId, Guid? parentId, bool opensChat) =>
+        OpenDocumentFromNotificationAsync(documentId, parentId, opensChat);
+
+    private Task OpenDocumentFromNotificationAsync(Guid documentId, Guid? parentId, bool opensChat) => InvokeAsync(async () =>
     {
         await SetTab(Tab.Repositories);
         if (parentId is { } p)
@@ -1196,6 +1200,13 @@
         else
         {
             await NavigateToFolderAsync(documentId); // the document is a repository root
+        }
+
+        // A chat notification opens its item with the conversation in front (owner, 2026-10-13; #1739): in the
+        // one-pane layout that is the comments sub-tab; a wide workbench already shows the chat beside the preview.
+        if (opensChat)
+        {
+            SetPhoneTab("comments");
         }
 
         StateHasChanged();
@@ -1646,7 +1657,7 @@
     // The Legal holds tab's Go to (review finding) — the search jump, addressed by the item's ParentId.
     public async ValueTask DisposeAsync()
     {
-        AppNav.OpenDocumentRequested -= OpenDocumentFromNotificationAsync;
+        AppNav.OpenDocumentRequested -= OnNotificationOpenRequested;
         if (_module is not null)
         {
             try { await _module.DisposeAsync(); } catch (JSDisconnectedException) { }

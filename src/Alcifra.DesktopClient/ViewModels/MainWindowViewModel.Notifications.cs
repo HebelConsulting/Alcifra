@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Alcifra.DesktopClient.Services;
+using Alcifra.Presentation;
 
 namespace Alcifra.DesktopClient.ViewModels;
 
@@ -119,6 +120,14 @@ public sealed partial class MainWindowViewModel
         if (await OpenSignalledConversationAsync(n))
         {
             return;
+        }
+
+        // A chat notification opens its item with the conversation in front (owner, 2026-10-13): the chat pane is
+        // what the person was told about, so it expands before the document lands beside it — the phone does the
+        // same through the shared rule. A person who had the pane collapsed gets it back at its saved width.
+        if (n.DocumentId is not null && NotificationOpening.OpensChat(n.Notification.Type))
+        {
+            ExpandChat();
         }
 
         // Follow the row's `parent` (its home folder) and select the document there; a root document has no

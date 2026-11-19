@@ -457,13 +457,14 @@
     }
 
     // Clicking a notification marks it read and, if it relates to a document, navigates to it (ADR
-    // "Notification viewer + click-through"). The workbench (Home) does the actual navigation via AppNav.
+    // "Notification viewer + click-through"). The workbench (Home) does the actual navigation via AppNav; a chat
+    // notification also brings the conversation to the front there (owner, 2026-10-13; #1739).
     private async Task OpenNotificationAsync(NotificationDto n)
     {
         await MarkNotificationReadAsync(n);
         if (n.DocumentId is { } documentId)
         {
-            await AppNav.RequestOpenDocumentAsync(documentId, n.DocumentParentId);
+            await AppNav.RequestOpenDocumentAsync(documentId, n.DocumentParentId, NotificationOpening.OpensChat(n.Type));
         }
     }
 
@@ -684,6 +685,10 @@
     private record NotificationDto
     {
         public Guid Id { get; set; }
+
+        // The API's event type ("ChatMentioned", "ReviewAssigned", …): what decides whether opening it brings a
+        // conversation to the front (core NotificationOpening, #1739).
+        public string Type { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Body { get; set; } = string.Empty;
         public int EventCount { get; set; } = 1;

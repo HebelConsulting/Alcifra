@@ -55,6 +55,10 @@ public class WebNotificationClickThroughTests
 
         // The document is now shown in the Repositories workbench (selected in its folder).
         await Expect(page.Locator(".wb-cols").GetByText(docName).First).ToBeVisibleAsync();
+
+        // …and because the notification is about its CHAT, the conversation is what comes to the front (#1739,
+        // owner 2026-10-13): the one-pane layout selects its comments sub-tab, through the shared rule.
+        await Expect(page.Locator(".wb-detail.wb-ptab-comments")).ToBeVisibleAsync();
     }
 
     private static readonly object TenantAdminRights = new
