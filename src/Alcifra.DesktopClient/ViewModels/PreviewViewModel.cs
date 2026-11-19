@@ -35,6 +35,13 @@ public sealed partial class PreviewViewModel : ObservableObject
     [ObservableProperty] private bool _previewConverted;
 
     /// <summary>
+    /// A video or a sound on show, played from memory by the operating system's own player (#2036) where this build has
+    /// one (<see cref="MediaPlayback"/>); null otherwise. Set only through <see cref="ShowBytesAsync"/>, cleared by
+    /// <see cref="Reset"/>, which is what stops playback.
+    /// </summary>
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(HasPreview))] private PlayableMedia? _media;
+
+    /// <summary>
     /// True when the bytes on display arrived as a CMS envelope and were opened by the reader's key.
     /// </summary>
     /// <remarks>
@@ -78,7 +85,8 @@ public sealed partial class PreviewViewModel : ObservableObject
         string.IsNullOrEmpty(WatermarkText) ? [] : System.Linq.Enumerable.Repeat(WatermarkText, 48).ToArray();
 
     // There is something to preview (pages or text) — gates the preview toolbar (find + full-screen toggle).
-    public bool HasPreview => HasPreviewPages || PreviewText is not null || PasswordEntry is not null || CiCdEntry is not null || Card is not null || MailCard is not null;
+    public bool HasPreview => HasPreviewPages || PreviewText is not null || PasswordEntry is not null || CiCdEntry is not null || Card is not null || MailCard is not null
+        || Media is not null;
 
     // In-app full-screen of the preview pane (ADR "Desktop preview full-screen toggle"): the preview covers the
     // ribbon + panes (the bottom tab strip stays reachable). Esc / the toggle / a tab switch exit.
@@ -335,11 +343,35 @@ public sealed partial class PreviewViewModel : ObservableObject
             return;
         }
 
-        // Nothing to draw, so nothing is fetched to find that out (#2160); the open action stays where it was.
+        // A video or a sound plays where this build has the system's player (#2036): from storage a range at a time where
+        // the version is ranged storage (owner, 2026-11-11), else read whole below, as a sealed one must be. Without a player
+        // there is nothing to draw, so nothing is fetched to find that out (#2160); the open action stays where it was.
         if (Alcifra.Presentation.MediaFiles.IsMedia(preview.FileExtension))
         {
-            Reset(Strings.Get("PvMediaUseApp"));
-            return;
+            if (!MediaPlayback.Available)
+            {
+                Reset(Strings.Get("PvMediaUseApp"));
+                return;
+            }
+
+            if (await MediaPlayback.StreamedAsync(preview) is { } streamed)
+            {
+                Reset(null);
+                Media = streamed;
+                return;
+            }
+
+            // Read whole, within the large-preview rule below: the installation's own door serves octet-stream, so the
+            // version's extension says what it is.
+            if (preview.DownloadUrl is { } whole
+                && (!Alcifra.Presentation.LargePreview.Waits(preview.SizeBytes) || ReferenceEquals(_openedLarge, preview)))
+            {
+                var (bytes, served) = await AlcifraApiClient.DownloadAsync(whole);
+                var media = MediaPlayback.Of(bytes, served) ?? MediaPlayback.Of(bytes, MediaPlayback.TypeOf(preview.FileExtension));
+                Reset(media is null ? Strings.Get("PvMediaUseApp") : null);
+                Media = media;
+                return;
+            }
         }
 
         // Over the limit a version waits for Open, and only the click on this very preview lets it through (ADR 1048).
@@ -518,6 +550,14 @@ public sealed partial class PreviewViewModel : ObservableObject
     // The one rendering of fetched bytes, for a document's preview and for content held in memory alike.
     private async Task<bool> ShowBytesAsync(byte[] bytes, string contentType, string? textLayoutUrl)
     {
+        // A video or a sound plays where this build has the system's player (#2036); elsewhere it is unsupported, as before.
+        if (MediaPlayback.Of(bytes, contentType) is { } media)
+        {
+            Reset(null);
+            Media = media;
+            return true;
+        }
+
         switch (PreviewKinds.Of(bytes, contentType))
         {
             case PreviewKind.Image:
@@ -622,6 +662,7 @@ public sealed partial class PreviewViewModel : ObservableObject
         PreviewPages.Clear();
         HasPreviewPages = false;
         PreviewText = null;
+        Media = null;
         ClosePasswordEntry();
         CloseCiCdEntry();
         Card = null;

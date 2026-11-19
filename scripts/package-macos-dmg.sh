@@ -58,6 +58,15 @@ if [[ "$(uname)" != "Darwin" ]]; then
   exit 1
 fi
 
+# The macOS target (#2036) is bound to the .NET for macOS pack this solution builds with, and that pack requires ONE
+# Xcode version: 27.0.10742 refuses 27.2 ("requires Xcode 27.1"), which is what /Applications/Xcode.app became on
+# 2026-10-30. Pin the versioned 27.1 when the environment has not chosen, as the mobile release does (Mobile ADRs
+# 0012/0044). WORKAROUND DEPENDENCY (core ADR 0885): retire this block once the installed workload accepts the
+# Xcode in /Applications, by setting DEVELOPER_DIR or deleting these lines.
+if [[ -z "${DEVELOPER_DIR:-}" && -d /Applications/Xcode_27.1.app/Contents/Developer ]]; then
+  export DEVELOPER_DIR=/Applications/Xcode_27.1.app/Contents/Developer
+fi
+
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 mkdir -p "$OUT_DIR"
@@ -80,21 +89,27 @@ fi
 # outer call's options, which gives every dylib the app's entitlements, and Apple's notary rejects --deep
 # signatures outright. So every file is signed on its own first, then the bundle seals the rest.
 #
-# EVERY file in Contents/MacOS, not only the Mach-O ones. codesign treats everything there as nested code, so the
-# self-contained publish's managed assemblies (System.IO.dll and some 240 others) must carry a signature too —
-# codesign stores a non-Mach-O file's in its extended attributes. The first dry-run signed Mach-O only and the
-# main executable was refused: "code object is not signed at all — In subcomponent: …/System.IO.dll".
-sign_app() {
-  local app_dir="$1" exe="$2"
-  local file
-  while IFS= read -r -d '' file; do
-    if [[ "$file" != "$app_dir/Contents/MacOS/$exe" ]]; then
-      codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$file"
-    fi
-  done < <(find "$app_dir/Contents/MacOS" -type f -print0)
-  codesign --force --timestamp --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" \
-    "$app_dir/Contents/MacOS/$exe"
-  codesign --force --timestamp --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGN_IDENTITY" "$app_dir"
+# EVERY file in Contents/MacOS and Contents/MonoBundle, not only the Mach-O ones. codesign treats everything there
+# as nested code, so the self-contained publish's managed assemblies (System.IO.dll and some 240 others) must carry
+# a signature too — codesign stores a non-Mach-O file's in its extended attributes. The first dry-run signed Mach-O
+# only and the main executable was refused: "code object is not signed at all — In subcomponent: …/System.IO.dll".
+# MonoBundle is where the macOS target keeps them, and `codesign --deep` does NOT descend into it — an unsigned
+# PDFium there was SIGKILLED at launch on Apple Silicon even for an ad-hoc build, which is why the ad-hoc path
+# signs file by file with the same walk.
+sign_bundle() {
+  local app_dir="$1" exe="$2" identity="$3"
+  shift 3
+  local file root
+  for root in "$app_dir/Contents/MacOS" "$app_dir/Contents/MonoBundle"; do
+    [ -d "$root" ] || continue
+    while IFS= read -r -d '' file; do
+      if [[ "$file" != "$app_dir/Contents/MacOS/$exe" ]]; then
+        codesign --force "$@" --sign "$identity" "$file"
+      fi
+    done < <(find "$root" -type f -print0)
+  done
+  codesign --force "$@" --sign "$identity" "$app_dir/Contents/MacOS/$exe"
+  codesign --force "$@" --sign "$identity" "$app_dir"
   codesign --verify --strict --deep --verbose=2 "$app_dir"
 }
 
@@ -152,67 +167,72 @@ notarize_dmg() {
   spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
 }
 
-# Build one architecture: publish -> assemble the .app -> ad-hoc sign -> create the .dmg.
+# Build one architecture: publish the macOS target -> take the bundle it produces -> our own metadata -> sign -> .dmg.
+#
+# The macOS package is built from the project's `net10.0-macos` target (#2036): the system's player binds AppKit and
+# AVFoundation, which a plain `net10.0` build cannot reference. The target is opt-in (`-p:MacPlayer=true`) because it
+# needs the macOS workload, which the Linux build and the whole test matrix must not need. `-p:CreatePackage=false`
+# keeps the .app; the Apple SDK would otherwise turn the publish into an installer .pkg.
 build_one() {
   local rid="$1" arch_label="$2"
-  local publish_dir="$OUT_DIR/publish-$arch_label"
   local stage="$OUT_DIR/stage-$arch_label"
   local app_dir="$stage/${APP_NAME}.app"
   local dmg="$OUT_DIR/${APP_NAME}-${VERSION}-${arch_label}.dmg"
+  local bundle="src/Alcifra.DesktopClient/bin/Release/net10.0-macos/$rid/${EXE_NAME}.app"
 
-  echo "==> [$arch_label] Publishing $EXE_NAME ($rid, self-contained, Release)…"
-  rm -rf "$publish_dir" "$stage" "$dmg"
+  echo "==> [$arch_label] Publishing $EXE_NAME ($rid, macOS target, self-contained, Release)…"
+  rm -rf "$stage" "$dmg" "$bundle"
   # -p:Version stamps the assembly's InformationalVersion, which is what the client reports as its own version
   # (ClientUpdate) + the update check compares against the release tag — WITHOUT it the build defaults to 1.0.0.
-  # The CFBundleVersion in Info.plist below is separate macOS bundle metadata and does NOT affect this.
-  # The project multi-targets since #1398; macOS is always the `net10.0` assembly (Unix CK_ULONG width).
-  dotnet publish "$PROJECT" -c Release -r "$rid" -f net10.0 --self-contained true \
-    -p:Version="$VERSION" -p:PublishSingleFile=false -p:DebugType=none -p:DebugSymbols=false \
-    -o "$publish_dir"
+  # The CFBundleVersion below is separate macOS bundle metadata and does NOT affect this.
+  dotnet publish "$PROJECT" -c Release -r "$rid" -f net10.0-macos -p:MacPlayer=true -p:CreatePackage=false \
+    --self-contained true -p:Version="$VERSION" -p:PublishSingleFile=false -p:DebugType=none -p:DebugSymbols=false
+  [ -d "$bundle" ] || { echo "error: the publish produced no bundle at $bundle." >&2; exit 1; }
 
-  echo "==> [$arch_label] Assembling ${APP_NAME}.app…"
-  mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
-  cp -R "$publish_dir/." "$app_dir/Contents/MacOS/"
-  chmod +x "$app_dir/Contents/MacOS/$EXE_NAME"
+  echo "==> [$arch_label] Staging ${APP_NAME}.app…"
+  mkdir -p "$stage"
+  cp -R "$bundle" "$app_dir"
   cp "$ICNS" "$app_dir/Contents/Resources/${APP_NAME}.icns"
 
-  cat > "$app_dir/Contents/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleName</key><string>${DISPLAY_NAME}</string>
-  <key>CFBundleDisplayName</key><string>${DISPLAY_NAME}</string>
-  <key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
-  <key>CFBundleVersion</key><string>${VERSION}</string>
-  <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-  <key>CFBundleExecutable</key><string>${EXE_NAME}</string>
-  <key>CFBundleIconFile</key><string>${APP_NAME}</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-  <key>LSMinimumSystemVersion</key><string>12.0</string>
-  <key>NSHighResolutionCapable</key><true/>
-  <key>LSApplicationCategoryType</key><string>public.app-category.business</string>
-  <!-- The alcifra:// deep-link scheme (#761): macOS registers handlers declaratively from the bundle. -->
-  <key>CFBundleURLTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleURLName</key><string>${BUNDLE_ID}.deeplink</string>
-      <key>CFBundleURLSchemes</key><array><string>alcifra</string></array>
-    </dict>
-  </array>
-</dict>
-</plist>
-PLIST
+  # The x64 bundle gets its PDFium dylib from here: the project takes that arch's copy out of the SDK's link and
+  # reidentification (its prebuilt x64 binary has no room for the rewritten identity, dotnet/macios#13999), so the
+  # runtime finds the file by name in MonoBundle. arm64's comes from the SDK, reidentified like every native library.
+  if [[ "$rid" == osx-x64 ]]; then
+    local packages pdfium
+    packages="$(dotnet nuget locals global-packages --list | sed -n 's/^global-packages: //p')"
+    pdfium="$(ls -1 "$packages"/docnet.core/*/runtimes/osx-x64/native/pdfium.dylib 2>/dev/null | sort -V | tail -1)"
+    [ -n "$pdfium" ] || { echo "error: no pdfium.dylib for osx-x64 under $packages/docnet.core." >&2; exit 1; }
+    cp "$pdfium" "$app_dir/Contents/MonoBundle/pdfium.dylib"
+  fi
+
+  # Our bundle metadata, on the bundle the SDK produced (which carries the runtime's own keys, the executable's name
+  # and the target's minimum system version): the names, the deep-link scheme (#761) and the version this release is.
+  local plist="$app_dir/Contents/Info.plist" pb=/usr/libexec/PlistBuddy
+  for key in CFBundleDisplayName CFBundleIconFile NSHighResolutionCapable LSApplicationCategoryType CFBundleURLTypes; do
+    $pb -c "Delete :$key" "$plist" 2>/dev/null || true
+  done
+  $pb -c "Add :CFBundleDisplayName string $DISPLAY_NAME" "$plist"
+  $pb -c "Set :CFBundleName $DISPLAY_NAME" "$plist"
+  $pb -c "Set :CFBundleIdentifier $BUNDLE_ID" "$plist"
+  $pb -c "Set :CFBundleVersion $VERSION" "$plist"
+  $pb -c "Set :CFBundleShortVersionString $VERSION" "$plist"
+  $pb -c "Add :CFBundleIconFile string $APP_NAME" "$plist"
+  $pb -c "Add :NSHighResolutionCapable bool true" "$plist"
+  $pb -c "Add :LSApplicationCategoryType string public.app-category.business" "$plist"
+  $pb -c "Add :CFBundleURLTypes array" "$plist"
+  $pb -c "Add :CFBundleURLTypes:0 dict" "$plist"
+  $pb -c "Add :CFBundleURLTypes:0:CFBundleURLName string ${BUNDLE_ID}.deeplink" "$plist"
+  $pb -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$plist"
+  $pb -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string alcifra" "$plist"
 
   if [[ -n "$SIGN_IDENTITY" ]]; then
     echo "==> [$arch_label] Signing with the Developer ID (hardened runtime)…"
-    sign_app "$app_dir" "$EXE_NAME"
+    sign_bundle "$app_dir" "$EXE_NAME" "$SIGN_IDENTITY" --timestamp --options runtime --entitlements "$ENTITLEMENTS"
   else
-    # Ad-hoc signature (no Apple account). Required for the app to launch on Apple Silicon; harmless on Intel.
+    # Ad-hoc signature (no Apple account): required for the app to launch on Apple Silicon, where EVERY loaded Mach-O
+    # must be signed — the same file-by-file walk as above, without a timestamp or entitlements.
     echo "==> [$arch_label] Ad-hoc signing…"
-    codesign --force --deep --sign - "$app_dir" 2>/dev/null \
-      || echo "   (codesign failed — the app is fully unsigned; it may be blocked on Apple Silicon.)"
+    sign_bundle "$app_dir" "$EXE_NAME" -
   fi
 
   # /Applications symlink so the .dmg offers drag-to-install.
@@ -224,7 +244,7 @@ PLIST
     notarize_dmg "$dmg"
   fi
 
-  rm -rf "$publish_dir" "$stage"
+  rm -rf "$stage"
   echo "==> [$arch_label] Done: $dmg"
 }
 

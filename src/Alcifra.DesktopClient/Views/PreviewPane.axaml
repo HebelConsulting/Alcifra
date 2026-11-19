@@ -244,6 +244,8 @@
                     </Border>
                 </StackPanel>
             </ScrollViewer>
+            <!-- A video or a sound, played from memory by the operating system's own player where this build has one (#2036). -->
+            <v:MemoryPlayerHost Media="{Binding Media}" IsVisible="{Binding Media, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
             <!-- The placeholder, and for a sealed document this machine could not open, its plain state: a lock, the
                  title, what is known about the user's keys, and "Open with my key" (ADR 0969). -->
             <StackPanel x:Name="Placeholder" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="280"

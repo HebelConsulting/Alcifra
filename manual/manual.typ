@@ -669,8 +669,11 @@ is typing shows beneath the thread; the keyboard button in the ribbon switches t
 scrolled up to read older messages, something new does not pull you down: *New messages ↓* takes you there.
 
 *Files stay in the app.* A photo, a PDF or a plain text opens right here, over the conversation, with find and zoom —
-read from memory, nothing written to the disk. What the desktop cannot show (an office document, a video or a sound)
-can be handed to another application with *Open with…* or saved with *Save as…* — only after a warning that the copy
+read from memory, nothing written to the disk. On macOS a *video or a sound*#idx("video, in the app") plays here too,
+in the system's own player and from memory; an ordinary document streams from storage as the player needs it, while
+sealed material is read whole, as it must be. What the desktop cannot show (an office document, or a video or a sound
+where the app has no player — on Windows and Linux today) can be handed to another application with *Open with…* or
+saved with *Save as…* — only after a warning that the copy
 leaves the archive's protection, and not at all where your organisation keeps files in the app.
 
 *Sealed stays sealed.* If you cancel the PIN prompt, or no key here opens a conversation, its messages show *sealed*

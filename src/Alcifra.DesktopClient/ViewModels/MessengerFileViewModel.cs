@@ -34,7 +34,8 @@ public sealed partial class MessengerFileViewModel : ObservableObject
     {
         var opening = FileOpening.Of(content, file.Name, file.ContentType, filesStayInApp);
         var opened = new MessengerFileViewModel(content, file, opening, dialogs, status, close);
-        if (opening.ShownIn is FileShownIn.Photo or FileShownIn.Preview)
+        // A video or a sound plays in the preview too, where this build has the system's player (#2036).
+        if (opening.ShownIn is FileShownIn.Photo or FileShownIn.Preview || (opening.ShownIn is FileShownIn.Player && MediaPlayback.Available))
         {
             try
             {

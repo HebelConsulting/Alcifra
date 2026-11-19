@@ -673,7 +673,10 @@ gerade tippt, erscheint unter dem Verlauf; die Tastatur-Schaltfläche im Menüba
 nach oben gescrollt, um ältere Nachrichten zu lesen, zieht Sie etwas Neues nicht nach unten: *Neue Nachrichten ↓* bringt Sie dorthin.
 
 *Dateien bleiben in der App.* Ein Foto, ein PDF oder ein reiner Text öffnet sich direkt hier, über der Unterhaltung, mit Suche und Zoom –
-aus dem Arbeitsspeicher gelesen, nichts wird auf die Festplatte geschrieben. Was der Desktop nicht anzeigen kann (ein Office-Dokument, ein Video oder eine Tonaufnahme),
+aus dem Arbeitsspeicher gelesen, nichts wird auf die Festplatte geschrieben. Unter macOS spielt ein *Video oder eine Tonaufnahme*#idx("Video, in der App")
+hier ebenfalls ab, im Player des Systems und aus dem Arbeitsspeicher; ein gewöhnliches Dokument wird dabei vom Speicher
+stückweise gelesen, wie es der Player braucht, versiegeltes Material dagegen ganz. Was der Desktop nicht anzeigen kann (ein Office-Dokument, oder ein Video oder eine Tonaufnahme,
+wo die App keinen Player hat – heute unter Windows und Linux),
 lässt sich mit *Öffnen mit…* an eine andere Anwendung übergeben oder mit *Speichern unter…* sichern – erst nach einer Warnung, dass die Kopie
 den Schutz des Archivs verlässt, und gar nicht, wo Ihre Organisation Dateien in der App behält.
 

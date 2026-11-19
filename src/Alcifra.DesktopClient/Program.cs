@@ -121,6 +121,14 @@ internal static class Program
             return;
         }
 
+#if MACOS
+        // macOS (#2036): AppKit's application object first, then the player checks when asked for (MacStartup).
+        if (Services.MacStartup.Begin(args))
+        {
+            return;
+        }
+#endif
+
         if (args.Contains("--card-open-test"))
         {
             HardwareKeys.CardSession.PinPrompt = _ =>

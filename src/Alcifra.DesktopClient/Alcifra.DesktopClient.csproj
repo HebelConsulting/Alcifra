@@ -12,6 +12,9 @@
          broken interop rather than a subtle bug. Overrides Directory.Build.props' single TargetFramework, which
          every other project still uses. -->
     <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
+    <!-- The macOS target plays video and sound from memory with the system's own player (#2036, spike): opt-in with
+         -p:MacPlayer=true, because it needs the macOS workload and Xcode on the building machine. -->
+    <TargetFrameworks Condition="'$(MacPlayer)' == 'true'">net10.0;net10.0-windows;net10.0-macos</TargetFrameworks>
     <TargetFramework />
     <OutputType>WinExe</OutputType>
     <!-- The Windows executable's icon, in Explorer, the taskbar and the title bar. Multi-resolution
@@ -25,6 +28,28 @@
          override this with -p:Version from the release tag, so a shipped build still reports its real version. -->
     <Version>0.0.0-dev</Version>
   </PropertyGroup>
+
+  <!-- The Apple target's four gates (#2036): an Exe (WinExe is Windows' concern), a minimum macOS and a bundle id, the trim
+       analyzer off (nothing is trimmed, and the client's reflection would fail it), and the Apple linker off likewise. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-macos'">
+    <OutputType>Exe</OutputType>
+    <SupportedOSPlatformVersion>14.0</SupportedOSPlatformVersion>
+    <ApplicationId>dev.alcifra.desktop</ApplicationId>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <LinkMode>None</LinkMode>
+  </PropertyGroup>
+
+  <!-- The PDFium dylib Docnet ships (the preview's rasteriser) was linked without room to grow its LC_ID_DYLIB, so the
+       macOS SDK's reidentification (dotnet/macios#13999) fails on the x64 copy: "larger updated load commands do not
+       fit". On x64 the library is therefore not linked at all; the runtime's own loader finds it by name in
+       Contents/MonoBundle, where scripts/package-macos-dmg.sh puts the package's file. arm64 is reidentified by the SDK
+       as every other native library is. -->
+  <Target Name="SkipPdfiumReidentification" BeforeTargets="_ComputeDynamicLibrariesToReidentify" Condition="'$(TargetFramework)' == 'net10.0-macos' and '$(RuntimeIdentifier)' == 'osx-x64'">
+    <ItemGroup>
+      <_FileNativeReference Remove="@(_FileNativeReference)"
+                            Condition="$([System.String]::Copy('%(Identity)').EndsWith('pdfium.dylib', System.StringComparison.OrdinalIgnoreCase))" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <!-- The UI end-to-end tests exercise the real Open flow (WithExtension + the api client) against a
