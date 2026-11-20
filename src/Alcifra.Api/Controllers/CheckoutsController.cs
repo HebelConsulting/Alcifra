@@ -42,6 +42,7 @@ public class CheckoutsController : ControllerBase
     private readonly Documents.StrictEnvelopeDelivery _strictEnvelopes;
     private readonly Infrastructure.Storage.OmittableLinks _omittable;
     private readonly Audience.ContentAudience _audience;
+    private readonly Checkouts.CheckoutStash _stash;
 
     public CheckoutsController(
         AlcifraDbContext dbContext,
@@ -57,10 +58,12 @@ public class CheckoutsController : ControllerBase
         Documents.StrictEnvelopeDelivery strictEnvelopes,
         Concurrency.DocumentVerbs documents,
         Infrastructure.Storage.OmittableLinks omittable,
-        Audience.ContentAudience audience)
+        Audience.ContentAudience audience,
+        Checkouts.CheckoutStash stash)
     {
         _audience = audience;
         _omittable = omittable;
+        _stash = stash;
         _dbContext = dbContext;
         _documents = documents;
         _currentUserAccessor = currentUserAccessor;
@@ -309,11 +312,12 @@ public class CheckoutsController : ControllerBase
                     stashDownloadUrl = (await _omittable.OrOmittedAsync(
                         _objectStorage.GetPresignedDownloadUrlAsync(stashKey, PresignedUrlExpiry, cancellationToken: cancellationToken),
                         "stashDownloadUrl"))?.ToString();
-                    if (version is not null)
+                    // Read by CheckoutStash, which leaves the answer unstated (false here) when this process cannot
+                    // read the stash — an at-rest-encrypted one without an encryption service (#1859, ADR 0953).
+                    if (version?.Sha256Hash is { Length: > 0 } sha256
+                        && await _stash.IsModifiedAsync(stashKey, sha256, cancellationToken) is { } modified)
                     {
-                        await using var stashStream = await _objectStorage.GetObjectAsync(stashKey, cancellationToken);
-                        var stashSha = Convert.ToHexStringLower(await System.Security.Cryptography.SHA256.HashDataAsync(stashStream, cancellationToken));
-                        isModified = !string.Equals(stashSha, version.Sha256Hash, StringComparison.OrdinalIgnoreCase);
+                        isModified = modified;
                     }
                 }
             }

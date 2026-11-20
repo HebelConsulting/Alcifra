@@ -477,15 +477,16 @@ public class S3ObjectStorageClient : IObjectStorageClient, IStoredMetadataProbe,
             return;
         }
 
-        // Error, not Warning: nothing here recovers on its own, and every read of this object until somebody
-        // restores the setting is either refused or wrong. The message names the SETTING rather than the
-        // object, because the object is not the problem and a message about it sends an administrator to the
-        // store.
-        _logger.LogError(
+        // Debug, not Error (#1859): the refusal is ONE line, written by whoever decides its fate — OmittableLinks
+        // (a Warning, when a resource drops the link), the check-out listing (a Warning, when a row leaves "modified"
+        // unstated), or ApiExceptionHandler (the 5xx it becomes). This layer only names the fact for the trace, the
+        // same rule EncryptedObjectPresignGuard follows; the setting, not the object, is the problem, and the
+        // deciding line says so.
+        _logger.LogDebug(
             "Object {ObjectKey} is encrypted at rest ({Metadata} is present) but this installation has no "
-            + "Encryption:ServiceUrl, so its data key cannot be unwrapped. The read is REFUSED rather than "
-            + "served as ciphertext. Restore the encryption service configuration this store was written "
-            + "under — reading or re-writing these objects without it corrupts them.",
+            + "Encryption:ServiceUrl, so its data key cannot be unwrapped. The read is refused rather than "
+            + "served as ciphertext; the caller reports it. Restore the encryption service configuration this "
+            + "store was written under — reading or re-writing these objects without it corrupts them.",
             objectKey, AtRestMetadata.WrappedDekKey);
 
         throw new EncryptedObjectWithoutEncryptionServiceException(objectKey);

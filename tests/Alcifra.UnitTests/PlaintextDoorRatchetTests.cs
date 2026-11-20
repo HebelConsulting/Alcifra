@@ -30,7 +30,7 @@ public partial class PlaintextDoorRatchetTests
         ["Documents/CalendarContactClassifier.cs"] = "Reads an .ics/.vcf to decide what the document IS. Index fields, not content.",
         ["Documents/StrictEnvelopeDelivery.cs"] = "THE envelope path — it reads plaintext precisely so the reader never does (ADR 0828). And only for an object that is NOT wrapped at rest: where one is, the encryption service decrypts and envelopes it, so this reads nothing (ADR 0862).",
         ["Imap/ImapFetch.cs"] = "Envelopes to the recipient's certificate before serving (#1332), which is the precedent the tier is modelled on.",
-        ["Controllers/CheckoutsController.cs"] = "Hashes the stash to answer 'is it modified'; no bytes are served.",
+        ["Checkouts/CheckoutStash.cs"] = "Hashes the stash to answer 'is it modified' (#1859); the bytes stay in this process, and where the stash itself is served it goes through the presigned door, which the strict tier refuses.",
         ["Controllers/IntrayController.cs"] = "Reads the mask SIDECAR, which is metadata the tier serves anyway — not the item's content.",
         ["Controllers/ModulesController.cs"] = "Reads a module LICENCE, which is a signed claim about the tenant rather than a document.",
         ["WebDav/WebDavSpecialHandlers.cs"] = "Server-side copy of a scratch object back into storage; the bytes do not leave.",

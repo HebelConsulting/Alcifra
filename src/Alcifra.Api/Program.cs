@@ -334,6 +334,7 @@ builder.Services.AddScoped<Alcifra.Api.Documents.DocumentRestorer>();
 builder.Services.AddScoped<Alcifra.Api.Intray.IntrayScopeResolver>();
 builder.Services.AddScoped<Alcifra.Api.Intray.IntrayPageService>();
 builder.Services.AddScoped<Alcifra.Api.Checkouts.CheckoutPageService>();
+builder.Services.AddScoped<Alcifra.Api.Checkouts.CheckoutStash>();
 builder.Services.AddScoped<Alcifra.Api.Documents.RepositoryExporter>();
 builder.Services.AddScoped<Alcifra.Api.Documents.RepositoryImporter>();
 // Get-or-create the caller's personal repository — shared by PersonalRepositoryController and the WebDAV
