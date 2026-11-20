@@ -143,8 +143,9 @@ public class WellKnownMaskFieldHealTests
             // 32 → 33 with Sealed document (owner decision 2026-10-24) — content sealed to an audience, the name
             // hidden at the author's choice.
             // 33 → 34 with Bookmarks (ADR 1062); 34 → 36 with Administration and Users (ADR 1066); 36 → 38 with the CI/CD
-            // Store and Secret (ADR 1084).
-            Assert.Equal(38, maskCount); // + Alcifra Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
+            // Store and Secret (ADR 1084); 38 → 41 with the core's own tree (ADR 1095) — the container, the Installation
+            // folder and the Public keys the archive signing keys wear.
+            Assert.Equal(41, maskCount); // + Alcifra Documentation, Manual (ADR 0891); Reader certificates, Certificate policy (ADR 0936)
             Assert.Equal(maskCount, await db.MaskVersions.IgnoreQueryFilters().CountAsync(v => v.TenantId == _tenantId));
         }
     }

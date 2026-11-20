@@ -107,20 +107,29 @@ public sealed class ManualFiler(
             file.CreateReadStream, Alcifra.Localization.Strings.ProductName, CoreArticleNumber, ServerBuildInfo.Version);
 
         return FileAsync(source,
+            maskId: WellKnownMaskIds.Manual,
+            destinationFolder: () => ManualsFolder.FindOrCreateAsync(dbContext, tenant.TenantId!.Value, logger, cancellationToken),
             findExisting: () => ManualDocumentIdAsync(CoreArticleNumber, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
             auditActor: _ => (AuditActorType.System, Guid.Empty, Alcifra.Localization.Strings.ProductName),
+            setFields: (document, ct) => SetManualFieldsAsync(document, source, ct),
             cancellationToken);
     }
 
-    /// <summary>The Manual "Article number" of the archive signing keys document (ADR 0961) — how it is found again.</summary>
+    /// <summary>The Manual "Article number" of the archive signing keys document (ADR 0961) — how it is found again
+    /// while it still wears the Manual mask; from ADR 1095 on it wears Public keys and is found by
+    /// <see cref="ArchiveSigningPurpose"/>.</summary>
     public const string ArchiveSigningKeysArticleNumber = "alcifra-archive-signing-keys";
 
+    /// <summary>The Public keys "Purpose" that identifies the installation's archive signing keys (ADR 1095).</summary>
+    public const string ArchiveSigningPurpose = "Archive signing";
+
     /// <summary>
-    /// Files the installation's archive signing keys (ADR 0961) in the current tenant: the PUBLIC certificate of every key
-    /// that ever signed an offline archive, newest first, so an archive is verifiable years later with no network — the
-    /// Licensing Module's "Verify keys" document, for the core. A rotation is a new version of the same document.
+    /// Files the installation's archive signing keys (ADRs 0961/1095) in the current tenant: the PUBLIC certificate of
+    /// every key that ever signed an offline archive, newest first, so an archive is verifiable years later with no
+    /// network — filed as a PUBLIC KEY in the installation's own folder, beside the manuals rather than among them. A
+    /// rotation is a new version of the same document, found by its Purpose.
     /// </summary>
     public Task<ManualFilingOutcome> FileArchiveSigningKeysAsync(string historyPem, string currentThumbprint, CancellationToken cancellationToken = default)
     {
@@ -134,10 +143,13 @@ public sealed class ManualFiler(
             () => new MemoryStream(bytes), Alcifra.Localization.Strings.ProductName, ArchiveSigningKeysArticleNumber, currentThumbprint);
 
         return FileAsync(source,
-            findExisting: () => ManualDocumentIdAsync(ArchiveSigningKeysArticleNumber, cancellationToken),
+            maskId: WellKnownMaskIds.PublicKeys,
+            destinationFolder: () => InstallationTree.FindOrCreateAsync(dbContext, tenant.TenantId!.Value, logger, cancellationToken),
+            findExisting: () => PublicKeyDocumentIdAsync(ArchiveSigningPurpose, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
             auditActor: _ => (AuditActorType.System, Guid.Empty, Alcifra.Localization.Strings.ProductName),
+            setFields: (document, ct) => SetPublicKeyFieldsAsync(document, ct),
             cancellationToken);
     }
 
@@ -162,10 +174,13 @@ public sealed class ManualFiler(
         var source = new ManualSource(name, Path.GetFileName(path), "application/pdf", () => File.OpenRead(path), product, article, version);
 
         return FileAsync(source,
+            maskId: WellKnownMaskIds.Manual,
+            destinationFolder: () => ManualsFolder.FindOrCreateAsync(dbContext, tenant.TenantId!.Value, logger, cancellationToken),
             findExisting: () => ManualDocumentIdAsync(article, cancellationToken),
             remember: _ => Task.CompletedTask,
             author: AuthorOfStandardRepositoryAsync,
             auditActor: _ => (AuditActorType.System, Guid.Empty, Alcifra.Localization.Strings.ProductName),
+            setFields: (document, ct) => SetManualFieldsAsync(document, source, ct),
             cancellationToken);
     }
 
@@ -189,6 +204,8 @@ public sealed class ManualFiler(
 
         var principalId = Guid.Empty;
         return await FileAsync(source,
+            maskId: WellKnownMaskIds.Manual,
+            destinationFolder: () => ManualsFolder.FindOrCreateAsync(dbContext, tenant.TenantId!.Value, logger, cancellationToken),
             findExisting: () => dbContext.ModuleActivations
                 .Where(a => a.ModuleId == module.ModuleId)
                 .Select(a => a.ManualDocumentId)
@@ -205,15 +222,19 @@ public sealed class ManualFiler(
                 return (null, principal.Id);
             },
             auditActor: name => (AuditActorType.ServiceAccount, principalId, $"Module: {module.DisplayName}"),
+            setFields: (document, ct) => SetManualFieldsAsync(document, source, ct),
             cancellationToken);
     }
 
     private async Task<ManualFilingOutcome> FileAsync(
         ManualSource source,
+        Guid maskId,
+        Func<Task<Document?>> destinationFolder,
         Func<Task<Guid?>> findExisting,
         Func<Guid, Task> remember,
         Func<Task<(Guid? UserId, Guid? ServiceAccountId)>> author,
         Func<string, (AuditActorType Type, Guid Id, string Name)> auditActor,
+        Func<Document, CancellationToken, Task> setFields,
         CancellationToken cancellationToken)
     {
         var tenantId = tenant.TenantId ?? throw new InvalidOperationException("Filing a manual needs a current tenant.");
@@ -268,18 +289,18 @@ public sealed class ManualFiler(
             }
             else
             {
-                if (await ManualsFolder.FindOrCreateAsync(dbContext, tenantId, logger, cancellationToken) is not { } folder)
+                if (await destinationFolder() is not { } folder)
                 {
                     return ManualFilingOutcome.NoLocation;
                 }
 
-                document = await CreateDocumentAsync(source, tenantId, folder.Id, await author(), cancellationToken);
+                document = await CreateDocumentAsync(source, tenantId, folder.Id, maskId, await author(), cancellationToken);
                 await remember(document.Id);
                 outcome = ManualFilingOutcome.Filed;
             }
 
             await AddVersionAsync(source, document, bytes, await author(), cancellationToken);
-            await SetFieldsAsync(document, source, cancellationToken);
+            await setFields(document, cancellationToken);
 
             if (transaction is not null)
             {
@@ -311,9 +332,11 @@ public sealed class ManualFiler(
 
     // A manual the core files itself (its own, a client's) is found again by its Article number, which needs no column.
     private async Task<Guid?> ManualDocumentIdAsync(string articleNumberValue, CancellationToken cancellationToken) =>
-        await ArticleNumberValues(articleNumberValue).Select(v => (Guid?)v.DocumentId).FirstOrDefaultAsync(cancellationToken);
+        await ArticleNumberValues(dbContext, articleNumberValue).Select(v => (Guid?)v.DocumentId).FirstOrDefaultAsync(cancellationToken);
 
-    private IQueryable<FieldValue> ArticleNumberValues(string articleNumberValue)
+    /// <summary>The Manual "Article number" values naming <paramref name="articleNumberValue"/> — shared with the startup
+    /// migration (ADR 1095), which finds a document filed before it wore its present mask.</summary>
+    internal static IQueryable<FieldValue> ArticleNumberValues(AlcifraDbContext dbContext, string articleNumberValue)
     {
         var articleNumber = WellKnownMaskIds.ManualFields.ArticleNumber;
         return dbContext.FieldValues
@@ -323,6 +346,17 @@ public sealed class ManualFiler(
                 && dbContext.Documents.Any(d => d.Id == v.DocumentId))
             .OrderBy(v => v.DocumentId);
     }
+
+    // A public key the core files itself is found again by its Purpose, which needs no column either (ADR 1095).
+    private async Task<Guid?> PublicKeyDocumentIdAsync(string purpose, CancellationToken cancellationToken) =>
+        await dbContext.FieldValues
+            .Where(v => v.Value == purpose
+                && dbContext.FieldDefinitions.Any(f => f.Id == v.FieldDefinitionId && f.Name == WellKnownMaskIds.PublicKeyFields.Purpose
+                    && dbContext.MaskVersions.Any(mv => mv.Id == f.MaskVersionId && mv.MaskId == WellKnownMaskIds.PublicKeys))
+                && dbContext.Documents.Any(d => d.Id == v.DocumentId))
+            .OrderBy(v => v.DocumentId)
+            .Select(v => (Guid?)v.DocumentId)
+            .FirstOrDefaultAsync(cancellationToken);
 
     private async Task<(Guid? UserId, Guid? ServiceAccountId)> AuthorOfStandardRepositoryAsync()
     {
@@ -334,10 +368,10 @@ public sealed class ManualFiler(
     }
 
     private async Task<Document> CreateDocumentAsync(
-        ManualSource source, Guid tenantId, Guid folderId, (Guid? UserId, Guid? ServiceAccountId) by, CancellationToken cancellationToken)
+        ManualSource source, Guid tenantId, Guid folderId, Guid maskId, (Guid? UserId, Guid? ServiceAccountId) by, CancellationToken cancellationToken)
     {
-        var manualMask = await dbContext.MaskVersions
-            .Where(v => v.MaskId == WellKnownMaskIds.Manual && v.IsCurrent)
+        var maskVersionId = await dbContext.MaskVersions
+            .Where(v => v.MaskId == maskId && v.IsCurrent)
             .Select(v => v.Id)
             .SingleAsync(cancellationToken);
 
@@ -347,7 +381,7 @@ public sealed class ManualFiler(
             TenantId = tenantId,
             ParentId = folderId,
             Name = source.DocumentName,
-            MaskVersionId = manualMask,
+            MaskVersionId = maskVersionId,
             CreatedByUserId = by.UserId,
             CreatedByServiceAccountId = by.ServiceAccountId,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -396,16 +430,25 @@ public sealed class ManualFiler(
     }
 
     /// <summary>The four Manual fields the core owns for its own manuals, refreshed with every version.</summary>
-    private async Task SetFieldsAsync(Document document, ManualSource source, CancellationToken cancellationToken)
-    {
-        var wanted = new Dictionary<string, string>
+    private Task SetManualFieldsAsync(Document document, ManualSource source, CancellationToken cancellationToken) =>
+        WriteFieldsAsync(document, new Dictionary<string, string>
         {
             [WellKnownMaskIds.ManualFields.Brand] = Alcifra.Localization.Strings.ProductName,
             [WellKnownMaskIds.ManualFields.ProductName] = source.ProductName,
             [WellKnownMaskIds.ManualFields.ArticleNumber] = source.ArticleNumber,
             [WellKnownMaskIds.ManualFields.ProductVersion] = source.ProductVersion,
-        };
+        }, cancellationToken);
 
+    /// <summary>The one Public keys field the core owns (ADR 1095): what the key is published for.</summary>
+    private Task SetPublicKeyFieldsAsync(Document document, CancellationToken cancellationToken) =>
+        WriteFieldsAsync(document, new Dictionary<string, string>
+        {
+            [WellKnownMaskIds.PublicKeyFields.Purpose] = ArchiveSigningPurpose,
+        }, cancellationToken);
+
+    /// <summary>Writes the wanted values onto the document's mask fields, leaving every other field alone.</summary>
+    private async Task WriteFieldsAsync(Document document, Dictionary<string, string> wanted, CancellationToken cancellationToken)
+    {
         var definitions = await dbContext.FieldDefinitions
             .Where(f => f.MaskVersionId == document.MaskVersionId && wanted.Keys.Contains(f.Name))
             .Select(f => new { f.Id, f.Name })

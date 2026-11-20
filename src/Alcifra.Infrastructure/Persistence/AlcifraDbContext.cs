@@ -340,35 +340,17 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
         modelBuilder.Entity<TEntity>().HasQueryFilter("SoftDeleteFilter", (TEntity e) => e.DeletedAt == null);
     }
 
-    // The documents the core's own filing path may give a core-owned mask in this unit of work (ADR 0891) — see
-    // CoreOwnedDocumentInvariants for why a grant names a document rather than switching the rule off.
-    private readonly HashSet<Guid> _coreOwnedMaskGrants = [];
-
-    /// <summary>Allows <paramref name="documentId"/> to be given a core-owned mask (ADR 0891). Only the core's manual
-    /// filing calls this; every other path that assigns such a mask is refused by SaveChanges.</summary>
-    public void PermitCoreOwnedMask(Guid documentId) => _coreOwnedMaskGrants.Add(documentId);
-
-    internal bool IsCoreOwnedMaskPermitted(Guid documentId) => _coreOwnedMaskGrants.Contains(documentId);
-
-    private readonly HashSet<Guid> _coreOwnedReferenceGrants = [];
-
-    /// <summary>Allows the reference <paramref name="referenceId"/> to be placed in, or removed from, a core-owned folder
-    /// (ADR 1066). Only the core's own reconciliation calls this; every other such write is refused by SaveChanges.</summary>
-    public void PermitCoreOwnedReference(Guid referenceId) => _coreOwnedReferenceGrants.Add(referenceId);
-
-    // A grant is spent by the write it was given for: the same context may go on to other saves (the startup reconciliation
-    // does), and a reference once placed by the core must not stay removable through the grant that placed it.
-    internal bool TakeCoreOwnedReferenceGrant(Guid referenceId) => _coreOwnedReferenceGrants.Remove(referenceId);
-
     public override int SaveChanges()
     {
         GroupInvariants.ValidateAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         IdentityAddressInvariants.ValidateAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         PersonalRootName.FollowDisplayNameAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         ProvisionBookableCollectionsAsync(CancellationToken.None).GetAwaiter().GetResult();
+        // The standard repository FIRST (ADRs 0892/1095): deleting one cascades into the core's protected container, and
+        // the refusal a person can act on is "make another repository the standard one first", not the container's.
+        CoreOwnedDocumentInvariants.EnforceStandardRepositoryAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         CoreOwnedDocumentInvariants.EnforceProtectedFoldersAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         ValidateDocumentsAsync(CancellationToken.None).GetAwaiter().GetResult();
-        CoreOwnedDocumentInvariants.EnforceStandardRepositoryAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         SingleVersionMaskRule.ValidateAsync(this, CancellationToken.None).GetAwaiter().GetResult();
         ValidateFieldValuesAsync(CancellationToken.None).GetAwaiter().GetResult();
         ValidateRequiredFieldsAsync(CancellationToken.None).GetAwaiter().GetResult();
@@ -397,11 +379,13 @@ public partial class AlcifraDbContext : DbContext, IDataProtectionKeyContext
         // BEFORE the document validations, so the collections it adds are judged by them like any other
         // write — sibling names, containment, cycles (#1097).
         await ProvisionBookableCollectionsAsync(cancellationToken);
+        // The standard repository FIRST (ADRs 0892/1095): deleting one cascades into the core's protected container, and
+        // the refusal a person can act on is "make another repository the standard one first", not the container's.
+        await CoreOwnedDocumentInvariants.EnforceStandardRepositoryAsync(this, cancellationToken);
         // Before the containment rules (ADR 1066): a protected folder's move is refused for being protected, the reason a
         // person can act on, not for landing where it is not admitted.
         await CoreOwnedDocumentInvariants.EnforceProtectedFoldersAsync(this, cancellationToken);
         await ValidateDocumentsAsync(cancellationToken);
-        await CoreOwnedDocumentInvariants.EnforceStandardRepositoryAsync(this, cancellationToken);
         await SingleVersionMaskRule.ValidateAsync(this, cancellationToken);
         await ValidateFieldValuesAsync(cancellationToken);
         await ValidateRequiredFieldsAsync(cancellationToken);

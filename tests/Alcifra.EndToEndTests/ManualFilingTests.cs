@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Alcifra.Api.Manuals;
 using Alcifra.Domain.Documents;
+using Alcifra.Domain.Masks;
 using Alcifra.Domain.Modules;
 using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
@@ -48,7 +49,8 @@ public class ManualFilingTests
             var documentId = Assert.IsType<Guid>(activation.ManualDocumentId);
             var (document, versions) = await DocumentAsync(rig.TenantId, documentId);
             var folder = await ManualsFolderAsync(rig.TenantId);
-            Assert.Equal(rig.RepoId, folder.ParentId);
+            Assert.Equal((await ContainerAsync(rig.TenantId)).Id, folder.ParentId);
+            Assert.Equal(rig.RepoId, (await ContainerAsync(rig.TenantId)).ParentId);
             Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.ManualsFolder, folder.Name);
             Assert.Equal(folder.Id, document.ParentId);
             Assert.Equal("test-module", await FieldAsync(rig.TenantId, documentId, "Article number"));
@@ -106,7 +108,10 @@ public class ManualFilingTests
             await using (var scope = await TenantScopeAsync(rig.TenantId))
             {
                 Assert.Single(await scope.Db.Documents.Where(d => d.Name == "Test Module Manual").ToListAsync());
-                Assert.Single(await scope.Db.Documents.Where(d => d.Name.StartsWith(global::Alcifra.Localization.CoreOwnedNames.ManualsFolder)).ToListAsync());
+                // By MASK, not by name prefix: the rig's repository also begins with "Manuals" now that the folder's
+                // own name is just "Manuals" (ADR 1095), and a name is not what makes a folder the manuals folder.
+                Assert.Single(await scope.Db.Documents.Where(d =>
+                    scope.Db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.Documentation)).ToListAsync());
             }
 
             Environment.SetEnvironmentVariable(TestModule.TestModule.ManualEditionVariable, "3");
@@ -190,9 +195,10 @@ public class ManualFilingTests
     }
 
     [Fact]
-    public async Task The_archive_signing_keys_are_published_beside_the_manuals_and_unchanged_keys_file_nothing()
+    public async Task The_archive_signing_keys_are_published_in_the_installation_folder_and_unchanged_keys_file_nothing()
     {
-        // ADR 0961: every public key that ever signed an offline archive, newest first, where every member reads.
+        // ADRs 0961/1095: every public key that ever signed an offline archive, newest first, where every member reads —
+        // the installation's own folder beside the manuals, wearing the Public keys mask, not among the manuals.
         var rig = await RigAsync();
         await MakeStandardAsync(rig.TenantId, rig.RepoId);
         var signing = _factory.Services.GetRequiredService<Alcifra.Api.OfflineArchives.ArchiveSigningKey>();
@@ -200,14 +206,17 @@ public class ManualFilingTests
         await ManualStartupFiling.FileForTenantAsync(_factory.Services, rig.TenantId, [], NullLogger.Instance);
         await ManualStartupFiling.FileForTenantAsync(_factory.Services, rig.TenantId, [], NullLogger.Instance);
 
-        var folder = await ManualsFolderAsync(rig.TenantId);
+        var installation = await InstallationFolderAsync(rig.TenantId);
         Guid documentId;
         await using (var scope = await TenantScopeAsync(rig.TenantId))
         {
-            documentId = (await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == folder.Id && d.Name == "Archive signing keys")).Id;
+            var keys = await scope.Db.Documents.AsNoTracking().SingleAsync(d => d.ParentId == installation.Id && d.Name == "Archive signing keys");
+            documentId = keys.Id;
+            Assert.Equal(await scope.Db.MaskVersions.Where(v => v.MaskId == WellKnownMaskIds.PublicKeys && v.IsCurrent)
+                .Select(v => v.Id).SingleAsync(), keys.MaskVersionId);
         }
 
-        Assert.Equal(ManualFiler.ArchiveSigningKeysArticleNumber, await FieldAsync(rig.TenantId, documentId, "Article number"));
+        Assert.Equal(ManualFiler.ArchiveSigningPurpose, await FieldAsync(rig.TenantId, documentId, WellKnownMaskIds.PublicKeyFields.Purpose));
         var (_, versions) = await DocumentAsync(rig.TenantId, documentId);
         var version = Assert.Single(versions);   // the second pass found the same keys
         await using var content = await _factory.Services.GetRequiredService<IObjectStorageClient>().GetObjectAsync(version.ObjectKey);
@@ -309,7 +318,21 @@ public class ManualFilingTests
     {
         await using var scope = await TenantScopeAsync(tenantId);
         return await scope.Db.Documents.AsNoTracking()
-            .SingleAsync(d => scope.Db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == Alcifra.Domain.Masks.WellKnownMaskIds.Documentation));
+            .SingleAsync(d => scope.Db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.Documentation));
+    }
+
+    private async Task<Document> ContainerAsync(Guid tenantId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Db.Documents.AsNoTracking()
+            .SingleAsync(d => scope.Db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.CoreFolder));
+    }
+
+    private async Task<Document> InstallationFolderAsync(Guid tenantId)
+    {
+        await using var scope = await TenantScopeAsync(tenantId);
+        return await scope.Db.Documents.AsNoTracking()
+            .SingleAsync(d => scope.Db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.Installation));
     }
 
     private async Task<string?> FieldAsync(Guid tenantId, Guid documentId, string name)

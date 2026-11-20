@@ -89,17 +89,23 @@ public class MaskAssignabilityListingTests
         // Manual joined with ADR 0891: Alcifra files its own manuals wearing it, and a person keeps a third-party
         // product's manual the same way — wherever they file it, which is why its folder's exclusivity is one-way.
         //
+        // Public keys joined with ADR 1095, for Certificate's reason: a key a person keeps for reference — a vendor's
+        // signing key beside its invoice — is a legitimate document, and the core files its own into the Installation
+        // folder by its Purpose. Like Certificate it claims no extension: a classifier stamping every .pem would mint
+        // public keys nobody meant to file.
+        //
         // The Sealed document mask (ADR 0975) is deliberately ABSENT: a picker assigns a mask to a document whose
         // content already exists and cannot produce sealed content, so switching a plaintext document to it would
         // leave a plaintext confirmed version under a mask that declares the content sealed. It does not change the
         // set below because Password Entry was already excluded through its typed-folder rule; this makes the reason
         // true of the class rather than a property of one mask's placement.
-        Assert.Equal(["Basic Entry", "Bookmarks", "Certificate", "License", "Manual"], assignable);
+        Assert.Equal(["Basic Entry", "Bookmarks", "Certificate", "License", "Manual", "Public keys"], assignable);
 
         // And the ones that must never be offered, named individually so a regression says which.
         // Meeting room types a folder; the Booking mask is placement-constrained to rooms AND created by the
         // booking flow, never a picker (ADR 0735) — both would be over-offering, the bug this test exists for.
-        foreach (var refused in new[] { "Addressbook", "Calendar", "Notebook", "Section", "Mailbox", "Contact", "Appointment", "eMail", "Note", "Folder", "Meeting room", "Booking", global::Alcifra.Localization.CoreOwnedNames.DocumentationMask, "Reader certificates", "Certificate policy", "Sealed document" })
+        // The core's own container and Installation folder masks (ADR 1095) are the core's to assign, never a picker's.
+        foreach (var refused in new[] { "Addressbook", "Calendar", "Notebook", "Section", "Mailbox", "Contact", "Appointment", "eMail", "Note", "Folder", "Meeting room", "Booking", global::Alcifra.Localization.CoreOwnedNames.DocumentationMask, "Reader certificates", "Certificate policy", "Sealed document", global::Alcifra.Localization.CoreOwnedNames.CoreFolder, global::Alcifra.Localization.CoreOwnedNames.InstallationFolder })
         {
             Assert.False(
                 masks[refused].GetProperty("isFreelyAssignable").GetBoolean(),

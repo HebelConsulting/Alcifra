@@ -96,9 +96,11 @@ public static class CoreOwnedDocumentInvariants
     }
 
     /// <summary>
-    /// The Administration root and its Users folder are the archive's own (ADR 1066): neither is deleted, renamed or moved,
-    /// and a reference in Users is placed or removed only by the core, to a personal space. Children are the containment
-    /// rules' business: the root admits only Users, Users admits nothing, and both masks need the core-owned grant.
+    /// The Administration root and its Users folder are the archive's own (ADR 1066), as are the core's container and
+    /// its Installation folder (ADR 1095): none is deleted, renamed or moved, and a reference in a core-owned folder is
+    /// placed or removed only by the core. Children are the containment rules' business: the roots admit only their
+    /// declared children, and every one of these masks needs the core-owned grant. The ONE move is the core's own
+    /// (<c>PermitCoreOwnedFolderMove</c>): the container travels with a change of standard repository.
     /// </summary>
     public static async Task EnforceProtectedFoldersAsync(AlcifraDbContext dbContext, CancellationToken cancellationToken)
     {
@@ -121,6 +123,21 @@ public static class CoreOwnedDocumentInvariants
                 && await MaskIdOfAsync(dbContext, worn, cancellationToken) is { } maskId
                 && WellKnownMaskIds.ProtectedCoreFolders.Contains(maskId))
             {
+                // The core's OWN acts on a protected folder (ADR 1095), each needing the grant that names it: the
+                // container travels to the new standard repository with the setting that chooses it, and follows the
+                // product's name (ADR 0986) — the free-name adjustment a move implies included. A grant is spent by
+                // this save.
+                var deleted = entry.State == EntityState.Deleted
+                    || (entry.Property(d => d.DeletedAt).IsModified && entry.Entity.DeletedAt is not null);
+                var moved = entry.Property(d => d.ParentId).IsModified;
+                var renamed = entry.Property(d => d.Name).IsModified;
+                if (!deleted
+                    && (!moved || dbContext.TakeCoreOwnedFolderMoveGrant(entry.Entity.Id))
+                    && (!renamed || dbContext.TakeCoreOwnedFolderRenameGrant(entry.Entity.Id)))
+                {
+                    continue;
+                }
+
                 throw CoreOwnedFolderProtectedException.CannotChange(entry.Entity.Name, what);
             }
         }

@@ -310,10 +310,20 @@ public class WellKnownMaskSeeder : IWellKnownMaskSeeder
         ], cancellationToken);
 
         // The manuals folder and what it holds (ADR 0891). The folder mask is fieldless and CORE-OWNED — the core
-        // finds the tenant's "Alcifra Manuals" folder by it, never by name. The Manual mask is a document any
+        // finds the tenant's manuals folder by it, never by name. The Manual mask is a document any
         // person may also use for a third-party product's manual, so every field is optional; for Alcifra's
         // own manuals the core fills the first four.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.Documentation, Alcifra.Localization.CoreOwnedNames.DocumentationMask, [], cancellationToken);
+        // The core's own tree (ADR 1095, #1893): the container named after the product, the Installation folder beside
+        // the manuals inside it, and the Public keys mask the archive signing keys (ADR 0961) wear there. The masks are
+        // seeded here; the FOLDERS are created and healed by the filing path, which is where the standard repository and
+        // a live author exist.
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.CoreFolder, Alcifra.Localization.CoreOwnedNames.CoreFolder, [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.Installation, Alcifra.Localization.CoreOwnedNames.InstallationFolder, [], cancellationToken);
+        await EnsureMaskAsync(tenantId, WellKnownMaskIds.PublicKeys, "Public keys",
+        [
+            new FieldSpec(WellKnownMaskIds.PublicKeyFields.Purpose, FieldDataType.Text, IsRequired: false),
+        ], cancellationToken);
         // The administrators' branch as real folders (ADR 1066); English identities, translated where a person reads them.
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.Administration, "Administration", [], cancellationToken);
         await EnsureMaskAsync(tenantId, WellKnownMaskIds.Users, "Users", [], cancellationToken);

@@ -332,6 +332,39 @@ public static partial class WellKnownMaskIds
     public static readonly Guid CiCdSecret = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E55");
 
     /// <summary>
+    /// The core's own CONTAINER folder (ADR 1095, #1893): the one folder every tenant has for what the installation
+    /// itself brings, named after the product. Directly under the standard repository (ADR 0892), moving with it, and
+    /// holding <see cref="Documentation"/> and <see cref="Installation"/> — nothing else.
+    /// </summary>
+    /// <remarks>
+    /// <b>Core-owned and protected</b> like <see cref="Administration"/>: only the core creates it, puts one of the two
+    /// masks on a document, and nothing deletes, renames or moves it — except the core's own move when the tenant
+    /// chooses another standard repository, which travels through the same explicit grant as a core-owned mask.
+    /// </remarks>
+    public static readonly Guid CoreFolder = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E56");
+
+    /// <summary>
+    /// The <c>Installation</c> folder beneath <see cref="CoreFolder"/> (ADR 1095, #1893): the installation's own
+    /// artefacts, away from the manuals — today the archive signing keys (ADR 0961) an offline reader trusts.
+    /// </summary>
+    /// <remarks>
+    /// Core-owned and protected for the container's reason: it is the archive's to keep whole, and a person renames
+    /// nothing inside it. It admits <see cref="PublicKeys"/> only, one-directionally — a public key may also be kept
+    /// anywhere a person files things.
+    /// </remarks>
+    public static readonly Guid Installation = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E57");
+
+    /// <summary>
+    /// A public key filed as a document (ADR 1095, #1893) — today the installation's archive signing keys, wearing
+    /// <see cref="PublicKeyFields.Purpose"/> so the one the core maintains is found again without a column.
+    /// </summary>
+    /// <remarks>
+    /// User-creatable like <see cref="Certificate"/>, for its reason: a key a person keeps for reference is a
+    /// legitimate document. The core files into <see cref="Installation"/>; a key beside its owner's notes is fine.
+    /// </remarks>
+    public static readonly Guid PublicKeys = Guid.Parse("E10E1000-E100-E100-E100-E10E10E10E58");
+
+    /// <summary>
     /// The CORE's masks whose content is sealed to its readers (ADR 0964), mirroring a module's
     /// <c>ContentIsSealed</c> (ABI 1.20, ADR 0940): each maps to its content segment, which no other mask shares.
     /// </summary>
@@ -350,14 +383,16 @@ public static partial class WellKnownMaskIds
     /// The masks only the CORE assigns (ADR 0891): not offered by any picker, refused by SaveChanges when a document
     /// gains one outside the core's own filing path, refused when one is changed or removed, at most one live per tenant.
     /// </summary>
-    public static readonly IReadOnlySet<Guid> CoreOwnedMasks = new HashSet<Guid> { Documentation, Administration, Users };
+    public static readonly IReadOnlySet<Guid> CoreOwnedMasks =
+        new HashSet<Guid> { Documentation, Administration, Users, CoreFolder, Installation };
 
     /// <summary>
     /// The core-owned folders that are the archive's to keep whole (ADR 1066): not deleted, renamed or moved, and a
     /// reference in them placed or removed only by the core. The manuals folder is deliberately not here: a person may
-    /// rename or move it.
+    /// rename or move it. The container and the Installation folder are (ADR 1095): what the installation itself
+    /// brings stays where the next startup expects it — the one move, to a new standard repository, is the core's own.
     /// </summary>
-    public static readonly IReadOnlySet<Guid> ProtectedCoreFolders = new HashSet<Guid> { Administration, Users };
+    public static readonly IReadOnlySet<Guid> ProtectedCoreFolders = new HashSet<Guid> { Administration, Users, CoreFolder, Installation };
 
     /// <summary>A section INSIDE a notebook: a folder that holds notes and further sections (#564).</summary>
     /// <remarks>
@@ -483,7 +518,7 @@ public static partial class WellKnownMaskIds
     /// </para>
     /// </remarks>
     public static readonly IReadOnlySet<Guid> FolderMasks =
-        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder, Administration, Users, CiCdStore };
+        new HashSet<Guid> { Folder, Repository, UserFolder, MyDocuments, Mailbox, ImapSpecial, ImapFolder, Notebook, NotebookSection, Addressbook, Calendar, MeetingRoom, Schedule, Blockers, Availability, Documentation, ReaderCertificates, PasswordStore, PasswordFolder, Administration, Users, CiCdStore, CoreFolder, Installation };
 
     /// <summary>
     /// The file extensions that make a well-known mask the automatic choice for an upload (#671).
@@ -612,7 +647,7 @@ public static partial class WellKnownMaskIds
         // certificate filed by hand — a CA's own certificate, kept for reference — is a legitimate document.
         // What the module projects is what the module ENROLLED, so a hand-filed one is simply not addressed to
         // anybody, rather than being a hole.
-        new HashSet<Guid> { Repository, UserFolder, MyDocuments, ImapSpecial, Notebook, Booking, Schedule, Blockers, Block, Availability, AvailabilityWindow, Documentation, ReaderCertificates, CertificatePolicy, Administration, Users };
+        new HashSet<Guid> { Repository, UserFolder, MyDocuments, ImapSpecial, Notebook, Booking, Schedule, Blockers, Block, Availability, AvailabilityWindow, Documentation, ReaderCertificates, CertificatePolicy, Administration, Users, CoreFolder, Installation };
 
     /// <summary>
     /// Masks whose documents take exactly ONE version, for their whole life (ADR 0848).
@@ -676,7 +711,7 @@ public static partial class WellKnownMaskIds
         new HashSet<Guid>
         {
             BasicEntry, EMail, Note, Contact, Appointment, Booking, License, Block, AvailabilityWindow,
-            Certificate, Manual, CertificatePolicy, PasswordEntry, SealedDocument, Bookmarks, CiCdSecret,
+            Certificate, Manual, CertificatePolicy, PasswordEntry, SealedDocument, Bookmarks, CiCdSecret, PublicKeys,
         };
 
     /// <summary>
@@ -765,6 +800,12 @@ public static partial class WellKnownMaskIds
         // The reader-certificate folder holds certificates and the tenant's policy, nothing else (ADR 0936); a
         // Certificate may still live anywhere, where it simply addresses nobody.
         new(ReaderCertificates, "Reader certificates", [(Certificate, "Certificate"), (CertificatePolicy, "Certificate policy")]),
+
+        // The core's own tree (ADR 1095, #1893): the container holds the manuals folder and the Installation folder,
+        // and the Installation folder holds public keys — nothing else. One-directional like the row above, so a
+        // manuals folder a person moved still works, and a public key may live beside what it belongs to.
+        new(CoreFolder, "Core folder", [(Documentation, "Documentation folder"), (Installation, "Installation")]),
+        new(Installation, "Installation", [(PublicKeys, "Public key")]),
     ];
 
     /// <summary>Every exclusive folder's rule, both tables — what "does this folder take a plain subfolder" asks.</summary>

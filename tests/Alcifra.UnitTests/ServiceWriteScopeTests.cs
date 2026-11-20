@@ -90,7 +90,13 @@ public partial class ServiceWriteScopeTests
         // moves the document's token, so an index-data edit holding the old tag fails 412 as it should.
         ["CertificateRevocation.cs"] = "FINAL TRANSITION. " + CalleeOfAContract,
         ["ManualsFolder.cs"] = Provisioning,
-        ["AdministrationFolders.cs"] = Provisioning,
+        // The core's own tree (ADR 1095): the container, the manuals folder and the Installation folder are a PROVISIONING
+        // shape, created and healed at startup under the same tenant-row lock the filer takes. The one request that
+        // reaches a folder of this tree — the standard-repository setting, which moves the container — is the tenant-settings
+        // PUT's verb contract, and the move rides it (If-Match on the tenant, ADR 0892). The two writers are the shared
+        // creation helper and the migration; the callers' own files only delegate.
+        ["CoreOwnedFolders.cs"] = Provisioning,
+        ["InstallationTree.cs"] = Provisioning,
 
         ["EphemeralMailSweepWorker.cs"] = Background,
         ["EphemeralContentSweepWorker.cs"] = Background,

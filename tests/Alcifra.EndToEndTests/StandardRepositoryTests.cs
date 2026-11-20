@@ -11,9 +11,10 @@ using Alcifra.Infrastructure.Persistence;
 namespace Alcifra.EndToEndTests;
 
 // The tenant's standard repository (ADR 0892) over the real wire: provisioning makes the repository it creates the
-// standard one and files Alcifra's own manual into global::Alcifra.Localization.CoreOwnedNames.ManualsFolder beneath it; the standard repository
+// standard one and builds the core's own tree beneath it — the container holding the manuals folder and the
+// Installation folder (ADR 1095) — with Alcifra's own manual filed into the manuals folder; the standard repository
 // cannot be deleted through the API or a mounted drive; and a tenant administrator changes it with If-Match, which
-// moves the manuals folder in the same transaction.
+// moves the container in the same transaction.
 [Collection(E2ECollection.Name)]
 [Trait("Area", "e2e-3")]
 public class StandardRepositoryTests
@@ -49,15 +50,21 @@ public class StandardRepositoryTests
             admin);
     }
 
-    private async Task<(Guid Id, Guid? ParentId, string Name)> ManualsFolderAsync(Guid tenantId)
+    private async Task<(Guid Id, Guid? ParentId, string Name)> FolderAsync(Guid tenantId, Guid maskId)
     {
         using var scope = _factory.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<CurrentTenantAccessor>().TenantId = tenantId;
         var db = scope.ServiceProvider.GetRequiredService<AlcifraDbContext>();
         var folder = await db.Documents.AsNoTracking()
-            .SingleAsync(d => db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == WellKnownMaskIds.Documentation));
+            .SingleAsync(d => db.MaskVersions.Any(v => v.Id == d.MaskVersionId && v.MaskId == maskId));
         return (folder.Id, folder.ParentId, folder.Name);
     }
+
+    private Task<(Guid Id, Guid? ParentId, string Name)> ManualsFolderAsync(Guid tenantId) =>
+        FolderAsync(tenantId, WellKnownMaskIds.Documentation);
+
+    private Task<(Guid Id, Guid? ParentId, string Name)> ContainerAsync(Guid tenantId) =>
+        FolderAsync(tenantId, WellKnownMaskIds.CoreFolder);
 
     private static async Task<HttpResponseMessage> PutStandardAsync(HttpClient admin, Guid repositoryId, string? etag)
     {
@@ -84,8 +91,12 @@ public class StandardRepositoryTests
         var settings = await TestJson.Get(tenant.Admin, "/api/tenant-settings");
         Assert.Equal(tenant.RepositoryId, settings.GetProperty("standardRepositoryId").GetGuid());
 
+        var container = await ContainerAsync(tenant.TenantId);
+        Assert.Equal(tenant.RepositoryId, container.ParentId);
+        Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.CoreFolder, container.Name);
+
         var folder = await ManualsFolderAsync(tenant.TenantId);
-        Assert.Equal(tenant.RepositoryId, folder.ParentId);
+        Assert.Equal(container.Id, folder.ParentId);
         Assert.Equal(global::Alcifra.Localization.CoreOwnedNames.ManualsFolder, folder.Name);
 
         var children = await TestJson.Get(tenant.Admin, $"/api/documents/{folder.Id}/children");
@@ -117,7 +128,7 @@ public class StandardRepositoryTests
     }
 
     [Fact]
-    public async Task Changing_the_standard_repository_moves_the_manuals_folder_and_honours_if_match()
+    public async Task Changing_the_standard_repository_moves_the_container_and_honours_if_match()
     {
         var tenant = await FoundAsync();
         var second = (await TestJson.Post(tenant.Admin, "/api/repositories", new { name = $"Second {Guid.NewGuid():N}" })).GetProperty("id").GetGuid();
@@ -128,7 +139,7 @@ public class StandardRepositoryTests
             Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
         }
 
-        Assert.Equal(tenant.RepositoryId, (await ManualsFolderAsync(tenant.TenantId)).ParentId);
+        Assert.Equal(tenant.RepositoryId, (await ContainerAsync(tenant.TenantId)).ParentId);
 
         using var read = await tenant.Admin.GetAsync("/api/tenant-settings");
         using (var moved = await PutStandardAsync(tenant.Admin, second, read.Headers.ETag!.ToString()))
@@ -137,7 +148,10 @@ public class StandardRepositoryTests
         }
 
         Assert.Equal(second, (await TestJson.Get(tenant.Admin, "/api/tenant-settings")).GetProperty("standardRepositoryId").GetGuid());
-        Assert.Equal(second, (await ManualsFolderAsync(tenant.TenantId)).ParentId);
+        var container = await ContainerAsync(tenant.TenantId);
+        Assert.Equal(second, container.ParentId);
+        // The manuals folder travelled INSIDE the container — nothing had to move it separately (ADR 1095).
+        Assert.Equal(container.Id, (await ManualsFolderAsync(tenant.TenantId)).ParentId);
 
         // …and the old one is an ordinary repository again: deletable.
         using var get = await tenant.Admin.GetAsync($"/api/documents/{tenant.RepositoryId}");
@@ -164,9 +178,11 @@ public class StandardRepositoryTests
             Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
         }
 
-        // Still exactly one manuals folder, still the original, still directly under the standard repository.
-        var folder = await ManualsFolderAsync(tenant.TenantId);
-        Assert.Equal(tenant.RepositoryId, folder.ParentId);
+        // Still exactly one manuals folder, still the original, still inside the core's container under the standard
+        // repository — the imported copy arrived as an ordinary folder beside them.
+        var container = await ContainerAsync(tenant.TenantId);
+        Assert.Equal(tenant.RepositoryId, container.ParentId);
+        Assert.Equal(container.Id, (await ManualsFolderAsync(tenant.TenantId)).ParentId);
     }
 
     [Fact]

@@ -232,9 +232,10 @@ public class Tenant : IConcurrencyTracked
     public int IncompleteUploadCleanupDays { get; set; } = 7;
 
     /// <summary>
-    /// The tenant's STANDARD repository (ADR 0892) — where the installation itself files what it brings: the
-    /// "Alcifra Manuals" folder lives directly under it. Set by provisioning to the repository it creates;
-    /// changed only by a tenant administrator through tenant settings, which moves the manuals folder with it.
+    /// The tenant's STANDARD repository (ADR 0892) — where the installation itself files what it brings: the core's own
+    /// container folder, holding the manuals folder and the Installation folder, lives directly under it. Set by
+    /// provisioning to the repository it creates; changed only by a tenant administrator through tenant settings, which
+    /// moves the container — and everything in it — with it (ADR 1095).
     /// </summary>
     /// <remarks>
     /// A plain column, not a FK — the <c>Document.CurrentVersionId</c> precedent: a FK from Tenants to Documents

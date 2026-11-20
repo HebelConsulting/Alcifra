@@ -18,6 +18,17 @@ public static partial class WellKnownMaskIds
         public const string ExpectedDurationOfUse = "Expected duration of use (years)";
     }
 
+    /// <summary>The Public keys mask's one field (ADR 1095): what the key is FOR, which is how the core finds its own.</summary>
+    public static class PublicKeyFields
+    {
+        /// <summary>
+        /// What the key is published for — "Archive signing" for the installation's own key history. Optional in
+        /// general (a person's key for reference may state nothing); the core's document always carries it, and
+        /// finds the document again by that value rather than by a remembered id.
+        /// </summary>
+        public const string Purpose = "Purpose";
+    }
+
     /// <summary>The Sealed Document mask's one field (owner decision 2026-10-24).</summary>
     public static class SealedDocumentFields
     {

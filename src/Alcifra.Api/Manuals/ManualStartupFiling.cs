@@ -91,7 +91,8 @@ public static class ManualStartupFiling
     {
         foreach (var path in paths)
         {
-            await GuardedAsync(root, tenantId, Path.GetFileName(path), filer => filer.FileClientManualAsync(path, cancellationToken), logger);
+            await GuardedAsync(root, tenantId, Path.GetFileName(path),
+                provider => provider.GetRequiredService<ManualFiler>().FileClientManualAsync(path, cancellationToken), logger);
         }
     }
 
@@ -99,32 +100,40 @@ public static class ManualStartupFiling
     public static async Task FileForTenantAsync(
         IServiceProvider root, Guid tenantId, IReadOnlyList<IIndustryModule> modules, ILogger logger, CancellationToken cancellationToken = default)
     {
-        await GuardedAsync(root, tenantId, Alcifra.Localization.Strings.ProductName, filer => filer.FileCoreManualAsync(cancellationToken), logger);
-        // The archive signing keys (ADR 0961) beside the manuals: what an offline reader trusts, published where every
-        // member already reads.
+        // The core's own tree first (ADR 1095): the container, the manuals folder inside it and the Installation folder,
+        // reached from whatever shape the tenant is in — so the filings below land in the present tree, and the keys
+        // re-masked out of the manuals folder before they are versioned beside them.
+        await GuardedAsync(root, tenantId, "installation tree",
+            provider => InstallationTree.EnsureAsync(provider.GetRequiredService<AlcifraDbContext>(), tenantId, logger, cancellationToken), logger);
+        await GuardedAsync(root, tenantId, Alcifra.Localization.Strings.ProductName,
+            provider => provider.GetRequiredService<ManualFiler>().FileCoreManualAsync(cancellationToken), logger);
+        // The archive signing keys (ADRs 0961/1095) in the installation's own folder: what an offline reader trusts,
+        // published where every member already reads.
         var signing = root.GetRequiredService<OfflineArchives.ArchiveSigningKey>();
         await GuardedAsync(root, tenantId, "archive signing keys",
-            filer => filer.FileArchiveSigningKeysAsync(signing.HistoryPem(), signing.Current?.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA256) ?? string.Empty, cancellationToken),
+            provider => provider.GetRequiredService<ManualFiler>().FileArchiveSigningKeysAsync(
+                signing.HistoryPem(), signing.Current?.GetCertHashString(System.Security.Cryptography.HashAlgorithmName.SHA256) ?? string.Empty, cancellationToken),
             logger);
         foreach (var module in modules)
         {
-            await GuardedAsync(root, tenantId, module.ModuleId, filer => filer.FileModuleManualAsync(module, cancellationToken), logger);
+            await GuardedAsync(root, tenantId, module.ModuleId,
+                provider => provider.GetRequiredService<ManualFiler>().FileModuleManualAsync(module, cancellationToken), logger);
         }
     }
 
     private static async Task GuardedAsync(
-        IServiceProvider root, Guid tenantId, string what, Func<ManualFiler, Task<ManualFilingOutcome>> file, ILogger logger)
+        IServiceProvider root, Guid tenantId, string what, Func<IServiceProvider, Task> step, ILogger logger)
     {
         try
         {
             using var scope = root.CreateScope();
             scope.ServiceProvider.GetRequiredService<CurrentTenantAccessor>().TenantId = tenantId;
-            await file(scope.ServiceProvider.GetRequiredService<ManualFiler>());
+            await step(scope.ServiceProvider);
         }
         catch (Exception e)
         {
             // Deliberately broad — the ModuleMaskBackfill posture.
-            logger.LogError(e, "Filing the {What} manual failed for tenant {TenantId}", what, tenantId);
+            logger.LogError(e, "The {What} filing step failed for tenant {TenantId}", what, tenantId);
         }
     }
 }

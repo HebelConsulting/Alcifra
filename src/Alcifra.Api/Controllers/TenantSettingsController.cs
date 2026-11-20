@@ -371,8 +371,9 @@ public class TenantSettingsController : ControllerBase
         }, cancellationToken, nameConflictPossible: true);
 
     /// <summary>
-    /// Chooses the tenant's standard repository (ADR 0892) and, in the SAME transaction, moves the "Alcifra
-    /// Manuals" folder into it — so the manuals are never in a repository that has stopped being the standard one.
+    /// Chooses the tenant's standard repository (ADR 0892) and, in the SAME transaction, moves the core's own container
+    /// folder — the manuals and the installation's artefacts with it (ADR 1095) — so nothing the installation files is
+    /// ever left in a repository that has stopped being the standard one.
     /// </summary>
     [HttpPut("standard-repository")]
     public Task<IActionResult> UpdateStandardRepository([FromBody] UpdateStandardRepositoryRequest request, CancellationToken cancellationToken) =>
@@ -387,7 +388,8 @@ public class TenantSettingsController : ControllerBase
             }
 
             tenant.StandardRepositoryId = request.StandardRepositoryId;
-            await Alcifra.Api.Manuals.StandardRepositoryChange.MoveUnderAsync(_dbContext, request.StandardRepositoryId, cancellationToken);
+            await Alcifra.Api.Manuals.StandardRepositoryChange.MoveUnderAsync(
+                _dbContext, tenant.Id, request.StandardRepositoryId, cancellationToken);
         }, cancellationToken);
 
     [HttpPut("capture")]

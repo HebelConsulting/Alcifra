@@ -40,7 +40,8 @@
 
                     <!-- ==== Standard repository (ADR 0892) ========================================
                          Where Alcifra files what it brings — its manuals first. Saving moves the
-                         "Alcifra Manuals" folder with it, in the same transaction. -->
+                         core's own container folder, with its manuals and installation folders,
+                         along with it, in the same transaction (ADR 1095). -->
                     <v:TenantGroupHeader Title="{loc:Tr TenantGroupStandardRepository}" Group="standard-repository"
                                          IsEditing="{Binding IsEditingTenantStandardRepository}" />
                     <StackPanel Orientation="Horizontal" Spacing="4">

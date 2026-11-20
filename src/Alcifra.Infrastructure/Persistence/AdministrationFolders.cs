@@ -54,7 +54,7 @@ public static class AdministrationFolders
         var users = await FindAsync(dbContext, tenantId, WellKnownMaskIds.Users, cancellationToken);
         if (root is null || users is null)
         {
-            var author = await AuthorAsync(dbContext, tenantId, cancellationToken);
+            var author = await CoreOwnedFolders.AuthorAsync(dbContext, tenantId, cancellationToken);
             if (author is null)
             {
                 logger.LogWarning(
@@ -63,13 +63,13 @@ public static class AdministrationFolders
                 return;
             }
 
-            root ??= await CreateAsync(dbContext, tenantId, null, RootName, WellKnownMaskIds.Administration, author.Value, logger, cancellationToken);
+            root ??= await CoreOwnedFolders.CreateAsync(dbContext, tenantId, null, RootName, WellKnownMaskIds.Administration, author.Value, logger, cancellationToken);
             if (root is null)
             {
                 return;
             }
 
-            users ??= await CreateAsync(dbContext, tenantId, root.Id, UsersName, WellKnownMaskIds.Users, author.Value, logger, cancellationToken);
+            users ??= await CoreOwnedFolders.CreateAsync(dbContext, tenantId, root.Id, UsersName, WellKnownMaskIds.Users, author.Value, logger, cancellationToken);
             if (users is null)
             {
                 return;
@@ -143,69 +143,5 @@ public static class AdministrationFolders
         };
         dbContext.PermitCoreOwnedReference(reference.Id);
         dbContext.DocumentReferences.Add(reference);
-    }
-
-    private static async Task<Document?> CreateAsync(
-        AlcifraDbContext dbContext, Guid tenantId, Guid? parentId, string wantedName, Guid maskId,
-        (Guid? UserId, Guid? ServiceAccountId) author, ILogger logger, CancellationToken cancellationToken)
-    {
-        var maskVersionId = await dbContext.MaskVersions.IgnoreQueryFilters(["TenantFilter"])
-            .Where(v => v.TenantId == tenantId && v.MaskId == maskId && v.IsCurrent)
-            .Select(v => (Guid?)v.Id)
-            .SingleOrDefaultAsync(cancellationToken);
-        if (maskVersionId is null)
-        {
-            logger.LogWarning("Tenant {TenantId} has no '{Mask}' mask yet, so the folder was not created; the next start heals it.", tenantId, wantedName);
-            return null;
-        }
-
-        // A sibling may already carry the name (a repository somebody called Administration): the folder is recognised by
-        // its mask, so it takes the next free name and says so, as the manuals folder does.
-        var taken = await dbContext.Documents.IgnoreQueryFilters(["TenantFilter", "SoftDeleteFilter"])
-            .Where(d => d.TenantId == tenantId && d.ParentId == parentId && (parentId != null || d.PersonalOfUserId == null))
-            .Select(d => d.Name)
-            .ToListAsync(cancellationToken);
-        var name = wantedName;
-        for (var n = 2; taken.Contains(name, StringComparer.OrdinalIgnoreCase); n++)
-        {
-            name = $"{wantedName} ({n})";
-        }
-
-        if (!string.Equals(name, wantedName, StringComparison.Ordinal))
-        {
-            logger.LogWarning(
-                "Tenant {TenantId}: a document named '{Taken}' already exists beside the archive's own folder, which was "
-                + "created as '{Name}'. The folder is recognised by its type, not its name.", tenantId, wantedName, name);
-        }
-
-        var folder = new Document
-        {
-            Id = Guid.NewGuid(),
-            TenantId = tenantId,
-            ParentId = parentId,
-            Name = name,
-            MaskVersionId = maskVersionId.Value,
-            CreatedByUserId = author.UserId,
-            CreatedByServiceAccountId = author.ServiceAccountId,
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
-        dbContext.PermitCoreOwnedMask(folder.Id);
-        dbContext.Documents.Add(folder);
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return folder;
-    }
-
-    private static async Task<(Guid? UserId, Guid? ServiceAccountId)?> AuthorAsync(AlcifraDbContext dbContext, Guid tenantId, CancellationToken cancellationToken)
-    {
-        var standardId = await dbContext.Tenants.Where(t => t.Id == tenantId).Select(t => t.StandardRepositoryId).SingleOrDefaultAsync(cancellationToken);
-        var standard = standardId is { } id
-            ? await dbContext.Documents.IgnoreQueryFilters(["TenantFilter"])
-                .Where(d => d.Id == id)
-                .Select(d => new { d.CreatedByUserId, d.CreatedByServiceAccountId })
-                .SingleOrDefaultAsync(cancellationToken)
-            : null;
-        return standard is null
-            ? null
-            : (standard.CreatedByUserId, standard.CreatedByUserId is null ? standard.CreatedByServiceAccountId : null);
     }
 }
