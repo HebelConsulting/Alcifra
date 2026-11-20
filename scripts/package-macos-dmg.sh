@@ -194,6 +194,27 @@ build_one() {
   cp -R "$bundle" "$app_dir"
   cp "$ICNS" "$app_dir/Contents/Resources/${APP_NAME}.icns"
 
+  # Every Mach-O in the bundle keeps THIS package's architecture only. Three third-party libraries (AvaloniaNative,
+  # SkiaSharp, HarfBuzzSharp) ship universal, so the arm64 package carried Intel code it never loads — which macOS 26
+  # reports at launch as "contains a component that will not open on macOS 28" (2026-11-19). The x64 package loses the
+  # arm64 halves it cannot use the same way. Signing below signs the thinned files; thinning invalidates the signature.
+  local arch=arm64 macho kind archs
+  [[ "$rid" == osx-x64 ]] && arch=x86_64
+  while IFS= read -r -d '' macho; do
+    kind="$(file -b "$macho")"
+    case "$kind" in
+      *Mach-O*)
+        archs="$(lipo -archs "$macho" 2>/dev/null || true)"
+        case "$archs" in
+          *" "*)
+            echo "   thinning $archs → $arch: ${macho#"$app_dir"/}"
+            lipo -thin "$arch" -output "$macho.thin" "$macho" && mv "$macho.thin" "$macho"
+            ;;
+        esac
+        ;;
+    esac
+  done < <(find "$app_dir" -type f -print0)
+
   # The x64 bundle gets its PDFium dylib from here: the project takes that arch's copy out of the SDK's link and
   # reidentification (its prebuilt x64 binary has no room for the rewritten identity, dotnet/macios#13999), so the
   # runtime finds the file by name in MonoBundle. arm64's comes from the SDK, reidentified like every native library.

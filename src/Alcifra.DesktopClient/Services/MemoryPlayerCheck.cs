@@ -72,9 +72,20 @@ internal static class MemoryPlayerCheck
         DesktopLog.Info("play-check: {Bytes} bytes of {ContentType} as {Identifier}", content.Length, opening.ContentType, media.Identifier);
         using var player = new MemoryPlayer(media);
         player.Player.Play();
+
+        // Wait (bounded) until the item is READY before measuring anything: on a loaded machine the first load stayed
+        // Unknown for 15 s, and a check that measured "playing" straight away saw a still position and said no
+        // (2026-11-19). The wait is the player's own work, not a budget for the test.
+        var loadingFor = DateTime.UtcNow;
+        while (player.Player.CurrentItem?.Status is not AVPlayerItemStatus.ReadyToPlay
+            && DateTime.UtcNow - loadingFor < TimeSpan.FromSeconds(30))
+        {
+            NSRunLoop.Current.RunUntil(NSDate.FromTimeIntervalSinceNow(0.25));
+        }
+
         // Advanced means the position MOVED, not that it reached a particular second: a check that compared the last
         // position to 2 s failed a 1.5 s clip that had played from end to end (found on the packaged app, 2026-11-19).
-        var (first, lastPlaying) = Watch(player.Player, "playing", TimeSpan.FromSeconds(4));
+        var (first, lastPlaying) = Watch(player.Player, "playing", TimeSpan.FromSeconds(5));
         var advanced = lastPlaying > first + 0.2;
 
         var target = Math.Min(5, Math.Max(1, player.Player.CurrentItem?.Duration.Seconds / 2 ?? 1));
@@ -86,6 +97,14 @@ internal static class MemoryPlayerCheck
         if (error is not null)
         {
             DesktopLog.Warn("play-check: the player reports {Error}", error);
+        }
+
+        if (!advanced && error is null && player.Player.CurrentItem?.Status is AVPlayerItemStatus.ReadyToPlay)
+        {
+            // Seen on 2026-11-19: the item was ready and the rate 1, yet the clock stood still — and `afplay` on the
+            // system's own sound hung too, so this machine's audio output was not rendering (a wedged coreaudiod).
+            // The app was fine; the check says which half failed.
+            DesktopLog.Warn("play-check: the item is ready and playing but the position did not move — the system's audio output may not be rendering (if `afplay /System/Library/Sounds/Ping.aiff` hangs too, it is CoreAudio, not the app).");
         }
 
         DesktopLog.Info("play-check: advanced {Advanced}, seek landed {Landed}, status {Status}", advanced, landed, player.Player.CurrentItem?.Status);
