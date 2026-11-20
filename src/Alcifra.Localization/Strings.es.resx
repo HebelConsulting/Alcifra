@@ -6975,6 +6975,24 @@
   <data name="DvMountEnrol" xml:space="preserve">
     <value>Ningún dispositivo accede aún a sus archivos. ¿Registrar este equipo como «{0}» para montarlos?</value>
   </data>
+  <data name="DvConnect" xml:space="preserve">
+    <value>Conectar WebDAV</value>
+  </data>
+  <data name="DvConnectHeading" xml:space="preserve">
+    <value>Conectar {0}</value>
+  </data>
+  <data name="DvConnectNoFiles" xml:space="preserve">
+    <value>Este dispositivo no accede a los archivos. Cámbielo para añadir Archivos.</value>
+  </data>
+  <data name="DvWebDavTip" xml:space="preserve">
+    <value>Monte sus archivos con uno de sus dispositivos: cada dispositivo tiene su propia contraseña.</value>
+  </data>
+  <data name="DvMountOtherKnown" xml:space="preserve">
+    <value>El volumen ya está montado, última conexión con {0}. ¿Volver a montarlo con la contraseña de este dispositivo?</value>
+  </data>
+  <data name="DvMountOtherUnknown" xml:space="preserve">
+    <value>El volumen ya está montado. ¿Volver a montarlo con la contraseña de este dispositivo?</value>
+  </data>
   <data name="DvMountPaste" xml:space="preserve">
     <value>Cuando el sistema pida la contraseña, pegue la que se muestra aquí.</value>
   </data>

@@ -312,21 +312,22 @@ repositories you have permission to access, with your rights enforced on every o
 called *webdav* and mirrors the Repositories tree exactly: your Personal space, then the repositories you
 can see, and nothing else.]
 
-The *WebDAV* button does the next useful thing rather than always the same thing, and its tooltip says which. In
-the *desktop client*: if none of your devices reaches files yet, it enrols *This computer* (see @devices), shows its
-password once and then mounts; otherwise it mounts the drive and opens it (on Windows as a persistent drive letter, S: or the next one free); and if the drive is
-already mounted it goes straight there. So "show me my documents in Finder" is one click once you are set up.
+The *WebDAV* button opens *Devices…*. Your files are mounted with a *device's* password: the address and user name are
+yours — every device mounts the same one — and only the password differs, so the device is chosen where the devices
+are. *Connect WebDAV* on a device mounts the drive with that device's password (the system asks for it; paste the
+device's, or the one from its hand-over) and opens it — on Windows as a persistent drive letter, S: or the next one
+free. A drive that is already mounted is opened; where it was last connected with another device, you are offered to
+remount it.
 
-*It opens where you already are.*#idx("WebDAV deep link") There is one button per tab, and each opens *its own*
-folder inside the drive rather than the top of the archive:
+*The tab buttons open where you already are.*#idx("WebDAV deep link") The *Intray* and *Check-out* tabs each have their
+own button, and each mounts the drive (asking for a device's password the first time) and opens *its own* folder
+inside it rather than the top of the archive:
 
 #table(
   columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Where you press it*], [*What opens*],
-  [*Repositories* ribbon], [The folder selected in the tree — the drive mirrors the tree exactly, so "where I am"
-   and "which folder on the drive" are the same place. With nothing selected, the whole archive opens.],
   [*Intray* tab, lower left], [Your *Intray* folder.],
   [*Check-out* tab, lower left], [Your *Check-out* folder, where working copies live.],
 )
@@ -342,13 +343,13 @@ password. The mount URL ends in `/webdav`, so your file manager names the drive 
 it like any network drive.
 
 The *web client* cannot mount a drive: a browser is not allowed to. Instead of leaving you with a URL and no idea
-what to do with it, its *Devices* dialog shows the mount steps for the operating system you are on — Finder's
-#emph[Go ▸ Connect to Server] on macOS, *Map network drive* on Windows, a `davs://` address on Linux — next to
-the values to paste into them.
+what to do with it, *Connect WebDAV* on one of your devices in its *Devices* dialog shows the mount steps for the
+operating system you are on — Finder's #emph[Go ▸ Connect to Server] on macOS, *Map network drive* on Windows, a
+`davs://` address on Linux — next to the values to paste into them.
 
 #shot("screenshots/web-webdav.png",
-  [The web client's Devices dialog: your user name and every server address, each with a copy button, and the
-   mount steps for the operating system you are using.])
+  [The web client's Devices dialog: a device's *Connect WebDAV* shows the user name and the WebDAV address, each with
+   a copy button, and the mount steps for the operating system you are using.])
 
 == Editing a document in place
 

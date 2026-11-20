@@ -35,6 +35,14 @@
                                 <td>@Strings.Get(ProtocolDeviceText.MailStateKey(device.EncryptMailLocked, device.EncryptMail))</td>
                                 <td>@(device.LastUsedAt?.InZone(SessionTimeZone.Current).ToString("g") ?? Strings.Get("DvNever"))</td>
                                 <td style="white-space: nowrap;">
+                                    @* Connect WebDAV (#2394, owner-decided): the address and user name are the USER's —
+                                       every device mounts the same one — and only the password is per device, so this
+                                       shows what that device connects with. A browser cannot mount (ADR 0560), so it
+                                       shows the steps and what to paste into the system's prompt. *@
+                                    <MudTooltip Text="@Strings.Get("DvConnectNoFiles")" Disabled="@device.Files">
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" data-test="device-connect-webdav"
+                                                   Disabled="@(!device.Files || _busy)" OnClick="() => Connect(device)">@Strings.Get("DvConnect")</MudButton>
+                                    </MudTooltip>
                                     @if (device.CanEdit)
                                     {
                                         <MudButton Size="Size.Small" OnClick="() => ChangeAsync(device)" Disabled="_busy">@Strings.Get("DvChange")</MudButton>
@@ -59,10 +67,25 @@
 
                 <MudText Typo="Typo.subtitle2" Class="mt-4">@Strings.Get("DvServers")</MudText>
                 <DeviceServerFields Servers="list.Servers" />
-                @if (_mountSteps is not null)
+
+                @* One device's WebDAV connection (#2394): what to paste into the system's prompt, and how to mount. *@
+                @if (_connect is { } chosen && _list is { } connected)
                 {
-                    <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("WebDavHowToMount")</MudText>
-                    <MudText Typo="Typo.body2" Class="wb-device-mount-steps">@_mountSteps</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="mt-3">@string.Format(Strings.Get("DvConnectHeading"), NameOf(chosen))</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="display:block;">@Strings.Get("DvMountPaste")</MudText>
+                    <MudTextField T="string" Label="@Strings.Get("DvUsername")" Value="@connected.Servers.Username" ReadOnly="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2 wb-device-server-line"
+                                  Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                                  AdornmentAriaLabel="@Strings.Get("DvCopy")" OnAdornmentClick="() => CopyAsync(connected.Servers.Username)" />
+                    <MudTextField T="string" Label="@Strings.Get("DvWebDav")" Value="@connected.Servers.WebDavUrl" ReadOnly="true"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2 wb-device-server-line"
+                                  Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                                  AdornmentAriaLabel="@Strings.Get("DvCopy")" OnAdornmentClick="() => CopyAsync(connected.Servers.WebDavUrl)" />
+                    @if (_mountSteps is not null)
+                    {
+                        <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("WebDavHowToMount")</MudText>
+                        <MudText Typo="Typo.body2" Class="wb-device-mount-steps">@_mountSteps</MudText>
+                    }
                 }
             }
         </div>
@@ -82,8 +105,19 @@
     private Alcifra.Client.Services.DevicesApi.DeviceListDto? _list;
     private bool _busy;
 
+    // The device whose WebDAV connection is shown (#2394), until another is picked or the dialog closes.
+    private Alcifra.Client.Services.DevicesApi.DeviceDto? _connect;
+
     // A browser cannot mount a drive (ADRs 0511/0560): the steps for the visitor's own OS, under the WebDAV address.
     private string? _mountSteps;
+
+    private void Connect(Alcifra.Client.Services.DevicesApi.DeviceDto device) => _connect = device;
+
+    private async Task CopyAsync(string value)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+        Snackbar.Add(Strings.Get("DvCopied"), Severity.Success);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -113,6 +147,8 @@
         try
         {
             _list = await DevicesApi.GetAsync();
+            // The Connect section follows the list: a device that was revoked or renamed takes it away.
+            _connect = _connect is { } chosen ? _list.Items.FirstOrDefault(d => d.Name == chosen.Name) : null;
         }
         catch (Exception)
         {

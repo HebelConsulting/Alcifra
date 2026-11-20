@@ -393,6 +393,10 @@ public static partial class WebCapture
             var dialog = page.Locator(".mud-dialog").First;
             await dialog.WaitForAsync(new() { Timeout = 10000 });
 
+            // The mount guidance is per DEVICE now (#2394): press Connect WebDAV on one that reaches files, and the
+            // figure shows that device's connection — the address, the user name and the steps.
+            await dialog.Locator("[data-test='device-connect-webdav']:not([disabled])").First.ClickAsync();
+
             // The steps sit below the server lines; scrolled into view, since they are what this figure is for.
             var steps = dialog.GetByText(L("WebDavHowToMount"));
             await steps.WaitForAsync(new() { Timeout = 15000 });

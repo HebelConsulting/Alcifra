@@ -7,9 +7,15 @@ using Alcifra.Localization;
 namespace Alcifra.DesktopClient.ViewModels;
 
 /// <summary>
-/// What the single WebDAV ribbon button would do if clicked right now, and the tooltip that says so (#461).
+/// What the Intray and Check-out ribbons' WebDAV buttons would do if clicked right now, and the tooltip that says so
+/// (#461, narrowed by #2394).
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>The Repositories ribbon's WebDAV button no longer uses this</b> (#2394): it opens the Devices window, where each
+/// device connects with its own password. The two TAB buttons still mount-and-open their own folder, so they keep the
+/// tooltip that says which of the three things will happen.
+/// </para>
 /// <para>
 /// Its own type rather than four more members on <see cref="MainWindowViewModel"/>, which is 6,758 lines and the
 /// largest entry on the 1000-line debt list (#466). CLAUDE.md treats adding to an over-limit class as needing

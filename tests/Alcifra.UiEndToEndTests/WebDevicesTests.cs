@@ -28,8 +28,10 @@ public class WebDevicesTests
         await Expect(devices.GetByRole(AriaRole.Textbox, new() { Name = "User name" })).ToBeVisibleAsync();
         Assert.True(await devices.Locator(".wb-device-server-line").CountAsync() >= 4);
 
-        // A browser cannot mount (ADR 0560), so it says how; asserted as the heading plus some OS's guidance, since
-        // the steps are chosen from the visitor's platform (macOS locally, Linux in CI).
+        // Connect WebDAV (#2394) is per DEVICE — the address and user name are the same for all, only the password
+        // differs — and it is where the mount guidance now lives: press it on a device that reaches files, and the
+        // browser says how (ADR 0560), with the steps for the visitor's own OS (macOS locally, Linux in CI).
+        await devices.Locator("[data-test='device-connect-webdav']:not([disabled])").First.ClickAsync();
         await Expect(devices.GetByText("How to mount it")).ToBeVisibleAsync();
         await Expect(devices.Locator(".wb-device-mount-steps")).Not.ToBeEmptyAsync();
 

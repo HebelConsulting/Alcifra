@@ -148,6 +148,37 @@ public static class WindowShots
             return true;
         }
 
+        // Headless render of the Devices window (#2394): `--devices-screenshot <out.png> [--rows]`. A Window reached
+        // from the WebDAV ribbon button and the title-bar menu, so nothing else can load it headless. `--rows` fills it
+        // with a device that reaches files, one that does not (its Connect WebDAV disabled with the reason), an earlier
+        // password, every server address and an OPEN Connect panel — the new column and the panel in one frame.
+        var devicesShotIndex = Array.IndexOf(args, "--devices-screenshot");
+        if (devicesShotIndex >= 0 && devicesShotIndex + 1 < args.Length)
+        {
+            var devicesLangIndex = Array.IndexOf(args, "--lang");
+            if (devicesLangIndex >= 0 && devicesLangIndex + 1 < args.Length)
+            {
+                Alcifra.Localization.Culture.Apply(args[devicesLangIndex + 1]);
+            }
+
+            AppBuilder.Configure<App>()
+                .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+                .UseSkia()
+                .WithBrandFont()
+                .SetupWithoutStarting();
+
+            var devices = new Views.DevicesDialog();
+            if (args.Contains("--rows"))
+            {
+                devices.FillForShot();
+            }
+
+            devices.Show();
+            Dispatcher.UIThread.RunJobs();
+            devices.CaptureRenderedFrame()?.Save(args[devicesShotIndex + 1]);
+            return true;
+        }
+
         // Headless render of the card-certificate picker (#1398, ADR 0831): `--card-screenshot <out.png>`.
         //
         // The only way to LOOK at this window. It is a Window, so no VM-level test renders it, and the

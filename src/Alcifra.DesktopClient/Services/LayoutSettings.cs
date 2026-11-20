@@ -52,6 +52,11 @@ public sealed class LayoutSettings
     // degrades to "follow the OS" instead of throwing while deserialising the whole layout — losing the pane
     // widths would be a much bigger surprise than losing a theme choice.
     public string ThemeMode { get; set; } = "System";
+
+    // Which device this desktop last mounted the files with (#2394). BEST-EFFORT and nothing more: the system's
+    // saved password cannot be attributed to a device after the fact, so this only lets the Devices window say
+    // "last connected with …" and offer a remount instead of pretending it knows whose password is in the keychain.
+    public string? LastWebDavDevice { get; set; }
 }
 
 // Reads/writes LayoutSettings as JSON in the user's app-data directory. All IO is best-effort — a missing or

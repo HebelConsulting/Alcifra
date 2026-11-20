@@ -10,7 +10,17 @@ namespace Alcifra.ApiClient;
 /// <param name="MailState">"encrypted", "not encrypted", or "Required by your organisation".</param>
 /// <param name="LastUsed">When a login last used it, or "never".</param>
 public sealed record DeviceRow(
-    ProtocolDevice Device, string Name, string Reaches, string MailState, string LastUsed, bool CanEdit, bool CanDelete);
+    ProtocolDevice Device, string Name, string Reaches, string MailState, string LastUsed, bool CanEdit, bool CanDelete)
+{
+    /// <summary>
+    /// Whether this device can connect over WebDAV: the ADDRESS and USER NAME are the user's — every device mounts the
+    /// same one — and only the PASSWORD is per device, so a device that does not reach files has nothing to connect with.
+    /// </summary>
+    public bool ReachesFiles => Device.Files;
+
+    /// <summary>The Connect WebDAV button's tooltip where the device does not reach files; null where it does.</summary>
+    public string? ConnectTip => Device.Files ? null : Strings.Get("DvConnectNoFiles");
+}
 
 /// <summary>
 /// The Devices view, UI-free and shared by the desktop, the web and (later) the phone (#1970 slice 3; ADR 0917): it holds

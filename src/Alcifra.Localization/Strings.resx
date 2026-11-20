@@ -6975,6 +6975,24 @@
   <data name="DvMountEnrol" xml:space="preserve">
     <value>No device reaches your files yet. Enrol this computer as "{0}" to mount them?</value>
   </data>
+  <data name="DvConnect" xml:space="preserve">
+    <value>Connect WebDAV</value>
+  </data>
+  <data name="DvConnectHeading" xml:space="preserve">
+    <value>Connect {0}</value>
+  </data>
+  <data name="DvConnectNoFiles" xml:space="preserve">
+    <value>This device does not reach files. Change it to add Files.</value>
+  </data>
+  <data name="DvWebDavTip" xml:space="preserve">
+    <value>Mount your files with one of your devices — each device has its own password.</value>
+  </data>
+  <data name="DvMountOtherKnown" xml:space="preserve">
+    <value>The volume is already mounted, last connected with {0}. Remount it with this device's password?</value>
+  </data>
+  <data name="DvMountOtherUnknown" xml:space="preserve">
+    <value>The volume is already mounted. Remount it with this device's password?</value>
+  </data>
   <data name="DvMountPaste" xml:space="preserve">
     <value>When the system asks for the password, paste the one shown here.</value>
   </data>

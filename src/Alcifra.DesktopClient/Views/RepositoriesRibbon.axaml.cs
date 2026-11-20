@@ -41,7 +41,9 @@ public partial class RepositoriesRibbon : UserControl
 
     private void OnGoToLink(object? sender, RoutedEventArgs e) => Window()?.OnGoToLink(sender, e);
 
-    private void OnWebDavRibbon(object? sender, RoutedEventArgs e) => Window()?.OnWebDavRibbon(sender, e);
+    // The WebDAV button opens the devices (#2394): with more than one device there is more than one password the
+    // mount could use, so the choice belongs where the devices are.
+    private void OnDevices(object? sender, RoutedEventArgs e) => Window()?.OnManageDevices(sender, e);
 
     // Null in the headless screenshot renders, which host panes without a window.
     private MainWindow? Window() => TopLevel.GetTopLevel(this) as MainWindow;

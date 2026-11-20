@@ -436,19 +436,6 @@ public partial class MainWindow
     // The order matters and is not arbitrary. Already-mounted is checked FIRST and answered locally, so the
     // common case — "show me my documents" — costs no request at all. Only then does it ask the server whether
     // credentials exist, because that is the only question the client cannot answer itself.
-    internal void OnWebDavRibbon(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
-    {
-        if (DataContext is not MainWindowViewModel { Api: { } api } vm)
-        {
-            return;
-        }
-
-        // The Repositories tab's folder is its context, exactly as Personal/Intray is the Intray tab's — the
-        // mounted volume IS the tree-pane (ADR 0509). With nothing selected the path is empty and the whole
-        // archive opens: the button still does what it says, rather than nothing.
-        await OpenWebDavAtAsync(vm, api, vm.WebDavFolderPath());
-    });
-
     // Copy a deep link for the selected row (#761): the https web-app URL — universally openable, and the
     // alcifra:// handler accepts it too. The context menu selects the row it opened on (the pane's
     // existing contract), so the selection IS the row here.

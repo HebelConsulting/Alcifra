@@ -314,21 +314,22 @@ Archive, auf die Sie zugreifen dürfen, wobei Ihre Rechte bei jeder Operation du
 heisst *webdav* und bildet den Baum der Archive exakt ab: Ihren persönlichen Bereich, dann die Archive, die Sie
 sehen können, und nichts sonst.]
 
-Die Schaltfläche *WebDAV* tut jeweils den nächsten sinnvollen Schritt statt immer dasselbe, und ihr Tooltip sagt, welchen. Im
-*Desktop-Client*: Erreicht noch keines Ihrer Geräte Dateien, meldet sie *Dieser Computer* an (siehe @devices), zeigt sein
-Passwort einmal und bindet dann ein; sonst bindet sie das Laufwerk ein und öffnet es (unter Windows als dauerhafter Laufwerksbuchstabe, S: oder der nächste freie); und ist das Laufwerk
-bereits eingebunden, geht sie direkt dorthin. "Zeig mir meine Dokumente im Finder" ist also nach der Einrichtung ein einziger Klick.
+Die Schaltfläche *WebDAV* öffnet *Geräte…*. Ihre Dateien werden mit dem Passwort eines *Geräts* eingebunden: Adresse
+und Benutzername gehören Ihnen — jedes Gerät bindet dieselbe Adresse ein —, und nur das Passwort unterscheidet sich;
+das Gerät wird also dort gewählt, wo die Geräte sind. *WebDAV verbinden* bei einem Gerät bindet das Laufwerk mit dem
+Passwort dieses Geräts ein (das System fragt danach; fügen Sie das des Geräts ein, oder das aus seiner Übergabe) und
+öffnet es (unter Windows als dauerhafter Laufwerksbuchstabe, S: oder der nächste freie). Ein bereits eingebundenes
+Laufwerk wird geöffnet; wurde es zuletzt mit einem anderen Gerät verbunden, wird angeboten, es neu einzubinden.
 
-*Sie öffnet dort, wo Sie gerade sind.*#idx("WebDAV-Direktlink") Es gibt eine Schaltfläche pro Register, und jede öffnet *ihren eigenen*
-Ordner im Laufwerk statt der obersten Ebene des Archivs:
+*Die Register-Schaltflächen öffnen dort, wo Sie gerade sind.*#idx("WebDAV-Direktlink") Die Register *Eingangskorb* und
+*Ausgecheckt* haben je eine eigene Schaltfläche; jede bindet das Laufwerk ein (beim ersten Mal wird nach dem Passwort
+eines Geräts gefragt) und öffnet *ihren eigenen* Ordner darin statt der obersten Ebene des Archivs:
 
 #table(
   columns: (1fr, 2fr),
   stroke: 0.5pt + luma(80%),
   inset: 6pt,
   [*Wo Sie sie drücken*], [*Was sich öffnet*],
-  [Menüband im Register *Archive*], [Der im Baum ausgewählte Ordner — das Laufwerk bildet den Baum exakt ab, also sind "wo ich bin"
-   und "welcher Ordner auf dem Laufwerk" derselbe Ort. Ist nichts ausgewählt, öffnet sich das ganze Archiv.],
   [Register *Eingangskorb*, unten links], [Ihr Ordner *Intray*.],
   [Register *Ausgecheckt*, unten links], [Ihr Ordner *Check-out*, in dem die Arbeitskopien liegen.],
 )
@@ -344,13 +345,13 @@ Anmeldepasswort. Die Mount-URL endet auf `/webdav`, daher nennt Ihr Dateimanager
 es wie jedes Netzlaufwerk umbenennen.
 
 Der *Web-Client* kann kein Laufwerk einbinden: Ein Browser darf das nicht. Statt Sie mit einer URL allein zu lassen, ohne zu wissen,
-was damit anzufangen ist, zeigt sein Dialog *Geräte* die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden — im Finder
-#emph[Gehe zu ▸ Mit Server verbinden] unter macOS, *Netzlaufwerk verbinden* unter Windows, eine `davs://`-Adresse unter Linux — neben
-den Werten, die Sie dort einfügen.
+was damit anzufangen ist, zeigt *WebDAV verbinden* bei einem Ihrer Geräte im Dialog *Geräte* die Schritte zum Einbinden für das
+Betriebssystem, das Sie verwenden — im Finder #emph[Gehe zu ▸ Mit Server verbinden] unter macOS, *Netzlaufwerk verbinden* unter
+Windows, eine `davs://`-Adresse unter Linux — neben den Werten, die Sie dort einfügen.
 
 #shot("screenshots/de/web-webdav.png",
-  [Der Dialog *Geräte* des Web-Clients: Ihr Benutzername und jede Serveradresse, jeweils mit einer Schaltfläche zum Kopieren, und
-   die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden.])
+  [Der Dialog *Geräte* des Web-Clients: *WebDAV verbinden* bei einem Gerät zeigt den Benutzernamen und die WebDAV-Adresse,
+   jeweils mit einer Schaltfläche zum Kopieren, und die Schritte zum Einbinden für das Betriebssystem, das Sie verwenden.])
 
 == Ein Dokument direkt bearbeiten
 

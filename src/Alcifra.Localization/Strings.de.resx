@@ -6975,6 +6975,24 @@
   <data name="DvMountEnrol" xml:space="preserve">
     <value>Noch kein Gerät erreicht Ihre Dateien. Diesen Computer als «{0}» anmelden, um sie einzubinden?</value>
   </data>
+  <data name="DvConnect" xml:space="preserve">
+    <value>WebDAV verbinden</value>
+  </data>
+  <data name="DvConnectHeading" xml:space="preserve">
+    <value>{0} verbinden</value>
+  </data>
+  <data name="DvConnectNoFiles" xml:space="preserve">
+    <value>Dieses Gerät erreicht keine Dateien. Ändern Sie es, um Dateien hinzuzufügen.</value>
+  </data>
+  <data name="DvWebDavTip" xml:space="preserve">
+    <value>Binden Sie Ihre Dateien mit einem Ihrer Geräte ein – jedes Gerät hat ein eigenes Passwort.</value>
+  </data>
+  <data name="DvMountOtherKnown" xml:space="preserve">
+    <value>Das Volume ist bereits eingebunden, zuletzt verbunden mit {0}. Mit dem Passwort dieses Geräts neu einbinden?</value>
+  </data>
+  <data name="DvMountOtherUnknown" xml:space="preserve">
+    <value>Das Volume ist bereits eingebunden. Mit dem Passwort dieses Geräts neu einbinden?</value>
+  </data>
   <data name="DvMountPaste" xml:space="preserve">
     <value>Wenn das System nach dem Passwort fragt, fügen Sie das hier angezeigte ein.</value>
   </data>
