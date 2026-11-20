@@ -14,6 +14,8 @@ using Alcifra.Domain.Modules;
 using Alcifra.Domain.Notifications;
 using Alcifra.Domain.Tenants;
 using Alcifra.Domain.Users;
+using Alcifra.Domain.Acl;
+using Alcifra.Infrastructure.Acl;
 using Alcifra.Infrastructure.Masks;
 using Alcifra.Infrastructure.Notifications;
 using Alcifra.Infrastructure.Modules;
@@ -150,17 +152,43 @@ public class MessengerAbiTests
         var rig = await RigAsync(connection);
         var group = await rig.Facade.CreateDocumentAsync(rig.RootId, GroupMask, "Team");
 
+        // The governing scope grants the OWNER sight — a copy-down would carry that into the room. The room starts
+        // EMPTY instead (owner decision 2026-11-20, ADR 1097): the members the module grants are its access list.
+        using (var seedGrant = Ctx(connection, rig.TenantId))
+        {
+            seedGrant.AclEntries.Add(new AclEntry
+            {
+                Id = Guid.NewGuid(),
+                TenantId = rig.TenantId,
+                DocumentId = rig.RootId,
+                UserId = rig.OwnerId,
+                CanSee = true,
+                CanReadContent = true,
+            });
+            await seedGrant.SaveChangesAsync();
+        }
+
         await rig.Facade.GrantAccessAsync(group, rig.OtherId, ModuleAccess.Read);
         using (var check = Ctx(connection, rig.TenantId))
         {
-            var entry = await check.AclEntries.SingleAsync(e => e.DocumentId == group && e.UserId == rig.OtherId);
+            // The grant made the document the module's room: its own access list, and the member's row is the ONLY one.
+            Assert.True((await check.Documents.SingleAsync(d => d.Id == group)).BreaksInheritance);
+            var entry = Assert.Single(await check.AclEntries.Where(e => e.DocumentId == group).ToListAsync());
+            Assert.Equal(rig.OtherId, entry.UserId);
             Assert.True(entry.CanSee && entry.CanReadContent && !entry.CanCreateSubItems && !entry.CanManagePermissions);
+
+            // …and the grant is READ (the defect #2381 names): the member sees the room, the repository's readers do not.
+            var calculator = new EffectiveRightsCalculator(check);
+            var member = await calculator.GetEffectiveRightsAsync(rig.OtherId, group);
+            Assert.True(member.CanSee && member.CanReadContent && !member.CanCreateSubItems);
+            Assert.False((await calculator.GetEffectiveRightsAsync(rig.OwnerId, group)).CanSee);
         }
 
         await rig.Facade.RevokeAccessAsync(group, rig.OtherId);
         using (var check = Ctx(connection, rig.TenantId))
         {
             Assert.False(await check.AclEntries.AnyAsync(e => e.DocumentId == group && e.UserId == rig.OtherId));
+            Assert.False((await new EffectiveRightsCalculator(check).GetEffectiveRightsAsync(rig.OtherId, group)).CanSee);
         }
 
         // The root wears no mask of the module's: deciding who reads it is not the module's business.

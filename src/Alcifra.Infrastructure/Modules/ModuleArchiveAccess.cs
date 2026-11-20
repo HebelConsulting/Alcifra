@@ -32,6 +32,17 @@ internal sealed class ModuleArchiveAccess(
             throw new ArgumentException($"User {userId} is not an active user of this tenant.", nameof(userId));
         }
 
+        // A module's document IS its room, and a grant written while the document still inherits would never be read
+        // (ADR 0183, #2381) — so the core breaks its inheritance in the SAME save (owner decision 2026-11-20). The
+        // room starts EMPTY: the members the module grants are its access list, not the repository's readers plus the
+        // members. Only the module's own documents are ever touched here (OwnDocumentAsync above), and a root — which
+        // has nothing to inherit from — is left alone.
+        var brokeInheritance = document.ParentId is not null && !document.BreaksInheritance;
+        if (brokeInheritance)
+        {
+            document.BreaksInheritance = true;
+        }
+
         var entry = await dbContext.AclEntries.FirstOrDefaultAsync(e => e.DocumentId == documentId && e.UserId == userId, cancellationToken);
         if (entry is null)
         {
@@ -44,7 +55,9 @@ internal sealed class ModuleArchiveAccess(
         entry.CanCreateSubItems = access == ModuleAccess.Contribute;
         await dbContext.SaveChangesAsync(cancellationToken);
         await ReindexAsync(documentId, cancellationToken);
-        await auditWrite(ModuleWriteAudit.AclGranted, document.TenantId, documentId, document.Name, $"user {userId}: {access}", cancellationToken);
+        await auditWrite(ModuleWriteAudit.AclGranted, document.TenantId, documentId, document.Name,
+            brokeInheritance ? $"user {userId}: {access}; the document now owns its access list" : $"user {userId}: {access}",
+            cancellationToken);
     }
 
     public async Task RevokeAsync(Guid documentId, Guid userId, CancellationToken cancellationToken)

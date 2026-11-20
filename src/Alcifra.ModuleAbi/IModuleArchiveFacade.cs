@@ -304,7 +304,14 @@ public interface IModuleArchiveFacade
     /// Gives <paramref name="userId"/> access to a document wearing one of THIS module's masks (ABI 1.18, ADR 0937):
     /// for a group conversation, membership is the folder's access list. Refused for any other document.
     /// </summary>
-    /// <remarks>Default members from here on, so a facade implemented before 1.18 (a test double) still compiles.</remarks>
+    /// <remarks>
+    /// <b>A grant makes the document the module's own room</b> (ABI 2.3, core ADR 1097): if the document still
+    /// inherited its rights, the core breaks its inheritance in the same write and starts its access list
+    /// <b>EMPTY</b> — the users the module grants are the only ones who may read it (besides tenant administrators).
+    /// A module that wants the repository's readers to keep access must grant them too. Once a document owns its
+    /// access list, a later grant changes only the members.
+    /// <para>Default members from here on, so a facade implemented before 1.18 (a test double) still compiles.</para>
+    /// </remarks>
     Task GrantAccessAsync(Guid documentId, Guid userId, ModuleAccess access, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException("This facade predates ABI 1.18.");
 

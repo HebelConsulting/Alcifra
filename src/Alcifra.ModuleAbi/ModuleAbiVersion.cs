@@ -185,5 +185,11 @@ public static class ModuleAbiVersion
     /// vocabularies, and the field advertises a <c>vocabulary</c> rel beside <c>values</c> (core #2288, for the Flight
     /// School's aircraft types). An init property, so a 2.1 module is unaffected.
     /// </para>
-    public const int Minor = 2;
+    /// <para>
+    /// 2.3 changes BEHAVIOUR, not surface: a module's <see cref="IModuleArchiveFacade.GrantAccessAsync"/> on a document
+    /// that still inherited its rights now makes the document the module's own room — the core breaks its inheritance
+    /// and starts the access list empty (core ADR 1097, core #2381). The signature is unchanged, so a 2.2 module
+    /// compiles and runs; a module that relied on the repository's readers keeping access to its rooms must grant them.
+    /// </para>
+    public const int Minor = 3;
 }
