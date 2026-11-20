@@ -135,25 +135,35 @@ public sealed partial class DocumentsClient
     }
 
     /// <summary>
-    /// Finishes a begun Sealed document: <paramref name="members"/> join its audience, and the content is sealed on this
-    /// device to the audience's certificates as the server answers them — never to certificates picked by hand. On any
-    /// failure the document is taken back out rather than left as a name with nothing behind it.
+    /// Saves the draft's audience (the members the editor added) and answers the draft with the SAVED audience — the
+    /// server's answer, which an interactive filing reads for who will be left out before it seals (#2321). A separate
+    /// step from the seal so the warning names the truth rather than the editor's guess.
+    /// </summary>
+    public async Task<SealedDocumentDraft> SaveDraftAudienceAsync(
+        SealedDocumentDraft draft, IReadOnlyList<AudienceChange> members, CancellationToken cancellationToken = default)
+    {
+        if (members.Count == 0)
+        {
+            return draft;
+        }
+
+        var audience = await new ContentAudienceClient(_core).SaveAsync(draft.Audience, members, cancellationToken);
+        // The save moved the document's tag; carry it so a later abandon deletes under the right precondition.
+        return draft with { ETag = audience.ETag, Audience = audience };
+    }
+
+    /// <summary>
+    /// Seals <paramref name="content"/> to the draft audience's certificates and files it: the one call for a script, or
+    /// the second half of an interactive filing that has already saved and warned (<see cref="SaveDraftAudienceAsync"/>).
+    /// On any failure the document is taken back out rather than left as a name with nothing behind it.
     /// </summary>
     /// <exception cref="SealedDocumentAudienceRequiredException">Nobody in the audience holds a certificate.</exception>
-    public async Task<Guid> CompleteSealedDocumentAsync(
-        SealedDocumentDraft draft, IReadOnlyList<AudienceChange> members, byte[] content, string contentType, string? fileName,
-        CancellationToken cancellationToken = default)
+    public async Task<Guid> SealAndFileAsync(
+        SealedDocumentDraft draft, byte[] content, string contentType, string? fileName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var audience = draft.Audience;
-            if (members.Count > 0)
-            {
-                audience = await new ContentAudienceClient(_core).SaveAsync(audience, members, cancellationToken);
-                draft = draft with { ETag = audience.ETag };   // the save moved the document's tag
-            }
-
-            if (audience.Certificates() is not { Count: > 0 } certificates)
+            if (draft.Audience.Certificates() is not { Count: > 0 } certificates)
             {
                 throw new SealedDocumentAudienceRequiredException();
             }
@@ -176,6 +186,20 @@ public sealed partial class DocumentsClient
             await AbandonSealedDocumentAsync(draft, cancellationToken);
             throw;
         }
+    }
+
+    /// <summary>
+    /// Finishes a begun Sealed document in one call: <paramref name="members"/> join its audience, and the content is
+    /// sealed on this device to the audience's certificates as the server answers them — never to certificates picked
+    /// by hand. What <see cref="SaveDraftAudienceAsync"/> and <see cref="SealAndFileAsync"/> do one after the other; an
+    /// interactive filing calls those separately so it can warn first (#2321).
+    /// </summary>
+    public async Task<Guid> CompleteSealedDocumentAsync(
+        SealedDocumentDraft draft, IReadOnlyList<AudienceChange> members, byte[] content, string contentType, string? fileName,
+        CancellationToken cancellationToken = default)
+    {
+        var saved = await SaveDraftAudienceAsync(draft, members, cancellationToken);
+        return await SealAndFileAsync(saved, content, contentType, fileName, cancellationToken);
     }
 
     /// <summary>Takes a begun Sealed document back out (the user cancelled, or its filing failed). Never throws.</summary>

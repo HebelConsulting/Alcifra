@@ -6511,6 +6511,15 @@
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>New sealed document…</value>
   </data>
+  <data name="SdNoKeyForFiler" xml:space="preserve">
+    <value>You have no enrolled key: you will not be able to open this document or re-seal it.</value>
+  </data>
+  <data name="SdMembersNoKey" xml:space="preserve">
+    <value>The following people have no enrolled key and will not be able to open it until they enrol one and a manager re-seals: {0}.</value>
+  </data>
+  <data name="SdSealAnyway" xml:space="preserve">
+    <value>Seal anyway</value>
+  </data>
   <data name="SdPickFile" xml:space="preserve">
     <value>Seal a document to an audience</value>
   </data>

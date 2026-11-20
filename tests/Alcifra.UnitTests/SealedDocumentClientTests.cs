@@ -16,6 +16,50 @@ namespace Alcifra.UnitTests;
 public class SealedDocumentClientTests
 {
     [Fact]
+    public void The_gaps_name_the_caller_and_every_member_the_seal_will_leave_out()
+    {
+        // #2321's warning reads the server's SAVED audience: who holds no certificate (the server says so per recipient),
+        // and whether the caller is one of them. Sealing still works — it needs only the others' public certificates —
+        // which is exactly why the person has to be told before the seal.
+        var anna = Guid.NewGuid();
+        var tom = Guid.NewGuid();
+        var eve = Guid.NewGuid();
+        var audience = AudienceWith(("Anna", anna, HasKey: true), ("Tom", tom, HasKey: false), ("Eve", eve, HasKey: true));
+
+        // The caller (Tom) holds no key: their own gap, and Tom is not repeated among the members.
+        var tomGaps = audience.GapsFor(tom);
+        Assert.True(tomGaps.CallerWithoutKey);
+        Assert.Empty(tomGaps.MembersWithoutKey);
+        Assert.True(tomGaps.Any);
+
+        // A caller with a key sees the member without one, by name.
+        var annaGaps = audience.GapsFor(anna);
+        Assert.False(annaGaps.CallerWithoutKey);
+        Assert.Equal(["Tom"], annaGaps.MembersWithoutKey);
+        Assert.True(annaGaps.Any);
+
+        // Every member holds a key — and an unknown caller (a script without whoami) — warn about nothing.
+        var complete = AudienceWith(("Anna", anna, HasKey: true), ("Eve", eve, HasKey: true));
+        Assert.False(complete.GapsFor(Guid.NewGuid()).Any);
+        Assert.False(complete.GapsFor(null).Any);
+    }
+
+    private static Alcifra.ApiClient.ContentAudienceInfo AudienceWith(params (string Name, Guid UserId, bool HasKey)[] recipients) =>
+        new(
+            DocumentId: Guid.NewGuid(),
+            IsStore: false,
+            IsPersonal: false,
+            ETag: "\"t\"",
+            CanManage: true,
+            CanAppointManager: false,
+            IsMember: true,
+            Members: [.. recipients.Select(r => new Alcifra.ApiClient.AudienceMemberInfo(r.UserId, null, r.Name, false, true))],
+            Recipients: [.. recipients.Select(r => new Alcifra.ApiClient.AudienceRecipientInfo(
+                r.UserId, r.Name, false, r.HasKey ? ["-----BEGIN CERTIFICATE-----"] : []))],
+            Candidates: [],
+            Links: Alcifra.ApiClient.LinkMap.Empty);
+
+    [Fact]
     public void The_clients_mask_id_is_the_cores_well_known_one()
     {
         // The client cannot reference the server's Domain, so the constant is mirrored. This is the mirror's lock:

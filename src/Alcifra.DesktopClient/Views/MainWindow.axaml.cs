@@ -194,8 +194,42 @@ public partial class MainWindow : Window
             return;
         }
 
-        await vm.CompleteSealedDocumentAsync(draft, files[0], audience);
+        // #2321 (owner 2026-11-11): the filer is told who the seal will leave OUT — themselves, when they hold no usable
+        // key, and every member without one — BEFORE the content is sealed. Sealing needs only the recipients' public
+        // certificates, so both are warnings a drop box for somebody else may accept; a person who cannot open what
+        // they sealed, or whose members cannot, should learn it now rather than afterwards.
+        if (await vm.SaveDraftAudienceAsync(draft, audience) is not { } saved)
+        {
+            return;
+        }
+
+        if (saved.Gaps.Any
+            && !await new ConfirmDialog(GapsMessage(saved.Gaps), Strings.Get("SdSealAnyway")).ShowDialog<bool>(this))
+        {
+            await vm.AbandonSealedDocumentAsync(saved.Draft);
+            return;
+        }
+
+        await vm.SealAndFileAsync(saved.Draft, files[0]);
     });
+
+    // The two sentences of #2321, joined when both apply: the caller's own gap first (it is about the person reading),
+    // then the members', by name.
+    private static string GapsMessage(SealedContentGaps gaps)
+    {
+        var lines = new List<string>();
+        if (gaps.CallerWithoutKey)
+        {
+            lines.Add(Strings.Get("SdNoKeyForFiler"));
+        }
+
+        if (gaps.MembersWithoutKey.Count > 0)
+        {
+            lines.Add(string.Format(Strings.Get("SdMembersNoKey"), string.Join(", ", gaps.MembersWithoutKey)));
+        }
+
+        return string.Join("\n\n", lines);
+    }
 
     // "Encrypted for…" (ADR 0983): the audience of the item in the details pane — a Sealed document, or a store's item —
     // edited by its managers and re-sealed in the same act; read-only for everybody else. The ribbon shows it where the

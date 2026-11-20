@@ -6511,6 +6511,15 @@
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>Nuovo documento sigillato…</value>
   </data>
+  <data name="SdNoKeyForFiler" xml:space="preserve">
+    <value>Non ha una chiave registrata: non potrà aprire né risigillare questo documento.</value>
+  </data>
+  <data name="SdMembersNoKey" xml:space="preserve">
+    <value>Le seguenti persone non hanno una chiave registrata e non potranno aprirlo finché non ne registrano una e una persona responsabile lo risigilla: {0}.</value>
+  </data>
+  <data name="SdSealAnyway" xml:space="preserve">
+    <value>Sigilla comunque</value>
+  </data>
   <data name="SdPickFile" xml:space="preserve">
     <value>Sigilla un documento per un destinatario</value>
   </data>

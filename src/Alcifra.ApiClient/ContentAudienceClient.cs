@@ -52,6 +52,18 @@ public sealed record ContentAudienceInfo(
     /// <summary>Members in effect who hold no certificate yet: nothing can be sealed to them until they enrol one.</summary>
     public IReadOnlyList<AudienceRecipientInfo> WithoutCertificate => [.. Recipients.Where(r => r.CertificatePems.Count == 0)];
 
+    /// <summary>
+    /// Who a seal to this audience will leave OUT (#2321, owner decision 2026-11-11): the caller, when they are a member
+    /// with no usable certificate, and every other member without one — by name, because the filer is told who will not
+    /// be able to open what they are filing. Sealing needs only the recipients' PUBLIC certificates, so it still works;
+    /// a member left out cannot open the document, and cannot re-seal it either until they enrol a key.
+    /// </summary>
+    public SealedContentGaps GapsFor(Guid? callerUserId) =>
+        new(
+            CallerWithoutKey: callerUserId is { } caller
+                && Recipients.Any(r => r.UserId == caller && r.CertificatePems.Count == 0),
+            MembersWithoutKey: [.. WithoutCertificate.Where(r => r.UserId != callerUserId).Select(r => r.DisplayName)]);
+
     internal static ContentAudienceInfo From(JsonElement json, string? eTag = null) => new(
         json.GetProperty("documentId").GetGuid(),
         json.GetProperty("kind").GetString() == "password-store",
@@ -73,6 +85,16 @@ public sealed record ContentAudienceInfo(
 
     private static Guid? OptionalGuid(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetGuid() : null;
+}
+
+/// <summary>
+/// Who a sealed filing will leave out (#2321): the caller without a usable certificate, and the other members without
+/// one. Both are warnings — the filing may continue (a drop box for somebody else) — but a person who cannot open what
+/// they sealed, or whose members cannot, should learn it before the seal, not after.
+/// </summary>
+public sealed record SealedContentGaps(bool CallerWithoutKey, IReadOnlyList<string> MembersWithoutKey)
+{
+    public bool Any => CallerWithoutKey || MembersWithoutKey.Count > 0;
 }
 
 /// <summary>Somebody changed the audience since it was read: reload it and decide again (a 412).</summary>

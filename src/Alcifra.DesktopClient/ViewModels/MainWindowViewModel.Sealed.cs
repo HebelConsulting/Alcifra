@@ -47,10 +47,44 @@ public sealed partial class MainWindowViewModel
         _api?.Documents.AbandonSealedDocumentAsync(draft) ?? Task.CompletedTask;
 
     /// <summary>
-    /// Finishes a begun Sealed document: declares <paramref name="audience"/>, seals <paramref name="file"/> on this device
-    /// to the audience's certificates as the server answers them, and files it; answers whether it was filed.
+    /// The interactive filing's first half: saves the audience the editor picked and answers the draft with the server's
+    /// SAVED audience plus who the seal will leave out (#2321) — the caller without a usable key, and the other members
+    /// without one. The view warns from these before the seal; null when the save failed (already reported and the
+    /// document taken back out).
     /// </summary>
-    public async Task<bool> CompleteSealedDocumentAsync(SealedDocumentDraft draft, IStorageFile file, IReadOnlyList<AudienceChange> audience)
+    public async Task<(SealedDocumentDraft Draft, SealedContentGaps Gaps)?> SaveDraftAudienceAsync(
+        SealedDocumentDraft draft, IReadOnlyList<AudienceChange> audience)
+    {
+        if (_api is null)
+        {
+            await AbandonSealedDocumentAsync(draft);
+            return null;
+        }
+
+        try
+        {
+            var saved = await _api.Documents.SaveDraftAudienceAsync(draft, audience);
+            return (saved, saved.Audience.GapsFor(_currentUserId));
+        }
+        catch (ApiActionException e)
+        {
+            ReportError(e.Message);
+            await AbandonSealedDocumentAsync(draft);
+            return null;
+        }
+        catch (Exception e)
+        {
+            ReportError(string.Format(Strings.Get("StErrSealed"), draft.Name, e.Message));
+            await AbandonSealedDocumentAsync(draft);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The interactive filing's second half: seals <paramref name="file"/> on this device to the saved audience's
+    /// certificates as the server answers them, and files it; answers whether it was filed.
+    /// </summary>
+    public async Task<bool> SealAndFileAsync(SealedDocumentDraft draft, IStorageFile file)
     {
         if (_api is null || _currentFolderId is not { } folderId)
         {
@@ -70,8 +104,8 @@ public sealed partial class MainWindowViewModel
             }
 
             // Sealing is CPU work over the whole document; off the UI thread so a large file is not a frozen window.
-            await Task.Run(() => _api.Documents.CompleteSealedDocumentAsync(
-                draft, audience, bytes, DocumentsClient.GuessContentType(file.Name), file.Name));
+            await Task.Run(() => _api.Documents.SealAndFileAsync(
+                draft, bytes, DocumentsClient.GuessContentType(file.Name), file.Name));
         }
         catch (SealedDocumentAudienceRequiredException)
         {

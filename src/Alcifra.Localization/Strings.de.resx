@@ -6511,6 +6511,15 @@
   <data name="RibbonNewSealed" xml:space="preserve">
     <value>Neues versiegeltes Dokument…</value>
   </data>
+  <data name="SdNoKeyForFiler" xml:space="preserve">
+    <value>Sie haben keinen hinterlegten Schlüssel: Sie werden dieses Dokument weder öffnen noch neu versiegeln können.</value>
+  </data>
+  <data name="SdMembersNoKey" xml:space="preserve">
+    <value>Folgende Personen haben keinen hinterlegten Schlüssel und können das Dokument erst öffnen, wenn sie einen hinterlegen und eine verwaltende Person neu versiegelt: {0}.</value>
+  </data>
+  <data name="SdSealAnyway" xml:space="preserve">
+    <value>Trotzdem versiegeln</value>
+  </data>
   <data name="SdPickFile" xml:space="preserve">
     <value>Dokument für einen Empfängerkreis versiegeln</value>
   </data>
