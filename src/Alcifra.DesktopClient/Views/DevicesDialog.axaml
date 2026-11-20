@@ -32,7 +32,7 @@
                                  ShowOnDisabled: a disabled control is a poor place to hide the reason it is
                                  disabled, and Avalonia asks for it explicitly. -->
                             <Button Content="{loc:Tr DvConnect}" Click="OnConnect" Tag="{Binding}"
-                                    IsEnabled="{Binding ReachesFiles}" ToolTip.Tip="{Binding ConnectTip}"
+                                    IsEnabled="{Binding ConnectAllowed}" ToolTip.Tip="{Binding ConnectTip}"
                                     ToolTip.ShowOnDisabled="True" />
                             <Button Content="{loc:Tr DvChange}" IsVisible="{Binding CanEdit}" Click="OnChange" Tag="{Binding}" />
                             <Button Content="{loc:Tr DvRevoke}" IsVisible="{Binding CanDelete}" Click="OnRevoke" Tag="{Binding}" />

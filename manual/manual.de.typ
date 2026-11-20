@@ -321,6 +321,9 @@ Passwort dieses Geräts ein (das System fragt danach; fügen Sie das des Geräts
 öffnet es (unter Windows als dauerhafter Laufwerksbuchstabe, S: oder der nächste freie). Ein bereits eingebundenes
 Laufwerk wird geöffnet; wurde es zuletzt mit einem anderen Gerät verbunden, wird angeboten, es neu einzubinden.
 
+Liefert Ihre Installation Inhalte strikt (nur als für Ihre Schlüssel versiegelte Umschläge), *wird WebDAV gar nicht
+angeboten*: Die Einbindungs-Schaltflächen sagen es, und Dokumente öffnen und speichern Sie in der Web- oder Desktop-App.
+
 *Die Register-Schaltflächen öffnen dort, wo Sie gerade sind.*#idx("WebDAV-Direktlink") Die Register *Eingangskorb* und
 *Ausgecheckt* haben je eine eigene Schaltfläche; jede bindet das Laufwerk ein (beim ersten Mal wird nach dem Passwort
 eines Geräts gefragt) und öffnet *ihren eigenen* Ordner darin statt der obersten Ebene des Archivs:

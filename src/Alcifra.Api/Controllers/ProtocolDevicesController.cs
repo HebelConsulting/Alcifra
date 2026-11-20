@@ -46,7 +46,8 @@ public class ProtocolDevicesController(
     Alcifra.Api.Encryption.TenantIngestKeyService ingestKeys,
     IAuditRecorder audit,
     ILogger<ProtocolDevicesController> logger,
-    Alcifra.Infrastructure.Modules.ModuleDeviceProfiles moduleProfiles) : ControllerBase
+    Alcifra.Infrastructure.Modules.ModuleDeviceProfiles moduleProfiles,
+    Alcifra.Api.Documents.StrictEnvelopeDelivery strict) : ControllerBase
 {
     private const string Collection = "/api/me/devices";
 
@@ -173,6 +174,14 @@ public class ProtocolDevicesController(
         /// visible document. Changed through the <c>settings</c> rel.</summary>
         public bool ShowAllDocuments { get; set; }
 
+        /// <summary>
+        /// Whether this tenant offers the files door at all (#2311): a tenant that refuses plaintext doors (Strict,
+        /// StrictRehearsal) delivers encrypted content only, so WebDAV is off there and the clients disable the mount
+        /// with the reason. The addresses below are still sent — they are what a future mode change finds — and the
+        /// WebDAV door itself refuses with the same sentence.
+        /// </summary>
+        public bool FilesAvailable { get; set; } = true;
+
         public DeviceServersResource Servers { get; set; } = new();
     }
 
@@ -247,6 +256,7 @@ public class ProtocolDevicesController(
             Items = [.. rows.Select(d => ToResource<ProtocolDeviceResource>(d, locked, ticked.GetValueOrDefault(d.Id)))],
             EncryptMailLocked = locked,
             ShowAllDocuments = user.ImapShowAllDocuments,
+            FilesAvailable = !await strict.RefusesPlaintextDoorsAsync(cancellationToken),
             Servers = await ServersOfAsync(user, cancellationToken),
             Links = [new Link("self", Collection, "GET"), new Link("settings", $"{Collection}/settings", "PUT")],
         });

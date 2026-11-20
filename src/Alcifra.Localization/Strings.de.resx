@@ -6975,6 +6975,9 @@
   <data name="DvMountEnrol" xml:space="preserve">
     <value>Noch kein Gerät erreicht Ihre Dateien. Diesen Computer als «{0}» anmelden, um sie einzubinden?</value>
   </data>
+  <data name="DvFilesRefusedStrict" xml:space="preserve">
+    <value>Diese Installation liefert nur verschlüsselte Inhalte, daher ist WebDAV nicht verfügbar. Öffnen und speichern Sie Dokumente in der Web- oder Desktop-App.</value>
+  </data>
   <data name="DvConnect" xml:space="preserve">
     <value>WebDAV verbinden</value>
   </data>

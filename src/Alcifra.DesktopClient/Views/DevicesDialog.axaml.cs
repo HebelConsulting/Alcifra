@@ -91,7 +91,8 @@ public partial class DevicesDialog : Window
             return;
         }
 
-        var form = new DeviceEditDialog(null, list.EncryptMailLocked, request => _view.EnrolAsync(request));
+        var form = new DeviceEditDialog(null, list.EncryptMailLocked, request => _view.EnrolAsync(request),
+            filesLocked: !list.FilesAvailable);
         if (await form.ShowDialog<bool>(this) && _view.HandOver is { } enrolled)
         {
             Draw();
@@ -108,7 +109,7 @@ public partial class DevicesDialog : Window
         }
 
         if (await new DeviceEditDialog(row.Device, list.EncryptMailLocked, request => _view.ChangeAsync(row.Device, request),
-                () => _view.CollectionsAsync(row.Device))
+                () => _view.CollectionsAsync(row.Device), filesLocked: !list.FilesAvailable)
                 .ShowDialog<bool>(this))
         {
             Draw();
@@ -154,8 +155,15 @@ public partial class DevicesDialog : Window
     // device's. The address and user name are shown beside it with Copy, because the prompt asks for both.
     private void OnConnect(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
     {
-        if (_view?.List is not { } list || (sender as Control)?.Tag is not DeviceRow row || !row.Device.Files)
+        if (_view?.List is not { } list || (sender as Control)?.Tag is not DeviceRow row || !row.ConnectAllowed)
         {
+            return;
+        }
+
+        // The button is disabled on such a tenant; this is the backstop for any path that reaches the handler.
+        if (!list.FilesAvailable)
+        {
+            StatusText.Text = Strings.Get("DvFilesRefusedStrict");
             return;
         }
 

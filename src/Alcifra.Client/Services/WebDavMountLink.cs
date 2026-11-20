@@ -54,8 +54,16 @@ public sealed class WebDavMountLink
     {
         try
         {
-            // The address mounts only with the password of a device that reaches files (#1970).
+            // The address mounts only with the password of a device that reaches files (#1970), and not at all on a
+            // tenant that refuses plaintext doors (#2311): the mount would connect and then fail on the first read,
+            // so it says why here instead of handing over an address that cannot work.
             var devices = await _devices.GetAsync();
+            if (!devices.FilesAvailable)
+            {
+                _snackbar.Add(Strings.Get("DvFilesRefusedStrict"), Severity.Info);
+                return;
+            }
+
             if (!devices.ReachesFiles)
             {
                 _snackbar.Add(Strings.Get("StSetUpWebDavFirst"), Severity.Info);

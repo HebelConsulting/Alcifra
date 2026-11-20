@@ -89,7 +89,9 @@
                  open this tab's own folder (ADR "One WebDAV button per tab, deep-linked"). -->
             <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,0,4">
                 <Button Click="OnWebDavTabButton" Tag="Intray" AutomationProperties.AutomationId="intray-webdav"
-                        ToolTip.Tip="{Binding WebDav.Tooltip}"><i:Icon Value="mdi-folder-network-outline" FontSize="18" /></Button>
+                        ToolTip.Tip="{Binding WebDav.Tooltip}"
+                        IsEnabled="{Binding WebDav.CanMount}"
+                        ToolTip.ShowOnDisabled="True"><i:Icon Value="mdi-folder-network-outline" FontSize="18" /></Button>
             </StackPanel>
         </WrapPanel>
     </Border>

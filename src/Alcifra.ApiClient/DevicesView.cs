@@ -10,7 +10,8 @@ namespace Alcifra.ApiClient;
 /// <param name="MailState">"encrypted", "not encrypted", or "Required by your organisation".</param>
 /// <param name="LastUsed">When a login last used it, or "never".</param>
 public sealed record DeviceRow(
-    ProtocolDevice Device, string Name, string Reaches, string MailState, string LastUsed, bool CanEdit, bool CanDelete)
+    ProtocolDevice Device, string Name, string Reaches, string MailState, string LastUsed, bool CanEdit, bool CanDelete,
+    bool FilesAvailable = true)
 {
     /// <summary>
     /// Whether this device can connect over WebDAV: the ADDRESS and USER NAME are the user's — every device mounts the
@@ -18,8 +19,16 @@ public sealed record DeviceRow(
     /// </summary>
     public bool ReachesFiles => Device.Files;
 
-    /// <summary>The Connect WebDAV button's tooltip where the device does not reach files; null where it does.</summary>
-    public string? ConnectTip => Device.Files ? null : Strings.Get("DvConnectNoFiles");
+    /// <summary>Whether Connect WebDAV is offered at all (#2311): the tenant may refuse plaintext doors entirely.</summary>
+    public bool ConnectAllowed => ReachesFiles && FilesAvailable;
+
+    /// <summary>
+    /// The Connect WebDAV button's tooltip where it is disabled — the tenant's posture first, then the device's own
+    /// reach — and null where it is offered.
+    /// </summary>
+    public string? ConnectTip => !FilesAvailable
+        ? Strings.Get("DvFilesRefusedStrict")
+        : Device.Files ? null : Strings.Get("DvConnectNoFiles");
 }
 
 /// <summary>
@@ -91,7 +100,8 @@ public sealed class DevicesView(DevicesClient devices)
             Strings.Get(ProtocolDeviceText.MailStateKey(d.EncryptMailLocked, d.EncryptMail)),
             d.LastUsedAt is { } used ? used.InZone(SessionTimeZone.Current).ToString("g", culture) : Strings.Get("DvNever"),
             d.CanEdit,
-            d.CanDelete)),
+            d.CanDelete,
+            list.FilesAvailable)),
     ];
 
     /// <summary>What a device is set up with, line by line, as the Devices view and the hand-over show it.</summary>

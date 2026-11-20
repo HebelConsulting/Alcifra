@@ -34,28 +34,47 @@ public sealed partial class WebDavRibbonState : ObservableObject
     private string _tooltip = Strings.Get("MwWebDavSetUpTip");
 
     /// <summary>
+    /// Whether the mount buttons are offered at all (#2311): false on a tenant that refuses plaintext doors, where
+    /// WebDAV cannot work — the tooltip then carries the reason. Starts true so nothing flashes disabled before the
+    /// first refresh.
+    /// </summary>
+    [ObservableProperty]
+    private bool _canMount = true;
+
+    /// <summary>
     /// Re-reads the state. Cheap in the common case: mounted-ness is answered LOCALLY and first, so a user who
-    /// already has the volume costs no request at all; the server is asked only about credentials, which is the
+    /// already has the volume costs no request at all; the server is asked only about the devices, which is the
     /// one thing the client cannot know for itself.
     /// </summary>
-    public async Task RefreshAsync(Func<Task<bool>>? credentialsExist)
+    public async Task RefreshAsync(Func<Task<Alcifra.ApiClient.DeviceList>>? devices)
     {
         if (OsFileManager.MountedPath() is not null)
         {
             Tooltip = Strings.Get("MwWebDavOpenTip");
+            CanMount = true;
             return;
         }
 
         try
         {
-            Tooltip = credentialsExist is not null && await credentialsExist()
-                ? Strings.Get("MwWebDavMountTip")
-                : Strings.Get("MwWebDavSetUpTip");
+            if (devices is not null)
+            {
+                var list = await devices();
+                CanMount = list.FilesAvailable;
+                Tooltip = !list.FilesAvailable
+                    ? Strings.Get("DvFilesRefusedStrict")
+                    : list.ReachesFiles ? Strings.Get("MwWebDavMountTip") : Strings.Get("MwWebDavSetUpTip");
+                return;
+            }
+
+            CanMount = true;
+            Tooltip = Strings.Get("MwWebDavSetUpTip");
         }
         catch (Exception)
         {
             // Best-effort: an unreachable server leaves the button offering setup, which is harmless — the
             // dialog it opens will report the connection problem itself.
+            CanMount = true;
             Tooltip = Strings.Get("MwWebDavSetUpTip");
         }
     }

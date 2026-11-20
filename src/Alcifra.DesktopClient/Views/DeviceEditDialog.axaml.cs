@@ -26,8 +26,10 @@ public partial class DeviceEditDialog : Window
     /// <param name="encryptLocked">The organisation seals mail: the setting is shown on and cannot be changed.</param>
     /// <param name="save">Enrols or changes; throws with the user's message when refused.</param>
     /// <param name="collections">The shared calendars and address books the device can tick (#2090); null when enrolling.</param>
+    /// <param name="filesLocked">The tenant refuses plaintext doors (#2311): the files switch is shown locked, with the
+    /// reason. An EXISTING device keeps its stored value; a new one is enrolled without files, which could not work.</param>
     public DeviceEditDialog(ProtocolDevice? device, bool encryptLocked, Func<DeviceRequest, Task> save,
-        Func<Task<IReadOnlyList<DeviceCollectionChoice>>>? collections = null)
+        Func<Task<IReadOnlyList<DeviceCollectionChoice>>>? collections = null, bool filesLocked = false)
     {
         InitializeComponent();
         _save = save;
@@ -56,6 +58,17 @@ public partial class DeviceEditDialog : Window
             EncryptBox.IsChecked = true;
             EncryptBox.IsEnabled = false;
             LockedText.IsVisible = true;
+        }
+
+        if (filesLocked)
+        {
+            if (device is null)
+            {
+                FilesBox.IsChecked = false;
+            }
+
+            FilesBox.IsEnabled = false;
+            FilesLockedText.IsVisible = true;
         }
     }
 

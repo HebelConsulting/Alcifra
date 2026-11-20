@@ -548,6 +548,16 @@ public partial class MainWindow
         // THIS account's address (#2128, ADR 1043): each account mounts its own, so another account's volume on the same
         // server is simply a different mount, not this one.
         var devices = await api.Devices.GetAsync();
+
+        // A tenant that refuses plaintext doors offers no files door at all (#2311): say why instead of mounting an
+        // address whose first read would be refused. The buttons are disabled too; this is the backstop for any path
+        // that reaches the flow anyway.
+        if (!devices.FilesAvailable)
+        {
+            vm.Status = Strings.Get("DvFilesRefusedStrict");
+            return;
+        }
+
         var address = devices.Servers.WebDavUrl.TrimEnd('/');
         if (OsFileManager.MountedPathFor(address) is { } dead && !await OsFileManager.MountAnswersAsync(dead, TimeSpan.FromSeconds(5)))
         {

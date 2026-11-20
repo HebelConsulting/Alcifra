@@ -16,6 +16,11 @@
             <CheckBox x:Name="ContactsBox" Content="{loc:Tr DvContacts}" IsChecked="True" />
         </WrapPanel>
 
+        <!-- Shown LOCKED, not hidden, where the tenant refuses plaintext doors (#2311): the door exists in the
+             product, and a disappeared switch reads as a bug; this line says why. -->
+        <TextBlock x:Name="FilesLockedText" Text="{loc:Tr DvFilesRefusedStrict}" IsVisible="False" TextWrapping="Wrap"
+                   Foreground="{DynamicResource WbMuted}" FontSize="12" />
+
         <!-- Mail encryption, with the known client limitation beside it (owner, 2026-10-29). Locked on where the
              organisation seals mail: the setting is shown, not offered. -->
         <CheckBox x:Name="EncryptBox" Content="{loc:Tr DvEncryptMail}" />

@@ -39,9 +39,9 @@
                                        every device mounts the same one — and only the password is per device, so this
                                        shows what that device connects with. A browser cannot mount (ADR 0560), so it
                                        shows the steps and what to paste into the system's prompt. *@
-                                    <MudTooltip Text="@Strings.Get("DvConnectNoFiles")" Disabled="@device.Files">
+                                    <MudTooltip Text="@ConnectTip(device)" Disabled="@(device.Files && FilesAvailable)">
                                         <MudButton Size="Size.Small" Variant="Variant.Outlined" data-test="device-connect-webdav"
-                                                   Disabled="@(!device.Files || _busy)" OnClick="() => Connect(device)">@Strings.Get("DvConnect")</MudButton>
+                                                   Disabled="@(!device.Files || !FilesAvailable || _busy)" OnClick="() => Connect(device)">@Strings.Get("DvConnect")</MudButton>
                                     </MudTooltip>
                                     @if (device.CanEdit)
                                     {
@@ -105,11 +105,19 @@
     private Alcifra.Client.Services.DevicesApi.DeviceListDto? _list;
     private bool _busy;
 
+    // Whether this tenant offers the files door at all (#2311): false on a tenant that refuses plaintext doors, where
+    // the files switch is shown locked and the reason says why.
+    private bool FilesAvailable => _list?.FilesAvailable ?? true;
+
     // The device whose WebDAV connection is shown (#2394), until another is picked or the dialog closes.
     private Alcifra.Client.Services.DevicesApi.DeviceDto? _connect;
 
     // A browser cannot mount a drive (ADRs 0511/0560): the steps for the visitor's own OS, under the WebDAV address.
     private string? _mountSteps;
+
+    // Why a device's Connect WebDAV is disabled: the tenant's posture first, then the device's own reach.
+    private string ConnectTip(Alcifra.Client.Services.DevicesApi.DeviceDto device) =>
+        Strings.Get(!FilesAvailable ? "DvFilesRefusedStrict" : "DvConnectNoFiles");
 
     private void Connect(Alcifra.Client.Services.DevicesApi.DeviceDto device) => _connect = device;
 
@@ -183,7 +191,11 @@
             return;
         }
 
-        var parameters = new DialogParameters<DeviceEditDialog> { { x => x.EncryptLocked, _list.EncryptMailLocked } };
+        var parameters = new DialogParameters<DeviceEditDialog>
+        {
+            { x => x.EncryptLocked, _list.EncryptMailLocked },
+            { x => x.FilesLocked, !FilesAvailable },
+        };
         var result = await (await DialogService.ShowAsync<DeviceEditDialog>(Strings.Get("DvEnrolTitle"), parameters)).Result;
         if (result is { Canceled: false, Data: Alcifra.Client.Services.DevicesApi.DeviceRequest request })
         {
@@ -204,6 +216,7 @@
         {
             { x => x.Device, device },
             { x => x.EncryptLocked, _list?.EncryptMailLocked ?? false },
+            { x => x.FilesLocked, !FilesAvailable },
         };
         var result = await (await DialogService.ShowAsync<DeviceEditDialog>(Strings.Get("DvChange"), parameters)).Result;
         if (result is { Canceled: false, Data: Alcifra.Client.Services.DevicesApi.DeviceRequest request })

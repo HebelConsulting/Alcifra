@@ -7,7 +7,13 @@
                           MaxLength="100" Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" />
             <MudText Typo="Typo.subtitle2" Class="mt-3">@Strings.Get("DvColReaches")</MudText>
             <MudCheckBox T="bool" @bind-Value="_mail" Label="@Strings.Get("DvMail")" Dense="true" />
-            <MudCheckBox T="bool" @bind-Value="_files" Label="@Strings.Get("DvFiles")" Dense="true" />
+            @* Shown LOCKED, not hidden, where the tenant refuses plaintext doors (#2311): the door exists in the
+               product, and a disappeared switch reads as a bug; the line below says why. *@
+            <MudCheckBox T="bool" @bind-Value="_files" Label="@Strings.Get("DvFiles")" Dense="true" Disabled="FilesLocked" />
+            @if (FilesLocked)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("DvFilesRefusedStrict")</MudText>
+            }
             <MudCheckBox T="bool" @bind-Value="_calendars" Label="@Strings.Get("DvCalendars")" Dense="true" />
             <MudCheckBox T="bool" @bind-Value="_contacts" Label="@Strings.Get("DvContacts")" Dense="true" />
             <MudCheckBox T="bool" @bind-Value="_encrypt" Label="@Strings.Get("DvEncryptMail")" Dense="true" Disabled="EncryptLocked" Class="mt-2" />
@@ -58,6 +64,10 @@
 
     [Parameter]
     public bool EncryptLocked { get; set; }
+
+    /// <summary>Where the tenant refuses plaintext doors (#2311): the files switch is shown locked, with the reason.</summary>
+    [Parameter]
+    public bool FilesLocked { get; set; }
 
     private string _name = string.Empty;
     private bool _mail = true;

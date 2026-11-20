@@ -111,6 +111,10 @@ public class StrictEnvelopedReadTests
 
         Assert.NotNull(download);
         Assert.StartsWith("http", download, StringComparison.Ordinal);
+
+        // The devices resource offers the files door here (#2311) — the strict tenant's says false.
+        var devices = JsonDocument.Parse(await (await ordinary.Api.GetAsync("/api/me/devices")).Content.ReadAsStringAsync()).RootElement;
+        Assert.True(devices.GetProperty("filesAvailable").GetBoolean());
     }
 
     [Fact]
@@ -137,7 +141,16 @@ public class StrictEnvelopedReadTests
         // The sharpest of the doors #1394 found: #1376 RECORDED WebDAV as a blind door that is refused, and it
         // was never refused — it simply was not reachable through a presign, so the decision was written and
         // the enforcement was not. A mounted drive hands bytes to an operating system that cannot decrypt CMS.
+        //
+        // Since #2311 the door itself refuses (#2311): the mount no longer connects and lists and then fails on the
+        // first read — every request answers 403 with the sentence the clients show. The content-door refusal
+        // (409 PLAINTEXT_CONTENT_REFUSED) is what remains beneath it for every other door.
         var reader = await StrictReaderAsync(withCertificate: true);
+
+        // And the devices resource says so, which is what the clients disable their mount controls on.
+        var devices = JsonDocument.Parse(await (await reader.Api.GetAsync("/api/me/devices")).Content.ReadAsStringAsync()).RootElement;
+        Assert.False(devices.GetProperty("filesAvailable").GetBoolean());
+
         var davPassword = (await TestJson.Post(reader.Api, "/api/me/devices", E2EDevices.Any())).GetProperty("password").GetString()!;
 
         // The REAL path — repository, then document. An earlier version of this test asked for the document at
@@ -154,11 +167,11 @@ public class StrictEnvelopedReadTests
         using var response = await dav.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
 
-        // 409 and the code, not merely "not 200" — a 404 would satisfy a weaker assertion while proving the
-        // path was wrong rather than the door closed, which is exactly how the first version of this test
-        // passed without exercising anything.
-        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        Assert.Contains("PLAINTEXT_CONTENT_REFUSED", body, StringComparison.Ordinal);
+        // 403 at the DOOR with the reason, not merely "not 200" — a 404 would satisfy a weaker assertion while
+        // proving the path was wrong rather than the door closed, which is exactly how the first version of this
+        // test passed without exercising anything.
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Contains("only delivers encrypted content", body, StringComparison.Ordinal);
         Assert.DoesNotContain(Marker, body, StringComparison.Ordinal);
     }
 

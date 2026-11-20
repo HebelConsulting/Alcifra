@@ -319,6 +319,9 @@ device's, or the one from its hand-over) and opens it — on Windows as a persis
 free. A drive that is already mounted is opened; where it was last connected with another device, you are offered to
 remount it.
 
+Where your installation delivers content strictly (only as envelopes sealed to your keys), *WebDAV is not offered at
+all*: the mount controls say so, and the web or desktop app is how you open and save documents.
+
 *The tab buttons open where you already are.*#idx("WebDAV deep link") The *Intray* and *Check-out* tabs each have their
 own button, and each mounts the drive (asking for a device's password the first time) and opens *its own* folder
 inside it rather than the top of the archive:

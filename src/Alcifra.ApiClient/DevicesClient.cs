@@ -28,10 +28,12 @@ public sealed record ProtocolDevice(
 
 /// <summary>The user's devices, the addresses they reach, and the user's mail view (one setting for every device).</summary>
 public sealed record DeviceList(
-    IReadOnlyList<ProtocolDevice> Items, bool EncryptMailLocked, bool ShowAllDocuments, DeviceServers Servers, LinkMap? Links)
+    IReadOnlyList<ProtocolDevice> Items, bool EncryptMailLocked, bool ShowAllDocuments, DeviceServers Servers, LinkMap? Links,
+    bool FilesAvailable = true)
 {
     /// <summary>Whether any device reaches files: what decides whether WebDAV can be mounted with a password.</summary>
     public bool ReachesFiles => Items.Any(d => d.Files);
+
 }
 
 /// <summary>What a new device is set up with (#1970 slice 2): QR codes are PNG data URLs; the profile link works once.</summary>
@@ -136,7 +138,9 @@ public sealed class DevicesClient(ApiCore core, ProfileClient profile)
         Flag(json, "encryptMailLocked"),
         Flag(json, "showAllDocuments"),
         ParseServers(json.GetProperty("servers")),
-        ApiCore.ParseLinks(json));
+        ApiCore.ParseLinks(json),
+        // Absent means offered: a server from before the flag existed has no strict-tenant clients to protect.
+        !json.TryGetProperty("filesAvailable", out var available) || available.ValueKind != JsonValueKind.False);
 
     private static ProtocolDevice ParseDevice(JsonElement json) => new(
         json.GetProperty("name").GetString() ?? string.Empty,

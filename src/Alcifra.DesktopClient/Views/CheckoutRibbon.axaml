@@ -78,7 +78,9 @@
                      than by inheritance (#519 tranche 3) — the same cast MainWindow.axaml already uses. This is
                      the one binding here that did not move scope with the rest. -->
                 <Button Click="OnWebDavTabButton" Tag="Check-out" AutomationProperties.AutomationId="checkout-webdav"
-                        ToolTip.Tip="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).WebDav.Tooltip}"><i:Icon Value="mdi-folder-network-outline" FontSize="18" /></Button>
+                        ToolTip.Tip="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).WebDav.Tooltip}"
+                        IsEnabled="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).WebDav.CanMount}"
+                        ToolTip.ShowOnDisabled="True"><i:Icon Value="mdi-folder-network-outline" FontSize="18" /></Button>
             </StackPanel>
         </WrapPanel>
     </Border>

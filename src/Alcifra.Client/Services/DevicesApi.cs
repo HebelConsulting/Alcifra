@@ -34,7 +34,8 @@ public sealed class DevicesApi(HttpClient http, ApiRoot apiRoot)
     private sealed record CollectionsDto(List<CollectionDto> Items);
 
     public sealed record DeviceListDto(
-        List<DeviceDto> Items, bool EncryptMailLocked, bool ShowAllDocuments, ServersDto Servers, List<LinkDto>? Links)
+        List<DeviceDto> Items, bool EncryptMailLocked, bool ShowAllDocuments, ServersDto Servers, List<LinkDto>? Links,
+        bool FilesAvailable = true)
     {
         public bool ReachesFiles => Items.Any(d => d.Files);
 

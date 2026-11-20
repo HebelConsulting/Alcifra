@@ -230,6 +230,22 @@ public sealed class WebDavMiddleware
         services.GetRequiredService<CurrentTenantAccessor>().TenantId = user.TenantId;
         services.GetRequiredService<CurrentUserAccessor>().UserId = user.Id;
 
+        // A tenant that refuses plaintext doors does not offer WebDAV at all (#2311, ADR 0829): without this the mount
+        // connects and lists, then fails on the first content read with no reason. Refused HERE, once, in the words
+        // the clients use; the exchange itself is in the DAV trace (ADR 0626).
+        if (await services.GetRequiredService<Alcifra.Api.Documents.StrictEnvelopeDelivery>().RefusesPlaintextDoorsAsync(context.RequestAborted))
+        {
+            services.GetRequiredService<ILogger<WebDavMiddleware>>().LogWarning(
+                "WebDAV refused for tenant {TenantId}: the tenant refuses plaintext doors. The exchange is in the DAV trace.",
+                user.TenantId);
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "text/plain; charset=utf-8";
+            await context.Response.WriteAsync(
+                "This installation only delivers encrypted content, so WebDAV is unavailable. "
+                + "Use the web or desktop app to open and save documents.", context.RequestAborted);
+            return;
+        }
+
         // The Personal repository is the home for the Intray / Check-out folders and always appears at the WebDAV
         // root — ensure it exists (get-or-create, idempotent) before serving any request.
         var personalName = await PersonalNameAsync(services, db, user, context.RequestAborted);
