@@ -59,7 +59,7 @@
                                     </td>
                                     <td><span class="mud-text-secondary" style="font-size:.82em;">@Strings.Get(PresetLabelKey(ToModel(e)))</span></td>
                                     <td style="text-align:right; white-space:nowrap;">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Edit" OnClick="() => BeginEdit(e)" Disabled="_busy" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Edit" OnClick="() => BeginEdit(e)" Disabled="@(_busy || !CanGrant)" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" aria-label="Remove" OnClick="() => RemoveAsync(e)" Disabled="_busy" />
                                     </td>
                                 </tr>
@@ -68,7 +68,7 @@
                     </MudSimpleTable>
                 }
 
-                @if (_editing is not null)
+                @if (_editing is not null && CanGrant)
                 {
                     <MudPaper Outlined="true" Class="pa-3 mt-3">
                         @if (_editing.IsNew)
@@ -124,6 +124,14 @@
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_busy || !CanSave())">@Strings.Get("Save")</MudButton>
                         </div>
                     </MudPaper>
+                }
+                else if (!CanGrant)
+                {
+                    @* Break first, guided (ADR 1096, #1921): the server refuses a grant on an inheriting document —
+                       an entry there is never read (ADR 0183) — so the affordance is the inheritance bar's break
+                       button, not an editor whose Save would answer 409. The refusal stays the server's backstop
+                       for other clients. *@
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">@Strings.Get("MaGrantNeedsBreak")</MudAlert>
                 }
                 else
                 {
@@ -396,9 +404,20 @@
 
     // ---- editor lifecycle ----
 
-    private void BeginAdd() => _editing = new EditState { IsNew = true, Rights = ViewerBundle() };
+    // Grants are READ only where the document breaks inheritance (or it is a root, which is its own scope): an entry
+    // on an inheriting document is refused by the server (ADR 1096, #1921), so the editor is offered only where a
+    // Save can succeed. A null acl-inheritance href marks a root — there is nothing to break and nothing inherited.
+    private bool CanGrant => _breaksInheritance || _inheritanceHref is null;
 
-    private void BeginEdit(AclEntryDto e) => _editing = new EditState
+    private void BeginAdd()
+    {
+        if (CanGrant)
+        {
+            _editing = new EditState { IsNew = true, Rights = ViewerBundle() };
+        }
+    }
+
+    private void BeginEdit(AclEntryDto e) => _editing = !CanGrant ? _editing : new EditState
     {
         IsNew = false,
         PrincipalType = e.PrincipalType,

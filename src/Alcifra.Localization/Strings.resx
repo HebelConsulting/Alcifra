@@ -3312,6 +3312,9 @@
   <data name="MaAccessOwn" xml:space="preserve">
     <value>This item uses its own permissions.</value>
   </data>
+  <data name="MaGrantNeedsBreak" xml:space="preserve">
+    <value>A grant added here would never take effect while this item inherits its rights. Break inheritance first, then grant access here — or grant on the folder the rights come from.</value>
+  </data>
   <data name="MaAccessInherited" xml:space="preserve">
     <value>This item inherits permissions from its parent folder.</value>
   </data>
@@ -3689,6 +3692,9 @@
   </data>
   <data name="ApiErrWorkflowTransitionNotAllowed" xml:space="preserve">
     <value>That workflow step is not allowed from the current status.</value>
+  </data>
+  <data name="ApiErrAclGrantOutsideGoverningScope" xml:space="preserve">
+    <value>This item inherits its rights, so a grant here would never take effect. Break inheritance first, or grant on the folder the rights come from.</value>
   </data>
   <data name="ApiErrCannotChangeRootInheritance" xml:space="preserve">
     <value>Inheritance can't be changed on a repository root — it has no parent folder to inherit from.</value>

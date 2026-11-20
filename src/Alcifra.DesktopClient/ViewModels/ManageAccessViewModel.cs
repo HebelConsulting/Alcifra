@@ -27,14 +27,30 @@ public sealed partial class ManageAccessViewModel : ObservableObject
     [ObservableProperty] private bool _loading = true;
     [ObservableProperty] private bool _forbidden;
     [ObservableProperty] private bool _loadFailed;
-    [ObservableProperty][NotifyPropertyChangedFor(nameof(InheritanceText))][NotifyPropertyChangedFor(nameof(InheritanceToggleLabel))] private bool _breaksInheritance;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InheritanceText), nameof(InheritanceToggleLabel))]
+    [NotifyPropertyChangedFor(nameof(CanGrant), nameof(ShowGrantNote), nameof(ShowAddButton), nameof(AddButtonEnabled))]
+    private bool _breaksInheritance;
 
     // The advertised acl-inheritance href, or null when the server did not offer it — a repository ROOT has no
     // parent to inherit from, so the toggle can only fail there and is hidden instead (#426, ADR 0543). The
     // indicator line still shows: "this item uses its own permissions" is true and useful on a root.
-    [ObservableProperty][NotifyPropertyChangedFor(nameof(CanToggleInheritance))] private string? _inheritanceHref;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanToggleInheritance))]
+    [NotifyPropertyChangedFor(nameof(CanGrant), nameof(ShowGrantNote), nameof(ShowAddButton), nameof(AddButtonEnabled))]
+    private string? _inheritanceHref;
 
     public bool CanToggleInheritance => InheritanceHref is not null;
+
+    /// <summary>
+    /// Grants are READ only where the document breaks inheritance — or on a root, whose own entries are the ultimate
+    /// fallback. The server refuses an entry on an inheriting document (ADR 1096, #1921), so the editor is offered only
+    /// where a Save can succeed; the inheritance bar's break button is the guided action instead.
+    /// </summary>
+    /// <remarks>A null <see cref="InheritanceHref"/> marks a root: there is nothing to break and nothing inherited.</remarks>
+    public bool CanGrant => BreaksInheritance || InheritanceHref is null;
+    public bool ShowGrantNote => !CanGrant;
+    public bool ShowAddButton => CanGrant && !Editing;
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasStatus))] private string _status = string.Empty;
     public bool HasStatus => !string.IsNullOrEmpty(Status);
 
@@ -133,7 +149,7 @@ public sealed partial class ManageAccessViewModel : ObservableObject
     [ObservableProperty] private string _presetLabel = string.Empty;
 
     public bool EditorVisible => Editing;
-    public bool AddButtonEnabled => !Editing && AvailablePrincipals.Count > 0;
+    public bool AddButtonEnabled => CanGrant && !Editing && AvailablePrincipals.Count > 0;
     public bool CanSave => (!IsNew || SelectedPrincipal is not null) && AnyRight();
 
     // Recompute the derived role label + Save-enablement whenever a right toggles.
@@ -203,6 +219,8 @@ public sealed partial class ManageAccessViewModel : ObservableObject
         OnPropertyChanged(nameof(Ready));
         OnPropertyChanged(nameof(HasEntries));
         OnPropertyChanged(nameof(AddButtonEnabled));
+        OnPropertyChanged(nameof(ShowAddButton));
+        OnPropertyChanged(nameof(ShowGrantNote));
     }
 
     private void RefreshAvailable()
@@ -220,6 +238,11 @@ public sealed partial class ManageAccessViewModel : ObservableObject
     [RelayCommand]
     private void BeginAdd()
     {
+        if (!CanGrant)
+        {
+            return;
+        }
+
         IsNew = true;
         SelectedPrincipal = AvailablePrincipals.FirstOrDefault();
         Load(AclRoles.Viewer);
@@ -229,6 +252,11 @@ public sealed partial class ManageAccessViewModel : ObservableObject
 
     public void BeginEdit(AclRowViewModel row)
     {
+        if (!CanGrant)
+        {
+            return;
+        }
+
         IsNew = false;
         _editingPrincipalType = row.PrincipalType;
         _editingPrincipalId = row.PrincipalId;
@@ -478,6 +506,9 @@ public sealed partial class AclRowViewModel : ObservableObject
     public AclRights Rights { get; }
 
     public string RoleLabel => Strings.Get(ManageAccessViewModel.PresetLabelKey(Rights));
+
+    /// <summary>Whether the parent may grant where this row's document sits — false while it inherits (ADR 1096).</summary>
+    public bool CanEdit => _parent.CanGrant;
 
     [RelayCommand]
     private void Edit() => _parent.BeginEdit(this);

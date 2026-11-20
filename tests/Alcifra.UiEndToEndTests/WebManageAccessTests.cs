@@ -57,7 +57,12 @@ public class WebManageAccessTests
         var dialog = page.Locator(".mud-dialog");
         await Expect(dialog).ToBeVisibleAsync();
 
-        // Add access → pick the grantee in the principal picker → keep the default Viewer preset → Save.
+        // Break first, guided (ADR 1096, #1921): an inheriting document offers the remedy, not an editor whose Save
+        // would answer 409 — then Add access → pick the grantee → keep the default Viewer preset → Save.
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Add access" })).ToHaveCountAsync(0);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Break inheritance" }).ClickAsync();
+        await page.Locator(".mud-message-box").GetByRole(AriaRole.Button, new() { Name = "Break inheritance" }).ClickAsync();
+        await Expect(dialog.GetByRole(AriaRole.Button, new() { Name = "Add access" })).ToBeVisibleAsync();
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Add access" }).ClickAsync();
         await dialog.Locator(".mud-input-control").First.ClickAsync(); // MudSelect opens via its input-control
         await page.Locator(".mud-list-item").Filter(new() { HasText = granteeName }).First.ClickAsync();

@@ -28,6 +28,11 @@
                         VerticalAlignment="Center" Margin="8,0,0,0" />
             </Grid>
 
+            <!-- Break first, guided (ADR 1096, #1921): an inheriting document's grants are never read, so the
+                 server refuses them — the action is the break button above, not an editor whose Save would answer 409. -->
+            <SelectableTextBlock Text="{loc:Tr MaGrantNeedsBreak}" TextWrapping="Wrap" IsVisible="{Binding ShowGrantNote}"
+                                 Foreground="{DynamicResource WbMuted}" />
+
             <TextBlock Text="{loc:Tr MaCurrentAccess}" FontWeight="SemiBold" />
             <TextBlock Text="{loc:Tr MaNoGrants}" Foreground="{DynamicResource WbMuted}" IsVisible="{Binding !HasEntries}" />
 
@@ -45,6 +50,7 @@
                                     <SelectableTextBlock Grid.Column="1" Text="{Binding RoleLabel}" VerticalAlignment="Center"
                                                Margin="8,0" Foreground="{DynamicResource WbMuted}" />
                                     <Button Grid.Column="2" Command="{Binding EditCommand}" ToolTip.Tip="{loc:Tr Edit}"
+                                            IsVisible="{Binding CanEdit}"
                                             Background="Transparent" Padding="6,2"><i:Icon Value="mdi-pencil" /></Button>
                                     <Button Grid.Column="3" Command="{Binding RemoveCommand}" ToolTip.Tip="{loc:Tr UgDelete}"
                                             Background="Transparent" Padding="6,2"><i:Icon Value="mdi-delete" /></Button>
@@ -56,7 +62,7 @@
             </Border>
 
             <Button Content="{loc:Tr MaAddAccess}" Command="{Binding BeginAddCommand}"
-                    IsVisible="{Binding !Editing}" IsEnabled="{Binding AddButtonEnabled}" HorizontalAlignment="Left" />
+                    IsVisible="{Binding ShowAddButton}" IsEnabled="{Binding AddButtonEnabled}" HorizontalAlignment="Left" />
 
             <!-- Editor (add / edit) -->
             <Border BorderBrush="{DynamicResource WbBorder}" BorderThickness="1" CornerRadius="4" Padding="10"

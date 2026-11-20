@@ -38,6 +38,9 @@ public class DesktopManageAccessTests
         Assert.Empty(initial.Entries);
         Assert.Contains(initial.Principals, p => p.Type == "users" && p.Id == granteeId.Id && p.Name == granteeName);
 
+        // Break FIRST (ADR 1096, #1921): a grant on an inheriting document is refused — the entry would never be read.
+        await api.Documents.SetInheritanceAsync(initial.InheritanceHref!, breaksInheritance: true);
+
         // Grant the Viewer bundle (See + ReadContent).
         var viewer = new AclRights(
             CanSee: true, CanReadContent: true, CanEditContent: false, CanEditIndexData: false,

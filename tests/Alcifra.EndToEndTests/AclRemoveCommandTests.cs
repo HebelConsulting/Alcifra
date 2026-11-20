@@ -30,6 +30,8 @@ public class AclRemoveCommandTests(E2EApiFactory factory)
         var folder = (await TestJson.Post(http, $"/api/documents/{repository.GetProperty("id").GetGuid()}/children", new { name = "Workshop" }))
             .GetProperty("id").GetGuid();
         var entry = $"/api/documents/{folder}/acl-entries/users/{readerId}";
+        // Break FIRST (ADR 1096, #1921): a grant on an inheriting document is refused — the entry would never be read.
+        await TestJson.Put(http, $"/api/documents/{folder}/acl-entries/inheritance", new { breaksInheritance = true });
         await TestJson.Put(http, entry, new { canSee = true, canReadContent = true });
 
         var settings = new AclSettings { Document = folder.ToString(), User = reader };

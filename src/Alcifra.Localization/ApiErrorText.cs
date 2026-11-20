@@ -123,6 +123,8 @@ public static class ApiErrorText
         "STORAGE_QUOTA_EXCEEDED" => Strings.Get("ApiErrStorageQuotaExceeded"),
         "INVALID_WORKFLOW_TRANSITION" => Strings.Get("ApiErrWorkflowTransitionNotAllowed"),
         "CANNOT_CHANGE_ROOT_INHERITANCE" => Strings.Get("ApiErrCannotChangeRootInheritance"),
+        // A grant on a document that does not break inheritance (ADR 1096, #1921): the entry would never be read.
+        "ACL_GRANT_OUTSIDE_GOVERNING_SCOPE" => Strings.Get("ApiErrAclGrantOutsideGoverningScope"),
         "INTRAY_PAGES_NOT_SUPPORTED" => Strings.Get("ApiErrIntrayPagesNotSupported"),
         "INTRAY_ITEM_HAS_NO_PAGES" => Strings.Get("ApiErrIntrayItemHasNoPages"),
         "INTRAY_ITEM_HAS_NO_PAGES_TO_SPLIT" => Strings.Get("ApiErrIntrayNoPagesToSplit"),

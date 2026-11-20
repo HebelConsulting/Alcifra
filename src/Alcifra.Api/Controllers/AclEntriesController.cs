@@ -352,7 +352,7 @@ public class AclEntriesController : ControllerBase
     {
         var document = await _dbContext.Documents
             .Where(d => d.Id == documentId)
-            .Select(d => new { d.TenantId })
+            .Select(d => new { d.TenantId, d.ParentId, d.BreaksInheritance, d.Name })
             .SingleOrDefaultAsync(cancellationToken);
 
         if (document is null)
@@ -365,6 +365,17 @@ public class AclEntriesController : ControllerBase
         if (callerRights is null || !callerRights.CanManagePermissions)
         {
             return Forbid();
+        }
+
+        // A grant is READ only at the document's governing scope (ADR 0183): the document itself when it breaks
+        // inheritance, else the nearest ancestor that does. An entry written below it answered 2xx and granted
+        // nothing, the row sitting where nothing looks (#1921) — so the write is refused, naming the scope to grant
+        // on instead. A ROOT needs no check: it is the ultimate fallback, read whatever its own flag says.
+        if (!document.BreaksInheritance
+            && await _dbContext.ResolveGoverningScopeAsync(document.ParentId, cancellationToken) is { } scope)
+        {
+            throw new AclGrantOutsideGoverningScopeException(
+                await DocumentNameAsync(scope, cancellationToken) ?? scope.ToString(), scope);
         }
 
         if (!ValidPrincipalTypes.Contains(principalType))

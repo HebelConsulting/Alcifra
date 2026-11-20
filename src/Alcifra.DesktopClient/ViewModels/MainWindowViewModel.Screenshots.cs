@@ -493,6 +493,10 @@ public partial class MainWindowViewModel
             CanCreateSubItems: false, CanDelete: false, CanMove: false, CanAnnotate: false, CanManagePermissions: false);
 
         var rootGranted = await GrantAndRevokeAsync(root.DocumentSelfHref, granteeId.Id, viewer);
+        // The subfolder inherits, and a grant there would be refused (ADR 1096, #1921) — the dialog's guided flow is
+        // to break first, so the self-test takes the same step before exercising the grant path.
+        var subAcl = await _api!.Documents.GetAclAsync(sub.DocumentSelfHref);
+        await _api.Documents.SetInheritanceAsync(subAcl.InheritanceHref!, breaksInheritance: true);
         var subGranted = await GrantAndRevokeAsync(sub.DocumentSelfHref, granteeId.Id, viewer);
 
         await DeleteFolderAsync(sub.Id, sub.Href("self")); // clean up

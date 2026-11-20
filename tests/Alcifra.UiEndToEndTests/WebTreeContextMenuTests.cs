@@ -115,6 +115,8 @@ public class WebTreeContextMenuTests
         // A grant that exists ONLY on the subfolder — if the dialog shows it, it loaded the subfolder's ACL and
         // not the repository root's.
         var granteeId = (await (await http.PostAsJsonAsync("/api/users", new { email = $"ctx-{suffix}@alcifra.local", displayName = granteeName })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        // The subfolder owns its entries (ADR 1096, #1921): a grant on an inheriting document would be refused.
+        (await http.PutAsJsonAsync($"/api/documents/{folderId}/acl-entries/inheritance", new { breaksInheritance = true })).EnsureSuccessStatusCode();
         (await http.PutAsJsonAsync($"/api/documents/{folderId}/acl-entries/users/{granteeId}", new { canSee = true, canReadContent = true })).EnsureSuccessStatusCode();
 
         var page = await Ui.LoginAsync(_app);

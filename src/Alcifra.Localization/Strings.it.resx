@@ -3312,6 +3312,9 @@
   <data name="MaAccessOwn" xml:space="preserve">
     <value>Questo elemento utilizza autorizzazioni proprie.</value>
   </data>
+  <data name="MaGrantNeedsBreak" xml:space="preserve">
+    <value>Un'autorizzazione concessa qui non avrebbe effetto finché questo elemento eredita i suoi diritti. Interrompa prima l'ereditarietà, poi conceda l'accesso qui — oppure lo conceda sulla cartella da cui provengono i diritti.</value>
+  </data>
   <data name="MaAccessInherited" xml:space="preserve">
     <value>Questo elemento eredita le autorizzazioni dalla cartella principale.</value>
   </data>
@@ -3689,6 +3692,9 @@
   </data>
   <data name="ApiErrWorkflowTransitionNotAllowed" xml:space="preserve">
     <value>Questo passaggio del workflow non è consentito dallo stato attuale.</value>
+  </data>
+  <data name="ApiErrAclGrantOutsideGoverningScope" xml:space="preserve">
+    <value>Questo elemento eredita i suoi diritti: un'autorizzazione concessa qui non avrebbe effetto. Interrompa prima l'ereditarietà oppure la conceda sulla cartella da cui provengono i diritti.</value>
   </data>
   <data name="ApiErrCannotChangeRootInheritance" xml:space="preserve">
     <value>L'ereditarietà non può essere modificata sulla radice di un archivio: non esiste una cartella principale da cui ereditare.</value>

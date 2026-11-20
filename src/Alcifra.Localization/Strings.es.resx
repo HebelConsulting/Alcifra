@@ -3312,6 +3312,9 @@
   <data name="MaAccessOwn" xml:space="preserve">
     <value>Este elemento utiliza sus propios permisos.</value>
   </data>
+  <data name="MaGrantNeedsBreak" xml:space="preserve">
+    <value>Un permiso concedido aquí nunca surtiría efecto mientras este elemento hereda sus derechos. Interrumpa primero la herencia y conceda después el acceso aquí, o concédalo en la carpeta de la que provienen los derechos.</value>
+  </data>
   <data name="MaAccessInherited" xml:space="preserve">
     <value>Este elemento hereda los permisos de su carpeta principal.</value>
   </data>
@@ -3689,6 +3692,9 @@
   </data>
   <data name="ApiErrWorkflowTransitionNotAllowed" xml:space="preserve">
     <value>Ese paso del flujo de trabajo no se permite desde el estado actual.</value>
+  </data>
+  <data name="ApiErrAclGrantOutsideGoverningScope" xml:space="preserve">
+    <value>Este elemento hereda sus derechos, así que un permiso concedido aquí nunca surtiría efecto. Interrumpa primero la herencia o concédalo en la carpeta de la que provienen los derechos.</value>
   </data>
   <data name="ApiErrCannotChangeRootInheritance" xml:space="preserve">
     <value>La herencia no se puede cambiar en la raíz de un repositorio: no hay ninguna carpeta principal de la que heredar.</value>
