@@ -20,6 +20,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Alcifra.Theming\Alcifra.Theming.csproj" />
+    <!-- The icon generator's generation gate (#2392) — the lock and marker that keep two inner MSBuild calls from
+         generating into one folder at once. GenerationGate touches nothing of the rendering stack, so referencing the
+         tool loads no natives. -->
+    <ProjectReference Include="..\..\src\Alcifra.BrandIcons\Alcifra.BrandIcons.csproj" />
   </ItemGroup>
 
   <ItemGroup>

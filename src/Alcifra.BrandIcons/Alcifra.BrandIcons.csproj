@@ -33,9 +33,10 @@
   </ItemGroup>
 
   <!-- Only when a consumer asks (BrandIconsPhase=Generate), so building the solution does not generate a second time
-       beside it. Incremental: it reruns when the brand or this tool changed. -->
+       beside it. Incremental: it reruns when the brand or this tool changed. The `.complete` marker is part of the
+       Outputs so this gate and the generator's own one (which serialises concurrent inner builds, #2392) agree. -->
   <Target Name="GenerateBrandIcons" AfterTargets="Build" Condition="'$(BrandIconsPhase)' == 'Generate'"
-          Inputs="@(BrandIconInput);$(TargetPath)" Outputs="$(BrandIconsDir)app.ico">
+          Inputs="@(BrandIconInput);$(TargetPath)" Outputs="$(BrandIconsDir)app.ico;$(BrandIconsDir).complete">
     <Exec Command="dotnet &quot;$(TargetPath)&quot; &quot;$(BrandIconsDir)&quot; &quot;$(BrandAssetsDir)&quot;" />
   </Target>
 

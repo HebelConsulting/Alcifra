@@ -85,12 +85,28 @@ public static class IconWriter
     /// </remarks>
     /// <summary>
     /// Writes every icon artefact into <paramref name="outputDirectory"/>. The desktop's files sit at its top; the
-    /// web's under <c>web/</c>, laid out as they sit in the published <c>wwwroot</c>. Returns what it wrote.
+    /// web's under <c>web/</c>, laid out as they sit in the published <c>wwwroot</c>. Returns what it wrote (nothing
+    /// when a current generation already exists).
     /// </summary>
     /// <param name="brandAssets">The brand's <c>brand/assets</c>, where an SVG icon the brand names lives.</param>
     public static IReadOnlyList<string> Write(string outputDirectory, string brandAssets)
     {
         Directory.CreateDirectory(outputDirectory);
+
+        // ONE GENERATION AT A TIME (#2392). MSBuild runs a multi-targeting consumer's BeforeBuild once per target
+        // framework, in parallel, and each lands here — on the mirror's clean build one ran while the other's resource
+        // task read a file this one had not written yet. The gate serialises them: whoever loses waits until the
+        // winner has written EVERY file, then finds the generation current and does nothing.
+        using var gate = GenerationGate.Acquire(outputDirectory);
+
+        // The incremental check, re-made UNDER the gate: MSBuild's own Inputs/Outputs check ran before the race, so the
+        // loser must look again now that the winner is done. Regenerating would rewrite byte-identical files while the
+        // winner's consumers read them.
+        if (gate.IsCurrent(InputPaths(brandAssets)))
+        {
+            return [];
+        }
+
         var art = Art(brandAssets);
         using var master = Render(art);
         var written = new List<string>();
@@ -105,7 +121,7 @@ public static class IconWriter
         written.Add(window);
 
         var ico = Path.Combine(outputDirectory, "app.ico");
-        File.WriteAllBytes(ico, BuildIco(master));
+        WriteBytesAtomically(ico, BuildIco(master));
         written.Add(ico);
 
         // The macOS icon is composed on Apple's grid, from its OWN master (#787) — everything else above and
@@ -113,7 +129,7 @@ public static class IconWriter
         var icns = Path.Combine(outputDirectory, "app.icns");
         using (var macMaster = RenderMacOs(art))
         {
-            File.WriteAllBytes(icns, BuildIcns(macMaster));
+            WriteBytesAtomically(icns, BuildIcns(macMaster));
         }
 
         written.Add(icns);
@@ -138,7 +154,7 @@ public static class IconWriter
         written.Add(png);
 
         var favicon = Path.Combine(web, "favicon.ico");
-        File.WriteAllBytes(favicon, BuildIco(master, FaviconSizes));
+        WriteBytesAtomically(favicon, BuildIco(master, FaviconSizes));
         written.Add(favicon);
 
         // Recoloured per style only while the icon is the drawn one: a brand's own SVG has no accent to swap.
@@ -147,8 +163,54 @@ public static class IconWriter
             written.AddRange(WriteStyleFavicons(web));
         }
 
+        // LAST, and only after every file above: its presence is what tells the next caller the directory is complete.
+        gate.MarkComplete();
         return written;
     }
+
+    // What a generation derives from: the brand's assets on disk, the EMBEDDED brand (so Theming's assembly — not
+    // brand.json, which never reaches this process), and this tool's own assembly.
+    private static IEnumerable<string> InputPaths(string brandAssets) =>
+        (Directory.Exists(brandAssets)
+            ? Directory.EnumerateFiles(brandAssets, "*", SearchOption.AllDirectories)
+            : Enumerable.Empty<string>())
+        .Append(typeof(IconWriter).Assembly.Location)
+        .Append(typeof(Alcifra.Theming.Brand).Assembly.Location);
+
+    /// <summary>
+    /// Writes one file so no reader can see it half-written: a temporary file beside it, renamed over the target.
+    /// </summary>
+    /// <remarks>
+    /// A rename within one directory is atomic on every platform we build on, so a reader opens either the previous
+    /// file or the complete new one — never the zero bytes between <c>File.Create</c> and the first flush, which is
+    /// the window the mirror's clean build lost on a fresh directory (#2392).
+    /// </remarks>
+    private static void WriteAtomically(string path, Action<string> write)
+    {
+        var temp = Path.Combine(Path.GetDirectoryName(path)!, $".{Path.GetFileName(path)}.{Environment.ProcessId}.tmp");
+        try
+        {
+            write(temp);
+            File.Move(temp, path, overwrite: true);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(temp))
+                {
+                    File.Delete(temp);
+                }
+            }
+            catch (IOException)
+            {
+                // A temp file left behind is harmless; the next generation's rename replaces the real file anyway.
+            }
+        }
+    }
+
+    private static void WriteBytesAtomically(string path, byte[] bytes) =>
+        WriteAtomically(path, temp => File.WriteAllBytes(temp, bytes));
 
     // The brand's own icon (ADR 0993) when brand.json names one, else null: the drawn cabinet in its colours.
     private static SvgImage? Art(string brandAssets) =>
@@ -182,7 +244,7 @@ public static class IconWriter
             using var master = Render(art: null, load.Tokens.Light.Accent);
 
             var path = Path.Combine(directory, $"{style.Id}.ico");
-            File.WriteAllBytes(path, BuildIco(master, FaviconSizes));
+            WriteBytesAtomically(path, BuildIco(master, FaviconSizes));
             yield return path;
         }
     }
@@ -272,17 +334,18 @@ public static class IconWriter
         return new Bitmap(stream);
     }
 
-    private static void Save(Bitmap master, int size, string path)
-    {
-        if (size == Source)
+    private static void Save(Bitmap master, int size, string path) =>
+        WriteAtomically(path, temp =>
         {
-            master.Save(path);
-            return;
-        }
+            if (size == Source)
+            {
+                master.Save(temp);
+                return;
+            }
 
-        using var scaled = master.CreateScaledBitmap(new PixelSize(size, size), BitmapInterpolationMode.HighQuality);
-        scaled.Save(path);
-    }
+            using var scaled = master.CreateScaledBitmap(new PixelSize(size, size), BitmapInterpolationMode.HighQuality);
+            scaled.Save(temp);
+        });
 
     private static byte[] Png(Bitmap master, int size)
     {
