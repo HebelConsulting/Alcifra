@@ -37,7 +37,7 @@ public class BucketPrefixLengthTests
     }
 
     [Theory]
-    [InlineData("simplarchive-scratch-681975221298")]           // the old installer prefix — 33, the real defect
+    [InlineData("alcifra-scratch-681975221298")]           // the old installer prefix — 33, the real defect
     [InlineData("this-object-storage-bucket-prefix-is-far-too-long")]
     public void A_prefix_that_would_overflow_the_63_char_limit_is_refused_at_construction(string prefix)
     {

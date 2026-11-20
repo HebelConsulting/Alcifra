@@ -153,7 +153,7 @@ fi
 if [ "$FAILED" != "0" ]; then
   echo
   echo "The site served the login form and REJECTED at least one credential the public README advertises." >&2
-  echo "Usual cause: the host's /opt/simplarchive/docker-compose.yml still carries the OLD Demo__Administrator__" >&2
+  echo "Usual cause: the host's /opt/alcifra/docker-compose.yml still carries the OLD Demo__Administrator__" >&2
   echo "Password — a release ships the IMAGE only. Copy deploy/kiosk/docker-compose.yml to the host, then reset." >&2
   exit 1
 fi

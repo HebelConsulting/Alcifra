@@ -65,7 +65,7 @@ BASE_URL="${1:-https://demo.alcifra.dev}"
 BASE_URL="${BASE_URL%/}"
 HOST="${BASE_URL#*://}"
 HOST="${HOST%%/*}"
-MTA="simplarchive-postfix-1"
+MTA="alcifra-postfix-1"
 README="$(cd "$(dirname "$0")/.." && pwd)/publish/README.public.md"
 
 if [ ! -f "$README" ]; then
