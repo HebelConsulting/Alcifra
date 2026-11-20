@@ -48,7 +48,10 @@ stamp_de="${release:+$release · }erstellt am $today"
 for lang in en de; do
   source_typ="manual/manual.typ"; out="$pdf"; stamp="$stamp_en"
   [[ "$lang" == de ]] && { source_typ="manual/manual.de.typ"; out="${pdf%.pdf}-de.pdf"; stamp="$stamp_de"; }
-  SOURCE_DATE_EPOCH=1780304400 typst compile "$root/$source_typ" "$out" --root "$root" --font-path brand/assets/fonts \
+  # --ignore-system-fonts: what prints is decided by the fonts this repository carries — the brand's typeface plus the
+  # two vendored symbol faces (manual/fonts, OFL; #2331) — never by what the build machine happens to have installed.
+  # Without it a runner image chose the glyphs for ⟲⟳☰⋮▸⌘, and one build printed boxes.
+  SOURCE_DATE_EPOCH=1780304400 typst compile "$root/$source_typ" "$out" --root "$root" --font-path brand/assets/fonts --font-path manual/fonts --ignore-system-fonts \
     --input generated="$stamp" --input product="$BRAND_NAME" ${variant:+--input variant="$variant"}
 done
 

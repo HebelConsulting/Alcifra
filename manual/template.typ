@@ -59,8 +59,12 @@
     },
   )
   // The brand's document typeface (ADR 0991), from brand/assets/fonts: compile with --font-path so a machine
-  // without it installed sets the same pages rather than falling back to a serif.
-  set text(font: brand.fonts.document, size: 10.5pt, lang: lang, region: if lang == "de" { "CH" } else { none })
+  // without it installed sets the same pages rather than falling back to a serif. The two symbol faces are vendored
+  // beside it (manual/fonts, SIL OFL) and named AFTER it: the brand font has no ⟲⟳☰⋮▸⌘, and without a named
+  // fallback Typst borrows whatever system font has the glyph — so a runner image decided what the printed buttons
+  // looked like, and one build printed boxes (#2331). Together the two cover every non-letter the manual uses.
+  set text(font: (brand.fonts.document, "Noto Sans Symbols 2", "Noto Sans Math"),
+    size: 10.5pt, lang: lang, region: if lang == "de" { "CH" } else { none })
   set par(justify: true, leading: 0.62em)
   set heading(numbering: "1.1")
 
