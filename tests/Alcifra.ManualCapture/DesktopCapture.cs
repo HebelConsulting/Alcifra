@@ -30,6 +30,10 @@ public static class DesktopCapture
                 DesktopWindow.SortDialog => ["--sortdialog-screenshot", outPath, Path.Combine(repoRoot, screen.Pdf!)],
                 DesktopWindow.ContactDialog => ["--contact-screenshot", outPath, "--raw"],
                 DesktopWindow.BookingDialog => ["--booking-screenshot", outPath],
+                // The sealed document's two dialogs (#2314): their own hooks' sample data, filled so the POPULATED
+                // layout is checked. Their live twins overwrite these on main (Capture.Live in Screens.cs).
+                DesktopWindow.AudienceDialog => ["--audience-screenshot", outPath, "--rows"],
+                DesktopWindow.SealDialog => ["--seal-screenshot", outPath],
                 _ => ["--screenshot", outPath, "--demo", .. screen.Flags, .. pdfArg],
             };
 

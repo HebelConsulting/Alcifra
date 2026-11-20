@@ -29,11 +29,21 @@ public static class LiveDesktopCapture
 
         // The same frozen clock the web capture uses (ADR 0510). Byte-determinism is the property that makes a
         // regenerated manual's diff readable, and two capture paths against two clocks could not share a manual.
-        await using var app = new SelfHostedApp { DemoClock = "2026-06-01T09:00:00Z", WithOcrSidecar = true, Logger = log };
+        await using var app = new SelfHostedApp
+        {
+            DemoClock = "2026-06-01T09:00:00Z",
+            WithOcrSidecar = true,
+            Logger = log,
+            // The sealed-audience figures (#2314) enrol invented, unattested certificates; the demo tenant admits
+            // them only when this is set, which no other deployment of the seed does.
+            ExtraEnvironment = new Dictionary<string, string> { ["Demo__Certificates__UnattestedAllowed"] = "true" },
+        };
         await app.StartAsync();
         log.LogInformation("[desktop-live] app ready at {BaseUrl}", app.BaseUrl);
 
         var token = await SelfHostedLogin.GetUserTokenAsync(app.BaseUrl);
+        // Before any screen is rendered: the sealed document and the invented keys its two figures show (#2314).
+        await SealedAudienceFixture.EnsureAsync(app.BaseUrl, token, log);
 
         foreach (var screen in live)
         {

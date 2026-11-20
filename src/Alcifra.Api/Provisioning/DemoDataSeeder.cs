@@ -67,6 +67,7 @@ public static class DemoDataSeeder
             }
 
             await DemoEmailHeal.HealUnclassifiedEmailsAsync(services, dbContext, demoTenantName, CancellationToken.None);
+            await AllowUnattestedHardwareIfConfiguredAsync(services, dbContext, configuration, demoTenantName);
             return;
         }
 
@@ -90,6 +91,12 @@ public static class DemoDataSeeder
         // tenant-filtered — so set the tenant on the accessor the DbContext reads from (nothing did, since this
         // isn't a request). Provisioning above runs before this with no tenant set, like the platform-admin path.
         services.GetRequiredService<CurrentTenantAccessor>().TenantId = provisioned.TenantId;
+
+        // The manual's sealed-audience figures (#2314) are made with INVENTED hardware keys — self-signed
+        // certificates belonging to no real device — so the capture's own stack admits hardware without
+        // attestation (ADR 0963's tenant switch). Every other deployment of this seed leaves it off: the kiosk
+        // and the compose stack never configure it, and the capture harness is the only caller that does.
+        await AllowUnattestedHardwareIfConfiguredAsync(services, dbContext, configuration, demoTenantName);
 
         var archive = await KristallSamples.SeedAsync(services, provisioned, clock.GetUtcNow(), demoAdminPassword,
             new KristallOptions(
@@ -128,6 +135,35 @@ public static class DemoDataSeeder
         // LicensingDemo:ServiceAccount:* is configured, which only that module's local demo does.
         await LicensingDemoSetup.AddIfConfiguredAsync(services, dbContext, configuration, provisioned.TenantId,
             provisioned.AdministratorId, clock.GetUtcNow());
+    }
+
+    /// <summary>
+    /// Turns the demo tenant's "hardware without attestation" switch on where the configuration asks for it (#2314).
+    /// </summary>
+    /// <remarks>
+    /// Only the user-manual capture harness sets <c>Demo:Certificates:UnattestedAllowed</c>: its sealed-audience figures
+    /// enrol invented, self-signed certificates, and a certificate with no attestation is refused at the enrolment door
+    /// and left out of every reader answer unless the tenant admits hardware without one (ADR 0963). Applied in the seed
+    /// so the switch is on before the first enrolment; absent everywhere else — the kiosk and the compose stack keep the
+    /// switch off — and idempotent on an existing volume.
+    /// </remarks>
+    private static async Task AllowUnattestedHardwareIfConfiguredAsync(
+        IServiceProvider services, AlcifraDbContext dbContext, IConfiguration configuration, string demoTenantName)
+    {
+        if (!configuration.GetValue("Demo:Certificates:UnattestedAllowed", false))
+        {
+            return;
+        }
+
+        var tenant = await dbContext.Tenants.SingleAsync(t => t.Name == demoTenantName && t.Status == TenantStatus.Active);
+        if (tenant.CertificateUnattestedHardwareAllowed)
+        {
+            return;
+        }
+
+        services.GetRequiredService<CurrentTenantAccessor>().TenantId = tenant.Id;
+        tenant.CertificateUnattestedHardwareAllowed = true;
+        await dbContext.SaveChangesAsync();
     }
 
     /// <summary>

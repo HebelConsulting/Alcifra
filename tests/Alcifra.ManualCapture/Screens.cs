@@ -41,6 +41,8 @@ public enum DesktopWindow
     SortDialog, // --sortdialog-screenshot <out> <pdf> — the sort & rotate dialog over the sample batch (#527)
     ContactDialog, // --contact-screenshot <out> --raw — the structured editor with its raw disclosure open (#651)
     BookingDialog, // --booking-screenshot <out> — the Bookings… dialog over a plausible schedule (room reservations)
+    AudienceDialog, // --audience-screenshot <out> --rows — who a sealed document is encrypted for (#2314)
+    SealDialog,     // --seal-screenshot <out> — what a sealed document's content is sealed to (#2314)
 }
 
 // A web screen: after login, click the bottom tab whose label is the app's string `Tab` (a key in Strings.resx, so the
@@ -88,6 +90,12 @@ public static class Screens
             + "entry, its fields set as the key would have opened them (ADR 0968)."),
         new("passwords-edit", ["--passwords", "--edit"], WhyFixture:
             "As the Passwords figure: the edit form is filled from the demo entry, with the generator open (ADR 0968)."),
+        // A sealed document's two dialogs (#2314). LIVE, because the invented keys must be the ones the SERVER answers
+        // — the labels and holder names in the seal inspection are the enrolment's answer, and a hand-written sample
+        // could not fail when enrolment, the audience or the seal changes. The fixture pass renders the same dialogs
+        // from the desktop's own sample, so the PR gate checks their layout without Docker.
+        new("sealed-audience", [], DesktopWindow.AudienceDialog, Capture: Capture.Live),
+        new("sealed-inspect", [], DesktopWindow.SealDialog, Capture: Capture.Live),
         // The structured contact editor with the "Advanced: the stored item" disclosure OPEN. Its own window,
         // because neither of the two tabs above can show it — and the disclosure is the part of this feature a
         // reader is least likely to guess at, since its whole point is the properties the form does not show.

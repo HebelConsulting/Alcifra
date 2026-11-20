@@ -772,6 +772,10 @@ nur Ihnen. Im Tab *Archive* ist ein Speicher oder Eintrag, den Sie sehen, aber n
 und einer, zu dem Sie gerade hinzugefügt wurden, mit *Noch nicht für Sie verschlüsselt*, bis ein Mitglied das nächste Mal neu versiegelt. Ein versiegeltes Dokument
 funktioniert genauso: Wer es ablegt, wählt seinen Empfängerkreis, und *Verschlüsselt für…* ändert ihn.
 
+#pair("screenshots/de/web-sealed-audience.png", "screenshots/de/desktop-sealed-audience.png",
+  [*Verschlüsselt für…* bei einem versiegelten Dokument, im Web-Client (links) und in der Desktop-App (rechts): für
+   wen es verschlüsselt ist – Verwalter und Mitglieder – und wer noch hinzugefügt werden kann.])
+
 *Versiegelung prüfen…* im Menü eines versiegelten Dokuments zeigt, für wen sein Inhalt versiegelt ist, ohne ihn zu öffnen: Format und
 Verschlüsselung, den Schlüssel jedes Empfängers mit der Person, der er gehört (soweit Sie sie sehen dürfen), ob ein Schlüssel widerrufen oder
 nicht bestätigt ist, und ob der Umschlag noch zum Empfängerkreis passt. Wer den Empfängerkreis verlassen hat, diese Version aber noch öffnen kann,
@@ -782,6 +786,11 @@ In der Desktop-App versucht *Welcher meiner Schlüssel öffnet es?* die Schlüss
 Hardware-Schlüssel (mit PIN-Abfrage wie bei jedem Dokument), und *Schlüsseldatei versuchen…* einen Schlüssel, den Sie
 auswählen; beide sagen, welcher Schlüssel es geöffnet hat, und verwerfen den Inhalt sofort. *Datei prüfen…* im
 Werkzeugmenü neben dem Hilfesymbol zeigt dasselbe für eine versiegelte Datei auf Ihrem Computer, ohne sie hochzuladen.
+
+#pair("screenshots/de/web-sealed-inspect.png", "screenshots/de/desktop-sealed-inspect.png",
+  [*Versiegelung prüfen…*, im Web-Client (links) und in der Desktop-App (rechts): jeder Schlüssel, für den der Inhalt
+   versiegelt ist, mit seiner Person und seiner Bezeichnung. Die Schlüssel, die als nicht mehr im Empfängerkreis
+   markiert sind, öffnen diese Version weiterhin – ihre Person wurde entfernt, nachdem der Umschlag versiegelt war.])
 
 *Importieren.* Die Import-Schaltfläche liest auf Ihrem Computer die CSV-Datei, die ein Passwortmanager exportiert: Jede Zeile wird zu einem
 Eintrag, hier versiegelt. Nachgefragt wird nur bei einer Zeile, deren Name und Benutzername zu einem Eintrag passen, der schon im Ordner liegt – überspringen,

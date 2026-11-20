@@ -766,6 +766,10 @@ alone. In the *Repositories* tab, a store or an entry you can see but not decryp
 and one you were just added to is marked *Not yet encrypted for you* until a member's next re-seal. A sealed document
 works the same way: whoever files it chooses its audience, and *Encrypted for…* changes it.
 
+#pair("screenshots/web-sealed-audience.png", "screenshots/desktop-sealed-audience.png",
+  [*Encrypted for…* on a sealed document, in the web client (left) and the desktop client (right): who it is encrypted
+   for — the manager and the members — and the readers who can still be added.])
+
 *Inspect seal…* in a sealed document's menu shows what its content is sealed to, without opening it: the format and
 encryption, each recipient's key with its holder (where you may see them), whether a key was revoked or is not attested,
 and whether the envelope still matches the audience. Somebody who left the audience but can still open this version, and
@@ -776,6 +780,11 @@ In the desktop app, *Which of my keys opens it?* tries the keys on this computer
 its PIN as for any document), and *Try a key file…* tries a key you pick; either says which key opened it and discards
 the content at once. *Inspect a file…* in the tools menu beside the help icon shows the same for a sealed file on your
 computer, without uploading it.
+
+#pair("screenshots/web-sealed-inspect.png", "screenshots/desktop-sealed-inspect.png",
+  [*Inspect seal…*, in the web client (left) and the desktop client (right): every key the content is sealed to,
+   matched to its holder and its label. The keys marked as no longer in the audience still open this version — their
+   holder was removed from it after the envelope was sealed.])
 
 *Importing.* The import button reads the CSV file a password manager exports, on your computer: every row becomes an
 entry, sealed here. Only a row whose name and user name match an entry already in the folder is asked about — skip it,

@@ -46,15 +46,18 @@ public partial class ContentAudienceDialog : Window
 
     private void OnClose(object? sender, RoutedEventArgs e) => Close(null);
 
-    /// <summary>Fills the dialog for the headless screenshot hook: a store with a manager, a member, a group and a reader to add.</summary>
+    /// <summary>
+    /// Fills the dialog for the headless screenshot hook (#2314): the manual's sealed document, its manager and the
+    /// member, and the readers who may be added (the member who left appears among them again) — the same state the
+    /// live capture shows, so the PR gate checks the layout of what main publishes.
+    /// </summary>
     internal void FillForShot()
     {
         Guid Id() => Guid.NewGuid();
         DataContext = new AudienceEditor(new ContentAudienceInfo(
-            Id(), IsStore: true, IsPersonal: false, "\"shot\"", CanManage: true, CanAppointManager: false, IsMember: true,
-            [new(Id(), null, "Anna Berger", true, true), new(Id(), null, "Tom Weber", false, true), new(null, Id(), "Finance", false, true),
-             new(Id(), null, "Lena Graf", false, false)],
-            [], [new(Id(), null, "Mihaela Ionescu"), new(null, Id(), "Operations")], LinkMap.Empty));
-        Subject.Text = "Finance / Team passwords";
+            Id(), IsStore: false, IsPersonal: false, "\"shot\"", CanManage: true, CanAppointManager: false, IsMember: true,
+            [new(Id(), null, "Demo Admin", true, true), new(Id(), null, "Lukas Brunner", false, true)],
+            [], [new(Id(), null, "Sofia Meier"), new(Id(), null, "Anna Meyer"), new(Id(), null, "Tom Fischer")], LinkMap.Empty));
+        Subject.Text = "Board minutes 2026";
     }
 }

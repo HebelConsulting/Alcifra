@@ -58,10 +58,21 @@ public static partial class WebCapture
         // WithOcrSidecar: the external-link landing figure is supposed to show the document thumbnail (#476),
         // and nothing else in the deployment can rasterise a PDF. Only this harness asks for it — the UI suites
         // would pay the image build for a picture they never take.
-        await using var app = new SelfHostedApp { DemoClock = "2026-06-01T09:00:00Z", WithOcrSidecar = true, Logger = log };
+        await using var app = new SelfHostedApp
+        {
+            DemoClock = "2026-06-01T09:00:00Z",
+            WithOcrSidecar = true,
+            Logger = log,
+            // The sealed-audience figures (#2314) enrol invented, unattested certificates; the demo tenant admits
+            // them only when this is set, which no other deployment of the seed does.
+            ExtraEnvironment = new Dictionary<string, string> { ["Demo__Certificates__UnattestedAllowed"] = "true" },
+        };
         Log.LogInformation("[web] booting the self-hosted app (Postgres + SeaweedFS + OpenSearch + Tika + Gotenberg + API)…");
         await app.StartAsync();
         Log.LogInformation("[web] app ready at {BaseUrl}", app.BaseUrl);
+
+        // Before any screen is shot: the sealed document and the invented keys its two figures show (#2314).
+        await SealedAudienceFixture.EnsureAsync(app.BaseUrl, await SelfHostedLogin.GetUserTokenAsync(app.BaseUrl), log);
 
         using var playwright = await Playwright.CreateAsync();
         // Software rasterization (#832): GPU compositing rounds an overlay's alpha blend ±1/255 differently
@@ -136,6 +147,7 @@ public static partial class WebCapture
         await CaptureVersionsAsync(page, outDir);
         await CaptureChatAsync(page, outDir);
         await CaptureVersionCompareAsync(page, outDir);
+        await CaptureSealedDialogsAsync(page, outDir);
         await CaptureWebDavAsync(page, outDir);
         await CaptureExternalLinksAsync(context, page, outDir);
         await CaptureMobileTiersAsync(context, app.BaseUrl, outDir);
@@ -303,6 +315,64 @@ public static partial class WebCapture
             // A missing figure is better than a failed regeneration: the script also refreshes 30 other shots.
             Skipped.Add("personal-launchers");
             Log.LogWarning("[web] personal-launchers skipped: {Reason}", e.Message);
+        }
+    }
+
+    // "Encrypted for…" and "Inspect seal…" on the sealed document the fixture filed (#2314) — the two figures the
+    // manual's audience/seal prose stands on. Both are dialogs reached from the row's ⋮ menu, so both drive the same
+    // row; the document and the invented keys it is sealed to come from SealedAudienceFixture, never from the seed.
+    private static async Task CaptureSealedDialogsAsync(IPage page, string outDir)
+    {
+        // The audience: its manager and member, and the readers who may be added (the one who left is one again).
+        await CaptureSealedDialogAsync(page, outDir, L("AudRibbon"), ".wb-audience-row", expandFirstPanel: false, "sealed-audience");
+
+        // The seal inspection: the envelope's recipients matched to the invention's key labels, with one member's
+        // two keys marked as no longer in the audience (the fixture removed her without re-sealing). The first
+        // recipient is opened, as the desktop hook does — the details level is part of what the figure documents.
+        await CaptureSealedDialogAsync(page, outDir, L("SealInspect"), "[data-seal-recipient]", expandFirstPanel: true, "sealed-inspect");
+    }
+
+    private static async Task CaptureSealedDialogAsync(
+        IPage page, string outDir, string menuItem, string readySelector, bool expandFirstPanel, string name)
+    {
+        try
+        {
+            await DismissAnyDialogAsync(page);
+            await page.Locator($".wb-tab[aria-label='{L("TabRepositories")}']").First.ClickAsync();
+            await page.GetByText("Demo Repository").First.ClickAsync();
+            var row = page.Locator("[data-pane='list'] .wb-list-row")
+                .Filter(new() { HasText = SealedAudienceFixture.DocumentName }).First;
+            await row.WaitForAsync(new() { Timeout = 15000 });
+
+            await row.Locator("button").Last.ClickAsync();
+            await page.Locator(".mud-popover-open .mud-menu-item").Filter(new() { HasText = menuItem }).First.ClickAsync();
+
+            // The dialog BOX (title bar included), which is what the figure shows.
+            var dialog = page.Locator(".mud-dialog").First;
+            await dialog.WaitForAsync(new() { Timeout = 15000 });
+
+            // Wait for the CONTENT, not just the dialog: shooting on open alone catches the spinner, which is how a
+            // figure of "Loading…" would ship looking like the product.
+            var ready = dialog.Locator(readySelector).First;
+            await ready.WaitForAsync(new() { Timeout = 15000 });
+            if (expandFirstPanel)
+            {
+                await dialog.Locator(".mud-expand-panel-header").First.ClickAsync();
+            }
+
+            await page.WaitForTimeoutAsync(600);
+            await ShotDialogAsync(page, dialog, outDir, name);
+        }
+        catch (Exception e)
+        {
+            // A missing figure is better than a failed regeneration: the script also refreshes the other shots.
+            Skipped.Add(name);
+            Log.LogWarning("[web] {Name} skipped: {Reason}", name, e.Message.Split('\n')[0]);
+        }
+        finally
+        {
+            try { await DismissAnyDialogAsync(page); }
+            catch (Exception e) { Log.LogWarning("[web] could not close the {Name} dialog: {Reason}", name, e.Message.Split('\n')[0]); }
         }
     }
 
@@ -864,6 +934,24 @@ public static partial class WebCapture
 
     private static async Task ShotAsync(IPage page, string outDir, string name)
     {
+        await PrepareShotAsync(page);
+        var path = Path.Combine(outDir, $"web-{name}.png");
+        await page.ScreenshotAsync(new PageScreenshotOptions { Path = path });
+        Log.LogInformation("[web] {Name} → {File}", name, Path.GetFileName(path));
+    }
+
+    // A DIALOG as the figure (#2314): the dialog is the subject, and a full workbench at half the text width —
+    // where the manual's web+desktop pairs put it — would leave its text too small to read.
+    private static async Task ShotDialogAsync(IPage page, ILocator dialog, string outDir, string name)
+    {
+        await PrepareShotAsync(page);
+        var path = Path.Combine(outDir, $"web-{name}.png");
+        await dialog.ScreenshotAsync(new LocatorScreenshotOptions { Path = path });
+        Log.LogInformation("[web] {Name} → {File}", name, Path.GetFileName(path));
+    }
+
+    private static async Task PrepareShotAsync(IPage page)
+    {
         // Drop focus and park the pointer before every shot (#832): where focus and the mouse happen to
         // rest after the setup clicks is a race — a focus ring, a blinking caret, or a hover tint that wins
         // it in one run and loses it in the next is a byte-difference with nothing behind it (the webdav
@@ -880,9 +968,6 @@ public static partial class WebCapture
         // nothing failing. Which notifications happen to fire while the app is being photographed is not
         // something the figures document, so remove them before the shot rather than hoping the timing misses.
         await page.EvaluateAsync("() => { document.querySelectorAll('.mud-snackbar, .mud-snackbar-container').forEach(e => e.remove()); }");
-        var path = Path.Combine(outDir, $"web-{name}.png");
-        await page.ScreenshotAsync(new PageScreenshotOptions { Path = path });
-        Log.LogInformation("[web] {Name} → {File}", name, Path.GetFileName(path));
     }
 
     private static Regex LoginRegex() => new($"^(log ?in|{Regex.Escape(L("LogonLogin"))})$", RegexOptions.IgnoreCase);

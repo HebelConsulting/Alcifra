@@ -142,8 +142,60 @@ public partial class MainWindowViewModel
         && Preview.HasPreviewPages            // …its preview has rasterised, rather than still saying "Loading…"
         && Comments.Count > 0;                // …and the thread has arrived (ADR 0545 files one for the filing)
 
-    // ---- The second slice: the four screens whose data the seed already holds (#1358) -------------------
+    // ---- The sealed document's two dialogs (#2314) ----------------------------------------------------
     //
+    // Both figures open a DIALOG over the sealed document, and both read what it shows from the details pane's own
+    // links: the audience from the document's `audience` rel, the inspection from its `seal-inspection` rel. Only the
+    // navigation lives here — the renderer builds the windows, because a view-model that constructs Views could not be
+    // tested without one.
+
+    /// <summary>The sealed document the audience and seal figures show, as the manual harness files it (#2314).</summary>
+    /// <remarks>
+    /// Named in three places that move together: <c>SealedAudienceFixture.DocumentName</c> (the harness that files it),
+    /// <c>WebCapture</c> (which finds its row by it) and here. The desktop client cannot reference the test harness, so
+    /// this is the copy the product's own build sees — and this side fails loudly by name if the two drift.
+    /// </remarks>
+    internal const string LiveShotSealedDocument = "Board minutes 2026";
+
+    /// <summary>Signs in and selects the sealed document, so its audience and seal can be read from the details' links.</summary>
+    internal async Task PopulateSealedDocumentFromLiveAppAsync(string accessToken)
+    {
+        await SignInForLiveShotAsync(accessToken);
+        await LoadRootAsync();
+
+        var repository = Tree.FirstOrDefault(n => n.Name == LiveShotRepository)
+            ?? throw new InvalidOperationException(
+                $"The live app has no '{LiveShotRepository}' at the tree root, so the sealed document's figures cannot be "
+                + "captured from it: the manual harness files the document there (SealedAudienceFixture).");
+
+        // The root's contents, through the same field-then-load order the workbench method records above: the property
+        // would start its own fire-and-forget load beside this one.
+#pragma warning disable MVVMTK0034
+        _selectedTreeNode = repository;
+#pragma warning restore MVVMTK0034
+        SetBreadcrumbFromTreeNode(repository);
+        await LoadFolderContentsAsync(repository.Id, repository.Links);
+
+        // The real selection path — the selection's own loads put the document's links (and so its audience and seal)
+        // within reach of LoadDetailAudienceAsync / LoadDetailSealInspectionAsync, which the renderer calls after this.
+        SelectedItem = Items.FirstOrDefault(n => n.Name == LiveShotSealedDocument && !n.IsFolder)
+            ?? throw new InvalidOperationException(
+                $"'{LiveShotSealedDocument}' is not in '{LiveShotRepository}' in the live app. The manual harness files it "
+                + "before any screen is rendered (SealedAudienceFixture.DocumentName) — either the harness did not run or "
+                + "the two names drifted.");
+    }
+
+    /// <summary>
+    /// Whether the sealed document's details have arrived — the point at which its audience and seal links are reachable.
+    /// </summary>
+    /// <remarks>
+    /// Asking about the TITLE alone would pass before the links are set, and the audience read would then return null
+    /// and report a load error into the figure's own run. The rel is named as well: it is the one the next line reads.
+    /// </remarks>
+    internal bool LiveShotSealedDocumentArrived =>
+        DetailTitle == LiveShotSealedDocument && _detailLinks?.Href("audience") is not null;
+
+    // ---- The second slice: the four screens whose data the seed already holds (#1358) -------------------
     // SIBLINGS, NOT PARAMETERS — as the workbench method above says: these screens differ by which TAB and
     // which ROW, which is navigation rather than configuration, and a single method with a switch in it would
     // be the populator shape this epic exists to retire.

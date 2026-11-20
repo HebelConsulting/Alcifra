@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -7,6 +8,7 @@ using Avalonia.VisualTree;
 using Avalonia.LogicalTree;
 using Alcifra.DesktopClient.Services;
 using Alcifra.DesktopClient.ViewModels;
+using Alcifra.Localization;
 
 namespace Alcifra.DesktopClient.Views;
 
@@ -84,6 +86,11 @@ internal static class ScreenshotRenderer
             "contacts" => (viewModel.PopulateContactsFromLiveAppAsync(accessToken),
                 () => viewModel.LiveShotContactsArrived,
                 "the contact list and the selected contact's detail"),
+            // The sealed document's two dialogs (#2314): both select the same document, and what they show comes from
+            // its details' own links — rendered by the calls below once the details have arrived.
+            "sealed-audience" or "sealed-inspect" => (viewModel.PopulateSealedDocumentFromLiveAppAsync(accessToken),
+                () => viewModel.LiveShotSealedDocumentArrived,
+                $"the details of '{MainWindowViewModel.LiveShotSealedDocument}'"),
             _ => throw new ArgumentException(
                 $"No live capture is defined for the screen '{screen}'. A screen classified Capture.Live in "
                 + "Screens.cs needs its navigate/ready pair here — the classification and this switch move "
@@ -92,6 +99,13 @@ internal static class ScreenshotRenderer
         };
 
         PumpUntil(navigate, TimeSpan.FromMinutes(2), $"signing in and reaching the {screen} screen");
+
+        if (screen is "sealed-audience" or "sealed-inspect")
+        {
+            PumpUntil(ready, TimeSpan.FromMinutes(2), what);
+            CaptureSealedDialog(viewModel, screen, path);
+            return;
+        }
 
         var window = new MainWindow { DataContext = viewModel };
         window.Show();
@@ -106,6 +120,70 @@ internal static class ScreenshotRenderer
                 "The headless platform produced no frame, so no figure was written. A capture that silently "
                 + "wrote nothing is how a stale PNG ships (the skipped-capture lesson).");
 
+        frame.Save(path);
+        DesktopLog.Info("live capture → {Path}", path);
+    }
+
+    /// <summary>
+    /// Renders one of the sealed document's two dialogs from the LIVE app (#2314): the audience it is encrypted for,
+    /// or what its content is sealed to. Both read through the details pane's own loaders, so the figure shows what the
+    /// product would show a user who opened the dialog.
+    /// </summary>
+    private static void CaptureSealedDialog(MainWindowViewModel viewModel, string screen, string path)
+    {
+        if (screen == "sealed-audience")
+        {
+            var loading = viewModel.LoadDetailAudienceAsync();
+            PumpUntil(loading, TimeSpan.FromMinutes(1), "the sealed document's audience");
+            var audience = loading.GetAwaiter().GetResult()
+                ?? throw new InvalidOperationException(
+                    $"'{MainWindowViewModel.LiveShotSealedDocument}' advertises no audience, so the figure would be an "
+                    + "empty dialog. The fixture seals the document and declares its audience (SealedAudienceFixture).");
+            CaptureDialog(new ContentAudienceDialog(audience, viewModel.DetailDocumentName), path);
+            return;
+        }
+
+        var inspecting = viewModel.LoadDetailSealInspectionAsync();
+        PumpUntil(inspecting, TimeSpan.FromMinutes(1), "the sealed document's seal inspection");
+        var inspection = inspecting.GetAwaiter().GetResult()
+            ?? throw new InvalidOperationException(
+                $"'{MainWindowViewModel.LiveShotSealedDocument}' advertises no seal inspection, so the figure would be an "
+                + "empty dialog. The document wears the Sealed mask and holds an envelope (SealedAudienceFixture).");
+        var name = viewModel.DetailDocumentName;
+        var dialog = new SealInspectionDialog(
+            inspection, string.Format(CultureInfo.CurrentCulture, Strings.Get("SealTitle"), name), name);
+        dialog.Show();
+        Dispatcher.UIThread.RunJobs();
+        dialog.UpdateLayout();
+
+        // Open the first recipient, as the fixture-path hook does: the details level is part of what the figure
+        // documents, and it is the only place the key's reference and the CMS method are visible.
+        if (dialog.GetVisualDescendants().OfType<Expander>().FirstOrDefault() is { } first)
+        {
+            first.IsExpanded = true;
+            // The expander opens through a transition: advance the render timer so the frame shows it open.
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick(60);
+            Dispatcher.UIThread.RunJobs();
+            dialog.UpdateLayout();
+        }
+
+        CaptureDialog(dialog, path);
+    }
+
+    /// <summary>Shows a dialog window headlessly and writes its frame — a dialog has no MainWindow to be part of.</summary>
+    private static void CaptureDialog(Window dialog, string path)
+    {
+        if (!dialog.IsVisible)
+        {
+            dialog.Show();
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        dialog.UpdateLayout();
+        var frame = dialog.CaptureRenderedFrame()
+            ?? throw new InvalidOperationException(
+                "The headless platform produced no frame for the dialog, so no figure was written. A capture that "
+                + "silently wrote nothing is how a stale PNG ships (the skipped-capture lesson).");
         frame.Save(path);
         DesktopLog.Info("live capture → {Path}", path);
     }

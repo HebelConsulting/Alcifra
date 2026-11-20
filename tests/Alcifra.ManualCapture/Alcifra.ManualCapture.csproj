@@ -19,6 +19,9 @@
     <ProjectReference Include="..\..\src\Alcifra.Localization\Alcifra.Localization.csproj" />
     <!-- Progress through the shared plain stderr logger (ADRs 0906/0911); the harness has no data output. -->
     <ProjectReference Include="..\..\src\Alcifra.ConsoleLogging\Alcifra.ConsoleLogging.csproj" />
+    <!-- The UI-free API client the fixtures drive the REAL app with (#2314): the sealed-audience fixture enrols its
+         invented keys and files its sealed document through the same client the desktop and phone use, not by hand. -->
+    <ProjectReference Include="..\..\src\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
     <!-- Built (not linked) so each capture subprocess (dotnet run, no-build) works: the API for the web mode, the
          desktop client's headless screenshot hooks for the desktop mode. -->
     <ProjectReference Include="..\..\src\Alcifra.Api\Alcifra.Api.csproj">
@@ -29,6 +32,11 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <Private>false</Private>
     </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The invented keys' public certificates (#2314), fixed so the figures stay byte-stable between runs. -->
+    <EmbeddedResource Include="SealedAudienceCertificates.pem" LogicalName="Alcifra.ManualCapture.SealedAudienceCertificates.pem" />
   </ItemGroup>
 
 </Project>
