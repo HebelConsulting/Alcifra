@@ -11,6 +11,13 @@ on:
   release:
     types: [edited]
 
+# One restamp per release at a time (#2412, v0.62.5 run 26): each run downloads the attached bundle and replaces it, so
+# two overlapping runs race the asset — the clobber removes site-bundle.zip for a moment and the sibling's download
+# finds "no assets match the file pattern". A queue, not a cancel: the run that waits restamps with the latest body.
+concurrency:
+  group: site-bundle-notes-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
 jobs:
   gate:
     # Who publishes is the brand's to say (ADR 0996), as in desktop-packages.yml.

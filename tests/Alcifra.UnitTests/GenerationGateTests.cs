@@ -23,12 +23,13 @@ public sealed class GenerationGateTests : IDisposable
     {
         using var first = GenerationGate.Acquire(_directory);
 
-        var started = new Stopwatch();
+        // Measured from BEFORE the task exists (#2414): a loaded runner may not schedule it for hundreds of
+        // milliseconds, and a stopwatch started inside the body then credits only the part it actually ran — the
+        // Bund's CI read "returned after 0.4 s" for an acquirer that had blocked the whole time.
+        var started = Stopwatch.StartNew();
         var second = Task.Run(() =>
         {
-            started.Start();
             using var gate = GenerationGate.Acquire(_directory, TimeSpan.FromSeconds(20));
-            started.Stop();
             return gate.IsCurrent([]);
         });
 
