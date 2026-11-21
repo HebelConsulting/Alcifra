@@ -128,10 +128,16 @@ jobs:
           echo "identity=$identity" >> "$GITHUB_OUTPUT"
           echo "Signing as: $identity"
 
+      # The workload the step above installed is the runner's own (newest for its SDK band); the packaging script's
+      # pin to Xcode_27.1 is a LOCAL workaround for the older workload in the system root, and pinning it here fights
+      # the runner's workload — "requires Xcode 27.2. The current version of Xcode is 27.1" (v0.62.5, 2026-11-21).
+      # Naming /Applications/Xcode.app (the runner's default) sets DEVELOPER_DIR, which the script honours by
+      # skipping its pin.
       - name: Package macOS .dmg (arm64 + x64), AD-HOC signed (notarization postponed, ADR 0905)
         if: ${{ env.NOTARIZATION_POSTPONED == 'true' }}
         env:
           VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
         run: scripts/package-macos-dmg.sh "${VERSION#v}"
 
       - name: Package macOS .dmg (arm64 + x64), signed and notarized
@@ -143,6 +149,7 @@ jobs:
           NOTARY_APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
         run: scripts/package-macos-dmg.sh "${VERSION#v}"
 
       - name: Keep the dry-run's .dmgs as workflow artifacts

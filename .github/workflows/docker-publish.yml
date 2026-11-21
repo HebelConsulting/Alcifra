@@ -110,6 +110,17 @@ jobs:
         if: ${{ needs.gate.outputs.white_label != 'true' }}
         run: scripts/compile-manual.sh --release "$GITHUB_REF_NAME"
 
+      # The in-house Mac's Docker CLI keeps credentials in the login keychain, which a runner session cannot unlock:
+      # docker/login-action dies with "error saving credentials: … User interaction is not allowed. (-25308)" and the
+      # whole publish leg falls with it (v0.62.5, 2026-11-21). A throwaway DOCKER_CONFIG with a plain config.json
+      # keeps the login in the file store, on every runner alike; it dies with the job.
+      - name: Keep the registry login in a throwaway file store
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/docker-config"
+          printf '{}' > "$RUNNER_TEMP/docker-config/config.json"
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
+
       - name: Log in to the registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
