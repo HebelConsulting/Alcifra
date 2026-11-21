@@ -61,7 +61,14 @@ jobs:
     timeout-minutes: 120
     needs: gate
     if: ${{ needs.gate.outputs.publishes == 'true' }}
-    runs-on: macos-latest
+    # WHERE the packaging runs is a repository variable, like CI's tiers (variable unset = GitHub-hosted). Found the
+    # hard way on v0.62.5: the hosted macos-26 image ships Xcode 26.6 as its newest, while the SDK's macOS workload
+    # (10.0.404 -> Microsoft.macOS.Sdk 27.2) requires Xcode 27.2 — every package build failed at the .app step. Set
+    # MACOS_RUNNER to the JSON array of the machine's labels, e.g.
+    #   ["self-hosted","macOS","ARM64","simplarchive-mac"]
+    # and the four packages build on the in-house Mac (which carries the Xcode the workload asks for); clear it to
+    # return to the hosted image. A tag's tree decides its own workflow, so flip this BEFORE tagging a release.
+    runs-on: ${{ fromJSON(vars.MACOS_RUNNER || '["macos-latest"]') }}
     permissions:
       contents: write # create the GitHub Release + upload assets
       actions: read # the manual build's artifacts: a white-label edition's manual (edition-manual.sh), the site bundle
