@@ -6,7 +6,12 @@
   <!-- The caller's own global properties must not reach the generator: the desktop builds once per target framework,
        and a TargetFramework passed on restored the shared Theming project for net10.0-windows only (NETSDK1005). -->
   <PropertyGroup>
-    <BrandIconsCallerProperties>TargetFramework;RuntimeIdentifier;SelfContained;PublishDir;OutputPath;Platform</BrandIconsCallerProperties>
+    <!-- The publish SHAPE is the caller's, never the tool's: a release packages the client single-file and trimmed,
+         and those switches used to leak into this nested build — where the trimming analyzer then refused
+         Assembly.Location (IL3000, the freshness inputs) and failed the v0.62.4 packages job while the generator
+         itself is only ever run framework-dependent (`dotnet BrandIcons.dll`). Removed, as the caller's other
+         properties above are. -->
+    <BrandIconsCallerProperties>TargetFramework;RuntimeIdentifier;SelfContained;PublishSelfContained;PublishSingleFile;PublishTrimmed;PublishReadyToRun;PublishAot;PublishDir;OutputPath;Platform</BrandIconsCallerProperties>
   </PropertyGroup>
   <Target Name="BuildBrandIcons" BeforeTargets="BeforeBuild" Condition="'$(UsesBrandIcons)' == 'true' And '$(GenerateBrandIcons)' != 'false'">
     <MSBuild Projects="$(BrandIconsProject)" Targets="Restore" Properties="Configuration=Release;BrandIconsPhase=Restore" RemoveProperties="$(BrandIconsCallerProperties)" />
