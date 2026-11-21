@@ -83,6 +83,19 @@ public sealed class GenerationGate : IDisposable
             .All(path => File.GetLastWriteTimeUtc(path) <= done);
     }
 
+    /// <summary>
+    /// The first of <paramref name="paths"/> that is absent, or null when every one exists — the completeness half of
+    /// "current" (#2401).
+    /// </summary>
+    /// <remarks>
+    /// <b>A marker is one fact; a directory's completeness is another.</b> The marker alone was trusted once, and a
+    /// self-hosted runner's build reddened because MSBuild's Inputs/Outputs skip fired on <c>app.ico;.complete</c> while
+    /// <c>icon.png</c> was not there — the reader then raced a generation that never ran. The writer asks this of its
+    /// own output set under the lock, so "current" now means new-enough AND whole.
+    /// </remarks>
+    public static string? FirstMissing(IEnumerable<string> paths) =>
+        paths.FirstOrDefault(path => !File.Exists(path));
+
     /// <summary>Records the generation complete — written after EVERY file, so its presence means "the directory is whole".</summary>
     public void MarkComplete()
     {

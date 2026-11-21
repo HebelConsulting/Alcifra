@@ -101,8 +101,11 @@ public static class IconWriter
 
         // The incremental check, re-made UNDER the gate: MSBuild's own Inputs/Outputs check ran before the race, so the
         // loser must look again now that the winner is done. Regenerating would rewrite byte-identical files while the
-        // winner's consumers read them.
-        if (gate.IsCurrent(InputPaths(brandAssets)))
+        // winner's consumers read them. Both halves are asked: new-enough (the marker against the inputs) AND WHOLE —
+        // a marker from an interrupted or older generation with a file missing means a reader would find the gap
+        // (#2401), so that directory is regenerated rather than trusted.
+        if (gate.IsCurrent(InputPaths(brandAssets))
+            && GenerationGate.FirstMissing(ExpectedOutputs(outputDirectory)) is null)
         {
             return [];
         }
@@ -167,6 +170,23 @@ public static class IconWriter
         gate.MarkComplete();
         return written;
     }
+
+    /// <summary>
+    /// The files every generation writes no matter what the brand carries — what the writer checks for before it
+    /// trusts a marker (#2401). The style favicons are conditional (a brand with its own art has none), so they are
+    /// deliberately not part of "whole".
+    /// </summary>
+    public static IEnumerable<string> ExpectedOutputs(string outputDirectory) =>
+        new[]
+        {
+            Path.Combine(outputDirectory, "icon-1024.png"),
+            Path.Combine(outputDirectory, "icon.png"),
+            Path.Combine(outputDirectory, "app.ico"),
+            Path.Combine(outputDirectory, "app.icns"),
+        }
+            .Concat(HicolorSizes.Select(size => Path.Combine(outputDirectory, "linux", $"{size}.png")))
+            .Append(Path.Combine(outputDirectory, "web", "favicon.png"))
+            .Append(Path.Combine(outputDirectory, "web", "favicon.ico"));
 
     // What a generation derives from: the brand's assets on disk, the EMBEDDED brand (so Theming's assembly — not
     // brand.json, which never reaches this process), and this tool's own assembly.

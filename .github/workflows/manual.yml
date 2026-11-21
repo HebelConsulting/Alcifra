@@ -169,6 +169,18 @@ jobs:
             --product-name "$BRAND_NAME" --lang de --typ manual/manual.de.typ --pdf "$MANUAL_PDF_DE" --commit "$GITHUB_SHA"
           python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
 
+      # The harness landscape's website extract (#2397, ADR 1102): the SAME Typst source as the committed document
+      # under docs/harnesses, compiled with the site gate on so the private-tools section (tools/ never reaches the
+      # public mirror, ADR 0484) cannot leak. Attaching refuses a leaking extract and validate re-checks the zip.
+      - name: Attach the harness landscape extract
+        run: |
+          set -euo pipefail
+          extract="$RUNNER_TEMP/harnesses-site.pdf"
+          scripts/compile-harnesses.sh --site "$extract" >/dev/null
+          python3 -I scripts/site-bundle.py attach-developers --dir "$RUNNER_TEMP/site-bundle" \
+            --pdf "$extract" --sections "$extract.sections.json" --title "The harness landscape"
+          python3 -I scripts/site-bundle.py validate "$RUNNER_TEMP/site-bundle.zip"
+
       - name: Upload the site bundle
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

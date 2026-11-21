@@ -89,4 +89,37 @@ public sealed class GenerationGateTests : IDisposable
         using var again = GenerationGate.Acquire(_directory);
         Assert.True(again.IsCurrent([]), "a released gate is taken again and the completed marker still counts");
     }
+
+    // #2401: "current" has TWO halves — new-enough (the marker against the inputs) and WHOLE. The marker alone was
+    // trusted once, and a build skipped on it while icon.png was absent; the writer now asks the file set too.
+    [Fact]
+    public void FirstMissing_names_the_file_that_makes_a_directory_incomplete()
+    {
+        Directory.CreateDirectory(_directory);
+        var present = Path.Combine(_directory, "icon.png");
+        var absent = Path.Combine(_directory, "web", "favicon.ico");
+        File.WriteAllBytes(present, []);
+
+        Assert.Equal(absent, GenerationGate.FirstMissing([present, absent]));
+        Assert.Null(GenerationGate.FirstMissing([present]));
+
+        Directory.CreateDirectory(Path.GetDirectoryName(absent)!);
+        File.WriteAllBytes(absent, []);
+        Assert.Null(GenerationGate.FirstMissing([present, absent]));
+    }
+
+    [Fact]
+    public void The_writer_expects_every_file_a_generation_writes()
+    {
+        var expected = IconWriter.ExpectedOutputs(_directory).Select(Path.GetFileName).ToList();
+        Assert.Contains("icon.png", expected);
+        Assert.Contains("icon-1024.png", expected);
+        Assert.Contains("app.ico", expected);
+        Assert.Contains("app.icns", expected);
+        Assert.Contains("favicon.png", expected);
+        Assert.Contains("favicon.ico", expected);
+
+        // Nothing is expected on a fresh directory.
+        Assert.NotNull(GenerationGate.FirstMissing(IconWriter.ExpectedOutputs(_directory)));
+    }
 }

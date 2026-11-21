@@ -25,6 +25,13 @@ The contract, version 1:
 
 A feature's `figure` names a figure by its id (the file stem of its first image). `html` and `notes` may be null.
 A consumer refuses a schemaVersion it does not know; a new FIELD is not a new version, a changed one is.
+
+`attach-developers` adds a developer document to a bundle (the harness landscape, #2397): the SAME source as the
+committed document under docs/, compiled with the non-portable sections left out. The manifest carries
+    "developers": [{"id", "title", "lang", "pdf", "sections"}] | null
+where `sections` is what the extract actually rendered (queried from the Typst source). Validation refuses a
+bundle that carries a NON_PORTABLE section in its extract, or one whose pdf is missing: tools/ never reaches the
+public mirror (ADR 0484), so nothing describing it may be published outward either.
 """
 import argparse
 import json
@@ -38,6 +45,9 @@ import zipfile
 SCHEMA = "alcifra-site-bundle"
 SCHEMA_VERSION = 1
 LANGUAGES = {"en", "de"}
+# Sections a document marks not-portable (`// not-portable: <title> — <reason>` in its Typst source, the SeedCLAUDE
+# posture): they must never appear in an extract the website receives (ADR 0484).
+NON_PORTABLE = {"private-tools"}
 # A fixed timestamp for every zip entry, so the same content always makes the same zip (as SOURCE_DATE_EPOCH does
 # for the manual, ADR 0510).
 ZIP_TIME = (2026, 6, 1, 0, 0, 0)
@@ -158,6 +168,37 @@ def stamp(args):
     print(f"{args.zip}: version {args.version}{', notes ' + args.lang if args.notes else ''}")
 
 
+def attach_developers(args):
+    directory = unpacked(args.dir)
+    manifest_path = os.path.join(directory, "manifest.json")
+    if not os.path.exists(manifest_path):
+        sys.exit(f"{args.dir} is not a bundle: no manifest.json")
+    manifest = json.load(open(manifest_path))
+
+    # What the extract actually rendered, asked of the source — the claim the bundle is about to make. A section the
+    # document marks not-portable appearing here means the extract was compiled without its site gate: refuse it.
+    sections = json.load(open(args.sections))
+    leaked = sorted(set(sections) & NON_PORTABLE)
+    if leaked:
+        sys.exit(f"the developer extract carries non-portable section(s) {leaked}: it must be compiled with the site gate on")
+
+    os.makedirs(os.path.join(directory, "developers"), exist_ok=True)
+    target = "developers/harnesses.pdf"
+    shutil.copyfile(args.pdf, os.path.join(directory, target))
+    manifest["developers"] = [{"id": "harnesses", "title": args.title, "lang": args.lang, "pdf": target,
+                               "sections": sections}]
+    write_manifest(directory, manifest)
+    problems = check(directory, manifest)
+    if problems:
+        sys.exit(f"The bundle breaks its contract after attaching the developer document:\n  " + "\n  ".join(problems))
+    # A bundle built by `build` is a directory whose zip sits beside it; given a zip, it is rewritten in place.
+    zipped = f"{args.dir}.zip" if directory == args.dir else args.dir
+    zip_dir(directory, zipped)
+    if directory != args.dir:
+        shutil.rmtree(directory)
+    print(f"{zipped}: {target} ({len(sections)} sections)")
+
+
 def check(directory, manifest):
     problems = []
 
@@ -209,6 +250,22 @@ def check(directory, manifest):
             if feature.get("figure") is not None:
                 need(feature["figure"] in figure_ids,
                      f"{lang} feature {fid!r} names figure {feature['figure']!r}, which the bundle does not carry")
+    developers = manifest.get("developers")
+    if developers is not None:
+        need(isinstance(developers, list) and len(developers) > 0, "developers is neither null nor a non-empty list")
+        seen = set()
+        for entry in developers or []:
+            did = entry.get("id")
+            need(isinstance(did, str) and ID.match(did), f"developer document id {did!r} is not a lower-case id")
+            need(did not in seen, f"developer document id {did!r} appears twice")
+            seen.add(did)
+            need(bool(squash(entry.get("title"))), f"developer document {did!r} has no title")
+            need(entry.get("lang") in LANGUAGES, f"developer document {did!r} names language {entry.get('lang')!r}")
+            exists(entry.get("pdf"), f"developer document {did!r}")
+            sections = entry.get("sections")
+            need(isinstance(sections, list) and len(sections) > 0, f"developer document {did!r} lists no sections")
+            leaked = sorted(set(sections or []) & NON_PORTABLE)
+            need(not leaked, f"developer document {did!r} carries non-portable section(s) {leaked}")
     return problems
 
 
@@ -247,8 +304,14 @@ def main():
     s.add_argument("--lang", default="en", choices=sorted(LANGUAGES))
     v = sub.add_parser("validate")
     v.add_argument("path")
+    d = sub.add_parser("attach-developers")
+    d.add_argument("--dir", required=True, help="the built bundle directory; its .zip is rebuilt")
+    d.add_argument("--pdf", required=True, help="the developer extract, compiled with the site gate on")
+    d.add_argument("--sections", required=True, help="the JSON array of section ids the extract rendered")
+    d.add_argument("--title", default="The harness landscape")
+    d.add_argument("--lang", default="en", choices=sorted(LANGUAGES))
     args = parser.parse_args()
-    {"build": build, "stamp": stamp, "validate": validate}[args.command](args)
+    {"build": build, "stamp": stamp, "validate": validate, "attach-developers": attach_developers}[args.command](args)
 
 
 if __name__ == "__main__":
