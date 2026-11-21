@@ -110,23 +110,23 @@ jobs:
         if: ${{ needs.gate.outputs.white_label != 'true' }}
         run: scripts/compile-manual.sh --release "$GITHUB_REF_NAME"
 
-      # The in-house Mac's Docker CLI keeps credentials in the login keychain, which a runner session cannot unlock:
-      # docker/login-action dies with "error saving credentials: … User interaction is not allowed. (-25308)" and the
-      # whole publish leg falls with it (v0.62.5, 2026-11-21). A throwaway DOCKER_CONFIG with a plain config.json
-      # keeps the login in the file store, on every runner alike; it dies with the job.
-      - name: Keep the registry login in a throwaway file store
+      # NOT `docker login` (#2416): the in-house Mac's Docker Desktop keeps credentials in its keychain store
+      # (`"credsStore": "desktop"`), which a runner session cannot unlock — "error storing credentials … User
+      # interaction is not allowed. (-25308)" — and it still reached that store with a throwaway empty DOCKER_CONFIG
+      # in place (v0.62.5, 2026-11-21, twice). So the registry's auth is WRITTEN into a throwaway config instead; the
+      # build reads `auths` directly and the credential store is never consulted. It dies with the job.
+      - name: Authenticate to the registry in a throwaway config
+        env:
+          REGISTRY: ${{ steps.brand.outputs.registry }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/docker-config"
-          printf '{}' > "$RUNNER_TEMP/docker-config/config.json"
-          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
-
-      - name: Log in to the registry
-        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
-        with:
-          registry: ${{ steps.brand.outputs.registry }}
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+          config_dir="$RUNNER_TEMP/docker-config"
+          mkdir -p "$config_dir"
+          basic="$(printf '%s:%s' "$REGISTRY_USER" "$REGISTRY_TOKEN" | base64)"
+          printf '{"auths":{"%s":{"auth":"%s"}}}' "$REGISTRY" "$basic" > "$config_dir/config.json"
+          echo "DOCKER_CONFIG=$config_dir" >> "$GITHUB_ENV"
 
       - name: Image metadata (tags + labels)
         id: meta
