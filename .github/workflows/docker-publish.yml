@@ -124,6 +124,12 @@ jobs:
           set -euo pipefail
           config_dir="$RUNNER_TEMP/docker-config"
           mkdir -p "$config_dir"
+          # DOCKER_CONFIG relocates the CLI's PLUGIN directory as well as the config, and Docker Desktop installs
+          # buildx — which build-push-action requires — into ~/.docker/cli-plugins. Without this link the build dies
+          # with "Docker buildx is required" (v0.62.5, 2026-11-21; reproduced on the machine both ways).
+          if [ -d "$HOME/.docker/cli-plugins" ]; then
+            ln -sfn "$HOME/.docker/cli-plugins" "$config_dir/cli-plugins"
+          fi
           basic="$(printf '%s:%s' "$REGISTRY_USER" "$REGISTRY_TOKEN" | base64)"
           printf '{"auths":{"%s":{"auth":"%s"}}}' "$REGISTRY" "$basic" > "$config_dir/config.json"
           echo "DOCKER_CONFIG=$config_dir" >> "$GITHUB_ENV"
