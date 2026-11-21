@@ -52,6 +52,11 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         // Passwordless passkey sign-in is allowed by default (ADR "Passwordless passkey login on by default"). Store
         // default true so the migration backfills existing tenants to true; new tenants get it from the entity default.
         builder.Property(t => t.AllowPasskeyLogin).HasDefaultValue(true);
+        // Runtime tenant branding (ADR 1103, #2408): the pack id names a directory under the installation's
+        // Brand:PacksDirectory; null keeps the installation's own compiled brand. The palette is a colorVariants id.
+        builder.Property(t => t.BrandPackId).HasMaxLength(64);
+        builder.Property(t => t.BrandPalette).HasMaxLength(32);
+        builder.Property(t => t.AllowUserPaletteOverride).HasDefaultValue(false);
         builder.Property(t => t.AuditChainStartSequence).HasDefaultValue(0L);
         // Audit-log WORM archive checkpoint (ADR "Audit-log WORM"). Store default -1 (nothing archived) so the
         // migration backfills existing tenants; new tenants get it from the entity default.

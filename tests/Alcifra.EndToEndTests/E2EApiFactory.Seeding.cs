@@ -112,6 +112,28 @@ public sealed partial class E2EApiFactory
         return (clientId, secret, tenantId);
     }
 
+    /// <summary>
+    /// Gives a tenant a mounted runtime brand pack (ADR 1103), as the platform administrator would: read the resource
+    /// for its ETag, then PUT the choice with <c>If-Match</c> — the same path <c>alcifra tenant brand set</c> follows.
+    /// </summary>
+    public async Task AssignBrandPackAsync(
+        Guid tenantId, string? packId, string? paletteId = null, bool allowUserPaletteOverride = false)
+    {
+        var (clientId, secret) = await SeedPlatformAdministratorAsync();
+        using var admin = CreateAuthedClient(await GetTokenAsync(clientId, secret));
+
+        using var read = await admin.GetAsync($"/api/tenants/{tenantId}/brand");
+        read.EnsureSuccessStatusCode();
+        var etag = read.Headers.ETag!.Tag;
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/tenants/{tenantId}/brand")
+        {
+            Content = JsonContent.Create(new { packId, paletteId, allowUserPaletteOverride }),
+        };
+        request.Headers.TryAddWithoutValidation("If-Match", etag);
+        (await admin.SendAsync(request)).EnsureSuccessStatusCode();
+    }
+
     // Seeds a PlatformAdministrator (+ OpenIddict app) — the tenant-less principal platform maintenance
     // (tenant onboarding, the search reindex) authorizes against. Same client-credentials flow as a
     // ServiceAccount; TokenController checks this table when a client_id matches no ServiceAccount.

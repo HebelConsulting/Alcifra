@@ -7548,4 +7548,13 @@
   <data name="MobPreviewPartial" xml:space="preserve">
     <value>Viene mostrato l'inizio di questo file ({0}). Apri con… o Condividi ottiene il file completo.</value>
   </data>
+  <data name="BrandPalette" xml:space="preserve">
+    <value>Tavolozza</value>
+  </data>
+  <data name="BrandPaletteDefault" xml:space="preserve">
+    <value>Predefinita</value>
+  </data>
+  <data name="BrandPaletteFailed" xml:space="preserve">
+    <value>Impossibile cambiare la tavolozza.</value>
+  </data>
 </root>

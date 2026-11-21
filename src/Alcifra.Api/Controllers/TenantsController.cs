@@ -87,6 +87,13 @@ public class TenantsController : ControllerBase
 
         // Defaults to the tenant's own Name if omitted.
         public string? RepositoryName { get; set; }
+
+        /// <summary>
+        /// The initial administrator password, where the CALLER must know it up front — a deployment seeding a
+        /// showcase tenant at reset time. Omitted, a random one is generated and returned once. A supplied one is
+        /// held to <c>PasswordPolicy</c> like any password a person chooses.
+        /// </summary>
+        public string? AdministratorPassword { get; set; }
     }
 
     public class TenantAdministratorResource
@@ -135,15 +142,15 @@ public class TenantsController : ControllerBase
             return Forbid();
         }
 
-        // administratorPassword: null — the HTTP path always generates a random initial password (returned
-        // once below). The demo seeder is the caller that passes an explicit one. The provisioning logic
-        // itself lives in the shared service so it isn't duplicated between here and that seeder.
+        // A supplied password is for the caller that must know it up front (a reset-time seed); omitted, a random
+        // one is generated and returned once below. The provisioning logic itself lives in the shared service, so
+        // this and the demo seeder cannot drift.
         var provisioned = await _tenantProvisioningService.ProvisionAsync(
             request.Name,
             request.AdministratorEmail,
             request.AdministratorDisplayName,
             request.RepositoryName,
-            administratorPassword: null,
+            administratorPassword: request.AdministratorPassword,
             cancellationToken);
 
         // Alcifra's own manual, filed into the new tenant's standard repository at its founding (ADR 0891) — after
@@ -423,6 +430,11 @@ public class TenantsController : ControllerBase
         // Always advertised, read-only: the storage check (#2304) answers which segmented masks' content sits outside
         // its segment, and an empty answer is a clean bill of health, not an absent door.
         links.Add(new Link("storage-out-of-segment", $"/api/tenants/{tenant.Id}/storage-out-of-segment", "GET"));
+
+        // The tenant's runtime brand (ADR 1103): assigning it is a platform administrator's act, so the rel rides on
+        // this collection rather than on the tenant-administrator settings — `alcifra tenant brand` follows it, and
+        // never composes the address (ADR 0543/0871).
+        links.Add(new Link("brand", $"/api/tenants/{tenant.Id}/brand", "GET"));
 
         return new TenantResource
         {

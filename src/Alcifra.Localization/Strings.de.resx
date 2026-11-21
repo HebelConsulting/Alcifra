@@ -7548,4 +7548,13 @@
   <data name="MobPreviewPartial" xml:space="preserve">
     <value>Der Anfang dieser Datei wird angezeigt ({0}). „Öffnen mit…“ oder „Teilen“ liefert die ganze Datei.</value>
   </data>
+  <data name="BrandPalette" xml:space="preserve">
+    <value>Palette</value>
+  </data>
+  <data name="BrandPaletteDefault" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="BrandPaletteFailed" xml:space="preserve">
+    <value>Die Farbvariante konnte nicht geändert werden.</value>
+  </data>
 </root>

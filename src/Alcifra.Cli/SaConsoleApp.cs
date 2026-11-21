@@ -346,9 +346,11 @@ public static class SaConsoleApp
             });
             config.AddBranch("tenant", tenant =>
             {
-                tenant.SetDescription("Tenant administration: provisioning (platform administrator), the tenant's standard repository, its recovery certificate and its offline-cache policy (tenant administrator).");
+                tenant.SetDescription("Tenant administration: provisioning and the runtime brand (platform administrator), the tenant's standard repository, its recovery certificate and its offline-cache policy (tenant administrator).");
                 tenant.AddCommand<TenantCreateCommand>("create")
-                    .WithDescription("Provision a tenant with its first administrator and repository.");
+                    .WithDescription("Provision a tenant with its first administrator and repository; --password-stdin supplies the first password.");
+                tenant.AddCommand<TenantListCommand>("list")
+                    .WithDescription("List every tenant by id and name — what a re-runnable seed checks before provisioning.");
                 tenant.AddBranch("standard-repository", standard =>
                 {
                     standard.SetDescription($"Where {Alcifra.Localization.Strings.ProductName} files what it brings, its manuals first (ADR 0892).");
@@ -374,6 +376,14 @@ public static class SaConsoleApp
                         .WithDescription("Show the offline-cache policy.");
                     cache.AddCommand<OfflineCacheSetCommand>("set")
                         .WithDescription("Change it (tenant administrator); options left out keep their value.");
+                });
+                tenant.AddBranch("brand", brand =>
+                {
+                    brand.SetDescription("The tenant's runtime brand (ADR 1103): the pack it wears after sign-in, its palette and whether users may choose one. A platform administrator's act.");
+                    brand.AddCommand<TenantBrandShowCommand>("show")
+                        .WithDescription("Show the pack, the palette in force and the packs this installation carries.");
+                    brand.AddCommand<TenantBrandSetCommand>("set")
+                        .WithDescription("Assign the pack/palette and the self-service switch; options left out keep their value, 'none' clears.");
                 });
             });
         });

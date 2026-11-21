@@ -7548,4 +7548,13 @@
   <data name="MobPreviewPartial" xml:space="preserve">
     <value>Se muestra el principio de este archivo ({0}). Abrir con… o Compartir obtiene el archivo completo.</value>
   </data>
+  <data name="BrandPalette" xml:space="preserve">
+    <value>Paleta</value>
+  </data>
+  <data name="BrandPaletteDefault" xml:space="preserve">
+    <value>Predeterminada</value>
+  </data>
+  <data name="BrandPaletteFailed" xml:space="preserve">
+    <value>No se pudo cambiar la paleta.</value>
+  </data>
 </root>

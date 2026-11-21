@@ -27,6 +27,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         // newlines/other Unicode whitespace — a name consisting solely of those slips past this
         // constraint. Acceptable since this is a backstop, not the only validation: the future
         // Application-layer handler will use a full whitespace-aware check (e.g. string.IsNullOrWhiteSpace).
+        // The user's palette within the tenant's brand pack (ADR 1103, #2408) — a colorVariants id.
+        builder.Property(u => u.BrandPalette).HasMaxLength(32);
+
         builder.ToTable(t => t.HasCheckConstraint("CK_Users_DisplayName_NotBlank", "LENGTH(TRIM(\"DisplayName\")) > 0"));
 
         builder.HasOne<Tenant>()

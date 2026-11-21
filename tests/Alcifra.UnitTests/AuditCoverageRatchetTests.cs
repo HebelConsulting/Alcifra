@@ -40,6 +40,7 @@ public partial class AuditCoverageRatchetTests
         ["CertificatePolicyController.cs"] = "AUDITED ELSEWHERE: at CertificateEnrolment, the one door a policy change passes through, recorded after the commit as Certificate.PolicyChanged (ADR 0936).",
         ["ReaderDirectoryController.cs"] = "NOT A MUTATION: its POST validates a pasted certificate with its attestation chain (ADR 0976) and answers whether the core admits that key. Nothing is stored and nothing changes; the act it informs — sealing a document to that certificate — happens on the device and never reaches this server.",
         ["BookmarksController.cs"] = "AUDITED ELSEWHERE: its one write is BookmarkFiles.EnsurePersonalAsync, which records it.",
+        ["BrandController.cs"] = "A per-user palette choice is a display preference, like the calendar colour — not an audit event. Assigning the tenant's brand itself is the administrative act, and the alcifra command performs it (ADR 1103).",
         ["CertificatesController.cs"] = "AUDITED ELSEWHERE: at CertificateEnrolment, the one door an enrolment passes through, recorded after the commit as Certificate.Enrolled (ADR 0936).",
         ["CheckoutPagesController.cs"] = "Renders the check-out page; the acts it posts to are audited by their own controllers.",
         ["DavCollectionColorController.cs"] = "A per-user calendar colour. A display preference is not an audit event.",

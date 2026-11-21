@@ -285,6 +285,81 @@ public static class ThemeTokensReader
     private static ThemeTokens ReadShipped() =>
         new(Brand.Shipped.Name, Brand.Shipped.Colors.Light, Brand.Shipped.Colors.Dark);
 
+    /// <summary>
+    /// The tokens a runtime brand pack's palette carries (ADR 1103, #2408): a pack states its palette in the same
+    /// vocabulary as a theme file, and this is the ONE parser both clients and the landing page read it with.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Strict, unlike <see cref="Load(string, ThemeTokens)"/>.</b> A pack is the whole brand rather than an
+    /// override of ours, so its neutrals apply too — and every token must be present as a <c>#RRGGBB</c> colour.
+    /// A palette that leaves one out, or states something that is not a colour, is refused by name: the caller
+    /// leaves the pack out at load, which is what "rendering half a brand is worse than the installation's own"
+    /// means. The colour requirement is also what keeps a malformed pack from writing anything but colours into a
+    /// page's stylesheet.
+    /// </para>
+    /// <para>
+    /// The group and token names are matched case-insensitively, because a pack is operator-written data and the
+    /// loader that read it was forgiving in the same way — a pack the server accepted must not silently fall back
+    /// on a client.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="BrandPaletteInvalidException">A required token is missing or is not a colour.</exception>
+    public static ThemeTokens FromGroups<TTokens>(
+        string name,
+        IReadOnlyDictionary<string, TTokens> light,
+        IReadOnlyDictionary<string, TTokens> dark)
+        where TTokens : IReadOnlyDictionary<string, string> =>
+        new(name, Palette(light, "light"), Palette(dark, "dark"));
+
+    private static ThemePalette Palette<TTokens>(IReadOnlyDictionary<string, TTokens> groups, string theme)
+        where TTokens : IReadOnlyDictionary<string, string> =>
+        new(
+            new AccentTokens(
+                Colour(groups, "accent", "primary", theme),
+                Colour(groups, "accent", "hover", theme),
+                Colour(groups, "accent", "onPrimary", theme),
+                Colour(groups, "accent", "text", theme),
+                Colour(groups, "accent", "tint", theme),
+                Colour(groups, "accent", "selection", theme)),
+            new SemanticTokens(
+                Colour(groups, "semantic", "danger", theme),
+                Colour(groups, "semantic", "success", theme),
+                Colour(groups, "semantic", "warning", theme)),
+            new NeutralTokens(
+                Colour(groups, "neutral", "canvas", theme),
+                Colour(groups, "neutral", "surface", theme),
+                Colour(groups, "neutral", "sunken", theme),
+                Colour(groups, "neutral", "hairline", theme),
+                Colour(groups, "neutral", "text", theme),
+                Colour(groups, "neutral", "textSecondary", theme),
+                Colour(groups, "neutral", "textFaint", theme),
+                Colour(groups, "neutral", "folder", theme)));
+
+    private static string Colour<TTokens>(
+        IReadOnlyDictionary<string, TTokens> groups, string group, string token, string theme)
+        where TTokens : IReadOnlyDictionary<string, string>
+    {
+        foreach (var (groupName, tokens) in groups)
+        {
+            if (!string.Equals(groupName, group, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            foreach (var (tokenName, value) in tokens)
+            {
+                if (string.Equals(tokenName, token, StringComparison.OrdinalIgnoreCase) && Contrast.IsColour(value))
+                {
+                    return value;
+                }
+            }
+        }
+
+        throw new BrandPaletteInvalidException(
+            $"The brand palette states no usable {theme}.{group}.{token}; every colour must be present as #RRGGBB.");
+    }
+
     /// <summary>The shipped brand's palette <paramref name="variant"/>, or its own colours when none is named (#2319).</summary>
     /// <exception cref="ArgumentException">The brand carries no variant of that id.</exception>
     public static ThemeTokens Of(string? variant) =>

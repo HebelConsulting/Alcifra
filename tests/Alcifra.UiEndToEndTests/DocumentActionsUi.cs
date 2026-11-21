@@ -30,6 +30,25 @@ internal static class DocumentActionsUi
     /// <summary>Opens the ribbon's Actions menu (Bookings…, generic and module actions); returns its items.</summary>
     public static Task<ILocator> OpenRibbonActionsAsync(IPage page) => OpenRibbonMenuAsync(page, "actions");
 
+    /// <summary>
+    /// Creates an external link for the selected document through the Share ribbon and returns the one-time URL the
+    /// dialog reveals (ADR 0546) — the steps every external-link test drives, in one place.
+    /// </summary>
+    public static async Task<string> CreateExternalLinkAsync(IPage page)
+    {
+        await Ribbon(page, "share").ClickAsync();
+        var dialog = page.Locator(".mud-dialog").First;
+        await dialog.WaitForAsync(new() { Timeout = 10000 });
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Create external link…" }).ClickAsync();
+
+        await Assertions.Expect(dialog.GetByText("shown only once")).ToBeVisibleAsync(new() { Timeout = 15000 });
+
+        // The dialog has more than one read-only input — the date picker renders one too — so pick the URL field out
+        // by its value rather than by position, which would silently start reading the date if the layout changed.
+        return await dialog.Locator("input").EvaluateAllAsync<string>(
+            "els => { const f = els.find(e => (e.value || '').startsWith('http')); return f ? f.value : ''; }");
+    }
+
     /// <summary>Opens one of the ribbon's menu buttons (`actions`, `workflow-steps`); returns its items.</summary>
     public static async Task<ILocator> OpenRibbonMenuAsync(IPage page, string action)
     {

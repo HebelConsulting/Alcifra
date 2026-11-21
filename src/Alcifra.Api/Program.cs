@@ -123,6 +123,19 @@ builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton(Alcifra.Api.Branding.InstallationPalette.From(builder.Configuration));   // #2319: a bad id stops the start
 
+// Runtime brand packs (ADR 1103, #2408): a tenant's brand after sign-in, from the directory the installation was
+// given. An installation without one has no packs, and every tenant wears the installation's own brand.
+builder.Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new Alcifra.Infrastructure.Branding.BrandPacksOptions
+{
+    Directory = builder.Configuration[Alcifra.Infrastructure.Branding.BrandPacksOptions.DirectoryKey],
+}));
+builder.Services.AddSingleton<Alcifra.Application.Branding.IBrandPackStore, Alcifra.Infrastructure.Branding.DirectoryBrandPackStore>();
+builder.Services.AddSingleton(services => new Alcifra.Application.Branding.TenantBrandResolver(
+    services.GetRequiredService<Alcifra.Application.Branding.IBrandPackStore>(),
+    Alcifra.Localization.Strings.ProductName));
+// The tenant's colours on the anonymous external-link landing page (ADR 1103): scoped, it reads the tenant row.
+builder.Services.AddScoped<Alcifra.Api.Branding.LandingPalette>();
+
 // Persist Data Protection keys in Postgres (ADR 0514) via the EF Core key store, so antiforgery + auth cookies
 // survive an API restart and are SHARED across HPA replicas. The default ephemeral per-container key ring
 // otherwise regenerates on every restart — breaking the first login after a restart (the browser's antiforgery

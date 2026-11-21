@@ -33,9 +33,14 @@ public class DropRetiredUserColumnsMigrationTests : IAsyncLifetime
 
     public async Task DisposeAsync() => await _postgres.DisposeAsync();
 
+    // Migrations run through the REAL context (its assembly holds them); fixture rows are written through the
+    // legacy-schema context, whose model does not name the columns this revision has not got yet.
     private AlcifraDbContext Context(Guid? tenantId = null) =>
         new(new DbContextOptionsBuilder<AlcifraDbContext>().UseNpgsql(_postgres.GetConnectionString()).Options,
             new CurrentTenantAccessor { TenantId = tenantId });
+
+    private AlcifraDbContext Legacy(Guid tenantId) =>
+        LegacySchemaContext.For(_postgres.GetConnectionString(), tenantId);
 
     [Fact]
     public async Task An_uncarried_certificate_stops_the_drop_until_the_carry_has_accounted_for_it()
@@ -49,7 +54,7 @@ public class DropRetiredUserColumnsMigrationTests : IAsyncLifetime
             await context.GetService<IMigrator>().MigrateAsync(BeforeDrop);
         }
 
-        await using (var context = Context(tenantId))
+        await using (var context = Legacy(tenantId))
         {
             context.Tenants.Add(new Tenant { Id = tenantId, Name = "Skipped", CreatedAt = DateTimeOffset.UtcNow });
             context.Users.Add(new User

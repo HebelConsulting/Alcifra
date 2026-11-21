@@ -30,6 +30,19 @@ public static class ThemeEmitter
         css.Append(":root {\n  --sa-font-ui: \"").Append(fonts.Ui)
            .Append("\", \"Helvetica Neue\", Helvetica, Arial, sans-serif;\n}\n\n");
 
+        css.Append(PaletteCss(tokens));
+        AppendWordmarkRules(css);
+        return css.ToString();
+    }
+
+    /// <summary>
+    /// Just the colour blocks, in the same four states — for a page that already links the installation's sheet and
+    /// lays a TENANT's palette over it (the external-link landing page, ADR 1103): the same rules in the same order,
+    /// so the two sources cannot disagree about which state wins.
+    /// </summary>
+    public static string PaletteCss(ThemeTokens tokens)
+    {
+        var css = new StringBuilder();
         AppendCssBlock(css, ":root", tokens.Light);
         css.Append('\n');
         css.Append("@media (prefers-color-scheme: dark) {\n");
@@ -39,7 +52,6 @@ public static class ThemeEmitter
         css.Append('\n');
         AppendCssBlock(css, ":root[data-theme=\"light\"]", tokens.Light);
         css.Append('\n');
-        AppendWordmarkRules(css);
         return css.ToString();
     }
 

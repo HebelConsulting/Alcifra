@@ -7548,4 +7548,13 @@
   <data name="MobPreviewPartial" xml:space="preserve">
     <value>Showing the beginning of this {0} file. Open with… or Share gets the whole file.</value>
   </data>
+  <data name="BrandPalette" xml:space="preserve">
+    <value>Palette</value>
+  </data>
+  <data name="BrandPaletteDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="BrandPaletteFailed" xml:space="preserve">
+    <value>The palette could not be changed.</value>
+  </data>
 </root>

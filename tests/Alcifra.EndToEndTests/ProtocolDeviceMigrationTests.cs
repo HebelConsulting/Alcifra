@@ -30,9 +30,14 @@ public class ProtocolDeviceMigrationTests : IAsyncLifetime
 
     public async Task DisposeAsync() => await _postgres.DisposeAsync();
 
+    // Migrations run through the REAL context (its assembly holds them); fixture rows are written through the
+    // legacy-schema context, whose model does not name the columns this revision has not got yet.
     private AlcifraDbContext Context(Guid? tenantId = null) =>
         new(new DbContextOptionsBuilder<AlcifraDbContext>().UseNpgsql(_postgres.GetConnectionString()).Options,
             new CurrentTenantAccessor { TenantId = tenantId });
+
+    private AlcifraDbContext Legacy(Guid tenantId) =>
+        LegacySchemaContext.For(_postgres.GetConnectionString(), tenantId);
 
     [Fact]
     public async Task Both_earlier_passwords_become_legacy_devices_with_the_same_hash()
@@ -47,7 +52,7 @@ public class ProtocolDeviceMigrationTests : IAsyncLifetime
             await context.GetService<IMigrator>().MigrateAsync(BeforeDevices);
         }
 
-        await using (var context = Context(tenantId))
+        await using (var context = Legacy(tenantId))
         {
             context.Tenants.Add(new Tenant { Id = tenantId, Name = "Upgraded", CreatedAt = DateTimeOffset.UtcNow });
             context.Users.Add(new User

@@ -13,23 +13,41 @@ public partial class MainWindowViewModel
 {
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowsWordmark))] private string _productName = Strings.ProductName;
 
-    /// <summary>The title bar shows the brand's wordmark while the product carries the brand's name (ADR 0992).</summary>
-    public bool ShowsWordmark => Brand.ShowsWordmark(ProductName);
+    /// <summary>
+    /// The title bar shows a wordmark while one spells the product's name (ADR 0992) — the tenant's pack mark where
+    /// one was applied (ADR 1103), the installation's own otherwise.
+    /// </summary>
+    public bool ShowsWordmark => Services.TenantBrand.ShowsWordmark || Brand.ShowsWordmark(ProductName);
 
-    // Signed in: the installation's name where the brand takes it; every text that names the product says it from now on.
+    // Signed in: the TENANT's runtime brand first (ADR 1103) — a pack names the product and marks it; only where the
+    // tenant carries none does the installation's own name apply (core #1117).
     private async Task ApplyProductNameAsync()
     {
-        if (_api is not null && await _api.Core.GetProductNameAsync() is { } name)
+        if (_api is null)
+        {
+            return;
+        }
+
+        if (await Services.TenantBrand.ApplyAsync(_api))
+        {
+            ProductName = Strings.ProductName;
+            OnPropertyChanged(nameof(ShowsWordmark));
+            return;
+        }
+
+        if (await _api.Core.GetProductNameAsync() is { } name)
         {
             Strings.ProductName = Brand.Shipped.NameOnServer(name);
             ProductName = Strings.ProductName;
         }
     }
 
-    // Signed out: back to the build's name.
+    // Signed out: back to the build's name, and the tenant's mark and colours go with the session.
     private void ForgetProductName()
     {
+        Services.TenantBrand.Forget();
         Strings.ProductName = Strings.DefaultProductName;
         ProductName = Strings.DefaultProductName;
+        OnPropertyChanged(nameof(ShowsWordmark));
     }
 }

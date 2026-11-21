@@ -40,24 +40,11 @@ public class WebExternalLinkCreateTests
         await doc.First.WaitForAsync(new() { Timeout = 15000 });
         await doc.First.ClickAsync();
 
-        await DocumentActionsUi.Ribbon(page, "share").ClickAsync(); // the ribbon's Share by link (ADR 0970)
-        var dialog = page.Locator(".mud-dialog").First;
-        await dialog.WaitForAsync(new() { Timeout = 10000 });
+        // The URL is revealed exactly once, in the create dialog. Asserting on it rather than on "no error
+        // appeared" matters: the bug produced no error either, which is precisely how it went unnoticed.
+        var url = await DocumentActionsUi.CreateExternalLinkAsync(page);
 
-        await dialog.GetByRole(AriaRole.Button, new() { Name = "Create external link…" }).ClickAsync();
-
-        // The URL is revealed exactly once, here. Asserting on it rather than on "no error appeared" matters:
-        // the bug produced no error either, which is precisely how it went unnoticed.
-        await Expect(dialog.GetByText("shown only once")).ToBeVisibleAsync(new() { Timeout = 15000 });
-
-        var url = await UrlFieldValueAsync(dialog);
         Assert.StartsWith("http", url, StringComparison.Ordinal);
         Assert.Contains("/api/external-links/", url, StringComparison.Ordinal);
     }
-
-    // The dialog has more than one read-only input — the date picker renders one too — so pick the field out by
-    // its value rather than by position, which would silently start reading the date if the layout changed.
-    private static Task<string> UrlFieldValueAsync(ILocator dialog) =>
-        dialog.Locator("input").EvaluateAllAsync<string>(
-            "els => { const f = els.find(e => (e.value || '').startsWith('http')); return f ? f.value : ''; }");
 }

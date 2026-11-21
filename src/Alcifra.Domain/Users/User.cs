@@ -34,6 +34,11 @@ public class User : ITenantScoped, IConcurrencyTracked
     // as an attachment. Self-service (set from the IMAP dialog), deliberately not an admin-granted right.
     public bool ImapShowAllDocuments { get; set; }
 
+    // The user's own palette within the tenant's brand pack (ADR 1103, #2408) — an id the pack's colorVariants
+    // carry, chosen in self-service only while the tenant allows the override. Null = the tenant's default.
+    // A palette the tenant's current brand does not carry is ignored (the tenant default applies).
+    public string? BrandPalette { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     // Bypasses the repository ACL layer entirely — see ADR "Tenant admin ACL bypass". Not a Role

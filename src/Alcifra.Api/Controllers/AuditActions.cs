@@ -188,6 +188,9 @@ public static class AuditActions
     /// <summary>A batch of a tenant's objects moved to its bucket under the current prefix (ADR 1000).</summary>
     public const string TenantStorageMigrated = "Tenant.StorageMigrated";
 
+    /// <summary>A platform administrator assigned the tenant's runtime brand pack, palette or override switch (ADR 1103).</summary>
+    public const string TenantBrandChanged = "Tenant.BrandChanged";
+
     // A tenant admin changed ONE GROUP of the tenant's self-service settings (#530 tranche 10, per-group
     // sub-resources) — the details carry the field-level before→after changes (webhook secret redacted). One
     // action per group, so the trail reads as intent ("changed check-out policy") rather than "saved settings".

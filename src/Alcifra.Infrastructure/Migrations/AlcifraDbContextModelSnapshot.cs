@@ -2485,6 +2485,11 @@ namespace Alcifra.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true);
 
+                    b.Property<bool>("AllowUserPaletteOverride")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("AuditChainStartPreviousHash")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -2536,6 +2541,14 @@ namespace Alcifra.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasDefaultValue(-1L);
+
+                    b.Property<string>("BrandPackId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("BrandPalette")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<Guid?>("CertificateParentFolderId")
                         .HasColumnType("uuid");
@@ -2937,6 +2950,10 @@ namespace Alcifra.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("BrandPalette")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<bool>("CanAccessWithoutGrant")
                         .HasColumnType("boolean");

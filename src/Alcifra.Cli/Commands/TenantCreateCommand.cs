@@ -30,6 +30,10 @@ public sealed class TenantCreateCommand(ILogger<TenantCreateCommand> logger) : A
         [Description("Name of the tenant's first repository.")]
         public required string RepositoryName { get; init; }
 
+        [CommandOption("--password-stdin")]
+        [Description("Read the administrator's initial password from stdin, for a seed that must know it up front. Never an option: it would land in the shell's history. Without it a random one is generated.")]
+        public bool PasswordFromStdin { get; init; }
+
         public override ValidationResult Validate() => this switch
         {
             _ when base.Validate() is { Successful: false } failed => failed,
@@ -48,6 +52,12 @@ public sealed class TenantCreateCommand(ILogger<TenantCreateCommand> logger) : A
 
         await api.AuthenticateAsPlatformAdministratorAsync(settings.ClientId, settings.ResolvedSecret, cancellationToken);
 
+        // A seed that must know the password up front (the kiosk's showcase tenants, rebuilt at every reset) reads
+        // it from stdin; otherwise the server generates one. Either way it is printed once, below.
+        var supplied = settings.PasswordFromStdin
+            ? (await Console.In.ReadToEndAsync(cancellationToken)).TrimEnd('\r', '\n')
+            : null;
+
         // FOLLOWED, not composed (ADR 0543, #1409). The root emits `tenants` only to a platform administrator,
         // so authenticating FIRST is what makes it visible — and a refusal here names the honest cause: either
         // the installation predates the rel, or this principal is not a platform administrator. Composing the
@@ -59,6 +69,7 @@ public sealed class TenantCreateCommand(ILogger<TenantCreateCommand> logger) : A
                 administratorEmail = settings.AdministratorEmail,
                 administratorDisplayName = settings.AdministratorDisplayName,
                 repositoryName = settings.RepositoryName,
+                administratorPassword = supplied,
             }, cancellationToken);
 
         var administrator = created.GetProperty("tenantAdministrator");

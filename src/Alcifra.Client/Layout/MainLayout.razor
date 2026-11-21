@@ -17,11 +17,12 @@
 @inject Alcifra.Client.Services.ImpersonationService ImpersonationSvc
 @inject Alcifra.Client.Services.AppNavigationState AppNav
 @inject Alcifra.Client.Services.ApiRoot ApiRoot
+@inject Alcifra.Client.Services.RuntimeBrandState RuntimeBrand
 @inject Alcifra.Client.Services.DevicesApi DevicesApi
 @inject IHttpClientFactory HttpFactory
 @inject Alcifra.Presentation.ModuleLiveEventRouter ModuleLiveEvents
 
-<MudThemeProvider @ref="_themeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
+<MudThemeProvider @ref="_themeProvider" Theme="@RuntimeBrand.Theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -75,9 +76,9 @@
     .wb-user { color: var(--sa-text-secondary); font-size: .875rem; }
     .wb-userbox { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
     .wb-userbox:hover { background: var(--sa-sunken); }
-    /* Language flag switcher, to the right of the notifications bell. */
-    .wb-langbtn { display: flex; align-items: center; gap: 1px; cursor: pointer; padding: 4px 4px; border-radius: 6px; color: inherit; }
-    .wb-langbtn:hover { background: var(--sa-sunken); }
+    /* Language flag switcher and palette chooser, to the right of the notifications bell. */
+    .wb-langbtn, .wb-iconbtn { display: flex; align-items: center; gap: 1px; cursor: pointer; padding: 4px 4px; border-radius: 6px; color: inherit; }
+    .wb-langbtn:hover, .wb-iconbtn:hover { background: var(--sa-sunken); }
     .wb-flag { display: inline-flex; line-height: 0; border-radius: 2px; box-shadow: 0 0 0 1px var(--sa-hairline); overflow: hidden; }
     .wb-flag svg { display: block; height: 14px; width: auto; }
     .wb-body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
@@ -103,14 +104,28 @@
     }
 </style>
 
+@* A tenant's brand pack (ADR 1103) contributes only colour blocks here, laid AFTER the linked /api/theme.css so
+   its rules win at equal specificity — the same layer order the landing page uses. Empty for the installation's
+   own brand, which the linked sheet already paints. *@
+@if (RuntimeBrand.PaletteCss is { Length: > 0 } brandCss)
+{
+    <style>@((MarkupString)brandCss)</style>
+}
+
 <div class="wb-shell">
-    <header class="wb-appbar @(ShowsWordmark ? "wb-wordmark-shown" : null)">
+    <header class="wb-appbar @(RuntimeBrand.ShowsWordmark ? "wb-wordmark-shown" : null)">
         <span class="wb-mark"></span>
-        @if (ShowsWordmark)
+        @if (RuntimeBrand.ShowsWordmark)
         {
             <span class="wb-wordmark" title="@Strings.ProductName">
-                <img class="sa-wordmark-light" src="@WordmarkUrl(Brand.Shipped.Wordmark.Light)" alt="@Strings.ProductName" />
-                <img class="sa-wordmark-dark" src="@WordmarkUrl(Brand.Shipped.Wordmark.Dark)" alt="@Strings.ProductName" />
+                @if (RuntimeBrand.WordmarkLight is { } light)
+                {
+                    <img class="sa-wordmark-light" src="@light" alt="@Strings.ProductName" />
+                }
+                @if (RuntimeBrand.WordmarkDark is { } dark)
+                {
+                    <img class="sa-wordmark-dark" src="@dark" alt="@Strings.ProductName" />
+                }
             </span>
         }
         else
@@ -167,6 +182,28 @@
                 </MudMenu>
                 @* Account menu on the photo-or-initials avatar + DisplayName (ADR "User profile photo" /
                    "User password management"). The email that used to live here is gone. *@
+                @* The tenant's palettes, when it offers a choice (ADR 1103): a self-service display preference within
+                   the brand, written to the caller's own account. Hidden entirely when the server does not advertise
+                   `canChoosePalette` — no affordance that would do nothing. *@
+                @if (RuntimeBrand.CanChoosePalette)
+                {
+                    <div class="wb-iconbtn" title="@Strings.Get("BrandPalette")" @onclick="OpenPaletteMenuAsync">
+                        <MudIcon Icon="@Icons.Material.Filled.Palette" Size="Size.Small" />
+                    </div>
+                    <MudMenu @ref="_paletteMenu" PositionAtCursor="true" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Style="display:none;">
+                        <MudMenuItem OnClick="() => ChoosePaletteAsync(null)">
+                            <span style="display:inline-block; width:18px;">@(RuntimeBrand.PaletteId is null ? "✓" : string.Empty)</span>
+                            @Strings.Get("BrandPaletteDefault")
+                        </MudMenuItem>
+                        @foreach (var palette in RuntimeBrand.Palettes)
+                        {
+                            <MudMenuItem OnClick="() => ChoosePaletteAsync(palette.Id)">
+                                <span style="display:inline-block; width:18px;">@(palette.Id == RuntimeBrand.PaletteId ? "✓" : string.Empty)</span>
+                                @palette.Name
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                }
                 @* Dark/light toggle to the LEFT of the display name (the self-service avatar stays rightmost). *@
                 <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                                Color="Color.Inherit" OnClick="ToggleDarkModeAsync" title="@Strings.Get("ToggleTheme")" />
@@ -300,11 +337,25 @@
     private MudThemeProvider _themeProvider = null!;
     private bool _isDarkMode;
 
-    // The design tokens rather than MudBlazor's stock palette (ADR 0578) — the stock one is where the whole
-    // "looks like a template" problem started. Replaced once the installation's own theme arrives, which is
-    // why it is not readonly.
-    private MudTheme _theme = AlcifraTheme.Shipped;
     private MudMenu _accountMenu = null!;
+
+    // The palette chooser (ADR 1103) — rendered only while the caller's brand advertises more than one palette.
+    private MudMenu _paletteMenu = null!;
+    private Task OpenPaletteMenuAsync(MouseEventArgs e) => _paletteMenu.OpenMenuAsync(e);
+
+    private async Task ChoosePaletteAsync(string? paletteId)
+    {
+        // Address and verb both come from the brand resource's `select-palette` rel (ADR 0543); the server resolves
+        // the choice and the state re-reads it, so the fallback order is never duplicated here.
+        if (!await RuntimeBrand.ChoosePaletteAsync(paletteId))
+        {
+            Snackbar.Add(Strings.Get("BrandPaletteFailed"), Severity.Error);
+        }
+    }
+
+    protected override void OnInitialized() => RuntimeBrand.Changed += OnRuntimeBrandChanged;
+
+    private void OnRuntimeBrandChanged() => _ = InvokeAsync(StateHasChanged);
 
     // MudMenu 9.7's ActivatorContent auto-open doesn't fire reliably for a custom activator here, so open it
     // explicitly from the avatar's click (the MudMenu's own activator is hidden via display:none).
@@ -355,10 +406,6 @@
     private Guid? _userId;
     private string? _displayName;
 
-    // The wordmark spells the brand's name, so it stands in only while the product carries that name (ADR 0992).
-    private static bool ShowsWordmark => Brand.ShowsWordmark(Strings.ProductName);
-
-    private static string WordmarkUrl(string file) => $"{BrandWordmark.UrlRoot}{file}";
     private string? _photoDataUrl;
     private bool _mfaEnabled;
 
@@ -498,6 +545,10 @@
             // Restore an impersonation session (if any) from sessionStorage before whoami, so it resolves the
             // impersonated user (ADR "User impersonation").
             await Impersonation.InitializeAsync();
+            // The tenant's brand, before the workbench paints: the installation's brand is what the anonymous page
+            // showed, and a pack changes the name, colours and mark the chrome wears (ADR 1103). Best effort — it
+            // never blocks the session.
+            await RuntimeBrand.LoadAsync();
             await LoadMeAsync();
             await MaybeShowDesktopNoticeAsync();
         }
@@ -732,12 +783,14 @@
             var anonymous = HttpFactory.CreateClient(ApiRoot.AnonymousClient);
             if (await anonymous.GetFromJsonAsync<ThemeTokens>(await ApiRoot.RequireAsync("theme")) is { } tokens)
             {
-                _theme = AlcifraTheme.From(tokens);
+                // A no-op once a tenant pack is in force: the two arrive asynchronously, and the later of them must
+                // not clobber the caller's brand (ADR 1103).
+                RuntimeBrand.ApplyInstallation(tokens);
             }
         }
         catch (Exception)
         {
-            // Keeps AlcifraTheme.Shipped.
+            // Keeps the shipped design.
         }
     }
 
@@ -814,6 +867,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        RuntimeBrand.Changed -= OnRuntimeBrandChanged;
         if (_hub is not null)
         {
             await _hub.DisposeAsync();

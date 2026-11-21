@@ -1,0 +1,38 @@
+# The weekly proof of the anonymous brand line (ADR 1103, #2408): the kiosk mounts tenant brand packs, and the legal
+# rule is absolute — no tenant name or logo over an anonymous connection. A finding opens (or comments on) one issue,
+# like the other probes. Private repository only; the check runs against the deployed installation.
+name: Brand probe
+
+on:
+  schedule:
+    - cron: "45 6 * * 1"   # Mondays, after the demo's 04:00 UTC reset window
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    if: ${{ vars.REPO_ROLE == 'private' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Probe the anonymous surfaces for tenant brand tokens
+        id: probe
+        env:
+          PROBE_BASE_URL: ${{ vars.BRAND_PROBE_URL || 'https://demo.alcifra.dev' }}
+          BRAND_PROBE_TOKENS: ${{ vars.BRAND_PROBE_TOKENS || 'easyname,bund' }}
+        run: scripts/probe-brand-anonymous.sh
+      - name: Report as an issue
+        if: ${{ always() && steps.probe.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="The anonymous surfaces carry a tenant brand"
+          findings=$(cat brand-probe-findings.txt 2>/dev/null || true)
+          body=$(printf 'The weekly brand probe (%s) found:\n\n```\n%s\n```\n\nThe rule is legal, not cosmetic: no tenant name or logo may appear over an anonymous connection. Fix the surface (or the token list, if the brand really was removed) before the next demo.' \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "$findings")
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then gh issue comment "$existing" --body "$body"; else gh issue create --title "$title" --body "$body"; fi

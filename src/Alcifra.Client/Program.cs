@@ -169,6 +169,11 @@ builder.Services.AddHttpClient(Alcifra.Client.Services.ApiRoot.AnonymousClient, 
 // against a scoped-per-request host.
 builder.Services.AddScoped<Alcifra.Client.Services.ApiRoot>();
 
+// The brand the signed-in caller wears (ADR 1103, #2408): the tenant's runtime pack, applied after authentication
+// over the installation's own. Scoped for the same reason as ApiRoot — it holds the scoped HttpClient — which in
+// WASM is one instance for the app's lifetime, exactly what a session-wide brand wants.
+builder.Services.AddScoped<Alcifra.Client.Services.RuntimeBrandState>();
+
 // Owns what to do when a dropped file collides with an existing name (the dialog + the two outcomes), so the
 // workbench page does not (ADR 0558).
 builder.Services.AddScoped<Alcifra.Client.Services.UploadConflictResolver>();

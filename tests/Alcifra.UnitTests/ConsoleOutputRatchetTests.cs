@@ -43,6 +43,7 @@ public class ConsoleOutputRatchetTests
         ["src/Alcifra.Cli/Commands/RepositoryCreateCommand.cs"] = 1,   // data output only (ADR 0906)
         ["src/Alcifra.Cli/Commands/StandardRepositoryCommands.cs"] = 1,   // data output: the id (#1661; was an uncounted console.WriteLine)
         ["src/Alcifra.Cli/Commands/TenantCreateCommand.cs"] = 1,   // data output only (ADR 0906)
+        ["src/Alcifra.Cli/Commands/TenantListCommand.cs"] = 1,     // data output only (ADR 0906): id<TAB>name per tenant
         ["src/Alcifra.Cli/Commands/UserCreateCommand.cs"] = 1,   // data output only (ADR 0906): the user's id
         // The one direct write left in the desktop client: DesktopLog's own fallback when logging cannot start.
         ["src/Alcifra.DesktopClient/Services/DesktopLog.cs"] = 1,

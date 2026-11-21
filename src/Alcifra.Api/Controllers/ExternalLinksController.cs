@@ -44,6 +44,7 @@ public class ExternalLinksController : ControllerBase
         IAuditRecorder audit,
         IDocumentThumbnailService thumbnails,
         Documents.StrictEnvelopeDelivery strictEnvelopes,
+        Alcifra.Api.Branding.LandingPalette landingPalette,
         TimeProvider clock)
     {
         _dbContext = dbContext;
@@ -52,8 +53,11 @@ public class ExternalLinksController : ControllerBase
         _audit = audit;
         _thumbnails = thumbnails;
         _strictEnvelopes = strictEnvelopes;
+        _landingPalette = landingPalette;
         _clock = clock;
     }
+
+    private readonly Alcifra.Api.Branding.LandingPalette _landingPalette;
 
     // Deliberately shorter than any link's own expiry, so a URL captured from a response cannot outlive the share
     // it came from. Long enough for a browser to start the transfer, not long enough to pass around.
@@ -117,13 +121,17 @@ public class ExternalLinksController : ControllerBase
                 ? (await CurrentVersion.ResolveAsync(_dbContext.DocumentVersions, document.Id, document.CurrentVersionId, cancellationToken))?.PageCount
                 : null;
 
+            // The tenant's COLOURS may appear here, and nothing else of its brand (ADR 1103): the recipient is a
+            // stranger, and a mark would tell them whose archive this is. A tenant with no pack contributes nothing
+            // and the page wears the installation's own brand.
             return Html(StatusCodes.Status200OK,
                 ExternalLinkPage.Live(
                     fileName,
                     link.ExpiresAt,
                     $"/api/external-links/{token}/content",
                     hasThumbnail ? $"/api/external-links/{token}/thumbnail" : null,
-                    pageCount));
+                    pageCount,
+                    await _landingPalette.CssAsync(link.TenantId, cancellationToken)));
         }
 
         // A strict tenant cannot be shared this way: the link is anonymous, so there is no certificate to

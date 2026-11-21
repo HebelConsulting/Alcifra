@@ -10,6 +10,10 @@
          advances a recurring reminder at the wall time it was set in (#1911), the same placement the clients
          use when the reminder is typed. One answer, not a server copy of it. -->
     <ProjectReference Include="..\Alcifra.Presentation\Alcifra.Presentation.csproj" />
+    <!-- A brand pack's palette is a theme (ADR 1103): the pack store holds every pack to the SAME parser and the
+         same contrast standard the clients and the landing page use, so a pack that would paint half a brand is
+         left out at load rather than discovered on a stranger's page. -->
+    <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -30,6 +30,8 @@
         <span class="dismiss">🗙</span>
     </div>
     <script src="lang.js"></script>
+    <!-- The runtime brand's tab icon (ADR 1103): the pack's favicon arrives as a data URL from the signed-in client. -->
+    <script src="brand.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <!-- autostart=false + an explicit Blazor.start below so the UI language can be applied at the WASM runtime
          level via applicationCulture (ADR "Web UI localization — shared resources") — set before the app runs,

@@ -316,6 +316,11 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         var (clientId, secret, tenantId) = await factory.SeedServiceAccountAsync(canManageRepositories: true);
         var owner = factory.CreateAuthedClient(await factory.GetTokenAsync(clientId, secret));
 
+        // The runtime brand (ADR 1103): give the crawl's tenant the mounted fixture pack, so the brand resource
+        // advertises its `asset` and `select-palette` rels. Without a pack those endpoints exist but no rel leads to
+        // them — every customer installation's state, which would read here as endpoints nothing reaches.
+        await factory.AssignBrandPackAsync(tenantId, BrandPackFixture.PackId, allowUserPaletteOverride: true);
+
         var adminEmail = $"reach-admin-{Guid.NewGuid():N}@e2e.local";
         var userEmail = $"reach-user-{Guid.NewGuid():N}@e2e.local";
         const string password = "reach-1234";

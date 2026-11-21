@@ -235,6 +235,15 @@ public class RootController : ControllerBase
             }
         }
 
+        // The brand a signed-in caller wears (ADR 1103, #2408): their tenant's runtime pack, or the installation's
+        // own. Emitted only once a tenant is known, so no anonymous caller is handed an address that can answer
+        // nothing but 401 — and so the one rule the feature rests on (no tenant brand without a token) is visible
+        // in the only document a client navigates by.
+        if (tenantAccessor.TenantId is not null)
+        {
+            resource.Links.Add(new Link("brand", "/api/brand", "GET"));
+        }
+
         // Who an audience can be sealed to (ADR 0976): every signed-in caller may read the tenant's reader directory,
         // because choosing the audience of a sealed document is an author's act and a name alone cannot be sealed to.
         // Advertised regardless of whether enrolment is offered: a certificate already on a reader's column still

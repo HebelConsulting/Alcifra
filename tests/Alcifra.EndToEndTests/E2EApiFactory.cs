@@ -355,6 +355,9 @@ public sealed partial class E2EApiFactory : WebApplicationFactory<Program>, IAsy
         // Single object-store endpoint: both the in-process Api and the test process reach it at the mapped host port.
         Environment.SetEnvironmentVariable("ConnectionStrings__Default", _postgres.GetConnectionString());
         Environment.SetEnvironmentVariable("App__ApplyMigrationsAtStartup", "true");
+        // One runtime brand pack, mounted exactly as the kiosk mounts its packs (ADR 1103). No tenant carries it until
+        // a test assigns it — an unassigned tenant wears the installation's brand, which every other test asserts.
+        Environment.SetEnvironmentVariable("Brand__PacksDirectory", BrandPackFixture.Directory());
 
         // The retention sweep's first run must land beyond this leg's lifetime — the same override
         // SelfHostedApp already applies for the UI fixtures, which this factory never got (#744).

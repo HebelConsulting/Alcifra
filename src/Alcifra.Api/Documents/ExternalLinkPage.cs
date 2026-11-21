@@ -50,12 +50,20 @@ public static class ExternalLinkPage
     /// the page and decided — handing them the storage provider's raw XML error, which is exactly the ugliness
     /// this page exists to remove.
     /// </param>
+    /// <param name="paletteCss">
+    /// The tenant's own colours, when the tenant has a brand pack (ADR 1103) — the theme emitter's colour blocks,
+    /// laid over the installation's sheet this page links. <b>Colours only</b>: the legal rule is that no tenant
+    /// brand may appear over an anonymous connection, and a mark or a name is exactly what colours are not. The
+    /// blocks are generated from tokens every one of which a pack loader has checked is a <c>#RRGGBB</c> colour,
+    /// so this can only ever contribute colours — never markup.
+    /// </param>
     public static string Live(
         string fileName,
         DateTimeOffset expiresAt,
         string contentPath,
         string? thumbnailPath = null,
-        int? pageCount = null)
+        int? pageCount = null,
+        string? paletteCss = null)
     {
         var encoded = HtmlEncoder.Default.Encode(fileName);
         var until = string.Format(
@@ -88,7 +96,8 @@ public static class ExternalLinkPage
                    <a class="btn primary" href="{HtmlEncoder.Default.Encode(contentPath)}">{Strings.Get("ExtLinkPageOpen")}</a>
                    <a class="btn" href="{HtmlEncoder.Default.Encode(contentPath)}?download=true">{Strings.Get("ExtLinkPageDownload")}</a>
                  </p>
-             """);
+             """,
+            paletteCss);
     }
 
     /// <summary>
@@ -102,7 +111,10 @@ public static class ExternalLinkPage
             $"""
                  <h1>{Strings.Get("ExtLinkPageGoneTitle")}</h1>
                  <p class="meta">{Strings.Get("ExtLinkPageGoneBody")}</p>
-             """);
+             """,
+            // No tenant is known for a dead token — and deliberately so: distinguishing "this tenant's link expired"
+            // from "no such link" would make the page an oracle (ADR 0546).
+            null);
 
     // $$""" so the CSS keeps its own braces: with two $ the interpolation delimiter becomes {{ }}, which leaves
     // every { in the stylesheet as itself instead of a doubled escape nobody can read.
@@ -131,8 +143,13 @@ public static class ExternalLinkPage
             + $"<a href=\"mailto:{contact}\">{contact}</a>";
     }
 
-    private static string Document(string title, string body) =>
-        $$"""
+    private static string Document(string title, string body, string? paletteCss)
+    {
+        // The tenant's colour blocks go AFTER the linked installation sheet, so at equal specificity the later
+        // rules win — the same ordering the client uses when it layers a pack over /api/theme.css.
+        var paletteStyle = string.IsNullOrEmpty(paletteCss) ? string.Empty : $"<style>\n{paletteCss}</style>";
+
+        var html = $$"""
         <!DOCTYPE html>
         <html lang="{{HtmlEncoder.Default.Encode(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName)}}">
         <head>
@@ -143,6 +160,7 @@ public static class ExternalLinkPage
           <meta name="referrer" content="no-referrer">
           <title>{{HtmlEncoder.Default.Encode(title)}}</title>
           <link rel="stylesheet" href="{{ThemeStylesheet}}">
+        {{paletteStyle}}
           <style>
             :root { color-scheme: light dark; }
             body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
@@ -195,4 +213,7 @@ public static class ExternalLinkPage
         </body>
         </html>
         """;
+
+        return html;
+    }
 }
