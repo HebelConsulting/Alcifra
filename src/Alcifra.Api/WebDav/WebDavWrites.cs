@@ -158,6 +158,9 @@ internal static class WebDavWrites
             keyYear = now;
             keyStorageFolderId = Guid.NewGuid();
         }
+        // MASK-UNKNOWN-AT-KEY-TIME (#2304): a NEW document has no mask until the finalizer classifies it, so the
+        // mask-aware factory has nothing to ask here. DocumentFinalizer.EnsureSegmentKeyAsync re-homes the object
+        // under its segment once classification names the mask — the guard test names this file as an exception.
         var objectKey = ObjectKeyBuilder.Build(user.TenantId, keyYear, keyStorageFolderId, versionId, extension);
         // Buffer the body so object storage has a known content length (the request stream may be
         // chunked / non-seekable).

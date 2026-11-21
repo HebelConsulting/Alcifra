@@ -40,6 +40,7 @@ public class DocumentMetadataController : ControllerBase
     private readonly Documents.IndexDataWriter _indexData;
     private readonly Documents.OcrLanguageWriter _ocrLanguages;
     private readonly Concurrency.DocumentVerbs _documents;
+    private readonly Documents.MaskChangeRehousing _rehousing;
 
     public DocumentMetadataController(
         IWormLockService wormLock,
@@ -52,7 +53,8 @@ public class DocumentMetadataController : ControllerBase
         Documents.MailboxAddressClaims mailboxAddressClaims,
         Documents.IndexDataWriter indexData,
         Documents.OcrLanguageWriter ocrLanguages,
-        Concurrency.DocumentVerbs documents)
+        Concurrency.DocumentVerbs documents,
+        Documents.MaskChangeRehousing rehousing)
     {
         _wormLock = wormLock;
         _dbContext = dbContext;
@@ -65,6 +67,7 @@ public class DocumentMetadataController : ControllerBase
         _indexData = indexData;
         _ocrLanguages = ocrLanguages;
         _documents = documents;
+        _rehousing = rehousing;
     }
 
     // Plain mutable class, not a record — same XmlSerializer rationale as elsewhere.
@@ -155,6 +158,7 @@ public class DocumentMetadataController : ControllerBase
         var mask = await Documents.MaskAssignment.ResolveCurrentVersionAsync(_dbContext, request.MaskId, cancellationToken);
         await Documents.MaskAssignment.EnsureKindFitsAsync(_dbContext, documentId, request.MaskId, mask.Name, cancellationToken);
 
+        var fromMaskVersionId = document.MaskVersionId;
         document.MaskVersionId = mask.VersionId;
 
         try
@@ -163,7 +167,14 @@ public class DocumentMetadataController : ControllerBase
             // transaction and the stale-token translation. The containment refusals (#562/#564, ADR 0672) are
             // translated AROUND it by the shared mapping — they must not reach the catch below, which reports
             // every InvalidOperationException as a missing required field.
-            await _documents.MutateAsync(Request, document, apply: () => Task.CompletedTask, cancellationToken: cancellationToken);
+            //
+            // A change that crosses a content SEGMENT boundary re-keys the versions in the same transaction (#2304),
+            // and the copies it leaves behind are removed only after that transaction commits.
+            IReadOnlyList<string> moved = [];
+            await _documents.MutateAsync(Request, document,
+                apply: async () => moved = await _rehousing.RehouseAsync(document, fromMaskVersionId, cancellationToken),
+                afterCommit: () => _rehousing.DeleteMovedAsync(document, moved, cancellationToken),
+                cancellationToken: cancellationToken);
         }
         catch (Exception e) when (Documents.TypedFolderSave.Translate(e) is { } translated)
         {

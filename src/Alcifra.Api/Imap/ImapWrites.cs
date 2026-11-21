@@ -159,6 +159,11 @@ internal static class ImapWrites
         // Trash is ephemeral→ephemeral and a filing into the repository re-keys, both as designed. The old
         // unconditional archive key put appended mail on the wrong tier: expunging it to Trash was refused by
         // the mover's one-way rule ("archive content cannot enter mail storage"), surfacing as NO server error.
+        // MASK-UNKNOWN-AT-KEY-TIME (#2304): the document is created WITHOUT a mask here — the finalizer assigns
+        // the appended mail's mask after the bytes are stored — so the mask-aware factory has nothing to ask yet. It is
+        // safe because the message wears the core's eMail mask, which declares no content segment and is not a module's
+        // to segment. Any OTHER writer must go through ContentSegmentKeys.ContentKey(Async); the guard test names this
+        // file as the one exception.
         var objectKey = await EphemeralMailFolder.IsEphemeralAsync(db, folder.Id)
             ? ObjectKeyBuilder.EphemeralMailKey(tenantId, userId, document.StorageFolderId, versionId, ".eml")
             : ObjectKeyBuilder.Build(tenantId, document.CreatedAt, document.StorageFolderId, versionId, ".eml");
@@ -662,6 +667,9 @@ internal static class ImapWrites
             db.FieldValues.Add(new Alcifra.Domain.Masks.FieldValue { Id = Guid.NewGuid(), TenantId = tenantId, DocumentId = document.Id, FieldDefinitionId = fieldIds["Modified"], Value = modified });
         }
 
+        // The core's own Note mask carries no content segment (a module may not segment a core mask), so the factory
+        // would answer this same key — and the version still passes through the finalizer's one enforcement point
+        // (#2304). See MASK-UNKNOWN-AT-KEY-TIME above for the doors that cannot name their mask at all.
         var objectKey = ObjectKeyBuilder.Build(tenantId, document.CreatedAt, document.StorageFolderId, versionId, ".eml");
         await storage.PutObjectAsync(objectKey, new MemoryStream(bytes), "message/rfc822");
         var version = new DocumentVersion

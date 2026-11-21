@@ -30,14 +30,17 @@ public class TenantsController : ControllerBase
 
     private readonly IAuditRecorder _audit;
     private readonly ITenantBucketMigration _bucketMigration;
+    private readonly Alcifra.Application.Abstractions.IModuleMaskDeclarations _maskDeclarations;
 
     public TenantsController(
         AlcifraDbContext dbContext,
         ICurrentPlatformAdministratorAccessor currentPlatformAdministratorAccessor,
         ITenantProvisioningService tenantProvisioningService,
         IAuditRecorder audit,
-        ITenantBucketMigration bucketMigration)
+        ITenantBucketMigration bucketMigration,
+        Alcifra.Application.Abstractions.IModuleMaskDeclarations maskDeclarations)
     {
+        _maskDeclarations = maskDeclarations;
         _dbContext = dbContext;
         _currentPlatformAdministratorAccessor = currentPlatformAdministratorAccessor;
         _tenantProvisioningService = tenantProvisioningService;
@@ -324,6 +327,89 @@ public class TenantsController : ControllerBase
         });
     }
 
+    /// <summary>One content segment's count for the storage check (#2304): how many versions of its masks live inside it — and how many do not.</summary>
+    public class StorageSegmentResource
+    {
+        public string Segment { get; set; } = string.Empty;
+
+        public int Versions { get; set; }
+
+        public int InSegment { get; set; }
+
+        public int OutOfSegment { get; set; }
+    }
+
+    public class StorageSegmentsResource : HypermediaResource
+    {
+        public List<StorageSegmentResource> Segments { get; set; } = [];
+    }
+
+    /// <summary>
+    /// The read-only out-of-segment count behind <c>alcifra storage check</c> (#2304): every content segment the loaded
+    /// modules declare, and how many versions of its masks are stored somewhere else — the archive's year folders, from
+    /// a writer of the years before the one key factory, or from a mask set after filing before the move existed.
+    /// </summary>
+    /// <remarks>
+    /// A platform administrator's question, answered across tenants the same way the bucket migration is: the queries
+    /// bypass the tenant filter and name the tenant explicitly, because no tenant is ambient on this route.
+    /// </remarks>
+    [HttpGet("{tenantId:guid}/storage-out-of-segment")]
+    public async Task<IActionResult> StorageOutOfSegment(Guid tenantId, CancellationToken cancellationToken)
+    {
+        if (_currentPlatformAdministratorAccessor.PlatformAdministratorId is null)
+        {
+            return Forbid();
+        }
+
+        if (!await _dbContext.Tenants.AnyAsync(t => t.Id == tenantId, cancellationToken))
+        {
+            return NotFound();
+        }
+
+        var segments = new List<StorageSegmentResource>();
+        foreach (var segment in _maskDeclarations.ContentSegments.Values.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+        {
+            var maskIds = _maskDeclarations.ContentSegments.Where(p => p.Value == segment).Select(p => p.Key).ToList();
+            var maskVersionIds = await _dbContext.MaskVersions.IgnoreQueryFilters(["TenantFilter"])
+                .Where(v => v.TenantId == tenantId && maskIds.Contains(v.MaskId))
+                .Select(v => v.Id)
+                .ToListAsync(cancellationToken);
+
+            var prefix = Alcifra.Application.Abstractions.ObjectKeyPrefixes.ModuleContent(tenantId, segment);
+            // The filter bypass is applied OUTSIDE the expression tree: a collection expression inside it does not
+            // translate (CS9175), and the version query needs the documents query as its subquery.
+            var documents = _dbContext.Documents.IgnoreQueryFilters(["TenantFilter"]);
+            var versions = _dbContext.DocumentVersions.IgnoreQueryFilters(["TenantFilter"])
+                .Where(v => v.TenantId == tenantId
+                    && documents.Any(d => d.Id == v.DocumentId && d.TenantId == tenantId
+                        && maskVersionIds.Contains(d.MaskVersionId)));
+
+            var inSegment = await versions.CountAsync(v => v.ObjectKey.StartsWith(prefix), cancellationToken);
+            var outOfSegment = await versions.CountAsync(v => !v.ObjectKey.StartsWith(prefix), cancellationToken);
+            segments.Add(new StorageSegmentResource
+            {
+                Segment = segment,
+                Versions = inSegment + outOfSegment,
+                InSegment = inSegment,
+                OutOfSegment = outOfSegment,
+            });
+        }
+
+        return Ok(new StorageSegmentsResource { Segments = segments });
+    }
+
+    // Standing convention: every GET action gets a companion HEAD action of its own.
+    [HttpHead("{tenantId:guid}/storage-out-of-segment")]
+    public async Task<IActionResult> HeadStorageOutOfSegment(Guid tenantId, CancellationToken cancellationToken)
+    {
+        if (_currentPlatformAdministratorAccessor.PlatformAdministratorId is null)
+        {
+            return Forbid();
+        }
+
+        return await _dbContext.Tenants.AnyAsync(t => t.Id == tenantId, cancellationToken) ? NoContent() : NotFound();
+    }
+
     private TenantResource BuildResource(Tenant tenant)
     {
         var links = new List<Link> { new("self", $"/api/tenants/{tenant.Id}", "GET") };
@@ -333,6 +419,10 @@ public class TenantsController : ControllerBase
         {
             links.Add(new Link("storage-migration", $"/api/tenants/{tenant.Id}/storage-migration", "POST"));
         }
+
+        // Always advertised, read-only: the storage check (#2304) answers which segmented masks' content sits outside
+        // its segment, and an empty answer is a clean bill of health, not an absent door.
+        links.Add(new Link("storage-out-of-segment", $"/api/tenants/{tenant.Id}/storage-out-of-segment", "GET"));
 
         return new TenantResource
         {

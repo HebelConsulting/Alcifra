@@ -175,6 +175,8 @@ public sealed partial class ModuleMaskDeclarations : IModuleMaskDeclarations
     public string? ContentSegmentFor(Guid? maskId) =>
         maskId is { } id && _segments.TryGetValue(id, out var segment) ? segment : null;
 
+    public IReadOnlyDictionary<Guid, string> ContentSegments => _segments;
+
     public bool IsUnrenderedContent(string objectKey) => InSegment(objectKey, _unrenderedSegments);
 
     public bool IsSealedContent(string objectKey) => InSegment(objectKey, _sealedSegments);

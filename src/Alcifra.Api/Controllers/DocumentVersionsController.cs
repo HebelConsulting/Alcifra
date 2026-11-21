@@ -213,9 +213,9 @@ public class DocumentVersionsController : ControllerBase
         var versionId = Guid.NewGuid();
         // A mask with a content segment of its own (a module's, ABI 1.18; the core's sealed Password Entry, ADR 0964)
         // keeps its versions there whichever path files them, so the storage door knows them by their key.
-        var objectKey = await Alcifra.Infrastructure.Modules.ContentSegmentKeys.InSegmentAsync(_dbContext, _maskDeclarations,
-            ObjectKeyBuilder.Build(document.TenantId, filedAt, document.StorageFolderId, versionId, fileExtension),
-            document.MaskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
+        var objectKey = await Alcifra.Infrastructure.Modules.ContentSegmentKeys.ContentKeyAsync(
+            _dbContext, _maskDeclarations, document.TenantId, document.MaskVersionId,
+            document.StorageFolderId, versionId, filedAt, fileExtension, cancellationToken);
         var uploadUrl = await _objectStorageClient.GetPresignedUploadUrlAsync(objectKey, PresignedUrlExpiry, cancellationToken);
 
         // Client-side at-rest encryption (ADR 0818/B2): on a gated tenant the response tells the client to

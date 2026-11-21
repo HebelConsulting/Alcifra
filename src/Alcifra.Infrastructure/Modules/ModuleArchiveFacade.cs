@@ -532,6 +532,10 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
             store: (key, ct) => PutBytesAsync(key, content, extension, ct), peek: ModuleSealedContent.Of(content),
             expiresAt, fields, replaceDocumentId, documentDate, documentTime, cancellationToken);
 
+    // The segment the mask a module names declares — the module facade's whole part of the one key rule (#2304).
+    private string? ContentSegmentFor(Guid maskId) =>
+        (_services?.GetService(typeof(IModuleMaskDeclarations)) as IModuleMaskDeclarations)?.ContentSegmentFor(maskId);
+
     /// <summary>The bytes a module passed in, stored at <paramref name="key"/>: the store step of the byte-content writes.</summary>
     private async Task<(string Sha256, long Size)> PutBytesAsync(string key, byte[] content, string extension, CancellationToken cancellationToken)
     {
@@ -559,9 +563,10 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
         IReadOnlyDictionary<string, string>? fields = null, Guid? replaceDocumentId = null, CancellationToken cancellationToken = default)
     {
         var uploads = Uploads;
+        var segment = ContentSegmentFor(maskId);
         var id = await WriteContentAsync(
             parentFolderId, maskId, name,
-            keyFor: (tenantId, storageFolderId, versionId) => ObjectKeyBuilder.Build(tenantId, DateTimeOffset.UtcNow, storageFolderId, versionId, extension),
+            keyFor: (tenantId, storageFolderId, versionId) => ContentSegmentKeys.ContentKey(tenantId, segment, storageFolderId, versionId, DateTimeOffset.UtcNow, extension),
             store: (key, ct) => uploads.MoveAsync(uploadId, key, ct),
             peek: ct => uploads.PeekAsync(uploadId, CmsEnvelopeShape.HeadLength, ct),
             expiresAt: null, fields, replaceDocumentId, documentDate: null, documentTime: null, cancellationToken);
@@ -578,10 +583,12 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
         IReadOnlyDictionary<string, string>? fields = null, Guid? replaceDocumentId = null,
         DateOnly? documentDate = null, TimeOnly? documentTime = null, CancellationToken cancellationToken = default)
     {
-        // Permanent: the ordinary archive keyspace, no expiry — reference data the module files and reads back.
+        // Permanent: the ordinary archive keyspace (or the mask's content segment, #2304), no expiry — reference data
+        // the module files and reads back.
+        var segment = ContentSegmentFor(maskId);
         var id = await WriteContentAsync(
             parentFolderId, maskId, name,
-            keyFor: (tenantId, storageFolderId, versionId) => ObjectKeyBuilder.Build(tenantId, DateTimeOffset.UtcNow, storageFolderId, versionId, extension),
+            keyFor: (tenantId, storageFolderId, versionId) => ContentSegmentKeys.ContentKey(tenantId, segment, storageFolderId, versionId, DateTimeOffset.UtcNow, extension),
             store: (key, ct) => PutBytesAsync(key, content, extension, ct), peek: ModuleSealedContent.Of(content),
             expiresAt: null, fields, replaceDocumentId, documentDate, documentTime, cancellationToken);
 
@@ -672,7 +679,7 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
         var extension = Path.GetExtension(currentKey);
         var versionId = Guid.NewGuid();
         var objectKey = await ModuleContentKeys.InSegmentAsync(_dbContext, _services,
-            ObjectKeyBuilder.Build(document.TenantId, now, document.StorageFolderId, versionId, extension),
+            ContentSegmentKeys.ContentKey(document.TenantId, null, document.StorageFolderId, versionId, now, extension),
             document.MaskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
 
         _ = await PutBytesAsync(objectKey, content, extension, cancellationToken);   // the finalizer hashes and sizes it

@@ -9,6 +9,7 @@ using Alcifra.Application.Abstractions;
 using Alcifra.Domain.Documents;
 using Alcifra.Domain.Masks;
 using Alcifra.Domain.Users;
+using Alcifra.Infrastructure.Modules;
 using Alcifra.Infrastructure.Persistence;
 
 
@@ -357,7 +358,7 @@ internal static class WebDavMoveCopy
         var finalizer = services.GetRequiredService<DocumentFinalizer>();
         try
         {
-            await CopyDocumentAsync(db, storage, finalizer, user, id => WebDavMiddleware.RightsAsync(services, user, id), sourceDoc.Id, destParentDoc.Id, Path.GetFileNameWithoutExtension(destSegments[^1]), context.RequestAborted);
+            await CopyDocumentAsync(db, storage, finalizer, user, id => WebDavMiddleware.RightsAsync(services, user, id), sourceDoc.Id, destParentDoc.Id, Path.GetFileNameWithoutExtension(destSegments[^1]), DeclarationsOf(services), context.RequestAborted);
         }
         catch (InvalidOperationException)
         {
@@ -368,9 +369,14 @@ internal static class WebDavMoveCopy
         context.Response.StatusCode = existing is null ? StatusCodes.Status201Created : StatusCodes.Status204NoContent;
     }
 
+    // The module declarations door: the Api's writers resolve it the way the facade does, with the None fallback so a
+    // host without modules files straight archive keys.
+    private static IModuleMaskDeclarations DeclarationsOf(IServiceProvider services) =>
+        services.GetService(typeof(IModuleMaskDeclarations)) as IModuleMaskDeclarations ?? ModuleMaskDeclarations.None;
+
     // Recursively copies a document under destParentId: a file → a new Document + a copy of its current version
     // blob (finalized like an upload); a folder → a new folder + recursed children (keeping their names).
-    private static async Task CopyDocumentAsync(AlcifraDbContext db, IObjectStorageClient storage, DocumentFinalizer finalizer, User user, Func<Guid, Task<EffectiveRights>> rights, Guid sourceId, Guid destParentId, string newName, CancellationToken ct)
+    private static async Task CopyDocumentAsync(AlcifraDbContext db, IObjectStorageClient storage, DocumentFinalizer finalizer, User user, Func<Guid, Task<EffectiveRights>> rights, Guid sourceId, Guid destParentId, string newName, IModuleMaskDeclarations declarations, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
         // Copy the source's current version honoring the CurrentVersionId pointer (issue #265), else latest confirmed.
@@ -399,7 +405,7 @@ internal static class WebDavMoveCopy
             {
                 if ((await rights(child.Id)).CanReadContent)
                 {
-                    await CopyDocumentAsync(db, storage, finalizer, user, rights, child.Id, folder.Id, child.Name, ct);
+                    await CopyDocumentAsync(db, storage, finalizer, user, rights, child.Id, folder.Id, child.Name, declarations, ct);
                 }
             }
 
@@ -407,10 +413,15 @@ internal static class WebDavMoveCopy
         }
 
         // A copy is a brand-new document, so it groups under a fresh storage folder (ADR 0530): `now` + a new
-        // storage folder, the new version id as the leaf.
+        // storage folder, the new version id as the leaf. The KEY follows the SOURCE document's mask (#2304): the copy
+        // keeps that classification, and a segmented mask's content must land under its segment whichever door wrote it.
         var storageFolderId = Guid.NewGuid();
         var newVersionId = Guid.NewGuid();
-        var newKey = ObjectKeyBuilder.Build(user.TenantId, now, storageFolderId, newVersionId, Path.GetExtension(version.ObjectKey));
+        var sourceMaskVersionId = await db.Documents.Where(d => d.Id == sourceId).Select(d => d.MaskVersionId).FirstOrDefaultAsync(ct);
+        var newKey = Alcifra.Infrastructure.Modules.ContentSegmentKeys.ContentKey(
+            user.TenantId,
+            await Alcifra.Infrastructure.Modules.ContentSegmentKeys.SegmentOfAsync(db, declarations, sourceMaskVersionId, ct),
+            storageFolderId, newVersionId, now, Path.GetExtension(version.ObjectKey));
         await storage.CopyObjectAsync(version.ObjectKey, newKey, ct);
 
         var doc = new Document { Id = Guid.NewGuid(), TenantId = user.TenantId, ParentId = destParentId, Name = newName, CreatedByUserId = user.Id, CreatedAt = now, StorageFolderId = storageFolderId };

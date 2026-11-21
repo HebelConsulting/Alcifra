@@ -307,6 +307,7 @@ builder.Services.AddScoped<Alcifra.Api.Concurrency.WorkflowStateVerbs>();
 builder.Services.AddScoped<Alcifra.Api.Documents.DocumentVersionResourceBuilder>();
 // The strict tier's delivery step (#1393, ADR 0828) — scoped, because the answer it gives is about the caller.
 builder.Services.AddScoped<Alcifra.Api.Documents.StrictEnvelopeDelivery>();
+builder.Services.AddScoped<Alcifra.Api.Documents.MaskChangeRehousing>();
 builder.Services.AddScoped<Alcifra.Api.Certificates.ReaderCertificateSet>();
 // Offline archives (.simplarchive, ADRs 0960/0961): the installation's signing key, the tenant's recovery certificate,
 // and the writer the export job (#1696) calls.

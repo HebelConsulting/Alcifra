@@ -25,7 +25,8 @@ public class DocumentDetailWriter(
     AlcifraDbContext dbContext,
     IndexDataWriter indexData,
     TagSetWriter tagSet,
-    OcrLanguageWriter ocrLanguages)
+    OcrLanguageWriter ocrLanguages,
+    MaskChangeRehousing rehousing)
 {
     /// <summary>Which aspects a request actually changes — the set the caller gates and audits from.</summary>
     /// <remarks>
@@ -55,7 +56,8 @@ public class DocumentDetailWriter(
         string? MaskName,
         string? SensitivityLabelName,
         DateOnly? DocumentDate,
-        TimeOnly? DocumentTime);
+        TimeOnly? DocumentTime,
+        IReadOnlyList<string> MovedObjectKeys);
 
     /// <summary>
     /// Everything the detail holds today, so the caller can answer a GET and so
@@ -146,6 +148,7 @@ public class DocumentDetailWriter(
         string? maskName = null;
         string? labelName = stored.SensitivityLabelName;
         DocumentVersion? ocrSource = null;
+        IReadOnlyList<string> movedObjectKeys = [];
         var tags = stored.Tags;
 
         // A PUT states the full intended value, so "absent" is not a case: what the caller sent IS the detail,
@@ -226,8 +229,13 @@ public class DocumentDetailWriter(
             {
                 var mask = await MaskAssignment.ResolveCurrentVersionAsync(dbContext, maskId, cancellationToken);
                 await MaskAssignment.EnsureKindFitsAsync(dbContext, document.Id, maskId, mask.Name, cancellationToken);
+                var fromMaskVersionId = document.MaskVersionId;
                 document.MaskVersionId = mask.VersionId;
                 maskName = mask.Name;
+
+                // A change that crosses a content SEGMENT boundary re-keys every version (#2304): the copies land
+                // before the commit, the row updates ride on it, and the caller deletes the old objects after it.
+                movedObjectKeys = await rehousing.RehouseAsync(document, fromMaskVersionId, cancellationToken);
             }
             else
             {
@@ -237,7 +245,7 @@ public class DocumentDetailWriter(
             changed |= Aspect.Mask;
         }
 
-        return new Applied(changed, tags, ocrSource, maskName, labelName, date, time);
+        return new Applied(changed, tags, ocrSource, maskName, labelName, date, time, movedObjectKeys);
     }
 
     private static (DateOnly? Date, TimeOnly? Time) ParseDocumentDate(DocumentDetailController.SetDetailRequest request)

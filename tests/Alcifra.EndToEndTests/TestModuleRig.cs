@@ -16,7 +16,7 @@ namespace Alcifra.EndToEndTests;
 /// </remarks>
 internal static class TestModuleRig
 {
-    internal sealed record Rig(HttpClient Admin, HttpClient Owner, Guid TenantId, Guid RepoId);
+    internal sealed record Rig(HttpClient Admin, HttpClient Owner, Guid TenantId, Guid RepoId, string AdminEmail);
 
     internal static async Task<Rig> CreateAsync(E2EApiFactory factory)
     {
@@ -33,7 +33,7 @@ internal static class TestModuleRig
         await TestJson.Put(owner, $"/api/documents/{repoId}/acl-entries/users/{adminId}",
             new { canSee = true, canReadContent = true, canCreateSubItems = true, canEditContent = true });
         var admin = factory.CreateAuthedClient(await factory.GetUserTokenAsync(email, password));
-        return new Rig(admin, owner, tenantId, repoId);
+        return new Rig(admin, owner, tenantId, repoId, email);
     }
 
     internal static async Task<Guid> FileLicenseAsync(Rig rig, DateOnly supportEnd, ECDsa vendorKey)

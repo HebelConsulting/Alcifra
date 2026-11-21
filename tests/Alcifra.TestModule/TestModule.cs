@@ -14,6 +14,9 @@ public sealed class TestModule : IIndustryModule
 
     /// <summary>A file mask naming the types it holds (ABI 1.29, ADR 1046).</summary>
     public static readonly Guid ClipMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-0000000C11B0");
+
+    /// <summary>The segmented-content fixture (#2304): versions wear the segment <c>test-segment</c>.</summary>
+    public static readonly Guid SegmentedMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-0000005E6D01");
     public static readonly Guid CertificateMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000001");
     public static readonly Guid EntryMaskId = Guid.Parse("7E57AB1E-0000-0000-0000-000000000002");
 
@@ -260,6 +263,13 @@ public sealed class TestModule : IIndustryModule
         new ModuleMaskSeed(ClipMaskId, "Test Clip", IsFolderMask: false, IsBookable: false, [])
         {
             AcceptedExtensions = ["mp4", ".MOV"],
+        },
+        // A mask whose content lives under its own segment (#2304, ABI 1.18): the fixture for the one key factory —
+        // a version of a document wearing it must be stored under the segment whichever door wrote it, and a mask
+        // change into or out of it must MOVE the existing versions.
+        new ModuleMaskSeed(SegmentedMaskId, "Test Segmented", IsFolderMask: false, IsBookable: false, [])
+        {
+            ContentSegment = "test-segment",
         },
         new ModuleMaskSeed(PictureMaskId, "Test Picture", IsFolderMask: false, IsBookable: false, [])
         {

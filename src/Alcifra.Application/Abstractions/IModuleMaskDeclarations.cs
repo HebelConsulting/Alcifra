@@ -14,6 +14,9 @@ public interface IModuleMaskDeclarations
     /// <summary>The content segment documents of <paramref name="maskId"/> store their bytes under; null for the archive layout.</summary>
     string? ContentSegmentFor(Guid? maskId);
 
+    /// <summary>The whole map, mask id → segment — what a storage audit counts against (#2304).</summary>
+    IReadOnlyDictionary<Guid, string> ContentSegments { get; }
+
     /// <summary>Masks left out of full-text search.</summary>
     IReadOnlySet<Guid> NotSearched { get; }
 

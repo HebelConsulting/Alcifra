@@ -40,7 +40,8 @@ namespace Alcifra.Api.Documents;
 public sealed class DocumentMover(
     AlcifraDbContext dbContext,
     IObjectStorageClient storage,
-    ILogger<DocumentMover> logger)
+    ILogger<DocumentMover> logger,
+    Alcifra.Application.Abstractions.IModuleMaskDeclarations declarations)
 {
     /// <summary>
     /// Moves a document's CONTENT for a pending re-parent, and refuses the crossing that is not allowed.
@@ -103,13 +104,19 @@ public sealed class DocumentMover(
         // Filed out: it is in the repository now, so the sweep must never see it again.
         document.StagedAt = null;
 
+        // The archive key follows the document's mask (#2304): a mask that declares a content segment keeps its bytes
+        // there, so filing out of the inbox must land where the version upload would have.
+        var segment = await Alcifra.Infrastructure.Modules.ContentSegmentKeys.SegmentOfAsync(
+            dbContext, declarations, document.MaskVersionId, cancellationToken);
+
         foreach (var version in ephemeral)
         {
-            var archiveKey = ObjectKeyBuilder.Build(
+            var archiveKey = Alcifra.Infrastructure.Modules.ContentSegmentKeys.ContentKey(
                 document.TenantId,
-                version.CreatedAt,
+                segment,
                 document.StorageFolderId,
                 version.Id,
+                version.CreatedAt,
                 ExtensionOf(version.ObjectKey));
 
             // Object first, row second — the same ordering LmtpDelivery uses, for the same reason: bytes with

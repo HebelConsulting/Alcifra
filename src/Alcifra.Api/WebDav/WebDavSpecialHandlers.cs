@@ -302,6 +302,8 @@ internal static class WebDavSpecialHandlers
         // The key groups by the document (ADR 0530): an existing one reuses its filing year + storage folder.
         var storageFolderId = document?.StorageFolderId ?? Guid.NewGuid();
         var versionId = Guid.NewGuid();
+        // MASK-UNKNOWN-AT-KEY-TIME (#2304): the atomic-save destination's mask is the finalizer's to assign, and the
+        // finalizer re-homes the object under its segment afterwards (DocumentFinalizer.EnsureSegmentKeyAsync).
         var objectKey = ObjectKeyBuilder.Build(user.TenantId, document?.CreatedAt ?? now, storageFolderId, versionId, Path.GetExtension(destName));
 
         // Server-side copy the staged blob to a real version key, then create-or-reuse the Document + finalize.

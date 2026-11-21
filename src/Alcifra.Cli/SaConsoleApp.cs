@@ -341,6 +341,8 @@ public static class SaConsoleApp
                 storage.SetDescription("The installation's object storage (platform administrator).");
                 storage.AddCommand<StorageMigrateCommand>("migrate")
                     .WithDescription("Move every tenant's objects from the legacy bucket prefix to the current one (ADR 1000); safe to stop and re-run.");
+                storage.AddCommand<StorageCheckCommand>("check")
+                    .WithDescription("Count, per tenant, the content of segmented masks that sits outside its segment (#2304); read-only.");
             });
             config.AddBranch("tenant", tenant =>
             {

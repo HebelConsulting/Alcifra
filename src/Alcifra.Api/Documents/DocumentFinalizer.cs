@@ -14,7 +14,7 @@ namespace Alcifra.Api.Documents;
 // files an email's attachments — the shared tail of an upload, used both by DocumentVersionsController's
 // finalize and by filing an intray item (ADR "S3-backed inbox"), which arrives with its object already in
 // storage. Idempotent: a no-op on an already-Confirmed version.
-public class DocumentFinalizer
+public partial class DocumentFinalizer
 {
     private readonly AlcifraDbContext _dbContext;
     private readonly IObjectStorageClient _objectStorageClient;
@@ -294,6 +294,12 @@ public class DocumentFinalizer
             await FileEmailAttachmentsAsync(version, cancellationToken);
         }
 
+        // ONE content-key rule (#2304, ADR 0937): the mask CLASSIFICATION assigns may declare a content segment, and
+        // the door that wrote the bytes could not know it then (a new WebDAV name, an intray filing, an import). This
+        // is the single point every upload passes, so the guarantee is enforced HERE — before WORM locks the object
+        // and before the searchable-PDF step reads it — instead of being chased through every writer.
+        await EnsureSegmentKeyAsync(version, cancellationToken);
+
         // Upload-time default sensitivity label (ADR "Configurable sensitivity labels + upload defaults"): a
         // just-classified, still-unlabelled document inherits its mask's default label, if the mask defines one.
         await ApplyDefaultSensitivityLabelAsync(version.DocumentId, cancellationToken);
@@ -494,6 +500,8 @@ public class DocumentFinalizer
         }
 
         await FileEmailAttachmentsAsync(version, cancellationToken);
+        // The heal reaches the same state a fresh filing does, the content key included (#2304).
+        await EnsureSegmentKeyAsync(version, cancellationToken);
         await _dbContext.SaveTranslatingContainmentAsync(cancellationToken);
         return true;
     }
@@ -724,6 +732,9 @@ public class DocumentFinalizer
         await _storageQuota.AdjustUsageAsync(email.TenantId, attachment.Content.Length, cancellationToken);
 
         await AutoClassifyAsync(version, cancellationToken); // one level — don't recurse into its attachments
+        // The attachment is a document of its own and its mask may declare a content segment (a module's accepted
+        // extension reaches AutoClassify too), so it takes the same one enforcement point as any other upload (#2304).
+        await EnsureSegmentKeyAsync(version, cancellationToken);
         await _queue.EnqueueAsync(childId, cancellationToken);
     }
 

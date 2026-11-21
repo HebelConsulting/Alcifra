@@ -46,7 +46,8 @@ public class ModuleLoaderTests
             // (ADR 1065), and the Test Poster whose Picture field accepts only a Test Picture (#2214). The certificate is the one whose typed fields
             // prove the boundary; the count is here to prove the boundary carries ALL of them, so it moves whenever
             // the fixture grows and that is the point.
-            Assert.Equal(13, module.Masks.Count);
+            // Fourteen since #2304: the one whose content segment proves the key factory's rule.
+            Assert.Equal(14, module.Masks.Count);
             var mask = module.Masks.Single(m => m.Name == "Test Certificate");
             Assert.False(mask.IsBookable);
 

@@ -677,6 +677,11 @@ public sealed class RepositoryImporter
         var newVersionId = Guid.NewGuid();
         var storageFolderId = _dbContext.Documents.Local.FirstOrDefault(d => d.Id == newDocId)?.StorageFolderId
             ?? await _dbContext.Documents.Where(d => d.Id == newDocId).Select(d => d.StorageFolderId).FirstAsync(cancellationToken);
+        // Checked for #2304: an import cannot produce a document whose mask declares a content segment. The archive's
+        // masks are COPIED (MapMasksAsync creates a custom mask per archive mask), a copied mask carries no segment,
+        // and the destination keeps a core-owned mask only where it already wore it (phase D). So the plain archive
+        // key is the correct key here — no re-housing is owed, and `alcifra storage check` will not find import
+        // leftovers.
         var objectKey = ObjectKeyBuilder.Build(tenantId, version.FiledAt, storageFolderId, newVersionId, version.FileExtension);
         await _objectStorage.PutObjectAsync(objectKey, new MemoryStream(bytes), "application/octet-stream", cancellationToken);
 

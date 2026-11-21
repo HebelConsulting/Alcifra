@@ -43,7 +43,8 @@ public class DocumentDetailController(
     IDocumentIndexQueue queue,
     ISearchablePdfQueue searchablePdfQueue,
     IWormLockService wormLock,
-    IAuditRecorder audit) : ControllerBase
+    IAuditRecorder audit,
+    MaskChangeRehousing rehousing) : ControllerBase
 {
     public class DetailFieldGroup
     {
@@ -279,6 +280,13 @@ public class DocumentDetailController(
     {
         var name = stored.Document.Name;
         var changed = applied.Changed;
+
+        // A mask change may have re-keyed the document's content across a content segment (#2304): the old objects
+        // are removed only now, after the commit — a rolled-back change still has its bytes where its rows say.
+        if (applied.MovedObjectKeys.Count > 0)
+        {
+            await rehousing.DeleteMovedAsync(stored.Document, applied.MovedObjectKeys, cancellationToken);
+        }
 
         await queue.EnqueueAsync(documentId, cancellationToken);
 
