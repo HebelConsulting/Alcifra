@@ -6,6 +6,7 @@ using Alcifra.Theming;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Svg;
 using Avalonia.Threading;
@@ -94,8 +95,15 @@ public static class TenantBrand
                     ThemeApplier.Apply(new ThemeTokensReader.ThemeLoad(tokens, Applied: true, []));
                 }
 
-                ApplyWordmark(wordmarkLight, wordmarkDark);
-                ApplyIcon(favicon);
+                // COSMETIC, and each stands alone: a wordmark or icon that cannot load costs the mark, never the
+                // brand. Before this, one raster wordmark threw inside this block and the whole apply failed — the
+                // caller then fell back to the INSTALLATION's name, which is how a signed-in showcase tenant read
+                // "Alcifra" in the title bar (2026-11-22, v0.62.6, the Pfeiffer pack's PNG).
+                try { ApplyWordmark(wordmarkLight, wordmarkDark); }
+                catch (Exception e) { DesktopLog.Warn(e, "The brand wordmark could not be applied"); }
+
+                try { ApplyIcon(favicon); }
+                catch (Exception e) { DesktopLog.Warn(e, "The brand icon could not be applied"); }
             });
 
             return true;
@@ -218,11 +226,16 @@ public static class TenantBrand
     private static ResourceDictionary Wordmark(string? path)
     {
         var variant = new ResourceDictionary();
-        if (path is not null)
+        if (path is null)
         {
-            variant[WordmarkKey] = new SvgImage { Source = SvgSource.Load(path, baseUri: null) };
+            return variant;
         }
 
+        // A pack may ship its mark as SVG or as a raster (a customer's site often offers only PNG/WEBP). The loader
+        // follows the FILE, not an assumption: SvgImage for .svg, Bitmap for everything else (2026-11-22).
+        variant[WordmarkKey] = string.Equals(Path.GetExtension(path), ".svg", StringComparison.OrdinalIgnoreCase)
+            ? new SvgImage { Source = SvgSource.Load(path, baseUri: null) }
+            : new Bitmap(path);
         return variant;
     }
 
