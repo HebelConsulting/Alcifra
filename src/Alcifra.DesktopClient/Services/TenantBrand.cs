@@ -1,5 +1,3 @@
-using System.Net.Http.Json;
-using System.Text.Json;
 using Alcifra.ApiClient;
 using Alcifra.Localization;
 using Alcifra.Theming;
@@ -37,8 +35,6 @@ public static class TenantBrand
     private const string WordmarkKey = "WbWordmark";
     private const string OverrideName = "Alcifra.TenantBrand";
 
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
     private static ResourceDictionary? _wordmark;
     private static WindowIcon? _shippedIcon;
 
@@ -56,34 +52,18 @@ public static class TenantBrand
     {
         try
         {
-            string href;
-            try
-            {
-                href = await api.Core.RootHrefAsync("brand", cancellationToken);
-            }
-            catch (InvalidOperationException)
-            {
-                // The root advertises `brand` only once a tenant is known (ADR 1103) — its absence is the honest
-                // "not available here", not an error.
-                return false;
-            }
-
-            using var response = await api.Core.Http.GetAsync(href, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            // ONE model of the wire, shared with the phone (ADR 0917): the client follows the root's `brand` rel and
+            // answers null for every "there is none" — no tenant, an older installation, a failed read.
+            var client = new TenantBrandClient(api.Core);
+            if (await client.ReadAsync(cancellationToken) is not { PackId: not null } brand)
             {
                 return false;
             }
 
-            var brand = await response.Content.ReadFromJsonAsync<BrandResource>(Json, cancellationToken);
-            if (brand is null || brand.PackId is null)
-            {
-                return false;
-            }
-
-            var tokens = Tokens(brand);
-            var wordmarkLight = await AssetFileAsync(api, brand, BrandPackAssets.WordmarkLight, cancellationToken);
-            var wordmarkDark = await AssetFileAsync(api, brand, BrandPackAssets.WordmarkDark, cancellationToken);
-            var favicon = await AssetFileAsync(api, brand, BrandPackAssets.Favicon, cancellationToken);
+            var tokens = TenantBrandClient.Tokens(brand);
+            var wordmarkLight = await AssetFileAsync(client, brand, BrandPackAssets.WordmarkLight, cancellationToken);
+            var wordmarkDark = await AssetFileAsync(client, brand, BrandPackAssets.WordmarkDark, cancellationToken);
+            var favicon = await AssetFileAsync(client, brand, BrandPackAssets.Favicon, cancellationToken);
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -108,7 +88,7 @@ public static class TenantBrand
 
             return true;
         }
-        catch (Exception e) when (e is HttpRequestException or JsonException or TaskCanceledException or InvalidOperationException)
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             DesktopLog.Warn(e, "The tenant brand could not be applied; the installation's brand stays");
             return false;
@@ -131,60 +111,29 @@ public static class TenantBrand
         }
     });
 
-    private static ThemeTokens? Tokens(BrandResource brand)
-    {
-        try
-        {
-            return Groups(brand.Theme, "light") is { } light && Groups(brand.Theme, "dark") is { } dark
-                ? ThemeTokensReader.FromGroups(brand.ProductName, light, dark)
-                : null;
-        }
-        catch (BrandPaletteInvalidException e)
-        {
-            // The server refused the pack at load; this is the belt to that brace, and never a page that fails.
-            DesktopLog.Warn(e, "The brand palette could not be read; the installation's colours stay");
-            return null;
-        }
-    }
-
-    private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? Groups(
-        Dictionary<string, Dictionary<string, Dictionary<string, string>>>? theme, string name) =>
-        theme is not null
-        && theme.FirstOrDefault(pair => string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase)) is { Value: { } groups }
-            ? groups.ToDictionary(
-                pair => pair.Key,
-                pair => (IReadOnlyDictionary<string, string>)pair.Value,
-                StringComparer.OrdinalIgnoreCase)
-            : null;
-
     // The asset's cached file, downloaded once per pack VERSION. Written through a temp file and moved into place,
     // so a crash mid-download never leaves a truncated wordmark the next start would happily paint.
     private static async Task<string?> AssetFileAsync(
-        AlcifraApiClient api, BrandResource brand, string name, CancellationToken cancellationToken)
+        TenantBrandClient client, TenantBrandClient.Brand brand, string name, CancellationToken cancellationToken)
     {
         try
         {
-            var href = brand.Links.FirstOrDefault(link =>
-                link.Rel == "asset" && link.Href.EndsWith($"/{name}", StringComparison.OrdinalIgnoreCase))?.Href;
-            if (href is null)
-            {
-                return null;
-            }
-
             var directory = Path.Combine(CacheRoot, SafeVersion(brand.Version));
             var file = Path.Combine(directory, name);
+
+            // The version is a content hash, so a cached file is this pack's — no expiry to keep.
             if (File.Exists(file))
             {
                 return file;
             }
 
-            using var response = await api.Core.Http.GetAsync(href, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            // The manifest is the whitelist: a name the pack does not declare answers null, never a request.
+            if (await client.ReadAssetAsync(name, cancellationToken) is not { } asset)
             {
                 return null;
             }
 
-            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var bytes = asset.Content;
             Directory.CreateDirectory(directory);
             var temporary = $"{file}.tmp";
             await File.WriteAllBytesAsync(temporary, bytes, cancellationToken);
@@ -358,29 +307,5 @@ public static class TenantBrand
         {
             DesktopLog.Warn(e, "An older brand cache could not be pruned");
         }
-    }
-
-    private sealed record BrandResource
-    {
-        public string? PackId { get; set; }
-
-        public string ProductName { get; set; } = string.Empty;
-
-        public string? PaletteId { get; set; }
-
-        public bool CanChoosePalette { get; set; }
-
-        public Dictionary<string, Dictionary<string, Dictionary<string, string>>>? Theme { get; set; }
-
-        public string? Version { get; set; }
-
-        public List<AssetLink> Links { get; set; } = [];
-    }
-
-    private sealed record AssetLink
-    {
-        public string Rel { get; set; } = string.Empty;
-
-        public string Href { get; set; } = string.Empty;
     }
 }
