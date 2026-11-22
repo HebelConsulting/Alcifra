@@ -27,7 +27,7 @@ DOMAIN="${SHOWCASE_DOMAIN:-demo.alcifra.dev}"
 PROBE="$(cd "$(dirname "$0")" && pwd)/probe-brand-anonymous.sh"
 
 # local part : password key, matching tools/kiosk/brands-seed.sh's seed_brand lines.
-ACCOUNTS=("bund:SHOWCASE_BUND_PASSWORD" "easyname:SHOWCASE_EASYNAME_PASSWORD" "pfeiffer:SHOWCASE_PFEIFFER_PASSWORD")
+ACCOUNTS=("bund:SHOWCASE_BUND_PASSWORD" "easyname:SHOWCASE_EASYNAME_PASSWORD" "pfeiffer:SHOWCASE_PFEIFFER_PASSWORD" "axpo:SHOWCASE_AXPO_PASSWORD")
 
 # A value from .env as compose would read it (quotes stripped), like saconsole-session.sh's env_value.
 env_value() {
@@ -107,7 +107,7 @@ done
 # The legal rule, made structural: no tenant brand over an anonymous connection. The probe is the SAME one the
 # weekly workflow runs; its tokens are the pack ids (specific enough not to match ordinary German prose).
 if [ -x "$PROBE" ]; then
-  if ! PROBE_BASE_URL="$BASE_URL" BRAND_PROBE_TOKENS="easyname,bund,pfeiffer-textil" "$PROBE"; then
+  if ! PROBE_BASE_URL="$BASE_URL" BRAND_PROBE_TOKENS="easyname,bund,pfeiffer-textil,axpo" "$PROBE"; then
     FAILED=1
   fi
 else
