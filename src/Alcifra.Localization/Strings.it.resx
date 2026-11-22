@@ -3438,6 +3438,39 @@
   <data name="PhoneTabComments" xml:space="preserve">
     <value>Chat</value>
   </data>
+  <data name="PhoneTabAnnotations" xml:space="preserve">
+    <value>Annotazioni</value>
+  </data>
+  <data name="PhoneAnnotationsNone" xml:space="preserve">
+    <value>Nessuna annotazione</value>
+  </data>
+  <data name="AnnotationPage" xml:space="preserve">
+    <value>Pagina {0}</value>
+  </data>
+  <data name="AnnotationKindNote" xml:space="preserve">
+    <value>Nota</value>
+  </data>
+  <data name="AnnotationKindHighlight" xml:space="preserve">
+    <value>Evidenziazione</value>
+  </data>
+  <data name="AnnotationKindRectangle" xml:space="preserve">
+    <value>Rettangolo</value>
+  </data>
+  <data name="AnnotationKindArrow" xml:space="preserve">
+    <value>Freccia</value>
+  </data>
+  <data name="AnnotationKindStamp" xml:space="preserve">
+    <value>Timbro</value>
+  </data>
+  <data name="AnnotationKindStrikethrough" xml:space="preserve">
+    <value>Barratura</value>
+  </data>
+  <data name="AnnotationKindTextBox" xml:space="preserve">
+    <value>Casella di testo</value>
+  </data>
+  <data name="AnnotationKindFreehand" xml:space="preserve">
+    <value>Tratto a mano libera</value>
+  </data>
   <data name="FolderSortLabel" xml:space="preserve">
     <value>Ordinamento contenuti</value>
   </data>
