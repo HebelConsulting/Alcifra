@@ -130,8 +130,15 @@ jobs:
           if [ -d "$HOME/.docker/cli-plugins" ]; then
             ln -sfn "$HOME/.docker/cli-plugins" "$config_dir/cli-plugins"
           fi
-          basic="$(printf '%s:%s' "$REGISTRY_USER" "$REGISTRY_TOKEN" | base64)"
+          # `tr -d '\n'` is LOAD-BEARING (v0.62.6, 2026-11-21): GNU base64 — what the hosted Ubuntu runner has —
+          # wraps its output at 76 columns, and a GITHUB_TOKEN is long enough to wrap. The newline landed INSIDE the
+          # JSON string, the config stopped parsing, BuildKit read no credentials and pushed ANONYMOUSLY: six attempts
+          # failed with `failed to fetch anonymous token … 403 Forbidden`, which reads like a registry-permission
+          # problem and is not one. macOS's base64 never wraps, so a local reproduction cannot see it.
+          basic="$(printf '%s:%s' "$REGISTRY_USER" "$REGISTRY_TOKEN" | base64 | tr -d '\n')"
           printf '{"auths":{"%s":{"auth":"%s"}}}' "$REGISTRY" "$basic" > "$config_dir/config.json"
+          # …and the guard, so an encoding mistake can never present as an anonymous 403 again.
+          python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$config_dir/config.json"
           echo "DOCKER_CONFIG=$config_dir" >> "$GITHUB_ENV"
 
       - name: Image metadata (tags + labels)
