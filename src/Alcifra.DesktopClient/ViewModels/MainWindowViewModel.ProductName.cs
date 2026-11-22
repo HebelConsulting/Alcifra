@@ -14,10 +14,19 @@ public partial class MainWindowViewModel
     [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowsWordmark))] private string _productName = Strings.ProductName;
 
     /// <summary>
-    /// The title bar shows a wordmark while one spells the product's name (ADR 0992) — the tenant's pack mark where
-    /// one was applied (ADR 1103), the installation's own otherwise.
+    /// The title bar shows a wordmark while one spells the product's name (ADR 0992) — the tenant's pack MARK where
+    /// one was applied (ADRs 1103, 1105), the installation's own otherwise.
     /// </summary>
-    public bool ShowsWordmark => Services.TenantBrand.ShowsWordmark || Brand.ShowsWordmark(ProductName);
+    public bool ShowsWordmark => Services.TenantBrand.HasPack
+        ? Services.TenantBrand.ShowsWordmark
+        : Brand.ShowsWordmark(ProductName);
+
+    /// <summary>
+    /// Whether the title bar writes the product's name as text. A tenant pack's mark names the TENANT, not the
+    /// product, so the name stands beside it (ADR 1105); the installation's wordmark spells the name itself, so it
+    /// stays alone. A tenant with no mark keeps the accent square and the name, as before.
+    /// </summary>
+    public bool ShowsBrandText => !ShowsWordmark || Services.TenantBrand.HasPack;
 
     // Signed in: the TENANT's runtime brand first (ADR 1103) — a pack names the product and marks it; only where the
     // tenant carries none does the installation's own name apply (core #1117).
@@ -32,6 +41,7 @@ public partial class MainWindowViewModel
         {
             ProductName = Strings.ProductName;
             OnPropertyChanged(nameof(ShowsWordmark));
+            OnPropertyChanged(nameof(ShowsBrandText));
             return;
         }
 
@@ -49,5 +59,6 @@ public partial class MainWindowViewModel
         Strings.ProductName = Strings.DefaultProductName;
         ProductName = Strings.DefaultProductName;
         OnPropertyChanged(nameof(ShowsWordmark));
+        OnPropertyChanged(nameof(ShowsBrandText));
     }
 }

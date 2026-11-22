@@ -46,12 +46,18 @@ public sealed class RuntimeBrandState(HttpClient http, ApiRoot root, IJSRuntime 
     public bool CanChoosePalette => _canChoosePalette;
 
     /// <summary>
-    /// Whether the chrome shows a wordmark in place of the product name. A pack that declares none keeps its name as
-    /// text; the installation's brand keeps its own rule (a wordmark spells a NAME, so a renamed product shows text).
+    /// Whether the chrome shows the caller's brand MARK. A tenant pack's wordmark asset is the MARK, drawn beside the
+    /// product name (ADR 1105); the installation's own wordmark spells the name, so it stands alone.
     /// </summary>
     public bool ShowsWordmark => _hasPack
         ? _packWordmarkLight is not null || _packWordmarkDark is not null
         : Brand.ShowsWordmark(Strings.ProductName);
+
+    /// <summary>
+    /// Whether a tenant pack is in force (ADR 1103). Its mark names the TENANT, not the product, so the product's
+    /// name is written beside it (ADR 1105).
+    /// </summary>
+    public bool HasPack => _hasPack;
 
     /// <summary>The light-background wordmark: a data URL for a pack, the installation's served file otherwise.</summary>
     public string? WordmarkLight =>

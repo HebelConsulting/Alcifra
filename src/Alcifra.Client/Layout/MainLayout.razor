@@ -54,7 +54,8 @@
     .wb-mark { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 3px; background: var(--sa-accent); }
     .wb-brand { font-size: 1.0625rem; font-weight: 600; letter-spacing: -.01em; }
     /* The brand's wordmark (ADR 0992) where the name would be; /api/theme.css shows the light or dark file. It
-       already carries the accent square as the i's dot, so the separate square steps aside while it shows. */
+       already carries the accent square as the i's dot, so the separate square steps aside while it shows. A
+       tenant pack's wordmark is its MARK, not a lockup, so the product name stands beside it (ADR 1105). */
     .wb-wordmark { display: inline-flex; align-items: center; }
     .wb-wordmark img { height: 19px; width: auto; }
     .wb-wordmark-shown .wb-mark { display: none; }
@@ -117,7 +118,7 @@
         <span class="wb-mark"></span>
         @if (RuntimeBrand.ShowsWordmark)
         {
-            <span class="wb-wordmark" title="@Strings.ProductName">
+            <span class="wb-wordmark">
                 @if (RuntimeBrand.WordmarkLight is { } light)
                 {
                     <img class="sa-wordmark-light" src="@light" alt="@Strings.ProductName" />
@@ -128,7 +129,9 @@
                 }
             </span>
         }
-        else
+        @* A pack's mark names the TENANT, not the product, so the product's name is written beside it (ADR 1105).
+           The installation's own wordmark already spells the name and stands alone. *@
+        @if (!RuntimeBrand.ShowsWordmark || RuntimeBrand.HasPack)
         {
             <span class="wb-brand">@Strings.ProductName</span>
         }
