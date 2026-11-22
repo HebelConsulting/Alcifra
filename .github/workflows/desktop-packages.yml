@@ -61,14 +61,16 @@ jobs:
     timeout-minutes: 120
     needs: gate
     if: ${{ needs.gate.outputs.publishes == 'true' }}
-    # WHERE the packaging runs is a repository variable, like CI's tiers (variable unset = GitHub-hosted). Found the
-    # hard way on v0.62.5: the hosted macos-26 image ships Xcode 26.6 as its newest, while the SDK's macOS workload
-    # (10.0.404 -> Microsoft.macOS.Sdk 27.2) requires Xcode 27.2 — every package build failed at the .app step. Set
-    # MACOS_RUNNER to the JSON array of the machine's labels, e.g.
+    # WHERE the packaging runs is a repository variable, like CI's tiers. The hosted **xcode-27** image is the default:
+    # macOS 27 (arm64), generally available since 2026-10-15 and rebuilt weekly, whose 2026-11-04 build was the first
+    # to carry **Xcode 27.2** — the version the SDK's macOS workload (10.0.404 -> Microsoft.macOS.Sdk 27.2) requires.
+    # NOT `macos-latest`: that image is macOS 26 with Xcode 26.6 as its newest, and GitHub's policy (one Xcode major
+    # per OS image) means it will never carry Xcode 27 — v0.62.5 failed every package at the .app step there.
+    # Override MACOS_RUNNER with the JSON array of another machine's labels, e.g.
     #   ["self-hosted","macOS","ARM64","simplarchive-mac"]
-    # and the four packages build on the in-house Mac (which carries the Xcode the workload asks for); clear it to
-    # return to the hosted image. A tag's tree decides its own workflow, so flip this BEFORE tagging a release.
-    runs-on: ${{ fromJSON(vars.MACOS_RUNNER || '["macos-latest"]') }}
+    # and set MACOS_XCODE to its Xcode's developer directory (the hosted path exists only on the hosted image); clear
+    # both to return to GitHub-hosted. A tag's tree decides its own workflow, so flip this BEFORE tagging a release.
+    runs-on: ${{ fromJSON(vars.MACOS_RUNNER || '["xcode-27"]') }}
     permissions:
       contents: write # create the GitHub Release + upload assets
       actions: read # the manual build's artifacts: a white-label edition's manual (edition-manual.sh), the site bundle
@@ -128,16 +130,16 @@ jobs:
           echo "identity=$identity" >> "$GITHUB_OUTPUT"
           echo "Signing as: $identity"
 
-      # The workload the step above installed is the runner's own (newest for its SDK band); the packaging script's
-      # pin to Xcode_27.1 is a LOCAL workaround for the older workload in the system root, and pinning it here fights
-      # the runner's workload — "requires Xcode 27.2. The current version of Xcode is 27.1" (v0.62.5, 2026-11-21).
-      # Naming /Applications/Xcode.app (the runner's default) sets DEVELOPER_DIR, which the script honours by
-      # skipping its pin.
+      # The workload the step above installed is the runner's own (newest for its SDK band), and it requires Xcode
+      # 27.2 — while the hosted xcode-27 image's DEFAULT /Applications/Xcode.app is 27.1 (it keeps 27.0, 27.1 and
+      # 27.2 side by side). DEVELOPER_DIR therefore names the versioned app, which the packaging script honours by
+      # skipping its own local pin. MACOS_XCODE overrides the path for a non-hosted runner; a moving hosted image may
+      # later rename the app, and the image readme's Xcode table is what to check when it does.
       - name: Package macOS .dmg (arm64 + x64), AD-HOC signed (notarization postponed, ADR 0905)
         if: ${{ env.NOTARIZATION_POSTPONED == 'true' }}
         env:
           VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
-          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+          DEVELOPER_DIR: ${{ vars.MACOS_XCODE || '/Applications/Xcode_27.2.app/Contents/Developer' }}
         run: scripts/package-macos-dmg.sh "${VERSION#v}"
 
       - name: Package macOS .dmg (arm64 + x64), signed and notarized
@@ -149,7 +151,7 @@ jobs:
           NOTARY_APP_PASSWORD: ${{ secrets.NOTARY_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.version }}
-          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+          DEVELOPER_DIR: ${{ vars.MACOS_XCODE || '/Applications/Xcode_27.2.app/Contents/Developer' }}
         run: scripts/package-macos-dmg.sh "${VERSION#v}"
 
       - name: Keep the dry-run's .dmgs as workflow artifacts
