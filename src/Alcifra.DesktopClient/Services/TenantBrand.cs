@@ -180,9 +180,12 @@ public static class TenantBrand
             return variant;
         }
 
-        // A pack may ship its mark as SVG or as a raster (a customer's site often offers only PNG/WEBP). The loader
-        // follows the FILE, not an assumption: SvgImage for .svg, Bitmap for everything else (2026-11-22).
-        variant[WordmarkKey] = string.Equals(Path.GetExtension(path), ".svg", StringComparison.OrdinalIgnoreCase)
+        // A pack may ship its mark as SVG or as a raster (a customer's site often offers only PNG/WEBP). The cached
+        // asset is named by its KEY — the address carries no extension — so the loader follows the BYTES, never the
+        // file name: an SVG document for the SVG renderer, everything else for the raster decoder. The file name was
+        // trusted once, and a PNG decoder met the Bund pack's mark.svg: no wordmark, and the teal installation mark
+        // stayed in the title bar (2026-11-23).
+        variant[WordmarkKey] = BrandAssets.IsSvg(File.ReadAllBytes(path), contentType: null)
             ? new SvgImage { Source = SvgSource.Load(path, baseUri: null) }
             : new Bitmap(path);
         return variant;
