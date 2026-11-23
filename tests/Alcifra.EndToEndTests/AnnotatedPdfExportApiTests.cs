@@ -34,6 +34,8 @@ public class AnnotatedPdfExportApiTests(E2EApiFactory factory)
         var annotationsUrl = $"/api/documents/{docId}/versions/{versionId}/annotations";
         await PostJson(api, annotationsUrl, new { pageIndex = 0, kind = 0, positionX = 0.5, positionY = 0.5, text = "Look here", color = "#FFEB3B" });
         await PostJson(api, annotationsUrl, new { pageIndex = 0, kind = 2, positionX = 0.1, positionY = 0.2, width = 0.3, height = 0.2, text = "", color = "#4FC3F7" });
+        // A signature (kind 8) travels as toggleable ink carrying its name (ADR 1106) — only FLATTENING binds.
+        await PostJson(api, annotationsUrl, new { pageIndex = 0, kind = 8, positionX = 0.4, positionY = 0.6, text = "Anna Meier", color = "#8BC34A", points = "0.4,0.6 0.45,0.65 0.5,0.62" });
 
         var response = await api.GetAsync(url);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -44,8 +46,9 @@ public class AnnotatedPdfExportApiTests(E2EApiFactory factory)
         var bytes = await response.Content.ReadAsByteArrayAsync();
         using var pdf = Reader.PdfDocument.Open(bytes);
         var annotations = pdf.GetPage(1).GetAnnotations().ToList();
-        Assert.Equal(2, annotations.Count);
-        Assert.Equal(["Text", "Square"], annotations.Select(a => a.Type.ToString()).ToArray());
+        Assert.Equal(3, annotations.Count);
+        Assert.Equal(["Text", "Square", "Ink"], annotations.Select(a => a.Type.ToString()).ToArray());
+        Assert.Equal("Anna Meier", annotations[2].Content);
 
         // The export is ephemeral: nothing was stored — the version list still has its single version.
         var versions = await GetJson(api, $"/api/documents/{docId}/versions");

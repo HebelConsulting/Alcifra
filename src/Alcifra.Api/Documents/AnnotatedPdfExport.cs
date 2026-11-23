@@ -129,6 +129,7 @@ public sealed class AnnotatedPdfExport(
         AnnotationKind.Stamp or AnnotationKind.TextBox => PdfMarkShape.TextBox,
         AnnotationKind.Strikethrough => PdfMarkShape.Strike,
         AnnotationKind.Freehand => PdfMarkShape.Stroke,
+        AnnotationKind.Signature => PdfMarkShape.Signature,
         _ => PdfMarkShape.Note,
     };
 
