@@ -36,6 +36,8 @@
             <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,12,4">
                 <Button Command="{Binding OpenCommand}" ToolTip.Tip="{x:Static vm:MainWindowViewModel.RibbonOpenTip}"><i:Icon Value="mdi-open-in-app" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanSaveAs}" Click="OnSaveAs" ToolTip.Tip="{loc:Tr RibbonSaveAs}"><i:Icon Value="mdi-content-save-outline" FontSize="18" /></Button>
+                <!-- ADR 1106: the version as a PDF with its annotations as real PDF annotations (ephemeral). -->
+                <Button IsEnabled="{Binding CanSaveAs}" Click="OnSaveAnnotatedPdf" ToolTip.Tip="{loc:Tr AnnotatedPdfRibbon}"><i:Icon Value="mdi-file-pdf-box" FontSize="18" /></Button>
                 <Button Click="OnGoToLink" ToolTip.Tip="{loc:Tr RibbonGoToLink}"><i:Icon Value="mdi-link-variant" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding HasSelectedItem}" Click="OnRename" ToolTip.Tip="{loc:Tr RibbonRename}"><i:Icon Value="mdi-rename-box" FontSize="18" /></Button>
                 <Button IsEnabled="{Binding CanMoveSelected}" Click="OnMoveSelected" ToolTip.Tip="{Binding MoveHint}" ToolTip.ShowOnDisabled="True" AutomationProperties.AutomationId="ribbon-move"><i:Icon Value="mdi-folder-move" FontSize="18" /></Button>

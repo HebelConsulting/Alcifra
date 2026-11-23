@@ -216,6 +216,21 @@ public sealed partial class MainWindowViewModel
         return (preview.DownloadUrl, WithExtension(node.Name, preview.FileExtension));
     }
 
+    // The ephemeral annotated-PDF export (ADR 1106): the latest confirmed version as a PDF carrying its
+    // annotations as real PDF annotations — a rel only a PDF version on a tenant that serves plaintext
+    // advertises. Null where it does not, so the caller says so rather than saving something else.
+    public async Task<(string? Url, string FileName)> GetAnnotatedPdfInfoAsync(NodeViewModel node)
+    {
+        if (_api is null || node.IsFolder)
+        {
+            return (null, node.Name);
+        }
+
+        var preview = await _api.Documents.GetPreviewAsync(node.Href("versions"));
+        var stem = System.IO.Path.GetFileNameWithoutExtension(node.Name);
+        return preview.AnnotatedPdfUrl is { } url ? (url, $"{stem} (annotations).pdf") : (null, node.Name);
+    }
+
     // Reconstructs a filename from Document.Name (a bare stem, ADR "Extension off Document.Name") + the
     // version's extension — but only appends when the name doesn't already carry it, so pre-extension-change
     // data (whose Name still includes the extension) doesn't get a doubled ".zip.zip".

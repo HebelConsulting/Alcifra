@@ -39,6 +39,8 @@ public partial class RepositoriesRibbon : UserControl
 
     private void OnSaveAs(object? sender, RoutedEventArgs e) => Window()?.OnSaveAs(sender, e);
 
+    private void OnSaveAnnotatedPdf(object? sender, RoutedEventArgs e) => Window()?.OnSaveAnnotatedPdf(sender, e);
+
     private void OnGoToLink(object? sender, RoutedEventArgs e) => Window()?.OnGoToLink(sender, e);
 
     // The WebDAV button opens the devices (#2394): with more than one device there is more than one password the

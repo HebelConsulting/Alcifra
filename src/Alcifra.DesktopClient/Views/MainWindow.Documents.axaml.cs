@@ -229,6 +229,46 @@ public partial class MainWindow
         }
     });
 
+    // Save the version as a PDF with its annotations embedded as REAL PDF annotations (ADR 1106) — an ephemeral
+    // export the Api builds on demand. Enabled like Save-as; where the version has no PDF content, or the tenant's
+    // doors refuse plaintext, the rel is absent and the status line says so instead of saving something else.
+    internal void OnSaveAnnotatedPdf(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>
+    {
+        if (DataContext is not MainWindowViewModel vm || vm.SelectedItem is not { IsFolder: false } node)
+        {
+            return;
+        }
+
+        var (url, suggestedFileName) = await vm.GetAnnotatedPdfInfoAsync(node);
+        if (url is null)
+        {
+            vm.Status = $"'{node.Name}' has no annotated PDF export (only a PDF version on a tenant that serves plaintext offers one).";
+            return;
+        }
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save as",
+            SuggestedFileName = suggestedFileName,
+        });
+        if (file is null)
+        {
+            return; // cancelled
+        }
+
+        try
+        {
+            var bytes = (await AlcifraApiClient.DownloadAsync(url)).Bytes;
+            await using var stream = await file.OpenWriteAsync();
+            await stream.WriteAsync(bytes);
+            vm.Status = $"Saved '{node.Name}' with its annotations to {file.Path.LocalPath}.";
+        }
+        catch (Exception ex)
+        {
+            vm.Status = $"Could not save '{node.Name}' with its annotations: {ex.Message}";
+        }
+    });
+
     // References … (context menu, items with references): list the folders that reference this item; opening
     // a row navigates to that folder.
     internal void OnReferences(object? sender, RoutedEventArgs e) => Safe.Fire(async () =>

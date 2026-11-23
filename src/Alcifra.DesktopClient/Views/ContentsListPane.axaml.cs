@@ -97,6 +97,8 @@ public partial class ContentsListPane : UserControl
 
     private void OnSaveAs(object? sender, RoutedEventArgs e) => Window()?.OnSaveAs(sender, e);
 
+    private void OnSaveAnnotatedPdf(object? sender, RoutedEventArgs e) => Window()?.OnSaveAnnotatedPdf(sender, e);
+
     private void OnStartWorkflow(object? sender, RoutedEventArgs e) => Window()?.OnStartWorkflow(sender, e);
 
     private void OnVersions(object? sender, RoutedEventArgs e) => Window()?.OnVersions(sender, e);
