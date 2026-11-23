@@ -20,39 +20,18 @@ public static class AnnotatedPdf
     /// <exception cref="PdfEmbeddingException">The PDF cannot be opened, or a mark names a page it does not have.</exception>
     public static byte[] Write(byte[] pdf, IReadOnlyList<PdfMark> marks)
     {
-        PdfDocument document;
-        try
+        using var document = Open(pdf);
+        foreach (var mark in marks)
         {
-            document = PdfReader.Open(new MemoryStream(pdf), PdfDocumentOpenMode.Modify);
-        }
-        catch (Exception e) when (e is not OutOfMemoryException)
-        {
-            throw new PdfEmbeddingException("The document could not be opened as a PDF to embed its annotations.", e);
-        }
-
-        using (document)
-        {
-            foreach (var mark in marks)
+            if (mark.Page < 0 || mark.Page >= document.PageCount)
             {
-                if (mark.Page < 0 || mark.Page >= document.PageCount)
-                {
-                    throw new PdfEmbeddingException($"The annotation names page {mark.Page + 1}; the PDF has {document.PageCount}.");
-                }
-
-                Add(document.Pages[mark.Page], mark);
+                throw new PdfEmbeddingException($"The annotation names page {mark.Page + 1}; the PDF has {document.PageCount}.");
             }
 
-            try
-            {
-                using var output = new MemoryStream();
-                document.Save(output, false);
-                return output.ToArray();
-            }
-            catch (Exception e) when (e is not OutOfMemoryException)
-            {
-                throw new PdfEmbeddingException("The annotated PDF could not be written.", e);
-            }
+            Add(document.Pages[mark.Page], mark);
         }
+
+        return Save(document);
     }
 
     // One annotation dictionary, appended to the page's own /Annots array (a page that already carries annotations
@@ -173,25 +152,20 @@ public static class AnnotatedPdf
                     break;
                 }
 
+            case PdfMarkShape.Signature:
+                {
+                    // A real-annotation export keeps a signature toggleable, like every mark; only FLATTENING makes it
+                    // bind (ADR 1106) — the stored signed version is always the flattened one.
+                    annotation.Elements.SetName("/Subtype", "/Ink");
+                    annotation.Elements.SetString("/Contents", mark.Text);
+                    AddInk(page.Owner, annotation, mark, ToUser);
+                    break;
+                }
+
             case PdfMarkShape.Stroke:
                 {
                     annotation.Elements.SetName("/Subtype", "/Ink");
-                    var left = mark.Points.Count == 0 ? mark.X : mark.Points.Min(p => p.X);
-                    var top = mark.Points.Count == 0 ? mark.Y : mark.Points.Min(p => p.Y);
-                    var right = mark.Points.Count == 0 ? mark.X : mark.Points.Max(p => p.X);
-                    var bottom = mark.Points.Count == 0 ? mark.Y : mark.Points.Max(p => p.Y);
-                    annotation.Elements.SetRectangle("/Rect", Rect(left, top, right, bottom));
-                    var list = new PdfArray(page.Owner);
-                    var path = new PdfArray(page.Owner);
-                    foreach (var (x, y) in mark.Points)
-                    {
-                        var (ux, uy) = ToUser(x, y);
-                        path.Elements.Add(new PdfReal(ux));
-                        path.Elements.Add(new PdfReal(uy));
-                    }
-
-                    list.Elements.Add(path);
-                    annotation.Elements["/InkList"] = list;
+                    AddInk(page.Owner, annotation, mark, ToUser);
                     break;
                 }
 
@@ -200,6 +174,201 @@ public static class AnnotatedPdf
         }
 
         annots.Elements.Add(annotation);
+    }
+
+    private static PdfDocument Open(byte[] pdf)
+    {
+        try
+        {
+            return PdfReader.Open(new MemoryStream(pdf), PdfDocumentOpenMode.Modify);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            throw new PdfEmbeddingException("The document could not be opened as a PDF to embed its annotations.", e);
+        }
+    }
+
+    private static byte[] Save(PdfDocument document)
+    {
+        try
+        {
+            using var output = new MemoryStream();
+            document.Save(output, false);
+            return output.ToArray();
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            throw new PdfEmbeddingException("The annotated PDF could not be written.", e);
+        }
+    }
+
+    private static void AddInk(PdfDocument owner, PdfDictionary annotation, PdfMark mark,
+        Func<double, double, (double X, double Y)> toUser)
+    {
+        var left = mark.Points.Count == 0 ? mark.X : mark.Points.Min(p => p.X);
+        var top = mark.Points.Count == 0 ? mark.Y : mark.Points.Min(p => p.Y);
+        var right = mark.Points.Count == 0 ? mark.X : mark.Points.Max(p => p.X);
+        var bottom = mark.Points.Count == 0 ? mark.Y : mark.Points.Max(p => p.Y);
+        annotation.Elements.SetRectangle("/Rect", new PdfRectangle(new XRect(
+            Math.Min(toUser(left, top).X, toUser(right, bottom).X), Math.Min(toUser(left, top).Y, toUser(right, bottom).Y),
+            Math.Abs(toUser(right, bottom).X - toUser(left, top).X), Math.Abs(toUser(right, bottom).Y - toUser(left, top).Y))));
+        var list = new PdfArray(owner);
+        var path = new PdfArray(owner);
+        foreach (var (x, y) in mark.Points)
+        {
+            var (ux, uy) = toUser(x, y);
+            path.Elements.Add(new PdfReal(ux));
+            path.Elements.Add(new PdfReal(uy));
+        }
+
+        list.Elements.Add(path);
+        annotation.Elements["/InkList"] = list;
+    }
+
+    /// <summary>
+    /// Draws the marks into the pages themselves (ADR 1106's flattening): nothing is added to /Annots, so no viewer
+    /// can toggle, move or delete a mark — the signature binds. Graphic marks append vector drawing to the page
+    /// content (the text layer survives); the embedded font supplies captions and a signature's name.
+    /// </summary>
+    public static byte[] WriteFlattened(byte[] pdf, IReadOnlyList<PdfMark> marks)
+    {
+        EmbeddedFont.Register();
+        using var document = Open(pdf);
+        foreach (var mark in marks)
+        {
+            if (mark.Page < 0 || mark.Page >= document.PageCount)
+            {
+                throw new PdfEmbeddingException($"The annotation names page {mark.Page + 1}; the PDF has {document.PageCount}.");
+            }
+
+            var page = document.Pages[mark.Page];
+            var media = page.MediaBox;
+            double width = media.X2 - media.X1;
+            double height = media.Y2 - media.Y1;
+            var rotation = ((page.Rotate % 360) + 360) % 360;
+
+            // XGraphics draws in the page's own top-left space; the display rotation is applied here so a mark lands
+            // where the reader saw it (the same four transforms the /Rect path uses, y down).
+            (float X, float Y) At(double nx, double ny) => rotation switch
+            {
+                90 => ((float)(media.X1 + ny * width), (float)(media.Y1 + height - nx * height)),
+                180 => ((float)(media.X1 + (1 - nx) * width), (float)(media.Y1 + (1 - ny) * height)),
+                270 => ((float)(media.X1 + (1 - ny) * width), (float)(media.Y1 + nx * height)),
+                _ => ((float)(media.X1 + nx * width), (float)(media.Y1 + ny * height)),
+            };
+
+            using var gfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
+            Draw(gfx, mark, At);
+        }
+
+        return Save(document);
+    }
+
+    private static void Draw(XGraphics gfx, PdfMark mark, Func<double, double, (float X, float Y)> at)
+    {
+        var colour = ColourOf(mark.Colour);
+        var pen = new XPen(colour, 2) { LineCap = XLineCap.Round, LineJoin = XLineJoin.Round };
+        XRect Box(double left, double top, double right, double bottom)
+        {
+            var (ax, ay) = at(left, top);
+            var (bx, by) = at(right, bottom);
+            return new XRect(Math.Min(ax, bx), Math.Min(ay, by), Math.Abs(bx - ax), Math.Abs(by - ay));
+        }
+
+        void Polyline()
+        {
+            for (var i = 1; i < mark.Points.Count; i++)
+            {
+                var (ax, ay) = at(mark.Points[i - 1].X, mark.Points[i - 1].Y);
+                var (bx, by) = at(mark.Points[i].X, mark.Points[i].Y);
+                gfx.DrawLine(pen, ax, ay, bx, by);
+            }
+        }
+
+        switch (mark.Shape)
+        {
+            case PdfMarkShape.Highlight:
+                gfx.DrawRectangle(new XSolidBrush(XColor.FromArgb(90, colour.R, colour.G, colour.B)), Box(mark.X, mark.Y, mark.X + mark.Width, mark.Y + mark.Height));
+                break;
+
+            case PdfMarkShape.Box:
+                gfx.DrawRectangle(pen, Box(mark.X, mark.Y, mark.X + mark.Width, mark.Y + mark.Height));
+                break;
+
+            case PdfMarkShape.Strike:
+                {
+                    var (ax, ay) = at(mark.X, mark.Y + mark.Height / 2);
+                    var (bx, by) = at(mark.X + mark.Width, mark.Y + mark.Height / 2);
+                    gfx.DrawLine(pen, ax, ay, bx, by);
+                    break;
+                }
+
+            case PdfMarkShape.Arrow:
+                {
+                    var (ax, ay) = at(mark.X, mark.Y);
+                    var (bx, by) = at(mark.X + mark.Width, mark.Y + mark.Height);
+                    gfx.DrawLine(pen, ax, ay, bx, by);
+                    var angle = Math.Atan2(by - ay, bx - ax);
+                    foreach (var side in new[] { -0.45, 0.45 })
+                    {
+                        gfx.DrawLine(pen, bx, by, bx - (float)(12 * Math.Cos(angle + side)), by - (float)(12 * Math.Sin(angle + side)));
+                    }
+
+                    break;
+                }
+
+            case PdfMarkShape.TextBox:
+                {
+                    var box = Box(mark.X, mark.Y, mark.X + mark.Width, mark.Y + mark.Height);
+                    gfx.DrawRectangle(pen, box);
+                    gfx.DrawString(mark.Text, TextFont(12), new XSolidBrush(colour), box, XStringFormats.Center);
+                    break;
+                }
+
+            case PdfMarkShape.Note:
+                {
+                    var (cx, cy) = at(mark.X, mark.Y);
+                    var marker = new XRect(cx - 8, cy - 8, 16, 16);
+                    gfx.DrawRectangle(new XPen(colour, 1.5), marker);
+                    if (!string.IsNullOrWhiteSpace(mark.Text))
+                    {
+                        gfx.DrawString(mark.Text, TextFont(10), XBrushes.Black, new XRect(marker.Right + 3, marker.Top - 4, 240, 24),
+                            XStringFormats.TopLeft);
+                    }
+
+                    break;
+                }
+
+            case PdfMarkShape.Stroke:
+                Polyline();
+                break;
+
+            case PdfMarkShape.Signature:
+                {
+                    Polyline();
+                    if (!string.IsNullOrWhiteSpace(mark.Text))
+                    {
+                        var left = mark.Points.Count == 0 ? mark.X : mark.Points.Min(p => p.X);
+                        var top = mark.Points.Count == 0 ? mark.Y : mark.Points.Min(p => p.Y);
+                        var right = mark.Points.Count == 0 ? mark.X : mark.Points.Max(p => p.X);
+                        var bottom = mark.Points.Count == 0 ? mark.Y : mark.Points.Max(p => p.Y);
+                        var ink = Box(left, top, right, bottom);
+                        gfx.DrawString(mark.Text, TextFont(10), new XSolidBrush(colour),
+                            new XRect(ink.Left - 40, ink.Bottom + 2, ink.Width + 80, 18), XStringFormats.Center);
+                    }
+
+                    break;
+                }
+        }
+    }
+
+    private static XFont TextFont(double size) =>
+        new(EmbeddedFont.Family, size, XFontStyleEx.Regular, new XPdfFontOptions(PdfFontEncoding.Unicode));
+
+    private static XColor ColourOf(string colour)
+    {
+        var (r, g, b) = Components(colour);
+        return XColor.FromArgb((int)(r * 255), (int)(g * 255), (int)(b * 255));
     }
 
     // The four corners in the spec's order: upper-left, upper-right, lower-left, lower-right — each through the

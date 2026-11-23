@@ -24,6 +24,10 @@ public enum PdfMarkShape
 
     /// <summary>A pen stroke: a poly-line of normalized points.</summary>
     Stroke,
+
+    /// <summary>A signature (ADR 1106): ink in <see cref="PdfMark.Points"/> plus the signer's typed name in
+    /// <see cref="PdfMark.Text"/>, drawn with the name beneath the ink when flattened.</summary>
+    Signature,
 }
 
 /// <summary>

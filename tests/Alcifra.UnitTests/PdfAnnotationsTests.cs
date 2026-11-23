@@ -95,6 +95,43 @@ public sealed class PdfAnnotationsTests
         Assert.Contains("could not be opened", refusal.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_flattened_signature_burns_its_ink_and_name_into_the_page()
+    {
+        // ADR 1106: flattening is what makes a signature BIND — no annotation exists for a viewer to remove, and the
+        // typed name is drawn with the package's own font, so it survives as part of the page.
+        var annotated = AnnotatedPdf.WriteFlattened(Page(), [Mark(PdfMarkShape.Signature, x: 0.2, y: 0.4,
+            points: [(0.2, 0.4), (0.26, 0.46), (0.32, 0.43)], text: "Anna Meier")]);
+
+        using var pdf = Reader.PdfDocument.Open(annotated, new Reader.ParsingOptions());
+        var page = pdf.GetPage(1);
+        Assert.Empty(page.GetAnnotations());
+        Assert.Contains("Anna Meier", page.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_flattened_caption_keeps_its_text_layer()
+    {
+        // A flattened stamp is page graphics, not pixels: the text stays extractable and searchable.
+        var annotated = AnnotatedPdf.WriteFlattened(Page(), [Mark(PdfMarkShape.TextBox, x: 0.3, y: 0.8, w: 0.4, h: 0.08, text: "APPROVED")]);
+
+        using var pdf = Reader.PdfDocument.Open(annotated, new Reader.ParsingOptions());
+        Assert.Empty(pdf.GetPage(1).GetAnnotations());
+        Assert.Contains("APPROVED", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_signature_on_the_annotation_path_is_ink_that_carries_its_name()
+    {
+        var annotated = AnnotatedPdf.Write(Page(), [Mark(PdfMarkShape.Signature, x: 0.2, y: 0.4,
+            points: [(0.2, 0.4), (0.3, 0.5)], text: "Anna Meier")]);
+
+        using var pdf = Reader.PdfDocument.Open(annotated, new Reader.ParsingOptions());
+        var annotation = Assert.Single(pdf.GetPage(1).GetAnnotations());
+        Assert.Equal("Ink", annotation.Type.ToString());
+        Assert.Equal("Anna Meier", annotation.Content);
+    }
+
     private static PdfMark Mark(PdfMarkShape shape, double x, double y, double w = 0, double h = 0, string text = "",
         IReadOnlyList<(double X, double Y)>? points = null) =>
         new(shape, Page: 0, x, y, w, h, points ?? [], text, "#FFEB3B", "Demo Admin");
