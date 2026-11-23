@@ -3480,6 +3480,9 @@
   <data name="AnnotationKindFreehand" xml:space="preserve">
     <value>Trazo a mano alzada</value>
   </data>
+  <data name="AnnotationStampDefault" xml:space="preserve">
+    <value>APROBADO</value>
+  </data>
   <data name="FolderSortLabel" xml:space="preserve">
     <value>Orden del contenido</value>
   </data>

@@ -3480,6 +3480,9 @@
   <data name="AnnotationKindFreehand" xml:space="preserve">
     <value>Stiftstrich</value>
   </data>
+  <data name="AnnotationStampDefault" xml:space="preserve">
+    <value>GENEHMIGT</value>
+  </data>
   <data name="FolderSortLabel" xml:space="preserve">
     <value>Sortierung des Inhalts</value>
   </data>

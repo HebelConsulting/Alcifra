@@ -3480,6 +3480,9 @@
   <data name="AnnotationKindFreehand" xml:space="preserve">
     <value>Pen stroke</value>
   </data>
+  <data name="AnnotationStampDefault" xml:space="preserve">
+    <value>APPROVED</value>
+  </data>
   <data name="FolderSortLabel" xml:space="preserve">
     <value>Contents sort order</value>
   </data>
