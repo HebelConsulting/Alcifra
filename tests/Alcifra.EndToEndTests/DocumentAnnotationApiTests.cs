@@ -70,6 +70,34 @@ public class DocumentAnnotationApiTests
     }
 
     [Fact]
+    public async Task A_signature_is_a_stroke_and_a_name()
+    {
+        // ADR 1106: kind 8 carries the ink in points AND the typed name in text, with no extent.
+        var api = await AuthedClientAsync();
+        var (docId, versionId) = await SeedConfirmedDocumentAsync(api);
+        var url = $"/api/documents/{docId}/versions/{versionId}/annotations";
+
+        var signed = await PostJson(api, url, new
+        {
+            pageIndex = 0,
+            kind = 8,
+            positionX = 0.2,
+            positionY = 0.4,
+            text = "Anna Meier",
+            color = "#4FC3F7",
+            points = "0.2,0.4 0.25,0.45 0.3,0.42",
+        });
+        Assert.Equal(8, signed.GetProperty("kind").GetInt32());
+        Assert.Equal("Anna Meier", signed.GetProperty("text").GetString());
+        Assert.Equal(JsonValueKind.Null, signed.GetProperty("width").ValueKind);
+        Assert.Equal(JsonValueKind.Null, signed.GetProperty("height").ValueKind);
+
+        // The name is required, and so is the ink.
+        await AssertBadRequest(api, url, new { pageIndex = 0, kind = 8, positionX = 0.2, positionY = 0.4, text = " ", color = "#4FC3F7", points = "0.2,0.4 0.3,0.5" }, "EMPTY_ANNOTATION");
+        await AssertBadRequest(api, url, new { pageIndex = 0, kind = 8, positionX = 0.2, positionY = 0.4, text = "Anna Meier", color = "#4FC3F7" }, "INVALID_ANNOTATION_POINTS");
+    }
+
+    [Fact]
     public async Task Shape_annotations_round_trip_and_validate()
     {
         var api = await AuthedClientAsync();

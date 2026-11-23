@@ -8,6 +8,8 @@ namespace Alcifra.Domain.Documents;
 //   • Arrow — a line from (PositionX,PositionY) to (PositionX+Width, PositionY+Height); Width/Height signed.
 //   • Stamp / TextBox — a box (like a Rectangle) carrying Text (the stamp caption / the text-box content).
 //   • Freehand — a pen stroke: a polyline of normalized points in Points ("x,y x,y …"); no extent, no text.
+//   • Signature — a person's handwritten signature (ADR 1106): the ink in Points AND the typed name in Text
+//     ("Signature by <name>" is the client's reading of it); no extent. Sliceable until the completion gate.
 public enum AnnotationKind
 {
     Note = 0,
@@ -18,4 +20,5 @@ public enum AnnotationKind
     Strikethrough = 5,
     TextBox = 6,
     Freehand = 7,
+    Signature = 8,
 }

@@ -165,7 +165,7 @@ internal static class HighlightOverlayDrawing
 
         // Freehand (ADR 0525): a poly-line built from the normalized "x,y x,y …" points, scaled to page pixels.
         // It has no box extent, so the x/y/w/h are ignored here.
-        if (kind == 7)
+        if (kind is 7 or 8)
         {
             var pts = ParsePoints(points, pw, ph);
             if (pts.Count >= 2)

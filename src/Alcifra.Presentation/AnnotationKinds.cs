@@ -21,6 +21,7 @@ public static class AnnotationKinds
         5 => "AnnotationKindStrikethrough",
         6 => "AnnotationKindTextBox",
         7 => "AnnotationKindFreehand",
+        8 => "AnnotationKindSignature",
         _ => "AnnotationKindNote",
     };
 }

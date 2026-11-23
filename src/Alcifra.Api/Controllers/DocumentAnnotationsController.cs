@@ -269,8 +269,8 @@ public partial class DocumentAnnotationsController : ControllerBase
             PositionY = request.PositionY,
             // A note may now carry an optional size so it renders as an always-visible box (ADR "Post-it note
             // boxes"); a box shape always carries one; Freehand carries Points instead (null extent).
-            Width = kind == AnnotationKind.Freehand ? null : request.Width,
-            Height = kind == AnnotationKind.Freehand ? null : request.Height,
+            Width = kind is AnnotationKind.Freehand or AnnotationKind.Signature ? null : request.Width,
+            Height = kind is AnnotationKind.Freehand or AnnotationKind.Signature ? null : request.Height,
             Points = points,
             Text = request.Text.Trim(),
             Color = request.Color,
@@ -325,8 +325,8 @@ public partial class DocumentAnnotationsController : ControllerBase
         annotation.PageIndex = request.PageIndex;
         annotation.PositionX = request.PositionX;
         annotation.PositionY = request.PositionY;
-        annotation.Width = annotation.Kind == AnnotationKind.Freehand ? null : request.Width;
-        annotation.Height = annotation.Kind == AnnotationKind.Freehand ? null : request.Height;
+        annotation.Width = annotation.Kind is AnnotationKind.Freehand or AnnotationKind.Signature ? null : request.Width;
+        annotation.Height = annotation.Kind is AnnotationKind.Freehand or AnnotationKind.Signature ? null : request.Height;
         annotation.Points = points;
         annotation.Text = request.Text.Trim();
         annotation.Color = request.Color;
@@ -416,6 +416,17 @@ public partial class DocumentAnnotationsController : ControllerBase
         if (kind == AnnotationKind.Freehand)
         {
             // A stroke path of ≥ 2 normalized points; no box extent, no text.
+            return CanonicalizePoints(points);
+        }
+
+        if (kind == AnnotationKind.Signature)
+        {
+            // A signature (ADR 1106) is a stroke AND a name: the ink in Points, the typed name in Text — no extent.
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new EmptyAnnotationException();
+            }
+
             return CanonicalizePoints(points);
         }
 

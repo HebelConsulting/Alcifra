@@ -376,7 +376,7 @@ public sealed partial class HighlightOverlay : Control
                     if (note.Selected)
                     {
                         // Freehand (kind 7) has no box extent — outline the poly-line's own bounds instead.
-                        var bb = note.Kind == 7
+                        var bb = note.Kind is 7 or 8
                             ? HighlightOverlayDrawing.FreehandBounds(note.Points, width, height).Inflate(3)
                             : new Rect(Math.Min(sx, sx + sw) * width - 3, Math.Min(sy, sy + sh) * height - 3,
                                 Math.Abs(sw) * width + 6, Math.Abs(sh) * height + 6);

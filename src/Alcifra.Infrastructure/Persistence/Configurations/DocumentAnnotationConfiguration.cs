@@ -63,16 +63,17 @@ public class DocumentAnnotationConfiguration : IEntityTypeConfiguration<Document
                 "CK_DocumentAnnotations_Extent",
                 "(\"Width\" IS NULL OR (\"Width\" >= -1 AND \"Width\" <= 1)) AND " +
                 "(\"Height\" IS NULL OR (\"Height\" >= -1 AND \"Height\" <= 1))");
-            // A box shape must carry an extent; Note (0) is a point and Freehand (7) uses Points instead — both
-            // are exempt (ADR 0525).
+            // A box shape must carry an extent; Note (0) is a point, and Freehand (7) and Signature (8) use Points
+            // instead — all three are exempt (ADRs 0525/1106).
             t.HasCheckConstraint(
                 "CK_DocumentAnnotations_ShapeExtent",
-                "\"Kind\" IN (0, 7) OR (\"Width\" IS NOT NULL AND \"Height\" IS NOT NULL)");
+                "\"Kind\" IN (0, 7, 8) OR (\"Width\" IS NOT NULL AND \"Height\" IS NOT NULL)");
 
-            // Freehand (7) must carry its stroke path; every other kind leaves Points null (ADR 0525).
+            // Freehand (7) and Signature (8) must carry their stroke path; every other kind leaves Points null
+            // (ADRs 0525/1106 — a signature is a stroke AND a name).
             t.HasCheckConstraint(
                 "CK_DocumentAnnotations_FreehandPoints",
-                "(\"Kind\" = 7 AND \"Points\" IS NOT NULL) OR (\"Kind\" <> 7 AND \"Points\" IS NULL)");
+                "(\"Kind\" IN (7, 8) AND \"Points\" IS NOT NULL) OR (\"Kind\" NOT IN (7, 8) AND \"Points\" IS NULL)");
         });
 
         builder.HasOne<Tenant>()

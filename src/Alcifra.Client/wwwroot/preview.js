@@ -250,7 +250,7 @@ export function setAnnotations(annos) {
         // Markup shapes (highlight / rectangle / arrow / stamp / strikethrough / text-box / freehand, ADR 0525)
         // vs the original sticky note.
         if (a.kind && a.kind > 0) {
-            const s = a.kind === 7 ? freehandEl(a.points, a.color) : shapeEl(a.kind);
+            const s = a.kind === 7 || a.kind === 8 ? freehandEl(a.points, a.color) : shapeEl(a.kind);
             s.style.pointerEvents = 'auto';
             // Stamp + text-box show their caption/content as a centered label.
             if (a.kind === 4 || a.kind === 6) s.textContent = a.text || '';

@@ -471,8 +471,8 @@ public sealed partial class PreviewViewModel
                 var nx = Math.Clamp(a.PositionX + offset, 0, 1);
                 var ny = Math.Clamp(a.PositionY + offset, 0, 1);
                 // Freehand (kind 7) has no box extent — carry its poly-line points instead of a width/height.
-                var w = a.Kind == 7 ? (double?)null : a.Width ?? (a.Kind == 0 ? 0.22 : 0.1);
-                var h = a.Kind == 7 ? (double?)null : a.Height ?? (a.Kind == 0 ? 0.06 : 0.05);
+                var w = a.Kind is 7 or 8 ? (double?)null : a.Width ?? (a.Kind == 0 ? 0.22 : 0.1);
+                var h = a.Kind is 7 or 8 ? (double?)null : a.Height ?? (a.Kind == 0 ? 0.06 : 0.05);
                 await Api.Annotations.CreateAnnotationAsync(_annotationsUrl, a.PageIndex, a.Kind, nx, ny, w, h, a.Text, a.Color, a.Points);
             }
         }

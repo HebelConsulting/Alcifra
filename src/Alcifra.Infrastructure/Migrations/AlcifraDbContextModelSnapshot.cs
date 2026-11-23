@@ -1033,13 +1033,13 @@ namespace Alcifra.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_DocumentAnnotations_Extent", "(\"Width\" IS NULL OR (\"Width\" >= -1 AND \"Width\" <= 1)) AND (\"Height\" IS NULL OR (\"Height\" >= -1 AND \"Height\" <= 1))");
 
-                            t.HasCheckConstraint("CK_DocumentAnnotations_FreehandPoints", "(\"Kind\" = 7 AND \"Points\" IS NOT NULL) OR (\"Kind\" <> 7 AND \"Points\" IS NULL)");
+                            t.HasCheckConstraint("CK_DocumentAnnotations_FreehandPoints", "(\"Kind\" IN (7, 8) AND \"Points\" IS NOT NULL) OR (\"Kind\" NOT IN (7, 8) AND \"Points\" IS NULL)");
 
                             t.HasCheckConstraint("CK_DocumentAnnotations_PageIndex", "\"PageIndex\" >= 0");
 
                             t.HasCheckConstraint("CK_DocumentAnnotations_Position", "\"PositionX\" >= 0 AND \"PositionX\" <= 1 AND \"PositionY\" >= 0 AND \"PositionY\" <= 1");
 
-                            t.HasCheckConstraint("CK_DocumentAnnotations_ShapeExtent", "\"Kind\" IN (0, 7) OR (\"Width\" IS NOT NULL AND \"Height\" IS NOT NULL)");
+                            t.HasCheckConstraint("CK_DocumentAnnotations_ShapeExtent", "\"Kind\" IN (0, 7, 8) OR (\"Width\" IS NOT NULL AND \"Height\" IS NOT NULL)");
                         });
                 });
 

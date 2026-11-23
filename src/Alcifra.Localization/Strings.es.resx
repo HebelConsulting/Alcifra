@@ -3483,6 +3483,12 @@
   <data name="AnnotationStampDefault" xml:space="preserve">
     <value>APROBADO</value>
   </data>
+  <data name="AnnotationKindSignature" xml:space="preserve">
+    <value>Firma</value>
+  </data>
+  <data name="AnnotationSignatureBy" xml:space="preserve">
+    <value>Firmado por {0}</value>
+  </data>
   <data name="AnnotatedPdfRibbon" xml:space="preserve">
     <value>PDF con anotaciones</value>
   </data>
