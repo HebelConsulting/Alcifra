@@ -3441,6 +3441,15 @@
   <data name="PhoneTabAnnotations" xml:space="preserve">
     <value>Annotazioni</value>
   </data>
+  <data name="AnnotationRead" xml:space="preserve">
+    <value>Leggi</value>
+  </data>
+  <data name="AnnotationSelect" xml:space="preserve">
+    <value>Seleziona</value>
+  </data>
+  <data name="AnnotationDelete" xml:space="preserve">
+    <value>Elimina</value>
+  </data>
   <data name="PhoneAnnotationsNone" xml:space="preserve">
     <value>Nessuna annotazione</value>
   </data>
