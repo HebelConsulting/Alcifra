@@ -10,6 +10,16 @@ public partial class ClientPackageLockstepTests
 {
     private const string Workflow = ".github/workflows/client-packages-publish.yml";
 
+    /// <summary>Packages a native client consumes DIRECTLY, outside ApiClient's reference closure — each with why.
+    /// The rule below is normally "the set equals the closure"; a direct-consumer engine is the deliberate
+    /// exception, versioned with the rest so the clients keep one pin.</summary>
+    private static readonly string[] ExtraPackages =
+    [
+        // ADR 1106: the one PDF writer, hosted by the desktop and the phone for embedding and the signing gate. The
+        // Api uses it server-side; the clients reference it themselves, never through the HTTP client.
+        "Alcifra.PdfAnnotations",
+    ];
+
     [Fact]
     public void The_publish_workflow_packs_and_watches_exactly_ApiClient_and_what_it_references()
     {
@@ -23,6 +33,7 @@ public partial class ClientPackageLockstepTests
 
         var root = RepoPaths.Root();
         var expected = Closure(root, "Alcifra.ApiClient");
+        expected.UnionWith(ExtraPackages);
         var workflow = File.ReadAllText(Path.Combine(root, Workflow));
 
         var packed = PackLoop().Match(workflow).Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
@@ -37,6 +48,7 @@ public partial class ClientPackageLockstepTests
     {
         var root = RepoPaths.Root();
         var missing = Closure(root, "Alcifra.ApiClient")
+            .Concat(ExtraPackages)
             .Where(p => !File.ReadAllText(Path.Combine(root, "src", p, $"{p}.csproj")).Contains("build\\ClientPackages.props", StringComparison.Ordinal))
             .ToList();
 
