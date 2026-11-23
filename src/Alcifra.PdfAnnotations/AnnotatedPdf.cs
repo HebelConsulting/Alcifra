@@ -321,7 +321,7 @@ public static class AnnotatedPdf
                 {
                     var box = Box(mark.X, mark.Y, mark.X + mark.Width, mark.Y + mark.Height);
                     gfx.DrawRectangle(pen, box);
-                    gfx.DrawString(mark.Text, TextFont(12), new XSolidBrush(colour), box, XStringFormats.Center);
+                    DrawText(gfx, mark.Text, 12, new XSolidBrush(colour), box, XStringFormats.Center);
                     break;
                 }
 
@@ -332,7 +332,7 @@ public static class AnnotatedPdf
                     gfx.DrawRectangle(new XPen(colour, 1.5), marker);
                     if (!string.IsNullOrWhiteSpace(mark.Text))
                     {
-                        gfx.DrawString(mark.Text, TextFont(10), XBrushes.Black, new XRect(marker.Right + 3, marker.Top - 4, 240, 24),
+                        DrawText(gfx, mark.Text, 10, XBrushes.Black, new XRect(marker.Right + 3, marker.Top - 4, 240, 24),
                             XStringFormats.TopLeft);
                     }
 
@@ -353,7 +353,7 @@ public static class AnnotatedPdf
                         var right = mark.Points.Count == 0 ? mark.X : mark.Points.Max(p => p.X);
                         var bottom = mark.Points.Count == 0 ? mark.Y : mark.Points.Max(p => p.Y);
                         var ink = Box(left, top, right, bottom);
-                        gfx.DrawString(mark.Text, TextFont(10), new XSolidBrush(colour),
+                        DrawText(gfx, mark.Text, 10, new XSolidBrush(colour),
                             new XRect(ink.Left - 40, ink.Bottom + 2, ink.Width + 80, 18), XStringFormats.Center);
                     }
 
@@ -362,8 +362,46 @@ public static class AnnotatedPdf
         }
     }
 
-    private static XFont TextFont(double size) =>
-        new(EmbeddedFont.Family, size, XFontStyleEx.Regular, new XPdfFontOptions(PdfFontEncoding.Unicode));
+    // A caption in one or two faces (#2451): the characters the primary lacks (✓ U+2713 and its dingbat kind) come
+    // from the symbols face, drawn as runs of consecutive characters the SAME face covers, so each run keeps its own
+    // kerning and the alignment matches what DrawString would have produced. A character NEITHER face has stays with
+    // the primary — the missing-glyph box the writer always drew for it.
+    private static void DrawText(XGraphics gfx, string text, double size, XBrush brush, XRect box, XStringFormat format)
+    {
+        if (string.IsNullOrEmpty(text) || text.All(EmbeddedFont.Covers))
+        {
+            gfx.DrawString(text, TextFont(size), brush, box, format);
+            return;
+        }
+
+        var runs = new List<(string Text, bool Symbols)>();
+        foreach (var c in text)
+        {
+            var symbols = !EmbeddedFont.Covers(c) && EmbeddedFont.SymbolsCover(c);
+            if (runs.Count > 0 && runs[^1].Symbols == symbols)
+            {
+                runs[^1] = (runs[^1].Text + c, symbols);
+            }
+            else
+            {
+                runs.Add((c.ToString(), symbols));
+            }
+        }
+
+        var fonts = runs.Select(run => TextFont(size, run.Symbols)).ToList();
+        var widths = runs.Select((run, i) => gfx.MeasureString(run.Text, fonts[i]).Width).ToList();
+        var height = gfx.MeasureString("Ag", TextFont(size)).Height;
+        var x = format.Alignment == XStringAlignment.Center ? box.X + ((box.Width - widths.Sum()) / 2) : box.X;
+        var y = format.LineAlignment == XLineAlignment.Center ? box.Y + ((box.Height - height) / 2) : box.Y;
+        for (var i = 0; i < runs.Count; i++)
+        {
+            gfx.DrawString(runs[i].Text, fonts[i], brush, new XRect(x, y, box.Width, box.Height), XStringFormats.TopLeft);
+            x += widths[i];
+        }
+    }
+
+    private static XFont TextFont(double size, bool symbols = false) =>
+        new(symbols ? EmbeddedFont.SymbolsFamily : EmbeddedFont.Family, size, XFontStyleEx.Regular, new XPdfFontOptions(PdfFontEncoding.Unicode));
 
     private static XColor ColourOf(string colour)
     {

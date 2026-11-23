@@ -121,6 +121,33 @@ public sealed class PdfAnnotationsTests
     }
 
     [Fact]
+    public void The_two_faces_split_by_coverage()
+    {
+        // #2451: the primary is Latin/Greek/Cyrillic; the check mark is the symbols face's, so the writer knows which
+        // face to ask before it splits a caption. (The symbols face carries ASCII too — it is a notation font — so a
+        // letter proves nothing; Ω is one only the primary has.)
+        Assert.True(EmbeddedFont.CoverageOf(EmbeddedFont.Family).Covers('Ω'));
+        Assert.False(EmbeddedFont.CoverageOf(EmbeddedFont.Family).Covers('✓'));
+        Assert.False(EmbeddedFont.CoverageOf(EmbeddedFont.SymbolsFamily).Covers('Ω'));
+        Assert.True(EmbeddedFont.CoverageOf(EmbeddedFont.SymbolsFamily).Covers('✓'));
+    }
+
+    [Fact]
+    public void A_flattened_caption_draws_a_check_mark_from_the_symbols_face()
+    {
+        // #2451: "Six panes, as in the revised offer ✓" used to bake the ✓ as a missing-glyph box, because the primary
+        // face has no U+2713. The caption is drawn in two runs; the character survives as text in the page.
+        var annotated = AnnotatedPdf.WriteFlattened(Page(), [Mark(PdfMarkShape.TextBox, x: 0.2, y: 0.7, w: 0.6, h: 0.08,
+            text: "Six panes ✓ reworked")]);
+
+        using var pdf = Reader.PdfDocument.Open(annotated, new Reader.ParsingOptions());
+        var text = pdf.GetPage(1).Text;
+        Assert.Contains("Six panes", text, StringComparison.Ordinal);
+        Assert.Contains("✓", text, StringComparison.Ordinal);
+        Assert.Contains("reworked", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_signature_on_the_annotation_path_is_ink_that_carries_its_name()
     {
         var annotated = AnnotatedPdf.Write(Page(), [Mark(PdfMarkShape.Signature, x: 0.2, y: 0.4,

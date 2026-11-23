@@ -33,13 +33,22 @@
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
   </ItemGroup>
 
-  <!-- The one text face the writer needs: flattened captions and a signature's typed name must render on every host
-       without a system font, and PDFsharp embeds what the resolver gives it. SIL OFL (Fonts/OFL.txt) — the same
+  <!-- The text faces the writer needs: flattened captions and a signature's typed name must render on every host
+       without a system font, and PDFsharp embeds what the resolver gives it. Noto Sans (Latin/Greek/Cyrillic) is the
+       primary; Noto Sans Symbols 2 supplies the characters the primary lacks (#2451: ✓ U+2713 and its kind), and the
+       writer picks the face per run. Both SIL OFL (Fonts/OFL.txt, Fonts/OFL-NotoSansSymbols2.txt) — the same
        licence the manual's vendored fonts carry (build/licenses/README covers the gate; this is an asset, not a
        package). -->
   <ItemGroup>
     <EmbeddedResource Include="Fonts/NotoSans-Regular.ttf" />
+    <EmbeddedResource Include="Fonts/NotoSansSymbols2-Regular.ttf" />
     <None Include="Fonts/OFL.txt" Pack="true" PackagePath="licenses/" />
+    <None Include="Fonts/OFL-NotoSansSymbols2.txt" Pack="true" PackagePath="licenses/" />
+  </ItemGroup>
+
+  <!-- The coverage reader is what the writer's tests pin directly (#2451), beside the behaviour tests. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Alcifra.UnitTests" />
   </ItemGroup>
 
 </Project>
