@@ -289,6 +289,16 @@ public sealed class DocumentVersionResourceBuilder(
             // (sticky notes)"). Static link — the endpoint lists them on demand.
             links.Add(new Link("annotations", $"/api/documents/{version.DocumentId}/versions/{version.Id}/annotations", "GET"));
 
+            // The version as a PDF carrying its annotations as REAL PDF annotations (ADR 1106) — ephemeral: built on
+            // demand, streamed, never stored. A PLAINTEXT DOOR like the text layout, so advertised on the same
+            // predicate (`doors.Plaintext`, itself asked of the refusal) and only where the content is a PDF; on a
+            // tenant whose doors refuse plaintext the export refuses too, and a rel that would always fail is the
+            // lying affordance ADR 0543 exists to prevent.
+            if (doors.Plaintext && !sealedContent && AnnotatedPdfExport.IsPdf(version.ObjectKey))
+            {
+                links.Add(new Link("annotated-pdf", $"/api/documents/{version.DocumentId}/versions/{version.Id}/annotated-pdf", "GET"));
+            }
+
             // This version's issuing date (ADR "System-field search"). Static like `restore` above — the PUT
             // enforces CanEditIndexData plus the frozen/checked-out guards, and resolving all of that per row
             // would put a rights + legal-hold + checkout lookup on every version in the list.

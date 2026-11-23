@@ -304,6 +304,7 @@ builder.Services.AddScoped<Alcifra.Api.Documents.DocumentPurger>();
 // where each controller used to carry its own copy of GetCallerRightsAsync.
 builder.Services.AddScoped<Alcifra.Api.Documents.DocumentAccessService>().AddScoped<Alcifra.Api.Principals.UserAccessService>().AddPasswordStores();   // ADR 0964
 builder.Services.AddScoped<Alcifra.Api.Documents.DocumentVersionAccess>();
+builder.Services.AddScoped<Alcifra.Api.Documents.AnnotatedPdfExport>();
 
 // One named verb contract per concurrency-tracked entity (ADR 0795). They are what a controller TAKES in order
 // to mutate that entity, so a mutation that writes one without taking its contract is visible here and

@@ -3483,6 +3483,12 @@
   <data name="AnnotationStampDefault" xml:space="preserve">
     <value>APPROVATO</value>
   </data>
+  <data name="AnnotatedPdfRibbon" xml:space="preserve">
+    <value>PDF con annotazioni</value>
+  </data>
+  <data name="StErrAnnotatedPdf" xml:space="preserve">
+    <value>Impossibile scaricare il PDF con annotazioni: {0}</value>
+  </data>
   <data name="FolderSortLabel" xml:space="preserve">
     <value>Ordinamento contenuti</value>
   </data>

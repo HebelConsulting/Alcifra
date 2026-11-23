@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Published for the clients once the desktop and the phone embed on the device (owner decision 2026-11-23,
+       ADR 1106): one writer implementation shared by the Api, the desktop and the mobile app. Conditional for the
+       Docker restore layer, as in TextLayout/Presentation. -->
+  <Import Project="..\..\build\ClientPackages.props" Condition="Exists('..\..\build\ClientPackages.props')" />
+  <PropertyGroup>
+    <Description>PDF bytes plus marks to a PDF carrying real annotations, once, for every $(ProductName) surface (ADR 1106).</Description>
+  </PropertyGroup>
+
+  <!-- TargetFramework is set explicitly (not just inherited from Directory.Build.props) because the Docker
+       restore layer copies only the .csproj files, not Directory.Build.props — every project does the same. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- A LEAF, like TextLayout: it owns the shape it takes (PdfMark) because it may not reference Alcifra.Application,
+       and each caller maps its own rows to it. The writer is a dependency the Api and the clients share. -->
+  <ItemGroup>
+    <!-- HELD at 6.2.4 (MIT): the last MIT release of the 6.x line. The next published 6.x — 6.5.0 — is
+         AGPL-3.0-only (the open-core relicense) and refuses to run without a licence key, which this Apache-2.0
+         project and its clients cannot ship; 7.0.0-preview-1 is MIT but a preview, and 7.0.0-preview-2 is AGPL.
+         NO MIT FORK of this line exists (2026-11-23): the ecosystem's MIT option is PdfSharpCore, a
+         single-maintainer legacy port of 1.50, which is not this API. The hold retires when upstream offers a
+         licence-compatible line again, a fork of 6.x appears, or a maintained MIT/BSD writer covers annotation
+         writing; a Dependabot bump past 6.2.4 must fail the licence gate rather than merge
+         (build/licenses/allowed-licenses.json). -->
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
+    <!-- PDFsharp's transitive 8.0.1 is refused by the vulnerable-dependency scan (GHSA-2fmv-rv2c-59x7,
+         GHSA-846f-f764-76mx); this is the pin every other leaf uses. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
+  </ItemGroup>
+
+</Project>

@@ -75,6 +75,8 @@ public class ApiReachabilityTests(E2EApiFactory factory)
         ["POST api/tenants/{tenantId:guid}/storage-migration"] = "advertised only while ObjectStorage:LegacyBucketPrefix is set (ADR 1000); this stack has none — TenantStorageMigrationRelTests asserts the absent rel, TenantBucketMigrationTests the migration",
         ["GET api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
         ["HEAD api/password-stores/{storeId:guid}/reseal"] = "advertised only while an entry is sealed to other certificates than its readers' (ADR 0964); the crawler has no key to seal one — PasswordStoreTests follows the rel",
+        ["GET api/documents/{documentId:guid}/versions/{versionId:guid}/annotated-pdf"] = "needs a PDF version; the seed files plain text — AnnotatedPdfExportApiTests follows the rel and downloads the annotated PDF (ADR 1106)",
+        ["HEAD api/documents/{documentId:guid}/versions/{versionId:guid}/annotated-pdf"] = "needs a PDF version; the seed files plain text — AnnotatedPdfExportApiTests follows the rel and downloads the annotated PDF (ADR 1106)",
         ["GET api/documents/{documentId:guid}/archive-entries"] = "needs a zip document; the seed files none",
         ["GET api/documents/{documentId:guid}/archive-entries/content"] = "needs a zip document; the seed files none",
         ["GET api/documents/{documentId:guid}/checkout/preview"] = "needs a checked-out document with a renderable working copy; the seed checks out plain text",

@@ -57,6 +57,9 @@
     <ProjectReference Include="..\..\src\Alcifra.Pass\Alcifra.Pass.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.Presentation\Alcifra.Presentation.csproj" />
     <ProjectReference Include="..\..\src\Alcifra.ApiClient\Alcifra.ApiClient.csproj" />
+    <ProjectReference Include="..\..\src\Alcifra.PdfAnnotations\Alcifra.PdfAnnotations.csproj" />
+    <!-- Reading the annotated bytes back, with the same parser the server's text layout uses. -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
     <!-- Referenced so the architecture tests can inspect these assemblies (layer + convention rules). -->
     <ProjectReference Include="..\..\src\Alcifra.Infrastructure\Alcifra.Infrastructure.csproj" />
     <ProjectReference Include="..\Alcifra.TestModule\Alcifra.TestModule.csproj" />

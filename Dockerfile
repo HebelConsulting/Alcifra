@@ -40,6 +40,7 @@ COPY ["src/Alcifra.Localization/Alcifra.Localization.csproj", "src/Alcifra.Local
 COPY ["src/Alcifra.ModuleAbi/Alcifra.ModuleAbi.csproj", "src/Alcifra.ModuleAbi/"]
 COPY ["src/Alcifra.Presentation/Alcifra.Presentation.csproj", "src/Alcifra.Presentation/"]
 COPY ["src/Alcifra.TextLayout/Alcifra.TextLayout.csproj", "src/Alcifra.TextLayout/"]
+COPY ["src/Alcifra.PdfAnnotations/Alcifra.PdfAnnotations.csproj", "src/Alcifra.PdfAnnotations/"]
 COPY ["src/Alcifra.HardwareKeys/Alcifra.HardwareKeys.csproj", "src/Alcifra.HardwareKeys/"]
 COPY ["src/Alcifra.BrowserHost/Alcifra.BrowserHost.csproj", "src/Alcifra.BrowserHost/"]
 COPY ["src/Alcifra.Pass/Alcifra.Pass.csproj", "src/Alcifra.Pass/"]
