@@ -138,6 +138,7 @@ public sealed class DetailLoader(
                     PreviewUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "preview", latest.ContentIsEnveloped)),
                     DownloadUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "download", latest.ContentIsEnveloped)),
                     TextLayoutUrl = Links.Href(latest.Links, "text-layout"),
+                    AnnotatedPdfUrl = Links.Href(latest.Links, "annotated-pdf"),
                     Converted = latest.PreviewConverted,
                     HasVersion = true,
                     Facts = new(latest.SizeBytes, latest.FileExtension, Links.Href(latest.Links, "poster")),
@@ -224,7 +225,8 @@ public readonly record struct DetailLoadResult(
     bool Converted,
     bool HasVersion,
     bool Failed = false,
-    Alcifra.Presentation.PreviewFacts? Facts = null)
+    Alcifra.Presentation.PreviewFacts? Facts = null,
+    string? AnnotatedPdfUrl = null)
 {
     public static DetailLoadResult Nothing => new(false, null, null, null, false, false);
 

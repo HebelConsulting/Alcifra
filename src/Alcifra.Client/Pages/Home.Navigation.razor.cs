@@ -497,6 +497,7 @@ public partial class Home
         if (loaded.Loaded)
         {
             _downloadUrl = loaded.DownloadUrl;
+            _annotatedPdfUrl = loaded.AnnotatedPdfUrl;
 
             // The pane may not EXIST yet: @ref is assigned after a render, and the two ways a document is
             // opened from elsewhere — a search hit, a notification — call SetTab(Repositories) and select in the
@@ -669,6 +670,7 @@ public partial class Home
         Detail.ModuleActions = []; // nor a module action, which carries its own commit address (#1628)
         Detail.Proposals = []; // nor a candidate list (ADR 0769, same rule)
         _downloadUrl = null;
+        _annotatedPdfUrl = null;
         ClearPreviewPane();
         _selectedNode = null;
         _comments = [];

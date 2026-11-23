@@ -438,6 +438,12 @@
                     <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(_downloadUrl is null)" OnClick="DownloadAsync" title="@DownloadTooltip" aria-label="@Strings.Get("Download")">
                         <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("Download")</span>
                     </MudButton>
+                    @* The version as a PDF carrying its annotations as REAL PDF annotations (ADR 1106) — an ephemeral
+                       export the Api builds on demand; the rel is advertised only where the tenant's doors serve
+                       plaintext and the content is a PDF. Disabled rather than hidden, per 0550. *@
+                    <MudButton Class="wb-rib-btn" data-testid="ribbon-annotated-pdf" Size="Size.Small" Disabled="@(_annotatedPdfUrl is null)" OnClick="DownloadAnnotatedPdfAsync" title="@Strings.Get("AnnotatedPdfRibbon")" aria-label="@Strings.Get("AnnotatedPdfRibbon")">
+                        <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("AnnotatedPdfRibbon")</span>
+                    </MudButton>
                     <MudButton Class="wb-rib-btn" Size="Size.Small" Disabled="@(_selectedItem is null)" OnClick="() => OpenVersionsAsync(_selectedItem!)" title="@Strings.Get("RibbonVersions")" aria-label="@Strings.Get("RibbonVersions")">
                         <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" /><span class="wb-rib-label">@Strings.Get("RibbonVersions")</span>
                     </MudButton>
@@ -1066,6 +1072,7 @@
     // The document's current (latest confirmed) version number — shown as the last line of the detail pane
     // (ADR "Mask-pane current-version line").
     private string? _downloadUrl;
+    private string? _annotatedPdfUrl;
 
     // The Repositories preview (ADRs 0268/0269/0282/0294/0295) — one INSTANCE, owning its own host, state,
     // preview.js module and DotNetObjectReference (ADR 0558). The Intray and Recycle-bin tabs each own theirs,
@@ -1578,6 +1585,9 @@
             await JS.InvokeVoidAsync("open", url, "_blank");
         }
     }
+
+    private Task DownloadAnnotatedPdfAsync() =>
+        _annotatedPdfUrl is { } url ? AnnotatedPdfDownload.SaveAsync(Http, JS, Snackbar, url, _selectedItem?.Name ?? "document") : Task.CompletedTask;
 
     private async Task RefreshAsync()
     {

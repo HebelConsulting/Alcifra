@@ -201,7 +201,11 @@ public class WorkbenchShellSizeTests
     // forgotten -- and it is a design decision, so it is the owner's to make rather than a tranche to schedule.
     // 1,730 -> 1,701: the details pane keeps only the details' own actions (ADR 0970). The per-document row went,
     // and what replaced it in the ribbon and the ⋮ menu is one component line each (DocumentActionsRibbon/Menu).
-    private const int Ceiling = 1_701;
+    // 1,701 -> 1,709 for ADR 1106's "PDF with annotations": a ribbon affordance genuinely belongs to the shell
+    // (the ribbon IS the shell), and the BEHAVIOUR was moved out first — the fetch-and-save lives in
+    // DocumentActions, so the shell is charged only for the field, the button and a one-line forwarder, exactly
+    // as the #564 notebook affordances were.
+    private const int Ceiling = 1_709;
 
     [Fact]
     public void The_workbench_shell_does_not_grow()
