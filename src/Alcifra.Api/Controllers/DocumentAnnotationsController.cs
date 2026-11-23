@@ -107,6 +107,11 @@ public partial class DocumentAnnotationsController : ControllerBase
 
         // Whether this caller may create a note here (CanAnnotate) — lets the clients hide/disable "Add note".
         public bool CanCreate { get; set; }
+
+        // Whether this caller may create a new version of the document (CanEditContent) — what the phone's "All
+        // signatures completed" gate needs, since completing a signing session files the flattened marks as one
+        // (ADR 1106). A capability flag on the resource, never a second rel (ADR 0719), exactly as CanCreate is.
+        public bool CanEditContent { get; set; }
     }
 
     public class CreateAnnotationRequest
@@ -217,6 +222,7 @@ public partial class DocumentAnnotationsController : ControllerBase
                 .Select(r => ToResource(documentId, versionId, r, rights.CanEditContent))
                 .ToList(),
             CanCreate = rights.CanAnnotate,
+            CanEditContent = rights.CanEditContent,
             Links = [new Link("self", $"/api/documents/{documentId}/versions/{versionId}/annotations", "GET")],
         });
     }

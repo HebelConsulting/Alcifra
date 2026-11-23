@@ -25,8 +25,10 @@ public sealed class AnnotationsClient(ApiCore core)
 
     // --- Sticky notes / annotations (ADR "Document annotations") ----------------------------------------
 
-    // The annotation list + whether the caller may create a note here (CanAnnotate, ADR "CanAnnotate right").
-    public sealed record AnnotationList(IReadOnlyList<AnnotationInfo> Items, bool CanCreate);
+    // The annotation list + whether the caller may create a note here (CanAnnotate, ADR "CanAnnotate right") and
+    // whether they may file a new version of the document (CanEditContent) — what the phone's signing gate needs
+    // (ADR 1106).
+    public sealed record AnnotationList(IReadOnlyList<AnnotationInfo> Items, bool CanCreate, bool CanEditContent = false);
 
     // An annotation without its own address cannot be written to, and guessing one is what this change removes.
     private static string RequireSelf(AnnotationInfo annotation) =>
@@ -60,7 +62,8 @@ public sealed class AnnotationsClient(ApiCore core)
             }
         }
 
-        return new AnnotationList(result, json.TryGetProperty("canCreate", out var cc) && cc.GetBoolean());
+        return new AnnotationList(result, json.TryGetProperty("canCreate", out var cc) && cc.GetBoolean(),
+            json.TryGetProperty("canEditContent", out var ec) && ec.GetBoolean());
     }
 
     public async Task CreateAnnotationAsync(string annotationsUrl, int pageIndex, double x, double y, string text, string color, CancellationToken cancellationToken = default)

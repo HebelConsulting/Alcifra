@@ -3453,6 +3453,18 @@
   <data name="PhoneAnnotationsNone" xml:space="preserve">
     <value>Keine Anmerkungen</value>
   </data>
+  <data name="PhoneCompleteSignatures" xml:space="preserve">
+    <value>Alle Unterschriften abgeschlossen</value>
+  </data>
+  <data name="PhoneCompleteSignaturesConfirm" xml:space="preserve">
+    <value>Die Unterschriften werden in das Dokument eingezeichnet und als neue Version abgelegt. Das kann nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="PhoneCompleteSignaturesDone" xml:space="preserve">
+    <value>Unterschriften abgeschlossen: eine neue Version wurde abgelegt.</value>
+  </data>
+  <data name="PhoneCompleteSignaturesNoRight" xml:space="preserve">
+    <value>Sie benötigen das Recht, hier eine neue Version zu erstellen.</value>
+  </data>
   <data name="AnnotationPage" xml:space="preserve">
     <value>Seite {0}</value>
   </data>

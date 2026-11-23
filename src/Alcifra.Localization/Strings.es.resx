@@ -3453,6 +3453,18 @@
   <data name="PhoneAnnotationsNone" xml:space="preserve">
     <value>Sin anotaciones</value>
   </data>
+  <data name="PhoneCompleteSignatures" xml:space="preserve">
+    <value>Todas las firmas completadas</value>
+  </data>
+  <data name="PhoneCompleteSignaturesConfirm" xml:space="preserve">
+    <value>Las firmas se dibujan en el documento y se archivan como una nueva versión. Esto no se puede deshacer.</value>
+  </data>
+  <data name="PhoneCompleteSignaturesDone" xml:space="preserve">
+    <value>Firmas completadas: se archivó una nueva versión.</value>
+  </data>
+  <data name="PhoneCompleteSignaturesNoRight" xml:space="preserve">
+    <value>Necesita el derecho a crear una nueva versión aquí.</value>
+  </data>
   <data name="AnnotationPage" xml:space="preserve">
     <value>Página {0}</value>
   </data>

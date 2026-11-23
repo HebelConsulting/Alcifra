@@ -33,10 +33,12 @@ public class DocumentAnnotationApiTests
         Assert.True(created.GetProperty("canDelete").GetBoolean());
         var etag = created.GetProperty("etag").GetString()!;
 
-        // List shows it (and the author has CanAnnotate → canCreate true, ADR "CanAnnotate right").
+        // List shows it (and the author has CanAnnotate → canCreate true, ADR "CanAnnotate right"; an editor may
+        // also file a new version → canEditContent true, which the phone's signing gate reads — ADR 1106).
         var list = await GetJson(api, annotationsUrl);
         Assert.Equal(1, list.GetProperty("annotations").GetArrayLength());
         Assert.True(list.GetProperty("canCreate").GetBoolean());
+        Assert.True(list.GetProperty("canEditContent").GetBoolean());
 
         var noteUrl = $"{annotationsUrl}/{noteId}";
 
