@@ -164,14 +164,14 @@ internal static class HighlightOverlayDrawing
         }
 
         // Freehand (ADR 0525): a poly-line built from the normalized "x,y x,y …" points, scaled to page pixels.
-        // It has no box extent, so the x/y/w/h are ignored here.
+        // It has no box extent, so the x/y/w/h are ignored here. ONE geometry PER stroke (#2460): a drawing's lines
+        // (and a signature's several letters) are separated by ';'.
         if (kind is 7 or 8)
         {
-            var pts = ParsePoints(points, pw, ph);
-            if (pts.Count >= 2)
+            var pen = new Pen(new SolidColorBrush(color), 1.5) { LineJoin = PenLineJoin.Round, LineCap = PenLineCap.Round };
+            foreach (var stroke in ParseStrokes(points, pw, ph).Where(stroke => stroke.Count >= 2))
             {
-                var pen = new Pen(new SolidColorBrush(color), 1.5) { LineJoin = PenLineJoin.Round, LineCap = PenLineCap.Round };
-                ctx.DrawGeometry(null, pen, new PolylineGeometry(pts, false));
+                ctx.DrawGeometry(null, pen, new PolylineGeometry(stroke, false));
             }
 
             return;
@@ -201,7 +201,17 @@ internal static class HighlightOverlayDrawing
         }
     }
 
-    // Parses a normalized "x,y x,y …" poly-line (each coord 0..1, invariant-culture) into page-pixel points.
+    // Parses a normalized ink path into its strokes (#2460: ';' separates the lines of one drawing), each a
+    // page-pixel poly-line.
+    internal static List<List<Point>> ParseStrokes(string? points, double pw, double ph) =>
+    [
+        .. (points ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(stroke => ParsePoints(stroke, pw, ph))
+            .Where(stroke => stroke.Count > 0),
+    ];
+
+    // Parses a normalized "x,y x,y …" poly-line (each coord 0..1, invariant-culture) into page-pixel points; given a
+    // multi-stroke value it returns every point, which is what a selection's bounds need.
     internal static List<Point> ParsePoints(string? points, double pw, double ph)
     {
         var result = new List<Point>();
@@ -210,7 +220,7 @@ internal static class HighlightOverlayDrawing
             return result;
         }
 
-        foreach (var pair in points.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var pair in points.Split([' ', ';'], StringSplitOptions.RemoveEmptyEntries))
         {
             var xy = pair.Split(',');
             if (xy.Length == 2 &&

@@ -111,12 +111,13 @@ public sealed class AnnotatedPdfExport(
                 row.PositionY,
                 row.Width ?? 0,
                 row.Height ?? 0,
-                Points(row.Points),
+                [],
                 row.Text,
                 row.Color,
                 row.CreatedByUserId is { } userId && userNames.TryGetValue(userId, out var userName) ? userName
                     : row.CreatedByServiceAccountId is { } accountId && accountNames.TryGetValue(accountId, out var accountName) ? accountName
-                    : string.Empty)),
+                    : string.Empty,
+                Strokes(row.Points))),
         ];
     }
 
@@ -133,15 +134,23 @@ public sealed class AnnotatedPdfExport(
         _ => PdfMarkShape.Note,
     };
 
-    // "x,y x,y …" to the writer's normalized points; a malformed pair is skipped rather than failing the export,
-    // exactly as the renderers read it.
-    private static IReadOnlyList<(double X, double Y)> Points(string? points) =>
-        [.. (points ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(pair => pair.Split(','))
-            .Where(pair => pair.Length == 2
-                && double.TryParse(pair[0], NumberStyles.Float, CultureInfo.InvariantCulture, out _)
-                && double.TryParse(pair[1], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
-            .Select(pair => (double.Parse(pair[0], CultureInfo.InvariantCulture), double.Parse(pair[1], CultureInfo.InvariantCulture)))];
+    // "x,y x,y …" per stroke, strokes separated by ';' (#2460: one drawing carries its several lines) — the writer
+    // draws each as its own /InkList path. A malformed pair is skipped rather than failing the export, exactly as
+    // the renderers read it.
+    private static IReadOnlyList<IReadOnlyList<(double X, double Y)>> Strokes(string? points) =>
+    [
+        .. (points ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(stroke => (IReadOnlyList<(double X, double Y)>)
+            [
+                .. stroke.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(pair => pair.Split(','))
+                    .Where(pair => pair.Length == 2
+                        && double.TryParse(pair[0], NumberStyles.Float, CultureInfo.InvariantCulture, out _)
+                        && double.TryParse(pair[1], NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                    .Select(pair => (double.Parse(pair[0], CultureInfo.InvariantCulture), double.Parse(pair[1], CultureInfo.InvariantCulture))),
+            ])
+            .Where(stroke => stroke.Count > 0),
+    ];
 
     // "<name> (annotations).pdf": what the person receives, not the version's internal key.
     private async Task<string> FileNameAsync(VersionRow version, CancellationToken cancellationToken)

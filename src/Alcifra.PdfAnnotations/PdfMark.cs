@@ -39,5 +39,14 @@ public enum PdfMarkShape
 /// <param name="Points">A stroke's normalized points; empty for every other shape.</param>
 /// <param name="Colour">"#RRGGBB".</param>
 /// <param name="Author">Shown by the viewer as the annotation's author.</param>
+/// <param name="Strokes">A drawing's lines (#2460): when non-empty it wins over <paramref name="Points"/>, which
+/// stays the single-line form every caller used before multi-stroke drawings existed.</param>
 public sealed record PdfMark(PdfMarkShape Shape, int Page, double X, double Y, double Width, double Height,
-    IReadOnlyList<(double X, double Y)> Points, string Text, string Colour, string Author);
+    IReadOnlyList<(double X, double Y)> Points, string Text, string Colour, string Author,
+    IReadOnlyList<IReadOnlyList<(double X, double Y)>>? Strokes = null)
+{
+    /// <summary>The ink as strokes: <see cref="Strokes"/> when a drawing carries several lines, else the single
+    /// <see cref="Points"/> line (empty for shapes that are not ink).</summary>
+    public IReadOnlyList<IReadOnlyList<(double X, double Y)>> Ink =>
+        Strokes is { Count: > 0 } strokes ? strokes : [Points];
+}

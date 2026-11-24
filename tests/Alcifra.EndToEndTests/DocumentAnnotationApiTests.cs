@@ -147,6 +147,53 @@ public class DocumentAnnotationApiTests
         await AssertBadRequest(api, url, new { pageIndex = 0, kind = 7, positionX = 0.2, positionY = 0.2, points = "0.2,0.2", text = "", color = "#F44336" }, "INVALID_ANNOTATION_POINTS");
     }
 
+    [Fact]
+    public async Task One_drawing_carries_several_strokes_in_a_single_annotation()
+    {
+        // #2460: a freehand drawing is ONE finished session — its lines are separated by ';' and canonicalised per
+        // stroke. The signature (kind 8) takes the same multi-stroke ink: a signature's several letters are one
+        // annotation with one name.
+        var api = await AuthedClientAsync();
+        var (docId, versionId) = await SeedConfirmedDocumentAsync(api);
+        var url = $"/api/documents/{docId}/versions/{versionId}/annotations";
+
+        var drawing = await PostJson(api, url, new
+        {
+            pageIndex = 0,
+            kind = 7,
+            positionX = 0.1,
+            positionY = 0.2,
+            points = "0.1,0.2 0.3,0.4 ; 0.5,0.6 0.7,0.8",
+            text = "",
+            color = "#000000"
+        });
+        Assert.Equal("0.1,0.2 0.3,0.4;0.5,0.6 0.7,0.8", drawing.GetProperty("points").GetString());
+
+        var signature = await PostJson(api, url, new
+        {
+            pageIndex = 0,
+            kind = 8,
+            positionX = 0.2,
+            positionY = 0.4,
+            points = "0.2,0.4 0.3,0.5;0.4,0.6 0.5,0.4 0.6,0.5",
+            text = "Anna Meier",
+            color = "#000000"
+        });
+        Assert.Equal("0.2,0.4 0.3,0.5;0.4,0.6 0.5,0.4 0.6,0.5", signature.GetProperty("points").GetString());
+
+        // Every stroke must itself be a line: one lonely point between separators is refused.
+        await AssertBadRequest(api, url, new
+        {
+            pageIndex = 0,
+            kind = 7,
+            positionX = 0.1,
+            positionY = 0.2,
+            points = "0.1,0.2 0.3,0.4;0.5,0.6",
+            text = "",
+            color = "#000000"
+        }, "INVALID_ANNOTATION_POINTS");
+    }
+
     // Text styling — the schema exists so annotation styling survives an external-system interop round trip,
     // which it can only do if it also survives create → read here.
     [Fact]

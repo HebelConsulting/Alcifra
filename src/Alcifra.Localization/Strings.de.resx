@@ -7626,4 +7626,13 @@
   <data name="BrandPaletteFailed" xml:space="preserve">
     <value>Die Farbvariante konnte nicht geändert werden.</value>
   </data>
+  <data name="AnnotationFinished" xml:space="preserve">
+    <value>Fertig</value>
+  </data>
+  <data name="AnnotationUndo" xml:space="preserve">
+    <value>Rückgängig</value>
+  </data>
+  <data name="AnnotationRedo" xml:space="preserve">
+    <value>Wiederholen</value>
+  </data>
 </root>

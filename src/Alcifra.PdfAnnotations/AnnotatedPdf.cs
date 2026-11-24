@@ -205,23 +205,31 @@ public static class AnnotatedPdf
     private static void AddInk(PdfDocument owner, PdfDictionary annotation, PdfMark mark,
         Func<double, double, (double X, double Y)> toUser)
     {
-        var left = mark.Points.Count == 0 ? mark.X : mark.Points.Min(p => p.X);
-        var top = mark.Points.Count == 0 ? mark.Y : mark.Points.Min(p => p.Y);
-        var right = mark.Points.Count == 0 ? mark.X : mark.Points.Max(p => p.X);
-        var bottom = mark.Points.Count == 0 ? mark.Y : mark.Points.Max(p => p.Y);
+        var ink = mark.Ink;
+        var all = ink.SelectMany(stroke => stroke).ToList();
+        var left = all.Count == 0 ? mark.X : all.Min(p => p.X);
+        var top = all.Count == 0 ? mark.Y : all.Min(p => p.Y);
+        var right = all.Count == 0 ? mark.X : all.Max(p => p.X);
+        var bottom = all.Count == 0 ? mark.Y : all.Max(p => p.Y);
         annotation.Elements.SetRectangle("/Rect", new PdfRectangle(new XRect(
             Math.Min(toUser(left, top).X, toUser(right, bottom).X), Math.Min(toUser(left, top).Y, toUser(right, bottom).Y),
             Math.Abs(toUser(right, bottom).X - toUser(left, top).X), Math.Abs(toUser(right, bottom).Y - toUser(left, top).Y))));
+
+        // One ink path PER stroke (#2460): /InkList natively holds the several lines of one drawing.
         var list = new PdfArray(owner);
-        var path = new PdfArray(owner);
-        foreach (var (x, y) in mark.Points)
+        foreach (var stroke in ink.Where(stroke => stroke.Count > 0))
         {
-            var (ux, uy) = toUser(x, y);
-            path.Elements.Add(new PdfReal(ux));
-            path.Elements.Add(new PdfReal(uy));
+            var path = new PdfArray(owner);
+            foreach (var (x, y) in stroke)
+            {
+                var (ux, uy) = toUser(x, y);
+                path.Elements.Add(new PdfReal(ux));
+                path.Elements.Add(new PdfReal(uy));
+            }
+
+            list.Elements.Add(path);
         }
 
-        list.Elements.Add(path);
         annotation.Elements["/InkList"] = list;
     }
 
@@ -277,11 +285,15 @@ public static class AnnotatedPdf
 
         void Polyline()
         {
-            for (var i = 1; i < mark.Points.Count; i++)
+            // Every stroke of the drawing (#2460): a signature's several letters are several lines, one mark.
+            foreach (var stroke in mark.Ink)
             {
-                var (ax, ay) = at(mark.Points[i - 1].X, mark.Points[i - 1].Y);
-                var (bx, by) = at(mark.Points[i].X, mark.Points[i].Y);
-                gfx.DrawLine(pen, ax, ay, bx, by);
+                for (var i = 1; i < stroke.Count; i++)
+                {
+                    var (ax, ay) = at(stroke[i - 1].X, stroke[i - 1].Y);
+                    var (bx, by) = at(stroke[i].X, stroke[i].Y);
+                    gfx.DrawLine(pen, ax, ay, bx, by);
+                }
             }
         }
 
@@ -348,10 +360,11 @@ public static class AnnotatedPdf
                     Polyline();
                     if (!string.IsNullOrWhiteSpace(mark.Text))
                     {
-                        var left = mark.Points.Count == 0 ? mark.X : mark.Points.Min(p => p.X);
-                        var top = mark.Points.Count == 0 ? mark.Y : mark.Points.Min(p => p.Y);
-                        var right = mark.Points.Count == 0 ? mark.X : mark.Points.Max(p => p.X);
-                        var bottom = mark.Points.Count == 0 ? mark.Y : mark.Points.Max(p => p.Y);
+                        var all = mark.Ink.SelectMany(stroke => stroke).ToList();
+                        var left = all.Count == 0 ? mark.X : all.Min(p => p.X);
+                        var top = all.Count == 0 ? mark.Y : all.Min(p => p.Y);
+                        var right = all.Count == 0 ? mark.X : all.Max(p => p.X);
+                        var bottom = all.Count == 0 ? mark.Y : all.Max(p => p.Y);
                         var ink = Box(left, top, right, bottom);
                         DrawText(gfx, mark.Text, 10, new XSolidBrush(colour),
                             new XRect(ink.Left - 40, ink.Bottom + 2, ink.Width + 80, 18), XStringFormats.Center);

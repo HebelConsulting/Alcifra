@@ -7626,4 +7626,13 @@
   <data name="BrandPaletteFailed" xml:space="preserve">
     <value>Impossibile cambiare la tavolozza.</value>
   </data>
+  <data name="AnnotationFinished" xml:space="preserve">
+    <value>Finito</value>
+  </data>
+  <data name="AnnotationUndo" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="AnnotationRedo" xml:space="preserve">
+    <value>Ripeti</value>
+  </data>
 </root>

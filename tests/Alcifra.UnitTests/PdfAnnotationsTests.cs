@@ -159,6 +159,38 @@ public sealed class PdfAnnotationsTests
         Assert.Equal("Anna Meier", annotation.Content);
     }
 
+    [Fact]
+    public void A_multi_stroke_drawing_is_several_ink_paths_of_one_annotation()
+    {
+        // #2460: one drawing = ONE annotation whose /InkList carries every line — a signature's several letters
+        // included, since the phone's signature is a drawing session with a name.
+        var mark = Mark(PdfMarkShape.Signature, x: 0.2, y: 0.4, text: "Anna Meier") with
+        {
+            Strokes = [[(0.2, 0.4), (0.3, 0.5)], [(0.4, 0.6), (0.5, 0.4), (0.6, 0.5)]],
+        };
+        var annotated = AnnotatedPdf.Write(Page(), [mark]);
+
+        using var check = PdfReader.Open(new MemoryStream(annotated), PdfDocumentOpenMode.Import);
+        var annotation = check.Pages[0].Elements.GetArray("/Annots")!.Elements.GetDictionary(0)!;
+        Assert.Equal("/Ink", annotation.Elements.GetName("/Subtype"));
+        Assert.Equal("Anna Meier", annotation.Elements.GetString("/Contents"));
+        Assert.Equal(2, annotation.Elements.GetArray("/InkList")!.Elements.Count);
+    }
+
+    [Fact]
+    public void A_multi_stroke_signature_flattens_every_line_and_its_name()
+    {
+        var mark = Mark(PdfMarkShape.Signature, x: 0.2, y: 0.4, text: "Anna Meier") with
+        {
+            Strokes = [[(0.2, 0.4), (0.3, 0.5)], [(0.4, 0.6), (0.5, 0.4), (0.6, 0.5)]],
+        };
+        var annotated = AnnotatedPdf.WriteFlattened(Page(), [mark]);
+
+        using var pdf = Reader.PdfDocument.Open(annotated, new Reader.ParsingOptions());
+        Assert.Empty(pdf.GetPage(1).GetAnnotations());
+        Assert.Contains("Anna Meier", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
     private static PdfMark Mark(PdfMarkShape shape, double x, double y, double w = 0, double h = 0, string text = "",
         IReadOnlyList<(double X, double Y)>? points = null) =>
         new(shape, Page: 0, x, y, w, h, points ?? [], text, "#FFEB3B", "Demo Admin");

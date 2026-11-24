@@ -4,6 +4,8 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 
+using Alcifra.Presentation;
+
 namespace Alcifra.DesktopClient.Views;
 
 // View / create / edit a sticky note (ADR "Document annotations"). ShowDialog<AnnotationDialog.Result?> returns
@@ -11,17 +13,17 @@ namespace Alcifra.DesktopClient.Views;
 // MainWindow's dialog provider) performs the API call.
 public partial class AnnotationDialog : Window
 {
-    // The fixed palette (hex, matches the server's #RRGGBB validation).
-    private static readonly string[] Palette = ["#FFEB3B", "#8BC34A", "#4FC3F7", "#FF8A80", "#FFB74D", "#CE93D8"];
+    // The shared palette (AnnotationPalette, darkest to lightest — #2460), hex as the server validates it.
+    private static readonly string[] Palette = [.. AnnotationPalette.Colours];
 
-    private string _color = "#FFEB3B";
+    private string _color = AnnotationPalette.Default;
     private readonly bool _canEdit;
     // A markup shape (highlight/rectangle/arrow) rather than a sticky note — its text is optional (ADR
     // "Annotation markup"), so a colour-only change must be savable with an empty text box (the original bug:
     // the empty-text guard made the palette unusable for highlights).
     private readonly bool _isShape;
 
-    public AnnotationDialog() : this("", "#FFEB3B", null, canEdit: true, canDelete: false)
+    public AnnotationDialog() : this("", AnnotationPalette.Default, null, canEdit: true, canDelete: false)
     {
     }
 
@@ -31,7 +33,7 @@ public partial class AnnotationDialog : Window
 
         _canEdit = canEdit;
         _isShape = isShape;
-        _color = string.IsNullOrWhiteSpace(color) ? "#FFEB3B" : color;
+        _color = string.IsNullOrWhiteSpace(color) ? AnnotationPalette.Default : color;
         NoteBox.Text = text;
         NoteBox.IsReadOnly = !canEdit;
         SaveButton.IsVisible = canEdit;

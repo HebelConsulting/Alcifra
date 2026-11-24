@@ -431,11 +431,16 @@ function freehandEl(points, color) {
     svg.setAttribute('viewBox', '0 0 100 100');
     svg.setAttribute('preserveAspectRatio', 'none');
     svg.style.left = '0'; svg.style.top = '0'; svg.style.width = '100%'; svg.style.height = '100%';
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    const pts = (points || '').split(' ').map(pr => { const [px, py] = pr.split(','); return `${(+px) * 100},${(+py) * 100}`; }).join(' ');
-    line.setAttribute('points', pts);
-    if (color) line.style.stroke = color;
-    svg.appendChild(line);
+    // ONE polyline PER stroke (#2460): a drawing's lines are separated by ';', each scaled to the 0..100 viewBox.
+    for (const stroke of (points || '').split(';')) {
+        const pts = stroke.split(' ').filter(pr => pr.length > 0)
+            .map(pr => { const [px, py] = pr.split(','); return `${(+px) * 100},${(+py) * 100}`; }).join(' ');
+        if (!pts) continue;
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        line.setAttribute('points', pts);
+        if (color) line.style.stroke = color;
+        svg.appendChild(line);
+    }
     return svg;
 }
 

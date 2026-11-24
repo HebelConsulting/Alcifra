@@ -7626,4 +7626,13 @@
   <data name="BrandPaletteFailed" xml:space="preserve">
     <value>The palette could not be changed.</value>
   </data>
+  <data name="AnnotationFinished" xml:space="preserve">
+    <value>Finished</value>
+  </data>
+  <data name="AnnotationUndo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="AnnotationRedo" xml:space="preserve">
+    <value>Redo</value>
+  </data>
 </root>

@@ -5,6 +5,8 @@ using Alcifra.Client.Components.Panes;
 using Alcifra.Client.Dialogs;
 using Alcifra.Localization;
 
+using Alcifra.Presentation;
+
 namespace Alcifra.Client.Services;
 
 /// <summary>
@@ -35,7 +37,7 @@ namespace Alcifra.Client.Services;
 public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, ISnackbar snackbar) : IPreviewAnnotationHost
 {
     /// <summary>The draw colour palette (ADR "Highlighting redesign").</summary>
-    public static readonly string[] Palette = ["#FFEB3B", "#8BC34A", "#4FC3F7", "#FF8A80", "#FFB74D", "#CE93D8"];
+    public static readonly string[] Palette = [.. AnnotationPalette.Colours];
 
     private const string DefaultColor = "#FFEB3B";
 

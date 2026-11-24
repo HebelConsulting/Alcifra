@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Alcifra.DesktopClient.Services;
 
+using Alcifra.Presentation;
+
 namespace Alcifra.DesktopClient.ViewModels;
 
 // The sticky-note / positional-annotation half of the preview (ADR "Document annotations"), split out of
@@ -70,7 +72,7 @@ public sealed partial class PreviewViewModel
             return;
         }
 
-        var result = await AnnotationDialog(new AnnotationDialogRequest("", "#FFEB3B", null, CanEdit: true, CanDelete: false));
+        var result = await AnnotationDialog(new AnnotationDialogRequest("", Alcifra.Presentation.AnnotationPalette.Default, null, CanEdit: true, CanDelete: false));
         if (result is null || result.Action != "save")
         {
             return;
@@ -190,9 +192,9 @@ public sealed partial class PreviewViewModel
 
     // The active colour for newly-drawn shapes + the toolbar palette (ADR "Highlighting redesign"). Picking a
     // swatch sets this AND recolours the current selection. Shown while a tool is active or something is selected.
-    [ObservableProperty] private string _annotationColor = "#FFEB3B";
+    [ObservableProperty] private string _annotationColor = Alcifra.Presentation.AnnotationPalette.Default;
     public IReadOnlyList<AnnotationSwatch> AnnotationPalette { get; } =
-        new[] { "#FFEB3B", "#8BC34A", "#4FC3F7", "#FF8A80", "#FFB74D", "#CE93D8" }.Select(h => new AnnotationSwatch(h)).ToList();
+        [.. Alcifra.Presentation.AnnotationPalette.Colours.Select(h => new AnnotationSwatch(h))];
     public bool ShowAnnotationColorPalette => AnnotationTool > 0 || HasSelectedAnnotations;
 
     // Picks a colour: sets the draw colour + recolours every selected annotation the caller may edit, then reload.

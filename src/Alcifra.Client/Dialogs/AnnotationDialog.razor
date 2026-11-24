@@ -41,7 +41,7 @@
     private IMudDialogInstance Dialog { get; set; } = null!;
 
     [Parameter] public string Text { get; set; } = string.Empty;
-    [Parameter] public string NoteColor { get; set; } = "#FFEB3B";
+    [Parameter] public string NoteColor { get; set; } = AnnotationPalette.Default;
     [Parameter] public string? AuthorName { get; set; }
     [Parameter] public bool CanEdit { get; set; } = true;
     [Parameter] public bool CanDelete { get; set; }
@@ -50,15 +50,15 @@
     [Parameter] public bool IsShape { get; set; }
 
     // A small fixed palette (hex, matches the server's #RRGGBB validation).
-    private static readonly string[] Palette = ["#FFEB3B", "#8BC34A", "#4FC3F7", "#FF8A80", "#FFB74D", "#CE93D8"];
+    private static readonly string[] Palette = [.. AnnotationPalette.Colours];
 
     private string _text = string.Empty;
-    private string _color = "#FFEB3B";
+    private string _color = AnnotationPalette.Default;
 
     protected override void OnInitialized()
     {
         _text = Text;
-        _color = string.IsNullOrWhiteSpace(NoteColor) ? "#FFEB3B" : NoteColor;
+        _color = string.IsNullOrWhiteSpace(NoteColor) ? AnnotationPalette.Default : NoteColor;
     }
 
     private void SelectColor(string c)

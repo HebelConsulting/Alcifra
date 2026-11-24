@@ -465,32 +465,47 @@ public partial class DocumentAnnotationsController : ControllerBase
         return null;
     }
 
-    // Parse a Freehand path "x,y x,y …" into ≥ 2 normalized points (each in [0,1]) and re-emit it canonically
-    // (invariant culture, 4 decimals). Throws InvalidAnnotationPoints on a malformed/too-short/out-of-range path.
+    // Parse a Freehand/signature ink path into one or more STROKES of ≥ 2 normalized points each (every point in
+    // [0,1]) and re-emit it canonically (invariant culture, 4 decimals) — strokes separated by ';' (#2460: ONE
+    // drawing carries its several lines, and a signature its several letters). A single-stroke value (no ';') is
+    // the shape older clients wrote and stays valid. Throws InvalidAnnotationPoints on a malformed, too-short or
+    // out-of-range path; empty segments between separators are tolerated and dropped.
     private static string CanonicalizePoints(string? points)
     {
-        var pairs = (points ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (pairs.Length < 2)
+        var strokes = (points ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (strokes.Length == 0)
         {
             throw new InvalidAnnotationPointsException();
         }
 
-        var canonical = new List<string>(pairs.Length);
-        foreach (var pair in pairs)
+        var canonicalStrokes = new List<string>(strokes.Length);
+        foreach (var stroke in strokes)
         {
-            var xy = pair.Split(',');
-            if (xy.Length != 2
-                || !double.TryParse(xy[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var px)
-                || !double.TryParse(xy[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var py)
-                || px < 0 || px > 1 || py < 0 || py > 1)
+            var pairs = stroke.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (pairs.Length < 2)
             {
                 throw new InvalidAnnotationPointsException();
             }
 
-            canonical.Add($"{px.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)},{py.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)}");
+            var canonical = new List<string>(pairs.Length);
+            foreach (var pair in pairs)
+            {
+                var xy = pair.Split(',');
+                if (xy.Length != 2
+                    || !double.TryParse(xy[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var px)
+                    || !double.TryParse(xy[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var py)
+                    || px < 0 || px > 1 || py < 0 || py > 1)
+                {
+                    throw new InvalidAnnotationPointsException();
+                }
+
+                canonical.Add($"{px.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)},{py.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)}");
+            }
+
+            canonicalStrokes.Add(string.Join(' ', canonical));
         }
 
-        return string.Join(' ', canonical);
+        return string.Join(';', canonicalStrokes);
     }
 
     private Guid RequireIfMatch()
