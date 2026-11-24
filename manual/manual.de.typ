@@ -1126,7 +1126,7 @@ Indexfeld — gehört in die Verfeinerungsfilter neben den Ergebnissen, nicht in
 
 = Zusammenarbeit
 
-#feature(id: "collaboration", title: "Zusammenarbeit", figure: "web-chat")[Dokumente sind gemeinschaftlich: Schreiben Sie *Kommentare*#idx("Chat / Kommentare") in einen Verlauf, bringen Sie *Anmerkungen*#idx("Anmerkungen") (Haftnotizen, Hervorhebungen und Formen)
+#feature(id: "collaboration", title: "Zusammenarbeit", figure: "web-chat")[Dokumente sind gemeinschaftlich: Schreiben Sie *Kommentare*#idx("Chat / Kommentare") in einen Verlauf, bringen Sie *Anmerkungen*#idx("Anmerkungen") (Haftnotizen, Hervorhebungen, Formen, Freihandzeichnungen und Unterschriften)
 auf der Vorschau an, und *folgen* Sie#idx("Folgen / abonnieren") einem Dokument oder Ordner, um über Aktivitäten *benachrichtigt*#idx("Benachrichtigungen") zu werden. Setzen Sie sich eine *Erinnerung*#idx("Erinnerung"), und
 behalten Sie alles, was Ihnen zugewiesen ist, im Dashboard *Meine Arbeit*#idx("Meine Arbeit") im Blick. Um ein Dokument exklusiv zu bearbeiten, *checken Sie es aus* — andere
 sehen, dass es gesperrt ist —, und *checken* Sie Ihre Änderungen dann als neue Version *ein*.]
@@ -1174,6 +1174,63 @@ eine Bearbeitung sinnvoll sind:
   Version zu zeigen. Es gibt tatsächlich nichts in der Vorschau zu zeigen, und dort die archivierte Datei
   anzuzeigen, würde eine andere Frage beantworten.
 ]
+
+== Anmerkungen und Unterschriften <annotations>
+
+*Die Seite markieren.* Wählen Sie ein Dokument, und über der Vorschau erscheint eine Reihe von
+Anmerkungswerkzeugen: eine Haftnotiz, eine Hervorhebung#idx("Hervorhebung"), ein Rechteck und ein Pfeil — und
+daneben der Stift#idx("Stift / Freihand") und das Signaturwerkzeug#idx("Unterschrift"). Wählen Sie eines und
+ziehen Sie über die Seite; eine gezeichnete Anmerkung wird gespeichert, sobald Sie loslassen, eine Notiz, sobald
+Sie ihren Text bestätigen. Alle, die das Dokument sehen dürfen, sehen die Anmerkungen. Die Palette
+neben den Werkzeugen bestimmt die Farbe der nächsten Anmerkung oder färbt die ausgewählten um. Klicken Sie eine
+Anmerkung an — oder ziehen Sie einen Rahmen um mehrere —, um sie zu verschieben, in der Grösse zu ändern, zu
+kopieren, einzufügen oder zu löschen; die Notiz-Schaltfläche ganz aussen blendet alle Anmerkungen der Seite ein
+oder aus.
+
+#shot("screenshots/de/web-annotations.png",
+  [Die Anmerkungswerkzeuge über der Seite — hier mit einer Hervorhebung, einer Haftnotiz und einem Stempel auf einer Rechnung.])
+
+*Eine Zeichnung, viele Striche.* Stift und Signaturwerkzeug legen nicht pro Zug eine Anmerkung ab. Jedes öffnet
+eine *Zeichnung*#idx("Zeichnung"): Jeder Strich gehört zur selben Anmerkung, bis Sie *Fertig* drücken — eine
+Unterschrift mit ihren Schnörkeln oder eine Skizze mit mehreren Linien bleibt also EINE Anmerkung, nicht eine pro
+Linie. Solange eine Zeichnung offen ist, weichen die Werkzeuge ihren eigenen Bedienelementen — *Fertig*,
+*Abbrechen*, *Rückgängig* und *Wiederholen* (⌘Z / Ctrl+Z und ⌘⇧Z / Ctrl+Shift+Z tun dasselbe) —, und die
+Palette färbt die ganze Zeichnung um; eine zweite Farbe ist eine zweite Zeichnung. Eine Zeichnung bleibt auf der
+Seite, auf der sie begonnen wurde. Das Signaturwerkzeug ist dieselbe Zeichnung mit einem Namen: *Fertig* fragt
+danach, der Name erscheint bei der Tinte, und die Anmerkung gilt als Unterschrift.
+
+#shot("screenshots/de/web-annotations-session.png",
+  [Eine Zeichnung in Arbeit: Die Werkzeuge haben Fertig, Abbrechen, Rückgängig und Wiederholen Platz gemacht,
+   und die offene Zeichnung hat durchgehend eine Farbe.])
+
+#shot("screenshots/de/web-annotations-sign.png",
+  [Eine Unterschrift abschliessen: Der Name wird einmal gefragt, bei Fertig, und erscheint bei der Tinte.])
+
+*Die Anmerkungen aus dem Archiv herausbringen.* Zwei Aktionen erzeugen eine Datei, und sie beantworten
+verschiedene Fragen.
+
+#table(
+  columns: (auto, 1fr),
+  stroke: 0.5pt + luma(80%),
+  inset: 6pt,
+  [*Aktion*], [*Was sie tut*],
+  [*PDF mit Anmerkungen*], [Im Menüband: lädt eine Kopie#idx("PDF mit Anmerkungen") der aktuellen Version
+   herunter, die ihre Anmerkungen als echte PDF-Anmerkungen trägt — für Empfängerinnen und Empfänger ohne Konto.
+   Es wird nichts abgelegt; das Archiv bleibt unverändert. Angeboten wird es nur, wo der Inhalt ein PDF ist und
+   die Mandantin ihn unverschlüsselt ausliefert.],
+  [*Alle Unterschriften abgeschlossen*], [Erscheint neben den Werkzeugen, sobald eine Unterschrift existiert:
+   zeichnet alle Anmerkungen der aktuellen Version in die Seiten ein und legt das Ergebnis als NEUE
+   Version#idx("Alle Unterschriften abgeschlossen") ab. Das kann nicht rückgängig gemacht werden — das
+   unterschriebene Dokument ist danach ein gewöhnliches PDF, das jeder Betrachter gleich zeigt, und die Liste der
+   Anmerkungen ist leer, weil die Anmerkungen Teil der Datei sind.],
+)
+
+*Woran eine Anmerkung gebunden ist, und wer sie anbringen darf.* Eine Anmerkung gehört zu der Version, auf der
+sie gezeichnet wurde. Eine spätere Version ist eine andere Seite, also bleiben die früheren Anmerkungen bei der
+früheren Version — deshalb schliesst das Abschliessen der Unterschriften in eine neue Version ab, statt die
+archivierte zu verändern. Zum Anbringen braucht es das Anmerkungsrecht auf dem Dokument. Im Browser erscheinen die
+Werkzeuge nur mit Maus oder Stift, denn Markieren ist eine Ziehbewegung: Ein reiner Touchscreen zeigt die
+Anmerkungen, bietet die Werkzeuge aber nicht an, während die App auf dem Telefon ihre eigene Touch-Bearbeitung hat.
 
 = Teilen ausserhalb von #product
 

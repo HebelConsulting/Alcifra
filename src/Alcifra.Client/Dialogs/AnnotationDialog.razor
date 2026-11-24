@@ -8,8 +8,8 @@
             {
                 <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">@string.Format(Strings.Get("AnnotationBy"), AuthorName)</MudText>
             }
-            <MudTextField @bind-Value="_text" Label="@(IsShape ? Strings.Get("AnnotationLabelOptional") : Strings.Get("AnnotationNote"))" Variant="Variant.Outlined" Margin="Margin.Dense"
-                          Lines="3" Immediate="true" ReadOnly="@(!CanEdit)" Class="mb-3" />
+            <MudTextField @bind-Value="_text" Label="@(Label ?? (IsShape ? Strings.Get("AnnotationLabelOptional") : Strings.Get("AnnotationNote")))" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Lines="@TextLines" Immediate="true" ReadOnly="@(!CanEdit)" Class="mb-3" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary">@Strings.Get("AnnotationColour")</MudText>
             <div style="display:flex; gap:8px; margin-top:4px;">
                 @foreach (var c in Palette)
@@ -48,6 +48,12 @@
     // A markup shape (highlight/rectangle/arrow) rather than a sticky note — its text (a label) is optional, so a
     // colour-only save is allowed (ADR "Annotation shape recolour" web parity).
     [Parameter] public bool IsShape { get; set; }
+
+    // What the text field asks for, where the dialog is not asking for a note's or a shape's text: the signature
+    // prompt asks for the signer's NAME (#2455's figure showed "Note" over a signature). Also how tall the field
+    // is, so a one-line answer is not given a three-line box.
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public int TextLines { get; set; } = 3;
 
     // A small fixed palette (hex, matches the server's #RRGGBB validation).
     private static readonly string[] Palette = [.. AnnotationPalette.Colours];

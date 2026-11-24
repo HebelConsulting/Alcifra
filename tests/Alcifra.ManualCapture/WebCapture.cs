@@ -96,6 +96,10 @@ public static partial class WebCapture
             Locale = Locale,
             ViewportSize = new ViewportSize { Width = ViewportWidth, Height = ViewportHeight },
             ColorScheme = ColorScheme.Light,
+            // The client formats every timestamp in the BROWSER's zone (SessionTimeZone.Current), so an unpinned
+            // context renders the figures in the capturing machine's local time — every time-bearing figure
+            // churned between a Zurich laptop and the UTC runner that regenerates main's manual.
+            TimezoneId = "UTC",
         });
         // Pre-dismiss the one-time post-logon desktop-client promo (ADR 0505): on a fresh context its modal
         // would overlay the workbench and its scrim intercepts pointer events, breaking every post-login capture.
@@ -104,6 +108,11 @@ public static partial class WebCapture
         await ChooseLanguageAsync(context);
         var page = await context.NewPageAsync();
         page.SetDefaultTimeout(60000);
+        // Name the client-side exception whenever the workbench lands on its error bar: a broken page otherwise
+        // photographs as a series of "skipped" figures with no cause (#2465). The console carries the login page's
+        // CSP notes too — noise, but a few lines per run is a fair price for never failing blind.
+        page.Console += (_, msg) => { if (msg.Type == "error") Log.LogWarning("[web] console error: {Text}", msg.Text); };
+        page.PageError += (_, err) => Log.LogWarning("[web] page error: {Text}", err);
 
         // Land on the SPA (DOMContentLoaded, not NetworkIdle — a Blazor WASM SPA never goes network-idle).
         await page.GotoAsync(app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -146,6 +155,7 @@ public static partial class WebCapture
         await CapturePersonalLaunchersAsync(page, outDir);
         await CaptureVersionsAsync(page, outDir);
         await CaptureChatAsync(page, outDir);
+        await CaptureAnnotationsAsync(page, outDir);
         await CaptureVersionCompareAsync(page, outDir);
         await CaptureSealedDialogsAsync(page, outDir);
         await CaptureWebDavAsync(page, outDir);
@@ -183,6 +193,8 @@ public static partial class WebCapture
             ViewportSize = new ViewportSize { Width = ViewportWidth, Height = ViewportHeight },
             ColorScheme = ColorScheme.Light,
             HasTouch = true,
+            // As the main context: pin the zone the client formats timestamps in.
+            TimezoneId = "UTC",
         });
         await touch.AddInitScriptAsync("try { localStorage.setItem('sa.desktopClientNoticeDismissed', '1'); } catch (e) { }");
 
@@ -754,6 +766,8 @@ public static partial class WebCapture
                     Locale = Locale,
                     ViewportSize = new ViewportSize { Width = ViewportWidth, Height = ViewportHeight },
                     ColorScheme = ColorScheme.Light,
+                    // As the main context: pin the zone the client formats timestamps in.
+                    TimezoneId = "UTC",
                 });
                 var anonPage = await anon.NewPageAsync();
                 await anonPage.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
@@ -791,27 +805,12 @@ public static partial class WebCapture
             switch (name)
             {
                 case "repositories":
-                    // Drill Demo Repository → Contracts → Alpenglas AG → select the document, so the detail + preview panes
-                    // fill (the seeded invoice PDF renders via pdf.js, with the seeded highlight + sticky note on it).
-                    await page.GetByText("Demo Repository").First.ClickAsync();
-                    var contracts = page.Locator(".wb-list-row").Filter(new() { HasText = "Contracts" });
-                    await contracts.First.WaitForAsync(new() { Timeout = 15000 });
-                    await contracts.First.DblClickAsync();
-                    var alpenglas = page.Locator(".wb-list-row").Filter(new() { HasText = "Alpenglas AG" });
-                    await alpenglas.First.WaitForAsync(new() { Timeout = 15000 });
-                    await alpenglas.First.DblClickAsync();
-                    var doc = page.Locator(".wb-list-row").Filter(new() { HasText = "Invoice AG-2026-031" });
-                    await doc.First.WaitForAsync(new() { Timeout = 15000 });
-                    await doc.First.ClickAsync();
-                    // Not `.wb-sysfields` alone: the FOLDER's detail is already on screen and satisfies that
-                    // instantly, so one run shot the folder's pane and the next the invoice's (#832's last
-                    // straggler). The wait must name the subject the figure is about.
-                    await page.Locator(".wb-sysfields").GetByText("Invoice AG-2026-031").First.WaitForAsync(new() { Timeout = 15000 });
+                    // The seeded invoice fills the detail + preview panes (its PDF renders via pdf.js, with the
+                    // seeded highlight + sticky note on it).
+                    await SelectInvoiceAsync(page);
                     // The chat pane fills asynchronously after the detail — one run shot the seeded thread,
                     // the next "No messages yet" (#832). The administrator's seeded reply on the invoice is the anchor.
                     await page.Locator("[data-pane='chat']").GetByText("version 2 of the offer has six").First.WaitForAsync(new() { Timeout = 15000 });
-                    // Wait for the PDF preview + the annotation markers to render.
-                    try { await page.Locator(".wb-pv-note").First.WaitForAsync(new() { Timeout = 8000 }); } catch { /* preview still shown */ }
                     await page.WaitForTimeoutAsync(2000);
                     break;
 

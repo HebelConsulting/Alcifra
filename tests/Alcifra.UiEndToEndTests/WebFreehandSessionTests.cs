@@ -110,11 +110,13 @@ public class WebFreehandSessionTests
         // Both strokes reached the session (the layer is painted from the C# side, so this proves the round trip).
         await Expect(page.Locator(".wb-pv-session polyline")).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 15000 });
 
-        // Finished asks for the name (the annotation dialog as the text prompt).
+        // Finished asks for the name (the annotation dialog as the text prompt) — labelled as the NAME it is, in
+        // a one-line field (#2455: the prompt used to say "Note" over a three-line box).
         await page.Locator(".wb-pv-session-finish").ClickAsync();
         var nameDialog = page.Locator(".mud-dialog");
         await Expect(nameDialog).ToBeVisibleAsync();
-        await nameDialog.Locator("textarea").First.FillAsync("Anna Meier");
+        await Expect(nameDialog.Locator("label.mud-input-label").Filter(new() { HasText = "Name" }).First).ToBeVisibleAsync();
+        await nameDialog.GetByRole(AriaRole.Textbox).First.FillAsync("Anna Meier");
         await nameDialog.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
         // canEditContent and a signature — the gate is offered.
@@ -130,5 +132,36 @@ public class WebFreehandSessionTests
             async () => await confirm.GetByRole(AriaRole.Button, new() { Name = "All signatures completed" }).ClickAsync(),
             r => r.Request.Method == "POST" && r.Url.Contains("/versions") && r.Status == 201);
         await page.WaitForResponseAsync(r => r.Request.Method == "PUT" && r.Url.Contains("/versions/") && r.Status == 200);
+    }
+
+    // Cancelling the name prompt leaves the drawing open — a cancelled name files nothing — and cancelling THAT
+    // must leave the workbench working (#2455, found by the manual's figure capture): the capture hit a Blazor
+    // renderer crash here ("Cannot read properties of null (reading 'removeChild')" — the error bar then covered
+    // the tab bar), which no test covered, because every test SAVED the prompt.
+    [Fact]
+    public async Task Cancelling_the_name_prompt_then_the_session_leaves_the_workbench_working()
+    {
+        var page = await OpenPdfAsync("cancelname-" + Guid.NewGuid().ToString("N")[..8]);
+
+        await page.Locator(".wb-pv-tool-sign").ClickAsync();
+        await StrokeAsync(page, 60, 60, 120, 10);
+        await Expect(page.Locator(".wb-pv-session polyline")).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15000 });
+
+        await page.Locator(".wb-pv-session-finish").ClickAsync();
+        var nameDialog = page.Locator(".mud-dialog");
+        await Expect(nameDialog).ToBeVisibleAsync();
+        await nameDialog.GetByRole(AriaRole.Button, new() { Name = "Cancel" }).ClickAsync();
+        await Expect(nameDialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 15000 });
+
+        // A cancelled name leaves the drawing open; cancelling it returns the tools.
+        await Expect(page.Locator(".wb-pv-session-cancel")).ToBeVisibleAsync();
+        await page.Locator(".wb-pv-session-cancel").ClickAsync();
+        await Expect(page.Locator(".wb-pv-tool-sign")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15000 });
+
+        // The renderer survived: no error bar, and a bottom tab still opens.
+        await Expect(page.Locator("#blazor-error-ui")).ToBeHiddenAsync();
+        await page.Locator(".wb-tab[aria-label='Search']").First.ClickAsync();
+        await Expect(page.Locator(".wb-tab[aria-label='Search']").First)
+            .ToHaveClassAsync(new System.Text.RegularExpressions.Regex("wb-tab-active"));
     }
 }

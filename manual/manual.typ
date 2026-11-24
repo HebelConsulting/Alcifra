@@ -1102,7 +1102,7 @@ results, not in the text box.
 
 = Collaboration
 
-#feature(id: "collaboration", title: "Collaboration", figure: "web-chat")[Documents are collaborative: post *comments*#idx("Chat / comments") in a feed, attach *annotations*#idx("Annotations") (sticky notes, highlights, and shapes)
+#feature(id: "collaboration", title: "Collaboration", figure: "web-chat")[Documents are collaborative: post *comments*#idx("Chat / comments") in a feed, attach *annotations*#idx("Annotations") (sticky notes, highlights, shapes, freehand drawings and signatures)
 onto the preview, and *follow*#idx("Follow / subscribe") a document or folder to be *notified*#idx("Notifications") of activity. Set yourself a *reminder*#idx("Reminder"), and
 track everything assigned to you on the *My work* dashboard#idx("My work"). To edit a document exclusively, *check it out* — others
 see it is locked — then *check in* your changes as a new version.]
@@ -1147,6 +1147,57 @@ A document you have edited is marked *Modified*, and only those offer the action
   archived version. There is genuinely nothing to preview, and showing the archived file there would be
   answering a different question.
 ]
+
+== Annotations and signatures <annotations>
+
+*Marking up the page.* Select a document and its preview gains a row of annotation tools: a sticky note, a
+highlight#idx("Highlight"), a rectangle and an arrow — and beside them the pen#idx("Pen / freehand") and the
+sign tool#idx("Signature"). Pick one and drag across the page; a drawn mark is saved the moment you let go, a
+note when you confirm its text. Everyone who may see the document sees the marks. The palette beside the tools
+sets the colour of your next mark, or recolours the marks you have selected. Click a mark — or drag a
+frame around several — to move, resize, copy, paste or delete what is selected; the note button on the far side
+shows or hides all the marks on the page.
+
+#shot("screenshots/web-annotations.png",
+  [The annotation tools above the page — here with a highlight, a sticky note and a stamp on an invoice.])
+
+*One drawing, many strokes.* The pen and the sign tool do not file a mark per drag. Each opens a
+*drawing*#idx("Drawing"): every stroke you add joins the same annotation until you press *Finished*, so a
+signature with its flourishes or a sketch with several lines stays ONE mark, not one per line. While a drawing
+is open the tools give way to its own controls — *Finished*, *Cancel*, *Undo* and *Redo* (⌘Z / Ctrl+Z and
+⌘⇧Z / Ctrl+Shift+Z do the same) — and the palette recolours the whole drawing, so a second colour is a second
+drawing. A drawing stays on the page it was begun on. The sign tool is the same drawing with a name: *Finished*
+asks for it, the name is shown with the ink, and the mark counts as a signature.
+
+#shot("screenshots/web-annotations-session.png",
+  [A drawing in progress: the tools have given way to Finished, Cancel, Undo and Redo, and the open drawing is
+   one colour throughout.])
+
+#shot("screenshots/web-annotations-sign.png",
+  [Finishing a signature: the name is asked once, at Finished, and appears with the ink.])
+
+*Getting the marks out of the archive.* Two actions produce a file, and they answer different questions.
+
+#table(
+  columns: (auto, 1fr),
+  stroke: 0.5pt + luma(80%),
+  inset: 6pt,
+  [*Action*], [*What it does*],
+  [*PDF with annotations*], [In the ribbon: downloads a copy#idx("PDF with annotations") of the current version
+   carrying its marks as real PDF annotations, for a recipient who has no account. Nothing is filed; the archive
+   is unchanged. It is offered only where the content is a PDF and the tenant serves it unencrypted.],
+  [*All signatures completed*], [Appears beside the tools once a signature exists: draws every mark of the
+   current version into the pages and files the result as a NEW version#idx("All signatures completed"). It
+   cannot be undone — the signed document is then an ordinary PDF that every reader shows the same way, and the
+   list of marks is empty because the marks are part of the file.],
+)
+
+*What a mark is bound to, and who may make one.* A mark belongs to the version it was drawn on. A later version
+is a different page, so the earlier marks stay with the earlier version — which is why completing the signatures
+files a new version instead of altering the archived one. Authoring needs the annotate permission on the
+document. In a browser the tools appear only with a mouse or a pen, since marking up is a dragging gesture: a
+touch-only browser shows the marks but does not offer the tools, while the phone's own app has its own touch
+editing.
 
 = Sharing outside #product
 

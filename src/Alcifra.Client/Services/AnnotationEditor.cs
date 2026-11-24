@@ -328,6 +328,9 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
                 ["NoteColor"] = DefaultColor,
                 ["CanEdit"] = true,
                 ["CanDelete"] = false,
+                // The signature asks for a NAME, not a note (#2455): one line, labelled as what it is.
+                ["Label"] = Strings.Get("Name"),
+                ["TextLines"] = 1,
             });
             if ((await dialog.Result) is not { Canceled: false, Data: AnnotationDialog.AnnotationEditResult edit }
                 || edit.Action != "save" || string.IsNullOrWhiteSpace(edit.Text))
