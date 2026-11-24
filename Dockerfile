@@ -86,7 +86,7 @@ RUN dotnet publish "src/Alcifra.Api/Alcifra.Api.csproj" -c Release -o /app/publi
 # stay in lock-step with the API image (ADR 0490). macOS is unaffected — a Linux build cannot produce a .dmg, so
 # clients/macos/ links to the brand's release repository (ADR 0997).
 # bash, zip, tar and python3 come with our base (#2325, ADR 1088), built weekly into our registry.
-FROM --platform=$BUILDPLATFORM ghcr.io/hebelconsulting/alcifra-base-clients@sha256:5b8c9386a10105e7a904f73d2729337afc8cd1f7d92cc97a3c7bfd2688310ada AS clients
+FROM --platform=$BUILDPLATFORM ghcr.io/hebelconsulting/alcifra-base-clients@sha256:fdbd79091d31d8927d6d13e2ee34b66e32879c17d75c05215b817559b8f05e53 AS clients
 ARG VERSION=0.0.0-dev
 WORKDIR /src
 COPY . .
@@ -97,7 +97,7 @@ RUN BRAND_ICONS_DIR=/icons/ bash scripts/package-windows-linux.sh "$VERSION"
 
 # The runtime, upgraded and with icu-libs, curl, krb5-libs and tzdata, comes from our base (#2325, ADR 1088), built weekly
 # into our registry and on demand when an advisory should not wait; the reasons for each package stay below.
-FROM ghcr.io/hebelconsulting/alcifra-base-runtime@sha256:bc5326a215bf5f76715f586d8797f108ba6195faf151b526e4324833c080ea4b AS final
+FROM ghcr.io/hebelconsulting/alcifra-base-runtime@sha256:14dfa3badb4104a6ad31af7d331df6b958464690e9e46e416936b644e056ffd0 AS final
 ARG VERSION=0.0.0-dev
 WORKDIR /app
 
