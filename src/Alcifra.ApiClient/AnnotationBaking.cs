@@ -13,6 +13,19 @@ public static class AnnotationBaking
     public static bool HasSignature(IReadOnlyList<AnnotationsClient.AnnotationInfo> annotations) =>
         annotations.Any(a => a.Kind == 8);
 
+    /// <summary>
+    /// The version as a PDF carrying its marks as REAL PDF annotations — the ephemeral export's bytes (ADR 1106),
+    /// through the same writer and the same mapping the server's endpoint uses, so a client that builds it locally
+    /// (the phone's share sheet, an offline export) cannot drift from what the server serves. Nothing is filed.
+    /// </summary>
+    /// <exception cref="PdfEmbeddingException">The bytes are not a PDF that can be annotated, or the export failed.</exception>
+    public static byte[] ExportAnnotated(byte[] pdf, IReadOnlyList<AnnotationsClient.AnnotationInfo> annotations) =>
+        AnnotatedPdf.Write(pdf, MarksOf(annotations));
+
+    /// <summary>The export's suggested file name — the server's own rule, verbatim: "&#123;name&#125; (annotations).pdf".</summary>
+    public static string AnnotatedFileName(string documentName) =>
+        $"{Path.GetFileNameWithoutExtension(documentName)} (annotations).pdf";
+
     /// <summary>The version's PDF bytes with every mark drawn into the pages, as the next version's bytes.</summary>
     /// <exception cref="PdfEmbeddingException">The bytes are not a PDF that can be annotated, or the bake failed.</exception>
     public static byte[] Flatten(byte[] pdf, IReadOnlyList<AnnotationsClient.AnnotationInfo> annotations) =>

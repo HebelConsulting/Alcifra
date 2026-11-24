@@ -38,6 +38,21 @@ public sealed class AnnotationBakingTests
         Assert.Contains("Anna Meier", pdf.GetPage(1).Text, StringComparison.Ordinal);
     }
 
+    // #2454 re-opened (owner 2026-11-24): the phone shares the SAME ephemeral export the server builds — real PDF
+    // annotations, nothing filed. The mapping and writer are shared, so this asserts the one difference from the
+    // bake: the marks arrive as an annotation layer, not drawn into the page.
+    [Fact]
+    public void The_export_carries_the_marks_as_real_pdf_annotations()
+    {
+        var exported = AnnotationBaking.ExportAnnotated(Page(), [Row(0, text: "note"), Row(8, text: "Anna Meier", points: "0.2,0.4 0.3,0.5")]);
+
+        using var pdf = Reader.PdfDocument.Open(exported, new Reader.ParsingOptions());
+        Assert.NotEmpty(pdf.GetPage(1).GetAnnotations());
+
+        // The name the server's endpoint suggests, verbatim.
+        Assert.Equal("Invoice (annotations).pdf", AnnotationBaking.AnnotatedFileName("Invoice.pdf"));
+    }
+
     private static AnnotationsClient.AnnotationInfo Row(int kind, string text = "", string? points = null) =>
         new(Guid.NewGuid(), 0, kind, 0.2, 0.4, kind is 7 or 8 ? null : 0.3, kind is 7 or 8 ? null : 0.2,
             text, "#000000", "Demo Admin", "etag", CanEdit: true, CanDelete: true, Points: points);

@@ -7644,4 +7644,10 @@
   <data name="StErrCompleteSignatures" xml:space="preserve">
     <value>Could not complete the signatures.</value>
   </data>
+  <data name="MobShareAnnotated" xml:space="preserve">
+    <value>Share with annotations…</value>
+  </data>
+  <data name="MobShareAnnotatedNoExport" xml:space="preserve">
+    <value>The server does not offer this document with its annotations — only a PDF on a tenant that serves plaintext can be shared this way.</value>
+  </data>
 </root>

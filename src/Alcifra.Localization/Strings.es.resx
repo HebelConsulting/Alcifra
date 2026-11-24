@@ -7644,4 +7644,10 @@
   <data name="StErrCompleteSignatures" xml:space="preserve">
     <value>No se pudieron completar las firmas.</value>
   </data>
+  <data name="MobShareAnnotated" xml:space="preserve">
+    <value>Compartir con anotaciones…</value>
+  </data>
+  <data name="MobShareAnnotatedNoExport" xml:space="preserve">
+    <value>El servidor no ofrece este documento con sus anotaciones — solo un PDF de un inquilino que sirve en claro puede compartirse así.</value>
+  </data>
 </root>
