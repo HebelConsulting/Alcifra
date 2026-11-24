@@ -6,6 +6,8 @@ using Alcifra.Client.Dialogs;
 using Alcifra.Localization;
 
 using System.Text.Json;
+using Alcifra.Client.Hypermedia;
+using Alcifra.Client.Models;
 using Alcifra.PdfAnnotations;
 using Alcifra.Presentation;
 
@@ -41,7 +43,8 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
     /// <summary>The draw colour palette (ADR "Highlighting redesign").</summary>
     public static readonly string[] Palette = [.. AnnotationPalette.Colours];
 
-    private const string DefaultColor = "#FFEB3B";
+    // The palette's darkest colour (black) — a newly chosen tool starts dark, as ink does on paper (#2460).
+    private static readonly string DefaultColor = AnnotationPalette.Default;
 
     private readonly HashSet<Guid> _selectedIds = [];
     private readonly List<AnnotationDto> _clipboard = [];
@@ -152,6 +155,16 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
     public async Task SetColorAsync(string color)
     {
         Color = color;
+        if (_session is { } open)
+        {
+            // One annotation keeps one colour: while a drawing is open, the palette recolours EVERY stroke of it
+            // (#2453, ADR 1107); a drawing in another colour is a new session.
+            open.Colour = color;
+            await PushSessionAsync();
+            Notify();
+            return;
+        }
+
         // A swatch both sets the draw colour and recolours what is selected, so picking one is never a mode
         // change the user then has to apply.
         if (_collectionHref is not null && _selectedIds.Count > 0)
@@ -418,6 +431,23 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
             (await http.PutAsJsonAsync(self.TrimStart('/'), new { })).EnsureSuccessStatusCode();
 
             snackbar.Add(Strings.Get("PhoneCompleteSignaturesDone"), Severity.Success);
+
+            // The NEW current version's page must replace the one the marks lived on (#2453): re-read the version
+            // list, take the current version's preview + text-layout, and hand them to the pane.
+            if (_surface is not null && http.BaseAddress is { } baseUri)
+            {
+                var list = await http.GetFromJsonAsync<VersionListResponse>(_versionsHref.TrimStart('/'));
+                var confirmed = list?.Versions?.Where(v => v.Status == "Confirmed").ToList() ?? [];
+                var current = VersionListResponse.PickCurrent(confirmed, list?.CurrentVersionId);
+                if (current?.Links is { } links && http.Absolute(Links.Href(links, "preview")) is { } previewUrl)
+                {
+                    // Absolute() is the web's one rule for advertised hrefs: a presigned URL passes through
+                    // untouched, an app-relative one resolves against the base (the preview rel here is PRESIGNED —
+                    // prefixing it produced localhost/http://127.0.0.1/… and a 404, found by the walk).
+                    await _surface.ReloadAsync(previewUrl, Links.Href(links, "text-layout"));
+                }
+            }
+
             await LoadAsync();
         }
         catch (Exception)

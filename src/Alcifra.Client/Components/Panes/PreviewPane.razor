@@ -534,6 +534,13 @@
         }
     }
 
+    /// <summary>After the gate's bake (#2453): show the NEW current version's page.</summary>
+    public async Task ReloadAsync(string previewUrl, string? textLayoutUrl)
+    {
+        await RenderAsync(previewUrl, textLayoutUrl);
+        await Opened.InvokeAsync();
+    }
+
     /// <summary>The open drawing session's strokes (#2453), or an empty list to clear them.</summary>
     public async Task SetSessionAsync(int page, IReadOnlyList<IReadOnlyList<(double X, double Y)>> strokes, string colour)
     {

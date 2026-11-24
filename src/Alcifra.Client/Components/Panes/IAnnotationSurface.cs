@@ -31,6 +31,12 @@ public interface IAnnotationSurface
     Task SetSessionAsync(int page, IReadOnlyList<IReadOnlyList<(double X, double Y)>> strokes, string colour);
 
     /// <summary>
+    /// Re-renders the preview from a fresh preview address (#2453): after the completion gate files a baked version,
+    /// the pane must show the NEW current version's page, not the one the marks lived on.
+    /// </summary>
+    Task ReloadAsync(string previewUrl, string? textLayoutUrl);
+
+    /// <summary>
     /// Outlines exactly these markers as selected. Toggles the outline on the EXISTING elements rather than
     /// rebuilding them, which is what keeps double-click-to-edit working.
     /// </summary>

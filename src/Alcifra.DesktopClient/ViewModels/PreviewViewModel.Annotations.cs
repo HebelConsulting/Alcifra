@@ -462,7 +462,9 @@ public sealed partial class PreviewViewModel
             var baked = AnnotationBaking.Flatten(bytes, _annotations);
             await Api.Documents.UploadNewVersionAsync(versionsHref, baked, ".pdf");
             _status.Report(Strings.Get("PhoneCompleteSignaturesDone"));
-            await LoadAnnotationsAsync();
+
+            // The pane must show the NEW current version's page — the baked one — not the one the marks lived on.
+            await RenderAsync(await Api.Documents.GetPreviewAsync(versionsHref));
         }
         catch (Exception e)
         {
