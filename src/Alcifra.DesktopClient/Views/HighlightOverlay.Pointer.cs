@@ -19,9 +19,29 @@ namespace Alcifra.DesktopClient.Views;
 public sealed partial class HighlightOverlay
 {
     // Track the word under the cursor for the light-grey hover box + a hand cursor.
+    // One point of the stroke being drawn (#2453), thinned: a point closer than ~0.2 % of the page to the last one
+    // is the same point, as the phone's pen thins (a move event per screen refresh draws no payload for a resting hand).
+    private void AppendStrokePoint(double x, double y)
+    {
+        if (_strokePoints.Count == 0 || Math.Abs(x - _strokePoints[^1].X) >= 0.002 || Math.Abs(y - _strokePoints[^1].Y) >= 0.002)
+        {
+            _strokePoints.Add((x, y));
+        }
+    }
+
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+
+        // Drawing a pen/sign stroke (#2453): append the point, thinned like every renderer reads it.
+        if (_stroking && Bounds is { Width: > 0, Height: > 0 })
+        {
+            var pt = e.GetPosition(this);
+            AppendStrokePoint(Math.Clamp(pt.X / Bounds.Width, 0, 1), Math.Clamp(pt.Y / Bounds.Height, 0, 1));
+            Cursor = new Cursor(StandardCursorType.Cross);
+            InvalidateVisual();
+            return;
+        }
 
         // Drawing a markup shape — extend the rubber-band to the current point.
         if (_drawing && Bounds is { Width: > 0, Height: > 0 })
@@ -179,6 +199,17 @@ public sealed partial class HighlightOverlay
         var point = e.GetPosition(this);
 
         // Markup drawing (ADR "Annotation markup") takes priority when a tool is active: press-drag draws a shape.
+        if (DrawKind is 7 or 8 && Bounds.Width > 0 && Bounds.Height > 0)
+        {
+            // The pen and the sign tool collect STROKES of one drawing session (#2453, ADR 1107): this drag is one.
+            e.Handled = true;
+            _stroking = true;
+            _strokePoints.Clear();
+            AppendStrokePoint(Math.Clamp(point.X / Bounds.Width, 0, 1), Math.Clamp(point.Y / Bounds.Height, 0, 1));
+            e.Pointer.Capture(this);
+            return;
+        }
+
         if (DrawKind > 0 && Bounds.Width > 0 && Bounds.Height > 0)
         {
             e.Handled = true;
@@ -332,6 +363,25 @@ public sealed partial class HighlightOverlay
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        // Finish a pen/sign stroke (#2453): the session takes it unless it was a dab.
+        if (_stroking)
+        {
+            _stroking = false;
+            var stroke = _strokePoints.ToList();
+            _strokePoints.Clear();
+            if (stroke.Count >= 2)
+            {
+                var drawn = new StrokeDraw(PageIndex, stroke);
+                if (StrokeDrawnCommand?.CanExecute(drawn) == true)
+                {
+                    StrokeDrawnCommand.Execute(drawn);
+                }
+            }
+
+            InvalidateVisual();
+            return;
+        }
 
         // Finish drawing a markup shape (ADR "Annotation markup") — fire ShapeDrawnCommand unless it was too small.
         if (_drawing)

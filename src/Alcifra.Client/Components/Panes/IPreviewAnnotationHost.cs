@@ -27,6 +27,15 @@ public interface IPreviewAnnotationHost
     /// <summary>A drag with a markup tool active finished — create the highlight/rectangle/arrow.</summary>
     Task OnShapeDrawnAsync(int pageIndex, int kind, double x, double y, double width, double height);
 
+    /// <summary>One stroke of an open drawing session (#2453): its page and its normalized poly-line.</summary>
+    Task OnStrokeDrawnAsync(int pageIndex, IReadOnlyList<(double X, double Y)> points);
+
+    /// <summary>⌘/Ctrl+Z inside an open drawing session (#2453); a no-op outside one.</summary>
+    Task OnUndoStrokeAsync();
+
+    /// <summary>⌘/Ctrl+Shift+Z / Ctrl+Y inside an open drawing session (#2453); a no-op outside one.</summary>
+    Task OnRedoStrokeAsync();
+
     /// <summary>A click while "add note" is armed — create a sticky note at this spot.</summary>
     Task OnAnnotationPlacedAsync(int pageIndex, double x, double y);
 

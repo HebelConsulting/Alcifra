@@ -53,6 +53,11 @@ public partial class MainWindow : Window
             if (DataContext is MainWindowViewModel vm)
             {
                 vm.Preview.AnnotationDialog = ShowAnnotationDialogAsync;
+                // A signature asks for its name at Finished (#2453), prefilled with the last one typed; the name
+                // dialog is the shared "enter a name" prompt. The completion gate confirms before it files a version.
+                vm.Preview.SignatureNamePrompt = _ => new NewFolderDialog(Strings.Get("AnnotationKindSignature"), Strings.Get("Name"))
+                    .ShowDialog<string?>(this);
+                vm.Preview.Confirm = async (message, label) => await new ConfirmDialog(message, label).ShowDialog<bool>(this);
                 // The title names the product as the installation does once it is known (core #1117).
                 vm.PropertyChanged += (_, e) =>
                 {

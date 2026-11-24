@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Alcifra.DesktopClient.Services;
+using Alcifra.Localization;
 
 using Alcifra.Presentation;
 
@@ -32,7 +33,11 @@ public sealed partial class PreviewViewModel
 
     [ObservableProperty] private bool _annotationsAvailable;
     // Whether the caller has CanAnnotate (ADR "CanAnnotate right") — gates the Add-note button; viewing needs only read.
-    [ObservableProperty] private bool _canAddNote;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(ShowAnnotationTools))] private bool _canAddNote;
+
+    /// <summary>The drawing tools are shown where the caller may annotate and no drawing session is open (#2453):
+    /// a session replaces them with Finished / Cancel / Undo / Redo.</summary>
+    public bool ShowAnnotationTools => CanAddNote && !SessionOpen;
     [ObservableProperty] private bool _notesVisible = true;
     [ObservableProperty] private bool _addNoteMode;
 
@@ -207,6 +212,14 @@ public sealed partial class PreviewViewModel
         }
 
         AnnotationColor = color;
+        if (_session is { } open)
+        {
+            // #2453: one annotation keeps one colour — the palette recolours the whole open drawing live.
+            open.Colour = color;
+            RefreshSessionState();
+            return;
+        }
+
         if (_annotationsUrl is null || Api is null || _selectedAnnotationIds.Count == 0)
         {
             return;
@@ -231,8 +244,15 @@ public sealed partial class PreviewViewModel
     [RelayCommand]
     private void SelectShapeTool(object? kindParam)
     {
-        // The XAML CommandParameter is a string ("1"/"2"/"3"); accept an int too.
+        // The XAML CommandParameter is a string ("1".."8"); accept an int too. 1-3 are shapes, 7 the pen and 8 the
+        // sign tool, which open a drawing SESSION instead (#2453, ADR 1107).
         var kind = kindParam is int i ? i : int.TryParse(kindParam?.ToString(), out var p) ? p : 0;
+        if (kind is 7 or 8)
+        {
+            StartDrawingSession(kind);
+            return;
+        }
+
         if (kind is < 1 or > 3)
         {
             return;
@@ -274,6 +294,182 @@ public sealed partial class PreviewViewModel
         }
     }
 
+    // --- Drawing sessions: pen + sign (#2453, ADR 1107) ----------------------------------------------------
+    // The ribbon's drawing group becomes Finished / Cancel / Undo / Redo while a session is open (owner decision
+    // 2026-11-24); a signature asks for its name at Finished, and its completion gate files a new version below.
+    private AnnotationSession? _session;
+
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(ShowAnnotationTools))] private bool _sessionOpen;
+    [ObservableProperty] private bool _canUndoStroke;
+    [ObservableProperty] private bool _canRedoStroke;
+    [ObservableProperty] private IReadOnlyList<IReadOnlyList<(double X, double Y)>> _sessionStrokes = [];
+    [ObservableProperty] private int _sessionPage = -1;
+    [ObservableProperty] private string? _sessionColor;
+
+    // Thinned exactly as the phone's pen thins (AnnotationStroke.MinimumDistance): a resting hand draws nothing.
+    private const double StrokeStep = 0.002;
+
+    /// <summary>The name prompt a signature asks for at Finished (#2453): null means the view has no prompt.</summary>
+    public Func<string?, Task<string?>>? SignatureNamePrompt { get; set; }
+
+    /// <summary>A yes/no confirmation for the completion gate; the view supplies it.</summary>
+    public Func<string, string, Task<bool>>? Confirm { get; set; }
+
+    /// <summary>The completion gate is offered (#2453): a signature exists and this caller may file a version.</summary>
+    [ObservableProperty] private bool _canCompleteSignatures;
+
+    private int SessionKind => _session?.Kind ?? 0;
+
+    private void StartDrawingSession(int kind)
+    {
+        if (!NotesVisible)
+        {
+            NotesVisible = true;
+            PushNotesToPages();
+        }
+
+        AddNoteMode = false;
+        AnnotationTool = 0;   // shape tools and sessions never overlap
+        _session = new AnnotationSession(kind, AnnotationColor);
+        AnnotationTool = kind;
+        SessionOpen = true;
+        RefreshSessionState();
+        _status.Report(kind == 8
+            ? "Draw your signature on the page; Finished asks for your name."
+            : "Draw on the page; Finished files the drawing as one annotation.");
+    }
+
+    [RelayCommand]
+    private void StrokeDrawn(StrokeDraw? draw)
+    {
+        if (draw is null || _session is null)
+        {
+            return;
+        }
+
+        if (draw.Points.Count >= 2 && (draw.Points[^1].X != draw.Points[^2].X || draw.Points[^1].Y != draw.Points[^2].Y))
+        {
+            _session.Add(draw.PageIndex, Thinned(draw.Points));
+        }
+
+        RefreshSessionState();
+    }
+
+    private static IReadOnlyList<(double X, double Y)> Thinned(IReadOnlyList<(double X, double Y)> points)
+    {
+        var kept = new List<(double X, double Y)>(points.Count);
+        foreach (var (x, y) in points)
+        {
+            if (kept.Count == 0 || Math.Abs(x - kept[^1].X) >= StrokeStep || Math.Abs(y - kept[^1].Y) >= StrokeStep)
+            {
+                kept.Add((x, y));
+            }
+        }
+
+        return kept;
+    }
+
+    private void RefreshSessionState()
+    {
+        SessionStrokes = _session?.Strokes ?? [];
+        SessionPage = _session?.Page ?? -1;
+        SessionColor = _session?.Colour;
+        CanUndoStroke = _session?.CanUndo == true;
+        CanRedoStroke = _session?.CanRedo == true;
+        UndoStrokeCommand.NotifyCanExecuteChanged();
+        RedoStrokeCommand.NotifyCanExecuteChanged();
+        FinishSessionCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndoStroke))]
+    private void UndoStroke()
+    {
+        _session?.Undo();
+        RefreshSessionState();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRedoStroke))]
+    private void RedoStroke()
+    {
+        _session?.Redo();
+        RefreshSessionState();
+    }
+
+    [RelayCommand]
+    private void CancelSession() => EndSession();
+
+    private void EndSession()
+    {
+        _session = null;
+        AnnotationTool = 0;
+        SessionOpen = false;
+        RefreshSessionState();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanUndoStroke))]
+    private async Task FinishSession()
+    {
+        if (_session is not { Page: { } page } session || _annotationsUrl is null || Api is null)
+        {
+            return;
+        }
+
+        var text = string.Empty;
+        if (session.Kind == 8)
+        {
+            if (SignatureNamePrompt is null || await SignatureNamePrompt(null) is not { } name || string.IsNullOrWhiteSpace(name))
+            {
+                return;   // a cancelled name leaves the session open rather than filing an unnamed signature
+            }
+
+            text = name.Trim();
+        }
+
+        var (x, y) = session.Strokes[0][0];
+        try
+        {
+            await Api.Annotations.CreateAnnotationAsync(_annotationsUrl, page, session.Kind, x, y, null, null, text, session.Colour, session.Canonical());
+        }
+        catch (Exception e)
+        {
+            _status.Report(e is ApiActionException ae ? ae.Message : "Could not file the drawing.");
+            return;
+        }
+
+        EndSession();
+        await LoadAnnotationsAsync();
+    }
+
+    // The completion gate (#2453): every mark is flattened into the pages and filed as the next version — the same
+    // bake the phone performs, through the one shared writer; the previous version keeps its rows untouched.
+    [RelayCommand]
+    private async Task CompleteSignatures()
+    {
+        if (Api is null || Confirm is null || LastRendered is not { VersionsHref: { } versionsHref, DownloadUrl: { } downloadUrl }
+            || !string.Equals(LastRendered.FileExtension, ".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            return;   // only a PDF can carry its marks flattened; the phone draws the same line
+        }
+
+        if (!await Confirm(Strings.Get("PhoneCompleteSignaturesConfirm"), Strings.Get("PhoneCompleteSignatures")))
+        {
+            return;
+        }
+
+        try
+        {
+            var (bytes, _) = await AlcifraApiClient.DownloadAsync(downloadUrl);
+            var baked = AnnotationBaking.Flatten(bytes, _annotations);
+            await Api.Documents.UploadNewVersionAsync(versionsHref, baked, ".pdf");
+            _status.Report(Strings.Get("PhoneCompleteSignaturesDone"));
+            await LoadAnnotationsAsync();
+        }
+        catch (Exception e)
+        {
+            _status.Report(e is ApiActionException ae ? ae.Message : "Could not complete the signatures.");
+        }
+    }
+
     private async Task LoadAnnotationsAsync()
     {
         _annotations = [];
@@ -285,6 +481,8 @@ public sealed partial class PreviewViewModel
                 var list = await Api.Annotations.GetAnnotationsAsync(_annotationsUrl);
                 _annotations = list.Items;
                 CanAddNote = list.CanCreate; // CanAnnotate (ADR "CanAnnotate right")
+                // The completion gate (#2453): offered where the caller may file a new version and a signature exists.
+                CanCompleteSignatures = list.CanEditContent && AnnotationBaking.HasSignature(list.Items);
             }
             catch (Exception) { /* no notes / not readable */ }
         }

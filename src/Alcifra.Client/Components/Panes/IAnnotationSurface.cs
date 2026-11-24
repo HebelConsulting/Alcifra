@@ -25,6 +25,12 @@ public interface IAnnotationSurface
     Task SetDrawModeAsync(int kind);
 
     /// <summary>
+    /// The open drawing session's strokes (#2453, ADR 1107) on its page, in its colour — painted under the stroke
+    /// being drawn now; an empty list clears them.
+    /// </summary>
+    Task SetSessionAsync(int page, IReadOnlyList<IReadOnlyList<(double X, double Y)>> strokes, string colour);
+
+    /// <summary>
     /// Outlines exactly these markers as selected. Toggles the outline on the EXISTING elements rather than
     /// rebuilding them, which is what keeps double-click-to-edit working.
     /// </summary>

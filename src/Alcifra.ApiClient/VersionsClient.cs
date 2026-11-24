@@ -74,7 +74,7 @@ public sealed class VersionsClient(ApiCore core)
         var converted = confirmed.TryGetProperty("previewConverted", out var pc) && pc.GetBoolean();
         var extension = confirmed.TryGetProperty("fileExtension", out var fe) ? fe.GetString() ?? "" : "";
         return new Preview(ApiCore.FindLink(confirmed, "preview"), converted, ApiCore.FindLink(confirmed, "download"), ApiCore.FindLink(confirmed, "text-layout"), ApiCore.FindLink(confirmed, "preview-pages"), extension, ApiCore.FindLink(confirmed, "annotations"), SizeBytes: confirmed.TryGetProperty("sizeBytes", out var sb) && sb.ValueKind == JsonValueKind.Number ? sb.GetInt64() : null,
-            AnnotatedPdfUrl: ApiCore.FindLink(confirmed, "annotated-pdf"));
+            AnnotatedPdfUrl: ApiCore.FindLink(confirmed, "annotated-pdf"), VersionsHref: versionsHref);
     }
 
     // Ordered per-page image URLs for a multi-page TIFF (ADR "Multi-page TIFF preview pages"); null (204) for

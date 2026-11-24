@@ -216,6 +216,48 @@ public sealed partial class HighlightOverlay : Control
     private Point _drawStart;
     private Point _drawCurrent;
 
+    // Drawing sessions (#2453, ADR 1107): with the pen or sign tool (DrawKind 7/8) a press-drag is ONE STROKE of the
+    // open session — the VM keeps the session's strokes and hands them back here to be painted, with the one being
+    // drawn now. Points pass normalized; this control scales them to the page.
+    public static readonly StyledProperty<ICommand?> StrokeDrawnCommandProperty =
+        AvaloniaProperty.Register<HighlightOverlay, ICommand?>(nameof(StrokeDrawnCommand));
+
+    public ICommand? StrokeDrawnCommand
+    {
+        get => GetValue(StrokeDrawnCommandProperty);
+        set => SetValue(StrokeDrawnCommandProperty, value);
+    }
+
+    public static readonly StyledProperty<IReadOnlyList<IReadOnlyList<(double X, double Y)>>?> SessionStrokesProperty =
+        AvaloniaProperty.Register<HighlightOverlay, IReadOnlyList<IReadOnlyList<(double X, double Y)>>?>(nameof(SessionStrokes));
+
+    public IReadOnlyList<IReadOnlyList<(double X, double Y)>>? SessionStrokes
+    {
+        get => GetValue(SessionStrokesProperty);
+        set => SetValue(SessionStrokesProperty, value);
+    }
+
+    public static readonly StyledProperty<int> SessionPageProperty =
+        AvaloniaProperty.Register<HighlightOverlay, int>(nameof(SessionPage), -1);
+
+    public int SessionPage
+    {
+        get => GetValue(SessionPageProperty);
+        set => SetValue(SessionPageProperty, value);
+    }
+
+    public static readonly StyledProperty<string?> SessionColorProperty =
+        AvaloniaProperty.Register<HighlightOverlay, string?>(nameof(SessionColor));
+
+    public string? SessionColor
+    {
+        get => GetValue(SessionColorProperty);
+        set => SetValue(SessionColorProperty, value);
+    }
+
+    private bool _stroking;
+    private readonly List<(double X, double Y)> _strokePoints = [];
+
     // Drag-to-reposition state (ADR "Document annotations"). A press on an editable marker starts a potential
     // drag; moving past the threshold makes it a drag (persisted on release), otherwise the release is a click.
     private const double DragThreshold = 4; // px
@@ -430,6 +472,19 @@ public sealed partial class HighlightOverlay : Control
             context.DrawRectangle(HighlightOverlayDrawing.MarqueeFill, HighlightOverlayDrawing.MarqueePen, new Rect(_marqueeStart, _marqueeCurrent));
         }
 
+        // The drawing session's strokes (#2453) and the stroke being drawn now, in the session's colour.
+        if (SessionPage == PageIndex && (SessionStrokes is { Count: > 0 } || _stroking))
+        {
+            var sessionColor = string.IsNullOrEmpty(SessionColor) ? Colors.Black : HighlightOverlayDrawing.ParseColor(SessionColor);
+            var sessionPen = new Pen(new SolidColorBrush(sessionColor), 2) { LineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+            foreach (var stroke in SessionStrokes ?? [])
+            {
+                DrawStroke(context, stroke, sessionPen, width, height);
+            }
+
+            DrawStroke(context, _strokePoints, sessionPen, width, height);
+        }
+
         // The shape being drawn (a live preview from the drag start to the current point) — in the active draw
         // colour (ADR "Draw-tool behaviour"), so the drag matches the picked palette colour, not a hardcoded one.
         if (_drawing && DrawKind > 0)
@@ -446,11 +501,39 @@ public sealed partial class HighlightOverlay : Control
 
 
 
+    // A normalized poly-line as this page's pixels (#2453): the same scaling every renderer uses.
+    private static void DrawStroke(DrawingContext context, IReadOnlyList<(double X, double Y)> points, Pen pen, double width, double height)
+    {
+        if (points.Count < 2)
+        {
+            return;
+        }
+
+        var geometry = new StreamGeometry();
+        using (var sink = geometry.Open())
+        {
+            sink.BeginFigure(new Point(points[0].X * width, points[0].Y * height), isFilled: false);
+            foreach (var (x, y) in points.Skip(1))
+            {
+                sink.LineTo(new Point(x * width, y * height));
+            }
+
+            sink.EndFigure(isClosed: false);
+        }
+
+        context.DrawGeometry(null, pen, geometry);
+    }
+
     // Scroll the current match into view when it lands on this page, by nudging the enclosing ScrollViewer so
     // the box sits about a third down the viewport.
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+        if (change.Property == SessionStrokesProperty || change.Property == SessionColorProperty || change.Property == SessionPageProperty)
+        {
+            InvalidateVisual();
+        }
+
         if (change.Property != ActiveBoxProperty || ActiveBox is not { } b || Bounds is not { Width: > 0, Height: > 0 })
         {
             return;

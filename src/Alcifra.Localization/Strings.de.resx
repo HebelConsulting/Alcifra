@@ -7635,4 +7635,13 @@
   <data name="AnnotationRedo" xml:space="preserve">
     <value>Wiederholen</value>
   </data>
+  <data name="StDrawSignature" xml:space="preserve">
+    <value>Zeichnen Sie Ihre Unterschrift auf der Seite; «Fertig» fragt nach Ihrem Namen.</value>
+  </data>
+  <data name="StDrawFreehand" xml:space="preserve">
+    <value>Zeichnen Sie auf der Seite; «Fertig» legt die Zeichnung als eine Anmerkung ab.</value>
+  </data>
+  <data name="StErrCompleteSignatures" xml:space="preserve">
+    <value>Die Unterschriften konnten nicht abgeschlossen werden.</value>
+  </data>
 </root>

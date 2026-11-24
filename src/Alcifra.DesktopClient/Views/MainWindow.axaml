@@ -24,6 +24,14 @@
         <KeyBinding Gesture="Escape" Command="{Binding CancelEditCommand}" />
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveDetailCommand}" />
         <KeyBinding Gesture="Cmd+S" Command="{Binding SaveDetailCommand}" />
+        <!-- While a drawing session is open (#2453): Ctrl/Cmd+Z steps back over its strokes, Ctrl/Cmd+Shift+Z and
+             Ctrl+Y step forward. The commands are CanExecute-gated on the open session, so outside one these do
+             nothing and a field's own undo keeps working. -->
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding Preview.UndoStrokeCommand}" />
+        <KeyBinding Gesture="Cmd+Z" Command="{Binding Preview.UndoStrokeCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding Preview.RedoStrokeCommand}" />
+        <KeyBinding Gesture="Cmd+Shift+Z" Command="{Binding Preview.RedoStrokeCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding Preview.RedoStrokeCommand}" />
     </Window.KeyBindings>
 
     <DockPanel LastChildFill="True">

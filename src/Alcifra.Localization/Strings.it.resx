@@ -7635,4 +7635,13 @@
   <data name="AnnotationRedo" xml:space="preserve">
     <value>Ripeti</value>
   </data>
+  <data name="StDrawSignature" xml:space="preserve">
+    <value>Disegna la tua firma sulla pagina; «Finito» chiede il tuo nome.</value>
+  </data>
+  <data name="StDrawFreehand" xml:space="preserve">
+    <value>Disegna sulla pagina; «Finito» archivia il disegno come un'unica annotazione.</value>
+  </data>
+  <data name="StErrCompleteSignatures" xml:space="preserve">
+    <value>Impossibile completare le firme.</value>
+  </data>
 </root>

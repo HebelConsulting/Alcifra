@@ -481,15 +481,26 @@ function layoutShape(elm, kind, x, y, w, h, color) {
     }
 }
 
-// Draw a shape by dragging on a page overlay (ADR "Annotation markup"). On release, calls back with the
-// normalized geometry (signed for arrows). A near-zero drag is ignored so a stray click doesn't draw.
+// Draw a SHAPE by dragging on a page overlay (ADR "Annotation markup") — or collect a STROKE of an open drawing
+// session with the pen / sign tool (#2453, ADR 1107). On release, calls back with the normalized geometry (signed
+// for arrows) or the stroke's poly-line. A near-zero drag is ignored so a stray click doesn't draw.
 function attachDraw(overlay, p) {
     let start = null, preview = null;
+    let stroke = null, strokeEl = null;
+    const norm = (e, rect) => [clamp01((e.clientX - rect.left) / rect.width), clamp01((e.clientY - rect.top) / rect.height)];
     overlay.addEventListener('pointerdown', e => {
         if (TOUCH_ONLY || e.button !== 0 || !state || !state.drawKind) return;
         const rect = overlay.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return;
         e.stopPropagation(); e.preventDefault();
+        if (state.drawKind === 7 || state.drawKind === 8) {
+            stroke = { rect, points: [norm(e, rect)] };
+            try { overlay.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
+            strokeEl = el('div', 'wb-pv-session-live');
+            strokeEl.innerHTML = sessionSvgMarkup([stroke.points], state.sessionColor || '#000');
+            overlay.appendChild(strokeEl);
+            return;
+        }
         start = { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height, rect, kind: state.drawKind };
         try { overlay.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
         preview = shapeEl(start.kind);
@@ -497,12 +508,29 @@ function attachDraw(overlay, p) {
         overlay.appendChild(preview);
     });
     overlay.addEventListener('pointermove', e => {
+        if (stroke) {
+            const pt = norm(e, stroke.rect);
+            const last = stroke.points[stroke.points.length - 1];
+            if (Math.abs(pt[0] - last[0]) >= 0.002 || Math.abs(pt[1] - last[1]) >= 0.002) {
+                stroke.points.push(pt);
+                strokeEl.innerHTML = sessionSvgMarkup([stroke.points], state.sessionColor || '#000');
+            }
+            return;
+        }
         if (!start) return;
         const cx = clamp01((e.clientX - start.rect.left) / start.rect.width);
         const cy = clamp01((e.clientY - start.rect.top) / start.rect.height);
         layoutShape(preview, start.kind, start.x, start.y, cx - start.x, cy - start.y, null);
     });
     overlay.addEventListener('pointerup', e => {
+        if (stroke) {
+            try { overlay.releasePointerCapture(e.pointerId); } catch { /* may not be captured */ }
+            const points = stroke.points;
+            stroke = null;
+            if (strokeEl) { strokeEl.remove(); strokeEl = null; }
+            if (points.length >= 2) state?.dotNetRef?.invokeMethodAsync('OnStrokeDrawn', p.index, points);
+            return;
+        }
         if (!start) return;
         try { overlay.releasePointerCapture(e.pointerId); } catch { /* may not be captured */ }
         const cx = clamp01((e.clientX - start.rect.left) / start.rect.width);
@@ -513,6 +541,41 @@ function attachDraw(overlay, p) {
         if (Math.abs(w) < 0.01 && Math.abs(h) < 0.01) return; // too small — treat as a mis-click
         state?.dotNetRef?.invokeMethodAsync('OnShapeDrawn', p.index, kind, sx, sy, w, h);
     });
+}
+
+// The open drawing session's strokes as one full-page SVG (#2453): normalized points scaled to the 0..100 viewBox.
+function sessionSvgMarkup(strokes, color) {
+    const paths = strokes.filter(s => s && s.length > 1).map(s =>
+        `<polyline points="${s.map(([x, y]) => `${x * 100},${y * 100}`).join(' ')}" fill="none" stroke="${color}" `
+        + `stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />`).join('');
+    return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">${paths}</svg>`;
+}
+
+// Paints the open session's strokes on its page (#2453) — `page` -1 or an empty list clears them. Also arms the
+// session's keyboard grammar once: ⌘/Ctrl+Z undoes the last stroke, ⌘/Ctrl+Shift+Z and Ctrl+Y redo, ONLY while a
+// session is set (outside one the browser's own undo is untouched).
+export function setSession(page, strokes, color) {
+    if (!state) return;
+    state.session = strokes && strokes.length ? { page } : null;
+    if (color) state.sessionColor = color;
+    for (const p of state.pages) {
+        const overlay = p.overlay;
+        overlay.querySelectorAll('.wb-pv-session').forEach(x => x.remove());
+        if (p.index !== page || !strokes || strokes.length === 0) continue;
+        const layer = el('div', 'wb-pv-session');
+        layer.innerHTML = sessionSvgMarkup(strokes, state.sessionColor || '#000');
+        layer.style.pointerEvents = 'none';
+        overlay.appendChild(layer);
+    }
+    if (!state.sessionKeysWired) {
+        state.sessionKeysWired = true;
+        document.addEventListener('keydown', e => {
+            if (!state || !state.session || !(e.ctrlKey || e.metaKey)) return;
+            const k = e.key.toLowerCase();
+            if (k === 'z' && !e.shiftKey) { e.preventDefault(); state.dotNetRef?.invokeMethodAsync('OnUndoStroke'); }
+            else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); state.dotNetRef?.invokeMethodAsync('OnRedoStroke'); }
+        });
+    }
 }
 
 // Selects the active markup tool: 0 = none (word-copy), 1/2/3 = highlight/rectangle/arrow (drag to draw).

@@ -49,4 +49,45 @@ public sealed record PdfMark(PdfMarkShape Shape, int Page, double X, double Y, d
     /// <see cref="Points"/> line (empty for shapes that are not ink).</summary>
     public IReadOnlyList<IReadOnlyList<(double X, double Y)>> Ink =>
         Strokes is { Count: > 0 } strokes ? strokes : [Points];
+
+    /// <summary>
+    /// A mark from a stored annotation row's fields (ADR 0525's kinds; ';'-separated strokes, #2460) — the ONE
+    /// mapping from the wire's shape to the writer's, shared by every surface that bakes, so no client keeps its own
+    /// copy (a drift here is how the export and the bake come to disagree).
+    /// </summary>
+    public static PdfMark FromStored(int kind, int page, double x, double y, double? width, double? height,
+        string? text, string? colour, string? author, string? points) =>
+        new(ShapeOf(kind), page, x, y, width ?? 0, height ?? 0, [], text ?? string.Empty, colour ?? "#000000",
+            author ?? string.Empty, StrokesOf(points));
+
+    // The stored kinds (ADR 0525) to the writer's shapes; stamp and text box both draw as a captioned box there.
+    private static PdfMarkShape ShapeOf(int kind) => kind switch
+    {
+        1 => PdfMarkShape.Highlight,
+        2 => PdfMarkShape.Box,
+        3 => PdfMarkShape.Arrow,
+        4 or 6 => PdfMarkShape.TextBox,
+        5 => PdfMarkShape.Strike,
+        7 => PdfMarkShape.Stroke,
+        8 => PdfMarkShape.Signature,
+        _ => PdfMarkShape.Note,
+    };
+
+    // "x,y x,y …" per stroke, ';' between the lines of one drawing (#2460); a malformed pair is skipped rather than
+    // failing the bake, exactly as every renderer reads it.
+    private static IReadOnlyList<IReadOnlyList<(double X, double Y)>> StrokesOf(string? points) =>
+    [
+        .. (points ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(stroke => (IReadOnlyList<(double X, double Y)>)
+            [
+                .. stroke.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(pair => pair.Split(','))
+                    .Where(pair => pair.Length == 2
+                        && double.TryParse(pair[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)
+                        && double.TryParse(pair[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+                    .Select(pair => (double.Parse(pair[0], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(pair[1], System.Globalization.CultureInfo.InvariantCulture))),
+            ])
+            .Where(stroke => stroke.Count > 0),
+    ];
 }

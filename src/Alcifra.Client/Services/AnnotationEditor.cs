@@ -5,6 +5,8 @@ using Alcifra.Client.Components.Panes;
 using Alcifra.Client.Dialogs;
 using Alcifra.Localization;
 
+using System.Text.Json;
+using Alcifra.PdfAnnotations;
 using Alcifra.Presentation;
 
 namespace Alcifra.Client.Services;
@@ -47,6 +49,12 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
     private IAnnotationSurface? _surface;
     private string? _collectionHref;
 
+    // The completion gate's context (#2453): the versions address this preview was read from and the CURRENT
+    // version's original to bake — both advertised by the loader, never composed (ADR 0543).
+    private string? _versionsHref;
+    private string? _downloadUrl;
+    private string? _extension;
+
     /// <summary>Raised whenever something the toolbar renders has changed. See the remarks on the class.</summary>
     public event Action? Changed;
 
@@ -56,6 +64,13 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
     /// <summary>Whether the caller holds CanAnnotate on the document (ADR "CanAnnotate right").</summary>
     public bool CanCreate { get; private set; }
 
+    /// <summary>Whether the caller may file a new version (the list's canEditContent, #2450) — the gate's right.</summary>
+    public bool CanEditContent { get; private set; }
+
+    /// <summary>The completion gate is offered (#2453): a signature exists on this version and this caller may file one.</summary>
+    public bool CanComplete => CanEditContent && _annotations.Any(a => a.Kind == 8)
+        && _versionsHref is not null && _downloadUrl is not null && string.Equals(_extension, ".pdf", StringComparison.OrdinalIgnoreCase);
+
     public bool Visible { get; private set; } = true;
 
     /// <summary>Whether a click on the page will place a note.</summary>
@@ -63,6 +78,16 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
 
     /// <summary>The armed markup tool: 0 none, 1 highlight, 2 rectangle, 3 arrow.</summary>
     public int Tool { get; private set; }
+
+    // ---- The drawing session (#2453, ADR 1107): the pen (7) and sign (8) tools collect strokes until Finished ----
+    private AnnotationSession? _session;
+
+    public bool SessionOpen { get; private set; }
+    public IReadOnlyList<IReadOnlyList<(double X, double Y)>> SessionStrokes => _session?.Strokes ?? [];
+    public int SessionPage => _session?.Page ?? -1;
+    public string? SessionColor => _session?.Colour;
+    public bool CanUndoStroke => _session?.CanUndo == true;
+    public bool CanRedoStroke => _session?.CanRedo == true;
 
     /// <summary>The colour new shapes are drawn in, and what a swatch click recolours the selection to.</summary>
     public string Color { get; private set; } = DefaultColor;
@@ -76,6 +101,14 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
 
     /// <summary>The version's <c>annotations</c> collection, taken from the version's own rel (ADR 0543).</summary>
     public void UseCollection(string? href) => _collectionHref = href;
+
+    /// <summary>The gate's addresses (#2453), from the loader: where the next version is filed and what it bakes.</summary>
+    public void UseVersionContext(string? versionsHref, string? downloadUrl, string? extension)
+    {
+        _versionsHref = versionsHref;
+        _downloadUrl = downloadUrl;
+        _extension = extension;
+    }
 
     /// <summary>
     /// Notes are available once a real version's preview has actually rendered pages. Loads them when so.
@@ -101,6 +134,11 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
         AddMode = false;
         Tool = 0;
         _collectionHref = null;
+        _versionsHref = null;
+        _downloadUrl = null;
+        _extension = null;
+        _session = null;
+        SessionOpen = false;
         _annotations = [];
         _selectedIds.Clear();
         _clipboard.Clear();
@@ -167,15 +205,224 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
         }
     }
 
-    /// <summary>Arms a markup tool; clicking the armed one disarms it. Drag on the page to draw.</summary>
+    /// <summary>Arms a markup tool; clicking the armed one disarms it. Drag on the page to draw. The pen (7) and the
+    /// sign tool (8) open a drawing SESSION instead (#2453, ADR 1107): strokes collect until Finished.</summary>
     public async Task SelectToolAsync(int kind)
     {
         await EnsureVisibleAsync();
         await StopAddNoteAsync();
+        if (kind is 7 or 8)
+        {
+            await StartSessionAsync(Tool == kind ? 0 : kind);
+            return;
+        }
+
+        await EndSessionAsync(push: false);
         await SetToolAsync(Tool == kind ? 0 : kind);
         if (Tool > 0)
         {
             snackbar.Add(Strings.Get("StAnnDragToDraw"), Severity.Info);
+        }
+
+        Notify();
+    }
+
+    private async Task StartSessionAsync(int kind)
+    {
+        if (kind == 0)
+        {
+            await EndSessionAsync(push: true);
+            Notify();
+            return;
+        }
+
+        _session = new AnnotationSession(kind, Color);
+        Tool = kind;
+        SessionOpen = true;
+        if (_surface is not null)
+        {
+            await _surface.SetDrawModeAsync(kind);
+        }
+
+        await PushSessionAsync();
+        snackbar.Add(kind == 8
+            ? Strings.Get("StDrawSignature")
+            : Strings.Get("StDrawFreehand"), Severity.Info);
+        Notify();
+    }
+
+    public Task OnUndoStrokeAsync() => UndoStrokeAsync();
+
+    public Task OnRedoStrokeAsync() => RedoStrokeAsync();
+
+    /// <summary>One stroke of the open session, from preview.js (#2453).</summary>
+    public async Task OnStrokeDrawnAsync(int pageIndex, IReadOnlyList<(double X, double Y)> points)
+    {
+        if (_session is null || points.Count < 2)
+        {
+            return;
+        }
+
+        _session.Add(pageIndex, points);
+        await PushSessionAsync();
+        Notify();
+    }
+
+    public async Task UndoStrokeAsync()
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        _session.Undo();
+        await PushSessionAsync();
+        Notify();
+    }
+
+    public async Task RedoStrokeAsync()
+    {
+        if (_session is null)
+        {
+            return;
+        }
+
+        _session.Redo();
+        await PushSessionAsync();
+        Notify();
+    }
+
+    public async Task CancelSessionAsync()
+    {
+        await EndSessionAsync(push: true);
+        Notify();
+    }
+
+    /// <summary>Finished: the session becomes ONE annotation (#2453); a signature first asks for its name.</summary>
+    public async Task FinishSessionAsync()
+    {
+        if (_session is not { Page: { } page, Count: > 0 } session || _collectionHref is null)
+        {
+            return;
+        }
+
+        var text = string.Empty;
+        if (session.Kind == 8)
+        {
+            var dialog = await dialogs.ShowAsync<AnnotationDialog>(Strings.Get("AnnotationKindSignature"), new DialogParameters
+            {
+                ["Text"] = string.Empty,
+                ["NoteColor"] = DefaultColor,
+                ["CanEdit"] = true,
+                ["CanDelete"] = false,
+            });
+            if ((await dialog.Result) is not { Canceled: false, Data: AnnotationDialog.AnnotationEditResult edit }
+                || edit.Action != "save" || string.IsNullOrWhiteSpace(edit.Text))
+            {
+                return;   // a cancelled name leaves the session open rather than filing an unnamed signature
+            }
+
+            text = edit.Text.Trim();
+        }
+
+        var (x, y) = session.Strokes[0][0];
+        var resp = await http.PostAsJsonAsync(_collectionHref.TrimStart('/'), new
+        {
+            pageIndex = page,
+            kind = session.Kind,
+            positionX = x,
+            positionY = y,
+            text,
+            color = session.Colour,
+            points = session.Canonical(),
+        });
+        if (!resp.IsSuccessStatusCode)
+        {
+            snackbar.Add(Strings.Get("StErrAddMarkup"), Severity.Error);
+            return;
+        }
+
+        await EndSessionAsync(push: true);
+        await LoadAsync();
+        Notify();
+    }
+
+    private async Task EndSessionAsync(bool push)
+    {
+        _session = null;
+        SessionOpen = false;
+        if (Tool is 7 or 8)
+        {
+            Tool = 0;
+        }
+
+        if (push && _surface is not null)
+        {
+            await _surface.SetDrawModeAsync(0);
+        }
+
+        await PushSessionAsync();
+    }
+
+    private async Task PushSessionAsync()
+    {
+        if (_surface is not null)
+        {
+            await _surface.SetSessionAsync(_session?.Page ?? -1, _session?.Strokes ?? [], _session?.Colour ?? Color);
+        }
+    }
+
+    /// <summary>
+    /// The completion gate (#2453): every mark is flattened into the pages by the shared writer and filed as the next
+    /// version — the phone's bake and the desktop's, the web's way (the same three-step upload the intray uses).
+    /// </summary>
+    public async Task CompleteSignaturesAsync()
+    {
+        if (!CanComplete || _versionsHref is null || _downloadUrl is null)
+        {
+            return;
+        }
+
+        var confirm = await dialogs.ShowMessageBoxAsync(new MessageBoxOptions
+        {
+            Title = Strings.Get("PhoneCompleteSignatures"),
+            Message = Strings.Get("PhoneCompleteSignaturesConfirm"),
+            YesText = Strings.Get("PhoneCompleteSignatures"),
+            CancelText = Strings.Get("Cancel"),
+        });
+        if (confirm != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var bytes = await http.GetByteArrayAsync(_downloadUrl.TrimStart('/'));
+            var marks = _annotations.Select(a => PdfMark.FromStored(a.Kind, a.PageIndex, a.PositionX, a.PositionY,
+                a.Width, a.Height, a.Text, a.Color, a.AuthorName, a.Points)).ToList();
+            var baked = AnnotatedPdf.WriteFlattened(bytes, marks);
+
+            using var created = await http.PostAsJsonAsync(_versionsHref.TrimStart('/'), new { fileExtension = ".pdf" });
+            created.EnsureSuccessStatusCode();
+            var version = await created.Content.ReadFromJsonAsync<JsonElement>();
+            var uploadUrl = version.GetProperty("uploadUrl").GetString()!;
+            using var content = new ByteArrayContent(baked);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            using (var upload = new HttpRequestMessage(HttpMethod.Put, uploadUrl) { Content = content })
+            {
+                (await http.SendAsync(upload)).EnsureSuccessStatusCode();
+            }
+
+            var self = version.GetProperty("links").EnumerateArray()
+                .First(l => l.GetProperty("rel").GetString() == "self").GetProperty("href").GetString()!;
+            (await http.PutAsJsonAsync(self.TrimStart('/'), new { })).EnsureSuccessStatusCode();
+
+            snackbar.Add(Strings.Get("PhoneCompleteSignaturesDone"), Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception)
+        {
+            snackbar.Add(Strings.Get("StErrCompleteSignatures"), Severity.Error);
         }
 
         Notify();
@@ -470,6 +717,7 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
                 var list = await http.GetFromJsonAsync<AnnotationListDto>(_collectionHref.TrimStart('/'));
                 _annotations = list?.Annotations ?? [];
                 CanCreate = list?.CanCreate ?? false;
+                CanEditContent = list?.CanEditContent ?? false;
             }
             catch (Exception)
             {
@@ -580,6 +828,8 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
         public List<AnnotationDto> Annotations { get; set; } = [];
 
         public bool CanCreate { get; set; }
+
+        public bool CanEditContent { get; set; }
     }
 
     private sealed class AnnotationDto

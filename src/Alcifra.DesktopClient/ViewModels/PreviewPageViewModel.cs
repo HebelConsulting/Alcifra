@@ -48,6 +48,9 @@ public sealed record NoteMove(Guid Id, int PageIndex, double X, double Y);
 // markup"). Kind 1/2/3 = highlight/rectangle/arrow; X,Y = start/top-left; W,H = signed extent.
 public sealed record ShapeDraw(int PageIndex, int Kind, double X, double Y, double W, double H);
 
+// One stroke of a drawing session (#2453, ADR 1107): the page it was drawn on and its normalized poly-line.
+public sealed record StrokeDraw(int PageIndex, IReadOnlyList<(double X, double Y)> Points);
+
 // The outcome of clicking a hit word (ADR "Copy a preview word to the clipboard") — the word copied and whether it was
 // appended (shift-click) rather than replacing the clipboard. Drives the status message.
 public sealed record HitCopyResult(string Word, bool Appended);

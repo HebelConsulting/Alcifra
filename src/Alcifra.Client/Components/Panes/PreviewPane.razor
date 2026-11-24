@@ -534,6 +534,19 @@
         }
     }
 
+    /// <summary>The open drawing session's strokes (#2453), or an empty list to clear them.</summary>
+    public async Task SetSessionAsync(int page, IReadOnlyList<IReadOnlyList<(double X, double Y)>> strokes, string colour)
+    {
+        if (_module is not null)
+        {
+            // Points cross as [x, y] ARRAYS: a tuple serializes to an {X,Y} object, which the JS poly-line builder
+            // cannot destructure (found by the first walk of the browser test). Passed as ONE object like the
+            // markers are — the last parameter is `params object?[]` and would spread a bare array.
+            var payload = strokes.Select(s => s.Select(p => new[] { p.X, p.Y }).ToArray()).ToArray();
+            await _module.InvokeVoidAsync("setSession", page, (object)payload, colour);
+        }
+    }
+
     /// <summary>Tells the overlay which markers are currently selected, so it can draw their handles.</summary>
     public async Task SetSelectionAsync(string[] ids)
     {
@@ -687,6 +700,16 @@
     [JSInvokable]
     public Task OnShapeDrawn(int pageIndex, int kind, double x, double y, double width, double height) =>
         AnnotationHost?.OnShapeDrawnAsync(pageIndex, kind, x, y, width, height) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnStrokeDrawn(int pageIndex, double[][] points) =>
+        AnnotationHost?.OnStrokeDrawnAsync(pageIndex, [.. points.Select(p => (p[0], p[1]))]) ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnUndoStroke() => AnnotationHost?.OnUndoStrokeAsync() ?? Task.CompletedTask;
+
+    [JSInvokable]
+    public Task OnRedoStroke() => AnnotationHost?.OnRedoStrokeAsync() ?? Task.CompletedTask;
 
     [JSInvokable]
     public Task OnAnnotationPlaced(int pageIndex, double x, double y) =>

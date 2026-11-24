@@ -31,22 +31,56 @@
             <WrapPanel Orientation="Horizontal">
                 <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" Margin="0,0,12,4">
                     <!-- Sticky notes: Add needs CanAnnotate (ADR "CanAnnotate right"); show/hide needs only read. -->
-                    <Button Command="{Binding AddNoteCommand}" IsVisible="{Binding CanAddNote}"
+                    <Button Command="{Binding AddNoteCommand}" IsVisible="{Binding ShowAnnotationTools}"
                             ToolTip.Tip="{loc:Tr AddStickyNote}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-note-plus-outline" />
                     </Button>
                     <!-- Markup tools (ADR "Annotation markup"): drag on the page to draw. -->
-                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="1" IsVisible="{Binding CanAddNote}"
+                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="1" IsVisible="{Binding ShowAnnotationTools}"
                             ToolTip.Tip="{loc:Tr PvHighlight}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-marker" />
                     </Button>
-                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="2" IsVisible="{Binding CanAddNote}"
+                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="2" IsVisible="{Binding ShowAnnotationTools}"
                             ToolTip.Tip="{loc:Tr PvRectangle}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-rectangle-outline" />
                     </Button>
-                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="3" IsVisible="{Binding CanAddNote}"
+                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="3" IsVisible="{Binding ShowAnnotationTools}"
                             ToolTip.Tip="{loc:Tr PvArrow}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-arrow-top-right" />
+                    </Button>
+                    <!-- The pen and the sign tool (#2453, ADR 1107): each opens a drawing SESSION — draw one or more
+                         strokes, then Finished files them as ONE annotation; the sign tool asks for its name there. -->
+                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="7" IsVisible="{Binding ShowAnnotationTools}"
+                            ToolTip.Tip="{loc:Tr AnnotationKindFreehand}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-draw" />
+                    </Button>
+                    <Button Command="{Binding SelectShapeToolCommand}" CommandParameter="8" IsVisible="{Binding ShowAnnotationTools}"
+                            ToolTip.Tip="{loc:Tr AnnotationKindSignature}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-fountain-pen-tip" />
+                    </Button>
+                    <!-- The session's own group (#2453): Finished / Cancel / Undo / Redo take the tools' place while a
+                         drawing is open; the shortcuts (Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y) mirror Undo/Redo. -->
+                    <Button Command="{Binding FinishSessionCommand}" IsVisible="{Binding SessionOpen}"
+                            ToolTip.Tip="{loc:Tr AnnotationFinished}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-check" />
+                    </Button>
+                    <Button Command="{Binding CancelSessionCommand}" IsVisible="{Binding SessionOpen}"
+                            ToolTip.Tip="{loc:Tr Cancel}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-close" />
+                    </Button>
+                    <Button Command="{Binding UndoStrokeCommand}" IsVisible="{Binding SessionOpen}"
+                            ToolTip.Tip="{loc:Tr AnnotationUndo}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-undo" />
+                    </Button>
+                    <Button Command="{Binding RedoStrokeCommand}" IsVisible="{Binding SessionOpen}"
+                            ToolTip.Tip="{loc:Tr AnnotationRedo}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-redo" />
+                    </Button>
+                    <!-- The completion gate (#2453): flatten every mark into a new version, offered where a signature
+                         exists and this caller may file one. -->
+                    <Button Command="{Binding CompleteSignaturesCommand}" IsVisible="{Binding CanCompleteSignatures}"
+                            ToolTip.Tip="{loc:Tr PhoneCompleteSignatures}" Height="26" Padding="6,0">
+                        <i:Icon Value="mdi-check-all" />
                     </Button>
                     <!-- Colour palette (ADR "Highlighting redesign"): sets the draw colour for new shapes AND recolours the selection. Shown while drawing or with a selection. -->
                     <ItemsControl ItemsSource="{Binding AnnotationPalette}" IsVisible="{Binding ShowAnnotationColorPalette}" VerticalAlignment="Center" Margin="4,0">
@@ -67,15 +101,15 @@
                     <!-- Multi-select actions (ADR "Annotation multi-select"): Ctrl-click / marquee to select, then
                          copy / paste / delete the selection. -->
                     <Button Command="{Binding CopySelectedAnnotationsCommand}" IsEnabled="{Binding HasSelectedAnnotations}"
-                            IsVisible="{Binding CanAddNote}" ToolTip.Tip="{loc:Tr CopyAnnotationsTip}" Height="26" Padding="6,0">
+                            IsVisible="{Binding ShowAnnotationTools}" ToolTip.Tip="{loc:Tr CopyAnnotationsTip}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-content-copy" />
                     </Button>
                     <Button Command="{Binding PasteAnnotationsCommand}" IsEnabled="{Binding HasClipboardAnnotations}"
-                            IsVisible="{Binding CanAddNote}" ToolTip.Tip="{loc:Tr PasteAnnotationsTip}" Height="26" Padding="6,0">
+                            IsVisible="{Binding ShowAnnotationTools}" ToolTip.Tip="{loc:Tr PasteAnnotationsTip}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-content-paste" />
                     </Button>
                     <Button Command="{Binding DeleteSelectedAnnotationsCommand}" IsEnabled="{Binding HasSelectedAnnotations}"
-                            IsVisible="{Binding CanAddNote}" ToolTip.Tip="{loc:Tr DeleteAnnotationsTip}" Height="26" Padding="6,0">
+                            IsVisible="{Binding ShowAnnotationTools}" ToolTip.Tip="{loc:Tr DeleteAnnotationsTip}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-delete-outline" />
                     </Button>
                     <!-- Zoom (#480): out ↔ fit-width ↔ fit-page ↔ 4x; Ctrl/⌘+wheel drives the same model. Only
@@ -154,7 +188,11 @@
                                                     GroupMovedCommand="{ReflectionBinding $parent[ItemsControl].DataContext.GroupMoveAnnotationsCommand}"
                                                     DrawKind="{ReflectionBinding $parent[ItemsControl].DataContext.AnnotationTool}"
                                                     DrawColor="{ReflectionBinding $parent[ItemsControl].DataContext.AnnotationColor}"
-                                                    ShapeDrawnCommand="{ReflectionBinding $parent[ItemsControl].DataContext.ShapeDrawnCommand}" />
+                                                    ShapeDrawnCommand="{ReflectionBinding $parent[ItemsControl].DataContext.ShapeDrawnCommand}"
+                                                    StrokeDrawnCommand="{ReflectionBinding $parent[ItemsControl].DataContext.StrokeDrawnCommand}"
+                                                    SessionStrokes="{ReflectionBinding $parent[ItemsControl].DataContext.SessionStrokes}"
+                                                    SessionPage="{ReflectionBinding $parent[ItemsControl].DataContext.SessionPage}"
+                                                    SessionColor="{ReflectionBinding $parent[ItemsControl].DataContext.SessionColor}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>

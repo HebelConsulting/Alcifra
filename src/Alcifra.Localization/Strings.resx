@@ -7635,4 +7635,13 @@
   <data name="AnnotationRedo" xml:space="preserve">
     <value>Redo</value>
   </data>
+  <data name="StDrawSignature" xml:space="preserve">
+    <value>Draw your signature on the page; Finished asks for your name.</value>
+  </data>
+  <data name="StDrawFreehand" xml:space="preserve">
+    <value>Draw on the page; Finished files the drawing as one annotation.</value>
+  </data>
+  <data name="StErrCompleteSignatures" xml:space="preserve">
+    <value>Could not complete the signatures.</value>
+  </data>
 </root>

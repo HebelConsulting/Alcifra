@@ -15,7 +15,7 @@
 {
     @* Authoring needs CanAnnotate (ADR "CanAnnotate right") AND a pointer: touch has no hover, and these tools
        are hover-and-drag affordances, so a touch-only device gets viewing but not authoring (#349). *@
-    @if (Annotations.CanCreate && !TouchOnly)
+    @if (Annotations.CanCreate && !TouchOnly && !Annotations.SessionOpen)
     {
         <MudIconButton Class="wb-pv-note-add" Icon="@Icons.Material.Filled.AddComment" Size="Size.Small"
                        Color="@(Annotations.AddMode ? Color.Primary : Color.Default)"
@@ -30,18 +30,49 @@
         <MudIconButton Class="wb-pv-tool-arrow" Icon="@Icons.Material.Filled.NorthEast" Size="Size.Small"
                        Color="@(Annotations.Tool == 3 ? Color.Primary : Color.Default)"
                        OnClick="@(() => Annotations.SelectToolAsync(3))" title="@Strings.Get("PvArrow")" />
-        @* The palette sets the draw colour for new shapes AND recolours the selection, so it appears exactly
-           when one of those is meaningful — while a tool is armed, or with something selected. *@
-        @if (Annotations.Tool > 0 || Annotations.HasSelection)
-        {
-            <span class="wb-pv-palette">
-                @foreach (var c in AnnotationEditor.Palette)
-                {
-                    <span class="wb-pv-swatch @(Annotations.Color == c ? "wb-pv-swatch-on" : "")" style="@($"background:{c}")"
-                          @onclick="@(() => Annotations.SetColorAsync(c))" title="Set colour"></span>
-                }
-            </span>
-        }
+        @* The pen and the sign tool (#2453, ADR 1107): each opens a drawing SESSION — strokes collect until
+           Finished files them as ONE annotation; the sign tool asks for its name there. *@
+        <MudIconButton Class="wb-pv-tool-pen" Icon="@Icons.Material.Filled.Draw" Size="Size.Small"
+                       Color="@(Annotations.Tool == 7 ? Color.Primary : Color.Default)"
+                       OnClick="@(() => Annotations.SelectToolAsync(7))" title="@Strings.Get("AnnotationKindFreehand")" />
+        <MudIconButton Class="wb-pv-tool-sign" Icon="@Icons.Material.Filled.Gesture" Size="Size.Small"
+                       Color="@(Annotations.Tool == 8 ? Color.Primary : Color.Default)"
+                       OnClick="@(() => Annotations.SelectToolAsync(8))" title="@Strings.Get("AnnotationKindSignature")" />
+    }
+    @* The session's own group (#2453): Finished / Cancel / Undo / Redo take the tools' place while a drawing is
+       open; ⌘/Ctrl+Z and ⌘/Ctrl+Shift+Z (Ctrl+Y) mirror Undo/Redo. *@
+    @if (Annotations.SessionOpen)
+    {
+        <MudIconButton Class="wb-pv-session-finish" Icon="@Icons.Material.Filled.Check" Size="Size.Small"
+                       Disabled="@(!Annotations.CanUndoStroke)"
+                       OnClick="@(() => Annotations.FinishSessionAsync())" title="@Strings.Get("AnnotationFinished")" />
+        <MudIconButton Class="wb-pv-session-cancel" Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                       OnClick="@(() => Annotations.CancelSessionAsync())" title="@Strings.Get("Cancel")" />
+        <MudIconButton Class="wb-pv-session-undo" Icon="@Icons.Material.Filled.Undo" Size="Size.Small"
+                       Disabled="@(!Annotations.CanUndoStroke)"
+                       OnClick="@(() => Annotations.UndoStrokeAsync())" title="@Strings.Get("AnnotationUndo")" />
+        <MudIconButton Class="wb-pv-session-redo" Icon="@Icons.Material.Filled.Redo" Size="Size.Small"
+                       Disabled="@(!Annotations.CanRedoStroke)"
+                       OnClick="@(() => Annotations.RedoStrokeAsync())" title="@Strings.Get("AnnotationRedo")" />
+    }
+    @* The palette sets the draw colour for new marks AND recolours the selection — and while a session is open it
+       recolours the whole drawing (#2453). It appears exactly when one of those is meaningful. *@
+    @if (Annotations.CanCreate && !TouchOnly && (Annotations.Tool > 0 || Annotations.HasSelection))
+    {
+        <span class="wb-pv-palette">
+            @foreach (var c in AnnotationEditor.Palette)
+            {
+                <span class="wb-pv-swatch @(Annotations.Color == c ? "wb-pv-swatch-on" : "")" style="@($"background:{c}")"
+                      @onclick="@(() => Annotations.SetColorAsync(c))" title="Set colour"></span>
+            }
+        </span>
+    }
+    @* The completion gate (#2453): flatten every mark into a new version, offered where a signature exists and
+       this caller may file one. *@
+    @if (Annotations.CanComplete)
+    {
+        <MudIconButton Class="wb-pv-complete-signatures" Icon="@Icons.Material.Filled.DoneAll" Size="Size.Small"
+                       OnClick="@(() => Annotations.CompleteSignaturesAsync())" title="@Strings.Get("PhoneCompleteSignatures")" />
     }
     @* Show/hide needs only read, so it sits outside the authoring gate. *@
     <MudIconButton Class="wb-pv-note-toggle" Size="Size.Small"

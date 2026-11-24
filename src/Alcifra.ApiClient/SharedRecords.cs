@@ -151,7 +151,10 @@ public sealed record AclEntryInfo(string PrincipalType, Guid PrincipalId, AclRig
 
 // FileExtension is the current version's derived extension (ADR "Extension off Document.Name"); native
 // Open/Save-as append it to Document.Name (the bare stem) to reconstruct a correct filename.
-public sealed record Preview(string? PreviewUrl, bool PreviewConverted, string? DownloadUrl, string? TextLayoutUrl, string? PreviewPagesUrl, string FileExtension, string? AnnotationsUrl = null, long? SizeBytes = null, string? AnnotatedPdfUrl = null);
+public sealed record Preview(string? PreviewUrl, bool PreviewConverted, string? DownloadUrl, string? TextLayoutUrl, string? PreviewPagesUrl, string FileExtension, string? AnnotationsUrl = null, long? SizeBytes = null, string? AnnotatedPdfUrl = null,
+    // The versions address this preview was read FROM (#2453): closing a signing session files the next version
+    // through it, so a caller holding only the preview never composes one (ADR 0543).
+    string? VersionsHref = null);
 // A user option for the reviewer picker.
 // RemoveHref is set only where the option came from a collection whose rows advertise a removal address —
 // a group's members; it is null for pickers such as reminder targets (issue #416).

@@ -27,6 +27,9 @@
          MudBlazor's stock palette. -->
     <ProjectReference Include="..\Alcifra.Presentation\Alcifra.Presentation.csproj" />
     <ProjectReference Include="..\Alcifra.Theming\Alcifra.Theming.csproj" />
+    <!-- The one PDF writer (ADR 1106): the completion gate bakes the version's marks on the client, as the phone
+         and the desktop do — through PdfMark.FromStored, the one stored-kind mapping (#2453). -->
+    <ProjectReference Include="..\Alcifra.PdfAnnotations\Alcifra.PdfAnnotations.csproj" />
   </ItemGroup>
 
 </Project>

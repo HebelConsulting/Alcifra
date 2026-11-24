@@ -133,6 +133,9 @@ public sealed class DetailLoader(
             if (latest is not null)
             {
                 annotations.UseCollection(Links.Href(latest.Links, "annotations"));
+                // The completion gate (#2453) files the next version through the versions address it read FROM, and
+                // bakes the current original: both advertised, never composed (ADR 0543).
+                annotations.UseVersionContext(DetailHref("versions"), Links.Href(latest.Links, "download"), latest.FileExtension);
                 result = result with
                 {
                     PreviewUrl = http.Absolute(Links.PlaintextFirst(latest.Links, "preview", latest.ContentIsEnveloped)),
