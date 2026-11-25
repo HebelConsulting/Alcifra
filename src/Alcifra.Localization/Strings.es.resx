@@ -3490,7 +3490,7 @@
     <value>Cuadro de texto</value>
   </data>
   <data name="AnnotationKindFreehand" xml:space="preserve">
-    <value>Trazo a mano alzada</value>
+    <value>Mano alzada</value>
   </data>
   <data name="AnnotationStampDefault" xml:space="preserve">
     <value>APROBADO</value>
@@ -7664,5 +7664,11 @@
   </data>
   <data name="MobDeviceGone" xml:space="preserve">
     <value>El archivo ya no está en este dispositivo.</value>
+  </data>
+  <data name="AnnotationPalettePastel" xml:space="preserve">
+    <value>Pastel</value>
+  </data>
+  <data name="AnnotationPaletteStrong" xml:space="preserve">
+    <value>Intenso</value>
   </data>
 </root>

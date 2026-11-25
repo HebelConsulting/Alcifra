@@ -16,7 +16,7 @@ public sealed class AnnotationKindNamesTests
     [InlineData(4, "Stamp")]
     [InlineData(5, "Strikethrough")]
     [InlineData(6, "Text box")]
-    [InlineData(7, "Pen stroke")]
+    [InlineData(7, "Freehand")]
     public void Each_stored_kind_is_named(int kind, string english)
     {
         Assert.Equal(english, Strings.Get(AnnotationKinds.NameKey(kind), CultureInfo.GetCultureInfo("en")));
