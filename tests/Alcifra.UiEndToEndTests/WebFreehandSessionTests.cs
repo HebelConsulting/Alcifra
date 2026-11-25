@@ -119,7 +119,7 @@ public class WebFreehandSessionTests
         await nameDialog.GetByRole(AriaRole.Textbox).First.FillAsync("Anna Meier");
         await nameDialog.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
 
-        // canEditContent and a signature — the gate is offered.
+        // canEditContent and an annotation — the gate is offered (ADR 1108 widened it from signatures to any annotation).
         var gate = page.Locator(".wb-pv-complete-signatures");
         await Expect(gate).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30000 });
 
@@ -129,7 +129,7 @@ public class WebFreehandSessionTests
         var confirm = page.Locator(".mud-dialog");
         await Expect(confirm).ToBeVisibleAsync();
         await page.RunAndWaitForResponseAsync(
-            async () => await confirm.GetByRole(AriaRole.Button, new() { Name = "All signatures completed" }).ClickAsync(),
+            async () => await confirm.GetByRole(AriaRole.Button, new() { Name = "Embed annotations…" }).ClickAsync(),   // ADR 1108 renamed the gate
             r => r.Request.Method == "POST" && r.Url.Contains("/versions") && r.Status == 201);
         await page.WaitForResponseAsync(r => r.Request.Method == "PUT" && r.Url.Contains("/versions/") && r.Status == 200);
     }
