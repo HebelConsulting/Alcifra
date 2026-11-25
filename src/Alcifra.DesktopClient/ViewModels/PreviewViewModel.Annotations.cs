@@ -197,10 +197,43 @@ public sealed partial class PreviewViewModel
 
     // The active colour for newly-drawn shapes + the toolbar palette (ADR "Highlighting redesign"). Picking a
     // swatch sets this AND recolours the current selection. Shown while a tool is active or something is selected.
-    [ObservableProperty] private string _annotationColor = Alcifra.Presentation.AnnotationPalette.Default;
-    public IReadOnlyList<AnnotationSwatch> AnnotationPalette { get; } =
-        [.. Alcifra.Presentation.AnnotationPalette.Colours.Select(h => new AnnotationSwatch(h))];
+    [ObservableProperty]
+    private string _annotationColor =
+        Alcifra.Presentation.AnnotationPalette.DefaultFor(0);   // the note tool, the bar's initial kind
+
+    /// <summary>The swatch row shown now: the set the chosen TOOL defaults to (#2469), until the bar's
+    /// [ Pastel | Strong ] toggle swaps it — both sets reach every kind, only the default follows the kind.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<AnnotationSwatch> _annotationPalette =
+        [.. Alcifra.Presentation.AnnotationPalette.Pastel.Select(h => new AnnotationSwatch(h))];
+
+    private bool _showStrong;
+
     public bool ShowAnnotationColorPalette => AnnotationTool > 0 || HasSelectedAnnotations;
+
+    // A newly chosen tool shows, and starts in, its default palette (#2469): pastel for Highlight/Note, the ink set
+    // for the drawing kinds. The toggle may then swap the row for this tool.
+    partial void OnAnnotationToolChanged(int value)
+    {
+        _showStrong = ReferenceEquals(Alcifra.Presentation.AnnotationPalette.ForKind(value), Alcifra.Presentation.AnnotationPalette.Strong);
+        AnnotationPalette = [.. (_showStrong ? Alcifra.Presentation.AnnotationPalette.Strong : Alcifra.Presentation.AnnotationPalette.Pastel).Select(h => new AnnotationSwatch(h))];
+        if (value > 0)
+        {
+            AnnotationColor = Alcifra.Presentation.AnnotationPalette.DefaultFor(value);
+        }
+    }
+
+    [RelayCommand]
+    private void ShowPastelPalette() => ShowPaletteSet(strong: false);
+
+    [RelayCommand]
+    private void ShowStrongPalette() => ShowPaletteSet(strong: true);
+
+    private void ShowPaletteSet(bool strong)
+    {
+        _showStrong = strong;
+        AnnotationPalette = [.. (strong ? Alcifra.Presentation.AnnotationPalette.Strong : Alcifra.Presentation.AnnotationPalette.Pastel).Select(h => new AnnotationSwatch(h))];
+    }
 
     // Picks a colour: sets the draw colour + recolours every selected annotation the caller may edit, then reload.
     [RelayCommand]

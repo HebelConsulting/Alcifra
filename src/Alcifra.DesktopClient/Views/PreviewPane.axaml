@@ -82,7 +82,9 @@
                             ToolTip.Tip="{loc:Tr PhoneCompleteSignatures}" Height="26" Padding="6,0">
                         <i:Icon Value="mdi-check-all" />
                     </Button>
-                    <!-- Colour palette (ADR "Highlighting redesign"): sets the draw colour for new shapes AND recolours the selection. Shown while drawing or with a selection. -->
+                    <!-- Colour palette (ADR "Highlighting redesign"): sets the draw colour for new shapes AND recolours the selection. Shown while drawing or with a selection. #2469: two sets reach every kind; the default follows the tool, and these chips swap the row. -->
+                    <Button Command="{Binding ShowPastelPaletteCommand}" Content="{loc:Tr AnnotationPalettePastel}" FontSize="10" Height="22" Padding="5,0" Margin="0,0,2,0" MinWidth="0" />
+                    <Button Command="{Binding ShowStrongPaletteCommand}" Content="{loc:Tr AnnotationPaletteStrong}" FontSize="10" Height="22" Padding="5,0" Margin="0,0,4,0" MinWidth="0" />
                     <ItemsControl ItemsSource="{Binding AnnotationPalette}" IsVisible="{Binding ShowAnnotationColorPalette}" VerticalAlignment="Center" Margin="4,0">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="3" /></ItemsPanelTemplate>
