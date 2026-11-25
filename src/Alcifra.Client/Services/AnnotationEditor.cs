@@ -41,7 +41,11 @@ namespace Alcifra.Client.Services;
 public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, ISnackbar snackbar) : IPreviewAnnotationHost
 {
     /// <summary>The draw colour palette (ADR "Highlighting redesign").</summary>
-    public static readonly string[] Palette = [.. AnnotationPalette.Colours];
+    /// <summary>The swatch row shown now: the set the chosen TOOL defaults to (#2469), until the bar's
+    /// [ Pastel | Strong ] toggle swaps it — both sets reach every kind, only the default follows the kind.</summary>
+    public IReadOnlyList<string> Palette => _showStrong ? AnnotationPalette.Strong : AnnotationPalette.Pastel;
+
+    private bool _showStrong;
 
     // The palette's darkest colour (black) — a newly chosen tool starts dark, as ink does on paper (#2460).
     private static readonly string DefaultColor = AnnotationPalette.Default;
@@ -71,7 +75,9 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
     public bool CanEditContent { get; private set; }
 
     /// <summary>The completion gate is offered (#2453): a signature exists on this version and this caller may file one.</summary>
-    public bool CanComplete => CanEditContent && _annotations.Any(a => a.Kind == 8)
+    // The gate widened (owner 2026-11-25, #2471): ANY annotation may be baked, not only a signature — the button
+    // reads "Embed annotations…" and files the version with the system-comment token of what it closed.
+    public bool CanComplete => CanEditContent && _annotations.Count > 0
         && _versionsHref is not null && _downloadUrl is not null && string.Equals(_extension, ".pdf", StringComparison.OrdinalIgnoreCase);
 
     public bool Visible { get; private set; } = true;
@@ -151,6 +157,10 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
     }
 
     // ---- Toolbar commands ------------------------------------------------------------------------------
+
+    /// <summary>The bar's [ Pastel | Strong ] toggle (#2469): swaps the swatch row for every kind; the choice holds
+    /// until another tool is chosen.</summary>
+    public void ShowPaletteSet(bool strong) => _showStrong = strong;
 
     public async Task SetColorAsync(string color)
     {
@@ -418,7 +428,12 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
                 a.Width, a.Height, a.Text, a.Color, a.AuthorName, a.Points)).ToList();
             var baked = AnnotatedPdf.WriteFlattened(bytes, marks);
 
-            using var created = await http.PostAsJsonAsync(_versionsHref.TrimStart('/'), new { fileExtension = ".pdf" });
+            // The system comment (core #2471): a signing closure says so; an ordinary bake says the annotations were
+            // embedded — one token per action, translated per reader by VersionComments.
+            var comment = _annotations.Any(a => a.Kind == 8)
+                ? Alcifra.Presentation.VersionComments.SignaturesCompletedToken
+                : Alcifra.Presentation.VersionComments.AnnotationsEmbeddedToken;
+            using var created = await http.PostAsJsonAsync(_versionsHref.TrimStart('/'), new { fileExtension = ".pdf", comment });
             created.EnsureSuccessStatusCode();
             var version = await created.Content.ReadFromJsonAsync<JsonElement>();
             var uploadUrl = version.GetProperty("uploadUrl").GetString()!;
@@ -801,6 +816,10 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
 
     private async Task SetToolAsync(int kind)
     {
+        // A newly chosen tool shows, and starts in, its default palette (#2469): pastel for Highlight/Note, the ink
+        // set for the drawing kinds. The toggle may then swap the row for this tool.
+        _showStrong = ReferenceEquals(AnnotationPalette.ForKind(kind), AnnotationPalette.Strong);
+        Color = AnnotationPalette.DefaultFor(kind);
         Tool = kind;
         if (_surface is not null)
         {

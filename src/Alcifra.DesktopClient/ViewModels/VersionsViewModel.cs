@@ -70,7 +70,10 @@ public sealed partial class VersionsViewModel : ObservableObject
             // pair, and a document near midnight would otherwise read as two different days (ADR 0801).
             Versions.Add(new VersionRowViewModel(v.Id, v.VersionNumber ?? 0, v.DocumentDateText,
                 v.CreatedAt == default ? "" : v.CreatedAt.InZone(SessionTimeZone.Current).ToString("yyyy-MM-dd HH:mm"),
-                v.CreatedByName, v.DownloadUrl, v.FileExtension, v.IsCurrent, v.Comment, v));
+                // The system-comment tokens resolve for the reader (core #2471): a baked version's comment reads in
+                // this user's language, exactly as the web's versions dialog shows it.
+                v.CreatedByName, v.DownloadUrl, v.FileExtension, v.IsCurrent,
+                Alcifra.Presentation.VersionComments.Resolve(v.Comment, Alcifra.Localization.Strings.Get), v));
         }
 
         Loaded = true;

@@ -3454,13 +3454,13 @@
     <value>Sin anotaciones</value>
   </data>
   <data name="PhoneCompleteSignatures" xml:space="preserve">
-    <value>Todas las firmas completadas</value>
+    <value>Integrar anotaciones…</value>
   </data>
   <data name="PhoneCompleteSignaturesConfirm" xml:space="preserve">
-    <value>Las firmas se dibujan en el documento y se archivan como una nueva versión. Esto no se puede deshacer.</value>
+    <value>Las anotaciones se dibujan en el documento y se archivan como una nueva versión. Esto no se puede deshacer.</value>
   </data>
   <data name="PhoneCompleteSignaturesDone" xml:space="preserve">
-    <value>Firmas completadas: se archivó una nueva versión.</value>
+    <value>Anotaciones integradas: se ha archivado una nueva versión.</value>
   </data>
   <data name="PhoneCompleteSignaturesNoRight" xml:space="preserve">
     <value>Necesita el derecho a crear una nueva versión aquí.</value>
@@ -7670,5 +7670,11 @@
   </data>
   <data name="AnnotationPaletteStrong" xml:space="preserve">
     <value>Intenso</value>
+  </data>
+  <data name="VersionCommentAnnotationsEmbedded" xml:space="preserve">
+    <value>Anotaciones integradas en el documento</value>
+  </data>
+  <data name="VersionCommentSignaturesCompleted" xml:space="preserve">
+    <value>Firmas completadas en el documento</value>
   </data>
 </root>

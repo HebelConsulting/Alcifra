@@ -460,7 +460,11 @@ public sealed partial class PreviewViewModel
         {
             var (bytes, _) = await AlcifraApiClient.DownloadAsync(downloadUrl);
             var baked = AnnotationBaking.Flatten(bytes, _annotations);
-            await Api.Documents.UploadNewVersionAsync(versionsHref, baked, ".pdf");
+            // The system comment (core #2471): one token per action, translated per reader by VersionComments.
+            var comment = AnnotationBaking.HasSignature(_annotations)
+                ? Alcifra.Presentation.VersionComments.SignaturesCompletedToken
+                : Alcifra.Presentation.VersionComments.AnnotationsEmbeddedToken;
+            await Api.Documents.UploadNewVersionAsync(versionsHref, baked, ".pdf", comment);
             _status.Report(Strings.Get("PhoneCompleteSignaturesDone"));
 
             // The pane must show the NEW current version's page — the baked one — not the one the marks lived on.
@@ -484,7 +488,7 @@ public sealed partial class PreviewViewModel
                 _annotations = list.Items;
                 CanAddNote = list.CanCreate; // CanAnnotate (ADR "CanAnnotate right")
                 // The completion gate (#2453): offered where the caller may file a new version and a signature exists.
-                CanCompleteSignatures = list.CanEditContent && AnnotationBaking.HasSignature(list.Items);
+                CanCompleteSignatures = list.CanEditContent && list.Items.Count > 0;   // any annotation may be baked (#2471)
             }
             catch (Exception) { /* no notes / not readable */ }
         }

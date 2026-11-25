@@ -3454,13 +3454,13 @@
     <value>No annotations</value>
   </data>
   <data name="PhoneCompleteSignatures" xml:space="preserve">
-    <value>All signatures completed</value>
+    <value>Embed annotations…</value>
   </data>
   <data name="PhoneCompleteSignaturesConfirm" xml:space="preserve">
-    <value>The signatures are drawn into the document and filed as a new version. This cannot be undone.</value>
+    <value>The annotations are drawn into the document and filed as a new version. This cannot be undone.</value>
   </data>
   <data name="PhoneCompleteSignaturesDone" xml:space="preserve">
-    <value>Signatures completed: a new version was filed.</value>
+    <value>Annotations embedded: a new version was filed.</value>
   </data>
   <data name="PhoneCompleteSignaturesNoRight" xml:space="preserve">
     <value>You need the right to create a new version here.</value>
@@ -7670,5 +7670,11 @@
   </data>
   <data name="AnnotationPaletteStrong" xml:space="preserve">
     <value>Strong</value>
+  </data>
+  <data name="VersionCommentAnnotationsEmbedded" xml:space="preserve">
+    <value>Annotations embedded into the document</value>
+  </data>
+  <data name="VersionCommentSignaturesCompleted" xml:space="preserve">
+    <value>Signatures completed in the document</value>
   </data>
 </root>

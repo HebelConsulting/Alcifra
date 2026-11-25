@@ -60,7 +60,13 @@
     @if (Annotations.CanCreate && !TouchOnly && (Annotations.Tool > 0 || Annotations.HasSelection))
     {
         <span class="wb-pv-palette">
-            @foreach (var c in AnnotationEditor.Palette)
+            @* Both sets reach every kind; only the DEFAULT follows the kind (#2469). The toggle swaps the row. *@
+            @* #2469's [ Pastel | Strong ] chips: the active set wears the accent — state, not emphasis (ADR 0581). *@
+            <span style="@ChipStyle(ReferenceEquals(Annotations.Palette, Alcifra.Presentation.AnnotationPalette.Pastel))"
+                  @onclick="@(() => Annotations.ShowPaletteSet(false))" title="@Strings.Get("AnnotationPalettePastel")">@Strings.Get("AnnotationPalettePastel")</span>
+            <span style="@ChipStyle(ReferenceEquals(Annotations.Palette, Alcifra.Presentation.AnnotationPalette.Strong))"
+                  @onclick="@(() => Annotations.ShowPaletteSet(true))" title="@Strings.Get("AnnotationPaletteStrong")">@Strings.Get("AnnotationPaletteStrong")</span>
+            @foreach (var c in Annotations.Palette)
             {
                 <span class="wb-pv-swatch @(Annotations.Color == c ? "wb-pv-swatch-on" : "")" style="@($"background:{c}")"
                       @onclick="@(() => Annotations.SetColorAsync(c))" title="Set colour"></span>
@@ -94,6 +100,10 @@
 }
 
 @code {
+    // The palette chips' own look (#2469): no new shell CSS — the workbench may only get smaller (ADR 0558).
+    private static string ChipStyle(bool active) =>
+        "font-size:11px;line-height:1;padding:3px 6px;border-radius:8px;cursor:pointer;" + (active ? "opacity:1;color:var(--mud-palette-primary);font-weight:600;" : "opacity:.65;");
+
     /// <summary>
     /// A touch-only device (coarse pointer, no hover), reported once by wbLayout.js. A parameter rather than
     /// something read here, because it is a property of the viewport the shell already watches — not of
