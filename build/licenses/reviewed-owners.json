@@ -182,6 +182,14 @@
     "Reviewed": "2026-10-15"
   },
   {
+    "Id": "PDFsharp",
+    "Owners": [
+      "pdfsharp-team"
+    ],
+    "ProjectUrl": "https://docs.pdfsharp.net/",
+    "Reviewed": "2026-11-25"
+  },
+  {
     "Id": "PdfPig",
     "Owners": [
       "BobLd",
