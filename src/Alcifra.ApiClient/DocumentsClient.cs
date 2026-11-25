@@ -594,7 +594,7 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
     /// <param name="maskId">The mask the new document is given once filed (a picker filing a thumbnail, #2214), through its
     /// own <c>mask</c> rel: a create names only a folder's mask, and finalize classifies an item first. Null keeps finalize's
     /// classification, as before.</param>
-    public async Task<Guid> UploadFileAsync(string childrenHref, string fileName, byte[] bytes, string? comment = null, CancellationToken cancellationToken = default, Guid? maskId = null)
+    public async Task<Guid> UploadFileAsync(string childrenHref, string fileName, byte[] bytes, string? comment = null, CancellationToken cancellationToken = default, Guid? maskId = null, bool? requireDuplicateConfirmation = null, bool? allowDuplicate = null)
     {
         // Document.Name is the stem (no extension); the extension rides on the version's object key (ADR
         // "Extension off Document.Name, derived from the object key").
@@ -637,7 +637,7 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
         // An encrypted upload declares its wrapped DEK here so the server attaches it before anything reads.
         using var finalizeResponse = await _core.Http.PutAsJsonAsync(
             ApiCore.RequireRel(version, "self", "The pending version"),
-            new { wrappedDek = encrypted?.WrappedDek, kekGeneration = encrypted?.KekGeneration }, cancellationToken);
+            new { wrappedDek = encrypted?.WrappedDek, kekGeneration = encrypted?.KekGeneration, requireDuplicateConfirmation, allowDuplicate }, cancellationToken);
         finalizeResponse.EnsureSuccessStatusCode();
 
         // The server assigns the mask at finalize (eMail for .eml/.msg, else Basic Entry) — ADR "Email
@@ -861,7 +861,7 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
 
     // Uploads bytes as a NEW version of an existing document (the check-in upload) — POST /versions → PUT bytes
     // → finalize. Distinct from UploadFileAsync, which creates a new document.
-    public async Task UploadNewVersionAsync(string versionsHref, byte[] bytes, string fileExtension, string? comment = null, CancellationToken cancellationToken = default)
+    public async Task UploadNewVersionAsync(string versionsHref, byte[] bytes, string fileExtension, string? comment = null, CancellationToken cancellationToken = default, bool? requireDuplicateConfirmation = null, bool? allowDuplicate = null)
     {
         // The check-in comment is the new version's "why this revision" note (ADR 0528) — set on the version
         // itself, not posted to the chat feed as it used to be.
@@ -885,7 +885,7 @@ public sealed partial class DocumentsClient(ApiCore core, Func<RemindersClient> 
 
         using var finalizeResponse = await _core.Http.PutAsJsonAsync(
             ApiCore.RequireRel(version, "self", "The pending version"),
-            new { wrappedDek = encrypted?.WrappedDek, kekGeneration = encrypted?.KekGeneration }, cancellationToken);
+            new { wrappedDek = encrypted?.WrappedDek, kekGeneration = encrypted?.KekGeneration, requireDuplicateConfirmation, allowDuplicate }, cancellationToken);
         finalizeResponse.EnsureSuccessStatusCode();
     }
 

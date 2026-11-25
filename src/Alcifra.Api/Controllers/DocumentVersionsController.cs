@@ -610,6 +610,14 @@ public class DocumentVersionsController : ControllerBase
 
         public string? KekGeneration { get; set; }
 
+        /// <summary>The duplicate decision (core #2476): true asks the finalize to hash the arriving content against the
+        /// archive and refuse it with the candidates unless <see cref="AllowDuplicate"/> carries the user's explicit
+        /// "file anyway". Omitted — every already-shipped client, every machine path — the finalize stays lenient.</summary>
+        public bool? RequireDuplicateConfirmation { get; set; }
+
+        /// <summary>The user's explicit "file anyway": honoured only together with <see cref="RequireDuplicateConfirmation"/>.</summary>
+        public bool? AllowDuplicate { get; set; }
+
         // A system comment kind (ADR 0964): only a password entry's re-seal sends one, ResealedAfterAccessChange (2).
         // Anything else is refused; omitted or 0 is the ordinary user comment.
         public int? CommentKind { get; set; }
@@ -749,7 +757,8 @@ public class DocumentVersionsController : ControllerBase
                         await CiCdIndexWriter.ApplyAsync(_dbContext, documentId, request?.CiCd, cancellationToken);
                     }
 
-                    await _finalizer.FileAsync(version, cancellationToken);
+                    await _finalizer.FileAsync(version, cancellationToken,
+                        duplicates: new Alcifra.Api.Documents.DuplicatePolicy(request?.RequireDuplicateConfirmation, request?.AllowDuplicate));
                 },
                 gateBeforeApply: true, cancellationToken: cancellationToken);
         }
@@ -763,7 +772,8 @@ public class DocumentVersionsController : ControllerBase
                 await CiCdIndexWriter.ApplyAsync(_dbContext, documentId, request?.CiCd, cancellationToken);
             }
 
-            await _finalizer.FileAsync(version, cancellationToken);
+            await _finalizer.FileAsync(version, cancellationToken,
+                        duplicates: new Alcifra.Api.Documents.DuplicatePolicy(request?.RequireDuplicateConfirmation, request?.AllowDuplicate));
         }
 
         var row = new VersionRow(versionId, documentId, version.Status, version.VersionNumber, version.ObjectKey, version.Sha256Hash, version.CreatedAt, version.DocumentDate, version.DocumentTime, version.CreatedByUserId, version.CreatedByServiceAccountId, version.OcrLanguages, version.Comment, version.OcrVerdict, version.IsSigned, SizeBytes: version.SizeBytes);

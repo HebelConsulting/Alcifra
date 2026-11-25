@@ -109,7 +109,8 @@ public partial class DocumentFinalizer
     public async Task FileAsync(
         DocumentVersion version,
         CancellationToken cancellationToken,
-        StagedClassification? staged = null)
+        StagedClassification? staged = null,
+        DuplicatePolicy duplicates = default)
     {
         var owned = _dbContext.Database.CurrentTransaction is null
             ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
@@ -126,7 +127,7 @@ public partial class DocumentFinalizer
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
-        await FinalizeAsync(version, cancellationToken, staged);
+        await FinalizeAsync(version, cancellationToken, staged, duplicates: duplicates);
 
         if (transaction is not null)
         {
@@ -140,6 +141,7 @@ public partial class DocumentFinalizer
         DocumentVersion version,
         CancellationToken cancellationToken,
         StagedClassification? staged = null,
+        DuplicatePolicy duplicates = default,
         [System.Runtime.CompilerServices.CallerFilePath] string callerFile = "",
         [System.Runtime.CompilerServices.CallerLineNumber] int callerLine = 0)
     {
@@ -255,6 +257,19 @@ public partial class DocumentFinalizer
         // tenant's maintained counter. The early-return above makes this a no-op on a re-finalize, so the counter
         // isn't double-added. Enforcement (the pre-check) happens at the upload entry point before the blob lands.
         var sizeBytes = await _objectStorageClient.GetObjectSizeAsync(version.ObjectKey, cancellationToken);
+
+        // Duplicate enforcement (core #2476, owner 2026-11-25): a caller that REQUIRES the confirmation (the interactive
+        // clients, once they adopt it) has its arriving content hashed against the archive and is answered with the
+        // candidates unless it brought the user's explicit 'file anyway'. Absent the requirement the finalize stays
+        // lenient — every already-shipped client and every machine path (IMAP/LMTP, modules) files as before.
+        if (duplicates.Requires == true && duplicates.Allow != true
+            && await FindDuplicateDocumentsAsync(version.DocumentId, sha256Hash, cancellationToken) is { Count: > 0 } candidates)
+        {
+            _logger.LogWarning(
+                "Version {VersionId} of document {DocumentId} duplicates existing content ({Count} candidate(s)); refused without an explicit decision",
+                version.Id, version.DocumentId, candidates.Count);
+            throw new Alcifra.Api.Errors.Exceptions.Documents.DuplicateContentException(candidates);
+        }
 
         version.Sha256Hash = sha256Hash;
         version.VersionNumber = nextVersionNumber;
