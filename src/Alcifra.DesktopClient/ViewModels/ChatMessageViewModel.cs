@@ -82,14 +82,10 @@ public sealed partial class ChatMessageViewModel : ObservableObject
 
     public string VersionLabel => string.Format(Strings.Get("ChatVersionLabel"), VersionNumber);
 
-    // A machine-generated comment carries no stored text; its wording is a localized string for the kind.
-    // 2: a password entry sealed again by a member's client after its store's readers changed (ADR 0964).
-    public string? VersionCommentText => VersionCommentKind switch
-    {
-        1 => Strings.Get("VersionCommentSearchablePdf"),
-        2 => Strings.Get("VersionCommentResealed"),
-        _ => string.IsNullOrWhiteSpace(VersionComment) ? null : VersionComment,
-    };
+    // One mapping for every surface (core #2481): a machine kind reads as its localized sentence, anything else
+    // through the version-comment resolver.
+    public string? VersionCommentText =>
+        Alcifra.Presentation.VersionComments.Display(VersionComment, VersionCommentKind, Strings.Get);
 
     public bool HasVersionComment => VersionCommentText is not null;
 

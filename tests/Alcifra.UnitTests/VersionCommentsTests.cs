@@ -48,4 +48,21 @@ public sealed class VersionCommentsTests
         Assert.False(VersionComments.IsSystemComment("{{documentversion.annotations-embedded}}"));
         Assert.False(VersionComments.IsSystemComment("ordinary text"));
     }
+
+    [Fact]
+    public void A_machine_kind_reads_as_its_localized_sentence_and_everything_else_resolves_the_text()
+    {
+        Assert.Equal("Searchable PDF generated for the document", VersionComments.Display(null, 1, TranslateKinds));
+        Assert.Equal("Resealed after an access change", VersionComments.Display(null, 2, TranslateKinds));
+        Assert.Equal("Annotations embedded into the document", VersionComments.Display(VersionComments.AnnotationsEmbeddedToken, 0, TranslateKinds));
+        Assert.Equal("A typed note", VersionComments.Display("A typed note", null, TranslateKinds));
+        Assert.Null(VersionComments.Display("  ", 0, TranslateKinds));
+    }
+
+    private static string TranslateKinds(string key) => key switch
+    {
+        "VersionCommentSearchablePdf" => "Searchable PDF generated for the document",
+        "VersionCommentResealed" => "Resealed after an access change",
+        _ => Translate(key),
+    };
 }

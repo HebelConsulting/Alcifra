@@ -33,6 +33,20 @@ public static class VersionComments
         [SignaturesCompletedToken] = "VersionCommentSignaturesCompleted",
     };
 
+    /// <summary>
+    /// The reader-facing text for a version comment whose KIND the wire carries (ADR 0545/0964): a machine kind
+    /// (searchable-PDF conversion, re-seal) has no stored text and reads as its localized sentence; anything else
+    /// resolves the stored text through <see cref="Resolve"/>. One mapping for every surface — the web's chat pane and
+    /// the desktop's carried this same switch twice before (#2481).
+    /// </summary>
+    /// <returns>Null when there is nothing to show (no text, no kind).</returns>
+    public static string? Display(string? comment, int? kind, Func<string, string> translate) => kind switch
+    {
+        1 => translate("VersionCommentSearchablePdf"),
+        2 => translate("VersionCommentResealed"),
+        _ => Resolve(comment, translate) is { } resolved && !string.IsNullOrWhiteSpace(resolved) ? resolved : null,
+    };
+
     /// <summary>Whether the comment is one of the listed tokens (ignoring the escape).</summary>
     public static bool IsSystemComment(string? comment) =>
         comment is not null && Tokens.ContainsKey(comment.Trim());

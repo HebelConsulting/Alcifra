@@ -232,15 +232,11 @@
         }
     };
 
-    // The check-in comment shown beneath "Version N". A machine-generated one carries no stored text — its
-    // wording is a localized string for the kind (ADR 0545).
-    private string? VersionCommentText(ChatMessageResponse message) => message.VersionCommentKind switch
-    {
-        1 => Strings.Get("VersionCommentSearchablePdf"),
-        // A password entry sealed again by a member's client after its store's readers changed (ADR 0964).
-        2 => Strings.Get("VersionCommentResealed"),
-        _ => string.IsNullOrWhiteSpace(message.VersionComment) ? null : message.VersionComment,
-    };
+    // The check-in comment shown beneath "Version N": a machine kind (searchable-PDF conversion, a password entry
+    // sealed again after its store's readers changed — ADR 0964) reads as its localized sentence, anything else
+    // through the one resolver (core #2481).
+    private string? VersionCommentText(ChatMessageResponse message) =>
+        Alcifra.Presentation.VersionComments.Display(message.VersionComment, message.VersionCommentKind, Strings.Get);
 
     // The author label. A message that advertises an "author-card" rel renders a clickable name; one that does
     // not (a ServiceAccount posted it) renders plain text. The ABSENCE of the rel is the signal — the client
