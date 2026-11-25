@@ -419,6 +419,14 @@ jobs:
         run: dotnet restore
       - name: Build ${{ matrix.project }}
         run: dotnet build tests/Alcifra.${{ matrix.project }} --no-restore -c Debug
+      # A fresh VM's container image exists only once its pull has landed, and the pool template deliberately
+      # carries none (RunnerPool seals it pruned). On 2026-11-25 one run lost three UI legs at fixture init with
+      # `No such image` — a different image per VM — while sibling legs and an earlier full matrix pulled the same
+      # pins fine: 61 opaque test failures per leg and no docker error anywhere. Pulling the five images here
+      # first makes that ONE failing step carrying docker's own message, and warms what the suites need; through
+      # the pool's registry mirror it costs seconds. The versions come from images.env — never written here.
+      - name: Pre-pull the test images
+        run: scripts/prepull-test-images.sh
       # Suites run once, no retry wrapper — the known intermittent flakes are root-caused (SearchTests polls until
       # BOTH docs are indexed; the login helper waits on DOMContentLoaded + a 60s timeout for the slower hosted
       # CPU; WebSearchFilterTests polls until the row clears). A red suite is a real regression or a new flake.
