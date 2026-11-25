@@ -69,6 +69,36 @@ public sealed class AnnotationSession(int kind, string colour)
         }
     }
 
+    /// <summary>A session SEEDED from a stored freehand's wire form — "continue editing" (mobile #348): the mark's own
+    /// strokes become the session's, so undo walks them and new strokes join them; <see cref="Canonical"/> writes the
+    /// combined set straight back.</summary>
+    /// <param name="kind">The stored kind (freehand 7 for a continued drawing).</param>
+    /// <param name="colour">The mark's colour — one annotation keeps one colour.</param>
+    /// <param name="page">The page the mark lives on.</param>
+    /// <param name="points">The stored poly-lines, <see cref="Canonical"/>'s format.</param>
+    public static AnnotationSession Parsed(int kind, string colour, int page, string? points)
+    {
+        var session = new AnnotationSession(kind, colour);
+        foreach (var stroke in (points ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var trail = new List<(double X, double Y)>();
+            foreach (var pair in stroke.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var comma = pair.IndexOf(',');
+                if (comma > 0
+                    && double.TryParse(pair[..comma], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var x)
+                    && double.TryParse(pair[(comma + 1)..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var y))
+                {
+                    trail.Add((x, y));
+                }
+            }
+
+            session.Add(page, trail);
+        }
+
+        return session;
+    }
+
     /// <summary>
     /// The wire form (ADR 1107): every stroke as "x,y x,y …" (invariant culture, 4 decimals — the precision the
     /// server canonicalises to), joined by ';'. A stroke with no valid pair is left out.

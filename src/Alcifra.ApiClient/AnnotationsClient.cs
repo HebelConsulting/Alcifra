@@ -83,6 +83,33 @@ public sealed class AnnotationsClient(ApiCore core)
     public async Task UpdateAnnotationAsync(AnnotationInfo annotation, int pageIndex, double x, double y, string text, string color, string etag, CancellationToken cancellationToken = default)
         => await UpdateAnnotationAsync(annotation, pageIndex, x, y, null, null, text, color, etag, cancellationToken);
 
+    /// <summary>Rewrites a FREEHAND mark's strokes (mobile #348's "continue editing"): the same PUT, with the canonical
+    /// poly-line the server validates (<see cref="AnnotationInfo.Points"/>' format). Author-only, under the row's ETag.
+    /// Takes the ROW, which carries its own address (ADR 0555) — no id, nothing composed (#862).</summary>
+    public async Task UpdateStrokesAsync(AnnotationInfo annotation, string points, string etag, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, RequireSelf(annotation))
+        {
+            Content = JsonContent.Create(new
+            {
+                pageIndex = annotation.PageIndex,
+                positionX = annotation.PositionX,
+                positionY = annotation.PositionY,
+                width = annotation.Width,
+                height = annotation.Height,
+                text = annotation.Text,
+                color = annotation.Color,
+                points,
+            }),
+        };
+        request.Headers.TryAddWithoutValidation("If-Match", $"\"{etag}\"");
+        using var response = await _core.Http.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new ApiActionException($"Could not update the drawing ({(int)response.StatusCode}).");
+        }
+    }
+
     /// <summary>Takes the ROW, which carries its own address (ADR 0555) — no id, nothing composed (#862).</summary>
     public async Task UpdateAnnotationAsync(AnnotationInfo annotation, int pageIndex, double x, double y, double? width, double? height, string text, string color, string etag, CancellationToken cancellationToken = default)
     {
