@@ -50,7 +50,8 @@ public sealed partial class DocumentsClient
         RowFlags.IsFolderOf(item),
         EncryptedForOf(item),
         ApiWire.TrueOrFalse(item, "hasCode"),
-        ApiWire.TrueOrFalse(item, "hasPasskey"));
+        ApiWire.TrueOrFalse(item, "hasPasskey"),
+        item.TryGetProperty("canEditContent", out var cec) && cec.ValueKind == JsonValueKind.True);
 
     // The row's sign for encrypted content (ADR 0983); an absent or unknown value marks nothing.
     internal static EncryptedFor EncryptedForOf(JsonElement item) =>

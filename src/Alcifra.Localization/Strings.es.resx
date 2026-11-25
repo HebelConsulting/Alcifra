@@ -7650,4 +7650,19 @@
   <data name="MobShareAnnotatedNoExport" xml:space="preserve">
     <value>El servidor no ofrece este documento con sus anotaciones — solo un PDF de un inquilino que sirve en claro puede compartirse así.</value>
   </data>
+  <data name="MobShareNewVersion" xml:space="preserve">
+    <value>Añadir nueva versión…</value>
+  </data>
+  <data name="MobAddVersion" xml:space="preserve">
+    <value>Añadir versión</value>
+  </data>
+  <data name="VerPickRecent" xml:space="preserve">
+    <value>Documentos recientes</value>
+  </data>
+  <data name="MobVersionAdded" xml:space="preserve">
+    <value>Se ha añadido una nueva versión.</value>
+  </data>
+  <data name="MobDeviceGone" xml:space="preserve">
+    <value>El archivo ya no está en este dispositivo.</value>
+  </data>
 </root>

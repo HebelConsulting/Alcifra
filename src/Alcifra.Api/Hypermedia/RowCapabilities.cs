@@ -62,6 +62,15 @@ public interface ICarriesRowCapabilities
     /// notwithstanding".
     /// </remarks>
     bool CanCreateChildren { get; set; }
+
+    /// <summary>May the caller add content to this row — file a NEW VERSION of it?</summary>
+    /// <remarks>
+    /// Named after the right the versions <c>POST</c> enforces (<c>CanEditContent</c>), so the gate and the
+    /// refusal cannot drift — the same rule as <see cref="CanEditIndexData"/>. It exists for the one picker
+    /// that chooses a document to receive a version (mobile #346): without it the row that must be choosable
+    /// is indistinguishable from the one whose pick would answer 403.
+    /// </remarks>
+    bool CanEditContent { get; set; }
 }
 
 /// <summary>Stamps the capabilities onto a page of rows, in one batch rather than one lookup per row.</summary>
@@ -137,6 +146,7 @@ public static class RowCapabilities
             row.CanMove = r.CanMove;
             row.CanManagePermissions = r.CanManagePermissions;
             row.CanCreateChildren = admitsPlainChild(row) && r.CanCreateSubItems;
+            row.CanEditContent = r.CanEditContent;
         }
     }
 

@@ -42,6 +42,9 @@ public class RepositoryDocumentsCapabilityTests
 
         // A plain folder admits a plain child, and this caller holds CanCreateSubItems — both halves true.
         Assert.True(row.GetProperty("canCreateChildren").GetBoolean());
+
+        // The content right the versions POST enforces — mobile #346's document picker gates "Add new version" on it.
+        Assert.True(row.GetProperty("canEditContent").GetBoolean());
     }
 
     [Fact]
@@ -68,5 +71,6 @@ public class RepositoryDocumentsCapabilityTests
         Assert.False(row.GetProperty("canMove").GetBoolean());
         Assert.False(row.GetProperty("canManagePermissions").GetBoolean());
         Assert.False(row.GetProperty("canCreateChildren").GetBoolean());
+        Assert.False(row.GetProperty("canEditContent").GetBoolean());
     }
 }

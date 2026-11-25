@@ -7650,4 +7650,19 @@
   <data name="MobShareAnnotatedNoExport" xml:space="preserve">
     <value>Der Server bietet dieses Dokument nicht mit seinen Anmerkungen an — nur ein PDF einer Mandantin, die unverschlüsselt ausliefert, lässt sich so teilen.</value>
   </data>
+  <data name="MobShareNewVersion" xml:space="preserve">
+    <value>Neue Version hinzufügen…</value>
+  </data>
+  <data name="MobAddVersion" xml:space="preserve">
+    <value>Version hinzufügen</value>
+  </data>
+  <data name="VerPickRecent" xml:space="preserve">
+    <value>Zuletzt verwendete Dokumente</value>
+  </data>
+  <data name="MobVersionAdded" xml:space="preserve">
+    <value>Eine neue Version wurde hinzugefügt.</value>
+  </data>
+  <data name="MobDeviceGone" xml:space="preserve">
+    <value>Die Datei ist nicht mehr auf diesem Gerät.</value>
+  </data>
 </root>

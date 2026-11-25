@@ -117,6 +117,10 @@ public class DocumentChildrenController : ControllerBase
         /// <summary>May the caller manage this row's permissions? (#858)</summary>
         public bool CanManagePermissions { get; set; }
 
+        /// <summary>May the caller file a NEW VERSION of this row — the content right the versions POST enforces?</summary>
+        /// <remarks>Named for the RIGHT, like <see cref="CanEditIndexData"/>; mobile #346's document picker gates on it.</remarks>
+        public bool CanEditContent { get; set; }
+
         /// <summary>May the caller create a plain child inside this row? (#854)</summary>
         /// <remarks>Policy AND right — see <c>ICarriesRowCapabilities.CanCreateChildren</c>.</remarks>
         public bool CanCreateChildren { get; set; }

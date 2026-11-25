@@ -7650,4 +7650,19 @@
   <data name="MobShareAnnotatedNoExport" xml:space="preserve">
     <value>The server does not offer this document with its annotations — only a PDF on a tenant that serves plaintext can be shared this way.</value>
   </data>
+  <data name="MobShareNewVersion" xml:space="preserve">
+    <value>Add new version…</value>
+  </data>
+  <data name="MobAddVersion" xml:space="preserve">
+    <value>Add version</value>
+  </data>
+  <data name="VerPickRecent" xml:space="preserve">
+    <value>Recent documents</value>
+  </data>
+  <data name="MobVersionAdded" xml:space="preserve">
+    <value>A new version was added.</value>
+  </data>
+  <data name="MobDeviceGone" xml:space="preserve">
+    <value>The file is no longer on this device.</value>
+  </data>
 </root>

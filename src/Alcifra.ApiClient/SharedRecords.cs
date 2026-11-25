@@ -103,7 +103,10 @@ public sealed record Node(Guid Id, string Name, bool HasChildren, bool HasVersio
     // A password entry with a verification code (ADR 1013), from its index: marked in the list before it is opened.
     bool HasCode = false,
     // A password entry with a passkey (ADR 1033), from its index: marked in the list likewise.
-    bool HasPasskey = false)
+    bool HasPasskey = false,
+    // May the caller file a NEW VERSION of this row? Named for the right the versions POST enforces (mobile #346's
+    // document picker gates on it); false by default for the ADR 0543 reason the other flags carry.
+    bool CanEditContent = false)
 {
     /// <summary>Whether the row is a folder: the server's answer from the mask (#1708), else the old inference
     /// "has no file version", which reads a file-less record (a push key, a credential) as an empty folder.</summary>
