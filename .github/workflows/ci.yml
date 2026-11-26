@@ -432,6 +432,31 @@ jobs:
       # CPU; WebSearchFilterTests polls until the row clears). A red suite is a real regression or a new flake.
       - name: Test ${{ matrix.project }} ${{ matrix.filter }}
         run: dotnet test tests/Alcifra.${{ matrix.project }} --no-build -c Debug ${{ matrix.filter }} --logger "trx;LogFileName=results.trx" --results-directory "${{ github.workspace }}/trx"
+      # When a leg dies, its VM dies with it — on 2026-11-25 three legs failed at the container daemon and left no
+      # trace of WHY (#2484: `No such image` at create on one VM, a started container vanished on another, `grpc:
+      # the client connection is closing` on a third — while the host had no OOM line and the mirror served every
+      # passing leg). The guest's own docker/containerd journal and kernel OOM lines are the missing witness, so a
+      # failed leg now uploads them. BEST-EFFORT BY DESIGN: on the pool the runner user may not read the system
+      # journal (`sudo` is not available there), so every command tolerates a refusal and records it in the file
+      # instead of failing the step that exists to explain a failure.
+      - name: Daemon evidence on failure
+        if: failure()
+        run: |
+          mkdir -p daemon-evidence
+          { free -m; df -h / /var/lib/docker; } > daemon-evidence/state.txt 2>&1 || true
+          docker ps -a > daemon-evidence/containers.txt 2>&1 || true
+          docker info > daemon-evidence/docker-info.txt 2>&1 || true
+          journalctl -u docker -u containerd --no-pager -n 300 > daemon-evidence/docker-journal.txt 2>&1 || echo "journalctl refused" >> daemon-evidence/docker-journal.txt
+          dmesg -T > daemon-evidence/dmesg.txt 2>&1 || echo "dmesg refused" >> daemon-evidence/dmesg.txt
+          grep -iE "oom|killed process|out of memory" daemon-evidence/dmesg.txt > daemon-evidence/oom.txt || true
+      - name: Upload daemon evidence
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: daemon-evidence-${{ matrix.project }}-${{ strategy.job-index }}
+          path: daemon-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
       # A red leg must leave EVIDENCE behind. Without this the only record of which tests failed is the job log,
       # and a log is unreachable while ANY sibling job is still running — so one hung leg hides the diagnosis of
       # a different one indefinitely (that is exactly what happened on run 31501708457: `gh` answered "run is
