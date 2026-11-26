@@ -151,7 +151,10 @@ public static partial class WebCapture
     {
         await page.Locator(toolSelector).First.ClickAsync();
         await page.Locator(".wb-pv-session-cancel").First.WaitForAsync(new() { Timeout = 10000 });
-        var blue = page.Locator(".wb-pv-palette .wb-pv-swatch[style*='#4FC3F7']").First;
+        // The Strong palette's blue (AnnotationPalette.Strong[5]) — the set every drawing kind starts in (#2469).
+        // The literal must track the palette: #4FC3F7 was the pre-split blue, and after the split this wait timed
+        // out, silently skipping the annotations-session and annotations-sign figures on every manual run.
+        var blue = page.Locator(".wb-pv-palette .wb-pv-swatch[style*='#1976D2']").First;
         await blue.WaitForAsync(new() { Timeout = 10000 });
         await blue.ClickAsync();
         await page.WaitForTimeoutAsync(300);
