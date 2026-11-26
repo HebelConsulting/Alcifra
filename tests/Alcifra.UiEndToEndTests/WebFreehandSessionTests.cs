@@ -65,6 +65,11 @@ public class WebFreehandSessionTests
         await page.Locator(".wb-pv-tool-pen").ClickAsync();
         await Expect(page.Locator(".wb-pv-session-finish")).ToBeVisibleAsync();
 
+        // A session tool starts in its KIND's default set (#2469): the ink set for a drawing kind, black selected.
+        // It used to keep whatever set was showing, leaving a pen session on the Pastel row.
+        await Expect(page.Locator(".wb-pv-palette .wb-pv-swatch[style*='#000000']")).ToBeVisibleAsync();
+        await Expect(page.Locator(".wb-pv-palette .wb-pv-swatch-on[style*='#000000']")).ToHaveCountAsync(1);
+
         await StrokeAsync(page, 60, 60, 120, 10);
         await StrokeAsync(page, 70, 110, 110, 20);
         await Expect(page.Locator(".wb-pv-session polyline")).ToHaveCountAsync(2);

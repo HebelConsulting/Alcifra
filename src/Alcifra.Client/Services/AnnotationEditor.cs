@@ -259,6 +259,12 @@ public sealed class AnnotationEditor(HttpClient http, IDialogService dialogs, IS
             return;
         }
 
+        // A session tool starts in its KIND's default set and colour, exactly as a click tool does (#2469): this
+        // path bypasses SetToolAsync, so a pen or sign session used to keep whatever set was showing — the Pastel
+        // row for a drawing kind, contradicting the per-kind default (found by the manual's figures timing out on
+        // the ink set's blue).
+        _showStrong = ReferenceEquals(AnnotationPalette.ForKind(kind), AnnotationPalette.Strong);
+        Color = AnnotationPalette.DefaultFor(kind);
         _session = new AnnotationSession(kind, Color);
         Tool = kind;
         SessionOpen = true;
