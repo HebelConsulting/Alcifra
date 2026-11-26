@@ -22,6 +22,9 @@ public class DocumentVersionConfiguration : IEntityTypeConfiguration<DocumentVer
         // Optional per-version comment (ADR 0528) — the "why this revision" note.
         builder.Property(v => v.Comment).HasMaxLength(2000);
 
+        // The core's own note beside it (ADR 1110) — a closed-list token, never a sentence.
+        builder.Property(v => v.SystemComment).HasMaxLength(2000);
+
         builder.HasIndex(v => new { v.DocumentId, v.VersionNumber });
 
         // Exactly one of CreatedByUserId/CreatedByServiceAccountId is set — see ADR "Document version

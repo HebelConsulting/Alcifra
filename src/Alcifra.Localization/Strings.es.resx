@@ -7677,4 +7677,7 @@
   <data name="VersionCommentSignaturesCompleted" xml:space="preserve">
     <value>Firmas completadas en el documento</value>
   </data>
+  <data name="VersionCommentDateCorrected" xml:space="preserve">
+    <value>Fecha del documento corregida</value>
+  </data>
 </root>

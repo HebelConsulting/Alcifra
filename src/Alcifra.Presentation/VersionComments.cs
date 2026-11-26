@@ -26,11 +26,17 @@ public static class VersionComments
     /// gate), which the comment distinguishes for the history's reader.</summary>
     public const string SignaturesCompletedToken = "{documentversion.signatures-completed}";
 
+    /// <summary>The note a CORRECTED issuing date leaves on the version (#2472): its date (or time) was changed after
+    /// filing, and the versions surfaces say so beside the uploader's own comment — which is why it has a column of
+    /// its own (<c>DocumentVersion.SystemComment</c>) rather than overwriting it (ADR 1110).</summary>
+    public const string DateCorrectedToken = "{documentversion.date-corrected}";
+
     // The closed list: token → the localization key whose sentence it shows.
     private static readonly IReadOnlyDictionary<string, string> Tokens = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         [AnnotationsEmbeddedToken] = "VersionCommentAnnotationsEmbedded",
         [SignaturesCompletedToken] = "VersionCommentSignaturesCompleted",
+        [DateCorrectedToken] = "VersionCommentDateCorrected",
     };
 
     /// <summary>

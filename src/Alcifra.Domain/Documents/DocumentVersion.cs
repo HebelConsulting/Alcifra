@@ -85,6 +85,13 @@ public class DocumentVersion : ITenantScoped
     // (ADR 0545). Default UserComment, so every existing row keeps meaning exactly what it meant.
     public VersionCommentKind CommentKind { get; set; }
 
+    // A SYSTEM-written note shown BESIDE Comment, never instead of it — the person's "why" and the system's
+    // "what else happened" are two facts about one version. The core stores one of the closed-list tokens
+    // (Alcifra.Presentation.VersionComments) and every surface resolves it into the reader's language; a token
+    // that outlives its meaning renders literally rather than breaking old data (ADR 1110, #2472). Only the
+    // core writes it, ever — a person's text never becomes a token.
+    public string? SystemComment { get; set; }
+
     // Whether this version's content carries a digital signature (#491), examined once at finalize — where the
     // bytes are already being read to verify the content hash, so it costs nothing extra.
     //

@@ -73,7 +73,10 @@ public sealed partial class VersionsViewModel : ObservableObject
                 // The system-comment tokens resolve for the reader (core #2471): a baked version's comment reads in
                 // this user's language, exactly as the web's versions dialog shows it.
                 v.CreatedByName, v.DownloadUrl, v.FileExtension, v.IsCurrent,
-                Alcifra.Presentation.VersionComments.Resolve(v.Comment, Alcifra.Localization.Strings.Get), v));
+                Alcifra.Presentation.VersionComments.Resolve(v.Comment, Alcifra.Localization.Strings.Get),
+                // The core's own note BESIDE the comment (ADR 1110, #2472) — resolved like every token, shown
+                // under the uploader's line, never instead of it.
+                Alcifra.Presentation.VersionComments.Resolve(v.SystemComment, Alcifra.Localization.Strings.Get), v));
         }
 
         Loaded = true;
@@ -107,9 +110,12 @@ public sealed partial class VersionsViewModel : ObservableObject
 // Version is the row the server sent, carried whole so "Make current" follows its `restore` rel rather than
 // rebuilding a path from two ids (ADR 0543/0555). Deliberately has NO default: a row without it would compile
 // and then throw at the click.
-public sealed record VersionRowViewModel(Guid Id, int VersionNumber, string DocumentDate, string Filed, string By, string? DownloadUrl, string FileExtension, bool IsCurrent, string? Comment, VersionsClient.VersionInfo Version)
+public sealed record VersionRowViewModel(Guid Id, int VersionNumber, string DocumentDate, string Filed, string By, string? DownloadUrl, string FileExtension, bool IsCurrent, string? Comment, string? SystemComment, VersionsClient.VersionInfo Version)
 {
     public string Label => $"v{VersionNumber}";
+
+    /// <summary>Whether the core left a note on this version (ADR 1110) — the row shows it under the comment.</summary>
+    public bool HasSystemComment => !string.IsNullOrWhiteSpace(SystemComment);
     /// <summary>May this version be made current — as the SERVER said, not as the row re-derives it.</summary>
     /// <remarks>
     /// Was `!IsCurrent`, a shape test, while the write requires the row's `restore` rel (VersionsClient uses

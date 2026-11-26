@@ -14,7 +14,7 @@ public sealed record VersionRow(
     Guid Id, Guid DocumentId, DocumentVersionStatus Status, int? VersionNumber, string ObjectKey,
     string? Sha256Hash, DateTimeOffset CreatedAt, DateOnly DocumentDate, TimeOnly? DocumentTime,
     Guid? CreatedByUserId, Guid? CreatedByServiceAccountId, string? OcrLanguages, string? Comment,
-    OcrVerdict? OcrVerdict = null, bool? IsSigned = null, long? SizeBytes = null);
+    string? SystemComment = null, OcrVerdict? OcrVerdict = null, bool? IsSigned = null, long? SizeBytes = null);
 
 /// <summary>
 /// Builds a <see cref="DocumentVersionResource"/> — its links, its preview address and its creator's name.
@@ -343,6 +343,8 @@ public sealed class DocumentVersionResourceBuilder(
             OcrLanguages = version.OcrLanguages,
             FileExtension = Path.GetExtension(version.ObjectKey),
             Comment = version.Comment,
+            // The core's own note beside it (ADR 1110) — a token the clients resolve, never a sentence.
+            SystemComment = version.SystemComment,
             OcrVerdict = version.OcrVerdict?.ToString(),
             IsSigned = version.IsSigned == true,
             // Stated rather than left to be inferred from the absent rels (#1352): a strict tenant's version

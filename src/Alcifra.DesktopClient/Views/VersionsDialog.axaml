@@ -60,8 +60,13 @@
                              that answers *why*, and it was the only one truncated, with a hover tooltip as the
                              sole way to read the rest. Two lines before it clamps, so one long comment cannot
                              stretch every row. -->
-                        <TextBlock Grid.Column="4" Text="{Binding Comment}" ToolTip.Tip="{Binding Comment}" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Comment}" ToolTip.Tip="{Binding Comment}"
+                                       Foreground="{DynamicResource WbMuted}" FontSize="12" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                            <!-- The core's own note under it, never instead of it (ADR 1110, #2472). -->
+                            <TextBlock Text="{Binding SystemComment}" IsVisible="{Binding HasSystemComment}"
+                                       Foreground="{DynamicResource WbFaint}" FontSize="11" FontStyle="Italic" TextWrapping="Wrap" />
+                        </StackPanel>
                         <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
                             <Button Click="OnOpen" ToolTip.Tip="{loc:Tr MwOpen}" Padding="6,2"><i:Icon Value="mdi-open-in-app" /></Button>
                             <Button Click="OnSaveAs" ToolTip.Tip="{loc:Tr RibbonSaveAs}" Padding="6,2"><i:Icon Value="mdi-content-save-outline" /></Button>

@@ -57,6 +57,10 @@ public class DocumentVersionResource : HypermediaResource
     // The optional per-version comment (ADR 0528) — the "why this revision" note, shown in the versions dialog.
     public string? Comment { get; set; }
 
+    // The core's own note beside the comment (ADR 1110): a closed-list token every client resolves into the
+    // reader's language, e.g. {documentversion.date-corrected}. Null when the core said nothing.
+    public string? SystemComment { get; set; }
+
     /// <summary>
     /// The scanned-PDF detector's persisted conclusion (#999): "ConvertibleScan" / "NotAScan" /
     /// "Unreadable", or null while not yet judged. What the clients' OCR verdict line renders — the fact

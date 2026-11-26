@@ -161,7 +161,13 @@ public partial class ExemptControllerShapeTests
                 continue;
             }
 
-            var now = MutatingAction().Matches(File.ReadAllText(path)).Count;
+            // The controller's WHOLE surface, its partial files included: splitting one class across
+            // `DocumentVersionsController.cs` and `DocumentVersionsController.DocumentDate.cs` must not make a
+            // mutating action invisible to this pin — which is what counting one file would do.
+            var stem = name[..^".cs".Length];
+            var sources = new[] { path }
+                .Concat(Directory.EnumerateFiles(controllers, stem + ".*.cs"));
+            var now = sources.Sum(source => MutatingAction().Matches(File.ReadAllText(source)).Count);
             if (now != ShapeWhenJudged[name])
             {
                 moved.Add($"  {name} — {now} mutating actions now, {ShapeWhenJudged[name]} when its verdict was written");

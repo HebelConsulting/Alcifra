@@ -46,10 +46,20 @@
                                    column is a fact you take in at a glance; this is the only one that answers
                                    *why*, and it was the only one truncated — with a hover tooltip as the sole
                                    way to read the rest, which touch has no equivalent for (ADR 0511). Two lines
-                                   before it clamps, so a long comment cannot push the row heights out. *@
-                                <td style="min-width:14rem; max-width:24rem; white-space:normal; overflow-wrap:anywhere;
-                                           display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"
-                                    title="@v.Comment">@Alcifra.Presentation.VersionComments.Resolve(v.Comment, Alcifra.Localization.Strings.Get)</td>
+                                   before it clamps, so a long comment cannot push the row heights out. The
+                                   SYSTEM note sits below it, never instead of it (ADR 1110, #2472): the
+                                   uploader's "why" and the core's "what else happened" are two facts. *@
+                                <td style="min-width:14rem; max-width:24rem; white-space:normal; overflow-wrap:anywhere;"
+                                    title="@v.Comment">
+                                    @if (!string.IsNullOrWhiteSpace(v.Comment))
+                                    {
+                                        <div style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">@Alcifra.Presentation.VersionComments.Resolve(v.Comment, Alcifra.Localization.Strings.Get)</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(v.SystemComment))
+                                    {
+                                        <div style="font-size:0.8em; font-style:italic; opacity:0.75;">@Alcifra.Presentation.VersionComments.Resolve(v.SystemComment, Alcifra.Localization.Strings.Get)</div>
+                                    }
+                                </td>
                                 <td style="text-align:right; white-space:nowrap;">
                                     @if (v.OpenUrl is not null)
                                     {
@@ -128,7 +138,7 @@
                 Abs(Links.PlaintextFirst(v.Links, "preview", v.ContentIsEnveloped)) ?? Abs(Links.PlaintextFirst(v.Links, "download", v.ContentIsEnveloped)),
                 Abs(Links.PlaintextFirst(v.Links, "download", v.ContentIsEnveloped)),
                 Href(v.Links, "restore"),
-                v.Id == currentId, v.Comment)).ToList();
+                v.Id == currentId, v.Comment, v.SystemComment)).ToList();
         }
         catch (Exception)
         {
@@ -235,7 +245,7 @@
         return $"{baseUri}/{href.TrimStart('/')}";
     }
 
-    private record Row(Guid Id, int VersionNumber, string DocumentDate, DateTimeOffset Filed, string By, string? OpenUrl, string? DownloadUrl, string? RestoreUrl, bool IsCurrent, string? Comment);
+    private record Row(Guid Id, int VersionNumber, string DocumentDate, DateTimeOffset Filed, string By, string? OpenUrl, string? DownloadUrl, string? RestoreUrl, bool IsCurrent, string? Comment, string? SystemComment);
     private record VersionListResponse { public List<VersionResponse> Versions { get; set; } = []; public Guid? CurrentVersionId { get; set; } }
     private record VersionResponse
     {
@@ -247,6 +257,8 @@
         public string? DocumentDate { get; set; }
         public string? DocumentTime { get; set; }
         public string? Comment { get; set; }
+        // The core's own note beside the comment (ADR 1110) — a token this dialog resolves like any other.
+        public string? SystemComment { get; set; }
         // Sealed to the reader's key: the bare rels are then the envelope, which a browser cannot open (2026-10-24).
         public bool ContentIsEnveloped { get; set; }
         public List<LinkResponse> Links { get; set; } = [];

@@ -1261,6 +1261,10 @@ namespace Alcifra.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SystemComment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 

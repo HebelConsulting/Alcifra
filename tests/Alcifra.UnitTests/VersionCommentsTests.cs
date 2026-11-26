@@ -10,6 +10,7 @@ public sealed class VersionCommentsTests
     {
         "VersionCommentAnnotationsEmbedded" => "Annotations embedded into the document",
         "VersionCommentSignaturesCompleted" => "Signatures completed in the document",
+        "VersionCommentDateCorrected" => "Document date corrected",
         _ => key,
     };
 
@@ -18,6 +19,7 @@ public sealed class VersionCommentsTests
     {
         Assert.Equal("Annotations embedded into the document", VersionComments.Resolve(VersionComments.AnnotationsEmbeddedToken, Translate));
         Assert.Equal("Signatures completed in the document", VersionComments.Resolve(" " + VersionComments.SignaturesCompletedToken + " ", Translate));
+        Assert.Equal("Document date corrected", VersionComments.Resolve(VersionComments.DateCorrectedToken, Translate));
     }
 
     [Fact]
@@ -45,6 +47,7 @@ public sealed class VersionCommentsTests
     public void Only_the_listed_tokens_are_system_comments()
     {
         Assert.True(VersionComments.IsSystemComment(VersionComments.AnnotationsEmbeddedToken));
+        Assert.True(VersionComments.IsSystemComment(VersionComments.DateCorrectedToken));
         Assert.False(VersionComments.IsSystemComment("{{documentversion.annotations-embedded}}"));
         Assert.False(VersionComments.IsSystemComment("ordinary text"));
     }
