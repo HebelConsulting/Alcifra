@@ -86,7 +86,8 @@ internal static class KristallSamples
 
     /// <summary>The places later steps file into or point at.</summary>
     internal sealed record KristallTree(
-        Document Alpenglas, Document SeewelleAgreement, Document March, Document April, Document General);
+        Document Alpenglas, Document SeewelleAgreement, Document March, Document April, Document General,
+        Document Demonstrations);
 
     /// <summary>The archive as filed, for a caller that adds to it.</summary>
     internal sealed record KristallArchive(KristallSeed Seed, KristallTeam Team, KristallTree Tree);
@@ -310,6 +311,11 @@ internal static class KristallSamples
         await seed.DocAsync(lease.Id, "Letter to the landlord — ventilation", "ManualLeaseLetter.docx", new DateOnly(2026, 3, 12));
 
         var general = await seed.FolderAsync(seed.RepositoryId, "General", "general");
+
+        // The narrated product videos' signing segment signs the document filed under here (#364, core #2489): a
+        // recording FILES a baked version, so it must never touch the showcase invoice — this folder exists to be
+        // signed again and again, and is seeded so a re-recording for a new feature needs no manual preparation.
+        var demonstrations = await seed.FolderAsync(seed.RepositoryId, "Demonstrations", "demonstrations");
         foreach (var name in new[] { "Accounting", "Authorities", "Banks", "Employees", "Insurances" })
         {
             await seed.FolderAsync(general.Id, name, $"general/{name.ToLowerInvariant()}");
@@ -320,6 +326,6 @@ internal static class KristallSamples
         await seed.DocAsync(templates.Id, "Letterhead template", "ManualLetterhead.odt", new DateOnly(2026, 1, 1));
         await seed.DocAsync(templates.Id, "Invoice template", "ManualInvoiceTemplate.ods", new DateOnly(2026, 1, 1));
 
-        return new KristallTree(alpenglas, agreement, months[3], months[4], general);
+        return new KristallTree(alpenglas, agreement, months[3], months[4], general, demonstrations);
     }
 }

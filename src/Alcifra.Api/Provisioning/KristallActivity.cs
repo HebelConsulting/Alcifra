@@ -19,6 +19,7 @@ internal static class KristallActivity
     internal static async Task SeedAsync(KristallSeed seed, KristallTeam team, KristallTree tree, string linkTokenSeed)
     {
         var invoice = await AlpenglasAsync(seed, team, tree);
+        await SigningDemoAsync(seed, tree);
 
         await DemoSeedItems.SeedExternalLinkAsync(seed.Db, seed.TenantId, tree.SeewelleAgreement.Id, seed.AdminId,
             seed.Now, "external-link/seewelle-agreement", linkTokenSeed);
@@ -26,6 +27,14 @@ internal static class KristallActivity
         await NotificationsAsync(seed, team, invoice);
         await RecycleBinAsync(seed, tree);
     }
+
+    // The narrated product videos' signing segment signs THIS document (#364, core #2489) and files its baked result
+    // as a new version — deliberately beside the showcase invoice, never on it, because a recording must not dirty
+    // the figures the manual describes. It starts bare (no annotations), and being seeded means a re-recording for
+    // a new feature finds it without any manual preparation.
+    private static Task<Document> SigningDemoAsync(KristallSeed seed, KristallTree tree) =>
+        seed.DocAsync(tree.Demonstrations.Id, "Work report Seestrasse 4", "ManualWorkReport.pdf",
+            new DateOnly(2026, 3, 10), at: seed.Now.AddDays(-1));
 
     // The supplier folder carries the showcase: an invoice under review with three annotations, tags and a
     // conversation; a multi-page agreement; an offer in two versions to compare.

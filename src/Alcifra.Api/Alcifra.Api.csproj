@@ -21,6 +21,7 @@
          maintenance agreement is the seed's MULTI-PAGE document (#492): preview paging, page reordering and the
          patch-code sample batch below need one. -->
     <EmbeddedResource Include="DemoData/manual/alpenglas-invoice.pdf" LogicalName="ManualAlpenglasInvoice.pdf" />
+    <EmbeddedResource Include="DemoData/manual/work-report.pdf" LogicalName="ManualWorkReport.pdf" />
     <EmbeddedResource Include="DemoData/manual/alpenglas-maintenance.pdf" LogicalName="ManualAlpenglasMaintenance.pdf" />
     <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v1.pdf" LogicalName="ManualAlpenglasOfferV1.pdf" />
     <EmbeddedResource Include="DemoData/manual/alpenglas-offer-v2.pdf" LogicalName="ManualAlpenglasOfferV2.pdf" />

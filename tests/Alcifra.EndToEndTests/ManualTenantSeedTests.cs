@@ -76,6 +76,13 @@ public class ManualTenantSeedTests(E2EApiFactory factory)
 
             Assert.True(await db.Documents.AnyAsync(d => d.Name == "Maintenance agreement WV-2026-07" && d.CheckedOutByUserId != null));
 
+            // The narrated videos' signing demo (#364, core #2489): a bare document of its own, so a recording that
+            // files a baked version never touches the showcase invoice.
+            var signingDemo = await db.Documents.SingleAsync(d => d.Name == "Work report Seestrasse 4");
+            Assert.Equal(0, await db.DocumentAnnotations.CountAsync(a => a.DocumentId == signingDemo.Id));
+            var demonstrations = await db.Documents.SingleAsync(d => d.ParentId == repository.Id && d.Name == "Demonstrations");
+            Assert.Equal(demonstrations.Id, signingDemo.ParentId);
+
             var offer = await db.Documents.SingleAsync(d => d.Name == "Offer 2026-022");
             Assert.Equal(2, await db.DocumentVersions.CountAsync(v => v.DocumentId == offer.Id));
 

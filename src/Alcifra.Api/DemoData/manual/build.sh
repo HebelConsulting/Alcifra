@@ -23,6 +23,7 @@ typ --input rev=2 catering-invoice.typ "$out/catering-invoice-v2.pdf"
 typ delivery-note.typ "$out/delivery-note.pdf"
 typ press-release-draft.typ "$out/press-release-draft.pdf"
 typ price-list-2025.typ "$out/price-list-2025.pdf"
+typ work-report.typ "$out/work-report.pdf"
 
 office() { soffice --headless --convert-to "$1" --outdir "$out" "$2" >/dev/null; }
 office docx:"Office Open XML Text" lease-letter.html
