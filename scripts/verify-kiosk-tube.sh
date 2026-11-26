@@ -20,7 +20,7 @@ host="${1:-tube.demo.alcifra.dev}"
 seed="${2:-tools/kiosk/tube-seed.sh}"
 
 python3 -I - "$host" "$seed" <<'PY'
-import json, re, sys, urllib.error, urllib.request
+import json, re, sys, urllib.error, urllib.parse, urllib.request
 host, seed = sys.argv[1], sys.argv[2]
 text = open(seed, encoding="utf-8").read()
 
@@ -78,7 +78,23 @@ for video in listed:
     with get(f"https://{host}/videos/embed/{uuid}") as r:
         (ok if r.status == 200 else fail)(f"{name}: embed page ({r.status})")
 
+# The pages address channels and playlists BY NAME (Tube ADR 0013): a guid-shaped address coming back is the churn
+# regression (a shared link dying at the next reset), so the seeded names are pinned here.
+channels = re.findall(r'alcifra document folder "([^"]+)" --parent "\$channels" --mask "Tube Channel"', text)
+product = re.search(r'alcifra_channel="\$\(alcifra document folder "([^"]+)"', text)
+playlists = re.findall(r'alcifra document folder "([^"]+)" --parent "\$alcifra_channel" --mask "Tube Playlist"', text)
+if not channels or not product:
+    fail(f"read no channel from {seed}: the seed's shape changed, so this check must change with it")
+for channel in channels:
+    url = f"https://{host}/c/{urllib.parse.quote(channel, safe='')}"
+    with get(url) as r:
+        (ok if r.status == 200 else fail)(f"channel page by name: {channel} ({r.status})")
+for playlist in playlists:
+    url = f"https://{host}/c/{urllib.parse.quote(product.group(1), safe='')}/{urllib.parse.quote(playlist, safe='')}"
+    with get(url) as r:
+        (ok if r.status == 200 else fail)(f"playlist page by name: {playlist} ({r.status})")
+
 if failed:
     sys.exit(f"{len(failed)} check(s) failed: the Tube demo is not what the seed files. See /var/log/kiosk-tube-seed.log on the kiosk.")
-print("Every seeded video is listed, plays from storage and embeds.")
+print("Every seeded video is listed, plays from storage and embeds; the channel and playlist pages answer by name.")
 PY
