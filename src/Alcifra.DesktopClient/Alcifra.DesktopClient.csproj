@@ -16,6 +16,16 @@
          -p:MacPlayer=true, because it needs the macOS workload and Xcode on the building machine. -->
     <TargetFrameworks Condition="'$(MacPlayer)' == 'true'">net10.0;net10.0-windows;net10.0-macos</TargetFrameworks>
     <TargetFramework />
+    <!-- The inner builds are SEQUENTIAL on purpose (#2486, recurring from #2401). The brand icons are generated into
+         a shared directory in BeforeBuild (Directory.Build.targets → Alcifra.BrandIcons, ADR 0993) and this project
+         READS them while compiling — `AvaloniaResource Include="$(BrandIconsDir)icon.png"` and the windows
+         ApplicationIcon. The generator's target runs ONCE for both inner builds (MSBuild answers the identical
+         invocation from the first), and on a clean runner the windows inner build reached Avalonia's resource step
+         before that generation had written icon.png — main went red (run 45715820730). The gate protects
+         generators, not a reader that never waits. Microsoft.Common.CrossTargeting.targets honours this property
+         for its dispatch, so net10.0 (first in the list) finishes generating before net10.0-windows starts; the
+         cost is a few seconds of build time against a red main and a rerun. -->
+    <BuildInParallel>false</BuildInParallel>
     <OutputType>WinExe</OutputType>
     <!-- The Windows executable's icon, in Explorer, the taskbar and the title bar. Multi-resolution
          (16/32/48/64/96/128/256), generated at build time from the brand's icon, like every other size (ADR 0993). -->
