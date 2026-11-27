@@ -248,10 +248,9 @@ public partial class DocumentFinalizer
 
         version.IsSigned = isSigned;
 
-        var nextVersionNumber = 1 + await _dbContext.DocumentVersions
-            .Where(v => v.DocumentId == version.DocumentId && v.VersionNumber != null)
-            .Select(v => v.VersionNumber)
-            .MaxAsync(cancellationToken) ?? 1;
+        // The number is allocated under the document's advisory lock (ADR 1113): two concurrent finalizes of one
+        // document would otherwise both read the same highest number, and the unique index would fail one of them.
+        var nextVersionNumber = await DocumentVersionNumbers.NextAsync(_dbContext, version.DocumentId, cancellationToken);
 
         // Storage-quota accounting (ADR "Per-tenant storage quota"): stamp the blob's size and add it to the
         // tenant's maintained counter. The early-return above makes this a no-op on a re-finalize, so the counter

@@ -25,7 +25,11 @@ public class DocumentVersionConfiguration : IEntityTypeConfiguration<DocumentVer
         // The core's own note beside it (ADR 1110) — a closed-list token, never a sentence.
         builder.Property(v => v.SystemComment).HasMaxLength(2000);
 
-        builder.HasIndex(v => new { v.DocumentId, v.VersionNumber });
+        // Two versions of ONE document may not share a number (ADR 1113): the allocation behind
+        // DocumentVersionNumbers.NextAsync is racing-proof only WITH this backstop — and the backstop is only
+        // meaningful because the allocation takes its lock. NULLs are distinct on both providers, so any number of
+        // Pending versions (VersionNumber not yet assigned) coexist.
+        builder.HasIndex(v => new { v.DocumentId, v.VersionNumber }).IsUnique();
 
         // Exactly one of CreatedByUserId/CreatedByServiceAccountId is set — see ADR "Document version
         // upload/download endpoints (pragmatic slice)". Same CASE WHEN "exactly one" shape already used

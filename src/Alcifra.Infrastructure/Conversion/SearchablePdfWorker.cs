@@ -214,10 +214,15 @@ public sealed class SearchablePdfWorker : BackgroundService
 
         var sha256Hash = Convert.ToHexStringLower(SHA256.HashData(pdfBytes));
 
-        var nextVersionNumber = 1 + await dbContext.DocumentVersions
-            .Where(v => v.DocumentId == source.DocumentId && v.VersionNumber != null)
-            .Select(v => v.VersionNumber)
-            .MaxAsync(cancellationToken) ?? 1;
+        // The number, the successor version and the outbox removal are ONE unit under the document's advisory lock
+        // (ADR 1113): without the lock a concurrent upload could take the same number, and the unique index would
+        // fail this write. Owned only when nothing is already in flight (ADR 0781).
+        var owned = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        await using var transaction = owned;
+
+        var nextVersionNumber = await DocumentVersionNumbers.NextAsync(dbContext, source.DocumentId, cancellationToken);
         dbContext.DocumentVersions.Add(new DocumentVersion
         {
             Id = successorVersionId,
@@ -254,6 +259,12 @@ public sealed class SearchablePdfWorker : BackgroundService
 
         dbContext.SearchablePdfOutbox.Remove(row);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (owned is not null)
+        {
+            await owned.CommitAsync(cancellationToken);
+        }
+
         await storageQuota.AdjustUsageAsync(source.TenantId, pdfBytes.Length, cancellationToken);
 
         // Re-index so search picks up the successor (its PDF text layer is the OCR'd content).

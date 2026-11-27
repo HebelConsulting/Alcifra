@@ -1279,7 +1279,8 @@ namespace Alcifra.Infrastructure.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.HasIndex("DocumentId", "VersionNumber");
+                    b.HasIndex("DocumentId", "VersionNumber")
+                        .IsUnique();
 
                     b.ToTable("DocumentVersions", t =>
                         {

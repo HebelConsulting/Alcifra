@@ -367,7 +367,11 @@ public sealed class RepositoryImporter
                 .Select(v => new { v.VersionNumber, v.Sha256Hash })
                 .ToListAsync(cancellationToken);
             var hashes = existing.Where(v => v.Sha256Hash != null).Select(v => v.Sha256Hash!).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var nextNumber = existing.Where(v => v.VersionNumber != null).Select(v => v.VersionNumber!.Value).DefaultIfEmpty(0).Max() + 1;
+
+            // Under the document's advisory lock (ADR 1113): a concurrent upload must not take the same number. The
+            // local increment in the loop then walks past the versions THIS import appends — they are tracked in the
+            // context, not yet in the database, so the helper's read cannot see them.
+            var nextNumber = await DocumentVersionNumbers.NextAsync(_dbContext, targetDocId, cancellationToken);
 
             foreach (var version in group.OrderBy(v => v.VersionNumber ?? 0))
             {

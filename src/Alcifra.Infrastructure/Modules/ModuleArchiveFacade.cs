@@ -788,10 +788,15 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
             maskVersionId, document.TenantId, document.StorageFolderId, versionId, cancellationToken);
         var (sha256, size) = await store(objectKey, cancellationToken);
 
-        var nextVersionNumber = 1 + (await _dbContext.DocumentVersions
-            .Where(v => v.DocumentId == document.Id && v.VersionNumber != null)
-            .Select(v => v.VersionNumber)
-            .MaxAsync(cancellationToken) ?? 0);
+        // The number and the write are ONE unit under the document's advisory lock (ADR 1113): a module's replace
+        // racing an interactive upload must not take the same number. Owned only when the module did not already
+        // wrap the call in InTransactionAsync (ADR 0781).
+        var owned = _dbContext.Database.CurrentTransaction is null
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        await using var transaction = owned;
+
+        var nextVersionNumber = await DocumentVersionNumbers.NextAsync(_dbContext, document.Id, cancellationToken);
 
         var version = new DocumentVersion
         {
@@ -813,6 +818,12 @@ public sealed partial class ModuleArchiveFacade : IModuleArchiveFacade
         document.CurrentVersionId = version.Id; // pin the new version current — the replace case shows the fresh bytes at once
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (owned is not null)
+        {
+            await owned.CommitAsync(cancellationToken);
+        }
+
         return document.Id;
     }
 
