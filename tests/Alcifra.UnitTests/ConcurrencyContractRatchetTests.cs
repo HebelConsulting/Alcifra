@@ -162,6 +162,10 @@ public partial class ConcurrencyContractRatchetTests
     // claim is removed rather than left standing unverifiable.
     private static readonly Dictionary<string, string> ReadsOnly = new(StringComparer.Ordinal)
     {
+        ["DocumentVersionsController.cs:Document"] =
+            "Reads only: the document-date correction resolves its document with a SingleAsync and writes the "
+            + "DocumentVersion's date and system comment (ADR 1110). Found when this guard learned to see controller "
+            + "PARTIALS (the action lives in .DocumentDate.cs): the pair was invisible, not innocent.",
         ["CertificateAttestationRootsController.cs:TrustedAttestationRoot"] =
             "Reads only: lists the installation's roots and checks the selected ids exist (ADR 0963). What it writes is the "
             + "tenant's join rows, under TenantVerbs.",
@@ -390,8 +394,11 @@ public partial class ConcurrencyContractRatchetTests
             return;
         }
 
+        // A controller may be PARTIAL (the 1000-line rule splits one by responsibility): the pattern takes its parts
+        // in, because a split that made an action invisible here would shrink this guard silently — the shape that
+        // already bit ExemptControllerShapeTests when DocumentVersionsController grew a partial (#2472).
         var controllers = Directory.GetFiles(
-            Path.Combine(root, "src", "Alcifra.Api", "Controllers"), "*Controller.cs");
+            Path.Combine(root, "src", "Alcifra.Api", "Controllers"), "*Controller*.cs");
         Assert.True(
             ContractByEntity.Keys.All(DbSetByEntity.ContainsKey) && DbSetByEntity.Count == ContractByEntity.Count,
             "Every tracked entity needs its DbSet name here, or the detector silently stops checking it — which "
@@ -401,7 +408,10 @@ public partial class ConcurrencyContractRatchetTests
             $"Only {controllers.Length} controllers found — the layout changed and this guard stopped seeing them.");
 
         var flagged = controllers
-            .Select(path => (Name: Path.GetFileName(path), Text: File.ReadAllText(path)))
+            // A partial is keyed by the file that DECLARES the controller ("XController.Create.cs" → "XController.cs"),
+            // so an exemption names the controller once, however many files it is written across.
+            .Select(path => (Name: System.Text.RegularExpressions.Regex.Replace(
+                Path.GetFileName(path), @"^(.*Controller)(\..*)?\.cs$", "$1.cs"), Text: File.ReadAllText(path)))
             .Select(c => (c.Name, c.Text, Code: WithoutCommentLines(c.Text)))
             .Where(c => MutatingAction().IsMatch(c.Code))
             // ASYMMETRIC ON PURPOSE. The MENTION is matched against CODE only, so prose cannot raise a flag;

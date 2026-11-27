@@ -47,7 +47,8 @@ public static class DocumentFiling
         byte[] content,
         string? mask,
         IReadOnlyList<FieldValue> fields,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? idSlug = null)
     {
         if (mask is null && fields.Count > 0)
         {
@@ -60,7 +61,9 @@ public static class DocumentFiling
 
         var parent = await LicenceFiling.ResolveAsync(api, hypermedia, parentId, cancellationToken);
         var childrenHref = Hypermedia.Href(LicenceFiling.Links(parent), "children", $"Document {parentId:D}");
-        var existing = await LicenceFiling.FindChildAsync(api, childrenHref, name, cancellationToken);
+        // An idSlug SELECTS the identity (#2501): the create is idempotent by it (201 created, 200 already there),
+        // so a lookup by name is wrong here — a same-named document elsewhere under the parent is a different one.
+        Guid? existing = idSlug is null ? await LicenceFiling.FindChildAsync(api, childrenHref, name, cancellationToken) : null;
         Guid documentId;
         if (existing is { } found)
         {
@@ -73,7 +76,14 @@ public static class DocumentFiling
                 throw new CliException($"Document {parentId:D} does not accept new children for this caller.");
             }
 
-            var created = await api.PostAsync(childrenHref, new { name }, cancellationToken);
+            var (status, created) = idSlug is null
+                ? (System.Net.HttpStatusCode.Created, await api.PostAsync(childrenHref, new { name }, cancellationToken))
+                : await api.PostWithStatusAsync(childrenHref, new { name, idSlug }, cancellationToken);
+            if (idSlug is not null && status == System.Net.HttpStatusCode.OK)
+            {
+                existing = created.TryGetProperty("id", out var existingId) && existingId.TryGetGuid(out var existingValue) ? existingValue : null;
+            }
+
             documentId = created.TryGetProperty("id", out var id) && id.TryGetGuid(out var value)
                 ? value
                 : throw new CliException("Creating the document answered without an id.");
@@ -101,7 +111,8 @@ public static class DocumentFiling
     /// its fields stated again. The mask is given at creation, the path a folder mask is made by.
     /// </summary>
     public static async Task<Guid> FolderAsync(
-        AlcifraApi api, Hypermedia hypermedia, Guid parentId, string name, string mask, IReadOnlyList<FieldValue> fields, CancellationToken cancellationToken)
+        AlcifraApi api, Hypermedia hypermedia, Guid parentId, string name, string mask, IReadOnlyList<FieldValue> fields, CancellationToken cancellationToken,
+        string? idSlug = null)
     {
         var maskFields = await ResolveMaskAsync(api, hypermedia, mask, cancellationToken, assigning: false);
         var groups = FieldGroups(maskFields, fields);
@@ -109,13 +120,16 @@ public static class DocumentFiling
         var parent = await LicenceFiling.ResolveAsync(api, hypermedia, parentId, cancellationToken);
         var childrenHref = Hypermedia.Href(LicenceFiling.Links(parent), "children", $"Document {parentId:D}");
         Guid folderId;
-        if (await LicenceFiling.FindChildAsync(api, childrenHref, name, cancellationToken) is { } found)
+        // An idSlug selects the identity (#2501) and the create is idempotent by it — no name lookup then.
+        if (idSlug is null && await LicenceFiling.FindChildAsync(api, childrenHref, name, cancellationToken) is { } found)
         {
             folderId = found;
         }
         else
         {
-            var created = await api.PostAsync(childrenHref, new { name, maskId = maskFields.Id }, cancellationToken);
+            var created = idSlug is null
+                ? await api.PostAsync(childrenHref, new { name, maskId = maskFields.Id }, cancellationToken)
+                : (await api.PostWithStatusAsync(childrenHref, new { name, maskId = maskFields.Id, idSlug }, cancellationToken)).Body;
             folderId = created.TryGetProperty("id", out var id) && id.TryGetGuid(out var value)
                 ? value
                 : throw new CliException("Creating the folder answered without an id.");

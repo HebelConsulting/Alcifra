@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using Alcifra.Application.Identifiers;
 
 namespace Alcifra.Api.Provisioning;
 
@@ -38,34 +37,5 @@ public static class DemoId
     /// <summary>An id owned by the demo tenant, derived from a stable slug (never from a display name).</summary>
     public static Guid For(Guid tenantId, string slug) => Derive(tenantId, slug);
 
-    private static Guid Derive(Guid namespaceId, string name)
-    {
-        // RFC 4122 §4.3: SHA-1 over the namespace GUID in network byte order + the name's UTF-8 bytes, then
-        // stamp version 5 and the RFC variant into the first 16 hash bytes.
-        var namespaceBytes = namespaceId.ToByteArray();
-        SwapGuidByteOrder(namespaceBytes);
-
-        var nameBytes = Encoding.UTF8.GetBytes(name);
-        var input = new byte[namespaceBytes.Length + nameBytes.Length];
-        namespaceBytes.CopyTo(input, 0);
-        nameBytes.CopyTo(input, namespaceBytes.Length);
-
-        var hash = SHA1.HashData(input);
-        var id = new byte[16];
-        Array.Copy(hash, id, 16);
-        id[6] = (byte)((id[6] & 0x0F) | 0x50); // version 5
-        id[8] = (byte)((id[8] & 0x3F) | 0x80); // RFC variant
-
-        SwapGuidByteOrder(id);
-        return new Guid(id);
-    }
-
-    // Guid.ToByteArray emits the first three fields little-endian; RFC 4122 hashes network (big-endian) order.
-    private static void SwapGuidByteOrder(byte[] guidBytes)
-    {
-        (guidBytes[0], guidBytes[3]) = (guidBytes[3], guidBytes[0]);
-        (guidBytes[1], guidBytes[2]) = (guidBytes[2], guidBytes[1]);
-        (guidBytes[4], guidBytes[5]) = (guidBytes[5], guidBytes[4]);
-        (guidBytes[6], guidBytes[7]) = (guidBytes[7], guidBytes[6]);
-    }
+    private static Guid Derive(Guid namespaceId, string name) => DeterministicIds.V5(namespaceId, name);
 }

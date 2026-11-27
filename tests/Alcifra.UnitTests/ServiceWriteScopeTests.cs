@@ -160,7 +160,10 @@ public partial class ServiceWriteScopeTests
         var writers = Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(f => !f.Contains("Migrations", StringComparison.Ordinal))
-            .Where(f => !Path.GetFileName(f).EndsWith("Controller.cs", StringComparison.Ordinal))
+            // Controller PARTIALS too ("XController.Create.cs"): a controller is the other guard's to read, and that one
+            // sees partials now — a split must not turn part of a controller into an unaccounted "service".
+            .Where(f => !System.Text.RegularExpressions.Regex.IsMatch(
+                Path.GetFileName(f), @"Controller(\..*)?\.cs$"))
             .Select(f => (Name: Path.GetFileName(f), Text: File.ReadAllText(f)))
             .Where(f => Saves().IsMatch(f.Text) && (TrackedWrite().IsMatch(f.Text) || LifecycleAssignment().IsMatch(f.Text)))
             .Select(f => f.Name)

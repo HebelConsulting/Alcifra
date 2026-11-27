@@ -622,6 +622,13 @@ public partial class RepositoriesController : ControllerBase
     public class CreateDocumentRequest
     {
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// The identity to derive the new document's id from (#2501) — see
+        /// <c>DocumentChildrenController.CreateChildRequest.IdSlug</c>: a create carrying one is idempotent by
+        /// identity (201 when created, 200 with the document already holding it), never an overwrite.
+        /// </summary>
+        public string? IdSlug { get; set; }
     }
 
     [HttpPost("{repositoryId:guid}/documents")]
@@ -646,9 +653,31 @@ public partial class RepositoriesController : ControllerBase
 
         var (createdByUserId, createdByServiceAccountId) = GetCallerIdentity();
 
+        // The caller may choose the identity (#2501), and a create that names one is idempotent by it.
+        var id = Guid.NewGuid();
+        if (request.IdSlug is { } requestedSlug)
+        {
+            var slug = requestedSlug.Trim();
+            if (slug.Length is 0 or > 200)
+            {
+                throw new Errors.Exceptions.Documents.InvalidDocumentIdSlugException();
+            }
+
+            id = Documents.CallerDocumentIds.For(parent.TenantId, slug);
+            if (await _dbContext.Documents.Where(d => d.Id == id).Select(d => d.Name).SingleOrDefaultAsync(cancellationToken) is { } existingName)
+            {
+                return Ok(new DocumentSummaryResource
+                {
+                    Id = id,
+                    Name = existingName,
+                    Links = [new Link("self", $"/api/documents/{id}", "GET")],
+                });
+            }
+        }
+
         var document = new Document
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             TenantId = parent.TenantId,
             ParentId = repositoryId,
             Name = request.Name,

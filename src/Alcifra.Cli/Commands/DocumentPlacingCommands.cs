@@ -24,6 +24,10 @@ public sealed class DocumentFolderSettings : TenantSessionSettings
     [CommandOption("--field <NAME=VALUE>")]
     [Description("A field of the mask and its value; repeat it for more fields, or for more values of a list field.")]
     public string[] Fields { get; init; } = [];
+
+    [CommandOption("--id-slug <SLUG>")]
+    [Description("The folder's identity, derived from the tenant and this slug (#2501): the same slug is the same folder on every run and across resets. Omitted: find-or-create by name, as before.")]
+    public string? IdSlug { get; init; }
 }
 
 /// <summary>Creates a folder wearing a mask and prints its id on stdout (ADR 1046). Re-runnable.</summary>
@@ -36,7 +40,7 @@ public sealed class DocumentFolderCommand(ILogger<DocumentFolderCommand> logger)
         var api = new AlcifraApi(http);
         var id = await DocumentFiling.FolderAsync(
             api, new Hypermedia(api), settings.Parent, settings.Name.Trim(), settings.Mask.Trim(),
-            [.. settings.Fields.Select(DocumentFiling.ParseField)], cancellationToken);
+            [.. settings.Fields.Select(DocumentFiling.ParseField)], cancellationToken, settings.IdSlug);
         logger.LogInformation("{Name}: folder ready.", settings.Name);
 
         // Data output (ADR 0906): the id alone on stdout, for `id=$(alcifra document folder …)`.

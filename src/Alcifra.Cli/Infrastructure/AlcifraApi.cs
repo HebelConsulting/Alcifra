@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -175,7 +176,15 @@ public sealed class AlcifraApi(HttpClient http)
         return string.IsNullOrWhiteSpace(body) ? default : JsonDocument.Parse(body).RootElement.Clone();
     }
 
-    public async Task<JsonElement> PostAsync<TRequest>(string path, TRequest payload, CancellationToken cancellationToken)
+    public async Task<JsonElement> PostAsync<TRequest>(string path, TRequest payload, CancellationToken cancellationToken) =>
+        (await PostWithStatusAsync(path, payload, cancellationToken)).Body;
+
+    /// <summary>
+    /// A JSON <c>POST</c>, with the status code the caller needs when the answer is not the same shape for every
+    /// success: a create carrying an <c>idSlug</c> answers <c>201</c> when it created the document and <c>200</c>
+    /// when one already holds that identity (#2501) — the difference is what a re-runnable seed reads.
+    /// </summary>
+    public async Task<(HttpStatusCode Status, JsonElement Body)> PostWithStatusAsync<TRequest>(string path, TRequest payload, CancellationToken cancellationToken)
     {
         using var response = await http.PostAsJsonAsync(path, payload, Json, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -186,7 +195,7 @@ public sealed class AlcifraApi(HttpClient http)
         }
 
         // A transition may answer 204 (revoking a key, #2278), as a PUT may.
-        return string.IsNullOrWhiteSpace(body) ? default : JsonDocument.Parse(body).RootElement.Clone();
+        return (response.StatusCode, string.IsNullOrWhiteSpace(body) ? default : JsonDocument.Parse(body).RootElement.Clone());
     }
 
     /// <summary>

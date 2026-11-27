@@ -29,6 +29,10 @@ public sealed class DocumentFileSettings : TenantSessionSettings
     [Description("A field of the mask and its value; repeat it for more fields, or for more values of a list field. The fields given are the document's index data.")]
     public string[] Fields { get; init; } = [];
 
+    [CommandOption("--id-slug <SLUG>")]
+    [Description("The document's identity, derived from the tenant and this slug (#2501): the same slug is the same document on every run and across resets, so a seed needs no lookup. Omitted: a new document each run.")]
+    public string? IdSlug { get; init; }
+
     public override ValidationResult Validate()
     {
         var baseResult = base.Validate();
@@ -73,7 +77,8 @@ public sealed class DocumentFileCommand(ILogger<DocumentFileCommand> logger) : A
             await File.ReadAllBytesAsync(settings.Path, cancellationToken),
             string.IsNullOrWhiteSpace(settings.Mask) ? null : settings.Mask.Trim(),
             [.. settings.Fields.Select(DocumentFiling.ParseField)],
-            cancellationToken);
+            cancellationToken,
+            settings.IdSlug);
         logger.LogInformation("{Name}: {Outcome}.", name, outcome switch
         {
             LicenceFiling.Outcome.Filed => "filed",
